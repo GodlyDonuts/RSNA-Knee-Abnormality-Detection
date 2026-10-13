@@ -1,0 +1,16 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');plan=json.loads((R/'plan-admitted.json').read_text());assert plan==v['plan'] and not (R/'acquisition-dispatch-intent.json').exists();assert shutil.disk_usage('/tmp').free>140*2**30+624*2**20
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];out=R/p;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with out.open('x') as f:f.write(s)
+with (R/'code-source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes']},f,indent=2)
+with (R/'acquisition-dispatch-intent.json').open('x') as f:json.dump({'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'private':True,'original_source_bytes':plan['raw_source_bytes'],'source_inventory_sha256':plan['private_inventory_sha256'],'automatic_retry':False},f,indent=2)
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<512*2**20
+e=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(R/'acquire_and_compare.py'),str(R)],input=json.dumps({'token':v['token']}),env=e,capture_output=True,text=True,timeout=1600)
+with (R/'acquisition.stdout').open('x') as f:f.write(x.stdout)
+with (R/'acquisition.stderr').open('x') as f:f.write(x.stderr.replace(v['token'],'[redacted]'))
+if x.returncode:
+ print(json.dumps({'status':'original_private_acquisition_or_comparison_failed','returncode':x.returncode,'CPU_job':os.environ['SLURM_JOB_ID'],'private_logs_retained':True,'automatic_retry':False}));sys.exit(x.returncode)
+out=json.loads(x.stdout);print(json.dumps(out))

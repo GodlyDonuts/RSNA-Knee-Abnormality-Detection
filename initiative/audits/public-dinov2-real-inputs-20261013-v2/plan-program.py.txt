@@ -1,0 +1,28 @@
+import hashlib,json,os,shutil,sys,zipfile
+from pathlib import Path
+P=Path('/tmp/rsna-public-label-inputs-20261006-v1');R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert shutil.disk_usage('/tmp').free>140*2**30+240*2**20
+sys.path.insert(0,str(P/'code'))
+import pandas as pd
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development
+inp=json.loads((P/'CPU-accepted.json').read_text())['trainer_inputs'];frame,binding=load_verified_release(Path(inp['studies']),Path(inp['artifact-root']));folds=load_folds(Path(inp['folds']),frame,binding);fit,outer=select_development(frame,folds,0);assert (len(fit),len(outer))==(2247,1156)
+salt='public-dinov2-input-parity-v1';roster=sorted(fit.study_uid.astype(str).tolist(),key=lambda u:hashlib.sha256(f'{salt}:{u}'.encode()).hexdigest())[:8];assert not set(roster)&set(outer.study_uid)
+parts=sorted((Path(inp['artifact-root'])/'initiative/source/inventory').glob('*.parquet'));assert len(parts)==9
+rows=[]
+for p in parts:
+ table=pd.read_parquet(p);subset=table[table.study_uid.astype(str).isin(roster)];rows+=subset.to_dict('records')
+assert set(str(x['study_uid']) for x in rows)==set(roster) and all(x['split']=='train_series' for x in rows);assert len({x['path'] for x in rows})==len(rows)
+for x in rows:
+ path=Path(x['path']);assert not path.is_absolute() and '..' not in path.parts and 'train_series' in path.parts and path.suffix=='.dcm'
+ assert isinstance(x['sha256'],str) and len(x['sha256'])==64 and int(x['bytes'])>0
+raw_bytes=sum(int(x['bytes']) for x in rows);assert raw_bytes<=4*2**30
+R.mkdir(mode=0o700)
+with (R/'private-original-roster-and-files.json').open('x') as f:json.dump({'roster':roster,'files':rows,'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d'},f,indent=2)
+archive=Path('/tmp/rsna-public-solution-models-20261007-v1/pilkwang--rsna-knee-weights--v1.zip')
+with zipfile.ZipFile(archive) as z:
+ manifest=z.read('manifest.json');record=next(x for x in json.loads(manifest)['members'] if x['file']=='m_e5427d6c21.pt');assert z.getinfo('m_e5427d6c21.pt').file_size==89306234
+ with (R/'private-member-manifest.json').open('xb') as f:f.write(manifest)
+proof={'status':'bounded_fitting_only_original_MRI_population_and_byte_cap_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'fitting_studies':8,'raw_source_files':len(rows),'raw_source_bytes':raw_bytes,'raw_source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','fitting_uid_sha256':hashlib.sha256(json.dumps(sorted(roster),separators=(',',':')).encode()).hexdigest(),'private_inventory_sha256':hashlib.sha256((R/'private-original-roster-and-files.json').read_bytes()).hexdigest(),'original_member_manifest_sha256':hashlib.sha256(manifest).hexdigest(),'member_pixel_group':record['pixel_group'],'outcome_guided_selection':False,'raw_images_acquired':False,'MRI_comparison_executed':False,'GPU_used':False,'new_private_raw_cap_bytes':4*2**30,'new_private_code_model_metadata_cap_bytes':128*2**20,'new_shared_growth':0,'existing_future_and_reserve_required_free_bytes':140*2**30+240*2**20,'node_free_bytes':shutil.disk_usage('/tmp').free}
+with (R/'plan-admitted.json').open('x') as f:json.dump(proof,f,indent=2)
+print(json.dumps(proof))

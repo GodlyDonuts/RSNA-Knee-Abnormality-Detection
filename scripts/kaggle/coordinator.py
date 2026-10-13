@@ -128,6 +128,302 @@ def pending_dataset_mutation(base, journal, own_marker=None):
     return False
 
 
+COMMON_ACTIONS = ("prepare-common-transport", "create-common-dataset", "reconcile-common-dataset")
+COMPONENT_PROJECTION = (
+    "scripts/kaggle/components.py",
+    "scripts/kaggle/coordinator.py",
+    "scripts/kaggle/publication.py",
+    "scripts/kaggle/workflow.py",
+    "scripts/kaggle/notebook_entry.py",
+    "scripts/kaggle/chunked_infer.py",
+    "scripts/kaggle/project_code.py",
+)
+
+
+def require_component_projection(projection):
+    """Component phases run only from one projection holding this coordinator's own bytes."""
+    files = projection.get("files", {})
+    if any(name not in files for name in COMPONENT_PROJECTION) or any(
+        p.digest(Path(__file__).with_name(Path(name).name)) != files[name]["sha256"]
+        for name in ("scripts/kaggle/coordinator.py", "scripts/kaggle/publication.py")
+    ):
+        raise ValueError("Component phases need one projection with every coordinator dependency")
+
+
+def common_markers(base, op):
+    shared = base / "dataset-publications"
+    key = "common-" + op["manifest_sha256"]
+    return shared, shared / (key + ".node-intent.json"), shared / (key + ".node-verified.json")
+
+
+def common_journal(args, base, op):
+    """Node-local journal for one common Dataset create; two small shared markers."""
+    shared, intent, verified = common_markers(base, op)
+    root = getattr(args, "node_local_journal_root", None)
+    if root is None:
+        raise ValueError("Common Dataset phases require their node-local journal root")
+    root = Path(root)
+    if (
+        not root.is_absolute()
+        or root.parent.resolve() != NODE_SCRATCH.resolve()
+        or root.name != "rsna-kaggle-common-journal-" + op["manifest_sha256"][:12]
+        or root.is_symlink()
+    ):
+        raise ValueError("Journal root must be the exact private common directory in /tmp")
+    if args.action == "prepare-common-transport":
+        if intent.exists() or verified.exists():
+            raise ValueError("Common Dataset already has a durable shared intent")
+        shared.mkdir(mode=0o700, parents=True, exist_ok=True)
+        root.mkdir(mode=0o700, exist_ok=False)
+    elif not root.exists():
+        raise ValueError("Node-local journal is missing; only marker reconciliation remains")
+    info = root.stat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+        raise ValueError("Node-local journal ownership/permissions differ")
+    binding = {
+        "root": str(root),
+        "host": os.uname().nodename,
+        "uid": info.st_uid,
+        "device": info.st_dev,
+        "inode": info.st_ino,
+    }
+    return SimpleNamespace(root=root, binding=binding, intent=intent, verified=verified)
+
+
+def run_common(args):
+    """Bounded once-only private common Dataset create and full-byte reconciliation.
+
+    No checkpoint ledger entry, kernel or submission. Any intent marker makes
+    the create permanently read-only: unknown outcomes are reconciled, never
+    re-created, and a different node cannot create the same common Dataset.
+    """
+    if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("A bounded CPU-only allocation is required")
+    base = Path.home() / "rsna-knee/kaggle"
+    base.mkdir(mode=0o700, parents=True, exist_ok=True)
+    workflow, projection = load_workflow(
+        args.projection, args.projection_manifest, args.projection_sha256
+    )
+    require_component_projection(projection)
+    components = workflow.components
+    if args.action == "reconcile-common-dataset":
+        return reconcile_common(args, base, workflow)
+    op, manifest = components.load_common_operation(args.common_operation)
+    tree = args.common_operation.parent / op["bundle_path"]
+    files = p.expected_files(tree, manifest, components.COMMON_MANIFEST)
+    if files[components.COMMON_MANIFEST] != {
+        "sha256": op["manifest_sha256"],
+        "bytes": op["manifest_bytes"],
+    }:
+        raise ValueError("Common manifest bytes differ from the operation")
+    operation_sha = p.digest(args.common_operation)
+    local = common_journal(args, base, op)
+    with single_coordinator(base):
+        if args.action == "prepare-common-transport":
+            upload = local.root / "upload"
+            upload.mkdir(mode=0o700)
+            archive = p.build_zip(tree, files, upload / "bundle.zip")
+            tree_bytes = sum(row["bytes"] for row in files.values()) + (
+                (tree / "dataset-metadata.json").stat().st_size
+            )
+            record = {
+                "status": "prepared_not_published",
+                "kind": "common_dataset_transport",
+                "archive_sha256": archive["sha256"],
+                "archive_bytes": archive["bytes"],
+                "common_manifest_sha256": op["manifest_sha256"],
+                "common_operation_sha256": operation_sha,
+                "projection_sha256": args.projection_sha256,
+                "package_git_commit": projection["package_git_commit"],
+                "training_git_commit": projection["training_git_commit"],
+                "node_local_journal": local.binding,
+                "common_tree_node": op["node"],
+                "footprint": {
+                    "node_local_common_tree_bytes": tree_bytes,
+                    "node_local_upload_zip_bytes": archive["bytes"],
+                    "shared_marker_files": 2,
+                    "shared_marker_names": [local.intent.name, local.verified.name],
+                    "deletion_credit": False,
+                },
+                "checkpoint_entry": None,
+                "competition_submission": False,
+            }
+            p.exclusive_json(local.root / "transport.json", record)
+            return record
+        if args.action != "create-common-dataset":
+            raise ValueError("Unsupported common phase")
+        transport = json.loads((local.root / "transport.json").read_text())
+        if (
+            transport.get("node_local_journal") != local.binding
+            or transport.get("common_operation_sha256") != operation_sha
+            or transport.get("projection_sha256") != args.projection_sha256
+        ):
+            raise ValueError("Node-local journal moved or node/identity changed")
+        remote, token = remote_from_stdin(workflow)
+        if op["account"] != remote.username:
+            raise ValueError("Common Dataset belongs to another account")
+        ledger_file = base / "account-ledger.sqlite3"
+        if not ledger_file.is_file():
+            raise ValueError("The canonical shared account ledger must already exist")
+        with workflow.ledger(ledger_file, remote.username) as db:
+            workflow.verify_account(db, remote)
+        if args.management_python is None:
+            raise ValueError("Separate pinned SDK management interpreter is required")
+        if local.intent.exists() or local.verified.exists():
+            raise ValueError("Common create already has a durable intent; reconcile only")
+        if pending_dataset_mutation(base, None, local.intent):
+            raise ValueError("Another dataset mutation awaits read-only reconciliation")
+        workflow.verify_shared_wheelhouse(remote, op["shared_wheelhouse"])
+        # Exclusive shared intent precedes the one create; never retried. It
+        # embeds the full original operation so reconciliation needs no node.
+        p.exclusive_json(
+            local.intent,
+            {
+                "schema_version": 1,
+                "kind": COMMON_INTENT_KIND,
+                "account": op["account"],
+                "slug": op["dataset_slug"],
+                "dataset_version": 1,
+                "private": True,
+                "manifest_name": components.COMMON_MANIFEST,
+                "files": files,
+                "operation": op,
+                "transport": transport,
+                "node_local_journal": local.binding,
+                "common_operation_sha256": operation_sha,
+                "retry_prohibited": True,
+                "checkpoint_entry": None,
+                "competition_submission": False,
+            },
+        )
+        return p.create_once(
+            remote,
+            token,
+            op["dataset_slug"],
+            files,
+            local.root / "upload",
+            local.root,
+            transport,
+            create=management_create(args.management_python),
+        )
+
+
+COMMON_INTENT_KIND = "node_local_common_dataset_create_intent"
+COMMON_INTENT_KEYS = {
+    "schema_version",
+    "kind",
+    "account",
+    "slug",
+    "dataset_version",
+    "private",
+    "manifest_name",
+    "files",
+    "operation",
+    "transport",
+    "node_local_journal",
+    "common_operation_sha256",
+    "retry_prohibited",
+    "checkpoint_entry",
+    "competition_submission",
+}
+
+
+def common_intent_files(components, marker, op, operation_sha):
+    """Bind a shared create intent to the exact original operation; no local tree access."""
+    files = marker.get("files") if isinstance(marker, dict) else None
+    if (
+        not isinstance(marker, dict)
+        or set(marker) != COMMON_INTENT_KEYS
+        or marker["schema_version"] != 1
+        or marker["kind"] != COMMON_INTENT_KIND
+        or marker["common_operation_sha256"] != operation_sha
+        or marker["operation"] != op
+        or marker["account"] != op["account"]
+        or marker["slug"] != op["dataset_slug"]
+        or marker["dataset_version"] != 1
+        or marker["private"] is not True
+        or marker["manifest_name"] != components.COMMON_MANIFEST
+        or marker["retry_prohibited"] is not True
+        or marker["checkpoint_entry"] is not None
+        or marker["competition_submission"] is not False
+        or not isinstance(files, dict)
+        or files.get(components.COMMON_MANIFEST)
+        != {"sha256": op["manifest_sha256"], "bytes": op["manifest_bytes"]}
+    ):
+        raise ValueError("Durable shared common intent differs from the original operation")
+    rows = {k: v for k, v in files.items() if k != components.COMMON_MANIFEST}
+    components.validate_table(rows)
+    if (
+        components.object_hash(rows) != op["files_sha256"]
+        or len(rows) != op["member_count"]
+        or sum(row["bytes"] for row in rows.values()) != op["total_bytes"]
+        or rows.get("wheelhouse.json", {}).get("sha256") != op["wheelhouse_manifest_sha256"]
+    ):
+        raise ValueError("Durable shared common intent member table differs")
+    return files
+
+
+def reconcile_common(args, base, workflow):
+    """Strictly read-only marker reconciliation, independent of node-local state.
+
+    Reads only the reviewed operation file (any path; its bytes must hash to the
+    intent's ``common_operation_sha256``), the shared intent marker, the shared
+    ledger and the remote. It never reads the common tree, the node-local
+    journal or the host identity, so it works after complete loss of the
+    creating node and from any host. It never creates.
+    """
+    components = workflow.components
+    operation_sha = p.digest(args.common_operation)
+    op = components.validate_common_operation(json.loads(args.common_operation.read_text()))
+    _, intent, verified = common_markers(base, op)
+    with single_coordinator(base):
+        if not intent.is_file():
+            raise ValueError("No durable common create intent exists to reconcile")
+        intent_sha = p.digest(intent)
+        files = common_intent_files(components, json.loads(intent.read_text()), op, operation_sha)
+        remote, _ = remote_from_stdin(workflow)
+        if op["account"] != remote.username:
+            raise ValueError("Common Dataset belongs to another account")
+        ledger_file = base / "account-ledger.sqlite3"
+        if not ledger_file.is_file():
+            raise ValueError("The canonical shared account ledger must already exist")
+        with workflow.ledger(ledger_file, remote.username) as db:
+            workflow.verify_account(db, remote)
+        result = p.reconcile(
+            remote, op["dataset_slug"], files, manifest_name=components.COMMON_MANIFEST
+        )
+        if (
+            result.get("files") != files
+            or result.get("slug") != op["dataset_slug"]
+            or result.get("version") != 1
+            or result.get("private") is not True
+            or result.get("downloaded_all_bytes") is not True
+            or p.digest(intent) != intent_sha
+        ):
+            raise ValueError("Remote common Dataset differs from the durable intent")
+        result.update(
+            common_operation_sha256=operation_sha,
+            intent_sha256=intent_sha,
+            checkpoint_entry=None,
+        )
+        if verified.exists():
+            if json.loads(verified.read_text()) != result:
+                raise ValueError("Previously frozen verification differs")
+        else:
+            p.exclusive_json(verified, result)
+        return result
+
+
+def require_common_proof(base, op):
+    """A component checkpoint binds the coordinator's own frozen common verification."""
+    record = op.get("common_bundle")
+    if record is None:
+        return
+    _, _, verified = common_markers(base, record)
+    if not verified.is_file() or p.digest(verified) != record.get("verification_sha256"):
+        raise ValueError("Common Dataset lacks its coordinator full-byte verification marker")
+
+
 def load_workflow(projection, manifest_file, expected_sha):
     if p.digest(manifest_file) != expected_sha:
         raise ValueError("Projection manifest differs from root-reviewed hash")
@@ -605,6 +901,8 @@ def management_create(python):
 
 
 def run(args):
+    if args.action in COMMON_ACTIONS:
+        return run_common(args)
     if not os.environ.get("SLURM_JOB_ID") or os.environ.get("SLURM_JOB_GPUS"):
         raise ValueError("A bounded CPU-only allocation is required")
     base = Path.home() / "rsna-knee/kaggle"
@@ -613,6 +911,9 @@ def run(args):
         args.projection, args.projection_manifest, args.projection_sha256
     )
     op, meta, files = validate_operation(workflow, args)
+    if op.get("common_bundle") is not None:
+        require_component_projection(projection)
+        require_common_proof(base, op)
     if op.get("dataset_publication_operation_sha256") is not None and args.action not in {
         "push-runtime-corrected-kernel",
         "push-after-uncertain-placeholder",
@@ -818,10 +1119,13 @@ def main():
             "push-runtime-corrected-kernel",
             "push-after-uncertain-placeholder",
             "submit",
+            *COMMON_ACTIONS,
         ],
     )
-    for name in ("projection", "projection-manifest", "operation", "snapshot"):
+    for name in ("projection", "projection-manifest"):
         parser.add_argument("--" + name, required=True, type=Path)
+    for name in ("operation", "snapshot", "common-operation"):
+        parser.add_argument("--" + name, type=Path)
     parser.add_argument("--projection-sha256", required=True)
     parser.add_argument("--publication-revision", action="store_true")
     parser.add_argument("--superseded-operation-sha256")
@@ -830,6 +1134,24 @@ def main():
     parser.add_argument("--node-local-upload-root", type=Path)
     parser.add_argument("--node-local-journal-root", type=Path)
     args = parser.parse_args()
+    if args.action in COMMON_ACTIONS:
+        if (
+            args.common_operation is None
+            or (args.node_local_journal_root is not None)
+            != (args.action != "reconcile-common-dataset")
+            or args.operation is not None
+            or args.snapshot is not None
+            or args.publication_revision
+            or args.superseded_operation_sha256
+            or args.dataset_publication_operation
+            or args.node_local_upload_root
+        ):
+            parser.error(
+                "common phases take only --common-operation; prepare/create also take"
+                " their journal root, marker-only reconcile does not"
+            )
+    elif args.operation is None or args.snapshot is None or args.common_operation is not None:
+        parser.error("checkpoint phases require --operation and --snapshot")
     try:
         result = run(args)
         print(json.dumps(result, sort_keys=True))

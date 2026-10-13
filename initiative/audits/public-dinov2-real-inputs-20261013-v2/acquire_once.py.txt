@@ -1,0 +1,32 @@
+import hashlib,json,re,shlex,subprocess
+from pathlib import Path
+from dotenv import dotenv_values
+L=Path('artifacts/public-dinov2-real-inputs-20261013-v2');assert not (L/'acquisition-dispatch-intent.json').exists();plan=json.loads((L/'plan-admitted.json').read_text());assert plan['raw_source_bytes']<=4*2**30 and plan['fitting_studies']==8
+files={}
+for n in subprocess.check_output(['git','ls-files','rsna','tools/research/public_dinov2_input_reference'],text=True).splitlines():
+ if n.endswith(('.py','.json')):files['code/'+n]=Path(n).read_text()
+for n in ['scripts/newton/compare_public_dinov2_inputs.py','initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json']:files['code/'+n]=Path(n).read_text()
+files['acquire_and_compare.py']=Path('artifacts/public-dinov2-real-inputs-20261013-v1/acquire_and_compare.py').read_text()
+hashes={n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()};head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert head==subprocess.check_output(['git','rev-parse','origin/main'],text=True).strip()
+p=Path('.env');assert p.stat().st_mode&0o077==0;token=dotenv_values(p)['HF_TOKEN']
+program=r'''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');plan=json.loads((R/'plan-admitted.json').read_text());assert plan==v['plan'] and not (R/'acquisition-dispatch-intent.json').exists();assert shutil.disk_usage('/tmp').free>140*2**30+624*2**20
+for n,s in v['files'].items():
+ p=Path(n);assert not p.is_absolute() and '..' not in p.parts and hashlib.sha256(s.encode()).hexdigest()==v['hashes'][n];out=R/p;out.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with out.open('x') as f:f.write(s)
+with (R/'code-source.json').open('x') as f:json.dump({'source_git':v['source_git'],'files':v['hashes']},f,indent=2)
+with (R/'acquisition-dispatch-intent.json').open('x') as f:json.dump({'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'private':True,'original_source_bytes':plan['raw_source_bytes'],'source_inventory_sha256':plan['private_inventory_sha256'],'automatic_retry':False},f,indent=2)
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<512*2**20
+e=dict(os.environ,PYTHONPATH=str(R/'code'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+x=subprocess.run(['/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B',str(R/'acquire_and_compare.py'),str(R)],input=json.dumps({'token':v['token']}),env=e,capture_output=True,text=True,timeout=1600)
+with (R/'acquisition.stdout').open('x') as f:f.write(x.stdout)
+with (R/'acquisition.stderr').open('x') as f:f.write(x.stderr.replace(v['token'],'[redacted]'))
+if x.returncode:
+ print(json.dumps({'status':'original_private_acquisition_or_comparison_failed','returncode':x.returncode,'CPU_job':os.environ['SLURM_JOB_ID'],'private_logs_retained':True,'automatic_retry':False}));sys.exit(x.returncode)
+out=json.loads(x.stdout);print(json.dumps(out))
+'''
+(L/'acquisition-program.py.txt').write_text(program);(L/'acquisition-dispatch-intent.json').write_text(json.dumps({'source_git':head,'source_hashes':hashes,'CPU':1,'GPU':0,'original_raw_bytes':plan['raw_source_bytes'],'raw_cap':4*2**30,'metadata_code_model_cap':512*2**20,'credential_transport':'ignored0600_env_RAM_SSH_stdin_only','automatic_retry':False},indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc31','--gres=none','--mem=8G','--time=00:30:00','--job-name=rsna-public-original-input-compare','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source_git':head,'files':files,'hashes':hashes,'plan':plan,'token':token}),capture_output=True,text=True,timeout=1850)
+clean=lambda s:re.sub(r'hf_[A-Za-z0-9]{10,}','[redacted]',s.replace(token,'[redacted]'));(L/'acquisition-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':clean(x.stdout),'stderr':clean(x.stderr)},indent=2)+'\n');assert x.returncode==0,'Inspect original node-local receipt/log/partial files read-only; never repeat dispatch';out=json.loads(x.stdout);(L/'actual-comparison.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

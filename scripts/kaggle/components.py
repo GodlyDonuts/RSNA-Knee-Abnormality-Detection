@@ -30,6 +30,36 @@ CANDIDATE_FILES = {
     "baseline-proof.json",
 }
 RESERVED = {"bundle-manifest.json", "dataset-metadata.json", COMMON_MANIFEST}
+COMMON_OPERATION = "common-operation.json"
+COMMON_OPERATION_KIND = "rsna_common_dataset_operation"
+COMMON_OPERATION_KEYS = {
+    "schema_version",
+    "kind",
+    "account",
+    "dataset_slug",
+    "dataset_version",
+    "private",
+    "bundle_path",
+    "manifest_sha256",
+    "manifest_bytes",
+    "dataset_metadata_sha256",
+    "files_sha256",
+    "member_count",
+    "total_bytes",
+    "regenerated_common_sha256",
+    "checkpoint_format",
+    "license_source",
+    "license_sha256",
+    "encoder_spec_sha256",
+    "code_sha256",
+    "wheelhouse_manifest_sha256",
+    "shared_wheelhouse",
+    "source_receipt",
+    "node",
+    "checkpoint_entry",
+    "competition_submission_eligible",
+    "retry_prohibited",
+}
 BINDING_KEYS = {
     "schema_version",
     "dataset_slug",
@@ -147,7 +177,7 @@ def build_common_manifest(
         "shared_wheelhouse": shared_wheelhouse,
         "files": dict(sorted(files.items())),
         "diagnostic_only": False,
-        "competition_submission_eligible": True,
+        "competition_submission_eligible": False,
         "private_required": True,
     }
     validate_common_manifest(manifest)
@@ -161,7 +191,7 @@ def validate_common_manifest(manifest):
         or manifest.get("kind") != COMMON_KIND
         or manifest.get("checkpoint_format") not in {"full", "frozen_base_delta"}
         or manifest.get("diagnostic_only") is not False
-        or manifest.get("competition_submission_eligible") is not True
+        or manifest.get("competition_submission_eligible") is not False
         or manifest.get("private_required") is not True
         or not re.fullmatch(
             r"https://github\.com/facebookresearch/dinov3/blob/[0-9a-f]{40}/LICENSE\.md",
@@ -301,16 +331,67 @@ def merge(candidate_files, common_manifest, record):
     return dict(sorted(merged.items()))
 
 
+def standalone_source(dataset, receipt_path):
+    """Bind a standalone payload tree to its original full-download private v1 receipt."""
+    dataset = Path(dataset)
+    manifest_file = dataset / "bundle-manifest.json"
+    manifest = json.loads(manifest_file.read_text())
+    receipt = json.loads(Path(receipt_path).read_text())
+    expected = dict(validate_table(manifest.get("files")))
+    expected["bundle-manifest.json"] = {
+        "sha256": digest(manifest_file),
+        "bytes": manifest_file.stat().st_size,
+    }
+    if (
+        receipt.get("status") != "all_payload_bytes_verified"
+        or receipt.get("downloaded_all_bytes") is not True
+        or receipt.get("private") is not True
+        or receipt.get("version") != 1
+        or receipt.get("competition_submission") is not False
+        or type(receipt.get("id")) is not int
+        or receipt["id"] < 1
+        or receipt.get("slug") != manifest.get("dataset_slug")
+        or receipt.get("files") != expected
+    ):
+        raise ValueError("Standalone payload differs from its full-download private v1 receipt")
+    return manifest, {
+        "dataset_slug": receipt["slug"],
+        "dataset_id": receipt["id"],
+        "dataset_version": 1,
+        "receipt_sha256": digest(receipt_path),
+        "bundle_manifest_sha256": expected["bundle-manifest.json"]["sha256"],
+        "checkpoint_sha256": manifest.get("checkpoint_sha256"),
+    }
+
+
+def bootstrap_difference(old, regenerated):
+    """Names whose bytes differ between an old payload and the candidate's regeneration."""
+    validate_table(old)
+    validate_table(regenerated)
+    return sorted(n for n in set(old) | set(regenerated) if old.get(n) != regenerated.get(n))
+
+
 def extract_common(
-    dataset, output, *, competition, shared_wheelhouse, checkpoint_format, dataset_slug
+    dataset,
+    output,
+    *,
+    competition,
+    shared_wheelhouse,
+    checkpoint_format,
+    dataset_slug,
+    source_receipt,
+    regenerated,
 ):
     """Copy common members out of an already fully verified standalone payload.
 
-    No weights are downloaded: bytes come from an existing prepared Dataset tree
-    and are re-hashed against its bundle manifest before and after copying.
+    No weights are downloaded: bytes come from an existing prepared Dataset tree,
+    bound to its original full-download receipt and re-hashed before and after
+    copying. Old bytes are reusable only when they are byte-identical to the
+    common table regenerated from the candidate's own integrated sources
+    (``workflow.common_table``); no older payload is assumed to match.
     """
     dataset = Path(dataset)
-    manifest = json.loads((dataset / "bundle-manifest.json").read_text())
+    manifest, source = standalone_source(dataset, source_receipt)
     if (
         manifest.get("common_bundle") is not None
         or manifest.get("diagnostic_only") is not False
@@ -319,19 +400,26 @@ def extract_common(
     ):
         raise ValueError("Only an exact standalone non-diagnostic payload can seed a common bundle")
     common, _ = split(manifest["files"])
+    differing = bootstrap_difference(common, regenerated)
+    if differing:
+        raise ValueError(
+            "Old standalone common bytes differ from the candidate's regenerated members: "
+            + ", ".join(differing[:8])
+            + (" ..." if len(differing) > 8 else "")
+        )
     if not SLUG.fullmatch(dataset_slug) or dataset_slug == manifest.get("dataset_slug"):
         raise ValueError("A distinct explicit common Dataset slug is required")
     output = Path(output)
     output.mkdir(mode=0o700, exist_ok=False)
     for name, item in common.items():
-        source = dataset / confined(name)
-        if source.is_symlink() or not source.resolve().is_relative_to(dataset.resolve()):
+        source_file = dataset / confined(name)
+        if source_file.is_symlink() or not source_file.resolve().is_relative_to(dataset.resolve()):
             raise ValueError("Common source is linked or outside its payload")
         target = output / name
         target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if digest(source) != item["sha256"] or source.stat().st_size != item["bytes"]:
+        if digest(source_file) != item["sha256"] or source_file.stat().st_size != item["bytes"]:
             raise ValueError("Standalone payload bytes differ from its manifest")
-        shutil.copyfile(source, target)
+        shutil.copyfile(source_file, target)
         if digest(target) != item["sha256"] or target.stat().st_size != item["bytes"]:
             raise ValueError("Common copy differs")
     value = build_common_manifest(
@@ -354,7 +442,162 @@ def extract_common(
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-    return value
+    return value, source
+
+
+def node_binding(path):
+    """Host/uid/device/inode identity of a node-local directory."""
+    info = Path(path).stat()
+    return {
+        "root": str(Path(path)),
+        "host": os.uname().nodename,
+        "uid": info.st_uid,
+        "device": info.st_dev,
+        "inode": info.st_ino,
+    }
+
+
+def prepare_common_operation(
+    dataset,
+    directory,
+    *,
+    competition,
+    shared_wheelhouse,
+    checkpoint_format,
+    dataset_slug,
+    source_receipt,
+    regenerated,
+):
+    """Local only: extract one exact common tree and write its reviewed create operation.
+
+    The operation is a separate kind with no checkpoint, ledger entry or
+    submission eligibility. It binds the frozen common bytes, the owning
+    account, the original standalone receipt and the node holding the tree.
+    """
+    directory = Path(directory)
+    directory.mkdir(mode=0o700, exist_ok=False)
+    tree = directory / "common"
+    try:
+        manifest, source = extract_common(
+            dataset,
+            tree,
+            competition=competition,
+            shared_wheelhouse=shared_wheelhouse,
+            checkpoint_format=checkpoint_format,
+            dataset_slug=dataset_slug,
+            source_receipt=source_receipt,
+            regenerated=regenerated,
+        )
+    except Exception:
+        if not any(directory.iterdir()):
+            directory.rmdir()
+        raise
+    files = manifest["files"]
+    operation = {
+        "schema_version": 1,
+        "kind": COMMON_OPERATION_KIND,
+        "account": dataset_slug.split("/")[0],
+        "dataset_slug": dataset_slug,
+        "dataset_version": 1,
+        "private": True,
+        "bundle_path": "common",
+        "manifest_sha256": digest(tree / COMMON_MANIFEST),
+        "manifest_bytes": (tree / COMMON_MANIFEST).stat().st_size,
+        "dataset_metadata_sha256": digest(tree / "dataset-metadata.json"),
+        "files_sha256": object_hash(files),
+        "member_count": len(files),
+        "total_bytes": sum(item["bytes"] for item in files.values()),
+        "regenerated_common_sha256": object_hash(dict(sorted(regenerated.items()))),
+        "checkpoint_format": manifest["checkpoint_format"],
+        "license_source": manifest["license_source"],
+        "license_sha256": manifest["license_sha256"],
+        "encoder_spec_sha256": manifest["encoder_spec_sha256"],
+        "code_sha256": manifest["code_sha256"],
+        "wheelhouse_manifest_sha256": files["wheelhouse.json"]["sha256"],
+        "shared_wheelhouse": shared_wheelhouse,
+        "source_receipt": source,
+        "node": node_binding(tree),
+        "checkpoint_entry": None,
+        "competition_submission_eligible": False,
+        "retry_prohibited": True,
+    }
+    validate_common_operation(operation)
+    with (directory / COMMON_OPERATION).open("x") as handle:
+        handle.write(common_operation_text(operation))
+        handle.flush()
+        os.fsync(handle.fileno())
+    return operation
+
+
+def common_operation_text(operation):
+    """Exact deterministic bytes of ``common-operation.json``.
+
+    The shared create intent embeds the operation, so after losing the owning
+    node an operator can re-serialize it and must reproduce the original hash.
+    """
+    return json.dumps(operation, sort_keys=True, indent=2, allow_nan=False) + "\n"
+
+
+def validate_common_operation(operation):
+    """Structure-only check of a common create operation; no tree, node or host access."""
+    if (
+        not isinstance(operation, dict)
+        or set(operation) != COMMON_OPERATION_KEYS
+        or operation["schema_version"] != 1
+        or operation["kind"] != COMMON_OPERATION_KIND
+        or operation["bundle_path"] != "common"
+        or operation["dataset_version"] != 1
+        or operation["private"] is not True
+        or operation["checkpoint_entry"] is not None
+        or operation["competition_submission_eligible"] is not False
+        or operation["retry_prohibited"] is not True
+        or not SLUG.fullmatch(operation["dataset_slug"])
+        or operation["dataset_slug"].split("/")[0] != operation["account"]
+        or not isinstance(operation["source_receipt"], dict)
+        or operation["source_receipt"].get("dataset_slug") == operation["dataset_slug"]
+    ):
+        raise ValueError("Exact private common Dataset create operation required")
+    return operation
+
+
+def load_common_operation(path):
+    """Validate a common create operation against its exact local tree and node."""
+    path = Path(path)
+    operation = validate_common_operation(json.loads(path.read_text()))
+    tree = path.parent / operation["bundle_path"]
+    if tree.is_symlink() or node_binding(tree) != operation["node"]:
+        raise ValueError("Common tree moved or node identity changed")
+    manifest_file = tree / COMMON_MANIFEST
+    if (
+        digest(manifest_file) != operation["manifest_sha256"]
+        or manifest_file.stat().st_size != operation["manifest_bytes"]
+        or digest(tree / "dataset-metadata.json") != operation["dataset_metadata_sha256"]
+    ):
+        raise ValueError("Common manifest or Dataset metadata changed")
+    manifest = validate_common_manifest(json.loads(manifest_file.read_text()))
+    files = manifest["files"]
+    metadata = json.loads((tree / "dataset-metadata.json").read_text())
+    if (
+        object_hash(files) != operation["files_sha256"]
+        or operation["regenerated_common_sha256"] != operation["files_sha256"]
+        or len(files) != operation["member_count"]
+        or sum(item["bytes"] for item in files.values()) != operation["total_bytes"]
+        or manifest["shared_wheelhouse"] != operation["shared_wheelhouse"]
+        or files["wheelhouse.json"]["sha256"] != operation["wheelhouse_manifest_sha256"]
+        or metadata.get("id") != operation["dataset_slug"]
+        or any(
+            manifest[k] != operation[k]
+            for k in (
+                "checkpoint_format",
+                "license_source",
+                "license_sha256",
+                "encoder_spec_sha256",
+                "code_sha256",
+            )
+        )
+    ):
+        raise ValueError("Common operation differs from its frozen member table")
+    return operation, manifest
 
 
 def savings(files, manifest_bytes=0, candidates=1):
