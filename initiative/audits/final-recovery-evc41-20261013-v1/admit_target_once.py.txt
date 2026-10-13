@@ -1,0 +1,36 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path('artifacts/final-recovery-evc41-relocation-20261013-v1');assert not (L/'target-admission-intent.json').exists();s=Path('scripts/newton/probe_final_public_source_recovery.py').read_text();h=hashlib.sha256(s.encode()).hexdigest();runtime=json.loads((L/'runtime-restored.json').read_text())
+p=r'''import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-final-recovery-evc41-20261013-v1');assert os.uname().nodename=='evc41' and not (C/'target-admission-intent.json').exists();assert shutil.disk_usage('/tmp').free>190*2**30+128*2**20
+with (C/'target-admission-intent.json').open('x') as f:json.dump({'wrapper_sha256':v['sha256'],'node':'evc41','automatic_retry':False},f)
+assert hashlib.sha256(v['source'].encode()).hexdigest()==v['sha256']
+wrapper=C/'code/scripts/newton/probe_final_public_source_recovery.py';shutil.copyfile(wrapper,C/'original-source-wrapper.py');wrapper.write_text(v['source'])
+original=json.loads((C/'source.json').read_text());(C/'source.json').rename(C/'original-source.json')
+files=dict(original['files']);files['code/scripts/newton/probe_final_public_source_recovery.py']=v['sha256'];manifest=dict(original,files=files,owning_node='evc41',wrapper_sha256=v['sha256'],relocated_from='evc31')
+with (C/'source.json').open('x') as f:json.dump(manifest,f,indent=2)
+inputs=json.loads((C/'trainer-inputs.json').read_text());(C/'trainer-inputs.json').rename(C/'original-trainer-inputs.json');inputs['cache']=str(C/'cache')
+with (C/'trainer-inputs.json').open('x') as f:json.dump(inputs,f,indent=2)
+fund=dict(v['runtime']['funding']);fund['new_shared_bytes_files']=0;fund['required_free_bytes']=190*2**30+128*2**20
+with (C/'funding.json').open('x') as f:json.dump(fund,f,indent=2)
+sys.path.insert(0,str(C/'code'))
+import pandas as pd,numpy as np,torch
+from rsna.release import load_verified_release
+from rsna.competitive.folds import load_folds
+from rsna.competitive.train import select_development,TrainConfig
+from rsna.competitive.supervision import apply_fitting_supervision
+from rsna.competitive.data import CompetitiveStudyDataset
+torch.set_num_threads(1);accepted=json.loads((C/'input-accepted.json').read_text());values=json.loads((C/'final-config.json').read_text());TrainConfig(**values).validate();frame,b=load_verified_release(Path(inputs['studies']),Path(inputs['artifact-root']));folds=load_folds(Path(inputs['folds']),frame,b);train,outer=select_development(frame,folds,0,'all_development');assert len(train)==3403 and outer.empty
+candidate,_=apply_fitting_supervision(train,outer,C/'overlay.json',values['fitting_supervision'],release_sha256=b['manifest_sha256'],folds_sha256=hashlib.sha256((Path(inputs['folds'])/'fold.csv').read_bytes()).hexdigest(),fold=0)
+d=CompetitiveStudyDataset(candidate.head(16),pd.read_csv(inputs['series']),C/'cache',slices=16,side=384,max_series=6,soft_targets=True);ih=hashlib.sha256();lh=hashlib.sha256()
+for i in range(16):
+ item=d[i];assert torch.isfinite(item['images']).all();ih.update(item['images'].numpy().tobytes());lh.update(item['labels'].numpy().tobytes());lh.update(item['label_mask'].numpy().tobytes())
+assert ih.hexdigest()==accepted['image_tensor_sha256'] and lh.hexdigest()==accepted['label_tensor_sha256']
+for key in ('weights_path','config_path'):assert Path(values['encoder'][key]).is_file()
+out={'status':'relocated_original_final_source16_MRI_tensors_and_runtime_admitted_CPU_only','CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc41','image_tensor_sha256':ih.hexdigest(),'label_tensor_sha256':lh.hexdigest(),'original_image_and_label_tensors_equal':True,'wrapper_sha256':v['sha256'],'runtime_python':sys.executable,'torch_version':torch.__version__,'source':manifest,'funding':fund,'old_job_cancelled':False,'new_GPU_dispatched':False}
+with (C/'target-admitted.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps(out))
+'''
+(L/'target-admission-program.py.txt').write_text(p);(L/'target-admission-intent.json').write_text(json.dumps({'node':'evc41','wrapper_sha256':h,'source_or_label_recipe_changed':False,'automatic_retry':False})+'\n');cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc41','--gres=none','--mem=8G','--time=00:10:00','--job-name=rsna-final-relocation-input-admission',runtime['runtime']['python'],'-B','-c',p]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source':s,'sha256':h,'runtime':runtime}),capture_output=True,text=True,timeout=650);(L/'target-admission-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original target source/input stage, never repeat admission';v=json.loads(x.stdout);(L/'target-admitted.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps({k:v[k] for k in ['status','CPU_job','node','image_tensor_sha256','label_tensor_sha256']}))
