@@ -28,7 +28,9 @@ from tools.research.dense_suffix_delta import dense_delta as prototype
 ROOT = Path(__file__).resolve().parents[1]
 RECIPE = ROOT / recovery.RECIPE
 LEGACY = ROOT / "initiative/experiments/competitive-v1/public-input-recipe-v1"
-PINNED_CONFIG = json.loads((ROOT / "configs/competitive/weights/dinov3-large.config.json").read_text())
+PINNED_CONFIG = json.loads(
+    (ROOT / "configs/competitive/weights/dinov3-large.config.json").read_text()
+)
 COMMON = dict(frozen_prefix_layers=12, dropout=0.05, gradient_checkpointing=True)
 DENSE = dict(method=sa.DENSE, **COMMON)
 LORA = dict(method=sa.LORA, rank=4, alpha=8.0, **COMMON)
@@ -103,9 +105,7 @@ def test_canonical_graph_matches_reviewed_prototype_and_pinned_counts():
     with torch.device("meta"):
         dense, lora, reviewed = (DINOv3ViTModel(config) for _ in range(3))
     record = sa.install_suffix_adapter(dense, dict(DENSE, gradient_checkpointing=False))
-    control = sa.install_suffix_adapter(
-        lora, dict(LORA, rank=32, gradient_checkpointing=False)
-    )
+    control = sa.install_suffix_adapter(lora, dict(LORA, rank=32, gradient_checkpointing=False))
     old = prototype.install_dense_suffix_deltas(
         reviewed, dict(frozen_prefix_layers=12, dropout=0.05)
     )
@@ -418,7 +418,9 @@ def test_storage_measurement_reads_actual_members_and_rosters(tmp_path):
 # --- Canonical trainer through the immutable recovery wrapper --------------------------
 
 TINY_EXPECTED = {
-    "suffix_r32": dict(method=sa.LORA, trainable_parameters=2 * 32 * (4 * 2 * 32 + 2 * 96), lr=1e-4),
+    "suffix_r32": dict(
+        method=sa.LORA, trainable_parameters=2 * 32 * (4 * 2 * 32 + 2 * 96), lr=1e-4
+    ),
     "dense": dict(method=sa.DENSE, trainable_parameters=2 * (4 * 32 * 32 + 2 * 32 * 64), lr=1e-5),
 }
 
@@ -660,3 +662,27 @@ def test_wrapper_refuses_changed_source_before_any_output(tmp_path):
         with pytest.raises(ValueError, match="manifest"):
             recovery.run(args, lambda *_: 0)
         assert not (tmp_path / "out").exists()
+
+
+def test_uint8_member_is_divided_once_and_imagenet_normalized_once(tmp_path):
+    """v2 input contract: uint8 -> dataset /255 -> encoder ImageNet exactly once."""
+    public_cache(tmp_path, 2, absent=(1, 2, 3, 4, 5))
+    item, _, _ = cache_item(tmp_path)
+    member = row(0, absent=(1, 2, 3, 4, 5))["images"]
+    windows_u8 = torch.stack(
+        [torch.from_numpy(member[:, start : start + 3]) for start in range(10)], dim=1
+    )
+    images = item["images"][item["slice_mask"]]
+    assert torch.equal(images, windows_u8[item["slice_mask"]].float().div(255))
+    model = encoder(DENSE).eval()
+    mean = torch.tensor([0.485, 0.456, 0.406])[None, :, None, None]
+    std = torch.tensor([0.229, 0.224, 0.225])[None, :, None, None]
+    once = (images - mean) / std
+    assert torch.equal(model._normalized_rgb(images), once)
+    official = tiny_backbone().eval()
+    with torch.no_grad():
+        assert torch.equal(model(images), official(pixel_values=once).pooler_output)
+    undivided = windows_u8[item["slice_mask"]].float()
+    for wrong in (undivided, once):  # /255 omitted, or ImageNet applied twice
+        with pytest.raises(ValueError, match=r"\[0,1\]"):
+            model(wrong)

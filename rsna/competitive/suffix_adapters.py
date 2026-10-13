@@ -70,9 +70,7 @@ def suffix_targets(config: Mapping[str, Any], frozen_prefix_layers: int) -> list
 
 
 def _finite(value: object) -> bool:
-    return (
-        not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
-    )
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
 
 
 def validate_suffix_adapter(spec: object, depth: int) -> dict[str, Any]:
@@ -139,9 +137,7 @@ def suffix_adapter_provenance(spec: Mapping[str, Any], config: Mapping[str, Any]
         "scaling": "alpha/sqrt(rank)",
         "rank_kind": "low_rank",
         "anchor": "official_pretrained_weight_and_bias_immutable",
-        "trainable_parameters": suffix
-        * policy["rank"]
-        * (4 * 2 * width + 2 * (width + inner)),
+        "trainable_parameters": suffix * policy["rank"] * (4 * 2 * width + 2 * (width + inner)),
     }
 
 
@@ -185,9 +181,7 @@ def install_suffix_adapter(backbone: nn.Module, spec: Mapping[str, Any]) -> dict
             _replace(
                 backbone,
                 provenance["target_modules"],
-                lambda base: ResidualLinear(
-                    base, provenance["rank"], provenance["alpha"], dropout
-                ),
+                lambda base: ResidualLinear(base, provenance["rank"], provenance["alpha"], dropout),
             )
     _check_graph(backbone, provenance)
     if provenance["gradient_checkpointing"]:

@@ -5,11 +5,21 @@ reservation, transfer, upload or competition submission. It makes no accuracy cl
 Root admits fresh funding, then runs the actual recovery once before any production fit.
 Running jobs 899766/908454 are not touched.
 
-Mechanism source: the reviewed prototype `tools/research/dense_suffix_delta`, at main
-`600d332d` with root corrections. Root accepted it as an official-weight real-MRI
-engineering result in `initiative/audits/dense-official-MRI-engineering-20261013-v1`:
-zero-delta identity, two finite updates, bit-equal cached/full outputs and an
-unchanged official anchor. The canonical code is `rsna/competitive/suffix_adapters.py`.
+Mechanism source: the reviewed prototype `tools/research/dense_suffix_delta` (main
+`600d332d`, root corrections). Input-contract acceptance is
+`initiative/audits/dense-normalized-MRI-engineering-20261013-v2`. That actual H100 check
+divided the first acquired uint8 ordered RGB triplet by 255 before ImageNet
+normalization. It then passed zero-delta identity, two finite updates, exact
+full/cached outputs and an unchanged official anchor. It covered one window only; it is
+not trainer recovery or accuracy evidence. `dense-official-MRI-engineering-20261013-v1`
+is preserved but superseded for the input contract, because its worker omitted the
+/255 step.
+
+Training keeps the canonical single path. `PublicTripletStudyDataset` executes the
+hashed `dino_adapter.study_inputs`, which applies uint8 `/255` to `[0,1]`. Then
+`_GrayEncoder._normalized_rgb` applies ImageNet normalization exactly once. Prefix
+records accept only those float32 dataset windows and use the same encoder
+normalization. The canonical code is `rsna/competitive/suffix_adapters.py`.
 It is selected only by `encoder.suffix_adapter`. The default encoder and the all-block
 `encoder.adapter` (`rs_lora_v1`) paths, their provenance and their configs are unchanged.
 

@@ -339,10 +339,7 @@ class TrainConfig:
             raise ValueError("Unknown training pool policy")
         if self.checkpoint_format not in {"full", "frozen_base_delta"} or (
             self.checkpoint_format == "frozen_base_delta"
-            and (
-                not self.freeze_encoder
-                or not ({"adapter", "suffix_adapter"} & set(self.encoder))
-            )
+            and (not self.freeze_encoder or not ({"adapter", "suffix_adapter"} & set(self.encoder)))
         ):
             raise ValueError("Delta checkpoints require a frozen pretrained base and adapters")
         if "adapter" in self.encoder:

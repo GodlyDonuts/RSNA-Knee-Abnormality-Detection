@@ -26,7 +26,15 @@ from rsna.competitive import public_input as pi
 from rsna.competitive import suffix_adapters as sa
 
 METHOD = "dinov3_frozen_prefix_cache_v2"
-RECORD_KEYS = {"identity", "slice_mask", "window_slots", "hidden", "rope_cos", "rope_sin", "digests"}
+RECORD_KEYS = {
+    "identity",
+    "slice_mask",
+    "window_slots",
+    "hidden",
+    "rope_cos",
+    "rope_sin",
+    "digests",
+}
 TENSOR_KEYS = RECORD_KEYS - {"identity", "digests"}
 HIDDEN_DTYPE = torch.float32
 
@@ -132,7 +140,10 @@ def validate_record(
     if not isinstance(record["digests"], dict) or set(record["digests"]) != TENSOR_KEYS:
         raise ValueError("Prefix record digest set differs")
     for key in TENSOR_KEYS:
-        if not isinstance(record[key], Tensor) or tensor_sha256(record[key]) != record["digests"][key]:
+        if (
+            not isinstance(record[key], Tensor)
+            or tensor_sha256(record[key]) != record["digests"][key]
+        ):
             raise ValueError(f"Prefix record {key} identity mismatch")
     mask, slots, hidden = record["slice_mask"], record["window_slots"], record["hidden"]
     if (
@@ -206,7 +217,10 @@ def measure_storage(
     for uid in sorted(index["members"]):
         member = index["members"][uid]
         payload = (root / member["path"]).read_bytes()
-        if len(payload) != member["bytes"] or hashlib.sha256(payload).hexdigest() != member["sha256"]:
+        if (
+            len(payload) != member["bytes"]
+            or hashlib.sha256(payload).hexdigest() != member["sha256"]
+        ):
             raise ValueError("Public triplet member bytes differ from the cache index")
         with np.load(io.BytesIO(payload), allow_pickle=False) as archive:
             slot = archive["slot_mask"]

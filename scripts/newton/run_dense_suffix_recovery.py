@@ -135,7 +135,9 @@ def compare_recovery(arm_root: Path, partial: dict, first: dict, expected: Mappi
         raise ValueError("Suffix residual gradients were absent at the first update")
     provenance = config["encoder"]["suffix_adapter"]
     suffixes = (
-        (".dense_delta",) if provenance["method"] == "dense_suffix_delta_v1" else (".lora_A", ".lora_B")
+        (".dense_delta",)
+        if provenance["method"] == "dense_suffix_delta_v1"
+        else (".lora_A", ".lora_B")
     )
     learned_encoder = {
         f"encoder.backbone.{module}{suffix}"
@@ -234,13 +236,19 @@ def subprocess_executor(args: argparse.Namespace, source: Path) -> Executor:
         "--folds",
         str(artifact / "initiative/experiments/competitive-v1/folds"),
         "--series",
-        str(artifact / "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv"),
+        str(
+            artifact
+            / "initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv"
+        ),
         "--cache",
         str(args.cache),
     ]
 
     def execute(root: Path, phase: str, config: Path, extra: list[str]) -> int:
-        with (root / f"{phase}.stdout").open("x") as out, (root / f"{phase}.stderr").open("x") as err:
+        with (
+            (root / f"{phase}.stdout").open("x") as out,
+            (root / f"{phase}.stderr").open("x") as err,
+        ):
             return subprocess.run(
                 [*base, "--config", str(config), *extra],
                 env=env,
@@ -254,9 +262,7 @@ def subprocess_executor(args: argparse.Namespace, source: Path) -> Executor:
 
 
 def verify_source(source: Path, manifest: Mapping[str, str]) -> dict[str, str]:
-    package = {
-        str(p.relative_to(source)) for p in (source / "rsna").rglob("*.py") if p.is_file()
-    }
+    package = {str(p.relative_to(source)) for p in (source / "rsna").rglob("*.py") if p.is_file()}
     if not package or package != {n for n in manifest if n.startswith("rsna/")}:
         raise ValueError("Source manifest must bind exactly every canonical rsna module")
     for name, value in manifest.items():
