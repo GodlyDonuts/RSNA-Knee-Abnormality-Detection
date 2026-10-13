@@ -118,3 +118,18 @@ def test_sorted_first16_union_is_covered_by_each_fold_first16_fixture():
     first = [f"{i:04}" for i in range(0, 3403, 2)]
     second = [f"{i:04}" for i in range(1, 3403, 2)]
     assert set(sorted(first + second)[:16]) <= set(first[:16] + second[:16])
+
+
+def test_actual_parent_fixture_layout_resolves_nested_artifacts(tmp_path):
+    studies = tmp_path / "artifacts/initiative/releases/report-supervision-v1/studies.parquet"
+    studies.parent.mkdir(parents=True)
+    studies.write_bytes(b"stand-in; no model/clinical evidence")
+    assert probe.fixture_artifact(tmp_path) == tmp_path / "artifacts"
+
+
+def test_wrong_parent_release_layout_refused_before_training(tmp_path):
+    studies = tmp_path / "initiative/releases/report-supervision-v1/studies.parquet"
+    studies.parent.mkdir(parents=True)
+    studies.write_bytes(b"wrong layout")
+    with pytest.raises(ValueError, match="mounted fixture"):
+        probe.fixture_artifact(tmp_path)

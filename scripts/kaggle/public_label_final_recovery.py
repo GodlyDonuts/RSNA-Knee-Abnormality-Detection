@@ -64,6 +64,15 @@ def mounted_config(base, spec):
     return engineering_config(dict(base, encoder=spec, min_free_gib=3))
 
 
+def fixture_artifact(control):
+    """The admitted CPU fixture nests its release under artifacts/, not its root."""
+    artifact = control / "artifacts"
+    studies = artifact / "initiative/releases/report-supervision-v1/studies.parquet"
+    if not artifact.is_dir() or not studies.is_file():
+        raise ValueError("Original mounted fixture artifacts/release layout required")
+    return artifact
+
+
 def admit_inputs(artifact, cache, overlay, values, cpu):
     if cpu.get("status") != "actual_final_public_source_CPU_roster_and_16MRI_inputs_verified" or (
         cpu.get("training_studies"),
@@ -139,9 +148,8 @@ def run(args):
     values = mounted_config(
         json.loads(args.base_config.read_text()), json.loads(args.encoder_spec.read_text())
     )
-    studies, folds, series, roster = admit_inputs(
-        args.control, args.cache, args.overlay, values, cpu
-    )
+    artifact = fixture_artifact(args.control)
+    studies, folds, series, roster = admit_inputs(artifact, args.cache, args.overlay, values, cpu)
     args.output.mkdir(mode=0o700)
     config = args.output / "config.json"
     config.write_text(json.dumps(values, sort_keys=True, indent=2) + "\n")
@@ -173,7 +181,7 @@ def run(args):
         "--studies",
         str(studies),
         "--artifact-root",
-        str(args.control),
+        str(artifact),
         "--folds",
         str(folds),
         "--series",
