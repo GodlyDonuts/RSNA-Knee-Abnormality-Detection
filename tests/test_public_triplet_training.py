@@ -446,3 +446,271 @@ def test_policy_constants_match_reviewed_source_attribution():
     assert review["node_text_sha256"] == pi.NODE_TEXT_SHA256
     assert comparison["provenance"]["source_sha256"] == pi.SOURCE_SHA256
     assert comparison["provenance"]["node_text_sha256"] == pi.NODE_TEXT_SHA256
+
+
+def write_args(rows, fitting, evaluation, group=None):
+    return dict(
+        rows=rows,
+        pixel_group=copy.deepcopy(PIXEL_GROUP if group is None else group),
+        source_revision="synthetic",
+        fitting_uids=fitting,
+        evaluation_uids=evaluation,
+    )
+
+
+def created_files(root):
+    return sorted(str(path.relative_to(root)) for path in root.rglob("*"))
+
+
+@pytest.mark.parametrize(
+    "uid",
+    [
+        "../escape",
+        "../../escape",
+        "/tmp/rsna-public-escape",
+        "a/b",
+        "..",
+        ".",
+        ".hidden",
+        "",
+        "a\\b",
+    ]
+    + ["x" * 200, "a..b", 7],
+)
+@pytest.mark.parametrize("role", ["fitting", "evaluation"])
+@pytest.mark.parametrize("renderer", ["mapping", "callable"])
+def test_malicious_uids_refused_before_any_directory_or_member_write(tmp_path, uid, role, renderer):
+    fitting, evaluation = ["s0", "s1"], ["s2", "s3"]
+    (fitting if role == "fitting" else evaluation).append(uid)
+    rows = {key: row(i) for i, key in enumerate(fitting + evaluation)}
+    calls = []
+    source = rows if renderer == "mapping" else (lambda key: calls.append(key) or rows[key])
+    with pytest.raises(ValueError):
+        pi.write_public_triplet_cache(tmp_path / "cache", **write_args(source, fitting, evaluation))
+    assert created_files(tmp_path) == [] and calls == []
+    assert not Path("/tmp/rsna-public-escape.npz").exists()
+
+
+@pytest.mark.parametrize("renderer", ["mapping", "callable"])
+def test_overlapping_or_duplicate_rosters_refused_before_writes(tmp_path, renderer):
+    rows = {uid: row(i) for i, uid in enumerate(["s0", "s1", "s2"])}
+    calls = []
+    source = rows if renderer == "mapping" else (lambda key: calls.append(key) or rows[key])
+    for fitting, evaluation in (
+        (["s0", "s1"], ["s1", "s2"]),
+        (["s0", "s0"], ["s1", "s2"]),
+        ([], ["s0", "s1", "s2"]),
+        ("s0", ["s1", "s2"]),
+    ):
+        with pytest.raises(ValueError):
+            pi.write_public_triplet_cache(
+                tmp_path / "cache", **write_args(source, fitting, evaluation)
+            )
+    assert created_files(tmp_path) == [] and calls == []
+
+
+def test_invalid_mapping_row_refused_before_writes_and_rendered_row_leaves_no_staging(tmp_path):
+    rows = {uid: row(i) for i, uid in enumerate(["s0", "s1", "s2", "s3"])}
+    bad = dict(rows["s3"], images=rows["s3"]["images"].copy())
+    bad["images"][5, 0, 0, 0] = 1
+    with pytest.raises(ValueError):
+        pi.write_public_triplet_cache(
+            tmp_path / "cache", **write_args(rows | {"s3": bad}, ["s0", "s1"], ["s2", "s3"])
+        )
+    assert created_files(tmp_path) == []
+    rendered = []
+
+    def render(uid):
+        rendered.append(uid)
+        return bad if uid == "s3" else rows[uid]
+
+    with pytest.raises(ValueError):
+        pi.write_public_triplet_cache(
+            tmp_path / "cache", **write_args(render, ["s0", "s1"], ["s2", "s3"])
+        )
+    assert rendered == ["s0", "s1", "s2", "s3"]
+    assert created_files(tmp_path) == ["cache"]
+
+
+def test_existing_cache_byte_cap_and_partial_staging_never_overwritten(tmp_path):
+    manifest, folds = cohort()
+    build(tmp_path, manifest, folds)
+    before = created_files(tmp_path)
+    rows = {uid: row(i) for i, uid in enumerate(manifest.study_uid)}
+    fitting = set(folds.study_uid[folds.fold != 0])
+    evaluation = set(folds.study_uid[folds.fold == 0])
+    with pytest.raises(FileExistsError):
+        pi.write_public_triplet_cache(tmp_path, **write_args(rows, fitting, evaluation))
+    assert created_files(tmp_path) == before
+    with pytest.raises(ValueError, match="byte cap"):
+        pi.write_public_triplet_cache(
+            tmp_path / "capped",
+            **write_args(rows, fitting, evaluation),
+            max_output_bytes=pi.MEMBER_BYTES_BOUND,
+        )
+    assert created_files(tmp_path / "capped") == []
+    (tmp_path / "staged" / pi.STAGING_DIRECTORY).mkdir(parents=True)
+    with pytest.raises(FileExistsError):
+        pi.write_public_triplet_cache(tmp_path / "staged", **write_args(rows, fitting, evaluation))
+
+
+def _group(**changes):
+    group = copy.deepcopy(PIXEL_GROUP)
+    for key, value in changes.items():
+        group[key] = value
+    return group
+
+
+@pytest.mark.parametrize(
+    "group",
+    [
+        _group(slots=list(reversed(PIXEL_GROUP["slots"]))),
+        _group(
+            slots=["SAG_FLUID", "COR_FLUID", "AX_FLUID", "SAG_STRUCT", "COR_STRUCT", "AX_STRUCT"]
+        ),
+        _group(slots=["a", "b", "c", "d", "e", "f"]),
+        _group(
+            rules={"order": "dominant_axis", "lat": "corner_x", "slot_fallback": True}
+            | {"decode_fill": "zero"}
+        ),
+        _group(rules=dict(PIXEL_GROUP["rules"], lat="corner_x")),
+        _group(rules=dict(PIXEL_GROUP["rules"], slot_fallback=0)),
+        _group(rules=dict(PIXEL_GROUP["rules"], extra="x")),
+        _group(rules={}),
+        _group(crop_mm=130),
+        _group(band=[0.2, 0.8, 0.9]),
+        _group(variant="small"),
+    ],
+)
+def test_only_the_admitted_slot_list_rules_and_recipe_are_accepted(tmp_path, group):
+    rows = {uid: row(i) for i, uid in enumerate(["s0", "s1"])}
+    with pytest.raises(ValueError, match="Admitted public pixel group"):
+        pi.write_public_triplet_cache(tmp_path / "cache", **write_args(rows, ["s0"], ["s1"], group))
+    assert created_files(tmp_path) == []
+    with pytest.raises(ValueError):
+        pi.validate_public_input(dict(POLICY, pixel_group_sha256=pi.canonical_sha256(group)))
+
+
+def test_admitted_pixel_group_is_the_original_member_recipe_unchanged():
+    public = json.loads((RECIPE / "public-triplet-config.json").read_text())["public_input"]
+    assert pi.ADMITTED_PIXEL_GROUP == PIXEL_GROUP
+    assert pi.ADMITTED_PIXEL_GROUP_SHA256 == pi.canonical_sha256(PIXEL_GROUP)
+    assert public["pixel_group_sha256"] == pi.ADMITTED_PIXEL_GROUP_SHA256
+    plan = json.loads((COMPARISON / "actual-plan-admitted.json").read_text())
+    assert json.loads(plan["member_pixel_group"]) == PIXEL_GROUP
+
+
+@pytest.mark.parametrize("uid", ["../s0", "/abs", "a/b", ".."])
+def test_index_with_unsafe_member_uid_is_refused(tmp_path, uid):
+    manifest, folds = cohort()
+    build(tmp_path, manifest, folds)
+    rewrite_index(
+        tmp_path,
+        lambda index: index["members"].update(
+            {uid: dict(index["members"].pop("s0"), path=f"members/{uid}.npz")}
+        ),
+    )
+    with pytest.raises(ValueError):
+        pi.load_public_index(tmp_path, POLICY, "synthetic")
+
+
+def _producer_inputs(tmp_path):
+    from tools.research.public_dinov2_input_reference import synthetic
+
+    study_root = tmp_path / "train_series"
+    fitting = synthetic.write_case(study_root, "complete_right")
+    evaluation = synthetic.write_case(study_root, "left_oblique")
+    plane_map = synthetic.plane_map(fitting, synthetic.CASES["complete_right"]) | (
+        synthetic.plane_map(evaluation, synthetic.CASES["left_oblique"])
+    )
+    return dict(
+        policy=POLICY,
+        study_root=study_root,
+        plane_map=plane_map,
+        fitting_uids=[fitting.name],
+        evaluation_uids=[evaluation.name],
+        source_revision="synthetic",
+        max_members=2,
+        max_output_bytes=2 * pi.MEMBER_BYTES_BOUND,
+    )
+
+
+def test_bounded_producer_stores_original_renderer_rows_through_hashed_adapter(tmp_path):
+    pytest.importorskip("pydicom")
+    from tools.research.public_dinov2_input_reference import reference
+    from tools.research.public_dinov2_input_reference.dino_adapter import render_inputs
+
+    inputs = _producer_inputs(tmp_path)
+    receipt = pi.produce_public_triplet_cache(tmp_path / "cache", **inputs)
+    assert receipt["members"] == 2 and receipt["labels_read"] is False
+    assert receipt["pixel_group_sha256"] == POLICY["pixel_group_sha256"]
+    assert not (tmp_path / "cache" / pi.STAGING_DIRECTORY).exists()
+    studies = pd.DataFrame(
+        [
+            dict(study_uid=uid, **{t: 1.0 for t in TARGETS}, **{t + "__mask": 1.0 for t in TARGETS})
+            for uid in inputs["fitting_uids"] + inputs["evaluation_uids"]
+        ]
+    )
+    outer, train = studies.iloc[1:], studies.iloc[:1]
+    assert (
+        pi.verify_public_cohort(tmp_path / "cache", POLICY, train, outer, "synthetic")[
+            "index_sha256"
+        ]
+        == receipt["index_sha256"]
+    )
+    data = dataset(tmp_path / "cache", studies)
+    namespace, _ = reference.load(reference.SOURCE_PATH.read_bytes())
+    reference.configure(namespace, PIXEL_GROUP)
+    for index, uid in enumerate(studies.study_uid):
+        study_dir = inputs["study_root"] / uid
+        public = reference.render_study(namespace, study_dir, inputs["plane_map"])
+        member = data._member(uid)
+        assert torch.equal(member["images"], public["images"])
+        assert torch.equal(member["slot_mask"], public["slot_mask"])
+        expected = render_inputs(
+            namespace, study_dir, inputs["plane_map"], torch.ones(12), torch.ones(12)
+        )
+        item = data[index]
+        for key in ("images", "series_mask", "slice_mask", "features", "positions", "labels"):
+            assert torch.equal(item[key], expected[key])
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        dict(max_members=1),
+        dict(max_output_bytes=pi.MEMBER_BYTES_BOUND),
+        dict(reserve_free_bytes=1 << 62),
+        dict(evaluation_uids=["1.2.826.0.1.999"]),
+        dict(evaluation_uids=["../escape"]),
+        dict(policy=dict(POLICY, pixel_group_sha256="0" * 64)),
+        dict(policy=dict(POLICY, adapter_sha256="0" * 64)),
+    ],
+)
+def test_bounded_producer_refuses_before_rendering_or_writing(tmp_path, monkeypatch, changes):
+    pytest.importorskip("pydicom")
+    inputs = _producer_inputs(tmp_path)
+    rendered = []
+    monkeypatch.setattr(pi, "_configured_renderer", lambda ns: rendered.append(1) or {})
+    with pytest.raises(ValueError):
+        pi.produce_public_triplet_cache(tmp_path / "cache", **(inputs | changes))
+    assert not (tmp_path / "cache").exists()
+    assert rendered == [] or "adapter_sha256" in changes.get("policy", {})
+
+
+def test_bounded_producer_refuses_overlap_and_any_unrendered_study(tmp_path):
+    pytest.importorskip("pydicom")
+    inputs = _producer_inputs(tmp_path)
+    with pytest.raises(ValueError, match="overlap"):
+        pi.produce_public_triplet_cache(
+            tmp_path / "cache", **(inputs | dict(evaluation_uids=inputs["fitting_uids"]))
+        )
+    assert not (tmp_path / "cache").exists()
+    empty = inputs["study_root"] / "1.2.826.0.1.777"
+    empty.mkdir()
+    with pytest.raises(ValueError):
+        pi.produce_public_triplet_cache(
+            tmp_path / "cache",
+            **(inputs | dict(evaluation_uids=[empty.name], max_members=2)),
+        )
+    assert created_files(tmp_path / "cache") == []
