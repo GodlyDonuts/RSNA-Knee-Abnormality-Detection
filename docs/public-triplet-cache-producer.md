@@ -31,13 +31,41 @@ caches are refused. Default trainer behavior is unchanged.
 
 ## Owning-node wrapper (`scripts/newton/build_public_triplet_cache.py`)
 
-Prepared, NOT RUN. Modes `stage`, `reconcile` (read-only) and `finalize`. Requires evc31,
-`CUDA_VISIBLE_DEVICES=''` and no scheduler GPU; a root-reviewed funding receipt bound by
-SHA256 (`max_total_bytes`, `min_free_bytes`, `max_study_source_bytes`,
-`max_studies_per_run`); the frozen config, v15 source, private member manifest, verified
-release/folds matching the accepted fold-0 roster hashes, archived inventory and original
-raw split. Each study's inventory files are copied with a byte bound and hash check into a
-private transport scratch and removed after staging. Output lives under an owner-only
-`--private-out` outside Git and outside the retained eight-study packet, which is never the
-cohort source and is never re-acquired. Stdout/`--out` carry counts and digests only. It
-never dispatches jobs or downloads data; root handles asset, quota and GPU review.
+Prepared, NOT RUN; it never dispatches jobs, downloads, deletes or alters original data.
+Modes `stage`, `reconcile` (read-only) and `finalize`; the producer above is unchanged.
+
+- Placement: evc41 CPU-only is the supported placement; evc31 is accepted only as an
+  `independently_funded_alternate`. `CUDA_VISIBLE_DEVICES=''`, no scheduler/step GPU
+  variables (`SLURM_JOB_GPUS`, `SLURM_STEP_GPUS`, `GPU_DEVICE_ORDINAL`, nonzero GPU counts)
+  and `torch.cuda` must report no device.
+- Funding (schema 2, bound by `--funding-sha256`): `node`, `placement`, `cpu_only=true`,
+  `step_gpus=0`, `wrapper_sha256`, `producer_sha256`, `source_table_sha256`,
+  `runtime_sha256` (canonical runtime receipt), `max_total_bytes`, `min_free_bytes`,
+  `max_study_source_bytes`, `max_studies_per_run`. Any node/placement/hash mismatch refuses.
+  The intent binds the funding hash, so changed funding cannot resume an existing cache.
+- Sources: the complete 9-part baseline inventory, the exact correction plan and receipt
+  (`initiative/audits/source-pixel-representation-v1`), the release series CSV (SHA must equal
+  the verified release) and the 2247/1156 fold-0 rosters go through
+  `public_source_table.accepted_source_objects` at corrected revision `0b5e410`. Its 8-column
+  objects become producer 6-field records only after split/study/series/SOP/path identity
+  checks. The intent records the source-table summary and every input hash.
+- Retained packet (`--retained-packet`, read-only): a study is reused only if every accepted
+  object equals the packet's historical `52f995` object (path/SHA/bytes), the packet roster
+  matches its admitted plan hash and no accepted series of that study is touched by the
+  correction plan. Everything else must come from `--dicom-root`, already acquired by root at
+  `--source-revision 0b5e410`; every copied file is SHA/byte verified.
+- Transport: per study, only accepted series are copied (bounded, `O_NOFOLLOW`, hash checked,
+  read-only copies) into `--private-out/transport` before the producer's header/slot/
+  laterality probe; unaccepted series are never opened. Symlinks, traversal, extra or missing
+  files and source changes during copy refuse. The copy is removed after every study, and
+  leftovers of an interrupted run are discarded (symlinked leftovers refuse).
+- Source order: original `read_headers` iterates `os.scandir` and `pick_slots` keeps the first
+  row among equal `n_slices`. The copy's scandir series order must equal the filtered original
+  order or the study refuses. `source-order/<study>.json` (create-once, intent-bound) records
+  origin/revision, series order, n_slices and tie groups; a later differing order refuses.
+  Parity is only claimed for this owning-node order, not for any reordered source.
+- Staging requires a clean reconcile (only pending/complete, nothing foreign, not finalized).
+  `--private-out` is owner-only and may not overlap Git, the retained packet or any source
+  root. Stdout/`--out` carry counts and digests only. Full acquisition stays root-owned.
+
+Supersedes the producer/wrapper drafts of PRs 19-23 (PR 24's binder is already on main).
