@@ -106,11 +106,14 @@ not been measured.
 Opt-in phases, separate from every checkpoint phase:
 
 ```
-coordinator.py prepare-common-transport|create-common-dataset|reconcile-common-dataset \
+coordinator.py prepare-common-transport|create-common-dataset \
   --projection P --projection-manifest P.json --projection-sha256 SHA \
   --common-operation DIR/common-operation.json \
   --node-local-journal-root /tmp/rsna-kaggle-common-journal-<common-manifest12> \
   [--management-python PINNED]   # create only; token on stdin as before
+coordinator.py reconcile-common-dataset \
+  --projection P --projection-manifest P.json --projection-sha256 SHA \
+  --common-operation ANY/common-operation.json   # marker-only; no journal root
 ```
 
 The CLI rejects `--operation/--snapshot/--publication-revision/...` for these
@@ -154,12 +157,25 @@ from one projection (below).
    `dataset-publications/common-<manifestSHA>.node-intent.json` and calls the
    existing `publication.create_once` (complete owned-listing absence proof,
    node-local `intent.json`, one create, `response.json` or `uncertain.json`).
-3. `reconcile-common-dataset`: requires the intent marker; read-only
+3. `reconcile-common-dataset` (`coordinator.reconcile_common`): strictly
+   read-only and marker-based. It never reads the common tree, the node-local
+   journal or the host identity and never calls `load_common_operation`; the
+   CLI rejects a journal root for it. It reads the reviewed operation file
+   (any path), whose exact bytes must hash to the intent's
+   `common_operation_sha256` and whose content must equal the intent's
+   embedded `operation`; the intent's account/slug/version 1/private/
+   `manifest_name` and member table must equal that operation (member-table
+   hash, count, total bytes, wheel manifest, manifest SHA/bytes). Then the
+   shared ledger identity is checked and
    `publication.reconcile(..., manifest_name="common-manifest.json")`
-   downloads and hashes every byte, then exclusively writes
-   `common-<manifestSHA>.node-verified.json` (or must equal it). It works from
-   the shared marker even if the owning node's journal is gone, and from any
-   node.
+   downloads and hashes every byte of the private v1 Dataset against the
+   intent table, and `common-<manifestSHA>.node-verified.json` is written
+   exclusively (or must equal it). It therefore works after complete loss of
+   the creating node (journal, tree and operation directory) and on any host.
+   Recovery of a lost operation file: write
+   `components.common_operation_text(intent["operation"])`; it must reproduce
+   the original hash. Altered operation bytes/fields or altered marker tables
+   are refused before any remote call.
 
 Any intent marker makes creation permanently read-only: an unknown or failed
 result, a crash between marker and RPC, or an absent Dataset after the marker
@@ -177,9 +193,11 @@ and `publication.py` to be byte-identical to the projection's copies.
 ### Footprint to fund (no deletion credit)
 
 Shared storage, per common Dataset: exactly two new JSON files, the intent and
-verified markers, each carrying the full member table. For the 63 common rows
-of the `ebeb3c394286` receipt they are estimated at about 12 KB and 14 KB
-(synthetic fixtures are asserted below 64 KiB total). Plus the existing ledger
+verified markers, each carrying the full member table; the intent also embeds
+the full original operation (including the shared wheelhouse proof). For the
+63 common rows of the `ebeb3c394286` receipt they are
+roughly 12-20 KB and 14 KB (estimates, unmeasured on the actual tree;
+synthetic fixtures are asserted below 64 KiB total). Plus the existing ledger
 open/identity check; no directory, upload or entry.
 
 Node-local (`/tmp` of the creating node): the extracted common tree
@@ -230,7 +248,10 @@ prepare-common-transport, a create whose response is lost after upload,
 refused re-create, full-byte reconcile, checkpoint-only prepare, checkpoint
 transport/create/reconcile, one push and a refused second push, then notebook
 composition from the fake remote's bytes. Other cases cover a second node,
-a lost journal, absent result after an intent, moved trees, changed members,
+a lost journal, loss of both journal and common tree, complete node loss with
+an actual hostname change (`os.uname` differs) and a recovered operation,
+host change blocking prepare/create, altered recovered operations and altered
+marker tables, absent result after an intent, moved trees, changed members,
 account/ledger/projection guards and the regenerated-code bootstrap refusal.
 This is engineering evidence only, not runtime or accuracy.
 

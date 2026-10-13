@@ -56,6 +56,30 @@ def object_hash(value):
     ).hexdigest()
 
 
+def extract_regular_members(archive_file, tree):
+    """Confined regular-file extraction; no ``extractall`` (``filter=`` needs 3.11.4+)."""
+    root = tree.resolve()
+    with tarfile.open(archive_file) as archive:
+        for member in archive.getmembers():
+            relative = Path(member.name)
+            target = (root / relative).resolve()
+            if (
+                not member.isreg()
+                or relative.is_absolute()
+                or ".." in relative.parts
+                or not target.is_relative_to(root)
+                or target == root
+                or target.exists()
+            ):
+                raise ValueError("Unsafe projection archive member: " + member.name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = archive.extractfile(member)
+            with source, target.open("xb") as handle:
+                shutil.copyfileobj(source, handle)
+            if target.stat().st_size != member.size:
+                raise ValueError("Projection archive member size differs: " + member.name)
+
+
 def build_projection(tmp, name="projection", mutate=None):
     """Exact projection of a real commit with this checkout's runtime/coordinator sources."""
     src = tmp / (name + "-git")
@@ -81,8 +105,7 @@ def build_projection(tmp, name="projection", mutate=None):
     receipt = builder.build(src, commit, commit, tmp / (name + "-build"))
     tree = tmp / name
     tree.mkdir()
-    with tarfile.open(tmp / (name + "-build/projection.tar")) as archive:
-        archive.extractall(tree, filter="data")
+    extract_regular_members(tmp / (name + "-build/projection.tar"), tree)
     return SimpleNamespace(
         tree=tree,
         manifest=tmp / (name + "-build/projection.json"),
@@ -621,6 +644,146 @@ def test_lost_node_journal_reconciles_from_marker_and_never_recreates(world):
     assert x.kaggle.creates == [COMMON_SLUG]
 
 
+def test_reconcile_after_loss_of_both_journal_and_common_tree(world):
+    x = world
+    x.c.run(x.common("prepare-common-transport"))
+    x.state.outcome = ConnectionError
+    with pytest.raises(RuntimeError, match="uncertain"):
+        x.c.run(x.common("create-common-dataset"))
+    shutil.rmtree(x.common_root)
+    shutil.rmtree(x.operation_dir / "common")
+    proof = x.c.run(x.common("reconcile-common-dataset"))
+    assert proof["downloaded_all_bytes"] is True
+    assert x.kaggle.creates == [x.operation["dataset_slug"]]
+    assert x.kaggle.downloads == x.operation["member_count"] + 1
+    # Prepare/create keep their exact node/tree checks; nothing can re-create.
+    for action in ("prepare-common-transport", "create-common-dataset"):
+        with pytest.raises((ValueError, FileNotFoundError)):
+            x.c.run(x.common(action))
+    assert x.kaggle.creates == [x.operation["dataset_slug"]]
+
+
+def lose_node_and_change_host(x, monkeypatch):
+    """Complete loss of node A (tree, operation dir, journal) then run on host B."""
+    shutil.rmtree(x.common_root)
+    shutil.rmtree(x.operation_dir)
+    node_b = x.tmp_path / "node-b-tmp"
+    node_b.mkdir()
+    monkeypatch.setattr(x.c, "NODE_SCRATCH", node_b)
+    real = x.c.os.uname()
+    assert real.nodename != "rsna-node-b"
+    monkeypatch.setattr(
+        x.c.os,
+        "uname",
+        lambda: SimpleNamespace(
+            sysname=real.sysname,
+            nodename="rsna-node-b",
+            release=real.release,
+            version=real.version,
+            machine=real.machine,
+        ),
+    )
+    return node_b
+
+
+def recovered_operation(x, marker=None):
+    """Operator recovery of the reviewed operation from the shared intent marker."""
+    key = "common-" + x.operation["manifest_sha256"]
+    if marker is None:
+        marker = json.loads((x.shared_dir / (key + ".node-intent.json")).read_text())
+    recovered = x.tmp_path / "recovered" / "common-operation.json"
+    recovered.parent.mkdir(exist_ok=True)
+    recovered.write_text(x.wf.components.common_operation_text(marker["operation"]))
+    return recovered
+
+
+def test_complete_node_loss_and_host_change_reconcile_read_only(world, monkeypatch):
+    x = world
+    x.c.run(x.common("prepare-common-transport"))
+    x.state.outcome = TimeoutError
+    with pytest.raises(RuntimeError, match="uncertain"):
+        x.c.run(x.common("create-common-dataset"))
+    original_sha = digest(x.operation_dir / "common-operation.json")
+    node_b = lose_node_and_change_host(x, monkeypatch)
+    recovered = recovered_operation(x)
+    assert digest(recovered) == original_sha
+
+    def args(action, root=None):
+        value = x.common(action, root)
+        value.common_operation = recovered
+        return value
+
+    for action in ("prepare-common-transport", "create-common-dataset"):
+        with pytest.raises((ValueError, FileNotFoundError)):
+            x.c.run(args(action, node_b / x.common_root.name))
+    assert x.kaggle.creates == [COMMON_SLUG] and x.kaggle.downloads == 0
+    proof = x.c.run(args("reconcile-common-dataset"))
+    assert proof["downloaded_all_bytes"] is True and proof["private"] is True
+    assert proof["common_operation_sha256"] == original_sha
+    assert x.kaggle.downloads == len(proof["files"]) == x.operation["member_count"] + 1
+    assert x.c.run(args("reconcile-common-dataset")) == proof
+    assert x.kaggle.creates == [COMMON_SLUG] and entries(x) == []
+    assert not any(node_b.iterdir())
+
+
+def test_host_change_alone_blocks_prepare_and_create(world, monkeypatch):
+    x = world
+    x.c.run(x.common("prepare-common-transport"))
+    real = x.c.os.uname()
+    monkeypatch.setattr(
+        x.c.os,
+        "uname",
+        lambda: SimpleNamespace(sysname=real.sysname, nodename="rsna-node-b"),
+    )
+    with pytest.raises(ValueError, match="node identity"):
+        x.c.run(x.common("create-common-dataset"))
+    assert x.kaggle.creates == [] and markers(x) == []
+
+
+@pytest.mark.parametrize(
+    "change",
+    ["op-bytes", "op-field", "files-row", "files-extra", "slug", "account", "operation", "key"],
+)
+def test_recovered_operation_and_marker_tables_are_exact(world, monkeypatch, change):
+    x = world
+    x.c.run(x.common("prepare-common-transport"))
+    x.state.outcome = ConnectionError
+    with pytest.raises(RuntimeError, match="uncertain"):
+        x.c.run(x.common("create-common-dataset"))
+    key = "common-" + x.operation["manifest_sha256"]
+    intent = x.shared_dir / (key + ".node-intent.json")
+    marker = json.loads(intent.read_text())
+    lose_node_and_change_host(x, monkeypatch)
+    recovered = recovered_operation(x, marker)
+    member = "code/chunked_infer.py"
+    if change == "op-bytes":
+        recovered.write_text(recovered.read_text() + " ")
+    elif change == "op-field":
+        op = dict(marker["operation"], total_bytes=marker["operation"]["total_bytes"] + 1)
+        recovered.write_text(x.wf.components.common_operation_text(op))
+    elif change == "files-row":
+        marker["files"][member] = dict(marker["files"][member], sha256="0" * 64)
+    elif change == "files-extra":
+        marker["files"]["code/extra.py"] = dict(marker["files"][member])
+    elif change == "slug":
+        marker["slug"] = OWNER + "/another-common"
+    elif change == "account":
+        marker["account"] = "someone-else"
+    elif change == "operation":
+        marker["operation"] = dict(marker["operation"], member_count=1)
+    else:
+        marker["extra"] = True
+    if change not in ("op-bytes", "op-field"):
+        intent.chmod(0o600)
+        intent.write_text(json.dumps(marker))
+    value = x.common("reconcile-common-dataset", None)
+    value.common_operation = recovered
+    with pytest.raises(ValueError):
+        x.c.run(value)
+    assert x.kaggle.downloads == 0 and markers(x) == [key + ".node-intent.json"]
+    assert x.kaggle.creates == [COMMON_SLUG]
+
+
 def test_pending_common_intent_blocks_checkpoint_creates_and_absent_result_stays_blocked(world):
     x = world
     x.c.run(x.common("prepare-common-transport"))
@@ -680,6 +843,8 @@ def test_cli_separates_common_and_checkpoint_arguments(world, monkeypatch, capsy
     for argv in (
         ["create-common-dataset", "--common-operation", "o", "--snapshot", "s"],
         ["create-common-dataset", "--node-local-journal-root", "/tmp/x"],
+        ["create-common-dataset", "--common-operation", "o"],
+        ["reconcile-common-dataset", "--common-operation", "o", "--node-local-journal-root", "/x"],
         ["create-dataset", "--operation", "o"],
         ["create-dataset", "--operation", "o", "--snapshot", "s", "--common-operation", "c"],
     ):

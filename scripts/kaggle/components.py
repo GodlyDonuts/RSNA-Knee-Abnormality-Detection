@@ -521,18 +521,25 @@ def prepare_common_operation(
         "competition_submission_eligible": False,
         "retry_prohibited": True,
     }
+    validate_common_operation(operation)
     with (directory / COMMON_OPERATION).open("x") as handle:
-        json.dump(operation, handle, sort_keys=True, indent=2, allow_nan=False)
-        handle.write("\n")
+        handle.write(common_operation_text(operation))
         handle.flush()
         os.fsync(handle.fileno())
     return operation
 
 
-def load_common_operation(path):
-    """Validate a common create operation against its exact local tree and node."""
-    path = Path(path)
-    operation = json.loads(path.read_text())
+def common_operation_text(operation):
+    """Exact deterministic bytes of ``common-operation.json``.
+
+    The shared create intent embeds the operation, so after losing the owning
+    node an operator can re-serialize it and must reproduce the original hash.
+    """
+    return json.dumps(operation, sort_keys=True, indent=2, allow_nan=False) + "\n"
+
+
+def validate_common_operation(operation):
+    """Structure-only check of a common create operation; no tree, node or host access."""
     if (
         not isinstance(operation, dict)
         or set(operation) != COMMON_OPERATION_KEYS
@@ -550,6 +557,13 @@ def load_common_operation(path):
         or operation["source_receipt"].get("dataset_slug") == operation["dataset_slug"]
     ):
         raise ValueError("Exact private common Dataset create operation required")
+    return operation
+
+
+def load_common_operation(path):
+    """Validate a common create operation against its exact local tree and node."""
+    path = Path(path)
+    operation = validate_common_operation(json.loads(path.read_text()))
     tree = path.parent / operation["bundle_path"]
     if tree.is_symlink() or node_binding(tree) != operation["node"]:
         raise ValueError("Common tree moved or node identity changed")
