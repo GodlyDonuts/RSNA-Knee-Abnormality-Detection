@@ -67,6 +67,21 @@ class Remote:
         }
 
 
+def standalone_receipt(data, path, slug=None):
+    """Full-download private v1 receipt of a standalone tree (synthetic transport)."""
+    manifest = json.loads((data / "bundle-manifest.json").read_text())
+    expected = pub.expected_files(data, manifest)
+    remote = Remote({name: row["bytes"] for name, row in expected.items()}, identity=55)
+    proof = pub.reconcile(
+        remote,
+        slug or manifest["dataset_slug"],
+        expected,
+        stream=lambda r, s, name, row: hashed(data / name),
+    )
+    path.write_text(json.dumps(proof))
+    return path
+
+
 def build(tmp_path, monkeypatch, *, delta=True):
     """Standalone bundle, its extracted common bundle and a checkpoint-only bundle."""
     repo = tmp_path / "repo"
@@ -165,6 +180,17 @@ def build(tmp_path, monkeypatch, *, delta=True):
     prepare(standalone, "owner/rsna-" + prefix, "owner/rsna-" + prefix)
     common = tmp_path / "common"
     common_slug = "owner/rsna-common-encoder-v1"
+    receipt = standalone_receipt(standalone / "dataset", tmp_path / "standalone-receipt.json")
+    regenerated = workflow.common_table(
+        sidecar,
+        spec,
+        wheels,
+        license_file,
+        LICENSE,
+        workflow.digest(license_file),
+        repo,
+        shared_wheelhouse=shared_file,
+    )
     k.extract_common(
         standalone / "dataset",
         common,
@@ -172,6 +198,8 @@ def build(tmp_path, monkeypatch, *, delta=True):
         shared_wheelhouse=shared,
         checkpoint_format="frozen_base_delta" if delta else "full",
         dataset_slug=common_slug,
+        source_receipt=receipt,
+        regenerated=regenerated,
     )
     manifest = json.loads((common / k.COMMON_MANIFEST).read_text())
     expected = pub.expected_files(common, manifest, "common-manifest.json")
@@ -204,6 +232,8 @@ def build(tmp_path, monkeypatch, *, delta=True):
         repo=repo,
         tmp=tmp_path,
         shared=shared,
+        receipt=receipt,
+        regenerated=regenerated,
     )
 
 
@@ -530,6 +560,7 @@ def test_byte_savings_from_existing_public_source_receipt():
 CHECKPOINT = "a" * 64
 MANIFEST = "b" * 64
 KEY = CHECKPOINT + "-" + MANIFEST[:12]
+COMMON = "e" * 64
 
 
 @pytest.fixture
@@ -555,7 +586,20 @@ def coordinated(tmp_path, monkeypatch):
         "manifest_sha256": MANIFEST,
         "dataset_slug": "godlydonuts/rsna-ckpt-aaaaaaaaaaaa",
         "shared_wheelhouse": {"dataset_slug": "godlydonuts/wheels"},
-        "common_bundle": {"dataset_slug": "godlydonuts/rsna-common"},
+        "common_bundle": {
+            "dataset_slug": "godlydonuts/rsna-common",
+            "manifest_sha256": COMMON,
+        },
+    }
+    shared = home / "rsna-knee/kaggle/dataset-publications"
+    shared.mkdir(parents=True)
+    proof_marker = shared / ("common-" + COMMON + ".node-verified.json")
+    proof_marker.write_text('{"status": "all_payload_bytes_verified"}\n')
+    op["common_bundle"]["verification_sha256"] = workflow.digest(proof_marker)
+    projection = {
+        "package_git_commit": "x",
+        "training_git_commit": "y",
+        "files": {name: hashed(ROOT / name) for name in c.COMPONENT_PROJECTION},
     }
     state = SimpleNamespace(creates=0, outcome=TimeoutError, ledger=0)
 
@@ -571,7 +615,7 @@ def coordinated(tmp_path, monkeypatch):
     monkeypatch.setattr(
         c,
         "load_workflow",
-        lambda *a: (flow, {"package_git_commit": "x"} | {"training_git_commit": "y"}),
+        lambda *a: (flow, projection),
     )
     monkeypatch.setattr(
         c, "validate_operation", lambda *a: (op, {"checkpoint_sha256": CHECKPOINT}, files)
@@ -624,12 +668,11 @@ def coordinated(tmp_path, monkeypatch):
             node_local_journal_root=journal_root,
         )
 
-    shared = home / "rsna-knee/kaggle/dataset-publications"
     return SimpleNamespace(args=args, root=root, shared=shared, state=state, op=op, files=files)
 
 
 def shared_names(x):
-    return sorted(p.name for p in x.shared.iterdir())
+    return sorted(p.name for p in x.shared.iterdir() if not p.name.startswith("common-"))
 
 
 def test_node_local_journal_unknown_outcome_reconciles_without_retry(coordinated):
@@ -688,9 +731,20 @@ def test_node_local_journal_identity_and_scope_guards(coordinated):
         c.run(x.args("create-dataset"))
 
 
+def test_component_checkpoint_requires_coordinator_common_proof_and_projection(coordinated):
+    x = coordinated
+    marker = x.shared / ("common-" + COMMON + ".node-verified.json")
+    marker.write_text("{}\n")
+    with pytest.raises(ValueError, match="full-byte verification marker"):
+        c.run(x.args("prepare-transport"))
+    marker.unlink()
+    with pytest.raises(ValueError, match="full-byte verification marker"):
+        c.run(x.args("prepare-transport"))
+    assert x.state.creates == 0 and not x.root.exists()
+
+
 def test_shared_journal_default_is_unchanged_and_blocked_by_pending_node_intent(coordinated):
     x = coordinated
-    x.shared.mkdir(parents=True)
     (x.shared / ("c" * 64 + "-" + "d" * 12 + ".node-intent.json")).write_text("{}")
     x.op.pop("common_bundle")
     c.run(x.args("prepare-transport", None))

@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -577,69 +578,24 @@ def validate_delta_base(checkpoint_file, encoder_spec, binding):
         torch.set_num_threads(previous_threads)
 
 
-def prepare_bundle(
+def _assemble_sources(
     sidecar,
+    meta,
+    binding,
+    checkpoint,
+    delta,
     encoder_spec,
     wheelhouse,
-    output,
     dataset_slug,
-    kernel_slug,
     license_file,
     license_source,
     license_sha256,
-    repo=ROOT,
-    shared_wheelhouse=None,
-    runtime_image=None,
-    fitting_admission=None,
-    inference_engine="legacy",
-    common_bundle=None,
+    repo,
+    shared_wheelhouse,
+    fitting_admission,
+    inference_engine,
 ):
-    """Local only. Requires real epoch + completed Linux wheel lock; no placeholders.
-
-    ``common_bundle`` optionally names a directory holding an exact
-    ``common-manifest.json`` and its full-download ``common-verification.json``.
-    Then only checkpoint-specific members are copied; every common member is
-    re-derived from current sources and must match the verified common bytes.
-    """
-    if inference_engine not in {"legacy", "resident_two_gpu_fp32"}:
-        raise ValueError("Unadmitted inference execution engine")
-    if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
-        raise ValueError("An exact Kaggle runtime image digest is required")
-    if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
-        raise ValueError("Use explicit owner/slug identifiers")
-    meta, binding, checkpoint = (
-        validate_snapshot(sidecar, repo)
-        if fitting_admission is None
-        else validate_snapshot(sidecar, repo, fitting_admission=fitting_admission)
-    )
-    delta = binding["config"].get("checkpoint_format") == "frozen_base_delta"
-    if (
-        meta["checkpoint_sha256"][:12] not in dataset_slug
-        or meta["checkpoint_sha256"][:12] not in kernel_slug
-    ):
-        raise ValueError("Dedicated Dataset/kernel slugs must include the checkpoint SHA prefix")
-    common_record = common_manifest = None
-    if common_bundle is not None:
-        common_bundle = Path(common_bundle)
-        proof = json.loads((common_bundle / "common-verification.json").read_text())
-        common_record, common_manifest = components.binding(
-            common_bundle / components.COMMON_MANIFEST,
-            common_bundle / "common-verification.json",
-            proof.get("slug", ""),
-        )
-        common_slug = common_record["dataset_slug"]
-        # Two observed same-identity SaveKernel 409s resolved only with a
-        # distinct notebook identity: operational evidence, not a root cause.
-        if (
-            kernel_slug == dataset_slug
-            or common_slug in {dataset_slug, kernel_slug}
-            or common_slug.split("/")[0] != dataset_slug.split("/")[0]
-            or kernel_slug.split("/")[1].replace("-", " ").casefold()
-            == dataset_slug.split("/")[1].replace("-", " ").casefold()
-            or shared_wheelhouse is None
-            or common_slug == json.loads(Path(shared_wheelhouse).read_text()).get("dataset_slug")
-        ):
-            raise ValueError("Component notebook, Dataset and common identities must be distinct")
+    """Validate inputs and return every source path a standalone payload would copy."""
     encoder = json.loads(encoder_spec.read_text())
     if not re.fullmatch(
         r"https://github\.com/facebookresearch/dinov3/blob/[0-9a-f]{40}/LICENSE\.md", license_source
@@ -733,6 +689,164 @@ def prepare_bundle(
     if shared is None:
         for name in wheel_manifest["files"]:
             sources["wheels/" + name] = relative_file(wheelhouse, name)
+    return SimpleNamespace(
+        encoder=encoder,
+        wheel_manifest=wheel_manifest,
+        shared=shared,
+        sources=sources,
+        baseline=baseline,
+    )
+
+
+def _json_row(value):
+    """Hash/size of the exact bytes ``new_json`` writes for ``value``."""
+    data = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    return {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+
+
+def _common_rows(assembled):
+    rows = {
+        name: {"sha256": digest(path), "bytes": path.stat().st_size}
+        for name, path in assembled.sources.items()
+        if components.role(name) == "common"
+    }
+    rows["encoder.json"] = _json_row(assembled.encoder)
+    rows["wheelhouse.json"] = _json_row(assembled.wheel_manifest)
+    return dict(sorted(rows.items()))
+
+
+def common_table(
+    sidecar,
+    encoder_spec,
+    wheelhouse,
+    license_file,
+    license_source,
+    license_sha256,
+    repo=ROOT,
+    shared_wheelhouse=None,
+    fitting_admission=None,
+    inference_engine="legacy",
+):
+    """Regenerate this candidate's exact common member table without copying bytes.
+
+    This is the only authority for reusing common bytes: an older standalone
+    payload may seed a common bundle only if its members equal this table.
+    """
+    if shared_wheelhouse is None:
+        raise ValueError("Common bundles require a shared wheelhouse")
+    meta, binding, checkpoint = (
+        validate_snapshot(sidecar, repo)
+        if fitting_admission is None
+        else validate_snapshot(sidecar, repo, fitting_admission=fitting_admission)
+    )
+    delta = binding["config"].get("checkpoint_format") == "frozen_base_delta"
+    return _common_rows(
+        _assemble_sources(
+            sidecar,
+            meta,
+            binding,
+            checkpoint,
+            delta,
+            encoder_spec,
+            wheelhouse,
+            None,
+            license_file,
+            license_source,
+            license_sha256,
+            repo,
+            shared_wheelhouse,
+            fitting_admission,
+            inference_engine,
+        )
+    )
+
+
+def prepare_bundle(
+    sidecar,
+    encoder_spec,
+    wheelhouse,
+    output,
+    dataset_slug,
+    kernel_slug,
+    license_file,
+    license_source,
+    license_sha256,
+    repo=ROOT,
+    shared_wheelhouse=None,
+    runtime_image=None,
+    fitting_admission=None,
+    inference_engine="legacy",
+    common_bundle=None,
+):
+    """Local only. Requires real epoch + completed Linux wheel lock; no placeholders.
+
+    ``common_bundle`` optionally names a directory holding an exact
+    ``common-manifest.json`` and its full-download ``common-verification.json``.
+    Then only checkpoint-specific members are copied; every common member is
+    re-derived from current sources and must match the verified common bytes.
+    """
+    if inference_engine not in {"legacy", "resident_two_gpu_fp32"}:
+        raise ValueError("Unadmitted inference execution engine")
+    if runtime_image is not None and not RUNTIME_IMAGE.fullmatch(runtime_image):
+        raise ValueError("An exact Kaggle runtime image digest is required")
+    if not SLUG.fullmatch(dataset_slug) or not SLUG.fullmatch(kernel_slug):
+        raise ValueError("Use explicit owner/slug identifiers")
+    meta, binding, checkpoint = (
+        validate_snapshot(sidecar, repo)
+        if fitting_admission is None
+        else validate_snapshot(sidecar, repo, fitting_admission=fitting_admission)
+    )
+    delta = binding["config"].get("checkpoint_format") == "frozen_base_delta"
+    if (
+        meta["checkpoint_sha256"][:12] not in dataset_slug
+        or meta["checkpoint_sha256"][:12] not in kernel_slug
+    ):
+        raise ValueError("Dedicated Dataset/kernel slugs must include the checkpoint SHA prefix")
+    common_record = common_manifest = None
+    if common_bundle is not None:
+        common_bundle = Path(common_bundle)
+        proof = json.loads((common_bundle / "common-verification.json").read_text())
+        common_record, common_manifest = components.binding(
+            common_bundle / components.COMMON_MANIFEST,
+            common_bundle / "common-verification.json",
+            proof.get("slug", ""),
+        )
+        common_slug = common_record["dataset_slug"]
+        # Two observed same-identity SaveKernel 409s resolved only with a
+        # distinct notebook identity: operational evidence, not a root cause.
+        if (
+            kernel_slug == dataset_slug
+            or common_slug in {dataset_slug, kernel_slug}
+            or common_slug.split("/")[0] != dataset_slug.split("/")[0]
+            or kernel_slug.split("/")[1].replace("-", " ").casefold()
+            == dataset_slug.split("/")[1].replace("-", " ").casefold()
+            or shared_wheelhouse is None
+            or common_slug == json.loads(Path(shared_wheelhouse).read_text()).get("dataset_slug")
+        ):
+            raise ValueError("Component notebook, Dataset and common identities must be distinct")
+    assembled = _assemble_sources(
+        sidecar,
+        meta,
+        binding,
+        checkpoint,
+        delta,
+        encoder_spec,
+        wheelhouse,
+        dataset_slug,
+        license_file,
+        license_source,
+        license_sha256,
+        repo,
+        shared_wheelhouse,
+        fitting_admission,
+        inference_engine,
+    )
+    encoder, wheel_manifest, shared = (
+        assembled.encoder,
+        assembled.wheel_manifest,
+        assembled.shared,
+    )
+    sources, baseline = assembled.sources, assembled.baseline
     copied = sources
     if common_record is not None:
         if (
@@ -743,6 +857,10 @@ def prepare_bundle(
             or common_manifest["competition"] != COMPETITION
         ):
             raise ValueError("Common bundle licence/base/runtime differs from this candidate")
+        if _common_rows(assembled) != common_manifest["files"]:
+            raise ValueError(
+                "Candidate encoder/code/licence differs from the verified common bundle"
+            )
         copied = {n: s for n, s in sources.items() if components.role(n) == "candidate"}
     if shutil.disk_usage(output.parent).free < FLOOR + sum(
         p.stat().st_size for p in copied.values()
