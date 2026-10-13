@@ -70,7 +70,7 @@ def build(tmp_path, manifest, folds, rows=None):
     pi.write_public_triplet_cache(
         tmp_path,
         rows,
-        pixel_group=copy.deepcopy(PIXEL_GROUP),
+        public_input=POLICY,
         source_revision="synthetic",
         fitting_uids=fitting,
         evaluation_uids=evaluation,
@@ -146,6 +146,8 @@ def test_cache_stores_each_source_row_once_as_uint8(tmp_path):
         "member_bytes",
         "member_missing",
         "pixel_group",
+        "pixel_rules",
+        "pixel_slots",
         "renderer",
         "source_revision",
         "roster_swap",
@@ -187,6 +189,10 @@ def test_cache_source_and_roster_tampering_refused(tmp_path, tamper):
         (root / "members/s1.npz").unlink()
     elif tamper == "pixel_group":
         rewrite_index(tmp_path, lambda index: index["pixel_group"].update(crop_mm=161.25))
+    elif tamper == "pixel_rules":
+        rewrite_index(tmp_path, lambda index: index["pixel_group"]["rules"].update(lat="none"))
+    elif tamper == "pixel_slots":
+        rewrite_index(tmp_path, lambda index: index["pixel_group"]["slots"].reverse())
     elif tamper == "renderer":
         rewrite_index(tmp_path, lambda index: index.update(source_sha256="0" * 64))
     elif tamper == "source_revision":
@@ -448,13 +454,214 @@ def test_policy_constants_match_reviewed_source_attribution():
     assert comparison["provenance"]["node_text_sha256"] == pi.NODE_TEXT_SHA256
 
 
+def test_admitted_pixel_group_is_the_actual_member_group():
+    assert pi.ADMITTED_PIXEL_GROUP == PIXEL_GROUP
+    assert pi.canonical_sha256(PIXEL_GROUP) == pi.ADMITTED_PIXEL_GROUP_SHA256
+    assert POLICY["pixel_group_sha256"] == pi.ADMITTED_PIXEL_GROUP_SHA256
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        lambda g: g["slots"].reverse(),
+        lambda g: g["slots"].__setitem__(5, "AX_T1"),
+        lambda g: g["rules"].update(slot_fallback=True),
+        lambda g: g["rules"].update(extra="x"),
+        lambda g: g.update(crop_mm=130),
+    ],
+)
+def test_other_slots_or_rules_refused(edit):
+    group = copy.deepcopy(PIXEL_GROUP)
+    edit(group)
+    with pytest.raises(ValueError, match="pixel group"):
+        pi._validate_pixel_group(group)
+    with pytest.raises(ValueError, match="policy"):
+        pi.validate_public_input(POLICY | {"pixel_group_sha256": pi.canonical_sha256(group)})
+
+
+def tree(path):
+    return sorted(str(p.relative_to(path)) for p in path.rglob("*"))
+
+
+@pytest.mark.parametrize(
+    "uid", ["../outside", "..", ".", "a/b", "a\\b", "/abs", "", " s", "s..t", 7, "x" * 129]
+)
+@pytest.mark.parametrize("roster", ["fitting", "evaluation", "rows"])
+def test_unsafe_uids_refused_before_any_write(tmp_path, uid, roster):
+    cache = tmp_path / "cache"
+    fitting, evaluation = {"s0", "s1"}, {"s2"}
+    rows = {u: row(i) for i, u in enumerate(sorted(fitting | evaluation))}
+    if roster == "rows":
+        rows[uid] = row(9)
+    elif roster == "fitting":
+        fitting.add(uid)
+    else:
+        evaluation.add(uid)
+    before = tree(tmp_path)
+    with pytest.raises(ValueError):
+        pi.write_public_triplet_cache(
+            cache,
+            rows,
+            public_input=POLICY,
+            source_revision="synthetic",
+            fitting_uids=fitting,
+            evaluation_uids=evaluation,
+        )
+    assert tree(tmp_path) == before or roster == "rows"
+    assert not (tmp_path / "outside.npz").exists() and not Path("/abs.npz").exists()
+    assert not (cache / pi.CACHE_DIRECTORY).exists()
+    if roster == "rows":  # unknown row UIDs stop before their own write; nothing is published
+        assert not any(p.name.startswith(("outside", "abs", "..")) for p in tmp_path.rglob("*"))
+
+
+@pytest.mark.parametrize(
+    "fitting,evaluation",
+    [({"s0", "s1"}, {"s1", "s2"}), (set(), {"s0"}), (["s0", "s0"], ["s1"])],
+)
+def test_overlapping_or_invalid_rosters_refused_before_writes(tmp_path, fitting, evaluation):
+    rows = {u: row(i) for i, u in enumerate(["s0", "s1", "s2"])}
+    with pytest.raises(ValueError, match="disjoint"):
+        pi.write_public_triplet_cache(
+            tmp_path / "cache",
+            rows,
+            public_input=POLICY,
+            source_revision="synthetic",
+            fitting_uids=fitting,
+            evaluation_uids=evaluation,
+        )
+    assert not (tmp_path / "cache").exists()
+
+
+def test_incomplete_or_existing_cache_never_published(tmp_path):
+    kwargs = dict(
+        public_input=POLICY,
+        source_revision="synthetic",
+        fitting_uids={"s0", "s1"},
+        evaluation_uids={"s2"},
+    )
+    with pytest.raises(ValueError, match="cover"):
+        pi.write_public_triplet_cache(tmp_path, {"s0": row(0), "s2": row(2)}, **kwargs)
+    assert not (tmp_path / pi.CACHE_DIRECTORY).exists()
+    with pytest.raises(FileExistsError):
+        pi.write_public_triplet_cache(tmp_path, {}, **kwargs)
+    bad = row(1)
+    bad["images"][5, 0, 0, 0] = 1  # absent slot carrying pixels is refused before writing
+    with pytest.raises(ValueError):
+        pi.write_public_triplet_cache(
+            tmp_path / "other", {"s0": row(0), "s1": bad, "s2": row(2)}, **kwargs
+        )
+    assert not (tmp_path / "other" / pi.CACHE_DIRECTORY).exists()
+    assert not (tmp_path / "other" / f"{pi.CACHE_DIRECTORY}.partial" / "members/s1.npz").exists()
+
+
+def source_namespace():
+    from tools.research.public_dinov2_input_reference import reference
+
+    namespace, _ = reference.load(reference.SOURCE_PATH.read_bytes(), [])
+    reference.configure(namespace, copy.deepcopy(PIXEL_GROUP))
+    return namespace, reference
+
+
+def source_studies(tmp_path):
+    from tools.research.public_dinov2_input_reference import synthetic
+
+    root = tmp_path / "train_series"
+    studies = {
+        name: synthetic.write_case(root, name, synthetic.MIRROR) for name in ("left", "right")
+    }
+    plane_map = {}
+    for name, study in studies.items():
+        plane_map |= synthetic.plane_map(study, synthetic.MIRROR[name])
+    return root, studies, plane_map
+
+
+def test_bounded_producer_stores_exact_source_rows(tmp_path):
+    namespace, reference = source_namespace()
+    root, studies, plane_map = source_studies(tmp_path)
+    fitting, evaluation = [studies["left"].name], [studies["right"].name]
+    digest = pi.produce_public_triplet_cache(
+        tmp_path / "cache",
+        public_input=POLICY,
+        namespace=namespace,
+        study_root=root,
+        plane_map=plane_map,
+        source_revision="synthetic",
+        fitting_uids=fitting,
+        evaluation_uids=evaluation,
+        max_studies=2,
+    )
+    index, index_sha = pi.load_public_index(tmp_path / "cache", POLICY, "synthetic")
+    assert index_sha == digest and index["pixel_group"] == PIXEL_GROUP
+    adapter = pi.load_adapter(POLICY)
+    labels, mask = torch.rand(len(TARGETS)), torch.ones(len(TARGETS))
+    for name, study in studies.items():
+        original = reference.render_original(namespace, [study], plane_map)
+        member = np.load(tmp_path / "cache" / pi.CACHE_DIRECTORY / f"members/{study.name}.npz")
+        assert member["images"].dtype == np.uint8
+        np.testing.assert_array_equal(member["images"], original["cache"][0])
+        np.testing.assert_array_equal(member["slot_mask"], original["mask"][0].astype(bool))
+        expected = adapter.render_inputs(namespace, study, plane_map, labels, mask)
+        stored = adapter.study_inputs(
+            *(torch.from_numpy(member[k]) for k in pi.MEMBER_ARRAYS),
+            labels,
+            mask,
+            study_uid=study.name,
+        )
+        for key in ("images", "series_mask", "features", "positions", "labels"):
+            assert torch.equal(stored[key], expected[key]), (name, key)
+    assert set(index["members"]) == set(fitting) | set(evaluation)
+
+
+def test_producer_bounds_source_and_roster_refusals(tmp_path):
+    namespace, _ = source_namespace()
+    root, studies, plane_map = source_studies(tmp_path)
+    uids = sorted(s.name for s in studies.values())
+    base = dict(
+        public_input=POLICY,
+        namespace=namespace,
+        study_root=root,
+        plane_map=plane_map,
+        source_revision="synthetic",
+        fitting_uids=uids[:1],
+        evaluation_uids=uids[1:],
+        max_studies=2,
+    )
+    rules = dict(namespace["RULES"], slot_fallback=True)
+    for change, error in [
+        (dict(max_studies=1), ValueError),
+        (dict(max_studies=2.0), ValueError),
+        (dict(namespace=namespace | {"RULES": rules}), ValueError),
+        (dict(namespace=namespace | {"CROP_MM": 161.25}), ValueError),
+        (dict(namespace=namespace | {"SLOTS": namespace["SLOTS"][::-1]}), ValueError),
+        (dict(evaluation_uids=uids), ValueError),
+        (dict(evaluation_uids=["1.2.826.0.1.999"]), FileNotFoundError),
+        (dict(fitting_uids=["../train_series/" + uids[0]]), ValueError),
+        (dict(public_input=POLICY | {"adapter_sha256": "0" * 64}), ValueError),
+    ]:
+        with pytest.raises(error):
+            pi.produce_public_triplet_cache(tmp_path / "cache", **(base | change))
+        assert not (tmp_path / "cache").exists()
+
+
+def test_cache_producer_cli_refuses_off_owning_node(tmp_path, monkeypatch):
+    import importlib
+
+    monkeypatch.setattr("os.uname", lambda: argparse.Namespace(nodename="elsewhere"))
+    script = importlib.import_module("scripts.newton.produce_public_triplet_cache")
+    names = ("studies", "artifact-root", "folds", "series", "dicom-root", "source")
+    names += ("member-manifest", "checkpoint", "out-cache")
+    args = [f"--{k}={tmp_path}" for k in names]
+    with pytest.raises(ValueError, match="owning-node"):
+        script.main(args + ["--max-studies=3403"])
+
+
 @pytest.mark.parametrize("uid", ["../escaped", "/absolute", "nested/name", "back\\slash", "", ".."])
 def test_writer_rejects_unsafe_uids_before_any_write(tmp_path, uid):
     with pytest.raises(ValueError, match="safe individual"):
         pi.write_public_triplet_cache(
             tmp_path,
             {uid: row(0)},
-            pixel_group=PIXEL_GROUP,
+            public_input=POLICY,
             source_revision="synthetic",
             fitting_uids=[uid],
             evaluation_uids=[],
@@ -467,7 +674,7 @@ def test_writer_rejects_overlapping_rosters_before_any_write(tmp_path):
         pi.write_public_triplet_cache(
             tmp_path,
             {"study": row(0)},
-            pixel_group=PIXEL_GROUP,
+            public_input=POLICY,
             source_revision="synthetic",
             fitting_uids=["study"],
             evaluation_uids=["study"],

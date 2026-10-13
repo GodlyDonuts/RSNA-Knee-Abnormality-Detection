@@ -13,8 +13,11 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import types
+from collections.abc import Iterable, Mapping
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -30,7 +33,6 @@ ADAPTER_PATH = (
     Path(__file__).resolve().parents[2]
     / "tools/research/public_dinov2_input_reference/dino_adapter.py"
 )
-PIXEL_GROUP_SHA256 = "bbd7564015afc8a823fd122cd7150f5cf9025f3cdadf3396f0170406855eaa59"
 CACHE_DIRECTORY = "public-ordered-triplet-v1"
 SIDE, SLOTS, SLICES, VIEWS = 336, 6, 12, 10
 MEMBER_ARRAYS = {
@@ -39,6 +41,19 @@ MEMBER_ARRAYS = {
     "features": (np.float32, (SLOTS, 5)),
     "positions": (np.float32, (SLOTS, SLICES, 2)),
 }
+# The private Pilkwang member's exact manifest pixel group, as bound by CPU 905973.
+ADMITTED_PIXEL_GROUP: dict[str, Any] = {
+    "band": [0.2, 0.8],
+    "crop_mm": 130.0,
+    "group": 3,
+    "img": 336,
+    "rules": {"decode_fill": "nearest", "lat": "centre", "order": "normal", "slot_fallback": False},
+    "slices": 12,
+    "slots": ["SAG_FLUID_FS", "COR_FLUID_FS", "AX_FLUID_FS", "SAG_FLUID_NOFS", "COR_T1", "SAG_T1"],
+}
+ADMITTED_PIXEL_GROUP_SHA256 = "bbd7564015afc8a823fd122cd7150f5cf9025f3cdadf3396f0170406855eaa59"
+PIXEL_GROUP_SHA256 = ADMITTED_PIXEL_GROUP_SHA256
+UID_PATTERN = re.compile(r"[0-9A-Za-z][0-9A-Za-z._-]{0,127}")
 POLICY_KEYS = {
     "kind",
     "renderer",
@@ -73,28 +88,35 @@ def validate_public_input(policy: object) -> None:
         or policy["renderer"] != RENDERER
         or policy["source_sha256"] != SOURCE_SHA256
         or policy["node_text_sha256"] != NODE_TEXT_SHA256
-        or policy["pixel_group_sha256"] != PIXEL_GROUP_SHA256
+        or policy["pixel_group_sha256"] != ADMITTED_PIXEL_GROUP_SHA256
         or not _is_sha(policy["adapter_sha256"])
     ):
         raise ValueError("Exact source-bound public ordered-triplet input policy required")
 
 
 def _validate_pixel_group(group: object) -> None:
+    if not isinstance(group, dict) or canonical_sha256(group) != ADMITTED_PIXEL_GROUP_SHA256:
+        raise ValueError("Exact admitted public pixel group, slots and rules required")
+
+
+def _validate_uid(uid: object) -> str:
+    if not isinstance(uid, str) or not UID_PATTERN.fullmatch(uid) or ".." in uid:
+        raise ValueError("Public triplet study IDs must be safe individual filenames")
+    return uid
+
+
+def _declared_rosters(fitting_uids, evaluation_uids) -> tuple[set[str], set[str]]:
+    fitting_list = [_validate_uid(uid) for uid in fitting_uids]
+    evaluation_list = [_validate_uid(uid) for uid in evaluation_uids]
+    fitting, evaluation = set(fitting_list), set(evaluation_list)
     if (
-        not isinstance(group, dict)
-        or {"img", "group", "slices", "crop_mm", "band", "rules", "slots"} != set(group)
-        or group["img"] != SIDE
-        or group["group"] != 3
-        or group["slices"] != SLICES
-        or group["crop_mm"] != 130.0
-        or group["band"] != [0.2, 0.8]
-        or not isinstance(group["rules"], dict)
-        or not isinstance(group["slots"], list)
-        or len(group["slots"]) != SLOTS
-        or not all(isinstance(name, str) and name for name in group["slots"])
-        or canonical_sha256(group) != PIXEL_GROUP_SHA256
+        not fitting
+        or len(fitting) != len(fitting_list)
+        or len(evaluation) != len(evaluation_list)
+        or fitting & evaluation
     ):
-        raise ValueError("Admitted public pixel group required")
+        raise ValueError("Public triplet rosters must be disjoint unique and nonempty")
+    return fitting, evaluation
 
 
 def load_adapter(policy: dict) -> types.ModuleType:
@@ -105,6 +127,8 @@ def load_adapter(policy: dict) -> types.ModuleType:
         raise ValueError("Public triplet adapter source differs from its bound hash")
     module = types.ModuleType("rsna_public_triplet_dino_adapter")
     module.__file__ = str(ADAPTER_PATH)
+    # `render_inputs` imports the reviewed renderer relative to its own package.
+    module.__package__ = "tools.research.public_dinov2_input_reference"
     exec(compile(source, str(ADAPTER_PATH), "exec"), module.__dict__)
     return module
 
@@ -143,7 +167,8 @@ def load_public_index(cache: Path, policy: dict, source_revision: str) -> tuple[
     for uid, member in members.items():
         if (
             not isinstance(uid, str)
-            or not uid
+            or not UID_PATTERN.fullmatch(uid)
+            or ".." in uid
             or not isinstance(member, dict)
             or set(member) != {"path", "bytes", "sha256"}
             or member["path"] != f"members/{uid}.npz"
@@ -184,43 +209,44 @@ def verify_public_cohort(
 
 def write_public_triplet_cache(
     cache: Path,
-    rows: dict[str, dict[str, np.ndarray]],
+    rows: Mapping[str, dict[str, np.ndarray]] | Iterable[tuple[str, dict[str, np.ndarray]]],
     *,
-    pixel_group: dict,
+    public_input: dict,
     source_revision: str,
     fitting_uids,
     evaluation_uids,
 ) -> str:
-    """Store original renderer rows once as uint8; returns the index SHA256."""
-    _validate_pixel_group(pixel_group)
-    fitting_uids, evaluation_uids = list(fitting_uids), list(evaluation_uids)
-    all_uids = [*rows, *fitting_uids, *evaluation_uids]
-    if any(
-        not isinstance(uid, str)
-        or not uid
-        or uid in {".", ".."}
-        or any(char in uid for char in ("/", "\\", "\x00"))
-        for uid in all_uids
-    ):
-        raise ValueError("Public triplet study IDs must be safe individual filenames")
-    if (
-        len(set(fitting_uids)) != len(fitting_uids)
-        or len(set(evaluation_uids)) != len(evaluation_uids)
-        or set(fitting_uids) & set(evaluation_uids)
-        or set(rows) != set(fitting_uids) | set(evaluation_uids)
-    ):
-        raise ValueError("Public triplet rows must cover disjoint unique rosters exactly")
+    """Store original renderer rows once as uint8; returns the index SHA256.
+
+    Every UID and both disjoint rosters are validated before anything is created. Rows
+    stream into a sibling `.partial` directory that is renamed only once complete.
+    """
+    fitting, evaluation = _declared_rosters(fitting_uids, evaluation_uids)
+    if not isinstance(source_revision, str) or not source_revision:
+        raise ValueError("Public triplet cache requires its release source revision")
+    adapter = load_adapter(public_input)
     root = Path(cache) / CACHE_DIRECTORY
-    root.mkdir(parents=True, exist_ok=False)
-    (root / "members").mkdir()
+    partial = Path(cache) / f"{CACHE_DIRECTORY}.partial"
+    if root.exists() or partial.exists():
+        raise FileExistsError("Public triplet cache output already exists")
+    declared = fitting | evaluation
+    items = rows.items() if isinstance(rows, Mapping) else rows
+    (partial / "members").mkdir(parents=True)
     members = {}
-    for uid in sorted(rows):
-        arrays = rows[uid]
+    for uid, arrays in items:
+        if uid not in declared or uid in members:
+            raise ValueError("Public triplet row is outside the declared roster or repeated")
         if set(arrays) != set(MEMBER_ARRAYS) or any(
             arrays[name].dtype != dtype or arrays[name].shape != shape
             for name, (dtype, shape) in MEMBER_ARRAYS.items()
         ):
             raise ValueError("Public triplet row arrays differ from the source contract")
+        adapter.study_inputs(
+            *(torch.from_numpy(arrays[name]) for name in MEMBER_ARRAYS),
+            torch.zeros(len(TARGETS)),
+            torch.zeros(len(TARGETS)),
+            study_uid=uid,
+        )
         buffer = io.BytesIO()
         np.savez(
             buffer,
@@ -230,28 +256,112 @@ def write_public_triplet_cache(
             positions=arrays["positions"],
         )
         payload = buffer.getvalue()
-        (root / "members" / f"{uid}.npz").write_bytes(payload)
+        with open(partial / "members" / f"{uid}.npz", "xb") as handle:
+            handle.write(payload)
         members[uid] = {
             "path": f"members/{uid}.npz",
             "bytes": len(payload),
             "sha256": hashlib.sha256(payload).hexdigest(),
         }
+    if set(members) != declared:
+        raise ValueError("Public triplet rows do not cover the declared roster")
     index = {
         "schema_version": 1,
         "kind": KIND,
         "renderer": RENDERER,
         "source_sha256": SOURCE_SHA256,
         "node_text_sha256": NODE_TEXT_SHA256,
-        "pixel_group": pixel_group,
+        "pixel_group": ADMITTED_PIXEL_GROUP,
         "source_revision": source_revision,
-        "fitting_uids_sha256": roster_sha256(fitting_uids),
-        "evaluation_uids_sha256": roster_sha256(evaluation_uids),
+        "fitting_uids_sha256": roster_sha256(fitting),
+        "evaluation_uids_sha256": roster_sha256(evaluation),
         "cohort_sha256": roster_sha256(members),
-        "members": members,
+        "members": dict(sorted(members.items())),
     }
     payload = json.dumps(index, sort_keys=True, indent=1).encode()
-    (root / "index.json").write_bytes(payload)
+    (partial / "index.json").write_bytes(payload)
+    partial.rename(root)
     return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_namespace(namespace: dict) -> None:
+    group = ADMITTED_PIXEL_GROUP
+    if (
+        namespace.get("IMG") != group["img"]
+        or namespace.get("CACHE_SLICES") != group["slices"]
+        or namespace.get("GROUP") != group["group"]
+        or namespace.get("CROP_MM") != group["crop_mm"]
+        or tuple(namespace.get("SLICE_BAND", ())) != tuple(group["band"])
+        or namespace.get("RULES") != group["rules"]
+        or namespace.get("N_SLOT") != len(group["slots"])
+        or [slot[0] for slot in namespace.get("SLOTS", ())] != group["slots"]
+    ):
+        raise ValueError("Renderer namespace is not configured with the admitted pixel group")
+
+
+def produce_public_triplet_cache(
+    cache: Path,
+    *,
+    public_input: dict,
+    namespace: dict,
+    study_root: Path,
+    plane_map: dict,
+    source_revision: str,
+    fitting_uids,
+    evaluation_uids,
+    max_studies: int,
+) -> str:
+    """Bounded producer: render each already-present original study once and store it.
+
+    Pixels, slot mask, features and positions are exactly the arguments the hashed
+    `render_inputs` passes to `study_inputs`; nothing is recropped, acquired or labeled.
+    """
+    fitting, evaluation = _declared_rosters(fitting_uids, evaluation_uids)
+    declared = sorted(fitting | evaluation)
+    if type(max_studies) is not int or not 1 <= len(declared) <= max_studies:
+        raise ValueError("Public triplet production exceeds its explicit study bound")
+    _validate_namespace(namespace)
+    directories = {uid: Path(study_root) / uid for uid in declared}
+    if not all(path.is_dir() for path in directories.values()):
+        raise FileNotFoundError("Original study directories are absent; no acquisition here")
+    adapter = load_adapter(public_input)
+    original = getattr(adapter, "study_inputs")
+    captured: dict[str, dict[str, np.ndarray]] = {}
+
+    def capture(images, series_mask, features, slice_positions, labels, label_mask, *, study_uid):
+        captured[study_uid] = {
+            "images": images.numpy().copy(),
+            "slot_mask": series_mask.numpy().copy(),
+            "features": features.numpy().copy(),
+            "positions": slice_positions.numpy().copy(),
+        }
+        return original(
+            images, series_mask, features, slice_positions, labels, label_mask, study_uid=study_uid
+        )
+
+    setattr(adapter, "study_inputs", capture)
+
+    def rows():
+        for uid, directory in directories.items():
+            adapter.render_inputs(
+                namespace,
+                directory,
+                plane_map,
+                torch.zeros(len(TARGETS)),
+                torch.zeros(len(TARGETS)),
+            )
+            if set(captured) != {uid}:
+                raise ValueError("Original renderer produced a different study")
+            yield uid, captured.pop(uid)
+
+    return write_public_triplet_cache(
+        cache,
+        rows(),
+        public_input=public_input,
+        source_revision=source_revision,
+        fitting_uids=fitting,
+        evaluation_uids=evaluation,
+    )
 
 
 class PublicTripletStudyDataset(torch.utils.data.Dataset):
