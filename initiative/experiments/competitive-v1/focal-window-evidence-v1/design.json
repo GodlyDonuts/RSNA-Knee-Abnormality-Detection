@@ -1,0 +1,39 @@
+{
+  "kind": "focal_window_evidence_design_v1",
+  "status": "precommitted_not_run",
+  "issue": 37,
+  "question": "Does disease-query sparse window pooling with window-level frozen-teacher supervision preserve focal evidence better than ordinary bag-level supervision and the issue #35 aggregate (spread-penalized) teacher auxiliary loss?",
+  "teacher": "pilkwang/rsna-knee-baseline-v1/v15/m_e5427d6c21.pt; the already reviewed issue #35 window_logits [N,10,12] and slot_mask only; no new collection",
+  "teacher_training_roster": "unknown",
+  "base_config": "initiative/experiments/competitive-v1/public-input-recipe-v1/public-triplet-config.json",
+  "window_identity": "window k = rendered cache slices k,k+1,k+2 of every acquired slot = original window_starts(12,3)[k]; student position = center slice k+1; teacher window logit k = one study-wide forward of that window",
+  "arms": {
+    "A_ordinary": {"pooling": "attention", "teacher": "none"},
+    "B_aggregate_teacher": {"pooling": "attention", "teacher": "issue #35 aggregate soft BCE", "teacher_auxiliary_weight": 0.5},
+    "C_focal_pool": {"pooling": "focal_window", "teacher": "none", "window_teacher_weight": 0.0},
+    "D_focal_window_teacher": {"pooling": "focal_window", "teacher": "window-level soft BCE", "window_teacher_weight": 0.5}
+  },
+  "reuse": "A and B are exactly the issue #35 precommitted arms; if they are fitted under the identical recipe/seed/code revision they are reused and only C and D are new fits",
+  "focal_window": "rsna.competitive.focal_window.FocalWindowPool(hidden_dim=128); logit_cap 6.0; uniform_floor 0.25; zero-initialized queries; replaces the slice/series attention head only, same 70668 parameters",
+  "window_teacher": "combined = label_loss + w * window_teacher_loss(student_window_logits, sigmoid(teacher_window_logit), |2p-1| per window, effective-batch per-target weight sums); fitting studies only; absent studies weight 0; slot-mask mismatch refuses",
+  "identical_between_arms": ["public_input", "fitting_supervision", "encoder base/adapter/trainable encoder parameters", "seed 20260922", "fold 0", "epochs 10/updates/warmup/cosine schedule", "batch/accumulation/precision", "accepted labels, masks and folds", "evaluation code and bootstrap"],
+  "zero_weight_contract": "w=0 returns the label loss object itself and never evaluates the teacher term; C is D at w=0",
+  "inference": "student only; no teacher, window evidence or ensemble at inference",
+  "checkpoint_selection": "fixed_final_only",
+  "evaluation": "Existing 1156-study weak-development outer evaluation with accepted labels only; no gold, confirmation or validation-label-driven setting",
+  "primary_endpoint": "D minus A paired macro AUC over 12 targets, existing paired whole-leakage-component bootstrap, undefined draws retained",
+  "gatekept_secondary": "D minus B paired macro AUC, interpreted only if the primary lower bound is above zero",
+  "decomposition_descriptive": ["C minus A (pooling alone)", "D minus C (window teacher given pooling)"],
+  "focal_targets_descriptive": ["ACL", "Medial Meniscus", "Lateral Meniscus"],
+  "mechanism_diagnostics_descriptive": ["per study-target max window weight distribution", "fraction at the 0.775 single-window bound", "development prediction change when the top-weighted window is dropped", "tied study logits from cap saturation"],
+  "failure_criteria": {
+    "engineering_stop": ["any focal_window test failure", "C not identical to D at w=0", "teacher binding/roster/slot-mask mismatch", "any teacher row for an evaluation study", "non-finite loss or gradient"],
+    "harm": "primary 95% interval upper bound below zero",
+    "no_established_gain": "primary interval includes zero; keep ordinary pooling",
+    "not_teacher_attributable": "D minus C interval includes zero while C minus A carries the change",
+    "focal_hypothesis_unsupported": "macro changes without matching focal-target direction, or window weights collapse to the single-window bound for most study-targets"
+  },
+  "not_claimable": ["clean held-out teacher/student comparison", "competition eligibility", "clinical truth", "teacher accuracy", "any accuracy from synthetic tests", "public leaderboard scores as teacher reliability"],
+  "preconditions_before_any_fit": ["issue #35 evidence collected and reconciled on the complete fitting roster", "exact complete public-input cache", "trainer integration reviewed in a separate change", "actual GPU full/stop/resume recovery of the new head", "fresh GPU/storage funding by the main agent"],
+  "release": "private only; no submission of any diagnostic model"
+}
