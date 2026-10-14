@@ -1,0 +1,97 @@
+"""Build predeclared private inference candidates from the original completed run."""
+
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+import torch
+
+root = Path("/tmp/rsna-epoch-weight-average-CPU-20261014-v1")
+original = Path("/tmp/rsna-public-label-full-fit-20261006-v1")
+run = original / "public"
+assert os.uname().nodename == "evc31"
+assert os.environ.get("SLURM_CPUS_PER_TASK") == "1"
+assert not os.environ.get("SLURM_STEP_GPUS") and torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+contract = json.loads((root / "contract.json").read_text())
+assert shutil.disk_usage(root).free > contract["required_free_bytes"]
+assert (
+    hashlib.sha256((run / "run.json").read_bytes()).hexdigest() == contract["original_run_sha256"]
+)
+record = json.loads((run / "run.json").read_text())
+assert (
+    record["status"] == "completed"
+    and record["training_studies"] == 2247
+    and record["outer_studies"] == 1156
+)
+binding = record["binding"]
+assert binding["config"]["encoder"]["adapter"]["rank"] == 32
+assert (
+    binding["config"]["encoder"]["weights_sha256"]
+    == "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+)
+assert not (root / "code").exists()
+code = root / "code"
+code.mkdir(mode=0o700)
+total = 0
+for name, expected in binding["code_sha256"].items():
+    relative = Path("rsna") / name
+    assert not Path(name).is_absolute() and ".." not in Path(name).parts
+    source = original / "code" / relative
+    assert source.is_file() and not source.is_symlink()
+    data = source.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == expected
+    total += len(data)
+    assert total < 4 * 2**20
+    target = code / relative
+    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with target.open("xb") as handle:
+        handle.write(data)
+new_module = (root / "weight_average.py").read_bytes()
+assert hashlib.sha256(new_module).hexdigest() == contract["averaging_module_sha256"]
+with (code / "rsna/competitive/weight_average.py").open("xb") as handle:
+    handle.write(new_module)
+sys.path.insert(0, str(code))
+from rsna.competitive import weight_average as wa  # noqa: E402 - immutable source first
+
+current = {
+    name: hashlib.sha256((code / "rsna" / name).read_bytes()).hexdigest()
+    for name in binding["code_sha256"]
+}
+current[wa.SELF] = contract["averaging_module_sha256"]
+wa.verify_source_code(binding, current)
+results = {}
+for role, epochs in (("identity", wa.IDENTITY_CONTROL_EPOCHS), ("average", wa.AVERAGED_EPOCHS)):
+    candidate = wa.average_snapshots(run, epochs)
+    assert (
+        candidate["source_binding_sha256"]
+        == "252129384647bacc1838eb0ac643578c92d8cf93de27eb74c3ccceee4495d2aa"
+    )
+    output = root / role / "candidate.pt"
+    receipt = wa.write_candidate(candidate, output)
+    wa.verify_sources_intact(run, candidate)
+    wa.load_candidate(output, receipt["candidate_sha256"])
+    results[role] = receipt
+    del candidate
+    assert (
+        sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+        < contract["candidate_control_cap_bytes"]
+    )
+assert shutil.disk_usage(root).free > contract["reserve_bytes"]
+result = {
+    "status": "actual_original_public_run_epoch10_identity_and_epoch6_10_average_CPU_built",
+    "parent_job": os.environ["SLURM_JOB_ID"],
+    "step": os.environ.get("SLURM_STEP_ID"),
+    "roles": results,
+    "source_code_sha256": current,
+    "source_checkpoints_preserved": True,
+    "GPU_or_MRI_or_optimizer_run": False,
+    "clinical_accuracy_evidence": False,
+    "weights_or_labels_exported": False,
+}
+with (root / "CPU-built.json").open("x") as handle:
+    json.dump(result, handle, indent=2)
+print(json.dumps(result), flush=True)

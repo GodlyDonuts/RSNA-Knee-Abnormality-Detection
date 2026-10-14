@@ -1,0 +1,209 @@
+"""One source-bound outer prediction, with epoch10 identity required first."""
+
+import hashlib
+import importlib
+import json
+import os
+import random
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+from torch.utils.data import DataLoader
+
+root = Path("/tmp/rsna-epoch-weight-average-CPU-20261014-v1")
+original = Path("/tmp/rsna-public-label-full-fit-20261006-v1")
+role = sys.argv[1]
+assert role in ("identity", "average")
+assert os.uname().nodename == "evc31" and os.environ.get("SLURM_CPUS_PER_TASK") == "2"
+assert torch.cuda.device_count() == 1 and "H100" in torch.cuda.get_device_name(0)
+assert torch.cuda.mem_get_info()[0] > 12 * 2**30
+assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+torch.set_num_threads(2)
+torch.use_deterministic_algorithms(True, warn_only=False)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+code = root / "code"
+sys.path.insert(0, str(code))
+from rsna.competitive.adapters import configure_encoder_training  # noqa: E402
+from rsna.competitive.backbones import create_encoder  # noqa: E402
+from rsna.competitive.data import (  # noqa: E402
+    CompetitiveStudyDataset,
+    collate_studies,
+    evaluation_slice_sampling,
+)
+from rsna.competitive.folds import load_folds  # noqa: E402
+from rsna.competitive.model import CompetitiveStudyNet  # noqa: E402
+from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset  # noqa: E402
+from rsna.competitive.train import (  # noqa: E402
+    TrainConfig,
+    _uid_hash,
+    predict,
+    select_development,
+    verified_job_release,
+)
+from rsna.competitive.weight_average import (  # noqa: E402
+    apply_candidate,
+    load_candidate,
+    verify_source_code,
+)
+from rsna.model import auc_metrics  # noqa: E402
+from rsna.schema import TARGETS  # noqa: E402
+
+started = time.monotonic()
+built = json.loads((root / "CPU-built.json").read_text())
+assert (
+    built["status"] == "actual_original_public_run_epoch10_identity_and_epoch6_10_average_CPU_built"
+)
+contract = json.loads((root / "evaluation-contract-v2.json").read_text())
+assert shutil.disk_usage(root).free > contract["required_free_bytes"]
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == contract["predictor_sha256"]
+if role == "average":
+    gate = json.loads((root / "identity/evaluation-accepted-v2.json").read_text())
+    assert gate["original_epoch10_prediction_bytes_equal"] is True
+output = root / role / "outer_predictions.csv"
+assert not output.exists() and not (root / role / "evaluation-accepted-v2.json").exists()
+receipt = built["roles"][role]
+candidate = load_candidate(root / role / "candidate.pt", receipt["candidate_sha256"])
+binding = candidate["source_binding"]
+current = {
+    str(p.relative_to(code / "rsna")): hashlib.sha256(p.read_bytes()).hexdigest()
+    for p in (code / "rsna").rglob("*.py")
+}
+verify_source_code(binding, current)
+cpu = json.loads((original / "CPU-accepted.json").read_text())
+assert cpu["source_git"] == "a9902f3db0cf56995c074cddef1f0c2370e3ce47"
+assert (cpu["training_uids_sha256"], cpu["outer_uids_sha256"]) == (
+    binding["training_uids_sha256"],
+    binding["outer_uids_sha256"],
+)
+inputs = cpu["trainer_inputs"]
+proof_path = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json"
+)
+assert (
+    hashlib.sha256(proof_path.read_bytes()).hexdigest()
+    == "fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5"
+)
+proof = json.loads(proof_path.read_text())
+
+
+def signature(path):
+    value = Path(path).stat()
+    return [value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns]
+
+
+for path, asset in proof["scientific_assets"].items():
+    assert signature(path) == asset["signature"]
+registry_path = Path("/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json")
+assert (
+    hashlib.sha256(registry_path.read_bytes()).hexdigest()
+    == "73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770"
+)
+members = {
+    name: item
+    for shard in json.loads(registry_path.read_text())["shards"]
+    for name, item in shard["members"].items()
+}
+assert len(members) == cpu["original_cache_member_stat_bindings"] == 37812
+for name, item in members.items():
+    path = Path(inputs["cache"]).parent / name
+    assert path.is_file() and not path.is_symlink() and path.stat().st_size == item["bytes"]
+    assert signature(path) == proof["signatures"][name]
+values = json.loads((original / "public.json").read_text())
+config = TrainConfig(**values)
+config.validate()
+assert config.precision == "fp16" and config.workers == 0 and config.neighbor_channels is None
+manifest, release = verified_job_release(
+    Path(inputs["studies"]), Path(inputs["artifact-root"]), 0, 1
+)
+assert release == binding["release"]
+folds = load_folds(Path(inputs["folds"]), manifest, release)
+training, outer = select_development(manifest, folds, config.fold, config.fit_scope)
+assert len(training) == 2247 and len(outer) == 1156
+assert (
+    _uid_hash(training) == binding["training_uids_sha256"]
+    and _uid_hash(outer) == binding["outer_uids_sha256"]
+)
+series_path = Path(inputs["series"])
+assert hashlib.sha256(series_path.read_bytes()).hexdigest() == release["series_sha256"]
+series = pd.read_csv(series_path)
+dataset = CompetitiveStudyDataset(
+    outer,
+    series,
+    Path(inputs["cache"]),
+    slices=config.slices,
+    side=config.side,
+    max_series=config.max_series,
+    slice_sampling=evaluation_slice_sampling(config.slice_sampling),
+    series_sampling=config.series_sampling,
+)
+assert (
+    dataset.source_revision == binding["source_revision"]
+    and dataset.cache_side == binding["cache_side"]
+)
+importlib.import_module("transformers.models.dinov3_vit.modeling_dinov3_vit")
+random.seed(config.seed)
+np.random.seed(config.seed % 2**32)
+torch.manual_seed(config.seed)
+encoder, dimension, provenance = create_encoder(config.encoder)
+assert provenance == binding["config"]["encoder"]
+configure_encoder_training(encoder, config.freeze_encoder)
+model = CompetitiveStudyNet(
+    encoder,
+    dimension,
+    pooling=config.pooling,
+    hidden_dim=config.hidden_dim,
+    encode_chunk_size=config.encode_chunk_size,
+    slice_context=config.slice_context,
+)
+apply_candidate(model, candidate)
+model.to("cuda")
+sampler = EffectiveBatchSampler(
+    len(dataset), config.batch_size, 1, seed=config.seed, epoch=0, rank=0, world_size=1
+)
+loader = DataLoader(
+    SeededDataset(dataset),
+    batch_sampler=sampler,
+    num_workers=config.workers,
+    generator=torch.Generator().manual_seed(config.seed),
+    collate_fn=collate_studies,
+)
+predictions, _ = predict(model, loader, torch.device("cuda"), config)
+predictions = predictions.sort_values("study_uid").reset_index(drop=True)
+assert len(predictions) == 1156 and not predictions.study_uid.duplicated().any()
+assert set(predictions.study_uid) == set(outer.study_uid)
+scores = predictions[list(TARGETS)].to_numpy()
+assert np.isfinite(scores).all() and (scores >= 0).all() and (scores <= 1).all()
+text = predictions.to_csv(index=False).encode()
+reference = (original / "public/outer_predictions.csv").read_bytes()
+assert hashlib.sha256(reference).hexdigest() == contract["original_prediction_sha256"]
+if role == "identity":
+    assert text == reference, "Epoch10 identity MUST reproduce original CSV bytes before comparison"
+with output.open("xb") as handle:
+    handle.write(text)
+actual = outer.set_index("study_uid").loc[predictions.study_uid]
+metrics = auc_metrics(
+    actual[list(TARGETS)].to_numpy(), scores, actual[[t + "__mask" for t in TARGETS]].to_numpy()
+)
+result = {
+    "status": "actual_source_bound_epoch_weight_average_outer_prediction_accepted",
+    "role": role,
+    "candidate_sha256": receipt["candidate_sha256"],
+    "source_binding_sha256": candidate["source_binding_sha256"],
+    "prediction_sha256": hashlib.sha256(text).hexdigest(),
+    "prediction_bytes": len(text),
+    "studies": 1156,
+    "original_epoch10_prediction_bytes_equal": text == reference,
+    "metrics": metrics,
+    "elapsed_seconds": time.monotonic() - started,
+    "CUDA_peak_bytes": torch.cuda.max_memory_allocated(),
+    "gold_confirmation_or_training_update_used": False,
+}
+with (root / role / "evaluation-accepted-v2.json").open("x") as handle:
+    json.dump(result, handle, indent=2)
+print(json.dumps(result), flush=True)
