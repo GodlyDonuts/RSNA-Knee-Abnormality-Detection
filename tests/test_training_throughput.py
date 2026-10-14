@@ -323,6 +323,7 @@ def test_wall_cap_stops_at_an_update_boundary(tmp_path, monkeypatch):
     assert list(state["startup_seconds"]) == [
         "release_admission",
         "folds",
+        "supervision_and_cohort",
         "series",
         "dataset_initialization",
         "encoder_initialization",
@@ -409,3 +410,74 @@ def test_receipt_write_is_private_exclusive_and_never_overwrites(tmp_path):
     with pytest.raises(ValueError, match="distinct profiling"):
         throughput.write_new_receipt(path, {"replacement": True})
     assert path.read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        dict(pooling="mean"),
+        dict(fit_scope="all_development"),
+        dict(plane_memory={"kind": "any"}),
+        dict(relation={"kind": "any"}),
+        dict(neighbor_channels={"kind": "any"}),
+        dict(cache_contrast={"kind": "any"}),
+        dict(patch_summary={"kind": "any"}),
+        dict(fitting_supervision={"kind": "effusion_v1", "enabled": True, "sha256": "0" * 64}),
+        dict(classifier_strategy={"kind": "source_matched_slot_v1"}),
+    ],
+)
+def test_unadmitted_recipe_components_are_refused_before_any_read(tmp_path, monkeypatch, change):
+    _, config, args, factories = _fixture(tmp_path, monkeypatch)
+    with pytest.raises(ValueError, match="profiler is bound"):
+        throughput.build_profile_state(
+            args,
+            dataclasses.replace(config, **change),
+            torch.device("cpu"),
+            *[
+                factories[n]
+                for n in ("create_encoder", "dataset_class", "model_class", "load_folds")
+            ],
+        )
+
+
+def test_external_initialization_is_refused(tmp_path, monkeypatch):
+    _, config, args, factories = _fixture(tmp_path, monkeypatch)
+    args.mrnet_checkpoint = tmp_path / "mrnet.pt"
+    with pytest.raises(ValueError, match="profiler is bound"):
+        throughput.build_profile_state(
+            args,
+            config,
+            torch.device("cpu"),
+            *[
+                factories[n]
+                for n in ("create_encoder", "dataset_class", "model_class", "load_folds")
+            ],
+        )
+
+
+def test_native_recipe_refuses_a_public_index_binding(tmp_path, monkeypatch):
+    _, _, args, factories = _fixture(tmp_path, monkeypatch)
+    args.expected_public_index_sha256 = "0" * 64
+    with pytest.raises(ValueError, match="index"):
+        _script().run(args, factories)
+    assert not args.receipt.exists()
+
+
+def test_plain_views_equal_encoded_slices(tmp_path, monkeypatch):
+    _, config, args, factories = _fixture(tmp_path, monkeypatch)
+    state = throughput.build_profile_state(
+        args,
+        config,
+        torch.device("cpu"),
+        *[factories[n] for n in ("create_encoder", "dataset_class", "model_class", "load_folds")],
+    )
+    profile = throughput.profile_updates(
+        state,
+        config,
+        torch.device("cpu"),
+        throughput.validate_caps(1, 1, 60.0),
+        factories["collate"],
+    )
+    for record in profile["records"]:
+        assert record["views"] == record["encoder_images"] > 0
+        assert record["phase_seconds"]["cpu_transform"] == 0
