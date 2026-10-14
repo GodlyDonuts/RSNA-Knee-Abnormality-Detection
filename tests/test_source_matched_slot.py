@@ -3,6 +3,7 @@
 import argparse
 import copy
 import hashlib
+import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -252,9 +253,8 @@ def test_dinov3_cls_mean_uses_normalized_cls_and_excludes_four_registers():
     mask = torch.tensor([[True, False, True, False, False, False]])
     with torch.no_grad():
         features = model.slot_features(window, mask)
-        tokens = encoder.backbone(
-            pixel_values=encoder._normalized_rgb(window[mask])
-        ).last_hidden_state
+        pixels = encoder._normalized_rgb(window[mask])
+        tokens = encoder.backbone(pixel_values=pixels).last_hidden_state
     assert tokens.shape[1] == 1 + 4 + 9
     expected = torch.cat([tokens[:, 0], tokens[:, 5:].mean(1)], dim=1)
     with_registers = torch.cat([tokens[:, 0], tokens[:, 1:].mean(1)], dim=1)
@@ -284,7 +284,7 @@ def test_absent_slots_never_reach_the_encoder_and_inputs_are_checked(namespace):
 
 
 def test_window_selection_is_deterministic_uniform_and_leaves_global_rng_untouched():
-    groups = [ss.training_group(20260922, epoch, update) for epoch in range(2) for update in range(281)]
+    groups = [ss.training_group(20260922, e, u) for e in range(2) for u in range(281)]
     assert set(groups) == set(range(4)) and all(groups.count(g) > 100 for g in range(4))
     before = torch.get_rng_state()
     torch.manual_seed(999)
@@ -458,7 +458,9 @@ def cohort(tmp_path_factory):
         "series_sha256": hashlib.sha256(series.read_bytes()).hexdigest(),
         "source_revision": "synthetic",
     }
-    return dict(base=base, manifest=manifest, folds=folds, rows=rows, series=series, release=release)
+    return dict(
+        base=base, manifest=manifest, folds=folds, rows=rows, series=series, release=release
+    )
 
 
 def run_trainer(cohort, values, output, resume=None, stop=None, record=None):
@@ -586,7 +588,10 @@ def test_binding_declares_strategy_graph_and_frozen_official_base(recovered):
     run = json.loads((root / "full/run.json").read_text())
     config = run["binding"]["config"]
     assert config["classifier_strategy"] == STRATEGY
-    expected = {"r32": 32 * (20 * 4 * 2 * 32 + 12 * 2 * 96), "dense": 2 * (4 * 32**2 + 2 * 2048)}
+    expected = {
+        "r32": 32 * (20 * 4 * 2 * 32 + 12 * 2 * 96),
+        "dense": 2 * (4 * 32**2 + 2 * 2048),
+    }
     assert run["encoder_trainable_parameters"] == expected[recovered["arm"]]
     checkpoint = torch.load(root / "full/checkpoint.pt", weights_only=True)
     learned = set(checkpoint["model"])
@@ -648,7 +653,7 @@ def test_restored_student_reproduces_trainer_predictions_mri_only(recovered, coh
     )
     loader = torch.utils.data.DataLoader(data, batch_size=1, collate_fn=collate_studies)
     predictions, _ = train.predict(model, loader, CPU, config)
-    roundtrip = pd.read_csv(__import__("io").StringIO(predictions.to_csv(index=False)))
+    roundtrip = pd.read_csv(io.StringIO(predictions.to_csv(index=False)))
     pd.testing.assert_frame_equal(roundtrip, expected, check_exact=True)
     for uid, values in zip(predictions.study_uid, predictions[list(TARGETS)].to_numpy()):
         source = cohort["rows"][uid]

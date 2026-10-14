@@ -138,7 +138,8 @@ class SourceSlotStudyNet(nn.Module):
     def slot_features(self, window: Tensor, series_mask: Tensor) -> Tensor:
         """``[B,6,3,H,W]`` in [0,1] -> ``[B,6,2D]`` cls_mean; absent slots stay zero."""
         valid = window[series_mask]
-        parts = [self.encoder.forward_features(part) for part in valid.split(self.encode_chunk_size)]
+        forward_features = getattr(self.encoder, "forward_features")
+        parts = [forward_features(part) for part in valid.split(self.encode_chunk_size)]
         cls = torch.cat([part[0] for part in parts])
         patches = torch.cat([part[1] for part in parts])
         if (
