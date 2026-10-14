@@ -585,3 +585,19 @@ def test_recovery_output_cap_is_enforced(tmp_path, monkeypatch):
     monkeypatch.setattr(recovery, "CHECKPOINT_CAP_BYTES", 16)
     with pytest.raises(ValueError):
         recovery.check_cap(tmp_path)
+
+
+def test_initialization_is_independent_of_lazy_import_python_rng(monkeypatch):
+    original = gate.importlib.import_module
+    calls = []
+
+    def simulated_cold_import(name):
+        if not calls:
+            __import__("random").random()
+        calls.append(name)
+        return original(name)
+
+    monkeypatch.setattr(gate.importlib, "import_module", simulated_cold_import)
+    states, provenance = initialized(gate.load_configs(ROOT))
+    gate.common_initialization(states, provenance)
+    assert len(calls) >= 2

@@ -961,7 +961,7 @@ def _run_locked(
             ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
-                    with contextlib.nullcontext() if synchronize else wrapped.no_sync():
+                    with contextlib.nullcontext() if synchronize else getattr(wrapped, "no_sync")():
                         with torch.autocast(
                             device.type,
                             dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,

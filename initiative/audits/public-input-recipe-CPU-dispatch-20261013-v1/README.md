@@ -1,0 +1,3 @@
+# Original matched-input CPU admission dispatch
+
+StandaloneCPU911286 was PENDING/zero runtime/no assigned node, refused by a node reservation. It was cancelled with state=PENDING filtering and original terminal verified CANCELLED/00:00:00/None assigned. No script ran. Distinct oneCPU/zeroGPU overlap step452 in existing899766 now executes unchanged source/funding/guards. Actual zeroGPU-step environment has no SLURM_JOB_GPUS, SLURM_STEP_GPUS or CUDA_VISIBLE_DEVICES; none were cleared or spoofed. Original logs absent before launch. Actual CPU admission is still running; do not retry either dispatch. Source5e0f12e5/funding cap6GiB recovery+1MiB receipt+8MiB source after retained obligations and20GiB floor. Both GPU training originals unchanged.

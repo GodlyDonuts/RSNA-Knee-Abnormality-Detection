@@ -74,6 +74,7 @@ def validate_strategy(strategy: object) -> dict:
             type(strategy[key]) is not type(value) or strategy[key] != value
             for key, value in STRATEGY_FIXED.items()
         )
+        or not isinstance(strategy["augmentation"], str)
         or strategy["augmentation"] not in AUGMENTATIONS
     ):
         raise ValueError("Exact source-matched slot classifier strategy required")
@@ -280,9 +281,11 @@ def source_row_windows(images: Tensor) -> Tensor:
     """
     if images.dtype != torch.uint8 or tuple(images.shape) != (SLOTS, SLICES, 336, 336):
         raise ValueError("Exact source-rendered uint8 six-slot twelve-slice336 row required")
-    return torch.stack(
-        [images[:, start : start + GROUP] for start in EVALUATION_VIEWS], dim=1
-    ).float().div(255)
+    return (
+        torch.stack([images[:, start : start + GROUP] for start in EVALUATION_VIEWS], dim=1)
+        .float()
+        .div(255)
+    )
 
 
 @torch.inference_mode()
@@ -297,6 +300,8 @@ def deployment_probabilities(
 
     No labels, reports, teacher or committee. The caller writes ``submission.csv``.
     """
+    if precision not in {"fp32", "fp16", "bf16"}:
+        raise ValueError("Explicit supported student inference precision required")
     if slot_mask.dtype != torch.bool or tuple(slot_mask.shape) != (SLOTS,):
         raise ValueError("Boolean six-slot acquisition mask required")
     if not slot_mask.any() or images[~slot_mask].count_nonzero():

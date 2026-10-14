@@ -318,7 +318,7 @@ def test_window_selection_is_deterministic_uniform_and_leaves_global_rng_untouch
     assert not torch.equal(first[0], other[0]) or ss.training_group(1, 1, 7) != view // 3
     assert first[0][0, ~mask].count_nonzero() == 0
     levels = first[0] * 255
-    assert torch.equal(levels.round(), levels) and first[0].max() <= 1
+    assert torch.equal(levels.round() / 255, first[0]) and first[0].max() <= 1
     torch.set_rng_state(before)
 
 
