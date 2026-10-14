@@ -1,0 +1,7 @@
+# One evc40 follow-up recovery
+
+Job917543 was submitted once with afterany:908454, one H100/two CPUs/32GiB/one hour/no requeue. Live scheduler confirmed PENDING Dependency. It does not interrupt the healthy all-data run. The existing evc40 MRI/model/RNG/gradient CPU acceptance and immutable bf46b70e source, source manifests and wrapper remain unchanged. No runtime/cache/source copy was repeated.
+
+Original917001 is terminal CANCELLED with zero elapsed/no allocated TRES; failed evc26 replacement917477 is terminal FAILED before model execution. Fresh scheduler proved no other patch-focus recovery active. The original unused evc40 12GiB recovery plus32MiB control reservation is explicitly assigned once to this distinct output root, not added again or confused with the separately retained evc26 reservation. Fresh evc40 free bytes638526271488 exceed required376756713411 after retained liabilities and20GiB floor. Original source40 run/start absence was checked. No production funding or production dispatch.
+
+The new program retains assigned-device/H100/BF16/context checks, source/CPU/runtime/storage checks and the unchanged full/stop1/resume numerical recovery wrapper. Assigned-GPU acceptance and model recovery are still unobserved. afterany permits an engineering recovery after the training parent terminates; it does not imply training success or make this a resumed training run. Never repeat this dispatch or the terminal predecessor jobs. Inspect actual job and original journals first.

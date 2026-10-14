@@ -16,6 +16,10 @@ All daily deployment controllers are terminal successful, including80209 and8968
 
 
 
+## Queued recovery after healthy training
+
+Distinct917543 submitted ONCE on evc40/oneH100/twoCPU/onehour with afterany:908454; actualPENDING Dependency. Existing unused originalevc40 recovery12GiB+32MiB reservation reassigned once after917001zero-runtime terminal/nooutput, not funded twice. Freshcapacity/source40CPU proofs retained. Frozenbf46numericalsource unchanged; no copy/restart/production dispatch. Device/full-recovery acceptance remains unobserved. Read patch-focus-evc40-followup-20261014-v1.
+
 ## Latest actual device observation
 
 Relocated evc26 CPU917440 COMPLETED0:0 with matching MRI/model/RNG/gradient evidence. Original917001 cancelled ONLY PENDING/zero-runtime/no-allocation. Replacement917477 FAILED1:0 after2s before model/GPU-start. Distinct device-only917508 saw zero torch/NVML devices despite Slurm GPU0 assignment; no isolation override or model run. Underlying device-access cause remains unproven; no automatic retry or production dispatch. Exact runtime/cache/source copies remain preserved. Healthy908454 observed3785finite updates/epoch9 training. Read patch-focus-evc26-actual-device-failure-20261014-v1.
