@@ -1,0 +1,9 @@
+# Distinct private complete cache copy evc40 to evc26
+
+Root's once-only private CPU relay completed:3404files/27668082285bytes, exact original index84985528…/manifest09ea7bc6…/sourceCPU70d9c672… lineage. Every newly copied file size/SHA/count/EOFverified; source current immutable signatures equal the actual accepted evc40MRI proof beforestream, unchanged during eachread. No redundant source bulk rehash. Original evc31→40 copy is not repeated; this is a distinctly funded evc40→26copy. New target files0400/singlelink, private original per-member manifest/signatures and endpoint stderr remain on authorized nodes. Newton login pipes RAM/stdin only; no raw pixels/member paths/labels/weights toMac/Git/HF. No GPUs/model/optimizer/clinical metrics involved.
+
+Source plan067f30d66ed1171c09d910eb2c98fa30668192489e9b64a93069a386a96cbd74/1290323bytes stays private. Source and target controls /tmp/rsna-patch-focus-cache-relay-20261014-v1; target data remains at original /tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache. Full target transfer CPU917243, signatureaggregateca6632b9…, freeafter807180312576B. Never repeat this transfer.
+
+Targetcache32GiB/control8MiB and sourcecontrol8MiB independently funded with356641161911B retainedoriginal/currentcaps, remainingruntime2267243257B and32MiBruntimecontrols,20GiBfloor. Required414784923056B vs834853314560B before; zero sharedgrowth/no deletioncredit. Tested existing native/triplet framing streams, closed original index membership and once-only markers used; full EOF acceptance is authoritative. Physical paid bytes may be deducted exactlyonce in later funding.
+
+GPU917001remainsunchangedpending on evc40; no oldrequestcancelled and no newGPUdispatched. Root still needs source/runtime/input/model admission on the target and a pending-only zero-runtime cancellation record before one replacement. This receipt is data integrity, not GPUrecovery or accuracy. All-data908454continues.
