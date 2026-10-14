@@ -14,7 +14,7 @@ Original **908454 COMPLETED0:0 evc40**, one H100/two CPUs, source **1bcd6c0e2e2a
 
 Node-private root `/tmp/rsna-final-public-source-fit-evc40-20261013-v1`; runtime `/tmp/rsna-environment-907632-7sr9a7i6/environment`. **Epochs1–10 privately published exactly once**, allfiveobjects each force-re-downloaded/size/SHA verified. E9 checkpointf00817598c47267d64356ddbb523a72ee8764fc1b6274ca266df19c130af33a4,125556557B,3834updates, HFba1ae09a3ad2a802b17e99e30c8ffd383c6eef4a/CPU917618. E9 observer85330/exec40402 is terminal success; never restart.
 
-For actual completed unattempted E10 use only `artifacts/final-public-source-fit-evc40-20261013-v1/publication_coordinator.py`, pinned publisher0f929dc1131c61f471c2e28c6a99367ecdc9fe31c45b52a413710643a054c7da. Review snapshot/journal/privatepath first. Existing intent requires read-only reconciliation. See `final-public-source-epoch9-20261014-v1`.
+All E10 publication work is terminal verified; never repeat. Historical coordinator reference: `artifacts/final-public-source-fit-evc40-20261013-v1/publication_coordinator.py`, pinned publisher0f929dc1131c61f471c2e28c6a99367ecdc9fe31c45b52a413710643a054c7da. Review snapshot/journal/privatepath first. Existing intent requires read-only reconciliation. See `final-public-source-epoch9-20261014-v1`.
 
 ## Next Kaggle candidate: epoch8 prevalidation
 
@@ -53,3 +53,5 @@ Latest private sanitized milestone source48a4c87e mirrored **HF71b6358aa23cad7b1
 Expired SSH master was re-authenticated once with ignored.env/ASKPASS; `/tmp/rsna-research-20261001-stable.sock` works again. Observation loss is not terminal or restart authority. Prior broad QA3703passed/6skipped; current changes have scoped checks recorded in their audits. Targeted daily_queue mypy has three independently confirmed preexisting errors, not a type-clean module. User priority: improve the solo MRI model and run useful daily Kaggle comparisons; report actual scores/progress, never promise a win.
 
 ActualE10publication HF764dbd60faa7c23284c72c06c596feab61d4121f/CPU918476 verifiedallfiveobjects once. See final-public-source-fixed10-20261014-v1 and patch-focus-followup-actual-failure-20261014-v1. Devin#89 prepares gauge-correct rank32 late-checkpoint soup over exactE5–10; no actualmerge/accuracyclaim yet.
+
+October14 22:58UTC:919249pure-evaluation diagnostic COMPLETED0:0/actualchild0/zero newupdates/same original16x12CSV. Original917543failure remainsunresolved, notaccepted. Distinct919305instrumented recovery actualRUNNING oneH100/twoCPU, unchangedbf46source and trustedexecutor; recordsrawchildcode without convertingit. E10privateofflinebundlepreparedONCE/nodeonly/noCloud. E8slot-finisherPID14936/exec7348 is actualalive, max1submission,180s authoritative allowance polling/deadline10800s; lastzero/no submission/reset assumption. Review original journals before action.

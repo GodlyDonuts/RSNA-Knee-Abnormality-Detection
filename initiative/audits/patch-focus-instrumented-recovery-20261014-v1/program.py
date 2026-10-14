@@ -1,0 +1,25 @@
+import argparse,hashlib,json,os,shutil,sys
+from pathlib import Path
+import torch
+from scripts.newton import run_patch_focus_recovery as m
+R=Path('/tmp/rsna-patch-focus-instrumented-recovery-20261014-v1');A=Path('/tmp/rsna-patch-focus-target-admission-20261014-v2');required=376756713411+2**30+8*2**20+5*2**30+12*2**30+8*2**20
+assert os.uname().nodename=='evc40' and torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0) and torch.cuda.is_bf16_supported();assert torch.ones(8,device='cuda').sum().item()==8;assert shutil.disk_usage('/tmp').free>=required
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();assert sha(A/'source.json')=='c46c6dec4ffc2b24648578cf35055bf2a4f6c0ba69edeffcf0c9fa9094b552ae';assert sha(A/'target-CPU-accepted.json')=='70d9c6722c6d6e4c9eb0be6653df0fccc0d159e7db2d33e6abb4de1e545509d5';assert not(R/'run').exists() and not(R/'start.json').exists()
+with(R/'start.json').open('x') as f:json.dump({'job_id':os.environ['SLURM_JOB_ID'],'source_git':'bf46b70eea1216673aafb1b5d34e513247b4ef1c','GPU':torch.cuda.get_device_name(0),'new_recovery_cap_bytes':12*2**30,'new_control_cap_bytes':8*2**20,'required_free_bytes':required,'only_change':'record_exact_existing_executor_returncode','original_failed_job_preserved':917543},f,indent=2)
+a=argparse.Namespace(source=A/'code',source_manifest=A/'recovery-source-manifest.json',encoder_spec=A/'encoder-spec.json',artifact_root=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765'),cache=Path('/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache'),overlay=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json'),output=R/'run',device='cuda',max_output_bytes=12*2**30,remaining_seconds=3000)
+original=m.subprocess_executor(a,a.source)
+def observed(root,phase,config,extra):
+ code=original(root,phase,config,extra);receipt={'returncode':code,'returncode_type':type(code).__name__,'phase':phase,'original_executor_used':True,'config_sha256':sha(config)}
+ for n in ('stdout','stderr'):
+  p=root/f'{phase}.{n}';receipt[n]={'bytes':p.stat().st_size,'sha256':sha(p)}
+ out=Path(extra[extra.index('--output')+1]);p=out/'invocation.json'
+ if p.exists():
+  v=json.loads(p.read_text());receipt['invocation']={'status':v['status'],'exit_code':v['exit_code'],'updates':len(v['updates'])}
+ with(root/f'{phase}.raw-exit.json').open('x') as f:json.dump(receipt,f,indent=2)
+ print(json.dumps({'arm':root.name,**receipt}),flush=True);return code
+try:
+ result=m.run(a,executor=observed)
+ with(R/'terminal.json').open('x') as f:json.dump({'accepted':True,'job_id':os.environ['SLURM_JOB_ID'],'result':result,'numerical_source_unchanged':True,'automatic_retry':False},f,indent=2)
+except BaseException as e:
+ with(R/'terminal.json').open('x') as f:json.dump({'accepted':False,'job_id':os.environ['SLURM_JOB_ID'],'type':type(e).__name__,'message':str(e),'numerical_source_unchanged':True,'automatic_retry':False},f,indent=2)
+ raise

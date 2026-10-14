@@ -1,0 +1,5 @@
+# Distinct fixed-final epoch10 private offline preparation
+
+Original completed908454/E10/4260updates checkpoint0f0ab3f260e979e65f5bf86dab293f1ce94d30777687a75bc0c7bd97708ce8a8 was privately verified at HF764dbd60… before this distinct preparation. Exact unchanged FP32twoT4 engine/source/projection used; Dataset/notebook slugs in queue.json. OneCPU/zeroGPU terminal-parent-aware transport, new5GiB node-private cap after retained original recovery/reserve plus exit-diagnostic1GiB/8MiB controls. Zero shared growth, no cloud creation/push/submission funded or performed. Preparation completed once; never repeat.
+
+Original funding receipt copied the text status root_funded_epoch8_private_preparation_only from the old template. This is an inherited label defect, not a second E8 reservation: exclusive remote funding file and actual output directory are epoch-010, queue/operation bind actualE10SHA/4260updates. Keep the original receipt unchanged and use this explicit annotation plus the exact paths/hash. Do not use the old text label to infer a cloud phase or duplicate E8 upload.
