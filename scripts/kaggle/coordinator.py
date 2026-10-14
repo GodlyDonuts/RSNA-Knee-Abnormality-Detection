@@ -58,7 +58,7 @@ def upload_location(args, journal, checkpoint_sha, transport=None):
 
 
 def node_journal(args, base, meta, op):
-    """Opt-in node-local journal for NEW component operations only.
+    """Opt-in node-local journal for new components or exact daily-queue epochs.
 
     The account ledger and coordinator claim stay shared. Two small shared
     markers are the durable cross-node record: an exclusive intent (written
@@ -75,8 +75,22 @@ def node_journal(args, base, meta, op):
             raise ValueError("Node-local journal cannot fall back to shared storage")
         return None
     root = Path(root)
-    if (
+    checkpoint = meta["checkpoint_sha256"]
+    admission_sha = op.get("fitting_admission_sha256")
+    daily_epoch = (
         op.get("common_bundle") is None
+        and isinstance(admission_sha, str)
+        and len(admission_sha) == 64
+        and all(c in "0123456789abcdef" for c in admission_sha)
+        and any(
+            op.get("dataset_slug") == f"godlydonuts/rsna-alldev-e{epoch:03d}-{checkpoint[:12]}"
+            and op.get("kernel_slug")
+            == f"godlydonuts/rsna-alldev-offline-e{epoch:03d}-{checkpoint[:12]}"
+            for epoch in range(1, 11)
+        )
+    )
+    if (
+        (op.get("common_bundle") is None and not daily_epoch)
         or getattr(args, "publication_revision", False)
         or (shared / meta["checkpoint_sha256"]).exists()
         or (shared / key).exists()

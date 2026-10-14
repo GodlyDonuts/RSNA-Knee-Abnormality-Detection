@@ -127,3 +127,19 @@ It also requires:
 
 It writes `accepted.json` with exclusive creation and never retries. CPU coverage of
 the real trainer and wrapper is in `tests/test_dense_suffix_training.py`.
+
+## Owning-node CPU admission (proposed, not staged)
+
+`scripts/newton/admit_dense_suffix_inputs.py` is the separate one-CPU, zero-GPU gate
+root runs before the unchanged full/stop1/resume wrapper. It reuses the original
+public-input CPU receipt (`adb931d5`, CPU899766), root's complete-cache receipt
+(`d2c0ad74`) and the whole-byte official-weight proof by fresh file stat only. The exact
+`rsna/` delta from that receipt's code is pinned; the changed loader modules
+(`competitive/train.py`, `release_cache.py`) are admitted only because the step replays
+the complete 2247/1156 release/fold/supervision/cohort binding and the 16+16 public
+tensor/label/mask hashes through the staged code and requires equality with the
+original. Both arms are rebuilt in trainer seed/factory order: 7,077,888 / 150,994,944
+learned suffix entries, zero initial residual, frozen official tensors equal to the
+original base, identical head values and post-factory RNG. The receipt holds hashes and
+counts only. It neither funds nor infers GPU recovery; production stays fixed10 and
+streams triplets online (no prefix cache). See `cpu-admission-stage-manifest.json`.

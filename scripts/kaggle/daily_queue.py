@@ -864,6 +864,7 @@ def _node_prepare(request: dict, config: dict, queue: dict, entry: dict) -> dict
         "--projection-sha256", v["projection_sha"], "--snapshot", str(snapshot),
         "--operation", str(opfile),
         "--node-local-upload-root", f"/tmp/rsna-kaggle-upload-{entry['checkpoint_sha256'][:12]}",
+        "--node-local-journal-root", str(node_journal_path(entry, op)),
     ]
     # fmt: on
     x = subprocess.run(args, env=env, capture_output=True, text=True, timeout=300)
@@ -883,6 +884,14 @@ def _node_prepare(request: dict, config: dict, queue: dict, entry: dict) -> dict
     with (R / "prepared.json").open("x") as handle:
         json.dump(out, handle, indent=2)
     return out
+
+
+def node_journal_path(entry: dict, operation: dict) -> Path:
+    """Only two durable markers reach shared storage; payload journals stay private."""
+    return Path(
+        f"/tmp/rsna-kaggle-journal-{entry['checkpoint_sha256'][:12]}"
+        f"-{operation['manifest_sha256'][:12]}"
+    )
 
 
 def _collect(remote, w, op: dict, entry_record: dict) -> dict:
@@ -976,7 +985,7 @@ def node_phase(request: dict, config: dict) -> Any:
         dataset_publication_operation=None,
         management_python=Path(config["management_python"]),
         node_local_upload_root=Path(f"/tmp/rsna-kaggle-upload-{sha[:12]}"),
-        node_local_journal_root=None,
+        node_local_journal_root=node_journal_path(entry, op),
     )
     sys.stdin = io.StringIO(json.dumps({"token": token}))
     return c.run(args)
