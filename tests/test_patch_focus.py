@@ -547,3 +547,176 @@ def test_trainer_arms_share_first_update_loss_rng_and_the_old_recipe(diagnostic)
     )
     assert set(a["model"]) == set(b["model"])
     _assert_tree_equal(a["rng_by_rank"], b["rng_by_rank"])
+
+
+# --- Routing, serialization and key rejection ----------------------------------------------
+
+
+def test_one_model_routing_serves_trainer_and_checkpoint_rebuilds():
+    assert pf.classifier_model(STRATEGIES["candidate"]) is pf.PatchFocusSlotStudyNet
+    assert pf.classifier_model(STRATEGIES["control"]) is pf.PatchFocusSlotStudyNet
+    assert pf.classifier_model(SLOT_STRATEGY) is ss.SourceSlotStudyNet
+    window = json.loads(
+        (
+            ROOT
+            / "initiative/experiments/competitive-v1/source-window-bag-v1/query-r32-config.json"
+        ).read_text()
+    )
+    assert pf.classifier_model(window["classifier_strategy"]) is wb.WindowBagSlotStudyNet
+    for broken in (
+        dict(STRATEGIES["candidate"], patch_focus="other"),
+        dict(SLOT_STRATEGY, extra=1),
+    ):
+        with pytest.raises(ValueError, match="Exact"):
+            pf.classifier_model(broken)
+    train_source = (ROOT / "rsna/competitive/train.py").read_text()
+    assert "classifier_model(config.classifier_strategy)(" in train_source
+    assert "SourceSlotStudyNet" not in train_source and "WindowBagSlotStudyNet" not in train_source
+
+
+def test_strict_state_dicts_reject_missing_extra_or_reshaped_queries():
+    focus, slot = model("candidate"), old()
+    randomize_query(focus)
+    with pytest.raises(RuntimeError, match="Unexpected key.*patch_query"):
+        slot.load_state_dict(focus.state_dict(), strict=True)
+    with pytest.raises(RuntimeError, match="Missing key.*patch_query"):
+        model("control").load_state_dict(slot.state_dict(), strict=True)
+    wrong = dict(focus.state_dict(), patch_query=torch.zeros(T, D + 1))
+    with pytest.raises(RuntimeError, match="size mismatch"):
+        model("control").load_state_dict(wrong, strict=True)
+    rebuilt = model("control")
+    rebuilt.load_state_dict(focus.state_dict(), strict=True)
+    assert torch.equal(rebuilt.patch_query, focus.patch_query)
+
+
+def _checkpoint(diagnostic, arm, run="full"):
+    return torch.load(diagnostic[arm]["base"] / run / "checkpoint.pt", weights_only=True)
+
+
+def test_trainer_checkpoints_rebuild_only_through_their_bound_strategy(diagnostic):
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.delta_checkpoint import restore_checkpoint_model
+
+    for arm in ARMS:
+        checkpoint = _checkpoint(diagnostic, arm)
+        binding = checkpoint["binding"]
+        assert (
+            binding["code_sha256"]["competitive/patch_focus.py"]
+            == hashlib.sha256((ROOT / "rsna/competitive/patch_focus.py").read_bytes()).hexdigest()
+        )
+        config = TrainConfig(**dict(binding["config"], encoder={"architecture": "diagnostic_tiny"}))
+        three = dict(input_channels=3, input_contract="public_ordered_triplet")
+        encoder, dim, provenance = create_encoder(config.encoder, **three)
+        assert provenance == binding["config"]["encoder"]
+        net = pf.classifier_model(config.classifier_strategy)(
+            encoder, dim, config.classifier_strategy, encode_chunk_size=config.encode_chunk_size
+        )
+        restore_checkpoint_model(net, checkpoint, None)
+        assert all(torch.equal(v, checkpoint["model"][k]) for k, v in net.state_dict().items())
+        slot = ss.SourceSlotStudyNet(create_encoder(config.encoder, **three)[0], dim, SLOT_STRATEGY)
+        with pytest.raises(RuntimeError, match="patch_query"):
+            restore_checkpoint_model(slot, checkpoint, None)
+    slot_checkpoint = torch.load(
+        diagnostic["slot"]["base"] / "full/checkpoint.pt", weights_only=True
+    )
+    with pytest.raises(RuntimeError, match="patch_query"):
+        restore_checkpoint_model(net, slot_checkpoint, None)
+
+
+def test_checkpoints_refuse_cross_arm_resume_and_competition_inference(diagnostic, tmp_path):
+    from rsna.competitive.checkpoint import load_checkpoint
+    from rsna.competitive.infer import validate_inference_checkpoint
+
+    control, candidate = (_checkpoint(diagnostic, arm) for arm in ARMS)
+    assert control["binding"] != candidate["binding"]
+    path = diagnostic["control"]["base"] / "full/checkpoint.pt"
+    with pytest.raises(ValueError, match="configuration"):
+        load_checkpoint(path, candidate["binding"])
+    assert load_checkpoint(path, control["binding"])["binding"] == control["binding"]
+    root = diagnostic["control"]["base"].parent
+    with pytest.raises(ValueError, match="configuration"):
+        _diagnostic_run(
+            root,
+            STRATEGIES["candidate"],
+            tmp_path / "cross",
+            resume=diagnostic["control"]["base"] / "replay/checkpoint.pt",
+        )
+    for checkpoint in (control, candidate):
+        with pytest.raises(ValueError, match="no admitted deployment input"):
+            validate_inference_checkpoint(checkpoint, allow_diagnostic=True)
+
+
+# --- Encoder gradient flow under reduced precision --------------------------------------
+
+
+def _encoder_gradients(net, precision, autocast_device="cpu"):
+    net.train()
+    torch.manual_seed(2)
+    dtype = torch.float16 if precision == "fp16" else torch.bfloat16
+    with torch.autocast(autocast_device, dtype=dtype):
+        logits = net(*window(side=64))
+    loss, _ = masked_loss(logits.float())
+    loss.backward()
+    return {
+        name: p.grad.detach().clone()
+        for name, p in net.named_parameters()
+        if p.requires_grad and name.startswith("encoder.")
+    }
+
+
+@pytest.mark.parametrize("precision", ["fp16", "bf16"])
+def test_diagnostic_encoder_receives_gradients_through_cls_mean_and_focus(precision):
+    from rsna.competitive.backbones import create_encoder
+
+    three = dict(input_channels=3, input_contract="public_ordered_triplet")
+    grads = {}
+    for arm, scale in (("control", 0.0), ("candidate", 0.0), ("candidate", 1.0)):
+        torch.manual_seed(3)
+        encoder, dim, _ = create_encoder({"architecture": "diagnostic_tiny"}, **three)
+        net = pf.classifier_model(STRATEGIES[arm])(encoder, dim, STRATEGIES[arm])
+        with torch.no_grad():
+            net.patch_query.copy_(torch.randn(T, dim, generator=torch.Generator().manual_seed(5)))
+            net.patch_query.mul_(scale)
+        grads[arm, scale] = _encoder_gradients(net, precision)
+    for values in grads.values():
+        assert values and all(
+            torch.isfinite(g).all() and g.count_nonzero() for g in values.values()
+        )
+    control, zero, moved = grads["control", 0.0], grads["candidate", 0.0], grads["candidate", 1.0]
+    for name in control:
+        torch.testing.assert_close(zero[name], control[name], rtol=1e-3, atol=1e-6)
+    assert any(not torch.allclose(moved[k], control[k]) for k in control)
+
+
+@pytest.mark.parametrize("precision", ["fp16", "bf16"])
+def test_tiny_dinov3_r32_prefix_gradients_are_finite_and_reach_every_adapted_layer(precision):
+    pytest.importorskip("transformers")
+    from test_source_matched_slot import configs as slot_configs
+    from test_source_matched_slot import fake_create_encoder
+
+    from rsna.competitive.adapters import configure_encoder_training
+
+    spec = slot_configs()["r32"]["encoder"]
+    grads = {}
+    for arm, scale in (("control", 0.0), ("candidate", 1.0)):
+        torch.manual_seed(3)
+        encoder, dim, provenance = fake_create_encoder(spec)
+        configure_encoder_training(encoder, True)
+        net = pf.classifier_model(STRATEGIES[arm])(encoder, dim, STRATEGIES[arm])
+        with torch.no_grad():
+            net.patch_query.copy_(torch.randn(T, dim, generator=torch.Generator().manual_seed(5)))
+            net.patch_query.mul_(scale)
+        grads[arm] = _encoder_gradients(net, precision)
+        trainable = {n for n, p in net.named_parameters() if p.requires_grad}
+        assert set(grads[arm]) == {n for n in trainable if n.startswith("encoder.")}
+        assert all(torch.isfinite(g).all() for g in grads[arm].values())
+        layers = {n.split(".layer.")[1].split(".")[0] for n in grads[arm] if ".layer." in n}
+        nonzero = {
+            n.split(".layer.")[1].split(".")[0]
+            for n, g in grads[arm].items()
+            if ".layer." in n and g.count_nonzero()
+        }
+        assert layers and nonzero == layers
+    assert any(
+        not torch.equal(grads["candidate"][k], grads["control"][k]) for k in grads["control"]
+    )

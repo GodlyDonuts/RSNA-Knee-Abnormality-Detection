@@ -730,14 +730,9 @@ def _run_locked(
     configure_encoder_training(encoder, config.freeze_encoder)
     model: nn.Module
     if config.classifier_strategy is not None:
-        from rsna.competitive.patch_focus import PatchFocusSlotStudyNet
-        from rsna.competitive.source_slot import SourceSlotStudyNet
-        from rsna.competitive.window_bag import WindowBagSlotStudyNet
+        from rsna.competitive.patch_focus import classifier_model
 
-        model = {
-            WINDOW_BAG_KIND: WindowBagSlotStudyNet,
-            PATCH_FOCUS_KIND: PatchFocusSlotStudyNet,
-        }.get(config.classifier_strategy["kind"], SourceSlotStudyNet)(
+        model = classifier_model(config.classifier_strategy)(
             encoder,
             embedding_dim,
             config.classifier_strategy,
