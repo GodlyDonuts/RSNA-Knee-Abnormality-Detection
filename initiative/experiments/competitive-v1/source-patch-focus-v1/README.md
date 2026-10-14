@@ -151,3 +151,37 @@ native-public, and is not mixed with dense-versus-low-rank capacity factors.
   `transformers` is installed. These are CPU autocast checks only; full-prefix gradient flow on
   the real DINOv3-L weights under CUDA BF16/FP16 has not been run and is part of the GPU
   admission step below, not claimed here.
+
+## Actual-input CPU admission and finite GPU recovery (prepared, issue #74)
+
+Status: code and an exact staging template only. Nothing was staged, funded, reserved,
+dispatched, transferred, uploaded or acquired; no receipt exists yet. Root alone stages
+and runs these steps. Frozen factor: rank32/all120 source-slot recipe, matched control.
+
+- `scripts/newton/admit_patch_focus_inputs.py` (one CPU, zero GPU, owning node): reuses the
+  original public-input CPU receipt (CPU899766), the complete-cache receipt and the whole-byte
+  DINOv3-L proof with fresh stat binding; rechecks the exact reviewed `rsna/` delta (now
+  including `competitive/patch_focus.py`), the 2247/1156 fold/release/leakage boundary, the
+  fitting-only `label_source_v1` supervision and complete public cohort, and replays the 16/16
+  admitted tensors. It then builds the source-slot r32 model and both arms in trainer seed and
+  factory order and, on the first fitting-order real MRI study with both observed and masked
+  fitting targets, runs one train-mode CPU forward/backward per model (no optimizer step).
+  Required: equal provenance/frozen base/factory RNG, equal encoder/head values with only a
+  zero `patch_query` extra, bitwise-equal initial logits and post-forward RNG, control
+  gradients bitwise equal to source-slot with zero query gradient, candidate query gradients
+  finite and nonzero exactly on observed targets and exactly zero on masked targets.
+- `scripts/newton/run_patch_focus_recovery.py` (one assigned GPU): unchanged canonical trainer
+  in separate processes; one source-slot reference full fit (resource/first-update reference),
+  then control and candidate full, stop-after-1 (exit 75) and resume. Requires complete
+  model/base/AdamW/LR/counter/RNG/scaler/history/CSV equality, source-slot graph plus only the
+  `[12,1024]` query (240 adapter tensors, 10,223,616 encoder parameters), a never-moving control
+  query, a moved candidate query, first-update loss equal to source-slot, control gradient norm
+  within 1e-6 (bitwise flag recorded), and matched bindings. Records elapsed seconds and peak
+  CUDA memory per run and their difference from the source-slot fit. 12 GiB output cap plus
+  20 GiB reserve; this must be newly funded for patch focus (the dense 12 GiB is not reused).
+- `cpu-admission-stage-manifest.json`: exact staging template (paths, fixed hashes, funding
+  fields, command shapes). Placeholders are root's to fill; it authorizes nothing.
+
+Tiny 16-study outputs are engineering evidence only and cannot select a recipe or be submitted.
+`tests/test_patch_focus_admission.py` checks these wrappers on synthetic inputs; it is not
+real-MRI admission or GPU acceptance.
