@@ -1,0 +1,16 @@
+from pathlib import Path
+import hashlib,json,os,shutil,subprocess,sys
+import torch
+R=Path('/tmp/rsna-dense-suffix-GPU-recovery-20261014-v1');A=Path('/tmp/rsna-dense-suffix-admission-20261014-v1');assert os.uname().nodename=='evc31';assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0);assert torch.cuda.mem_get_info()[0]>=12*2**30;assert shutil.disk_usage(R).free>=367229140992;torch.set_num_threads(2)
+source=A/'code';sys.path.insert(0,str(source));from scripts.newton.run_dense_suffix_recovery import verify_source,sha
+verify_source(source,json.loads((A/'recovery-source-manifest.json').read_text()))
+assert sha(A/'CPU-accepted.json')=='158c242faa37c46e3b8a2e632d68b3ae690174bb3ec3b85abed2a46ffc53c834'
+root=R/'dense';p=root/'replay/checkpoint.pt';state=torch.load(p,map_location='cpu',weights_only=True);assert (state['epoch'],state['next_update'],state['step'])==(1,0,2) and state['optimizer_boundary'] is True;del state
+backup=root/'checkpoint-before-deadline-resume-step002.pt';assert not backup.exists();os.link(p,backup);binding={'status':'original_dense_saved_epoch1_step2_continuation','checkpoint_sha256':sha(backup),'output_cap':12*2**30,'original_numerical_source_unchanged':True,'new_optimization_recipe':False,'automatic_retry':False}
+with (R/'deadline-continuation-intent.json').open('x') as f:json.dump(binding,f,indent=2)
+cmd=[sys.executable,'-B',str(source/'scripts/newton/enforce_deterministic_runtime.py'),'--module','rsna.competitive.train','--device','cuda','--fitting-supervision','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--studies','/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet','--artifact-root','/home/sa305415/rsna-knee/code-stopfix-1f486765','--folds','/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/experiments/competitive-v1/folds','--series','/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv','--cache','/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache','--config',str(root/'config.json'),'--output',str(root/'replay'),'--resume',str(backup)]
+env=os.environ.copy();env.update(PYTHONPATH=str(source),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',WORLD_SIZE='1',RANK='0',LOCAL_RANK='0',CUBLAS_WORKSPACE_CONFIG=':4096:8')
+with (root/'resume-after-deadline.stdout').open('x') as out,(root/'resume-after-deadline.stderr').open('x') as err:x=subprocess.run(cmd,cwd=source,env=env,stdout=out,stderr=err,timeout=850)
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<=12*2**30
+with (R/'deadline-continuation-result.json').open('x') as f:json.dump({'returncode':x.returncode,'checkpoint_before_resume_sha256':binding['checkpoint_sha256'],'source_unchanged':True,'complete_engineering_acceptance':False},f,indent=2)
+print(json.dumps({'returncode':x.returncode,'complete_engineering_acceptance':False}));raise SystemExit(x.returncode)
