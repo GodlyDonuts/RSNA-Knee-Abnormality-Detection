@@ -318,91 +318,114 @@ def test_draft_states_are_reconcilable_read_only(case):
         assert not remote.saves
 
 
-def draft_kernel(source=c.DRAFT_EXPORT_MARKER + SOURCE, **change):
+def test_accessible_unversioned_draft_requires_exact_source_and_fresh_ui():
+    found = {
+        "metadata": {
+            "id": 123,
+            "ref": SLUG,
+            "isPrivate": True,
+            "enableInternet": False,
+            "machineShape": "NvidiaTeslaT4",
+        },
+        "blob": {"source": "# %% [code]\n" + SOURCE},
+    }
+    expected = hashlib.sha256(SOURCE.encode()).hexdigest()
+
+    def observe(remote, value):
+        return c.observe_uncertain_push(
+            workflow, remote, SLUG, value, expected_source_sha256=expected
+        )
+
+    assert (
+        observe(Remote(accessible=found), attestation())["classification"]
+        == "private_draft_owner_attested"
+    )
+    assert observe(Remote(accessible=found), None)["classification"] == "unresolved"
+    changed = copy.deepcopy(found)
+    changed["blob"]["source"] += "\nprint('changed')"
+    assert observe(Remote(accessible=changed), attestation())["classification"] == "unresolved"
+    changed = copy.deepcopy(found)
+    changed["metadata"]["currentVersionNumber"] = 1
+    assert (
+        observe(Remote(accessible=changed), attestation())["classification"] == "committed_version"
+    )
+
+
+MARKER = "# %% [code]\n"
+MISSING = object()
+
+
+def draft_kernel(source=MARKER + SOURCE, **change):
     meta = {
+        "id": 123,
         "ref": SLUG,
         "isPrivate": True,
         "enableInternet": False,
         "machineShape": "NvidiaTeslaT4",
-        "competitionDataSources": [workflow.COMPETITION],
-        "datasetDataSources": [operation()["dataset_slug"]],
     }
     meta.update(change)
     return {
-        "metadata": {k: v for k, v in meta.items() if v is not None},
+        "metadata": {k: v for k, v in meta.items() if v is not MISSING},
         "blob": {"source": source},
     }
 
 
-ACCESSIBLE = "private_draft_accessible_owner_attested"
+def observe_draft(kernel, value):
+    return c.observe_uncertain_push(
+        workflow,
+        Remote(accessible=kernel),
+        SLUG,
+        value,
+        expected_source_sha256=operation()["kernel_source_sha256"],
+    )
 
 
 @pytest.mark.parametrize(
     "kernel,value,kind",
     [
-        (draft_kernel(), attestation(), ACCESSIBLE),
-        (draft_kernel(source=SOURCE), attestation(), ACCESSIBLE),
-        (draft_kernel(currentVersionNumber=None), attestation(), ACCESSIBLE),
-        (draft_kernel(), None, "unresolved"),
+        (draft_kernel(), attestation(), "private_draft_owner_attested"),
+        (draft_kernel(source=SOURCE), attestation(), "private_draft_owner_attested"),
         (draft_kernel(), attestation(observed_at="2026-10-14T00:00:00+00:00"), "unresolved"),
         (draft_kernel(), attestation(version_history="one_version"), "unresolved"),
         (draft_kernel(), attestation(kernel_slug="owner/other"), "unresolved"),
+        (draft_kernel(), attestation(ui_save_version_performed=True), "unresolved"),
+        (draft_kernel(currentVersionNumber=None), attestation(), "unresolved"),
         (draft_kernel(currentVersionNumber=0), attestation(), "unresolved"),
+        (draft_kernel(id=MISSING), attestation(), "unresolved"),
+        (draft_kernel(id=0), attestation(), "unresolved"),
+        (draft_kernel(id="123"), attestation(), "unresolved"),
         (draft_kernel(ref="owner/other"), attestation(), "unresolved"),
-        (draft_kernel(ref=None), attestation(), "unresolved"),
+        (draft_kernel(ref=MISSING), attestation(), "unresolved"),
         (draft_kernel(isPrivate=False), attestation(), "unresolved"),
         (draft_kernel(enableInternet=True), attestation(), "unresolved"),
-        (draft_kernel(enableInternet=None), attestation(), "unresolved"),
+        (draft_kernel(enableInternet=MISSING), attestation(), "unresolved"),
         (draft_kernel(machineShape="NvidiaTeslaP100"), attestation(), "unresolved"),
-        (draft_kernel(competitionDataSources=[]), attestation(), "unresolved"),
-        (draft_kernel(datasetDataSources=["owner/other"]), attestation(), "unresolved"),
-        (draft_kernel(source=c.DRAFT_EXPORT_MARKER * 2 + SOURCE), attestation(), "unresolved"),
-        (draft_kernel(source="# %% [code]\n\n" + SOURCE), attestation(), "unresolved"),
+        (draft_kernel(source=MARKER * 2 + SOURCE), attestation(), "unresolved"),
+        (draft_kernel(source=MARKER + "\n" + SOURCE), attestation(), "unresolved"),
         (draft_kernel(source=SOURCE + "\n"), attestation(), "unresolved"),
-        (draft_kernel(source="other"), attestation(), "unresolved"),
-        ({"metadata": draft_kernel()["metadata"]}, attestation(), "unresolved"),
+        (draft_kernel(source=None), attestation(), "unresolved"),
     ],
 )
-def test_accessible_unversioned_draft_needs_exact_metadata_source_and_evidence(kernel, value, kind):
-    remote = Remote(accessible=kernel)
-    result = c.observe_uncertain_push(workflow, remote, SLUG, value, operation=operation())
-    assert result["classification"] == kind and result["get_kernel"] == "accessible"
-    assert remote.reads == ["GetKernel"] and not remote.saves
+def test_accessible_draft_guards_are_exact(kernel, value, kind):
+    assert observe_draft(kernel, value)["classification"] == kind
 
 
-def test_accessible_draft_without_bound_operation_stays_unresolved():
-    remote = Remote(accessible=draft_kernel())
-    assert c.observe_uncertain_push(workflow, remote, SLUG, attestation())["classification"] == (
-        "unresolved"
+def test_accessible_draft_without_expected_source_stays_unresolved():
+    result = c.observe_uncertain_push(
+        workflow, Remote(accessible=draft_kernel()), SLUG, attestation()
     )
-    other = {**operation(), "kernel_slug": "owner/other"}
-    result = c.observe_uncertain_push(workflow, remote, SLUG, attestation(), operation=other)
     assert result["classification"] == "unresolved"
 
 
-def test_accessible_draft_runtime_pin_must_match():
-    image = "gcr.io/kaggle-images/python@sha256:" + "e" * 64
-    pinned = {**operation(), "runtime_image": image}
-    for kernel, kind in [
-        (draft_kernel(dockerImage=image), ACCESSIBLE),
-        (draft_kernel(), "unresolved"),
-        (draft_kernel(dockerImage=image.replace("e", "f")), "unresolved"),
-    ]:
-        result = c.observe_uncertain_push(
-            workflow, Remote(accessible=kernel), SLUG, attestation(), operation=pinned
-        )
-        assert result["classification"] == kind
-
-
 def test_exact_accessible_draft_commits_once_with_unmarked_prepared_source(case):
-    db, path, entry = case
+    db, path, _ = case
     remote = Remote(accessible=draft_kernel())
     result = commit(db, path, remote)
-    assert len(remote.saves) == 1 and remote.saves[0] == {"slug": SLUG, "text": SOURCE}
+    assert remote.saves == [{"slug": SLUG, "text": SOURCE}]
     assert result["state"] == "pushed" and result["kernel_version"] == 1
     observation = workflow.read_entry(db, SHA)["draft_commit"]["observation"]
-    assert observation["classification"] == ACCESSIBLE
-    assert observation["draft_export_marker_removed"] is True
+    assert observation["get_kernel"] == "accessible"
+    assert observation["exact_prepared_source_verified"] is True
     with pytest.raises(ValueError, match="null-identity"):
         commit(db, path, Remote(accessible=draft_kernel()))
     assert len(remote.saves) == 1
@@ -410,7 +433,12 @@ def test_exact_accessible_draft_commits_once_with_unmarked_prepared_source(case)
 
 @pytest.mark.parametrize(
     "kernel",
-    [draft_kernel(isPrivate=False), draft_kernel(source="other"), draft_kernel(ref="owner/x")],
+    [
+        draft_kernel(isPrivate=False),
+        draft_kernel(source="other"),
+        draft_kernel(ref="owner/x"),
+        draft_kernel(currentVersionNumber=None),
+    ],
 )
 def test_inexact_accessible_draft_cannot_commit(case, kernel):
     db, path, _ = case
