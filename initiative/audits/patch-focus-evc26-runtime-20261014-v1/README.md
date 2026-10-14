@@ -1,0 +1,7 @@
+# Distinct runtime preparation on the potential second H100 node
+
+Standalone CPU917129 COMPLETED0:0/22seconds on evc26 restored the existing authorized shared archive89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338 once, all40403members/6322691335unpackedbytes accepted by the tested extractor. New private prefix /tmp/rsna-environment-917129-_r45a3dc/environment is explicit; never claim the oldprefix or original source-node admission. Follow-up read-only package identity matches the actual accepted source exactly exceptprefix: Python3.12.13,torch2.14.0,numpy2.2.1,pandas2.2.3,transformers5.6.1,safetensors0.7.0. No acquisition/download, MRIread/transfer/model/GPU execution. Source40runtime remains untouched.
+
+Separate CPU/runtime-only funding8GiB+32MiBcontrols retained356641161911B original/current caps conservatively plus20GiBfloor; required386739487415B vs841300905984B observedbefore. Zero sharedgrowth. This funds neither cache copy nor GPU/production. Exact archive is already shared and licensed; no re-transfer of the live original runtime. Original intent/terminal prevent repeating this restore.
+
+GPU917001on evc40 remainsPENDING(Resources), notcancelled oraccepted. Newnode availability is transient; root requires independently funded exact input/roster/tensor/base/model/RNG admission before any newGPUrequest. Issue87implements explicit relocation/pending-only transition, never modifies oldnodefunding/source/proofs or duplicates a running recovery. All-data908454continues unchanged.
