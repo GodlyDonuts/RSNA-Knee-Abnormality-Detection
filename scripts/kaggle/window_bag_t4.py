@@ -962,7 +962,7 @@ def _hex64(value) -> bool:
 
 def segment_contract(contract: dict) -> dict:
     """Exact scheduled boundary of one production session; validated before any GPU work."""
-    from scripts.kaggle.window_bag_plan import TOTAL_UPDATES
+    from scripts.kaggle.window_bag_plan import OUTPUT_CAP_CEILING_BYTES, TOTAL_UPDATES
 
     if (
         not isinstance(contract, dict)
@@ -990,7 +990,7 @@ def segment_contract(contract: dict) -> dict:
         not _hex64(contract["engineering_receipt_sha256"])
         or not _hex64(contract["production_config_sha256"])
         or type(contract["output_cap_bytes"]) is not int
-        or contract["output_cap_bytes"] <= 0
+        or not 0 < contract["output_cap_bytes"] <= OUTPUT_CAP_CEILING_BYTES
     ):
         raise ValueError("Engineering receipt, config and output cap bindings required")
     return contract

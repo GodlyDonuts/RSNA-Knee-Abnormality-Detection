@@ -27,6 +27,16 @@ FUNDING_KEYS = {"engineering", "measured", "segments_per_arm", "gpu_seconds_auth
 KERNEL_IDENTITY_KEYS = {"kernel_slug", "version", "source_sha256", "receipt_sha256"}
 
 
+def repeated(meta: dict, name: str) -> list:
+    """GetKernel omits empty repeated fields (absent or null); only those mean []."""
+    value = meta.get(name)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"Kernel metadata {name} is not a repeated field")
+    return value
+
+
 def validate_contract(contract: dict) -> dict:
     if set(contract) != CONTRACT_KEYS or contract["mode"] not in {"engineering", "segment"}:
         raise ValueError("Exact whole-window Kaggle contract required")
@@ -129,9 +139,9 @@ def completed_gpu_kernel(remote, contract, identity, digest, receipt_name, extra
         or meta.get("enableInternet") is not False
         or meta.get("machineShape") != MACHINE_SHAPE
         or meta.get("dockerImage") != contract["runtime_image"]
-        or sorted(meta.get("datasetDataSources", [])) != sorted(datasets)
-        or sorted(meta.get("kernelDataSources", [])) != sorted(shards + extra_kernels)
-        or meta.get("competitionDataSources", []) != []
+        or sorted(repeated(meta, "datasetDataSources")) != sorted(datasets)
+        or sorted(repeated(meta, "kernelDataSources")) != sorted(shards + extra_kernels)
+        or repeated(meta, "competitionDataSources") != []
     ):
         raise ValueError("Bound kernel source/settings/inputs differ")
     if remote.kernel("GetKernelSessionStatus", identity["kernel_slug"], 1).get("status") != (
@@ -186,6 +196,7 @@ def verify_engineering(remote, contract, digest, gpu) -> dict:
         or contract["session_timeout_seconds"] != sized["session_timeout_seconds"]
         or segment["output_cap_bytes"] != sized["output_cap_bytes_per_segment"][index]
         or not sized["scratch_fits"]
+        or not sized["output_caps_fit"]
         or type(funding["gpu_seconds_authorized"]) not in (int, float)
         or funding["gpu_seconds_authorized"] < plan.session_charge(sized["session_timeout_seconds"])
     ):
@@ -222,7 +233,7 @@ def _previous_inputs(remote, previous, contract) -> list[str]:
     """The previous segment's own previous-output kernel source, from its pushed metadata."""
     meta = remote.kernel("GetKernel", previous["kernel_slug"], 1)["metadata"]
     shards = {s["slug"] for s in contract["shard_kernels"]}
-    extra = [k for k in meta.get("kernelDataSources", []) if k not in shards]
+    extra = [k for k in repeated(meta, "kernelDataSources") if k not in shards]
     if len(extra) != (0 if contract["segment"]["segment"] == 1 else 1):
         raise ValueError("Previous segment kernel inputs differ from its chain position")
     return extra
@@ -253,6 +264,10 @@ def verify_inputs(remote, publication, workflow, contract: dict) -> dict:
 def run_phase(phase, contract, source, remote, publication, workflow, journal, digest):
     """``journal`` is the root-owned exclusive-JSON writer inside the coordinator claim."""
     validate_contract(contract)
+    if contract["platform_limits"] != plan.admitted_platform_limits() or (
+        contract["model_dataset"]["id"], contract["capsule_dataset"]["id"]
+    ) != (plan.SUPPORTED_DATASET_IDS[0], plan.SUPPORTED_DATASET_IDS[2]):
+        raise ValueError("Platform proof/Datasets differ from the actual admitted input shape")
     if digest(source) != contract["source_sha256"]:
         raise ValueError("Prepared notebook source differs from its contract")
     bound_in_source(contract, source)
@@ -272,7 +287,7 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
             if meta.get(name) != request[name]:
                 raise ValueError("Pushed kernel settings differ")
         for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
-            if sorted(meta.get(name, [])) != sorted(request[name]):
+            if sorted(repeated(meta, name)) != sorted(request[name]):
                 raise ValueError("Pushed kernel inputs differ; inspect, never retry")
         return {"status": remote.kernel("GetKernelSessionStatus", contract["kernel_slug"], 1)}
     if phase not in {"preflight", "push"}:

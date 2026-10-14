@@ -121,3 +121,16 @@ The CPU tests in `tests/test_kaggle_window_bag.py` cover:
 Engineering tests are not scores, accuracy, eligibility or discovery claims.
 
 The original H100 two-arm recovery has since actually COMPLETED 0 for both arms (receipt `0700d08b`, preserved in `source-window-bag-GPU-terminal-20261014-v1`). That is H100 recovery, not T4 acceptance. The notebook's `CUDA_VISIBLE_DEVICES=0` intentionally selects one T4, while quota charges both provisioned GPUs.
+
+## Actual input-shape bound, output cap and omitted repeated fields (issue #55 follow-up)
+
+- **Input shape:** the only admitted `platform_limits` is `plan.admitted_platform_limits()`, bound to the actual private offline CPU kernel `138609817/v1` (`rsna-input-shape-cpu-21x3-20261014-v1`, source `e06b3842`). It COMPLETED with exactly 21 kernel inputs and the same 3 Datasets (ids `12333543`, `12139697`, `12567458`).
+  - A test re-reads `kaggle-input-shape-CPU-20261014-v1/verified.json` and `contract.json`. It checks the slug, version, source, counts, the 20 shard-manifest SHAs and the Dataset ids.
+  - The coordinator refuses any other proof, including a claimed limit above 21/3, and model/capsule Dataset ids other than the probe's.
+  - This is a supported-shape bound, not a platform maximum. An engineering session mounts 20+3 and a resumed segment mounts 21+3.
+- **Output cap:** Kaggle documents 20 GB of saved `/kaggle/working` output. Every segment is held to an explicit `OUTPUT_CAP_CEILING_BYTES` = 16 GiB.
+  - `segment_contract`, `require_platform_limits` and `production_plan["output_caps_fit"]` enforce it, including the two-arm concurrent projection.
+  - The engineering cap stays 6 GiB.
+- **Omitted repeated fields:** GetKernel can omit an empty repeated field or return it as null. `repeated()` reads either as `[]` for `datasetDataSources`, `kernelDataSources` and `competitionDataSources`.
+  - Any non-list value is still refused.
+  - A nonempty competition source is still drift.

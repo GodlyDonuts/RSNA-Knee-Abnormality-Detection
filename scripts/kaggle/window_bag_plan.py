@@ -28,6 +28,33 @@ EXACT_MEMBER_BYTES = 27667165884
 GIB = 2**30
 # Sidecars, logs, history and the final 1156-row prediction CSV (never MRI/cache/reports).
 PUBLICATION_SIDECAR_BYTES = 256 * 2**20
+# Actual private offline CPU kernel 138609817/v1 (audit kaggle-input-shape-CPU-20261014-v1)
+# COMPLETED with exactly 21 kernel inputs (the 20 original shards plus one other kernel) and
+# these 3 Datasets. That is a supported shape, not a platform maximum.
+INPUT_SHAPE_PROOF_KERNEL = {
+    "slug": "godlydonuts/rsna-input-shape-cpu-21x3-20261014-v1", "version": 1,
+    "kernel_id": 138609817,
+    "source_sha256": "e06b3842e1c23022821063e9bda1f51cf525d399c097c0d70b6da3b6c06e086a",
+}
+SUPPORTED_KERNEL_SOURCES, SUPPORTED_DATASET_SOURCES = 21, 3
+SUPPORTED_DATASET_IDS = (12333543, 12139697, 12567458)  # model bundle, wheelhouse, capsule
+# Kaggle documents 20 GB of saved /kaggle/working output (kaggle.com/docs/notebooks); every
+# segment output is held to an explicit lower cap, leaving >2.8 GB of margin.
+DOCUMENTED_OUTPUT_BYTES = 20 * 10**9
+OUTPUT_CAP_CEILING_BYTES = 16 * GIB
+
+
+def admitted_platform_limits() -> dict:
+    """The only accepted platform proof: the actual 21/3 input-shape kernel, as a bound."""
+    return {
+        "observed_at": "2026-10-14 kernel 138609817/v1 COMPLETE",
+        "evidence": "actual_private_CPU_21kernel_3dataset_mount_shape_accepted:"
+        + INPUT_SHAPE_PROOF_KERNEL["slug"] + "/v1:" + INPUT_SHAPE_PROOF_KERNEL["source_sha256"]
+        + ";output:kaggle.com/docs/notebooks 20GB /kaggle/working, explicit 16GiB cap",
+        "max_kernel_sources": SUPPORTED_KERNEL_SOURCES,
+        "max_dataset_sources": SUPPORTED_DATASET_SOURCES,
+        "max_output_bytes": OUTPUT_CAP_CEILING_BYTES,
+    }
 
 
 def seconds(value) -> float:
@@ -63,7 +90,10 @@ def admit_engineering(gpu_quota: dict, timeout_seconds: float = ENGINEERING_TIME
 
 def require_platform_limits(proof: dict, kernel_sources: int, dataset_sources: int,
                             output_bytes: int = 0) -> dict:
-    """Refuse unless root recorded the actual API constraint (never an assumed default)."""
+    """Refuse unless root recorded the actual API constraint (never an assumed default).
+
+    Counts at or below the actually completed 21/3 shape are admitted; nothing above it.
+    """
     keys = {"observed_at", "evidence", "max_kernel_sources", "max_dataset_sources",
             "max_output_bytes"}
     if not isinstance(proof, dict) or set(proof) != keys:
@@ -75,6 +105,12 @@ def require_platform_limits(proof: dict, kernel_sources: int, dataset_sources: i
                       ("max_output_bytes", output_bytes)):
         if type(proof[key]) is not int or proof[key] < need:
             raise ValueError("Requested inputs exceed the verified platform limit")
+    if (
+        proof["max_kernel_sources"] > SUPPORTED_KERNEL_SOURCES
+        or proof["max_dataset_sources"] > SUPPORTED_DATASET_SOURCES
+        or proof["max_output_bytes"] > OUTPUT_CAP_CEILING_BYTES
+    ):
+        raise ValueError("Claimed limit exceeds the actual supported shape or output cap")
     return proof
 
 
@@ -120,6 +156,7 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int,
     charge = sessions * session_charge(timeout)
     available = conservative_available(gpu_quota)
     storage = EXACT_MEMBER_BYTES + arms_per_session * 3 * measured["checkpoint_bytes"] + 3 * GIB
+    caps = [arms_per_session * publication_bytes(measured, s) for s in segments]
     return {
         "updates_per_epoch": UPDATES_PER_EPOCH,
         "total_updates_per_arm": TOTAL_UPDATES,
@@ -131,9 +168,8 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int,
         "available_seconds": available,
         "quota_fits_now": charge <= available,
         "scratch_bytes_required": storage,
-        "output_cap_bytes_per_segment": [
-            arms_per_session * publication_bytes(measured, s) for s in segments
-        ],
+        "output_cap_bytes_per_segment": caps,
+        "output_caps_fit": all(cap <= OUTPUT_CAP_CEILING_BYTES for cap in caps),
         "concurrent_arms": concurrent,
         "provisioned_GPUs_charged_per_session": PROVISIONED_T4,
         "scratch_fits": free_scratch_bytes >= storage,

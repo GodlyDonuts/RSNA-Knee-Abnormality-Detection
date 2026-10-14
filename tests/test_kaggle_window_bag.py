@@ -51,12 +51,41 @@ def test_platform_limits_must_be_observed_not_assumed():
     with pytest.raises(ValueError):
         plan.require_platform_limits({}, 20, 3)
     proof = {"observed_at": "t", "evidence": "actual API response", "max_kernel_sources": 19,
-             "max_dataset_sources": 10, "max_output_bytes": 2**30}
+             "max_dataset_sources": 3, "max_output_bytes": 2**30}
     with pytest.raises(ValueError):
         plan.require_platform_limits(proof, 20, 3)
     assert plan.require_platform_limits(dict(proof, max_kernel_sources=20), 20, 3)
     with pytest.raises(ValueError):
         plan.require_platform_limits(dict(proof, max_kernel_sources=21), 21, 3, 2**30 + 1)
+    # Nothing above the actually completed 21/3 shape or the explicit output cap is admitted.
+    for key, value in (("max_kernel_sources", 22), ("max_dataset_sources", 4),
+                       ("max_output_bytes", plan.DOCUMENTED_OUTPUT_BYTES)):
+        with pytest.raises(ValueError):
+            plan.require_platform_limits({**proof, "max_kernel_sources": 21, key: value}, 21, 3)
+
+
+def test_admitted_shape_is_the_actual_committed_input_shape_kernel():
+    audit = ROOT / "initiative/audits/kaggle-input-shape-CPU-20261014-v1"
+    verified = json.loads((audit / "verified.json").read_text())
+    probe = json.loads((audit / "contract.json").read_text())
+    kernel = plan.INPUT_SHAPE_PROOF_KERNEL
+    assert verified["status"] == "actual_exact_private_CPU_source_shape_runtime_accepted"
+    assert (verified["slug"], verified["version"], verified["kernel_id"],
+            verified["source_sha256"]) == (kernel["slug"], kernel["version"],
+                                           kernel["kernel_id"], kernel["source_sha256"])
+    assert probe["source_sha256"] == kernel["source_sha256"]
+    assert verified["supported_shape_lower_bound_not_global_maximum"] is True
+    assert (verified["accepted_kernel_input_count"], verified["accepted_dataset_input_count"]) == (
+        plan.SUPPORTED_KERNEL_SOURCES, plan.SUPPORTED_DATASET_SOURCES)
+    # The same 20 original shard outputs and the same 3 Datasets this path mounts.
+    assert [s["manifest_sha256"] for s in probe["shards"]] == list(t4.SHARD_MANIFEST_SHA256)
+    assert len(probe["shards"]) + 1 == plan.SUPPORTED_KERNEL_SOURCES
+    assert tuple(d["id"] for d in probe["datasets"]) == plan.SUPPORTED_DATASET_IDS
+    assert (probe["CPU"], probe["GPU"], probe["internet"]) == (True, False, False)
+    limits = plan.admitted_platform_limits()
+    assert plan.require_platform_limits(limits, 21, 3, plan.OUTPUT_CAP_CEILING_BYTES) == limits
+    assert plan.OUTPUT_CAP_CEILING_BYTES < plan.DOCUMENTED_OUTPUT_BYTES
+    assert t4.CHECKPOINT_CAP_BYTES < plan.OUTPUT_CAP_CEILING_BYTES
 
 
 def measured(**changes):
@@ -289,8 +318,7 @@ def contract(**changes):
         "capsule_dataset": {"slug": "me/capsule", "id": 12567458},
         "runtime_image": IMAGE,
         "session_timeout_seconds": 7200,
-        "platform_limits": {"observed_at": "t", "evidence": "actual", "max_kernel_sources": 21,
-                            "max_dataset_sources": 3, "max_output_bytes": 20 * 2**30},
+        "platform_limits": plan.admitted_platform_limits(),
         "production_funding": None,
         "parallel_arms": False,
     }
@@ -381,6 +409,9 @@ def test_coordinator_refuses_unfunded_drifted_or_unverified_requests():
         phase("preflight", FakeRemote(dict(ISSUE_QUOTA, timeUsed="99000s")), [])
     for bad in (
         {"platform_limits": {}},
+        {"platform_limits": dict(plan.admitted_platform_limits(), max_output_bytes=20 * 2**30)},
+        {"platform_limits": dict(plan.admitted_platform_limits(), evidence="assumed")},
+        {"model_dataset": dict(contract()["model_dataset"], id=1)},
         {"session_timeout_seconds": 7201},
         {"mode": "segment"},
         {"shard_kernels": contract()["shard_kernels"][:19]},
@@ -396,6 +427,21 @@ def test_coordinator_refuses_unfunded_drifted_or_unverified_requests():
     with pytest.raises(ValueError):
         wc.run_phase("preflight", dict(value, source_sha256=digest(other)), other, FakeRemote(),
                      Publication, Workflow, lambda *_: None, digest)
+
+
+@pytest.mark.parametrize("omitted", ["absent", None])
+def test_omitted_empty_competition_sources_are_empty_not_drift(omitted):
+    value, kernels = production(segment_index=1)
+    for record in kernels.values():
+        if omitted == "absent":
+            del record["metadata"]["competitionDataSources"]
+        else:
+            record["metadata"]["competitionDataSources"] = None
+    assert phase("preflight", FakeRemote(kernels=kernels), [], value)
+    for record in kernels.values():
+        record["metadata"]["competitionDataSources"] = "rsna"
+    with pytest.raises(ValueError):
+        phase("preflight", FakeRemote(kernels=kernels), [], value)
 
 
 def test_resumed_segment_push_mounts_the_verified_previous_kernel_output():
