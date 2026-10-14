@@ -61,11 +61,12 @@ REQUIRED_SOURCE = (
     *(f"{recovery.RECIPE}/{name}" for name in recovery.ARMS.values()),
 )
 # Exact rsna/ delta since the original receipt's code (reviewed source-slot,
-# window-bag, weight-average and patch-focus integration). Anything else is refused.
+# window-bag, weight-average, profiler/archive and patch-focus integration). Anything else is refused.
 CODE_DELTA = {
     "changed": {
+        "archive.py": "8d746f111bf9b7a5ed9c194a8edddde5b61f7871d8c4534b9b5b0585921c3447",
         "competitive/throughput.py": (
-            "d35ae9c617d9446b48bcbc00e7defd9a0ba3e9daf5f2a64bcfb20125a60d4e5d"
+            "d1b2cc9d81d660811d6065915104dbfec07c41e627c237a4361bd62b5f576b19"
         ),
         "competitive/train.py": "5a176badbfa074384f149ca985da768d80eb1ccc0eaa8f379e734bc17045dc44",
     },

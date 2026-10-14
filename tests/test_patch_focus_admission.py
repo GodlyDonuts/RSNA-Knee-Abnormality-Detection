@@ -122,7 +122,7 @@ def test_encoder_spec_must_be_the_pinned_mounted_official_spec():
 def test_code_delta_is_exact_and_includes_patch_focus():
     delta = admit.code_delta(ORIGINAL["code_sha256"], current_code())
     assert delta["input_label_code_changed"] == ["competitive/train.py", "release_cache.py"]
-    assert (delta["changed_files"], delta["added_files"], delta["removed_files"]) == (2, 4, 0)
+    assert (delta["changed_files"], delta["added_files"], delta["removed_files"]) == (3, 4, 0)
     for edit in (
         lambda c: c.update({"competitive/patch_focus.py": "0" * 64}),
         lambda c: c.update({"competitive/source_slot.py": "0" * 64}),
