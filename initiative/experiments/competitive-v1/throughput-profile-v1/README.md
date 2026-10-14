@@ -98,3 +98,7 @@ incomplete runs are marked `evidence_eligible: false`.
 The source-slot log observation (updates 1043->1044, ~14.78 s/update on a shared
 H100 with other workloads) is contention-affected and is not isolated throughput
 evidence. No worker/chunk/batch choice is made from it.
+
+## Root precision-parity review
+
+The profiler selects and augments windows under the same autocast context as the trainer. CUDA autocast leaves CPU augmentation unchanged, but CPU BF16/FP16 diagnostics can change `affine_grid`; moving that work outside the context broke exact adapter-update parity. The corrected path retains separate CPU-transform timing and passes all64 root profiler cases, including the four complete-state parity cases. No actual GPU throughput setting has been promoted. Original failing receipts remain in private root artifacts.

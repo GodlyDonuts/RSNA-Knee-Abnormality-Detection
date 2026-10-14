@@ -191,9 +191,9 @@ def test_repeat_refused_by_existing_intent_and_target(env):
     [
         lambda b: b[:-1],
         lambda b: b + b"x",
-        lambda b: b[: -len(relay.END) - 1]
-        + bytes([b[-len(relay.END) - 1] ^ 1])
-        + b[-len(relay.END) :],
+        lambda b: (
+            b[: -len(relay.END) - 1] + bytes([b[-len(relay.END) - 1] ^ 1]) + b[-len(relay.END) :]
+        ),
         lambda b: b[:70] + bytes([b[70] ^ 1]) + b[71:],
         lambda b: b[:12] + b"\0" * 32 + b[44:],
         lambda b: b[:44] + (5).to_bytes(8, "big") + b[52:],

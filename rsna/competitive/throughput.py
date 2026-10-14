@@ -625,12 +625,23 @@ def profile_updates(
                         )
                     else:
                         assert strategy is not None
-                        selected = phases.measure(
-                            "cpu_transform",
-                            lambda: classifier_inputs(
-                                batch, cpu, strategy, seed=config.seed, epoch=0, update=update
-                            ),
-                        )
+
+                        def select_inputs():
+                            # Match the trainer's autocast context. In CPU diagnostics,
+                            # affine_grid is autocast-sensitive; on CUDA its CPU work
+                            # remains unaffected, exactly as in the trainer.
+                            with torch.autocast(
+                                device.type,
+                                dtype=(
+                                    torch.float16 if config.precision == "fp16" else torch.bfloat16
+                                ),
+                                enabled=config.precision != "fp32",
+                            ):
+                                return classifier_inputs(
+                                    batch, cpu, strategy, seed=config.seed, epoch=0, update=update
+                                )
+
+                        selected = phases.measure("cpu_transform", select_inputs)
                         inputs = phases.measure(
                             "host_to_device",
                             lambda: (

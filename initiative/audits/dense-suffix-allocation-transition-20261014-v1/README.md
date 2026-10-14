@@ -75,3 +75,7 @@ Comment 6169070398: source cache 27,714,909,689 bytes, runtime 6,329,569,496 byt
 admission tree 1,019,235 bytes; evc40 `/tmp` free 669,135,454,208 bytes; the cache
 path does not exist on evc40. Original 908454 runs on evc40; with 899766 on evc31 that
 is already two GPU nodes, so a relocation GPU step on evc40 adds no third node.
+
+## Root review corrections
+
+The relocation manifest also includes the original GPU-recovery output tree: the unchanged launcher and epoch publisher re-admit those actual recovery bytes on the destination. Omitting it would leave an essential proof unavailable after relocation. The wrapper avoids writing import bytecode into original state. Root's transition/production/archive tests pass153 cases, including recovery-proof drift refusal. This remains prepared only; no actual transition record, transfer, replacement allocation or resume is claimed.
