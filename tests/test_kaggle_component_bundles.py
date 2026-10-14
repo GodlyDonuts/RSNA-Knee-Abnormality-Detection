@@ -731,6 +731,42 @@ def test_node_local_journal_identity_and_scope_guards(coordinated):
         c.run(x.args("create-dataset"))
 
 
+def test_daily_queue_standalone_uses_two_shared_markers_and_never_retries(coordinated):
+    x = coordinated
+    x.op.pop("common_bundle")
+    x.op.update(
+        fitting_admission_sha256="a" * 64,
+        dataset_slug=f"godlydonuts/rsna-alldev-e001-{CHECKPOINT[:12]}",
+        kernel_slug=f"godlydonuts/rsna-alldev-offline-e001-{CHECKPOINT[:12]}",
+    )
+    c.run(x.args("prepare-transport"))
+    with pytest.raises(RuntimeError, match="outcome uncertain"):
+        c.run(x.args("create-dataset"))
+    assert x.state.creates == 1
+    with pytest.raises(FileExistsError):
+        c.run(x.args("create-dataset"))
+    assert x.state.creates == 1
+    assert c.run(x.args("reconcile-dataset"))["status"] == "all_payload_bytes_verified"
+    assert shared_names(x) == [KEY + ".node-intent.json", KEY + ".node-verified.json"]
+    with pytest.raises(ValueError, match="cannot fall back"):
+        c.run(x.args("reconcile-dataset", None))
+
+
+@pytest.mark.parametrize("field", ["fitting_admission_sha256", "dataset_slug", "kernel_slug"])
+def test_daily_queue_node_journal_refuses_unbound_standalone_scope(coordinated, field):
+    x = coordinated
+    x.op.pop("common_bundle")
+    x.op.update(
+        fitting_admission_sha256="a" * 64,
+        dataset_slug=f"godlydonuts/rsna-alldev-e001-{CHECKPOINT[:12]}",
+        kernel_slug=f"godlydonuts/rsna-alldev-offline-e001-{CHECKPOINT[:12]}",
+    )
+    x.op[field] = "unbound"
+    with pytest.raises(ValueError, match="new component"):
+        c.run(x.args("prepare-transport"))
+    assert not x.root.exists() and x.state.creates == 0
+
+
 def test_component_checkpoint_requires_coordinator_common_proof_and_projection(coordinated):
     x = coordinated
     marker = x.shared / ("common-" + COMMON + ".node-verified.json")
