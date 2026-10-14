@@ -9,6 +9,7 @@ No GPU, optimizer, merge, rendering, transfer or clinical inference is executed.
 import argparse
 import gc
 import hashlib
+import importlib
 import json
 import os
 import random
@@ -383,6 +384,9 @@ def initialize(config: dict, arm: str, create_encoder, model_class) -> tuple:
     from rsna.competitive.delta_checkpoint import FrozenBaseDelta
     from rsna.competitive.relations import relation_model_kwargs
 
+    # A cold Hugging Face modeling import consumes Python RNG once. The two
+    # arms must see the same import state before their independent seed reset.
+    importlib.import_module("transformers.models.dinov3_vit.modeling_dinov3_vit")
     seed = config["seed"]
     random.seed(seed)
     np.random.seed(seed % 2**32)
