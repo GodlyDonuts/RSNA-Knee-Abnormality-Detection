@@ -860,7 +860,9 @@ def draft_attestation_valid(attestation, account, slug, now):
     )
 
 
-def observe_uncertain_push(workflow, remote, slug, attestation=None, now=None):
+def observe_uncertain_push(
+    workflow, remote, slug, attestation=None, now=None, expected_source_sha256=None
+):
     """Read-only. Classify committed version / owner-attested draft / unresolved.
 
     The private placeholder alone proves neither absence nor a draft.
@@ -877,8 +879,40 @@ def observe_uncertain_push(workflow, remote, slug, attestation=None, now=None):
         get_kernel = str(error)
     else:
         version = found.get("metadata", {}).get("currentVersionNumber")
-        kind = "committed_version" if type(version) is int and version >= 1 else "unresolved"
-        return {"classification": kind, "get_kernel": "accessible", "current_version": version}
+        if type(version) is int and version >= 1:
+            return {
+                "classification": "committed_version",
+                "get_kernel": "accessible",
+                "current_version": version,
+            }
+        import hashlib
+
+        meta, blob = found.get("metadata", {}), found.get("blob", {})
+        source = blob.get("source")
+        source_sha = (
+            hashlib.sha256(source.removeprefix("# %% [code]\n").encode()).hexdigest()
+            if isinstance(source, str)
+            else None
+        )
+        valid = (
+            "currentVersionNumber" not in meta
+            and type(meta.get("id")) is int
+            and meta["id"] > 0
+            and meta.get("ref") == slug
+            and meta.get("isPrivate") is True
+            and meta.get("enableInternet") is False
+            and meta.get("machineShape") == "NvidiaTeslaT4"
+            and source_sha is not None
+            and source_sha == expected_source_sha256
+            and draft_attestation_valid(attestation, remote.username, slug, now)
+        )
+        return {
+            "classification": "private_draft_owner_attested" if valid else "unresolved",
+            "get_kernel": "accessible",
+            "current_version": version,
+            "source_sha256": source_sha,
+            "exact_prepared_source_verified": valid,
+        }
     listing = remote.call(
         "kernels.KernelsApiService",
         "ListKernels",
@@ -947,7 +981,13 @@ def commit_private_draft_once(workflow, remote, db, operation_path, expected_sha
             != operation["kernel_source_sha256"]
         ):
             raise ValueError("First-commit request differs from the exact prepared source")
-        observation = observe_uncertain_push(workflow, remote, slug, attestation)
+        observation = observe_uncertain_push(
+            workflow,
+            remote,
+            slug,
+            attestation,
+            expected_source_sha256=operation["kernel_source_sha256"],
+        )
         if observation["classification"] != "private_draft_owner_attested":
             raise ValueError("No fresh exact owner-attested unversioned draft")
         if workflow.verify_remote_dataset(remote, operation) != entry["dataset"]:
