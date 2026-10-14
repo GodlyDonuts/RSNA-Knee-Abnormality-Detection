@@ -118,3 +118,36 @@ assumed to be a bitwise trajectory duplicate: it has a different code hash, and 
 gradient-norm clip includes one extra zero-gradient tensor. Root may decide whether the
 existing source-slot fixed-final fit can stand in for it. That substitution was not
 validated here.
+
+## Routing, serialization and gradient report (Root review follow-up)
+
+Baseline context, kept as reported by Root: the actual original source-slot fixed10 independently
+replayed macro `0.8782870961938172` on 1156 outer studies, below current native-public
+`0.8997840648139764`. The recipes differ, so that gap is not evidence about patch pooling. This
+experiment stays matched to its own source-slot control (`control-r32-config.json`), not to
+native-public, and is not mixed with dense-versus-low-rank capacity factors.
+
+- Model routing: `patch_focus.classifier_model(strategy)` is the single class route. The trainer
+  builds every classifier-strategy model through it (`source_patch_focus_v1` ->
+  `PatchFocusSlotStudyNet`, window bag -> `WindowBagSlotStudyNet`, otherwise
+  `SourceSlotStudyNet`) after exact strategy validation. Trainer inputs and ten-window deployment
+  go through `patch_focus.training_inputs` / `patch_focus.deployment_probabilities`, which require
+  the patch-focus student and delegate to the reviewed source-slot window contract.
+- Competition inference: `infer.validate_inference_checkpoint` rejects these public
+  ordered-triplet research checkpoints (`no admitted deployment input`), exactly as for source
+  slot. No submission route is added here; one needs Root admission.
+- Serialization: `patch_query` is a registered parameter. Schema-1 checkpoints restore with
+  `strict=True`; frozen-base delta (schema 2) restores require exact trainable membership, shape,
+  dtype and finiteness before a strict load. Tests confirm a patch-focus state is rejected by the
+  source-slot model (unexpected `patch_query`), a source-slot state is rejected by the patch-focus
+  model (missing `patch_query`), a reshaped query is rejected, a control checkpoint cannot resume
+  or load under the candidate binding, and trainer checkpoints rebuild bitwise through
+  `classifier_model`.
+- Gradient flow: CPU-autocast FP16 and BF16 tests confirm finite, nonzero gradients in every
+  diagnostic-encoder parameter for both arms, control-equal encoder gradients at zero query, and
+  changed encoder gradients once the query moves (the focus path backpropagates into the encoder).
+  A tiny 20-layer DINOv3 with the r32 adapter (12 adapted FFN layers, gradient checkpointing)
+  checks finite gradients reaching every adapted layer under FP16/BF16 autocast when
+  `transformers` is installed. These are CPU autocast checks only; full-prefix gradient flow on
+  the real DINOv3-L weights under CUDA BF16/FP16 has not been run and is part of the GPU
+  admission step below, not claimed here.

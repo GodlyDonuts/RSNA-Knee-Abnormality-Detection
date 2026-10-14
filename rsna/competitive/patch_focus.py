@@ -228,6 +228,17 @@ def deployment_probabilities(
     return ss.deployment_probabilities(model, images, slot_mask, device, precision)
 
 
+def classifier_model(strategy: object) -> type[ss.SourceSlotStudyNet]:
+    """The one model-class routing used by the trainer and by checkpoint rebuilds."""
+    module = classifier_module(strategy)
+    module.validate_strategy(strategy)
+    if module is sys.modules[__name__]:
+        return PatchFocusSlotStudyNet
+    if module is window_bag:
+        return window_bag.WindowBagSlotStudyNet
+    return ss.SourceSlotStudyNet
+
+
 def classifier_module(strategy: object):
     """This module for its exact ``kind``; otherwise the window-bag/source-slot dispatch."""
     if isinstance(strategy, Mapping) and strategy.get("kind") == KIND:
