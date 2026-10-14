@@ -1,0 +1,42 @@
+"""Actual canonical recovery of both matched bags; retain interrupted evidence."""
+from pathlib import Path
+import os,sys,json,hashlib,time,subprocess,shutil,gc
+R=Path('/tmp/rsna-source-window-bag-recovery-20261013-v1');A=Path('/tmp/rsna-source-window-bag-admission-20261013-v1');code=R/'code';sys.path.insert(0,str(code))
+import torch
+from scripts.newton.probe_public_input_recipe_recovery import check_placement,trainer_command,validate_state,validate_predictions,output_bytes
+from scripts.newton.probe_patch_witness_trainer_recovery import compare_recovery,numerical_updates
+from scripts.newton.probe_public_input_recipe_inputs import sha
+from rsna.competitive.train import TrainConfig
+check_placement();torch.set_num_threads(2);deadline=time.monotonic()+6900
+source=json.loads((R/'source.json').read_text());fund=json.loads((R/'funding.json').read_text())
+for n,h in source['files'].items():assert sha(code/n)==h
+assert shutil.disk_usage(R).free>fund['required_free_bytes']
+assert sha(A/'CPU-accepted.json')=='7417e3637c4b4cb403a475deba043ce559656beb83454c7540493ffbf88818b9';own=json.loads((A/'CPU-accepted.json').read_text())
+assert own['status']=='source_window_bag_official_common_graph_values_RNG_and_original_inputs_CPU_accepted' and own['initialization']['mean']==own['initialization']['query']
+hashes={n.removeprefix('rsna/'):h for n,h in source['files'].items() if n.startswith('rsna/')};assert hashes==own['code_sha256']
+p=Path('/tmp/rsna-public-input-recipe-admission-20261013-v2/CPU-accepted.json');assert sha(p)=='adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2';original=json.loads(p.read_text())
+out=R/'recovery';out.mkdir(mode=0o700);results={}
+env=os.environ.copy();env.update(PYTHONPATH=str(code),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',WORLD_SIZE='1',RANK='0',LOCAL_RANK='0',CUBLAS_WORKSPACE_CONFIG=':4096:8')
+def cap():assert output_bytes(out)<=fund['checkpoint_cap_bytes'] and shutil.disk_usage(R).free>fund['reserve_bytes']
+for arm,base in own['configs'].items():
+ root=out/arm;root.mkdir(mode=0o700);cfg=dict(base,epochs=2,diagnostic_study_limit=16,warmup_updates=2,submission_every_epochs=0,min_free_gib=20);TrainConfig(**cfg).validate();c=root/'config.json';c.write_text(json.dumps(cfg,indent=2))
+ command=trainer_command(code,c,original,'public');full=root/'full';replay=root/'replay'
+ def execute(phase,extra,expected):
+  cap();remaining=deadline-time.monotonic();assert remaining>0;print(json.dumps({'arm':arm,'phase':phase}),flush=True)
+  with (root/(phase+'.stdout')).open('x') as stdout,(root/(phase+'.stderr')).open('x') as stderr:x=subprocess.run(command+extra,env=env,cwd=code,stdout=stdout,stderr=stderr,timeout=remaining)
+  cap();assert x.returncode==expected
+ execute('full',['--output',str(full)],0)
+ execute('stop',['--output',str(replay),'--stop-after-updates','1'],75)
+ # Keep the actual interrupted checkpoint/history before the trainer replaces them.
+ shutil.copyfile(replay/'checkpoint.pt',root/'actual-stop-checkpoint.pt');shutil.copyfile(replay/'invocation.json',root/'actual-stop-invocation.json');cap()
+ execute('resume',['--output',str(replay),'--resume',str(replay/'checkpoint.pt')],0)
+ whole=torch.load(full/'checkpoint.pt',map_location='cpu',weights_only=True);resumed=torch.load(replay/'checkpoint.pt',map_location='cpu',weights_only=True);partial=torch.load(root/'actual-stop-checkpoint.pt',map_location='cpu',weights_only=True)
+ history=json.loads((full/'invocation.json').read_text());first=json.loads((root/'actual-stop-invocation.json').read_text());last=json.loads((replay/'invocation.json').read_text())
+ state=compare_recovery(whole,resumed,partial,history,first,last,(full/'outer_predictions.csv').read_bytes(),(replay/'outer_predictions.csv').read_bytes())
+ validate_state(whole,cfg,'public',original,hashes);validate_state(resumed,cfg,'public',original,hashes)
+ results[arm]={'complete_state_sha256':state,'checkpoint_sha256':sha(full/'checkpoint.pt'),'prediction_sha256':validate_predictions(full/'outer_predictions.csv',original['outer_16_sha256']),'finite_updates':numerical_updates(history),'actual_stop_checkpoint_sha256':sha(root/'actual-stop-checkpoint.pt'),'complete_actual_partial_final_RNG_optimizer_scaler_and_CSV_recovery':True}
+ del whole,resumed,partial;gc.collect();torch.cuda.empty_cache()
+assert results['mean']['finite_updates'][0]['loss']==results['query']['finite_updates'][0]['loss']
+result={'status':'source_window_bag_two_arm_actual_canonical_GPU_recovery_accepted','source_git':own['source_git'],'own_CPU_sha256':sha(A/'CPU-accepted.json'),'source_manifest_sha256':sha(R/'source.json'),'arms':results,'recovery_output_bytes':output_bytes(out),'production_fitting':False,'clinical_accuracy_evidence':False,'GPU_parent_job':os.environ['SLURM_JOB_ID'],'GPU_step':os.environ.get('SLURM_STEP_ID')}
+with (R/'GPU-accepted.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps({'status':result['status']}),flush=True)

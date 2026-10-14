@@ -1,0 +1,24 @@
+#!/bin/bash
+umask 077
+set -euo pipefail
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+export HF_HUB_OFFLINE=1 CUBLAS_WORKSPACE_CONFIG=:4096:8
+export CPATH=/lustre/fs1/home/sa305415/rsna-knee/python-headers-3.12.13-2-v3/extracted/usr/include/python3.12
+export PYTHONPATH=/tmp/rsna-final-public-source-fit-evc40-20261013-v1/code
+export HF_HOME=/tmp/rsna-final-public-source-fit-evc40-20261013-v1/hf-cache
+export TRITON_CACHE_DIR=/tmp/rsna-final-public-source-fit-evc40-20261013-v1/triton-cache
+export TORCH_EXTENSIONS_DIR=/tmp/rsna-final-public-source-fit-evc40-20261013-v1/torch-extensions
+cd /tmp/rsna-final-public-source-fit-evc40-20261013-v1/code
+/usr/bin/python3.12 -B - <<'PREFLIGHT'
+import json,hashlib,os
+from pathlib import Path
+C=Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1');assert os.uname().nodename=='evc40'
+a=json.loads((C/'complete-input-admitted.json').read_text());assert a['status']=='actual_final_source_complete_cache_3403_roster_and_original16_tensors_CPU_admitted' and (a['training_studies'],a['outer_studies'])==(3403,0)
+assert hashlib.sha256((C/'complete-cache-signatures.json').read_bytes()).hexdigest()==a['cache_signatures_sha256']
+sigs=json.loads((C/'complete-cache-signatures.json').read_text());assert len(sigs)==37812
+for name,expected in sigs.items():
+ p=C/name;assert not p.is_symlink();s=p.stat();assert [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==expected
+assert not(C/'production-run-start.json').exists() and not(C/'production').exists()
+PREFLIGHT
+exec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B /tmp/rsna-final-public-source-fit-evc40-20261013-v1/launch_final_public_source_fit.py --root /tmp/rsna-final-public-source-fit-evc40-20261013-v1

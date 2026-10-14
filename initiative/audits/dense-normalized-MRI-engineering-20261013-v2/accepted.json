@@ -1,0 +1,51 @@
+{
+  "status": "official_weight_real_MRI_dense_suffix_two_update_engineering_accepted",
+  "base": {
+    "architecture": "dinov3_l16",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+    "license": "other",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "state_dict_format": "safetensors",
+    "transformers_version": "5.6.1",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+    "embedding_dim": 1024,
+    "pretrained": true,
+    "input_contract": "public_ordered_triplet_0_1_imagenet_rgb_v1",
+    "model_class": "dinov3_vit",
+    "pooling": "normalized_cls",
+    "pretrained_state_key_mapping": "dinov3_official_layer_to_model_layer_transformers_5_6_1_v1"
+  },
+  "parameters": 150994944,
+  "prefix_layers": 12,
+  "input_shape": [
+    1,
+    3,
+    336,
+    336
+  ],
+  "input_contract": "original_first_ordered_RGB_triplet_div255_then_imagenet",
+  "precision": "FP32",
+  "RoPE": "eval deterministic; differs from live train-mode recipe",
+  "zero_delta_original_identity": true,
+  "full_and_cached_outputs_bit_exact_after_each_update": true,
+  "official_anchor_unchanged": true,
+  "updates": [
+    {
+      "step": 1,
+      "loss": 0.19478362798690796,
+      "gradient_norm": 3.0328774452209473
+    },
+    {
+      "step": 2,
+      "loss": 0.09029017388820648,
+      "gradient_norm": 2.045971393585205
+    }
+  ],
+  "clinical_targets_read": false,
+  "clinical_accuracy_claimed": false,
+  "new_GPU_node": false,
+  "parent_job": 899766,
+  "peak_GPU_bytes": 4312790528,
+  "wall_seconds": 25.841263727284968
+}

@@ -1,0 +1,3 @@
+# Corrected normalized MRI dense engineering acceptance
+
+Original first acquired three-slice RGB window from the source uint8 stack is divided by255 before ImageNet normalization. The original v1 worker omitted the division and is not accepted for intended input-contract evidence. Preserve it as a superseded engineering record. This distinct actual H100 v2 check passed zero-delta identity, two finite synthetic-objective updates, bit-exact full/cached outputs and unchanged whole official anchor. 150994944 learned parameters; peak4.313GB;25.84seconds. One window only, not all slices or clinical fitting. No accuracy or canonical trainer recovery claimed; eval-RoPE remains a recipe change.

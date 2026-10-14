@@ -1,0 +1,70 @@
+"""Bounded real-input engineering check; no clinical targets or production fitting."""
+import gc, hashlib, json, os, shutil, sys, time
+from pathlib import Path
+import torch
+R=Path('/tmp/rsna-committee-shared-acceptance-20261013-v1')
+OLD=Path('/tmp/rsna-public-teacher-evidence-20261013-v1')
+RAW=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2')
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_STEP_GPUS')
+assert not (R/'dense-normalized-v2-terminal.json').exists()
+assert shutil.disk_usage('/tmp').free>(140+3+72+32+20)*2**30+16*2**20
+sys.path.insert(0,str(R/'code'));sys.path.insert(0,str(RAW/'private-opencv'))
+from tools.research.public_teacher_evidence import teacher
+from tools.research.dense_suffix_delta import dense_delta as dd
+from rsna.competitive.backbones import create_encoder
+from scripts.newton.collect_public_teacher_evidence import render_rows, read_roster
+from scripts.newton.compare_public_dinov2_inputs import member_pixel_group, select_roster
+from argparse import Namespace
+import pandas as pd
+torch.set_num_threads(1);torch.manual_seed(20261013)
+assert torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0)
+assert torch.cuda.mem_get_info()[0]>10*2**30
+spec=json.loads(sys.stdin.read());started=time.monotonic()
+encoder,dim,base=create_encoder(spec,input_channels=3,input_contract='public_ordered_triplet')
+model=encoder.backbone.eval().cuda();del encoder;gc.collect()
+anchor=dd.official_state_fingerprint(model)
+source=(OLD/'code/initiative/audits/public-dinov2-source-handoff-20261013-v1/source.notebook.json').read_bytes()
+member=member_pixel_group((RAW/'private-member-manifest.json').read_bytes())
+ns,binding=teacher.load_namespace(source,member['pixel_group'])
+a=json.loads((OLD/'stage-accepted.json').read_text())
+uids=select_roster(pd.Series(read_roster(OLD/'fitting-uids.json')),1)
+args=Namespace(series=a['series_path'],series_order=str(OLD/'series-order.json'),dicom_root=str(RAW/'original'))
+images,mask=next(iter(render_rows(ns,args,uids)))
+x=images[mask].reshape(-1,3,336,336)[:1].to('cuda',dtype=torch.float32)
+mean=torch.tensor([0.485,0.456,0.406],device='cuda').reshape(1,3,1,1)
+std=torch.tensor([0.229,0.224,0.225],device='cuda').reshape(1,3,1,1)
+assert images.dtype==torch.uint8 and images.shape==(6,12,336,336)
+x=x/255.0
+assert x.min()>=0 and x.max()<=1
+x=(x-mean)/std
+assert x.shape==(1,3,336,336) and torch.isfinite(x).all()
+with torch.no_grad():
+ original=model(x).pooler_output.detach().clone()
+ hidden,rope=dd.run_prefix(model,x,12)
+ sequence,pooled=dd.run_suffix(model,hidden,rope,12)
+ assert torch.equal(original,pooled)
+graph=dd.install_dense_suffix_deltas(model,{'frozen_prefix_layers':12,'dropout':0.05})
+assert graph['trainable_parameters']==150994944
+with torch.no_grad():assert torch.equal(model(x).pooler_output,original)
+params=[p for p in model.parameters() if p.requires_grad]
+opt=torch.optim.AdamW(params,lr=1e-5)
+updates=[]
+for i in range(2):
+ opt.zero_grad(set_to_none=True)
+ sequence,pooled=dd.run_suffix(model,hidden.detach(),rope,12)
+ # A synthetic engineering objective tests gradients only; never a disease label.
+ loss=pooled[:,:16].square().mean()
+ loss.backward()
+ assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in params)
+ grad=float(torch.nn.utils.clip_grad_norm_(params,1.0))
+ assert grad>0 and torch.isfinite(torch.tensor(grad))
+ opt.step()
+ with torch.no_grad():
+  full=model(x).pooler_output
+  _,cached=dd.run_suffix(model,hidden,rope,12)
+  assert torch.equal(full,cached)
+ updates.append({'step':i+1,'loss':float(loss.detach()),'gradient_norm':grad})
+assert dd.official_state_fingerprint(model)==anchor
+proof={'status':'official_weight_real_MRI_dense_suffix_two_update_engineering_accepted','base':base,'parameters':graph['trainable_parameters'],'prefix_layers':12,'input_shape':list(x.shape),'input_contract':'original_first_ordered_RGB_triplet_div255_then_imagenet' ,'precision':'FP32','RoPE':'eval deterministic; differs from live train-mode recipe','zero_delta_original_identity':True,'full_and_cached_outputs_bit_exact_after_each_update':True,'official_anchor_unchanged':True,'updates':updates,'clinical_targets_read':False,'clinical_accuracy_claimed':False,'new_GPU_node':False,'parent_job':899766,'peak_GPU_bytes':torch.cuda.max_memory_allocated(),'wall_seconds':time.monotonic()-started}
+(R/'dense-normalized-v2-terminal.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n')
+print(json.dumps(proof))

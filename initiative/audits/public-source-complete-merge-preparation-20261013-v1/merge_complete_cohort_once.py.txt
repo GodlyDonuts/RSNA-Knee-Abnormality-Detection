@@ -1,0 +1,19 @@
+"""Merge only all twenty original fully verified private shards; never retry."""
+from pathlib import Path
+import json,hashlib,subprocess,shlex
+B=Path('artifacts/kaggle-public-source-shard000-20261013-v1')
+assert not (B/'merge-dispatch-intent.json').exists()
+rows=[]
+for i in range(20):
+ r=json.loads(Path(f'artifacts/kaggle-public-source-shard{i:03d}-20261013-v1/download-verified.json').read_text())
+ assert r['shard_index']==i and r['studies']==(175 if i<19 else 78) and r['every_encoded_and_decoded_member_size_SHA_verified'] and r['every_source_receipt_and_order_SHA_verified']
+ rows.append(r)
+assert sum(r['studies'] for r in rows)==3403
+p=B/'merge_complete_cohort_worker.py.txt';code=p.read_text();compile(code,str(p),'exec')
+with (B/'merge-dispatch-intent.json').open('x') as f:json.dump({'worker_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'shards':20,'studies':3403,'GPU':0,'CPUs':1,'node':'evc31','automatic_retry':False},f,indent=2)
+args=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=01:00:00','/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python','-B','-c',code]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=3650)
+(B/'merge-dispatch-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,'Reconcile exact original partial merge, never repeat'
+r=json.loads(x.stdout);assert r['studies']==3403 and r['all_adapter_tensor_replays_equal_original_Kaggle']
+(B/'merged-cache-verified.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r))

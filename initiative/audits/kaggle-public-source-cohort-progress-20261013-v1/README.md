@@ -1,0 +1,7 @@
+# Complete-source cache queue advances on Kaggle CPU
+
+Original shard000 completed all175 studies in1,656.65 seconds, 835,024,375 gzip bytes / 1,422,789,900 exact member bytes, about3.13GB peak RSS. The exact immutable source/runtime/cohort binding passed. Both official source corrections were present. No model, labels in cache, GPU or competition submission.
+
+Distinct private CPU shards001–005 were each pushed once and independently verified RUNNING. The finite original coordinator started once (PID96955 / exec23927), caps active shards at5, and pushes only new unattempted roles after actual completed first-shard source/budget acceptance. At its retained snapshot, 000/002/003 completed and001/004/005 were active; it then pushed006/007 once. Later live progress supersedes this snapshot. No failed/uncertain push is retried.
+
+Never restart the coordinator from an intent alone; inspect PID/exec23927 and its actual progress/result first. Remaining prepared per-shard run_phase.py scripts are root controls, not submitted notebooks until an exact receipt exists. No complete merged cache, teacher full collection or new public-input student fit is admitted yet. Original first-shard ZIP endpoint refused BEFOREany pixel bytes existed; original local/node intents preserved. Corrected standard paginated file-URL transport was launched only after independently proving zero prior downloaded bytes. Actual member download/verification remains pending at this audit.

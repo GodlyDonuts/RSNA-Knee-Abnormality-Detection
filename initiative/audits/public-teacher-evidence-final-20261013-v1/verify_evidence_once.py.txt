@@ -1,0 +1,25 @@
+import json,os,hashlib,sys
+from pathlib import Path
+import torch,numpy as np
+R=Path('/tmp/rsna-public-teacher-evidence-20261013-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS');assert not(R/'actual-evidence-verified.json').exists();sys.path.insert(0,str(R/'code'))
+from rsna.competitive import teacher_evidence as te
+receipt,arrays=te.load_evidence(R/'evidence');a=json.loads((R/'stage-accepted.json').read_text());b=receipt['binding']
+assert b['source_sha256']=='b32a9155fcc73c519e75e78c08e07d30393efc591c2798a3e40ca92f39832bb8'
+assert b['checkpoint_sha256']=='7223cd50ae5e7bdc8d3ffe888ab207bdbb2256d06e33f96e7a709eca5d86ab33'
+assert b['teacher_node_text_sha256']=='4288d80afb58289511b14037ddf29e97dd04459955d6b8bca739303f50a9648c'
+assert b['backbone_config_sha256']==a['backbone_config_sha256'] and b['fitting_roster_sha256']==a['fitting_roster_sha256']
+assert b['input']['mode']=='render' and b['input']['series_order_sha256']==a['series_order_sha256']
+assert b['runtime']['device']=='cpu' and len(b['requested_studies'])==8
+assert arrays['window_logits'].shape==(8,10,12) and arrays['probabilities'].shape==(8,12)
+replayed=[]
+for row in arrays['window_logits']:
+ total=None
+ for w in row:
+  v=torch.sigmoid(torch.from_numpy(w).reshape(1,12))
+  total=v if total is None else total+v
+ replayed.append((total/10).numpy()[0])
+assert np.array_equal(np.stack(replayed),arrays['probabilities'])
+z=torch.from_numpy(arrays['window_logits']);p=torch.from_numpy(arrays['probabilities']);windowp=torch.sigmoid(z);weight=te.confidence(p,z)
+sparse=(windowp.amax(1)>.9)&((windowp>.5).sum(1)<=3);suppressed=sparse&(weight==0)
+proof={'status':'actual_original_teacher_eight_MRI_evidence_independently_verified','source_git':a['source_git'],'evidence_sha256':receipt['evidence']['sha256'],'receipt_sha256':hashlib.sha256((R/'evidence/receipt.json').read_bytes()).hexdigest(),'binding_sha256':receipt['binding_sha256'],'teacher_node_text_sha256':b['teacher_node_text_sha256'],'checkpoint_sha256':b['checkpoint_sha256'],'backbone_config_sha256':b['backbone_config_sha256'],'runtime':b['runtime'],'studies':8,'targets':12,'windows_per_study':10,'original_fingerprint_before_MRI_inference_required_by_executed_source':True,'independent_window_probability_replay_bit_exact':True,'stored_bytes':receipt['evidence']['bytes'],'all_outputs_finite':True,'zero_auxiliary_weight_cells':int((weight==0).sum()),'sparse_high_window_outputs_gt09_with_at_most3_positive_windows':int(sparse.sum()),'sparse_high_window_outputs_given_zero_auxiliary_weight':int(suppressed.sum()),'labels_reports_or_evaluation_pixels_read':False,'clinical_localization_or_accuracy_claimed':False,'teacher_training_roster':'unknown','source_weight_or_private_probabilities_published':False}
+(R/'actual-evidence-verified.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n');print(json.dumps(proof))

@@ -1,0 +1,16 @@
+from pathlib import Path
+import hashlib,json,subprocess,shlex,re
+L=Path('artifacts/final-public-source-fit-evc40-20261013-v1');assert not(L/'full-cache-transfer-intent.json').exists()
+plan=json.loads((L/'relay-source-plan.json').read_text());target=json.loads((L/'relay-target-stage.json').read_text());assert plan['relay_sha256']==target['relay_sha256']==hashlib.sha256(Path('scripts/newton/native_cache_relay.py').read_bytes()).hexdigest()
+registry='/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json';digest=plan['registry_sha256']
+source=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=256M','--time=00:45:00','/usr/bin/python3.12','-B','/tmp/rsna-final-full-cache-source-20261013-v1/native_cache_relay.py','source','--registry',registry,'--registry-sha',digest,'--root','/tmp/rsna-native384-cohort-866458-lp6rcfdw/restored','--proof','/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json','--proof-sha',plan['original_CPU_proof_sha256'],'--node','evc31']
+dest=['srun','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=1','--nodelist=evc40','--gres=none','--mem=256M','--time=00:45:00','--job-name=rsna-full-native-cache-private-target','/usr/bin/python3.12','-B','/tmp/rsna-final-public-source-fit-evc40-20261013-v1/native_cache_relay.py','target','--registry',registry,'--registry-sha',digest,'--root','/tmp/rsna-final-public-source-fit-evc40-20261013-v1','--node','evc40']
+shell='set -o pipefail; '+shlex.join(source)+' | '+shlex.join(dest)
+(L/'full-cache-transfer-program.sh.txt').write_text(shell+'\n')
+with (L/'full-cache-transfer-intent.json').open('x') as f:json.dump({'source_plan':plan,'target_stage':target,'private_Newton_relay':True,'Mac_or_shared_pixel_storage':False,'GPU_reserved':False,'automatic_retry':False},f,indent=2)
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['/bin/bash','-c',shell])],capture_output=True,text=True,timeout=2800)
+clean=lambda s:re.sub(r'1\.2\.826\.[0-9.]+','[private-study-UID]',s)
+(L/'full-cache-transfer-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':clean(x.stdout),'stderr':clean(x.stderr)},indent=2)+'\n')
+assert x.returncode==0,'Inspect original source and target handles/receipts; never repeat transfer'
+r=json.loads(x.stdout);assert r['all_original_member_size_SHA_verified_during_transfer'] and r['members']==37812 and r['bytes']==140626483351
+(L/'full-cache-transfer-verified.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r))

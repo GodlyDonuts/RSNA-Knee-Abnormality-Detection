@@ -1,0 +1,19 @@
+import json,hashlib,os,sys,subprocess
+from pathlib import Path
+v=json.load(sys.stdin);C=Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1');assert os.uname().nodename=='evc40' and not os.environ.get('SLURM_JOB_GPUS')
+prior=json.loads((C/'full-production-dispatch-result.json').read_text());assert prior['returncode']==1 and not prior['stdout'].strip() and 'does not look like a batch script' in prior['stderr']
+assert not(C/'full-production-submitted.json').exists() and not(C/'production').exists() and not(C/'production-run-start.json').exists() and not(C/'corrected-production-dispatch-intent.json').exists()
+state=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%j|%T|%b|%N'],text=True)
+assert 'rsna-final-publicsource-all' not in state
+gpu=[line for line in state.splitlines() if 'gpu:' in line];assert len(gpu)==1 and gpu[0].startswith('899766|') and '|RUNNING|' in gpu[0]
+assert hashlib.sha256(v['shell'].encode()).hexdigest()==v['sha'] and v['shell'].startswith('#!/bin/bash\n')
+with (C/'corrected-production-dispatch-intent.json').open('x') as f:json.dump({'prior_rejected_before_job_creation':prior,'state':state,'shell_sha256':v['sha'],'one_new_sbatch':True,'automatic_retry':False},f,indent=2)
+script=C/'full-production-corrected-job.sh'
+with script.open('x') as f:f.write(v['shell'])
+cmd=['sbatch','--parsable','--account=skattel','--partition=normal','--nodes=1','--ntasks=1','--cpus-per-task=2','--nodelist=evc40','--gres=gpu:nvidia_h100_pcie:1','--mem=32G','--time=48:00:00','--no-requeue','--job-name=rsna-final-publicsource-all-1bcd-v1','--output='+str(C/'slurm-%j.stdout'),'--error='+str(C/'slurm-%j.stderr'),str(script)]
+x=subprocess.run(cmd,capture_output=True,text=True)
+with (C/'corrected-production-dispatch-result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Read-only reconcile actual request';job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={'status':'one_original_full_final_public_source_fit_submitted','job_id':int(job),'node':'evc40','GPUs':1,'CPUs':2,'source_git':'1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9','training_studies':3403,'outer_studies':0,'epochs':10,'optimizer_updates':4260,'corrected_shell_sha256':v['sha'],'prior_request_rejected_without_job':True,'healthy_other_job_unchanged':899766,'automatic_retry':False}
+with (C/'full-production-submitted.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps(out))

@@ -1,0 +1,19 @@
+"""Finite read-only observer; dispatch the prepared fit once after actual acceptance."""
+from pathlib import Path
+import json,time,subprocess,shlex,sys
+L=Path('artifacts/source-slot-production-20261013-v1');assert not(L/'finish-intent.json').exists() and not(L/'GPU-dispatch-intent.json').exists()
+with (L/'finish-intent.json').open('x') as f:json.dump({'maximum_wait_seconds':5400,'poll_seconds':120,'automatic_retry_of_mutation':False,'original_recovery_root':'/tmp/rsna-source-slot-recovery-20261013-v1','conditional_single_coordinator':'dispatch_once.py'},f,indent=2)
+code="from pathlib import Path;import json; r=Path('/tmp/rsna-source-slot-recovery-20261013-v1');p=r/'recovery-accepted.json';print(json.dumps({'accepted':p.exists(),'status':json.loads(p.read_text())['status'] if p.exists() else None}))"
+a=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=128M','--time=00:01:00','/usr/bin/python3.12','-B','-c',code];deadline=time.monotonic()+5400
+while time.monotonic()<deadline:
+ # This is an observation timeout, not authority to restart any original work.
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],capture_output=True,text=True,timeout=90)
+ if x.returncode==0:
+  r=json.loads(x.stdout)
+  if r['accepted']:
+   assert r['status']=='source_slot_r32_actual_canonical_GPU_recovery_accepted'
+   result=subprocess.run([sys.executable,str(L/'dispatch_once.py')])
+   (L/'finish-result.json').write_text(json.dumps({'returncode':result.returncode,'original_recovery_accepted':True}));assert result.returncode==0
+   break
+ time.sleep(120)
+else:(L/'finish-result.json').write_text(json.dumps({'status':'bounded_observation_finished_without_dispatch','automatic_restart':False}))

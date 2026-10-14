@@ -1,0 +1,161 @@
+"""Single CPU cache measurement; requires actual completed local full QA."""
+
+import hashlib
+import io
+import json
+import shlex
+import subprocess
+import tarfile
+from pathlib import Path
+
+local = Path("artifacts/release-cache-owning-node-20261014-v2")
+remote = "/tmp/rsna-release-cache-owning-node-20261014-v2"
+assert not (local / "stage-intent.json").exists(), "Reconcile original attempt; never retry"
+qa = json.loads(
+    Path(
+        "initiative/audits/release-admission-cache-root-review-20261013-v1/full-QA-terminal.json"
+    ).read_text()
+)
+assert qa["returncode"] == 0 and qa["source_git"] == "b0afbfdf"
+science = subprocess.check_output(["git", "rev-parse", "b0afbfdf"], text=True).strip()
+names = subprocess.check_output(
+    ["git", "ls-tree", "-r", "--name-only", science, "rsna"], text=True
+).splitlines()
+files = {
+    n: subprocess.check_output(["git", "show", science + ":" + n])
+    for n in names
+    if n.endswith(".py")
+}
+original_release = subprocess.check_output(["git", "show", "971d7dac:rsna/release.py"])
+assert files["rsna/release.py"] == original_release
+source = {
+    "source_git": science,
+    "files": {n: hashlib.sha256(b).hexdigest() for n, b in files.items()},
+}
+prior = json.loads(
+    Path("artifacts/source-window-bag-recovery-20261013-v1/stage-intent.json").read_text()
+)["funding"]["required_free_bytes"]
+prior += 132 * 2**20  # retain the original v1 source/cache obligation without deletion credit
+funding = {
+    "funded_by": "root",
+    "prior_required_free_bytes_retained": prior,
+    "required_free_bytes": prior + 132 * 2**20,
+    "reserve_bytes": 20 * 2**30,
+    "new_cache_bound_bytes": 128 * 2**20,
+    "new_code_control_bound_bytes": 4 * 2**20,
+    "new_shared_bytes_files": 0,
+    "GPU_nodes_added": 0,
+    "production_training_accepted": False,
+}
+archive = io.BytesIO()
+with tarfile.open(fileobj=archive, mode="w:gz") as stream:
+    payload = {"code/" + n: b for n, b in files.items()}
+    payload.update(
+        {
+            "source.json": json.dumps(source).encode(),
+            "funding.json": json.dumps(funding).encode(),
+            "worker.py": (local / "worker.py").read_bytes(),
+        }
+    )
+    for name, data in payload.items():
+        member = tarfile.TarInfo(name)
+        member.size = len(data)
+        member.mode = 0o600
+        stream.addfile(member, io.BytesIO(data))
+assert len(archive.getvalue()) < 4 * 2**20
+stage = (
+    "import sys,io,tarfile,shutil;from pathlib import Path;r=Path(%r);assert not r.exists();assert shutil.disk_usage('/tmp').free>%d;b=sys.stdin.buffer.read(4*2**20+1);assert len(b)<4*2**20;r.mkdir(mode=0o700);t=tarfile.open(fileobj=io.BytesIO(b),mode='r:gz');t.extractall(r,filter='data');t.close();print('private_CPU_cache_source_staged')"
+    % (remote, funding["required_free_bytes"])
+)
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+with (local / "stage-intent.json").open("x") as handle:
+    json.dump(
+        {
+            "source": source,
+            "funding": funding,
+            "worker_sha256": hashlib.sha256(payload["worker.py"]).hexdigest(),
+            "automatic_retry": False,
+        },
+        handle,
+        indent=2,
+    )
+command = [
+    "srun",
+    "--jobid=899766",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=128M",
+    "--time=00:02:00",
+    "/usr/bin/python3.12",
+    "-B",
+    "-c",
+    stage,
+]
+result = subprocess.run(
+    ssh + [shlex.join(command)], input=archive.getvalue(), capture_output=True, timeout=150
+)
+(local / "stage-result.json").write_text(
+    json.dumps(
+        {
+            "returncode": result.returncode,
+            "stdout": result.stdout.decode(),
+            "stderr": result.stderr.decode(),
+        },
+        indent=2,
+    )
+)
+assert result.returncode == 0
+with (local / "dispatch-intent.json").open("x") as handle:
+    json.dump(
+        {
+            "source_git": science,
+            "CPUs": 1,
+            "GPUs": 0,
+            "parent_job": 899766,
+            "automatic_retry": False,
+        },
+        handle,
+        indent=2,
+    )
+py = "/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python"
+command = [
+    "srun",
+    "--jobid=899766",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:20:00",
+    "env",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    py,
+    "-B",
+    remote + "/worker.py",
+]
+result = subprocess.run(ssh + [shlex.join(command)], capture_output=True, text=True, timeout=1230)
+(local / "dispatch-result.json").write_text(
+    json.dumps(
+        {
+            "returncode": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+assert result.returncode == 0, "Reconcile original result, never retry"
+receipt = json.loads(result.stdout)
+assert (
+    receipt["status"]
+    == "actual_private_original_release_cache_CPU_exact_frame_binding_RNG_accepted"
+)
+(local / "verified.json").write_text(json.dumps(receipt, indent=2))
+print(json.dumps(receipt))

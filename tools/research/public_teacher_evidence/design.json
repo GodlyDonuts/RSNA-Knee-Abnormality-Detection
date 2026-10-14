@@ -1,0 +1,21 @@
+{
+  "kind": "public_teacher_distillation_design_v1",
+  "status": "precommitted_not_run",
+  "question": "Does bounded confidence-weighted frozen-teacher auxiliary supervision change a solo public-input DINOv3 student relative to the identical ordinary student?",
+  "teacher": "pilkwang/rsna-knee-baseline-v1/v15/m_e5427d6c21.pt (frozen, logits-only evidence)",
+  "teacher_training_roster": "unknown",
+  "base_config": "initiative/experiments/competitive-v1/public-input-recipe-v1/public-triplet-config.json",
+  "arms": {
+    "ordinary": {"teacher_auxiliary_weight": 0.0},
+    "teacher_auxiliary": {"teacher_auxiliary_weight": 0.5}
+  },
+  "identical_between_arms": ["public_input", "fitting_supervision", "encoder base/adapter", "seed 20260922", "fold 0", "epochs/updates/schedule", "batch/accumulation/precision", "accepted labels, masks and folds", "evaluation code"],
+  "auxiliary": "combined = label_loss + w * effective_batch_loss(student_logits, teacher_probabilities, confidence, confidence_counts); confidence = clamp(|2p-1| - across-window spread, 0, 1); fitting studies only; absent studies weight 0",
+  "zero_weight_contract": "w=0 returns the label loss object itself and never evaluates the teacher term",
+  "evaluation": "Existing 1156-study outer evaluation with accepted labels only; teacher never scores, selects or filters evaluation studies; no teacher at student inference",
+  "primary_endpoint": "paired macro AUC difference with the repository's existing paired bootstrap; per-target results reported, including negative and undefined",
+  "secondary_descriptive": "fitting-only teacher-vs-accepted-label agreement/disagreement/uncertain counts from teacher_evidence.disagreement; never used as ground truth",
+  "not_claimable": ["clean held-out teacher/student comparison", "competition eligibility", "clinical truth", "teacher accuracy", "any result from synthetic tests"],
+  "preconditions_before_any_fit": ["root eight-study render acceptance receipt", "full fitting cache collection reconciled", "teacher licensing/eligibility reviewed", "fresh GPU/storage funding by root", "trainer integration reviewed in a separate change"],
+  "release": "private only; no submission of any diagnostic model"
+}

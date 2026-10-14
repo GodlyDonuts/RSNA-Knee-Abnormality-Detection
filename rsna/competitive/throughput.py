@@ -89,7 +89,13 @@ def apply_setting(base: TrainConfig, overrides: dict[str, int]) -> TrainConfig:
         raise ValueError("Only loader, microbatch, accumulation and chunk settings may change")
     if any(type(value) is not int or value < 0 for value in overrides.values()):
         raise ValueError("Throughput settings must be nonnegative integers")
-    candidate = dataclasses.replace(base, **overrides)
+    candidate = dataclasses.replace(
+        base,
+        batch_size=overrides.get("batch_size", base.batch_size),
+        accumulation_steps=overrides.get("accumulation_steps", base.accumulation_steps),
+        encode_chunk_size=overrides.get("encode_chunk_size", base.encode_chunk_size),
+        workers=overrides.get("workers", base.workers),
+    )
     candidate.validate()
     if not 0 <= candidate.workers <= MAX_WORKERS:
         raise ValueError("Minimal CPU prefetch allows at most two loader workers")
@@ -305,8 +311,26 @@ def build_profile_state(
     torch.manual_seed(config.seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    manifest, release_binding = verified_job_release(args.studies, args.artifact_root, 0, 1)
+    startup: dict[str, float] = {}
+    mark = time.perf_counter()
+
+    def lap(name: str) -> None:
+        nonlocal mark
+        now = time.perf_counter()
+        startup[name] = now - mark
+        mark = now
+
+    manifest, release_binding = verified_job_release(
+        args.studies,
+        args.artifact_root,
+        0,
+        1,
+        getattr(args, "release_admission_cache", None),
+        getattr(args, "release_admission_fallback", False),
+    )
+    lap("release_admission")
     folds = load_folds(args.folds, manifest, release_binding)
+    lap("folds")
     train, _ = select_development(manifest, folds, config.fold, config.fit_scope)
     if config.diagnostic_study_limit is not None:
         train = train.head(config.diagnostic_study_limit)
@@ -314,6 +338,7 @@ def build_profile_state(
     if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
         raise ValueError("Series sampling table differs from the accepted data release")
     series = pd.read_csv(io.BytesIO(series_bytes))
+    lap("series")
     data_config = {
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
@@ -321,7 +346,9 @@ def build_profile_state(
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     if training_data.source_revision != release_binding["source_revision"]:
         raise ValueError("Image cache source differs from the accepted release")
+    lap("dataset_initialization")
     encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
+    lap("encoder_initialization")
     configure_encoder_training(encoder, config.freeze_encoder)
     model = model_class(
         encoder,
@@ -334,15 +361,21 @@ def build_profile_state(
     encoder_ids = {id(parameter) for parameter in encoder.parameters()}
     groups = [
         {
-            "params": [p for p in model.parameters() if p.requires_grad and id(p) not in encoder_ids],
+            "params": [
+                p for p in model.parameters() if p.requires_grad and id(p) not in encoder_ids
+            ],
             "lr": config.head_lr,
         }
     ]
     if any(p.requires_grad for p in encoder.parameters()):
         groups.append(
-            {"params": [p for p in encoder.parameters() if p.requires_grad], "lr": config.encoder_lr}
+            {
+                "params": [p for p in encoder.parameters() if p.requires_grad],
+                "lr": config.encoder_lr,
+            }
         )
     optimizer = torch.optim.AdamW(groups, weight_decay=config.weight_decay)
+    lap("model_optimizer")
     scaler = (
         torch.amp.GradScaler(device.type, init_scale=config.amp_init_scale)
         if config.precision == "fp16"
@@ -365,6 +398,7 @@ def build_profile_state(
         scaler=scaler,
         total_updates=epoch_updates * config.epochs,
         release_binding=release_binding,
+        startup_seconds=startup,
     )
 
 
@@ -407,7 +441,7 @@ def profile_updates(
         generator=torch.Generator().manual_seed(config.seed),
         collate_fn=collate,
     )
-    iterator = iter(loader)
+    iterator: Any = iter(loader)
     model.train()
     if not any(p.requires_grad for p in encoder.parameters()):
         encoder.eval()
@@ -496,7 +530,9 @@ def profile_updates(
                         sum(float(b["profile_item_seconds"].sum()) for b in batches)
                     ),
                     "studies": int(valid.sum()),
-                    "views": int(sum(int(b["slice_mask"][b["sample_valid"]].sum()) for b in batches)),
+                    "views": int(
+                        sum(int(b["slice_mask"][b["sample_valid"]].sum()) for b in batches)
+                    ),
                     "microbatch_studies": [len(b["study_uid"]) for b in batches],
                     "study_uids": [uid for b in batches for uid in b["study_uid"]],
                     "observed_cells": float(counts.sum()),
@@ -508,7 +544,7 @@ def profile_updates(
             )
     finally:
         timer.close()
-        del iterator
+        iterator = None
     return {"records": records, "stop_reason": stop_reason, "optimizer_steps": step}
 
 
@@ -554,7 +590,7 @@ def decompose_inputs(dataset: Any, indices: list[int], evict_page_cache: bool) -
             meta = dataset._metadata[(uid, series_uid)][1]
             if evict_page_cache and hasattr(os, "posix_fadvise"):
                 with path.open("rb") as handle:
-                    os.posix_fadvise(handle.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+                    os.posix_fadvise(handle.fileno(), 0, 0, getattr(os, "POSIX_FADV_DONTNEED"))
             started = time.perf_counter()
             payload = path.read_bytes()
             totals["read"] += time.perf_counter() - started
@@ -592,6 +628,8 @@ def build_receipt(
     device: torch.device,
     decomposition: dict | None,
     evidence_blockers: list[str],
+    startup_seconds: dict[str, float] | None = None,
+    release_admission: str = "full_original",
 ) -> dict[str, Any]:
     profiled_uids = [uid for record in profile["records"] for uid in record["study_uids"]]
     return {
@@ -618,7 +656,19 @@ def build_receipt(
         ),
         "pid": os.getpid(),
         "stop_reason": profile["stop_reason"],
-        "updates": profile["records"],
+        "release_admission": release_admission,
+        "startup_seconds": startup_seconds,
+        "updates": [
+            {key: value for key, value in row.items() if key != "study_uids"}
+            | {
+                "study_uids_sha256": hashlib.sha256(
+                    json.dumps(row["study_uids"], separators=(",", ":")).encode()
+                ).hexdigest()
+            }
+            for row in profile["records"]
+        ],
+        "timing_scope": "synchronized_instrumented_updates_excludes_setup_and_input_decomposition",
+        "encoder_backward_scope": "first_encoder_output_gradient_to_whole_backward_end_includes_interleaving",
         "summary": summarize(profile["records"]),
         "input_decomposition": decomposition,
         "evidence_eligible": not evidence_blockers,
@@ -630,8 +680,13 @@ def build_receipt(
 
 
 def write_new_receipt(path: Path, receipt: dict) -> None:
-    from rsna.competitive.checkpoint import atomic_json
-
-    if path.exists():
-        raise ValueError("A distinct profiling receipt path is required")
-    atomic_json(path, json.loads(json.dumps(receipt, allow_nan=False)))
+    payload = json.dumps(receipt, sort_keys=True, indent=2, allow_nan=False).encode()
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError as error:
+        raise ValueError("A distinct profiling receipt path is required") from error
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())

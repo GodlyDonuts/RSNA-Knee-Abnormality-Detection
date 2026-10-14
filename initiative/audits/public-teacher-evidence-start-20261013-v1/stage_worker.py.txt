@@ -1,0 +1,24 @@
+import json,base64,hashlib,os,shutil,tarfile
+from pathlib import Path
+v=json.load(__import__('sys').stdin);R=Path('/tmp/rsna-public-teacher-evidence-20261013-v1');assert os.uname().nodename=='evc31' and not os.environ.get('SLURM_STEP_GPUS');assert not R.exists()
+G=2**30;free=shutil.disk_usage('/tmp').free;assert free>(140+3+72+20)*G+32*2**20
+assert sum(row['bytes'] for row in v['manifest']['files'].values())<2*2**20
+R.mkdir(mode=0o700)
+for name,row in v['manifest']['files'].items():
+ q=Path(name);assert not q.is_absolute() and '..' not in q.parts
+ data=base64.b64decode(v['files'][name],validate=True);assert len(data)==row['bytes'] and hashlib.sha256(data).hexdigest()==row['sha256']
+ p=R/'code'/q;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(data);p.chmod(0o400)
+import pandas as pd
+P=Path('/tmp/rsna-public-label-inputs-20261006-v1');inp=json.loads((P/'CPU-accepted.json').read_text())['trainer_inputs']
+cohort=sorted(p.name for p in (Path(inp['cache'])/'train_series').iterdir() if p.is_dir());assert len(cohort)==3403
+folds=pd.read_csv(Path(inp['folds'])/'fold.csv',usecols=['study_uid','fold']);assert not folds.study_uid.duplicated().any()
+fit=sorted(folds.loc[folds.study_uid.isin(cohort)&(folds.fold!=0),'study_uid'].astype(str));assert len(fit)==2247
+fitsha=hashlib.sha256(json.dumps(fit,separators=(',',':')).encode()).hexdigest();assert fitsha=='e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a'
+(R/'fitting-uids.json').write_text(json.dumps(fit))
+raw=Path('/tmp/rsna-public-dinov2-real-inputs-20261013-v2');parity=json.loads((raw/'private-original-roster-and-files.json').read_text())['roster'];assert len(parity)==8 and set(parity)<=set(fit)
+order={uid:[p.name for p in (raw/'original/train_series'/uid).iterdir() if p.is_dir()] for uid in parity};(R/'series-order.json').write_text(json.dumps(order))
+with tarfile.open('/tmp/rsna-public-solution-model-inspection-20261007-v1/dinov2-small-v1.tar.gz','r:gz') as t:
+ member=next(x for x in t if x.name.endswith('/config.json') or x.name=='config.json');cfg=json.load(t.extractfile(member))
+cfg['_attn_implementation']='eager';b=(json.dumps(cfg,sort_keys=True,indent=2)+'\n').encode();(R/'backbone-config.json').write_bytes(b)
+proof={'status':'private_eight_MRI_teacher_collection_source_and_inputs_staged','source_git':v['source_git'],'source_files':v['manifest']['files'],'fitting_roster_sha256':fitsha,'fitting_studies':2247,'engineering_studies':8,'backbone_config_sha256':hashlib.sha256(b).hexdigest(),'series_order_sha256':hashlib.sha256((R/'series-order.json').read_bytes()).hexdigest(),'prior_original_model_and_MRI_assets_reused':True,'labels_or_reports_read_in_this_stage':False,'private_teacher_evidence_cap_bytes':8*2**20,'retained_future_bytes':(140+3+72)*G,'fresh_node_free_bytes':free,'minimum_reserve_bytes':20*G,'new_shared_bytes':0,'GPU_or_MRI_model_inference_executed':False,'series_path':inp['series']}
+(R/'stage-accepted.json').write_text(json.dumps(proof,sort_keys=True,indent=2)+'\n');print(json.dumps(proof))

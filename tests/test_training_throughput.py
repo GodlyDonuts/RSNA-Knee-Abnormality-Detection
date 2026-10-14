@@ -11,13 +11,13 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import torch
+from test_competitive_training import SyntheticStudies
 
 from rsna.competitive import throughput
 from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.sampling import EffectiveBatchSampler
 from rsna.competitive.train import TrainConfig
 from rsna.schema import TARGETS
-from test_competitive_training import SyntheticStudies
 
 ROOT = Path(__file__).resolve().parents[1]
 RECIPES = ROOT / "initiative/experiments/competitive-v1/public-label-source-v1"
@@ -302,17 +302,33 @@ def test_profiled_updates_match_the_real_trainer_and_receipt_is_bound(tmp_path, 
         assert set(record["phase_seconds"]) == set(throughput.PHASES)
         assert all(value >= 0 for value in record["phase_seconds"].values())
         assert record["phase_seconds"]["encoder_forward"] <= record["phase_seconds"]["forward"]
-        assert sum(record["phase_seconds"][p] for p in ("data_wait", "host_to_device", "forward",
-                   "backward", "optimizer")) <= record["wall_seconds"]
+        assert (
+            sum(
+                record["phase_seconds"][p]
+                for p in ("data_wait", "host_to_device", "forward", "backward", "optimizer")
+            )
+            <= record["wall_seconds"]
+        )
         assert record["item_seconds_sum"] <= record["phase_seconds"]["data_wait"]
 
 
 def test_wall_cap_stops_at_an_update_boundary(tmp_path, monkeypatch):
     _, config, args, factories = _fixture(tmp_path, monkeypatch)
     state = throughput.build_profile_state(
-        args, config, torch.device("cpu"), *[factories[n] for n in (
-            "create_encoder", "dataset_class", "model_class", "load_folds")]
+        args,
+        config,
+        torch.device("cpu"),
+        *[factories[n] for n in ("create_encoder", "dataset_class", "model_class", "load_folds")],
     )
+    assert list(state["startup_seconds"]) == [
+        "release_admission",
+        "folds",
+        "series",
+        "dataset_initialization",
+        "encoder_initialization",
+        "model_optimizer",
+    ]
+    assert all(value >= 0 for value in state["startup_seconds"].values())
     times = iter([0.0, 0.0, 1000.0])
     profile = throughput.profile_updates(
         state,
@@ -349,6 +365,11 @@ def test_script_writes_one_bound_non_evidence_receipt_per_fresh_process(tmp_path
     )
     assert receipt["accuracy_claim"] is False and receipt["production_acceptance"] is False
     assert receipt["checkpoint_written"] is False
+    assert all(
+        "study_uids" not in row and len(row["study_uids_sha256"]) == 64
+        for row in receipt["updates"]
+    )
+    assert "synchronized_instrumented" in receipt["timing_scope"]
     with pytest.raises(ValueError, match="distinct"):
         script.run(args, factories)
 
@@ -378,3 +399,13 @@ def test_script_refuses_a_process_that_already_initialized_cuda(tmp_path, monkey
     monkeypatch.setattr(torch.cuda, "is_initialized", lambda: True)
     with pytest.raises(ValueError, match="fresh process"):
         _script().run(args, factories)
+
+
+def test_receipt_write_is_private_exclusive_and_never_overwrites(tmp_path):
+    path = tmp_path / "private/profile.json"
+    throughput.write_new_receipt(path, {"summary": {"studies": 8}})
+    before = path.read_bytes()
+    assert path.stat().st_mode & 0o777 == 0o600
+    with pytest.raises(ValueError, match="distinct profiling"):
+        throughput.write_new_receipt(path, {"replacement": True})
+    assert path.read_bytes() == before

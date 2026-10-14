@@ -1,0 +1,42 @@
+"""Corrected CPU-only terminal review; no trainer or GPU is run again."""
+from pathlib import Path
+import json,importlib.util,hashlib,sys,os
+R=Path('/tmp/rsna-source-slot-terminal-review-20261013-v1');A=Path('/tmp/rsna-source-slot-recovery-20261013-v1')
+sys.path.insert(0,str(A/'code'))
+import torch
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and torch.cuda.device_count()==0
+torch.set_num_threads(1)
+from scripts.newton.probe_public_input_recipe_inputs import verify_source,sha
+from scripts.newton.probe_patch_witness_trainer_recovery import compare_recovery,numerical_updates
+manifest=json.loads((R/'source.json').read_text())
+for n,h in manifest['files'].items():assert sha(R/n)==h
+s=importlib.util.spec_from_file_location('corrected_terminal_validation',R/'corrected_validation.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+code=verify_source(A/'code',json.loads((A/'source.json').read_text()));cpu=json.loads(Path('/tmp/rsna-public-input-recipe-admission-20261013-v2/CPU-accepted.json').read_text());own=json.loads((A/'CPU-accepted.json').read_text())
+assert own['status']=='source_slot_r32_original_inputs_and_own_initialization_CPU_accepted' and own['code_sha256']==code
+root=A/'recovery/public';values=json.loads((root/'config.json').read_text());expected=dict(own['config'],epochs=2,diagnostic_study_limit=16,warmup_updates=2,submission_every_epochs=0,min_free_gib=20);assert values==expected
+full=root/'full';replay=root/'replay';whole=torch.load(full/'checkpoint.pt',map_location='cpu',weights_only=True);resumed=torch.load(replay/'checkpoint.pt',map_location='cpu',weights_only=True)
+from scripts.newton.probe_patch_witness_trainer_recovery import decoded,digest
+assert decoded(whole)==decoded(resumed)
+assert (full/'outer_predictions.csv').read_bytes()==(replay/'outer_predictions.csv').read_bytes()
+history=json.loads((full/'invocation.json').read_text());last=json.loads((replay/'invocation.json').read_text())
+rows=[]
+for line in (root/'stop.stdout').read_text().splitlines():
+ v=json.loads(line)
+ if 'optimizer_steps' in v:rows.append(v)
+assert len(rows)==1 and rows[0]['optimizer_steps']==1
+assert numerical_updates(history)==numerical_updates({'updates':rows})+numerical_updates(last)
+assert len(history['updates'])==4 and len(last['updates'])==3
+m.validate_state(whole,values,'public',cpu,code)
+m.validate_state(resumed,values,'public',cpu,code)
+pred=m.validate_predictions(full/'outer_predictions.csv',cpu['outer_16_sha256'])
+original_trace=(A/'GPU.stderr').read_text();assert 'Recovered AdamW learning rate/counters differ' in original_trace
+original_source=(A/'code/scripts/newton/probe_source_slot_recovery.py').read_text();assert original_source.index('whole, state, updates, full = recover_arm(')<original_source.index('validate_state(whole, engineering')
+# Immutable original execution reached validate_state only after recover_arm's
+# complete comparison (including its then-retained actual partial envelope).
+# CPU review independently rechecks final complete envelopes/history/CSV;
+# it does not invent or claim to re-read the overwritten partial checkpoint.
+result={'status':'source_slot_r32_actual_canonical_GPU_recovery_accepted','source_git':own['source_git'],'CPU_receipt_sha256':sha(A/'CPU-accepted.json'),'complete_state_sha256':decoded(whole),'checkpoint_sha256':sha(full/'checkpoint.pt'),'prediction_sha256':pred,'finite_updates':numerical_updates(history),'recovery_output_bytes':m.output_bytes(A/'recovery'),'production_fitting':False,'clinical_accuracy_evidence':False,'original_GPU_worker_returncode':1,'original_GPU_comparison_passed_before_terminal_checker_error':True,'CPU_review_independently_rechecks':['final_model_base_AdamW_LR_counters_all_RNG_scaler','all_numerical_updates','identical_16x12_CSV_bytes'],'partial_checkpoint_independently_rechecked_on_CPU':False,'terminal_rates':[g['lr'] for g in whole['optimizer']['param_groups']],'expected_terminal_rates':[0.0,0.0],'verification_source_sha256':manifest['files'],'CPU_terminal_review':True}
+assert not(A/'recovery-accepted.json').exists()
+with (R/'verified.json').open('x') as f:json.dump(result,f,indent=2)
+with (A/'recovery-accepted.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps({'status':result['status'],'receipt_sha256':sha(A/'recovery-accepted.json'),'CPU_terminal_review':True}),flush=True)

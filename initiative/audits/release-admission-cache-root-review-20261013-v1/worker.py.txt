@@ -1,0 +1,77 @@
+"""One private original admission, then exact cached CPU consumption; no model."""
+
+import hashlib
+import json
+import os
+import random
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+root = Path("/tmp/rsna-release-cache-owning-node-20261014-v1")
+sys.path.insert(0, str(root / "code"))
+from rsna.release_cache import consume, produce  # noqa: E402 - exact private source first
+
+assert not os.environ.get("SLURM_STEP_GPUS")
+assert not os.environ.get("CUDA_VISIBLE_DEVICES")
+source = json.loads((root / "source.json").read_text())
+for name, expected in source["files"].items():
+    assert hashlib.sha256((root / "code" / name).read_bytes()).hexdigest() == expected
+funding = json.loads((root / "funding.json").read_text())
+assert shutil.disk_usage(root).free > funding["required_free_bytes"]
+original = Path("/tmp/rsna-public-input-recipe-admission-20261013-v2/CPU-accepted.json")
+assert (
+    hashlib.sha256(original.read_bytes()).hexdigest()
+    == "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2"
+)
+inputs = json.loads(original.read_text())["trainer_inputs"]
+studies, artifacts = Path(inputs["studies"]), Path(inputs["artifact-root"])
+cache = root / "private-cache"
+assert not cache.exists()
+start = time.perf_counter()
+produced = produce(studies, artifacts, cache)
+producer_seconds = time.perf_counter() - start
+assert sum(p.stat().st_size for p in cache.iterdir()) <= 80 * 2**20
+random.seed(20261014)
+np.random.seed(20261014)
+python_rng, numpy_rng = random.getstate(), np.random.get_state()
+start = time.perf_counter()
+frame, binding = consume(studies, artifacts, cache)
+consume_seconds = time.perf_counter() - start
+assert random.getstate() == python_rng
+after = np.random.get_state()
+assert (
+    after[0] == numpy_rng[0]
+    and np.array_equal(after[1], numpy_rng[1])
+    and after[2:] == numpy_rng[2:]
+)
+pd.testing.assert_frame_equal(frame, pd.read_parquet(studies), check_exact=True)
+assert frame.shape == (4407, 131)
+assert (
+    binding["binding_sha256"] == "e2ecb283915a5b1810bfc9a2f6e1dda1f1d0d762f91cf2487140af3d05cb6c35"
+)
+assert shutil.disk_usage(root).free > funding["reserve_bytes"]
+result = {
+    "status": "actual_private_original_release_cache_CPU_exact_frame_binding_RNG_accepted",
+    "source_git": source["source_git"],
+    "source_manifest_sha256": hashlib.sha256((root / "source.json").read_bytes()).hexdigest(),
+    "producer_seconds": producer_seconds,
+    "consume_seconds": consume_seconds,
+    "producer": produced,
+    "rows": len(frame),
+    "columns": len(frame.columns),
+    "binding_sha256": binding["binding_sha256"],
+    "cache_bytes": sum(p.stat().st_size for p in cache.iterdir()),
+    "parent_job": os.environ["SLURM_JOB_ID"],
+    "step": os.environ.get("SLURM_STEP_ID"),
+    "GPU_MRI_optimizer_or_clinical_inference": False,
+    "individual_rows_or_private_manifest_exported": False,
+    "actual_GPU_trainer_acceptance": False,
+}
+with (root / "CPU-accepted.json").open("x") as handle:
+    json.dump(result, handle, indent=2)
+print(json.dumps(result), flush=True)

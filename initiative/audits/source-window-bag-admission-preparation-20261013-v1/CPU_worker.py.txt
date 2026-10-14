@@ -1,0 +1,36 @@
+"""Own real base/graph admission, reusing immutable original input proofs."""
+from pathlib import Path
+import os,json,gc,sys,hashlib,shutil
+R=Path('/tmp/rsna-source-window-bag-admission-20261013-v1');code=R/'code';sys.path.insert(0,str(code))
+import torch
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and torch.cuda.device_count()==0
+torch.set_num_threads(1)
+from rsna.competitive.backbones import create_encoder
+from rsna.competitive.window_bag import WindowBagSlotStudyNet
+from rsna.competitive.train import TrainConfig
+from scripts.newton.probe_public_input_recipe_inputs import initialize,sha
+source=json.loads((R/'source.json').read_text());fund=json.loads((R/'funding.json').read_text())
+for n,h in source['files'].items():assert sha(code/n)==h
+assert shutil.disk_usage(R).free>fund['required_free_bytes']
+p=Path('/tmp/rsna-public-input-recipe-admission-20261013-v2/CPU-accepted.json');assert sha(p)=='adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2';original=json.loads(p.read_text())
+actual={n.removeprefix('rsna/'):h for n,h in source['files'].items() if n.startswith('rsna/')}
+changed={n for n in actual.keys()|original['code_sha256'].keys() if actual.get(n)!=original['code_sha256'].get(n)}
+assert changed=={'competitive/train.py','competitive/window_bag.py'}
+configs={a:json.loads((code/f'initiative/experiments/competitive-v1/source-window-bag-v1/{a}-r32-config.json').read_text()) for a in ('mean','query')}
+assert {n for n in configs['mean'].keys()|configs['query'].keys() if configs['mean'].get(n)!=configs['query'].get(n)}=={'classifier_strategy'}
+assert {n for n in configs['mean']['classifier_strategy'] if configs['mean']['classifier_strategy'][n]!=configs['query']['classifier_strategy'][n]}=={'window_weighting'}
+plain=original['configs']['public']
+for values in configs.values():
+ assert {n for n in values.keys()|plain.keys() if values.get(n)!=plain.get(n)}=={'classifier_strategy'}
+ TrainConfig(**values).validate()
+states={};provenances={}
+for arm,values in configs.items():
+ def factory(encoder,dim,**kwargs):return WindowBagSlotStudyNet(encoder,dim,values['classifier_strategy'],encode_chunk_size=values['encode_chunk_size'],input_channels=3)
+ model,provenance,state=initialize(values,'public',create_encoder,factory)
+ assert provenance==original['encoder_provenance']['public'] and state['frozen_base_sha256']==original['initial_learned_state']['public']['frozen_base_sha256']
+ assert model.window_query.count_nonzero()==0
+ states[arm]=state;provenances[arm]=provenance;del model;gc.collect()
+assert states['mean']==states['query']
+result={'status':'source_window_bag_official_common_graph_values_RNG_and_original_inputs_CPU_accepted','source_git':source['source_git'],'configs':configs,'initialization':states,'encoder_provenance':provenances,'code_sha256':actual,'original_input_receipt_sha256':sha(p),'training_studies':2247,'outer_studies':1156,'original_public_cache_dataset_and_label_loading_bytes_unchanged':True,'GPU_or_optimizer_executed':False,'new_MRI_render_or_transfer':False,'funding_sha256':sha(R/'funding.json')}
+with (R/'CPU-accepted.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps({'status':result['status'],'receipt_sha256':sha(R/'CPU-accepted.json')}),flush=True)

@@ -51,7 +51,13 @@ from rsna.competitive.relations import (
 )
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.competitive.source_slot import training_inputs as source_slot_training_inputs
+from rsna.competitive.suffix_adapters import DERIVED_KEYS as SUFFIX_DERIVED_KEYS
+from rsna.competitive.suffix_adapters import validate_suffix_adapter
 from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
+from rsna.competitive.window_bag import KIND as WINDOW_BAG_KIND
+from rsna.competitive.window_bag import classifier_module
+from rsna.competitive.window_bag import training_inputs as window_bag_training_inputs
 from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
 from rsna.release import load_verified_release
@@ -128,8 +134,21 @@ class TrainConfig:
     patch_summary: dict | None = None
     cache_contrast: dict | None = None
     public_input: dict | None = None
+    classifier_strategy: dict | None = None
 
     def validate(self) -> None:
+        if self.classifier_strategy is not None:
+            classifier_module(self.classifier_strategy).validate_strategy(self.classifier_strategy)
+            if (
+                self.public_input is None
+                or self.pooling != "attention"
+                or self.fit_scope != "outer_fold"
+                or not isinstance(self.encoder, dict)
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError(
+                    "Source-matched slot classifier requires admitted public rows and DINOv3"
+                )
         if self.public_input is not None:
             validate_public_input(self.public_input)
             if (
@@ -337,7 +356,7 @@ class TrainConfig:
             raise ValueError("Unknown training pool policy")
         if self.checkpoint_format not in {"full", "frozen_base_delta"} or (
             self.checkpoint_format == "frozen_base_delta"
-            and (not self.freeze_encoder or "adapter" not in self.encoder)
+            and (not self.freeze_encoder or not ({"adapter", "suffix_adapter"} & set(self.encoder)))
         ):
             raise ValueError("Delta checkpoints require a frozen pretrained base and adapters")
         if "adapter" in self.encoder:
@@ -358,6 +377,22 @@ class TrainConfig:
             if not policy_keys <= set(policy) or set(policy) - policy_keys - derived_keys:
                 raise ValueError("Missing or unknown adapter policy fields")
             validate_adapter({key: policy[key] for key in policy_keys}, 24)
+        if "suffix_adapter" in self.encoder:
+            policy = self.encoder["suffix_adapter"]
+            if (
+                self.encoder.get("architecture") != "dinov3_l16"
+                or "adapter" in self.encoder
+                or not self.freeze_encoder
+                or self.checkpoint_format != "frozen_base_delta"
+                or not isinstance(policy, dict)
+            ):
+                raise ValueError(
+                    "Suffix adapters require frozen pinned DINOv3-L delta checkpoints only"
+                )
+            validate_suffix_adapter(
+                {key: value for key, value in policy.items() if key not in SUFFIX_DERIVED_KEYS},
+                24,
+            )
         if self.pooling == "patch_attention" and self.encoder.get("architecture") not in {
             "dinov3_l16",
             "diagnostic_tiny",
@@ -389,19 +424,36 @@ def _uid_hash(frame: pd.DataFrame) -> str:
 
 
 def verified_job_release(
-    studies: Path, artifact_root: Path, rank: int, world: int
+    studies: Path,
+    artifact_root: Path,
+    rank: int,
+    world: int,
+    admission_cache: Path | None = None,
+    admission_fallback: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Replay full release evidence once per job, then share the verified table.
 
     Repeating the same large provenance replay on every GPU wastes host memory.
     Every rank still checks its local manifest against the verified byte hash.
+    An explicit node-private admission cache (rsna.release_cache) may replace the
+    replay only when it proves an identical admission; the default is unchanged.
     """
+
+    def admit() -> tuple[pd.DataFrame, dict]:
+        if admission_cache is None:
+            if admission_fallback:
+                raise ValueError("Admission fallback requires an explicit admission cache")
+            return load_verified_release(studies, artifact_root)
+        from rsna.release_cache import admit_release
+
+        return admit_release(studies, artifact_root, admission_cache, admission_fallback)
+
     if world == 1:
-        return load_verified_release(studies, artifact_root)
+        return admit()
     shared: list = [None]
     if rank == 0:
         try:
-            manifest, binding = load_verified_release(studies, artifact_root)
+            manifest, binding = admit()
             shared[0] = {"manifest": manifest, "binding": binding}
         except Exception as exc:
             shared[0] = {"error_type": type(exc).__name__}
@@ -480,9 +532,15 @@ def predict(
             dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
             enabled=config.precision != "fp32",
         ):
-            logits = model(*_model_inputs(batch, device))
+            if config.classifier_strategy is not None:
+                # Original v15 submission aggregation: mean sigmoid over ten windows.
+                probabilities = getattr(model, "window_probabilities")(
+                    *_model_inputs(batch, device)
+                )
+            else:
+                probabilities = model(*_model_inputs(batch, device)).float().sigmoid()
         valid = batch.get("sample_valid", torch.ones(len(batch["study_uid"]), dtype=torch.bool))
-        scores.append(logits.float().sigmoid().cpu().numpy()[valid.numpy()])
+        scores.append(probabilities.float().cpu().numpy()[valid.numpy()])
         labels.append(batch["labels"].numpy()[valid.numpy()])
         masks.append(batch["label_mask"].numpy()[valid.numpy()])
         identifiers.extend(uid for uid, keep in zip(batch["study_uid"], valid.tolist()) if keep)
@@ -568,7 +626,14 @@ def _run_locked(
         raise ValueError(
             "Output already contains a run; resume explicitly or choose a new directory"
         )
-    manifest, release_binding = verified_job_release(args.studies, args.artifact_root, rank, world)
+    manifest, release_binding = verified_job_release(
+        args.studies,
+        args.artifact_root,
+        rank,
+        world,
+        getattr(args, "release_admission_cache", None),
+        getattr(args, "release_admission_fallback", False),
+    )
     folds = load_folds(args.folds, manifest, release_binding)
     train, outer = select_development(manifest, folds, config.fold, config.fit_scope)
     supervision_path = getattr(args, "fitting_supervision", None)
@@ -661,19 +726,36 @@ def _run_locked(
         **({"input_contract": "public_ordered_triplet"} if config.public_input is not None else {}),
     )
     configure_encoder_training(encoder, config.freeze_encoder)
-    model = model_class(
-        encoder,
-        embedding_dim,
-        pooling=config.pooling,
-        hidden_dim=config.hidden_dim,
-        encode_chunk_size=config.encode_chunk_size,
-        slice_context=config.slice_context,
-        **({"witness": config.witness} if config.witness is not None else {}),
-        **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
-        **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
-        **relation_model_kwargs(config.relation),
-        **({"input_channels": channels} if channels == 3 else {}),
-    ).to(device)
+    model: nn.Module
+    if config.classifier_strategy is not None:
+        from rsna.competitive.source_slot import SourceSlotStudyNet
+        from rsna.competitive.window_bag import WindowBagSlotStudyNet
+
+        model = (
+            WindowBagSlotStudyNet
+            if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
+            else SourceSlotStudyNet
+        )(
+            encoder,
+            embedding_dim,
+            config.classifier_strategy,
+            encode_chunk_size=config.encode_chunk_size,
+            input_channels=channels,
+        ).to(device)
+    else:
+        model = model_class(
+            encoder,
+            embedding_dim,
+            pooling=config.pooling,
+            hidden_dim=config.hidden_dim,
+            encode_chunk_size=config.encode_chunk_size,
+            slice_context=config.slice_context,
+            **({"witness": config.witness} if config.witness is not None else {}),
+            **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
+            **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
+            **relation_model_kwargs(config.relation),
+            **({"input_channels": channels} if channels == 3 else {}),
+        ).to(device)
     delta_guard = (
         FrozenBaseDelta(model, encoder_provenance)
         if config.checkpoint_format == "frozen_base_delta"
@@ -734,6 +816,8 @@ def _run_locked(
         bound_config.pop("cache_contrast")
     if config.public_input is None:
         bound_config.pop("public_input")
+    if config.classifier_strategy is None:
+        bound_config.pop("classifier_strategy")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -908,13 +992,30 @@ def _run_locked(
             ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
-                    with contextlib.nullcontext() if synchronize else wrapped.no_sync():
+                    with contextlib.nullcontext() if synchronize else getattr(wrapped, "no_sync")():
                         with torch.autocast(
                             device.type,
                             dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
                             enabled=config.precision != "fp32",
                         ):
-                            if config.relation is None:
+                            if config.classifier_strategy is not None:
+                                classifier_inputs = (
+                                    window_bag_training_inputs
+                                    if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
+                                    else source_slot_training_inputs
+                                )
+                                logits = wrapped(
+                                    *classifier_inputs(
+                                        batch,
+                                        device,
+                                        config.classifier_strategy,
+                                        seed=config.seed,
+                                        epoch=epoch,
+                                        update=update,
+                                    )
+                                )
+                                auxiliary = torch.zeros((), device=device)
+                            elif config.relation is None:
                                 logits = wrapped(*_model_inputs(batch, device))
                                 auxiliary = torch.zeros((), device=device)
                             else:
@@ -1001,7 +1102,7 @@ def _run_locked(
                     "observed_cells": float(counts.sum()),
                     "elapsed_seconds": time.monotonic() - started,
                 }
-                if "adapter" in config.encoder and step == 1:
+                if ({"adapter", "suffix_adapter"} & set(config.encoder)) and step == 1:
                     gradients = [p.grad for p in encoder.parameters() if p.requires_grad]
                     if any(gradient is None for gradient in gradients):
                         raise ValueError("An intended adapter parameter has no gradient")
@@ -1205,7 +1306,19 @@ def main() -> None:
         type=int,
         help="Diagnostic interruption at an optimizer boundary; exits 75",
     )
+    parser.add_argument(
+        "--release-admission-cache",
+        type=Path,
+        help="Optional node-private engineering receipt from rsna.release_cache produce",
+    )
+    parser.add_argument(
+        "--release-admission-fallback",
+        action="store_true",
+        help="If the cache is refused, announce it and run the full original admission",
+    )
     args = parser.parse_args()
+    if args.release_admission_fallback and args.release_admission_cache is None:
+        parser.error("--release-admission-fallback requires --release-admission-cache")
     if args.stop_after_updates is not None and args.stop_after_updates < 1:
         parser.error("--stop-after-updates must be positive")
     raise SystemExit(run(args, stop_requested))
