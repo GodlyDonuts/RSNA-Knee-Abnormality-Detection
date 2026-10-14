@@ -1,0 +1,7 @@
+# Prepare exact candidates before daily competition slots reopen
+
+Daily queue previously required a positive competition submission allowance before creating a private Dataset or pushing a notebook. Those preparation operations do not submit to the competition. The driver now retains the fresh authoritative allowance and canonical ledger recheck before every cloud mutation but requires positive remaining slots only for submit. Existing exclusive intents, uncertainty reconciliation, exact source/private-data acceptance, independent accelerator quota and storage guards remain unchanged.
+
+Root189 adjacent daily queue/coordinator/binding/submission/uncertainty/publication tests passed in158.12seconds, Ruff check/format passed. New regression proves zero slots permits one prevalidation, restart does not duplicate Dataset/notebook, and a subsequent fresh positive allowance permits exactly one code submission. Targeted mypy reports three preexisting unchanged errors; the previous committed module independently reports the same three errors, so no whole-module type-clean claim.
+
+Epoch8 metadata additionally funded1MiB/four shared files with fresh quota and12 already-paid original markers. After all retained liabilities/new reservation:21475648583bytes/5005files remain, above20GiB/5000floors. This is tight; every future phase must recheck. Original node-private prepared bundle is reused, no duplicate preparation or cloud mutation yet. No competition slot may be spent at zero allowance and no public3row CSV is uploaded.

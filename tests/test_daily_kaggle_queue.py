@@ -513,15 +513,18 @@ def test_full_queue_one_candidate_at_a_time_each_phase_once(repo):
     assert mutations(ex) == mutations(type("E", (), {"calls": before})())
 
 
-def test_account_limit_stops_without_mutation(repo):
+def test_account_limit_stops_submission_after_prevalidation(repo):
     root, path, _ = repo
     queue = dq.load_queue(path, root)
     ex = FakeExecutor(queue, allowance=2)
     history = driver(queue, ex, root).run()
     assert history[-1] == {"status": "allowance_exhausted", "epoch": 3}
     assert [c for c in ex.calls if c[0] == "submit"] == [("submit", 1), ("submit", 2)]
-    assert ("create-dataset", 3) not in ex.calls
-    assert driver(queue, ex, root, max_submissions=0).run()[-1]["status"] == "allowance_exhausted"
+    assert ("create-dataset", 3) in ex.calls
+    assert ("push-kernel", 3) in ex.calls
+    assert (
+        driver(queue, ex, root, max_submissions=0).run()[-1]["status"] == "submission_cap_reached"
+    )
 
 
 def test_submission_cap_per_invocation(repo):
@@ -628,3 +631,22 @@ def test_terminal_notebook_failure_and_deadline_halt_before_submission(repo):
         deadline_seconds=30,
     ).run()
     assert out[-1]["status"] == "deadline" and ("submit", 1) not in ex2.calls
+
+
+def test_zero_slots_prevalidates_once_then_submits_only_after_fresh_reset(repo):
+    root, path, _ = repo
+    queue = dq.load_queue(path, root)
+    ex = FakeExecutor(queue, allowance=0)
+    history = driver(queue, ex, root).run()
+    assert history[-1] == {"status": "allowance_exhausted", "epoch": 1}
+    assert ("create-dataset", 1) in ex.calls
+    assert ("push-kernel", 1) in ex.calls
+    assert not any(name == "submit" for name, _ in ex.calls)
+    before = list(mutations(ex))
+    assert driver(queue, ex, root).run()[-1]["status"] == "allowance_exhausted"
+    assert mutations(ex) == before
+    ex.allow = 1
+    driver(queue, ex, root, max_submissions=1).run()
+    assert [call for call in ex.calls if call[0] == "submit"] == [("submit", 1)]
+    assert ex.calls.count(("create-dataset", 1)) == 1
+    assert ex.calls.count(("push-kernel", 1)) == 1

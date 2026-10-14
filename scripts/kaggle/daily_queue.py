@@ -5,7 +5,9 @@ checkpoint of original job 908454 to its private full-download receipt; the
 admission is derived from the entry, never from mutable labels or guessed
 metadata. The driver advances one candidate at a time through the original
 coordinator phases. Every cloud mutation is preceded by a fresh allowance and
-canonical ledger read and by an exclusive durable intent. Any existing intent,
+canonical ledger read and by an exclusive durable intent. Only competition
+submission requires a remaining daily slot; private Dataset/notebook acceptance
+may finish at zero slots under its independent GPU/storage limits. Any existing intent,
 uncertain, pushed or submitted state forces read-only reconciliation; nothing is
 ever resubmitted or automatically retried. The public three-row CSV is never
 uploaded: submissions are competition code submissions of the exact notebook.
@@ -542,7 +544,7 @@ class Driver:
                 fresh = self.ex.ledger_records()
                 if plan(self.queue, fresh, self.journal) != action:
                     raise ValueError("Canonical ledger changed between fresh observations")
-                if allowance < 1:
+                if action.name == "submit" and allowance < 1:
                     return {"status": "allowance_exhausted", "epoch": epoch}
                 records = fresh
             self.journal.write_intent(
