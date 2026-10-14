@@ -8,6 +8,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -61,7 +62,7 @@ def test_platform_limits_must_be_observed_not_assumed():
         "observed_at": "t",
         "evidence": "actual API response",
         "max_kernel_sources": 19,
-        "max_dataset_sources": 10,
+        "max_dataset_sources": 3,
         "max_output_bytes": 2**30,
     }
     with pytest.raises(ValueError):
@@ -69,6 +70,43 @@ def test_platform_limits_must_be_observed_not_assumed():
     assert plan.require_platform_limits(dict(proof, max_kernel_sources=20), 20, 3)
     with pytest.raises(ValueError):
         plan.require_platform_limits(dict(proof, max_kernel_sources=21), 21, 3, 2**30 + 1)
+    # Nothing above the actually completed 21/3 shape or the explicit output cap is admitted.
+    for key, value in (
+        ("max_kernel_sources", 22),
+        ("max_dataset_sources", 4),
+        ("max_output_bytes", plan.DOCUMENTED_OUTPUT_BYTES),
+    ):
+        with pytest.raises(ValueError):
+            plan.require_platform_limits({**proof, "max_kernel_sources": 21, key: value}, 21, 3)
+
+
+def test_admitted_shape_is_the_actual_committed_input_shape_kernel():
+    audit = ROOT / "initiative/audits/kaggle-input-shape-CPU-20261014-v1"
+    verified = json.loads((audit / "verified.json").read_text())
+    probe = json.loads((audit / "contract.json").read_text())
+    kernel = plan.INPUT_SHAPE_PROOF_KERNEL
+    assert verified["status"] == "actual_exact_private_CPU_source_shape_runtime_accepted"
+    assert (
+        verified["slug"],
+        verified["version"],
+        verified["kernel_id"],
+        verified["source_sha256"],
+    ) == (kernel["slug"], kernel["version"], kernel["kernel_id"], kernel["source_sha256"])
+    assert probe["source_sha256"] == kernel["source_sha256"]
+    assert verified["supported_shape_lower_bound_not_global_maximum"] is True
+    assert (verified["accepted_kernel_input_count"], verified["accepted_dataset_input_count"]) == (
+        plan.SUPPORTED_KERNEL_SOURCES,
+        plan.SUPPORTED_DATASET_SOURCES,
+    )
+    # The same 20 original shard outputs and the same 3 Datasets this path mounts.
+    assert [s["manifest_sha256"] for s in probe["shards"]] == list(t4.SHARD_MANIFEST_SHA256)
+    assert len(probe["shards"]) + 1 == plan.SUPPORTED_KERNEL_SOURCES
+    assert tuple(d["id"] for d in probe["datasets"]) == plan.SUPPORTED_DATASET_IDS
+    assert (probe["CPU"], probe["GPU"], probe["internet"]) == (True, False, False)
+    limits = plan.admitted_platform_limits()
+    assert plan.require_platform_limits(limits, 21, 3, plan.OUTPUT_CAP_CEILING_BYTES) == limits
+    assert plan.OUTPUT_CAP_CEILING_BYTES < plan.DOCUMENTED_OUTPUT_BYTES
+    assert t4.CHECKPOINT_CAP_BYTES < plan.OUTPUT_CAP_CEILING_BYTES
 
 
 def measured(**changes):
@@ -283,10 +321,11 @@ IMAGE = "image@sha256:x"
 ENGINEERING_SLUG = "me/rsna-window-bag-t4-engineering-v1"
 
 
-def notebook_source(mode, segment, manifest="m" * 64):
+def notebook_source(mode, segment, manifest="m" * 64, parallel=False):
     return (
         f"WINDOW_BAG_MODE = {mode!r}\nWINDOW_BAG_SEGMENT = {segment!r}\n"
-        f"WINDOW_BAG_MANIFEST_SHA256 = {manifest!r}\nbody\n"
+        f"WINDOW_BAG_MANIFEST_SHA256 = {manifest!r}\n"
+        f"WINDOW_BAG_PARALLEL = {parallel!r}\nbody\n"
     )
 
 
@@ -371,14 +410,9 @@ def contract(**changes):
         "capsule_dataset": {"slug": "me/capsule", "id": 12567458},
         "runtime_image": IMAGE,
         "session_timeout_seconds": 7200,
-        "platform_limits": {
-            "observed_at": "t",
-            "evidence": "actual",
-            "max_kernel_sources": 21,
-            "max_dataset_sources": 3,
-            "max_output_bytes": 20 * 2**30,
-        },
+        "platform_limits": plan.admitted_platform_limits(),
         "production_funding": None,
+        "parallel_arms": False,
     }
     return value | changes
 
@@ -389,7 +423,7 @@ def digest(text):
 
 def phase(name, remote, journal, value=None):
     value = value or contract()
-    source = notebook_source(value["mode"], value["segment"])
+    source = notebook_source(value["mode"], value["segment"], parallel=value["parallel_arms"])
     if value["source_sha256"] == "s":
         value = dict(value, source_sha256=digest(source))
     return wc.run_phase(
@@ -495,6 +529,9 @@ def test_coordinator_refuses_unfunded_drifted_or_unverified_requests():
         phase("preflight", FakeRemote(dict(ISSUE_QUOTA, timeUsed="99000s")), [])
     for bad in (
         {"platform_limits": {}},
+        {"platform_limits": dict(plan.admitted_platform_limits(), max_output_bytes=20 * 2**30)},
+        {"platform_limits": dict(plan.admitted_platform_limits(), evidence="assumed")},
+        {"model_dataset": dict(contract()["model_dataset"], id=1)},
         {"session_timeout_seconds": 7201},
         {"mode": "segment"},
         {"shard_kernels": contract()["shard_kernels"][:19]},
@@ -526,6 +563,21 @@ def test_coordinator_refuses_unfunded_drifted_or_unverified_requests():
             lambda *_: None,
             digest,
         )
+
+
+@pytest.mark.parametrize("omitted", ["absent", None])
+def test_omitted_empty_competition_sources_are_empty_not_drift(omitted):
+    value, kernels = production(segment_index=1)
+    for record in kernels.values():
+        if omitted == "absent":
+            del record["metadata"]["competitionDataSources"]
+        else:
+            record["metadata"]["competitionDataSources"] = None
+    assert phase("preflight", FakeRemote(kernels=kernels), [], value)
+    for record in kernels.values():
+        record["metadata"]["competitionDataSources"] = "rsna"
+    with pytest.raises(ValueError):
+        phase("preflight", FakeRemote(kernels=kernels), [], value)
 
 
 def test_resumed_segment_push_mounts_the_verified_previous_kernel_output():
@@ -946,3 +998,237 @@ def test_measured_performance_comes_only_from_actual_engineering_timings():
         t4.measure(
             {"mean": dict(arm, update_elapsed_seconds=[10.0])}, {"bytes": 1}, 3.0, 50.0, 20.0
         )
+
+
+# --- Optional concurrent two-T4 arms (CPU stand-ins; never parallel acceptance) ---------
+
+
+def test_concurrent_plan_charges_both_T4s_once_per_shared_session():
+    sequential = plan.production_plan(measured(), ISSUE_QUOTA, 40 * 2**30)
+    paired = plan.production_plan(measured(), ISSUE_QUOTA, 40 * 2**30, concurrent=True)
+    assert paired["segments_per_arm"] == sequential["segments_per_arm"]
+    assert paired["sessions"] * 2 == sequential["sessions"]
+    assert (
+        paired["conservative_charge_seconds"]
+        == paired["sessions"] * 2 * paired["session_timeout_seconds"]
+    )
+    assert paired["scratch_bytes_required"] > sequential["scratch_bytes_required"]
+    assert paired["output_cap_bytes_per_segment"] == [
+        2 * b for b in sequential["output_cap_bytes_per_segment"]
+    ]
+    assert paired["concurrent_arms"] and not sequential["concurrent_arms"]
+    assert not paired["scientific_hyperparameters_changed"]
+
+
+def test_concurrent_engineering_contract_is_bound_and_charged_once():
+    proof = phase("preflight", FakeRemote(), [], contract(parallel_arms=True))
+    assert proof["funding"]["charge_seconds"] == 2 * 7200
+    assert proof["funding"]["GPUs_used_concurrently"] == 2
+    assert proof["funding"]["provisioned_GPUs_charged"] == 2
+    sequential = phase("preflight", FakeRemote(), [])
+    assert sequential["funding"]["charge_seconds"] == 2 * 7200
+    for bad in ({"parallel_arms": 1}, {"parallel_arms": None}):
+        with pytest.raises(ValueError):
+            wc.validate_contract(contract(**bad))
+    value = contract(parallel_arms=True)
+    source = notebook_source("engineering", None, parallel=False)
+    with pytest.raises(ValueError):
+        wc.run_phase(
+            "preflight",
+            dict(value, source_sha256=digest(source)),
+            source,
+            FakeRemote(),
+            Publication,
+            Workflow,
+            lambda *_: None,
+            digest,
+        )
+    assert '"--parallel"' in nb.BRANCH and '"0,1" if WINDOW_BAG_PARALLEL is True' in nb.BRANCH
+    with pytest.raises(ValueError):
+        nb.build(
+            bundle_manifest_sha256="x",
+            capsule={},
+            fixture=b"",
+            bag_cpu=b"",
+            overlay=b"",
+            mode="segment",
+            segment={},
+            parallel=True,
+        )
+
+
+def supervisor(tmp_path, **changes):
+    values = dict(poll=0.2) | changes
+    return t4.Supervisor(
+        tmp_path,
+        time.monotonic() + 600,
+        {a: tmp_path / f"{a}-journal.jsonl" for a in t4.ARMS},
+        **values,
+    )
+
+
+def python_job(sup, arm, root, code, expected=0):
+    root.mkdir()
+    env = dict(os.environ, PYTHONPATH=str(ROOT), CUDA_VISIBLE_DEVICES=t4.PARALLEL_DEVICES[arm])
+    return lambda: sup.run(arm, [sys.executable, "-c", code], root, "full", expected, env, {})
+
+
+def gone(pid):
+    try:
+        state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+    except FileNotFoundError:
+        return True
+    return state in {"Z", "X"}
+
+
+@pytest.mark.skipif(
+    not Path("/proc/self/stat").exists(),
+    reason="Linux /proc process supervision; verified on owning Linux node",
+)
+def test_sibling_failure_stops_and_reaps_every_owned_process(tmp_path):
+    sup = supervisor(tmp_path)
+    pidfile = tmp_path / "grandchild.pid"
+    hang = (
+        "import subprocess, sys, time\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(300)'])\n"
+        f"open({str(pidfile)!r}, 'w').write(str(p.pid))\n"
+        "time.sleep(300)\n"
+    )
+    jobs = {
+        "mean": python_job(
+            sup, "mean", tmp_path / "mean", "import time, sys; time.sleep(2); sys.exit(3)"
+        ),
+        "query": python_job(sup, "query", tmp_path / "query", hang),
+    }
+    started = time.monotonic()
+    with pytest.raises(ValueError):
+        t4.run_concurrent(jobs, sup)
+    assert time.monotonic() - started < 60
+    assert not sup.live
+    events = {
+        a: [json.loads(x) for x in (tmp_path / f"{a}-journal.jsonl").read_text().splitlines()]
+        for a in t4.ARMS
+    }
+    assert [e.get("event") for e in events["mean"]] == ["start", "exit", "failed"]
+    assert events["mean"][0]["device"] == "0" and events["query"][0]["device"] == "1"
+    assert events["query"][-1]["event"] == "failed"
+    pids = [events["query"][0]["pid"], int(pidfile.read_text())]
+    deadline = time.monotonic() + 10
+    while not all(map(gone, pids)) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert all(map(gone, pids))
+    with pytest.raises(FileExistsError):
+        t4.Supervisor(tmp_path, 0, {"mean": tmp_path / "mean-journal.jsonl"})
+
+
+@pytest.mark.skipif(
+    not Path("/proc/self/stat").exists(),
+    reason="Linux /proc process supervision; verified on owning Linux node",
+)
+def test_combined_output_and_rss_caps_stop_both_arms(tmp_path):
+    sup = supervisor(tmp_path, output_cap=2**20)
+    big = tmp_path / "mean/big"
+    write = f"import time; open({str(big)!r}, 'wb').write(b'0' * 2**21); time.sleep(300)"
+    jobs = {
+        "mean": python_job(sup, "mean", tmp_path / "mean", write),
+        "query": python_job(sup, "query", tmp_path / "query", "import time; time.sleep(300)"),
+    }
+    started = time.monotonic()
+    with pytest.raises(ValueError, match="output cap"):
+        t4.run_concurrent(jobs, sup)
+    assert time.monotonic() - started < 60 and not sup.live
+    (tmp_path / "rss").mkdir()
+    tight = supervisor(tmp_path / "rss", ram_ceiling=1)
+    with pytest.raises(ValueError, match="RSS"):
+        tight.check()
+    assert tight.peak_rss > 1
+
+
+def test_shared_cache_is_read_only_and_drift_is_detected(tmp_path):
+    cache = tmp_path / "cache"
+    (cache / "members").mkdir(parents=True)
+    (cache / "members/a.npz").write_bytes(b"a")
+    (cache / "index.json").write_bytes(b"{}")
+    frozen = t4.freeze_cache(cache)
+    assert frozen == t4.cache_digest(cache)
+    with pytest.raises(PermissionError):
+        (cache / "members/new").write_bytes(b"x")
+    member = cache / "members/a.npz"
+    member.chmod(0o644)
+    member.write_bytes(b"b")
+    assert t4.cache_digest(cache) != frozen
+    for path in [cache, *cache.rglob("*")]:
+        path.chmod(stat.S_IRWXU)
+
+
+@pytest.mark.skipif(
+    not Path("/proc/self/stat").exists(),
+    reason="Linux /proc process supervision; verified on owning Linux node",
+)
+def test_concurrent_arms_each_recover_exactly_on_the_canonical_trainer(tmp_path):
+    torch = pytest.importorskip("torch")
+    from test_competitive_training import _assert_tree_equal
+    from test_public_triplet_training import build, cohort
+
+    build(tmp_path / "cache", *cohort())
+    (tmp_path / "series.csv").write_text("SeriesInstanceUID\na\n")
+    frozen = t4.freeze_cache(tmp_path / "cache")
+    sup = supervisor(tmp_path, output_cap=6 * 2**30, scratch_reserve=0)
+    child = str(ROOT / "tests/window_bag_session_child.py")
+
+    def job(arm):
+        root = tmp_path / arm
+        root.mkdir()
+        env = dict(
+            os.environ,
+            PYTHONPATH=str(ROOT),
+            CUDA_VISIBLE_DEVICES=t4.PARALLEL_DEVICES[arm],
+            OMP_NUM_THREADS="2",
+            MKL_NUM_THREADS="2",
+        )
+
+        def command(output, **extra):
+            spec = {
+                "root": str(tmp_path),
+                "arm": arm,
+                "output": str(output),
+                "stop": None,
+                "resume": None,
+                "every": 0,
+            } | extra
+            return [sys.executable, child, json.dumps(spec)]
+
+        def run():
+            timings = {}
+            sup.run(arm, command(root / "full"), root, "full", 0, env, timings)
+            sup.run(arm, command(root / "replay", stop=1), root, "stop", 75, env, timings)
+            shutil.copyfile(root / "replay/checkpoint.pt", root / "actual-stop-checkpoint.pt")
+            sup.run(
+                arm,
+                command(root / "replay", resume=str(root / "replay/checkpoint.pt")),
+                root,
+                "resume",
+                0,
+                env,
+                timings,
+            )
+            return timings
+
+        return run
+
+    timings = t4.run_concurrent({arm: job(arm) for arm in t4.ARMS}, sup)
+    assert t4.cache_digest(tmp_path / "cache") == frozen and not sup.live
+    assert sup.peak_rss > 0 and sup.peak_output > 0
+    for arm in t4.ARMS:
+        assert set(timings[arm]) == {"full", "stop", "resume"}
+        root = tmp_path / arm
+        full = torch.load(root / "full/checkpoint.pt", weights_only=True)
+        resumed = torch.load(root / "replay/checkpoint.pt", weights_only=True)
+        _assert_tree_equal(full, resumed)
+        assert (root / "full/outer_predictions.csv").read_bytes() == (
+            root / "replay/outer_predictions.csv"
+        ).read_bytes()
+        partial = torch.load(root / "actual-stop-checkpoint.pt", weights_only=True)
+        assert partial["step"] == 1
+    for path in [tmp_path / "cache", *(tmp_path / "cache").rglob("*")]:
+        path.chmod(stat.S_IRWXU)

@@ -11,6 +11,12 @@ initialization and RNG against the original source-bound fixtures on CPU, then r
 unchanged trainer for both plain-mean/disease-query arms in fresh full/stop1/resume processes
 (2 epochs/4 updates) and requires complete state and MRI-only prediction-byte equality.
 
+``engineering --parallel`` (optional): the same two arms run concurrently as two isolated
+single-GPU trainer process chains (``CUDA_VISIBLE_DEVICES=0`` and ``1``, two CPU threads each)
+over one shared read-only admitted cache, after the same CPU gate. Not DDP; neither recipe
+changes. Each arm keeps its own exclusive output/journal and its own full/stop1/resume
+recovery; any failure terminates and reaps the sibling.
+
 ``segment``: one bounded production session of the fixed 10-epoch recipe. It resumes only
 from the exact published output of the bound previous segment kernel (mounted read-only),
 stops at a scheduled optimizer boundary and publishes its complete continuation checkpoint,
@@ -29,8 +35,10 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -85,6 +93,13 @@ RAM_CEILING_BYTES = 29 * GIB
 CHECKPOINT_CAP_BYTES = 6 * GIB
 SCRATCH_RESERVE_BYTES = 3 * GIB
 ENGINEERING_STATUS = "source_window_bag_two_arm_actual_single_T4_canonical_recovery_accepted"
+ENGINEERING_PARALLEL_STATUS = (
+    "source_window_bag_two_arm_actual_concurrent_two_T4_canonical_recovery_accepted"
+)
+PARALLEL_DEVICES = {"mean": "0", "query": "1"}
+PARALLEL_MIN_CPUS = 4
+POLL_SECONDS = 2.0
+REAP_GRACE_SECONDS = 30.0
 SEGMENT_STATUS = "source_window_bag_fixed10_single_T4_segment_completed"
 SEARCH_DEPTH = 7
 PUBLICATION_DIR = "window-bag-segment"
@@ -441,18 +456,23 @@ def admit_initialization(configs: dict, spec: dict, bag: dict) -> None:
         gc.collect()
 
 
-def check_runtime(*, engineering: bool) -> dict:
+def check_runtime(*, engineering: bool, visible: int = 1) -> dict:
     import torch
 
     from rsna.competitive import kaggle_source_render as ksr
 
-    if torch.cuda.device_count() != 1 or "T4" not in torch.cuda.get_device_name(0):
-        raise ValueError("Exactly one visible T4 is required")
+    if torch.cuda.device_count() != visible or any(
+        "T4" not in torch.cuda.get_device_name(i) for i in range(visible)
+    ):
+        raise ValueError(f"Exactly {visible} visible T4 required")
     observed = ksr.resources([Path("/kaggle/working"), Path("/tmp")])
     limit = observed["cgroup_memory_limit_bytes"] or observed["mem_total_bytes"]
     if limit is None or limit > 64 * GIB:
         raise ValueError("Measured session memory envelope required")
-    return observed | {"engineering": engineering, "GPUs_visible": 1}
+    cpus = len(os.sched_getaffinity(0))
+    if visible > 1 and cpus < PARALLEL_MIN_CPUS:
+        raise ValueError("Concurrent arms need two CPU threads each")
+    return observed | {"engineering": engineering, "GPUs_visible": visible, "CPUs": cpus}
 
 
 def trainer_command(code: Path, config: Path, paths: dict, overlay: Path, cache: Path):
@@ -481,7 +501,7 @@ def trainer_command(code: Path, config: Path, paths: dict, overlay: Path, cache:
     ]
 
 
-def trainer_env(code: Path) -> dict:
+def trainer_env(code: Path, device: str = "0") -> dict:
     env = os.environ.copy()
     env.update(
         PYTHONPATH=str(code),
@@ -493,7 +513,7 @@ def trainer_env(code: Path) -> dict:
         WORLD_SIZE="1",
         RANK="0",
         LOCAL_RANK="0",
-        CUDA_VISIBLE_DEVICES="0",
+        CUDA_VISIBLE_DEVICES=device,
         CUBLAS_WORKSPACE_CONFIG=":4096:8",
     )
     return env
@@ -534,7 +554,20 @@ def execute(command, extra, root: Path, phase: str, expected: int, deadline, env
         raise ValueError("Canonical trainer phase failed or exceeded its cap; logs retained")
 
 
-def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, deadline):
+def recover_arm(
+    code,
+    out,
+    arm,
+    values,
+    paths,
+    overlay,
+    cache,
+    fixture,
+    hashes,
+    deadline,
+    runner=None,
+    device="0",
+):
     import torch
 
     from scripts.newton.probe_patch_witness_trainer_recovery import (
@@ -551,11 +584,14 @@ def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, 
     config = root / "config.json"
     config.write_text(json.dumps(values, sort_keys=True, indent=2) + "\n")
     command = trainer_command(code, config, paths, overlay, cache)
-    env, timings = trainer_env(code), {}
+    env, timings = trainer_env(code, device), {}
     full, replay = root / "full", root / "replay"
 
     def run(extra, phase, expected):
-        execute(command, extra, root, phase, expected, deadline, env, timings, out)
+        if runner is None:
+            execute(command, extra, root, phase, expected, deadline, env, timings, out)
+        else:
+            runner(arm, command + extra, root, phase, expected, env, timings)
 
     run(["--output", str(full)], "full", 0)
     run(["--output", str(replay), "--stop-after-updates", "1"], "stop", 75)
@@ -600,8 +636,196 @@ def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, 
     }
     del whole, resumed, partial
     gc.collect()
-    torch.cuda.empty_cache()
+    if runner is None:
+        torch.cuda.empty_cache()
     return result
+
+
+def _process_groups_rss(groups: set[int]) -> int:
+    """Resident bytes of this process plus every live process in the owned groups."""
+    page = os.sysconf("SC_PAGE_SIZE")
+    total = 0
+    for entry in os.scandir("/proc"):
+        if not entry.name.isdigit():
+            continue
+        try:
+            fields = Path(entry.path, "stat").read_text().rsplit(")", 1)[1].split()
+        except (FileNotFoundError, ProcessLookupError, IndexError):
+            continue
+        if int(entry.name) == os.getpid() or int(fields[2]) in groups:
+            total += int(fields[21]) * page
+    return total
+
+
+class Supervisor:
+    """Owns the concurrent trainer processes of one session; any failure stops them all.
+
+    Each trainer is a fresh process in its own process group. Every poll enforces the
+    combined RSS ceiling (this process plus all owned groups), the combined output/scratch
+    cap over ``cap_root``, the scratch reserve and the session deadline. Records go to an
+    exclusive per-arm journal.
+    """
+
+    def __init__(
+        self,
+        cap_root: Path,
+        deadline: float,
+        journals: dict[str, Path],
+        ram_ceiling: int = RAM_CEILING_BYTES,
+        output_cap: int = CHECKPOINT_CAP_BYTES,
+        scratch_reserve: int = SCRATCH_RESERVE_BYTES,
+        poll: float = POLL_SECONDS,
+    ):
+        self.cap_root, self.deadline, self.poll = cap_root, deadline, poll
+        self.ram_ceiling, self.output_cap, self.scratch_reserve = (
+            ram_ceiling,
+            output_cap,
+            scratch_reserve,
+        )
+        self.stop = threading.Event()
+        self.lock = threading.Lock()
+        self.live: dict[int, subprocess.Popen] = {}
+        self.peak_rss = self.peak_output = 0
+        self.journals = {}
+        for arm, path in journals.items():
+            self.journals[arm] = path.open("x")
+
+    def record(self, arm: str, **event) -> None:
+        with self.lock:
+            handle = self.journals[arm]
+            handle.write(json.dumps({"t": time.monotonic(), **event}, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+
+    def check(self) -> None:
+        with self.lock:
+            groups = set(self.live)
+        rss = _process_groups_rss(groups)
+        used = output_bytes(self.cap_root)
+        self.peak_rss, self.peak_output = max(self.peak_rss, rss), max(self.peak_output, used)
+        if rss > self.ram_ceiling:
+            raise ValueError("Combined session RSS exceeded the explicit RAM ceiling")
+        if used > self.output_cap:
+            raise ValueError("Combined checkpoint/output cap exceeded")
+        if shutil.disk_usage(self.cap_root).free < self.scratch_reserve:
+            raise ValueError("Scratch fell below its reserve")
+        if time.monotonic() >= self.deadline:
+            raise TimeoutError("Bounded session deadline exhausted")
+
+    def run(self, arm, command, root: Path, phase: str, expected: int, env, timings) -> None:
+        if self.stop.is_set():
+            raise RuntimeError("Sibling failed; no new trainer process")
+        self.check()
+        started = time.monotonic()
+        with (
+            (root / f"{phase}.stdout").open("x") as out,
+            (root / f"{phase}.stderr").open("x") as err,
+        ):
+            with self.lock:
+                if self.stop.is_set():
+                    raise RuntimeError("Sibling failed; no new trainer process")
+                process = subprocess.Popen(
+                    command,
+                    env=env,
+                    cwd=env["PYTHONPATH"],
+                    stdout=out,
+                    stderr=err,
+                    start_new_session=True,
+                )
+                self.live[process.pid] = process
+            self.record(
+                arm, phase=phase, event="start", pid=process.pid, device=env["CUDA_VISIBLE_DEVICES"]
+            )
+            try:
+                while True:
+                    try:
+                        code = process.wait(timeout=self.poll)
+                        break
+                    except subprocess.TimeoutExpired:
+                        pass
+                    if self.stop.is_set():
+                        raise RuntimeError("Sibling failed; trainer stopped")
+                    self.check()
+            finally:
+                self.terminate(process)
+                with self.lock:
+                    self.live.pop(process.pid, None)
+        timings[phase] = time.monotonic() - started
+        self.record(arm, phase=phase, event="exit", returncode=code, seconds=timings[phase])
+        self.check()
+        if code != expected:
+            raise ValueError("Canonical trainer phase failed; logs retained")
+
+    def terminate(self, process: subprocess.Popen) -> None:
+        """Stop and reap one owned process group, including any leftover group members."""
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+                process.wait(timeout=REAP_GRACE_SECONDS)
+            except subprocess.TimeoutExpired:
+                pass
+            except ProcessLookupError:
+                pass
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+    def reap(self) -> None:
+        self.stop.set()
+        with self.lock:
+            owned = list(self.live.values())
+        for process in owned:
+            self.terminate(process)
+        with self.lock:
+            for handle in self.journals.values():
+                handle.close()
+
+
+def run_concurrent(jobs: dict, supervisor: Supervisor) -> dict:
+    """Run one callable per arm in parallel; the first failure stops and reaps siblings."""
+    results, errors = {}, {}
+
+    def worker(arm, job):
+        try:
+            results[arm] = job()
+        except BaseException as exc:  # noqa: BLE001 - re-raised after reaping
+            errors[arm] = exc
+            supervisor.record(arm, event="failed", error=type(exc).__name__)
+            supervisor.stop.set()
+
+    threads = [threading.Thread(target=worker, args=item, daemon=True) for item in jobs.items()]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+    finally:
+        supervisor.reap()
+    if errors:
+        first = min(errors, key=list(jobs).index)
+        raise errors[first]
+    return results
+
+
+def freeze_cache(cache: Path) -> str:
+    """Make the admitted cache read-only for both arms; return its exact content digest."""
+    entries = {}
+    for path in sorted(cache.rglob("*"), reverse=True):
+        if path.is_symlink():
+            raise ValueError("Admitted cache must not contain symlinks")
+        if path.is_file():
+            entries[str(path.relative_to(cache))] = sha(path)
+            path.chmod(0o444)
+        else:
+            path.chmod(0o555)
+    cache.chmod(0o555)
+    return canonical(entries)
+
+
+def cache_digest(cache: Path) -> str:
+    return canonical({str(p.relative_to(cache)): sha(p) for p in cache.rglob("*") if p.is_file()})
 
 
 def code_hashes(code: Path, manifest: dict) -> dict:
@@ -699,7 +923,9 @@ def run_engineering(args) -> dict:
     import torch
 
     torch.set_num_threads(2)
-    observed = check_runtime(engineering=True)
+    parallel = bool(getattr(args, "parallel", False))
+    visible = len(PARALLEL_DEVICES) if parallel else 1
+    observed = check_runtime(engineering=True, visible=visible)
     code, hashes, fixture, bag, configs, spec, policy, shards, manifests, index, paths, data = (
         prepare(args)
     )
@@ -714,19 +940,53 @@ def run_engineering(args) -> dict:
     tensors = admit_tensors(cache, policy, fixture, parts, outer, fit, series, revision)
     admit_initialization(configs, spec, bag)
     admitted = time.monotonic() - started
-    results = {}
-    for arm in ARMS:
-        values = engineering_config(configs[arm], spec)
-        results[arm] = recover_arm(
-            code, out, arm, values, paths, args.overlay, cache, fixture, hashes, deadline
-        )
+    results, concurrency = {}, None
+    if parallel:
+        # CPU input/initialization gate is complete; only now do both optimizers start.
+        frozen = freeze_cache(cache)
+        supervisor = Supervisor(out, deadline, {a: out / f"{a}-journal.jsonl" for a in ARMS})
+
+        def job(arm):
+            values = engineering_config(configs[arm], spec)
+            return lambda: recover_arm(
+                code,
+                out,
+                arm,
+                values,
+                paths,
+                args.overlay,
+                cache,
+                fixture,
+                hashes,
+                deadline,
+                runner=supervisor.run,
+                device=PARALLEL_DEVICES[arm],
+            )
+
+        results = run_concurrent({arm: job(arm) for arm in ARMS}, supervisor)
+        if cache_digest(cache) != frozen:
+            raise ValueError("Shared admitted cache changed during concurrent arms")
+        concurrency = {
+            "devices": PARALLEL_DEVICES,
+            "threads_per_process": 2,
+            "shared_read_only_cache_sha256": frozen,
+            "peak_combined_rss_bytes": supervisor.peak_rss,
+            "peak_combined_output_bytes": supervisor.peak_output,
+            "journal_sha256": {a: sha(out / f"{a}-journal.jsonl") for a in ARMS},
+        }
+    else:
+        for arm in ARMS:
+            values = engineering_config(configs[arm], spec)
+            results[arm] = recover_arm(
+                code, out, arm, values, paths, args.overlay, cache, fixture, hashes, deadline
+            )
     if (
         results["mean"]["finite_updates"][0]["loss"]
         != results["query"]["finite_updates"][0]["loss"]
     ):
         raise ValueError("Arms disagree on the original first-update loss")
     result = {
-        "status": ENGINEERING_STATUS,
+        "status": ENGINEERING_PARALLEL_STATUS if parallel else ENGINEERING_STATUS,
         "science_git": SCIENCE_GIT,
         "package_manifest_sha256": args.package_manifest_sha256,
         "fixture_sha256": FIXTURE_SHA256,
@@ -747,8 +1007,9 @@ def run_engineering(args) -> dict:
         "measured": measure(results, restored, restore_seconds, args.bootstrap_seconds, admitted),
         "elapsed_seconds": time.monotonic() - started,
         "resources_before": observed,
-        "resources_after": check_runtime(engineering=True),
-        "GPUs_used_concurrently": 1,
+        "resources_after": check_runtime(engineering=True, visible=visible),
+        "GPUs_used_concurrently": visible,
+        "concurrency": concurrency,
         "gold_or_confirmation_used": False,
         "production_fitting": False,
         "clinical_accuracy_evidence": False,
@@ -757,7 +1018,7 @@ def run_engineering(args) -> dict:
     with (Path(args.receipt)).open("x") as handle:
         json.dump(result, handle, sort_keys=True, indent=2)
         handle.write("\n")
-    print(json.dumps({"status": ENGINEERING_STATUS}), flush=True)
+    print(json.dumps({"status": result["status"]}), flush=True)
     return result
 
 
@@ -787,7 +1048,7 @@ def _hex64(value) -> bool:
 
 def segment_contract(contract: dict) -> dict:
     """Exact scheduled boundary of one production session; validated before any GPU work."""
-    from scripts.kaggle.window_bag_plan import TOTAL_UPDATES
+    from scripts.kaggle.window_bag_plan import OUTPUT_CAP_CEILING_BYTES, TOTAL_UPDATES
 
     if (
         not isinstance(contract, dict)
@@ -815,7 +1076,7 @@ def segment_contract(contract: dict) -> dict:
         not _hex64(contract["engineering_receipt_sha256"])
         or not _hex64(contract["production_config_sha256"])
         or type(contract["output_cap_bytes"]) is not int
-        or contract["output_cap_bytes"] <= 0
+        or not 0 < contract["output_cap_bytes"] <= OUTPUT_CAP_CEILING_BYTES
     ):
         raise ValueError("Engineering receipt, config and output cap bindings required")
     return contract
@@ -1066,7 +1327,14 @@ def main() -> None:
     parser.add_argument("--segment", type=Path)
     parser.add_argument("--remaining-seconds", type=float, required=True)
     parser.add_argument("--bootstrap-seconds", type=float, required=True)
+    parser.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Engineering only: both arms concurrently on two T4s",
+    )
     args = parser.parse_args()
+    if args.parallel and args.mode != "engineering":
+        parser.error("--parallel is an engineering-only option until separately admitted")
     if args.mode == "segment" and args.segment is None:
         parser.error("--mode segment requires --segment")
     if args.mode == "engineering" and args.receipt is None:

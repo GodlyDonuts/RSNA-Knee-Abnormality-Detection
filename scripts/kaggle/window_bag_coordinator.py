@@ -31,6 +31,7 @@ CONTRACT_KEYS = {
     "session_timeout_seconds",
     "platform_limits",
     "production_funding",
+    "parallel_arms",
 }
 FUNDING_KEYS = {
     "engineering",
@@ -40,6 +41,16 @@ FUNDING_KEYS = {
     "authorized_at",
 }
 KERNEL_IDENTITY_KEYS = {"kernel_slug", "version", "source_sha256", "receipt_sha256"}
+
+
+def repeated(meta: dict, name: str) -> list:
+    """GetKernel omits empty repeated fields (absent or null); only those mean []."""
+    value = meta.get(name)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"Kernel metadata {name} is not a repeated field")
+    return value
 
 
 def validate_contract(contract: dict) -> dict:
@@ -61,6 +72,10 @@ def validate_contract(contract: dict) -> dict:
     )
     if not 0 < contract["session_timeout_seconds"] <= limit:
         raise ValueError("Session timeout exceeds its bound")
+    if type(contract["parallel_arms"]) is not bool or (
+        contract["parallel_arms"] and contract["mode"] != "engineering"
+    ):
+        raise ValueError("Concurrent two-T4 arms are an engineering-only option")
     if contract["mode"] == "engineering":
         if contract["production_funding"] is not None or contract["segment"] is not None:
             raise ValueError("Engineering contract must not carry production funding/segment")
@@ -87,6 +102,7 @@ def bound_in_source(contract: dict, source: str) -> None:
     if (
         f"WINDOW_BAG_SEGMENT = {contract['segment']!r}\n" not in source
         or f"WINDOW_BAG_MODE = {contract['mode']!r}\n" not in source
+        or f"WINDOW_BAG_PARALLEL = {contract['parallel_arms']!r}\n" not in source
         or f"WINDOW_BAG_MANIFEST_SHA256 = {contract['package_manifest_sha256']!r}\n" not in source
     ):
         raise ValueError("Notebook source does not embed the contract's segment/package")
@@ -140,9 +156,9 @@ def completed_gpu_kernel(remote, contract, identity, digest, receipt_name, extra
         or meta.get("enableInternet") is not False
         or meta.get("machineShape") != MACHINE_SHAPE
         or meta.get("dockerImage") != contract["runtime_image"]
-        or sorted(meta.get("datasetDataSources", [])) != sorted(datasets)
-        or sorted(meta.get("kernelDataSources", [])) != sorted(shards + extra_kernels)
-        or meta.get("competitionDataSources", []) != []
+        or sorted(repeated(meta, "datasetDataSources")) != sorted(datasets)
+        or sorted(repeated(meta, "kernelDataSources")) != sorted(shards + extra_kernels)
+        or repeated(meta, "competitionDataSources") != []
     ):
         raise ValueError("Bound kernel source/settings/inputs differ")
     if remote.kernel("GetKernelSessionStatus", identity["kernel_slug"], 1).get("status") != (
@@ -204,6 +220,7 @@ def verify_engineering(remote, contract, digest, gpu) -> dict:
         or contract["session_timeout_seconds"] != sized["session_timeout_seconds"]
         or segment["output_cap_bytes"] != sized["output_cap_bytes_per_segment"][index]
         or not sized["scratch_fits"]
+        or not sized["output_caps_fit"]
         or type(funding["gpu_seconds_authorized"]) not in (int, float)
         or funding["gpu_seconds_authorized"] < plan.session_charge(sized["session_timeout_seconds"])
     ):
@@ -246,7 +263,7 @@ def _previous_inputs(remote, previous, contract) -> list[str]:
     """The previous segment's own previous-output kernel source, from its pushed metadata."""
     meta = remote.kernel("GetKernel", previous["kernel_slug"], 1)["metadata"]
     shards = {s["slug"] for s in contract["shard_kernels"]}
-    extra = [k for k in meta.get("kernelDataSources", []) if k not in shards]
+    extra = [k for k in repeated(meta, "kernelDataSources") if k not in shards]
     if len(extra) != (0 if contract["segment"]["segment"] == 1 else 1):
         raise ValueError("Previous segment kernel inputs differ from its chain position")
     return extra
@@ -279,6 +296,11 @@ def verify_inputs(remote, publication, workflow, contract: dict) -> dict:
 def run_phase(phase, contract, source, remote, publication, workflow, journal, digest):
     """``journal`` is the root-owned exclusive-JSON writer inside the coordinator claim."""
     validate_contract(contract)
+    if contract["platform_limits"] != plan.admitted_platform_limits() or (
+        contract["model_dataset"]["id"],
+        contract["capsule_dataset"]["id"],
+    ) != (plan.SUPPORTED_DATASET_IDS[0], plan.SUPPORTED_DATASET_IDS[2]):
+        raise ValueError("Platform proof/Datasets differ from the actual admitted input shape")
     if digest(source) != contract["source_sha256"]:
         raise ValueError("Prepared notebook source differs from its contract")
     bound_in_source(contract, source)
@@ -298,7 +320,7 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
             if meta.get(name) != request[name]:
                 raise ValueError("Pushed kernel settings differ")
         for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
-            if sorted(meta.get(name, [])) != sorted(request[name]):
+            if sorted(repeated(meta, name)) != sorted(request[name]):
                 raise ValueError("Pushed kernel inputs differ; inspect, never retry")
         return {"status": remote.kernel("GetKernelSessionStatus", contract["kernel_slug"], 1)}
     if phase not in {"preflight", "push"}:
@@ -316,6 +338,13 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
     )
     if funding["available_seconds"] < funding["charge_seconds"]:
         raise ValueError("Fresh conservative allowance cannot fund this session")
+    # Both provisioned T4s are charged exactly once for the session, whether one or both
+    # arms use them concurrently.
+    funding = {
+        **funding,
+        "provisioned_GPUs_charged": plan.PROVISIONED_T4,
+        "GPUs_used_concurrently": 2 if contract["parallel_arms"] else 1,
+    }
     production = None
     if contract["mode"] == "segment":
         # Both bindings are verified read-only before any segment intent or SaveKernel.

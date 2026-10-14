@@ -67,12 +67,14 @@ BRANCH = """    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         with tarfile.open(archive[0]) as tar:
             tar.extractall(capsule, filter="data")
         paths = {k: capsule / v for k, v in layout["arguments"].items()}
-        env.update(PYTHONPATH=str(code), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", CUDA_VISIBLE_DEVICES="0")
+        env.update(PYTHONPATH=str(code), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", CUDA_VISIBLE_DEVICES="0,1" if WINDOW_BAG_PARALLEL is True else "0")
         remaining = WINDOW_BAG_TIMEOUT_SECONDS - 300 - (time.monotonic() - notebook_started)
         mode = WINDOW_BAG_MODE
         command = [str(python), "-B", str(code / "scripts/kaggle/window_bag_t4.py"), "--mode", mode, "--source", str(code), "--source-manifest", str(private / "source-manifest.json"), "--fixture", str(private / "fixture.json"), "--bag-cpu", str(private / "bag-cpu.json"), "--overlay", str(private / "overlay.json"), "--pixel-group", str(private / "pixel-group.json"), *encoder_arguments(bundle, stage, manifest), *[x for k, v in paths.items() for x in ("--" + k, str(v))], "--output", "/tmp/rsna-window-bag", "--publish-root", str(working), "--remaining-seconds", str(remaining), "--bootstrap-seconds", str(time.monotonic() - notebook_started)]
         if mode == "engineering":
             command += ["--receipt", str(working / "window-bag-engineering-accepted.json")]
+            if WINDOW_BAG_PARALLEL is True:
+                command += ["--parallel"]
         else:
             (private / "segment.json").write_text(json.dumps(WINDOW_BAG_SEGMENT))
             command += ["--segment", str(private / "segment.json")]
@@ -149,10 +151,13 @@ def build(
     mode: str = "engineering",
     segment: dict | None = None,
     timeout_seconds: int = 7200,
+    parallel: bool = False,
 ) -> tuple[str, dict]:
     """Return (notebook source, binding record). Writes nothing and calls no API."""
     if mode not in {"engineering", "segment"} or (mode == "segment") != (segment is not None):
         raise ValueError("Engineering, or segment with an exact contract")
+    if parallel is not False and (parallel is not True or mode != "engineering"):
+        raise ValueError("Concurrent two-T4 arms are an engineering-only option")
     if set(capsule) != {"archive_name", "archive_sha256", "arguments"} or set(
         capsule["arguments"]
     ) != {"studies", "artifact-root", "folds", "series"}:
@@ -167,6 +172,7 @@ def build(
         "EXPECTED_MANIFEST_SHA256": bundle_manifest_sha256,
         "WINDOW_BAG_T4_PROBE": True,
         "WINDOW_BAG_MODE": mode,
+        "WINDOW_BAG_PARALLEL": parallel,
         "WINDOW_BAG_SEGMENT": segment,
         "WINDOW_BAG_TIMEOUT_SECONDS": timeout_seconds,
         "WINDOW_BAG_CAPSULE": capsule,
@@ -186,6 +192,7 @@ def build(
         "bound_current": manifest["bound_current"],
         "entry_sha256": sha_bytes(ENTRY.read_bytes()),
         "mode": mode,
+        "parallel": parallel,
         "segment": segment,
     }
     return notebook, record
