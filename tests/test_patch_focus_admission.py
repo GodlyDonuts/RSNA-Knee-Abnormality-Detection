@@ -231,6 +231,46 @@ def test_gradient_study_needs_observed_and_masked_fitting_targets():
     assert admit.gradient_study(frame) == 1
 
 
+def test_full_source_masks_use_a_separate_backward_only_negative_control(monkeypatch):
+    import pandas as pd
+
+    from rsna.schema import TARGETS
+
+    monkeypatch.setattr(recovery, "EMBEDDING_DIM", D)
+    frame = pd.DataFrame({f"{t}__mask": [0, 1] for t in TARGETS})
+    before = frame.copy(deep=True)
+    position, mask, receipt = admit.routing_probe(frame)
+    assert position == 1 and mask.sum() == 11 and mask[0, -1] == 0
+    assert receipt["method"] == "backward_only_cloned_mask_negative_control"
+    assert receipt["accepted_fitting_masks_changed"] is False
+    assert receipt["optimizer_steps"] == 0
+    pd.testing.assert_frame_equal(frame, before)
+    build, original = _builder()
+    inputs, labels, _ = _probe_inputs()
+    result, _ = admit.matched_initialization(build, inputs, labels, mask, 0, original)
+    assert result["candidate_masked_query_gradients_exactly_zero"] is True
+    assert result["candidate_observed_targets"] == 11
+
+
+def test_routing_probe_preserves_natural_masks_and_refuses_no_signal_or_nonbinary():
+    import pandas as pd
+
+    from rsna.schema import TARGETS
+
+    frame = pd.DataFrame({f"{t}__mask": [1] for t in TARGETS})
+    frame[f"{TARGETS[2]}__mask"] = 0
+    _, mask, receipt = admit.routing_probe(frame)
+    assert receipt["removed_target_index"] is None
+    assert mask[0, 2] == 0 and mask.sum() == 11
+    frame.loc[:, :] = 0
+    with pytest.raises(ValueError, match="No fitting row"):
+        admit.routing_probe(frame)
+    frame = frame.astype(float)
+    frame.iloc[0, 0] = 0.5
+    with pytest.raises(ValueError, match="binary"):
+        admit.routing_probe(frame)
+
+
 # --- GPU wrapper comparison helpers ---------------------------------------------------
 
 
