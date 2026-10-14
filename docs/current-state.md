@@ -16,7 +16,7 @@ All daily deployment controllers are terminal successful, including80209 and8968
 
 
 
-Epoch9 finite preservation observerPID85330/exec40402 is actually live, maximum1800seconds; original908454confirmedRUNNING. Noepoch9 publication yet. Original pinned coordinator, completed snapshot/absence checks, noautomaticretry. Read final-public-source-epoch9-observer-20261014-v1.
+Epoch9 observer85330/exec40402 is TERMINAL SUCCESS. Original epoch9/3834updates privately preserved ONCE/allfiveobjects forced-download-size-SHA verified at HFba1ae09a… byCPU917618. Neverrepeat epochs1–9. Read final-public-source-epoch9-20261014-v1.
 
 ## Queued recovery after healthy training
 
@@ -71,3 +71,5 @@ Distinct evc26runtime CPU917129 COMPLETED0:0/22s: existing archive89597ed4…/40
 Distinct evc40→26 private cache relay complete:3404files/27668082285B, fullnewcopy size/SHA/count/EOFverified onCPU917243; original source signaturesunchanged, no sourcebulkrehash/noMacorSharedpixels/GPU/model. Targetproofca6632b9…/index849855…/manifest09ea…/sourceCPU70d9… under privatecontrol.32GiBcache+8MiBcontrols eachfundedafterremainingruntime/retainedcaps/20GiBfloor; zero sharedgrowth. Neverrepeattransfer. GPU917001pendingunchanged; targetsource/model admission and explicitpending-only transition stillrequired.
 
 Evc26 nowholds exactfrozenbf46source/proofs/overlay:90files/2283520B packetSHA1e91c6c… verifiedonCPU917379, source-manifestc46…/sourceCPU70d9…/overlayc8fd… unchanged. Newroot /tmp/rsna-patch-focus-evc26-admission-20261014-v1; existingtarget8MiBcontrols cover5812333B combinedphysical use plus1MiBreceiptreserve. Norawpacket/overlay toMacorShared, noGPU/model/targetadmission yet. OriginalCPU40proof remainsSOURCElineage; issue87targetadmission stillneeded beforepending-only GPUtransition.
+
+Daily queue now allows private Dataset/notebook prevalidation atzero competition slots; submit still requires fresh positive allowance.189adjacent tests passed. Epoch8 freshmetadata reservation1MiB/foursharedfiles retains20GiB/5000files. Finite prevalidation controllerPID94105/exec65550 is actualalive with maxcompetition submissions0; no Dataset/notebook outcome claimed yet. Existing exact private preparedE8bundle reused; inspect its intents/results before action. Todayfive scored submissions remainunchanged.
