@@ -1,0 +1,1 @@
+The previous current-state guide is preserved verbatim here. The replacement guide is a compact index of actual current jobs, outcomes, intents, pending actions and exact audit locations. No scientific source, original receipt, dataset, checkpoint or historical finding was removed.
