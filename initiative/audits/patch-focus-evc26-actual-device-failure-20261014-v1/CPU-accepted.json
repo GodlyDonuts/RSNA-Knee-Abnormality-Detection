@@ -1,0 +1,99 @@
+{
+  "CPU_job": "917440",
+  "GPU_or_optimizer_or_clinical_metric": false,
+  "backward_only_probe": {
+    "acquired_slots": 5,
+    "fitting_position": 0,
+    "images_sha256": "f99d13f10a5e71d02caa65252b67b9b53fd58e2a52848f9b92a9175d627631a8",
+    "labels_and_mask_sha256": "96d517bb1dd62b52bdcb54e9749332168fba941e261847e67159fde427e11e90",
+    "routing_fixture": {
+      "accepted_fitting_masks_changed": false,
+      "method": "backward_only_cloned_mask_negative_control",
+      "optimizer_steps": 0,
+      "original_observed_targets": 12,
+      "probe_observed_targets": 11,
+      "removed_target_index": 11
+    },
+    "routing_mask_sha256": "d17320a1e289a19753b5dcf581a0cd7e9be2bbf4bc2c1f3f04960a0373fe8e56"
+  },
+  "code_delta": {
+    "added_files": 4,
+    "changed_files": 3,
+    "code_delta_sha256": "e8b92a7af6a6f351afa52287a72588f48ccd04495039ab367e90065ca062ebe3",
+    "input_label_code_changed": [
+      "competitive/train.py",
+      "release_cache.py"
+    ],
+    "input_label_code_unchanged_sha256": "b152fc5d02064d56901e88f17cb520b25ba9c4b6e376e07779106c078325677c",
+    "removed_files": 0
+  },
+  "encoder_spec": {
+    "encoder_spec_sha256": "abb36a74fe5277e2240cf5fc6157b4fa6568bb0ecff695a5ab671f4858b4c9d3"
+  },
+  "fresh_required_free_bytes": 387111012442,
+  "matched_initialization_and_gradients": {
+    "candidate_masked_query_gradients_exactly_zero": true,
+    "candidate_masked_targets": 1,
+    "candidate_observed_query_gradients_finite_nonzero": true,
+    "candidate_observed_targets": 11,
+    "candidate_query_gradient_norm": 0.0004668555047828704,
+    "candidate_shared_gradient_max_abs_difference": 0.0,
+    "control_gradients_bitwise_reference": true,
+    "control_query_gradient_zero": true,
+    "first_microbatch_loss": 0.7194716930389404,
+    "initial_logits_bitwise_equal": true,
+    "initial_logits_sha256": "7d8d7f570280e95ace13cff57128468be3d2d8498f21dcb79ffce5e987c41c96",
+    "initial_values_sha256": "30a78722c4ca87405061cdd0e3480462f2219be6317729ee1b204d8a095615e3",
+    "learned_parameters": {
+      "candidate": 10772236,
+      "control": 10772236,
+      "reference": 10759948
+    },
+    "only_extra_parameter": "patch_query",
+    "patch_query_zero_initialized": true,
+    "post_factory_RNG_sha256": "ae17dcd5315a6fa26a1f946aa3e847b6218087f91be3e0ea78b7b959b2c7c9dd",
+    "post_forward_RNG_equal": true,
+    "reference_encoder_gradient_norm": 0.08372243493795395
+  },
+  "node": "evc26",
+  "original_source_node_proofs_relabelled": false,
+  "overlay_sha256": "c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51",
+  "public_cohort": {
+    "adapter_sha256": "f7d79508a0784db2c89534fba975bb41c6c9e98d09c72f71e488b4c92c2b5d40",
+    "cohort_sha256": "6d00d9aa90799aca0f32b5e0918f9716f00f7a3e516db3a4625aaed46b373844",
+    "evaluation_uids_sha256": "2f365bb0ce8e052f22dcab78bb2bbb7e03c0919ab28ba94ab9d3d8d6e08f0fdb",
+    "fitting_uids_sha256": "e9d38ee21a114973177b89f4602129c7dc047927b8499991d3be30fd89737f3a",
+    "index_sha256": "849855281837669efaad81596314f7770b8a936baa457e2a571418dbd87c1736",
+    "members": 3403,
+    "pixel_group_sha256": "bbd7564015afc8a823fd122cd7150f5cf9025f3cdadf3396f0170406855eaa59"
+  },
+  "public_tensor_sha256": {
+    "development": {
+      "images": "b6adcd6602eafea2e964c54f01537569a03029c4b4796b55c7631917edaea024",
+      "labels": "4f5a10a106b0dc560923c0c5077529a8c7f37e69df1ebd38bbc449733e9181cf",
+      "other": "59147d2b14c744d31a195f546faf2f68a9a9c6d16cba8614bae65ef01c84968e"
+    },
+    "fitting": {
+      "images": "e777ec9284a0004ff88e9a3f7d146620ce75e8f220fd8f34cd8d51c873eaeee2",
+      "labels": "9144fa0a08baa8c4bf0eb1f43434d93b2a27a07129e7a2967aaa7281ced258d5",
+      "other": "dab764403e3d63bb5713bd9f179099abbffb1d9e8a952493ae4be8b0730e9411"
+    }
+  },
+  "relocation_receipt_sha256": "c728de85fb2387fa867b76a0d5cff02e6c4469bf57e08e3a77c1ca2aff107823",
+  "runtime": {
+    "numpy": "2.2.1",
+    "pandas": "2.2.3",
+    "prefix": "/tmp/rsna-environment-917129-_r45a3dc/environment",
+    "python": "3.12.13",
+    "safetensors": "0.7.0",
+    "torch": "2.14.0",
+    "transformers": "5.6.1"
+  },
+  "source_CPU_receipt_sha256": "70d9c6722c6d6e4c9eb0be6653df0fccc0d159e7db2d33e6abb4de1e545509d5",
+  "source_files_and_masks_changed": false,
+  "source_git": "bf46b70eea1216673aafb1b5d34e513247b4ef1c",
+  "source_manifest_sha256": "c46c6dec4ffc2b24648578cf35055bf2a4f6c0ba69edeffcf0c9fa9094b552ae",
+  "source_node": "evc40",
+  "status": "actual_relocated_patch_focus_source_inputs_models_RNG_gradients_CPU_accepted",
+  "supervision_sha256": "7f423ee5972231195b4104552501fbb19b7dc511675d77d3e4d6347172248ba9"
+}

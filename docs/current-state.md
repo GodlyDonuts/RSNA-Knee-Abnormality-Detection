@@ -15,6 +15,11 @@ Five actual code submissions today:epoch1/57178747,epoch3/57180081,epoch4/571805
 All daily deployment controllers are terminal successful, including80209 and89682. Never restart them or repeat these submissions. Epoch2 remains the preserved unsubmitted uncertain draft; its Dataset was created once. Epoch5 was first committed exactly asversion1, after fresh owner-authenticated UI0-version evidence and a downloaded/API source body hash matching the original prepared operation. The original null response and all pre-mutation refusals remain recorded. The narrow source-verified accessible-draft guard passed3442full tests/8skipped, plus138focused/39private-commit checks. Fresh allowance is required for any future day; today'sfive-entry quota is consumed.
 
 
+
+## Latest actual device observation
+
+Relocated evc26 CPU917440 COMPLETED0:0 with matching MRI/model/RNG/gradient evidence. Original917001 cancelled ONLY PENDING/zero-runtime/no-allocation. Replacement917477 FAILED1:0 after2s before model/GPU-start. Distinct device-only917508 saw zero torch/NVML devices despite Slurm GPU0 assignment; no isolation override or model run. Underlying device-access cause remains unproven; no automatic retry or production dispatch. Exact runtime/cache/source copies remain preserved. Healthy908454 observed3785finite updates/epoch9 training. Read patch-focus-evc26-actual-device-failure-20261014-v1.
+
 ## Active training/research
 
 **October14 16:00UTC supersedes older running snapshots below:** Original908454 remains RUNNING on evc40,3315finite updates/seven complete epochs/eighth underway. Epoch7 privately preserved once/full five-object download-size-SHA verified at HFadf1e09d14e85a6a95614de93538893185998931; do not repeat1–7. Parent899766 COMPLETED0:0 at15:38:28UTC, cancelling dense overlap899766.705 with signal15/dispatcher143. This is NOT resumable exit75. Final dense checkpoint and repeat score are unobserved; maintenance/PAM blocks lawful evc31 access. Do not bypass or restart. Issue82 prepares explicit cancellation recovery; owner CPU-access request is pending. Actual cache relay remains complete on evc40. See training-preservation-cancellation-20261014-v1.
