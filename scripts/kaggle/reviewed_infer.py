@@ -40,6 +40,8 @@ def read_admission(path: Path) -> dict:
 def validate_reviewed(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
     if admission.get("role") == "public_source_final10":
         return validate_public_source_final(checkpoint, admission, checkpoint_sha)
+    if admission.get("role") == ALL_DEVELOPMENT_ROLE:
+        return validate_all_development_epoch(checkpoint, admission, checkpoint_sha)
     binding = checkpoint["binding"]
     config = binding["config"]
     role = admission.get("role")
@@ -123,6 +125,154 @@ def validate_public_source_final(checkpoint: dict, admission: dict, checkpoint_s
         or binding.get("private_research_only")
     ):
         raise ValueError("Public-source checkpoint differs from exact final admission")
+    view = dict(checkpoint)
+    view["binding"] = dict(binding)
+    view["binding"].pop("experimental_fitting_supervision")
+    view["binding"]["config"] = dict(config)
+    view["binding"]["config"].pop("fitting_supervision")
+    infer.validate_inference_checkpoint(view, allow_scheduled_epoch=True)
+    return binding
+
+
+ALL_DEVELOPMENT_ROLE = "public_source_all_development_epoch"
+ALL_DEVELOPMENT_STATUS = "owner_authorized_daily_kaggle_comparison_queue"
+ALL_DEVELOPMENT_SOURCE = "1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9"
+# Original job 908454 run binding (all epochs) and its frozen rsna module hashes.
+ALL_DEVELOPMENT_BINDING = "5c8e14732143a479073b43a24ff7851775a1dd550dc8deb0a9291b8f8091597e"
+ALL_DEVELOPMENT_CODE = "86db55a2769a676b0015d24e464de4be025c2c4abc2845363cb2313fc4ea2b7e"
+ALL_DEVELOPMENT_OVERLAY = "54b5a652949120764a596b4d495f11950ff103a909b7efc5fe59da9cd6f2fe85"
+ALL_DEVELOPMENT_RELEASE = "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7"
+ALL_DEVELOPMENT_FOLDS = "fe590e5072a0d82abeb377598aeef0021bbe77fe4529a19b9826a7d40d322050"
+ALL_DEVELOPMENT_SOURCE_CSV = "eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4"
+ALL_DEVELOPMENT_FIT = "6d00d9aa90799aca0f32b5e0918f9716f00f7a3e516db3a4625aaed46b373844"
+EMPTY_ROSTER = hashlib.sha256(b"[]").hexdigest()
+ALL_DEVELOPMENT_UPDATES = 426
+ALL_DEVELOPMENT_STUDIES = 3403
+ALL_DEVELOPMENT_PREFIX = (
+    "experiments/dinov3-v1/training-epochs/"
+    "public-label-source-final-all-development-1bcd6c0-fixed10-seed20260922"
+)
+OFFICIAL_DINOV3_L = {
+    "architecture": "dinov3_l16",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+}
+# Exact owner queue: epoch -> (checkpoint SHA-256, private HF revision). Nothing else.
+ALL_DEVELOPMENT_EPOCHS = {
+    1: (
+        "74a24c6468a3e2e1ff643bb77eb316207c11feab9e7af0514a407c63a0cf66d5",
+        "424827b0bf049e4270f61e48ab004b8ce3070b05",
+    ),
+    2: (
+        "9422444c2144e925da5c6feb845a7890529fbe82a2decd2dafdac6fa9e46f410",
+        "9d19a06c3d85fed3746983f274ea87bf2f0d8ad9",
+    ),
+    3: (
+        "59adcdc9ed72dac94e5c8213a8d1fc61c917b5ccb800250be0cc457ccaad7d90",
+        "47ef80ce35f481da8bd465438e10648a3166dd6d",
+    ),
+    4: (
+        "794de246d2703e87c2f2235bf9fcac5d39673bca1a11a7fbbe2684c58636de8d",
+        "93950d4b0beb50329f5b2211030f610858ee4ac5",
+    ),
+    5: (
+        "8a81970c35e54f7c0417690c7344546542f6cf34acc74cbf347b294092537140",
+        "dc44dc8ca541be375070d8d5f3161534dae6f689",
+    ),
+}
+FORBIDDEN_BINDING = (
+    "external_initialization",
+    "private_research_only",
+    "external_weight_publication",
+    "public_input_cache",
+)
+
+
+def all_development_admission(epoch: int) -> dict:
+    """The only admission accepted for one exact queued all-development epoch."""
+    if type(epoch) is not int or epoch not in ALL_DEVELOPMENT_EPOCHS:
+        raise ValueError("Epoch is not an exact owner-queued all-development checkpoint")
+    sha, revision = ALL_DEVELOPMENT_EPOCHS[epoch]
+    return {
+        "schema_version": 1,
+        "status": ALL_DEVELOPMENT_STATUS,
+        "role": ALL_DEVELOPMENT_ROLE,
+        "scientific_source_git": ALL_DEVELOPMENT_SOURCE,
+        "checkpoint_sha256": sha,
+        "training_binding_sha256": ALL_DEVELOPMENT_BINDING,
+        "training_code_sha256": ALL_DEVELOPMENT_CODE,
+        "private_HF_revision": revision,
+        "private_HF_prefix": f"{ALL_DEVELOPMENT_PREFIX}/epoch-{epoch:03d}",
+        "seed": 20260922,
+        "epoch": epoch,
+        "optimizer_steps": ALL_DEVELOPMENT_UPDATES * epoch,
+        "fit_scope": "all_development",
+        "fitting_supervision": "label_source_final_v1",
+        "training_studies": ALL_DEVELOPMENT_STUDIES,
+        "outer_studies": 0,
+        "official_base": OFFICIAL_DINOV3_L,
+        "MRI_only_inference": True,
+        "original_checkpoint_and_numerical_source_unchanged": True,
+    }
+
+
+def validate_all_development_epoch(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
+    """Authorize one exact queued epoch of original all-development job 908454."""
+    epoch = admission.get("epoch")
+    try:
+        expected = all_development_admission(epoch)  # type: ignore[arg-type]
+    except ValueError:
+        raise ValueError("All-development checkpoint differs from exact queue admission") from None
+    binding = checkpoint["binding"]
+    config = binding["config"]
+    encoder = config.get("encoder", {})
+    receipt = binding.get("experimental_fitting_supervision", {})
+    if (
+        admission != expected
+        or checkpoint_sha != expected["checkpoint_sha256"]
+        or object_sha(binding) != ALL_DEVELOPMENT_BINDING
+        or object_sha(binding.get("code_sha256")) != ALL_DEVELOPMENT_CODE
+        or checkpoint.get("schema_version") != 2
+        or checkpoint.get("optimizer_boundary") is not True
+        or checkpoint.get("scheduled_epoch") is not True
+        or checkpoint.get("epoch") != epoch
+        or checkpoint.get("step") != ALL_DEVELOPMENT_UPDATES * epoch
+        or checkpoint.get("next_update") != 0
+        or config.get("epochs") != 10
+        or config.get("warmup_updates") != ALL_DEVELOPMENT_UPDATES
+        or config.get("seed") != 20260922
+        or config.get("fold") != 0
+        or config.get("submission_every_epochs") != 1
+        or config.get("fit_scope") != "all_development"
+        or config.get("diagnostic_study_limit") is not None
+        or config.get("side") != 384
+        or config.get("checkpoint_format") != "frozen_base_delta"
+        or config.get("public_input") is not None
+        or config.get("fitting_supervision")
+        != {"kind": "label_source_final_v1", "sha256": ALL_DEVELOPMENT_OVERLAY, "enabled": True}
+        or any(encoder.get(k) != v for k, v in OFFICIAL_DINOV3_L.items())
+        or encoder.get("adapter", {}).get("rank") != 32
+        or receipt.get("overlay_sha256") != ALL_DEVELOPMENT_OVERLAY
+        or receipt.get("release_sha256") != ALL_DEVELOPMENT_RELEASE
+        or receipt.get("folds_sha256") != ALL_DEVELOPMENT_FOLDS
+        or receipt.get("fitting_uid_sha256") != ALL_DEVELOPMENT_FIT
+        or receipt.get("outer_uid_sha256") != EMPTY_ROSTER
+        or receipt.get("fitting_studies") != ALL_DEVELOPMENT_STUDIES
+        or receipt.get("fit_scope") != "all_development"
+        or receipt.get("final_fit_only") is not True
+        or receipt.get("internal_validation_available") is not False
+        or receipt.get("evaluation_masks_changed") is not False
+        or receipt.get("experimental_only") is not True
+        or receipt.get("enabled") is not True
+        or receipt.get("source", {}).get("csv_sha256") != ALL_DEVELOPMENT_SOURCE_CSV
+        or binding.get("training_uids_sha256") != ALL_DEVELOPMENT_FIT
+        or binding.get("outer_uids_sha256") != EMPTY_ROSTER
+        or binding.get("release", {}).get("manifest_sha256") != ALL_DEVELOPMENT_RELEASE
+        or any(binding.get(k) for k in FORBIDDEN_BINDING)
+    ):
+        raise ValueError("All-development checkpoint differs from exact queue admission")
     view = dict(checkpoint)
     view["binding"] = dict(binding)
     view["binding"].pop("experimental_fitting_supervision")
