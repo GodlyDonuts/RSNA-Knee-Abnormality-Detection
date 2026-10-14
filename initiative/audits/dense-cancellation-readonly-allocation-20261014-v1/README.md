@@ -1,0 +1,3 @@
+# Ordinary CPU-only state inspection request
+
+Single normal-scheduler job916813requested1CPU/zeroGPU/1GiB/10minutes on evc31, no reservation override or requeue. Actual PENDING ReqNodeNotAvail/may be reserved, zero runtime. Deadline scheduler-local2026-10-15T02:00:00 bounds the request. It may only inventory the original cancelled dense state and hash its promoted checkpoint; no source-file mutation, model execution, training restart, transfer or automatic recovery. New node-local control cap16MiB retains338320442039B liabilities and20GiB floor, zero shared-growth. This is not access acceptance or a recovery result. User HPC-support access question remains pending; no repeat question. Never duplicate this request or bypass the maintenance/PAM reservation.

@@ -1,0 +1,3 @@
+# Original all-data epoch8 privately preserved
+
+Original908454completed immutable epoch8 at3408optimizer updates. Original single coordinator/CPU916791 privately published it once at HF92a7b3337facba4f7b9015f80be52b744a009924; all5objects forced re-downloaded/size/SHAverified.125556557-byte checkpointd4aed5e3ae15d6e421a4e5098626750308e1bf2c92f8abce70adce5be2fa0f57. No native/public input, accepted labels/folds/base, numerical source1bcd6c0 or scientific recipe changed. Epochs1–8 are privately preserved; do not repeat. Latest3420finite updates means epoch9 is underway; empty stderr. No Kaggle score exists for this checkpoint.
