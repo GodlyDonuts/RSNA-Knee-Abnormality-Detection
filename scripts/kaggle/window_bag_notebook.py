@@ -33,7 +33,11 @@ BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         manifest = json.loads(package["manifest"])
         if hashlib.sha256(package["manifest"].encode()).hexdigest() != WINDOW_BAG_MANIFEST_SHA256:
             raise ValueError("Numerical package manifest differs")
-        code = working / "window-bag-source"
+        # Code, private inputs, capsule and MRI cache stay in session scratch; only the
+        # accepted receipt or the write-once segment publication reaches /kaggle/working.
+        stage = Path("/tmp/rsna-window-bag-stage")
+        stage.mkdir(mode=0o700)
+        code = stage / "window-bag-source"
         code.mkdir(mode=0o700)
         for name, text in package["files"].items():
             relative = Path(name)
@@ -44,7 +48,7 @@ BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
             path.parent.mkdir(parents=True, exist_ok=True)
             with path.open("x") as handle:
                 handle.write(text)
-        private = working / "window-bag-private"
+        private = stage / "window-bag-private"
         private.mkdir(mode=0o700)
         for name, blob in WINDOW_BAG_PRIVATE.items():
             data = gzip.decompress(base64.b64decode(blob, validate=True))
@@ -56,7 +60,7 @@ BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         archive = [p for p in attached_dataset_files(Path("/kaggle/input"), layout["archive_name"]) if sha256(p) == layout["archive_sha256"]]
         if len(archive) != 1:
             raise ValueError("Exactly the original private render capsule archive required")
-        capsule = working / "window-bag-capsule"
+        capsule = stage / "window-bag-capsule"
         capsule.mkdir(mode=0o700)
         with tarfile.open(archive[0]) as tar:
             tar.extractall(capsule, filter="data")
@@ -64,15 +68,12 @@ BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         env.update(PYTHONPATH=str(code), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1", CUDA_VISIBLE_DEVICES="0")
         remaining = WINDOW_BAG_TIMEOUT_SECONDS - 300 - (time.monotonic() - notebook_started)
         mode = WINDOW_BAG_MODE
-        command = [str(python), "-B", str(code / "scripts/kaggle/window_bag_t4.py"), "--mode", mode, "--source", str(code), "--source-manifest", str(private / "source-manifest.json"), "--fixture", str(private / "fixture.json"), "--bag-cpu", str(private / "bag-cpu.json"), "--overlay", str(private / "overlay.json"), "--pixel-group", str(private / "pixel-group.json"), *encoder_arguments(bundle, working, manifest), *[x for k, v in paths.items() for x in ("--" + k, str(v))], "--output", "/tmp/rsna-window-bag", "--receipt", str(working / ("window-bag-" + mode + "-accepted.json")), "--remaining-seconds", str(remaining)]
-        if mode == "segment":
+        command = [str(python), "-B", str(code / "scripts/kaggle/window_bag_t4.py"), "--mode", mode, "--source", str(code), "--source-manifest", str(private / "source-manifest.json"), "--fixture", str(private / "fixture.json"), "--bag-cpu", str(private / "bag-cpu.json"), "--overlay", str(private / "overlay.json"), "--pixel-group", str(private / "pixel-group.json"), *encoder_arguments(bundle, stage, manifest), *[x for k, v in paths.items() for x in ("--" + k, str(v))], "--output", "/tmp/rsna-window-bag", "--publish-root", str(working), "--remaining-seconds", str(remaining), "--bootstrap-seconds", str(time.monotonic() - notebook_started)]
+        if mode == "engineering":
+            command += ["--receipt", str(working / "window-bag-engineering-accepted.json")]
+        else:
             (private / "segment.json").write_text(json.dumps(WINDOW_BAG_SEGMENT))
             command += ["--segment", str(private / "segment.json")]
-            if WINDOW_BAG_SEGMENT["previous_checkpoint_sha256"] is not None:
-                prior = [p for p in attached_dataset_files(Path("/kaggle/input"), "checkpoint.pt") if sha256(p) == WINDOW_BAG_SEGMENT["previous_checkpoint_sha256"]]
-                if len(prior) != 1:
-                    raise ValueError("Exactly the bound previous segment checkpoint required")
-                command += ["--previous-checkpoint", str(prior[0])]
         bounded_process(command, env=env, timeout=remaining)
         return
 '''

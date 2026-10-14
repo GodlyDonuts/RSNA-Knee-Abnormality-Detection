@@ -13,6 +13,11 @@ if __name__ == "__main__":
     spec = json.loads(sys.argv[1])
     resume = Path(spec["resume"]) if spec.get("resume") else None
     code = _diagnostic_run(
-        Path(spec["root"]), spec["arm"], Path(spec["output"]), stop=spec.get("stop"), resume=resume
+        Path(spec["root"]),
+        spec["arm"],
+        Path(spec["output"]),
+        stop=spec.get("stop"),
+        resume=resume,
+        every=spec.get("every", 0),
     )
     sys.exit(code)

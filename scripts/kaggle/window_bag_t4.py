@@ -12,8 +12,11 @@ unchanged trainer for both plain-mean/disease-query arms in fresh full/stop1/res
 (2 epochs/4 updates) and requires complete state and MRI-only prediction-byte equality.
 
 ``segment``: one bounded production session of the fixed 10-epoch recipe. It resumes only
-from a SHA-bound previous checkpoint and stops at a scheduled optimizer boundary. Only the
-final segment reaches epoch 10, the only evaluation the trainer performs.
+from the exact published output of the bound previous segment kernel (mounted read-only),
+stops at a scheduled optimizer boundary and publishes its complete continuation checkpoint,
+every newly completed immutable epoch and their sidecars write-once into private
+``/kaggle/working``. Only the final segment reaches epoch 10, the only evaluation the
+trainer performs.
 
 Engineering metrics never select, score or submit a model.
 """
@@ -82,6 +85,16 @@ SCRATCH_RESERVE_BYTES = 3 * GIB
 ENGINEERING_STATUS = "source_window_bag_two_arm_actual_single_T4_canonical_recovery_accepted"
 SEGMENT_STATUS = "source_window_bag_fixed10_single_T4_segment_completed"
 SEARCH_DEPTH = 7
+PUBLICATION_DIR = "window-bag-segment"
+PUBLICATION_MANIFEST = "segment-publication.json"
+SEGMENT_RECEIPT = "window-bag-segment-accepted.json"
+ENGINEERING_RECEIPT = "window-bag-engineering-accepted.json"
+PUBLICATION_SIDECARS = ("config.json", "segment.stdout", "segment.stderr")
+PUBLICATION_RUN_FILES = ("checkpoint.pt", "run.json", "invocation.json")
+PUBLICATION_FINAL_FILES = ("result.json", "outer_predictions.csv")
+PUBLICATION_RESERVE_BYTES = GIB
+MEASURED_KEYS = ("seconds_per_update", "startup_seconds", "checkpoint_seconds",
+                 "final_evaluation_seconds", "checkpoint_bytes")
 
 
 def sha(path) -> str:
@@ -537,7 +550,9 @@ def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, 
     run(["--output", str(full)], "full", 0)
     run(["--output", str(replay), "--stop-after-updates", "1"], "stop", 75)
     # Keep the actual interrupted checkpoint/history before resume replaces them.
+    copy_started = time.monotonic()
     shutil.copyfile(replay / "checkpoint.pt", root / "actual-stop-checkpoint.pt")
+    copy_seconds = time.monotonic() - copy_started
     shutil.copyfile(replay / "invocation.json", root / "actual-stop-invocation.json")
     run(["--output", str(replay), "--resume", str(replay / "checkpoint.pt")], "resume", 0)
     load = lambda p: torch.load(p, map_location="cpu", weights_only=True)  # noqa: E731
@@ -568,6 +583,9 @@ def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, 
         "actual_stop_checkpoint_sha256": sha(root / "actual-stop-checkpoint.pt"),
         "amp_scaler": whole["amp_scaler"],
         "phase_seconds": timings,
+        "update_elapsed_seconds": [row["elapsed_seconds"] for row in history["updates"]],
+        "checkpoint_bytes": (full / "checkpoint.pt").stat().st_size,
+        "checkpoint_copy_seconds": copy_seconds,
         "complete_actual_partial_final_RNG_optimizer_scaler_and_CSV_recovery": True,
     }
     del whole, resumed, partial
@@ -590,6 +608,7 @@ def prepare(args):
     """Shared admission: package, fixtures, mounted shards, index, release membership."""
     code = Path(args.source).resolve()
     hashes = code_hashes(code, json.loads(Path(args.source_manifest).read_text()))
+    args.package_manifest_sha256 = sha(args.source_manifest)
     fixture = load_bound(args.fixture, FIXTURE_SHA256)
     bag = load_bound(args.bag_cpu, BAG_CPU_SHA256)
     validate_fixtures(fixture, bag)
@@ -610,6 +629,39 @@ def prepare(args):
         fit, outer, parts, series, binding["source_revision"])
 
 
+def measure(arms: dict, restored: dict, restore_seconds: float, bootstrap_seconds: float,
+            admission_seconds: float) -> dict:
+    """Conservative production timings derived only from this actual engineering session.
+
+    Per update: the slowest observed update of either arm (effective 8, includes the
+    trainer's own checkpoint writes). Final evaluation: the full-process tail after its last
+    update, scaled from 16 to 1156 outer studies. Startup: notebook bootstrap plus
+    admission, with the member restore scaled to all 27.7 GB of the complete cohort.
+    """
+    per_update, tail, copy, size = [], [], [], []
+    for result in arms.values():
+        elapsed = result["update_elapsed_seconds"]
+        if len(elapsed) < 2 or any(b <= a for a, b in zip(elapsed, elapsed[1:])):
+            raise ValueError("Actual contiguous per-update timings required")
+        per_update.append(max([elapsed[0], *(b - a for a, b in zip(elapsed, elapsed[1:]))]))
+        tail.append(result["phase_seconds"]["full"] - elapsed[-1])
+        copy.append(result["checkpoint_copy_seconds"])
+        size.append(result["checkpoint_bytes"])
+    if restored["bytes"] <= 0 or min(tail) <= 0:
+        raise ValueError("Actual restore/evaluation timings required")
+    restore_full = restore_seconds * EXACT_MEMBER_BYTES / restored["bytes"]
+    measured = {
+        "seconds_per_update": max(per_update),
+        "startup_seconds": bootstrap_seconds + admission_seconds - restore_seconds + restore_full,
+        "checkpoint_seconds": max(copy),
+        "final_evaluation_seconds": max(tail) * OUTER_STUDIES / ENGINEERING_STUDIES,
+        "checkpoint_bytes": max(size),
+    }
+    if any(not value > 0 for value in measured.values()):
+        raise ValueError("Measured timings/bytes must be positive")
+    return measured
+
+
 def run_engineering(args) -> dict:
     started = time.monotonic()
     deadline = started + min(args.remaining_seconds, ENGINEERING_SECONDS)
@@ -625,7 +677,9 @@ def run_engineering(args) -> dict:
     out = Path(args.output)
     out.mkdir(mode=0o700)
     cache = out / "cache"
+    restore_started = time.monotonic()
     restored = restore(cache, shards, manifests, index, uids)
+    restore_seconds = time.monotonic() - restore_started
     tensors = admit_tensors(cache, policy, fixture, parts, outer, fit, series, revision)
     admit_initialization(configs, spec, bag)
     admitted = time.monotonic() - started
@@ -642,13 +696,23 @@ def run_engineering(args) -> dict:
     result = {
         "status": ENGINEERING_STATUS,
         "science_git": SCIENCE_GIT,
+        "package_manifest_sha256": args.package_manifest_sha256,
         "fixture_sha256": FIXTURE_SHA256,
         "bag_CPU_sha256": BAG_CPU_SHA256,
         "index_sha256": INDEX_SHA256,
+        "shard_manifest_sha256": list(SHARD_MANIFEST_SHA256),
+        "encoder_spec_sha256": canonical(spec),
+        # The exact fixed-10 configs a production segment must reproduce byte-for-byte.
+        "production_config_sha256": {
+            arm: canonical(production_config(configs[arm], spec)) for arm in ARMS
+        },
         "restored": restored,
+        "restore_seconds": restore_seconds,
+        "bootstrap_seconds": args.bootstrap_seconds,
         "tensor_sha256": tensors,
         "arms": results,
         "admission_seconds": admitted,
+        "measured": measure(results, restored, restore_seconds, args.bootstrap_seconds, admitted),
         "elapsed_seconds": time.monotonic() - started,
         "resources_before": observed,
         "resources_after": check_runtime(engineering=True),
@@ -665,21 +729,177 @@ def run_engineering(args) -> dict:
     return result
 
 
+PREVIOUS_OUTPUT_KEYS = {"kernel_slug", "version", "source_sha256", "receipt_sha256",
+                        "publication_sha256", "checkpoint_sha256"}
+SEGMENT_KEYS = {"arm", "segment", "start_step", "end_step", "previous_output",
+                "engineering_receipt_sha256", "production_config_sha256", "output_cap_bytes"}
+
+
+def _hex64(value) -> bool:
+    return isinstance(value, str) and len(value) == 64 and set(value) <= set("0123456789abcdef")
+
+
 def segment_contract(contract: dict) -> dict:
     """Exact scheduled boundary of one production session; validated before any GPU work."""
     from scripts.kaggle.window_bag_plan import TOTAL_UPDATES
 
-    keys = {"arm", "segment", "start_step", "end_step", "previous_checkpoint_sha256"}
-    if set(contract) != keys or contract["arm"] not in ARMS:
+    if (
+        not isinstance(contract, dict)
+        or set(contract) != SEGMENT_KEYS
+        or contract["arm"] not in ARMS
+    ):
         raise ValueError("Exact segment contract required")
-    start, end = contract["start_step"], contract["end_step"]
+    start, end, previous = contract["start_step"], contract["end_step"], contract["previous_output"]
     if (
         any(type(v) is not int for v in (start, end, contract["segment"]))
         or not 0 <= start < end <= TOTAL_UPDATES
-        or (start == 0) != (contract["previous_checkpoint_sha256"] is None)
+        or (start == 0) != (contract["segment"] == 0)
+        or (start == 0) != (previous is None)
     ):
         raise ValueError("Segment boundary differs from the fixed schedule")
+    if previous is not None and (
+        set(previous) != PREVIOUS_OUTPUT_KEYS
+        or not isinstance(previous["kernel_slug"], str)
+        or previous["kernel_slug"].count("/") != 1
+        or previous["version"] != 1
+        or not all(_hex64(previous[k]) for k in PREVIOUS_OUTPUT_KEYS - {"kernel_slug", "version"})
+    ):
+        raise ValueError("Exact previous kernel/version/output identity required")
+    if (
+        not _hex64(contract["engineering_receipt_sha256"])
+        or not _hex64(contract["production_config_sha256"])
+        or type(contract["output_cap_bytes"]) is not int
+        or contract["output_cap_bytes"] <= 0
+    ):
+        raise ValueError("Engineering receipt, config and output cap bindings required")
     return contract
+
+
+def _write_once(source: Path, target: Path) -> dict:
+    digest = hashlib.sha256()
+    with source.open("rb") as reader, target.open("xb") as writer:
+        while block := reader.read(1 << 24):
+            digest.update(block)
+            writer.write(block)
+        writer.flush()
+        os.fsync(writer.fileno())
+    target.chmod(0o444)
+    if sha(source) != digest.hexdigest():
+        raise ValueError("Source changed while publishing")
+    return {"bytes": target.stat().st_size, "sha256": digest.hexdigest()}
+
+
+def publication_files(root: Path, run_dir: Path, final: bool) -> dict[str, Path]:
+    """Explicit allowlist: continuation state, new immutable epochs, sidecars. Never cache."""
+    files = {name: root / name for name in PUBLICATION_SIDECARS}
+    files |= {"run/" + name: run_dir / name for name in PUBLICATION_RUN_FILES}
+    if final:
+        files |= {"run/" + name: run_dir / name for name in PUBLICATION_FINAL_FILES}
+    epochs = run_dir / "epoch-checkpoints"
+    if epochs.exists():
+        for path in sorted(epochs.iterdir()):
+            if path.is_symlink() or not path.is_file() or path.suffix not in {".pt", ".json"}:
+                raise ValueError("Unexpected epoch-checkpoint entry")
+            files["run/epoch-checkpoints/" + path.name] = path
+    for name, path in files.items():
+        if path.is_symlink() or not path.is_file() or "cache" in Path(name).parts:
+            raise ValueError("Publication member absent or outside the allowlist")
+    return files
+
+
+def publish_segment(root: Path, run_dir: Path, working: Path, cap: int, final: bool) -> dict:
+    """Write-once private notebook output of one segment, within its explicit byte cap."""
+    files = publication_files(root, run_dir, final)
+    total = sum(path.stat().st_size for path in files.values())
+    if total > cap:
+        raise ValueError("Segment publication exceeds its explicit output cap")
+    target = working / PUBLICATION_DIR
+    working.mkdir(parents=True, exist_ok=True)
+    if shutil.disk_usage(working).free < total + PUBLICATION_RESERVE_BYTES:
+        raise ValueError("Notebook output storage cannot hold the publication plus reserve")
+    target.mkdir(mode=0o700)
+    entries = {}
+    for name, source in files.items():
+        path = target / name
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        entries[name] = _write_once(source, path)
+    for path in run_dir.glob("epoch-checkpoints/epoch-*.json"):
+        record = json.loads(path.read_text())
+        published = entries["run/epoch-checkpoints/" + record["checkpoint_file"]]
+        if published["sha256"] != record["checkpoint_sha256"]:
+            raise ValueError("Epoch snapshot differs from its sidecar")
+    manifest = {"schema_version": 1, "files": entries, "bytes": total, "cap_bytes": cap,
+                "checkpoint_sha256": entries["run/checkpoint.pt"]["sha256"],
+                "MRI_cache_or_reports_included": False}
+    payload = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode()
+    with (target / PUBLICATION_MANIFEST).open("xb") as handle:
+        handle.write(payload)
+    (target / PUBLICATION_MANIFEST).chmod(0o444)
+    return {"manifest_sha256": hashlib.sha256(payload).hexdigest(), "files": len(entries),
+            "bytes": total, "checkpoint_sha256": manifest["checkpoint_sha256"]}
+
+
+def _find(input_root: Path, name: str, expected: str) -> list[Path]:
+    found = []
+
+    def walk(directory: Path, depth: int) -> None:
+        for entry in os.scandir(directory):
+            if entry.is_symlink() or entry.name == "rsna-knee-abnormality-detection":
+                continue
+            if entry.is_file() and entry.name == name and sha(entry.path) == expected:
+                found.append(Path(entry.path))
+            elif entry.is_dir() and depth > 0:
+                walk(Path(entry.path), depth - 1)
+
+    walk(Path(input_root), SEARCH_DEPTH)
+    return found
+
+
+def restore_previous(input_root: Path, contract: dict, run_dir: Path) -> dict:
+    """Stage the bound previous kernel output (a mounted read-only input) for resume."""
+    previous = contract["previous_output"]
+    manifests = _find(input_root, PUBLICATION_MANIFEST, previous["publication_sha256"])
+    if len(manifests) != 1:
+        raise ValueError("Exactly one bound previous segment publication must be mounted")
+    target = manifests[0].parent
+    receipt_path = target.parent / SEGMENT_RECEIPT
+    if not receipt_path.is_file():
+        raise ValueError("Previous segment receipt absent from its mounted output")
+    receipt = json.loads(receipt_path.read_bytes())
+    prior = receipt["contract"]
+    if (
+        canonical(receipt) != previous["receipt_sha256"]
+        or receipt.get("status") != SEGMENT_STATUS
+        or receipt["publication"]["manifest_sha256"] != previous["publication_sha256"]
+        or receipt["checkpoint_sha256"] != previous["checkpoint_sha256"]
+        or (prior["arm"], prior["segment"] + 1, prior["end_step"])
+        != (contract["arm"], contract["segment"], contract["start_step"])
+        or prior["engineering_receipt_sha256"] != contract["engineering_receipt_sha256"]
+        or prior["production_config_sha256"] != contract["production_config_sha256"]
+    ):
+        raise ValueError("Mounted previous segment output differs from the bound identity")
+    manifest = json.loads(manifests[0].read_bytes())
+    for name, record in manifest["files"].items():
+        relative = Path(name)
+        path = target / relative
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or path.is_symlink()
+            or path.stat().st_size != record["bytes"]
+            or sha(path) != record["sha256"]
+        ):
+            raise ValueError("Mounted previous segment member differs from its manifest")
+    if manifest["checkpoint_sha256"] != previous["checkpoint_sha256"]:
+        raise ValueError("Mounted continuation checkpoint differs from the bound boundary")
+    run_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    staged = run_dir / "checkpoint.pt"
+    _write_once(target / "run/checkpoint.pt", staged)
+    staged.chmod(0o600)
+    if sha(staged) != previous["checkpoint_sha256"]:
+        raise ValueError("Staged checkpoint copy differs")
+    return {"publication_sha256": previous["publication_sha256"],
+            "checkpoint_sha256": previous["checkpoint_sha256"], "files": len(manifest["files"])}
 
 
 def run_segment(args) -> dict:
@@ -694,26 +914,24 @@ def run_segment(args) -> dict:
         prepare(args)
     )
     fit, outer, _, _, _ = data
-    out = Path(args.output)
-    out.mkdir(mode=0o700)
-    restored = restore(out / "cache", shards, manifests, index, [*fit.study_uid, *outer.study_uid])
     arm = contract["arm"]
     values = production_config(configs[arm], spec)
+    if canonical(values) != contract["production_config_sha256"]:
+        raise ValueError("Production config differs from the engineering-admitted config")
+    out = Path(args.output)
+    out.mkdir(mode=0o700)
     root = out / arm
     root.mkdir(mode=0o700)
-    config = root / "config.json"
-    config.write_text(json.dumps(values, sort_keys=True, indent=2) + "\n")
     run_dir = root / "run"
     run_dir.mkdir(mode=0o700)
     extra = ["--output", str(run_dir)]
-    if contract["previous_checkpoint_sha256"] is not None:
-        prior = Path(args.previous_checkpoint)
-        if sha(prior) != contract["previous_checkpoint_sha256"]:
-            raise ValueError("Mounted previous checkpoint differs from the bound boundary")
-        shutil.copyfile(prior, run_dir / "checkpoint.pt")
-        if sha(run_dir / "checkpoint.pt") != contract["previous_checkpoint_sha256"]:
-            raise ValueError("Staged checkpoint copy differs")
+    previous = None
+    if contract["previous_output"] is not None:
+        previous = restore_previous(Path(args.input_root), contract, run_dir)
         extra += ["--resume", str(run_dir / "checkpoint.pt")]
+    restored = restore(out / "cache", shards, manifests, index, [*fit.study_uid, *outer.study_uid])
+    config = root / "config.json"
+    config.write_text(json.dumps(values, sort_keys=True, indent=2) + "\n")
     final = contract["end_step"] == TOTAL_UPDATES
     if not final:
         extra += ["--stop-after-updates", str(contract["end_step"] - contract["start_step"])]
@@ -726,16 +944,20 @@ def run_segment(args) -> dict:
     state = torch.load(run_dir / "checkpoint.pt", map_location="cpu", weights_only=True)
     if state["step"] != contract["end_step"] or state["binding"]["code_sha256"] != hashes:
         raise ValueError("Segment did not stop at its scheduled boundary/source")
+    del state
     snapshots = sorted((run_dir / "epoch-checkpoints").glob("epoch-*.pt"))
+    publication = publish_segment(root, run_dir, Path(args.publish_root),
+                                  contract["output_cap_bytes"], final)
     result = {
         "status": SEGMENT_STATUS,
         "contract": contract,
         "science_git": SCIENCE_GIT,
+        "package_manifest_sha256": args.package_manifest_sha256,
         "index_sha256": INDEX_SHA256,
         "restored": restored,
-        "checkpoint_sha256": sha(run_dir / "checkpoint.pt"),
-        "epoch": state["epoch"],
-        "next_update": state["next_update"],
+        "previous_restored": previous,
+        "checkpoint_sha256": publication["checkpoint_sha256"],
+        "publication": publication,
         "epoch_snapshots": {p.name: sha(p) for p in snapshots},
         "final_epoch10_evaluated": final,
         "prediction_sha256": sha(run_dir / "outer_predictions.csv") if final else None,
@@ -745,7 +967,7 @@ def run_segment(args) -> dict:
         "intermediate_selection": False,
         "competition_submission": False,
     }
-    with Path(args.receipt).open("x") as handle:
+    with (Path(args.publish_root) / SEGMENT_RECEIPT).open("x") as handle:
         json.dump(result, handle, sort_keys=True, indent=2)
         handle.write("\n")
     print(json.dumps({"status": SEGMENT_STATUS, "end_step": contract["end_step"]}), flush=True)
@@ -756,16 +978,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("engineering", "segment"), required=True)
     for name in ("source", "source-manifest", "fixture", "bag-cpu", "encoder-spec", "overlay",
-                 "pixel-group", "studies", "artifact-root", "folds", "series", "output",
-                 "receipt"):
+                 "pixel-group", "studies", "artifact-root", "folds", "series", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--receipt", type=Path)
+    parser.add_argument("--publish-root", type=Path, default=Path("/kaggle/working"))
     parser.add_argument("--input-root", type=Path, default=Path("/kaggle/input"))
     parser.add_argument("--segment", type=Path)
-    parser.add_argument("--previous-checkpoint", type=Path)
     parser.add_argument("--remaining-seconds", type=float, required=True)
+    parser.add_argument("--bootstrap-seconds", type=float, required=True)
     args = parser.parse_args()
     if args.mode == "segment" and args.segment is None:
         parser.error("--mode segment requires --segment")
+    if args.mode == "engineering" and args.receipt is None:
+        parser.error("--mode engineering requires --receipt")
     (run_engineering if args.mode == "engineering" else run_segment)(args)
 
 

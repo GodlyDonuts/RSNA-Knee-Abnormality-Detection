@@ -25,6 +25,8 @@ SHARD_KERNEL_SOURCES = 20
 ENGINEERING_DATASET_SOURCES = ("model_bundle", "wheelhouse", "render_capsule")
 EXACT_MEMBER_BYTES = 27667165884
 GIB = 2**30
+# Sidecars, logs, history and the final 1156-row prediction CSV (never MRI/cache/reports).
+PUBLICATION_SIDECAR_BYTES = 256 * 2**20
 
 
 def seconds(value) -> float:
@@ -58,15 +60,18 @@ def admit_engineering(gpu_quota: dict, timeout_seconds: float = ENGINEERING_TIME
             "remaining_after_seconds": available - charge}
 
 
-def require_platform_limits(proof: dict, kernel_sources: int, dataset_sources: int) -> dict:
+def require_platform_limits(proof: dict, kernel_sources: int, dataset_sources: int,
+                            output_bytes: int = 0) -> dict:
     """Refuse unless root recorded the actual API constraint (never an assumed default)."""
-    keys = {"observed_at", "evidence", "max_kernel_sources", "max_dataset_sources"}
+    keys = {"observed_at", "evidence", "max_kernel_sources", "max_dataset_sources",
+            "max_output_bytes"}
     if not isinstance(proof, dict) or set(proof) != keys:
         raise ValueError("Actual platform source-limit observation required")
     if not isinstance(proof["evidence"], str) or not proof["evidence"].strip():
         raise ValueError("Source-limit evidence must name the actual API constraint")
     for key, need in (("max_kernel_sources", kernel_sources),
-                      ("max_dataset_sources", dataset_sources)):
+                      ("max_dataset_sources", dataset_sources),
+                      ("max_output_bytes", output_bytes)):
         if type(proof[key]) is not int or proof[key] < need:
             raise ValueError("Requested inputs exceed the verified platform limit")
     return proof
@@ -118,6 +123,7 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int) ->
         "available_seconds": available,
         "quota_fits_now": charge <= available,
         "scratch_bytes_required": storage,
+        "output_cap_bytes_per_segment": [publication_bytes(measured, s) for s in segments],
         "scratch_fits": free_scratch_bytes >= storage,
         "only_final_epoch10_evaluated": True,
         "scientific_hyperparameters_changed": False,
@@ -125,12 +131,32 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int) ->
     }
 
 
-def next_segment(previous_receipt: dict | None, arm: str, segments: list) -> dict:
-    """Bind the next session to the exact prior checkpoint; refuses drift or skipped steps."""
+def publication_bytes(measured: dict, segment: tuple[int, int]) -> int:
+    """Cap for one segment's private output: continuation state plus every epoch it completes."""
+    start, end = segment
+    epochs = end // UPDATES_PER_EPOCH - start // UPDATES_PER_EPOCH
+    return (1 + epochs) * measured["checkpoint_bytes"] + PUBLICATION_SIDECAR_BYTES
+
+
+def next_segment(previous_receipt: dict | None, arm: str, segments: list, *,
+                 engineering_receipt_sha256: str, production_config_sha256: str,
+                 measured: dict, previous_kernel: dict | None = None) -> dict:
+    """Bind the next session to the exact prior kernel output; refuses drift or skipped steps.
+
+    ``previous_kernel`` is root's read-only observation of the completed previous segment:
+    ``{"kernel_slug", "version", "source_sha256"}``. The checkpoint SHA alone never suffices.
+    """
+    from scripts.kaggle.window_bag_t4 import canonical
+
+    common = {"engineering_receipt_sha256": engineering_receipt_sha256,
+              "production_config_sha256": production_config_sha256}
     if previous_receipt is None:
+        if previous_kernel is not None:
+            raise ValueError("The first segment has no previous kernel")
         start, end = segments[0]
         return {"arm": arm, "segment": 0, "start_step": start, "end_step": end,
-                "previous_checkpoint_sha256": None}
+                "previous_output": None, **common,
+                "output_cap_bytes": publication_bytes(measured, (start, end))}
     contract = previous_receipt["contract"]
     index = contract["segment"] + 1
     if (
@@ -140,10 +166,24 @@ def next_segment(previous_receipt: dict | None, arm: str, segments: list) -> dic
         or segments[contract["segment"]] != (contract["start_step"], contract["end_step"])
         or previous_receipt["final_epoch10_evaluated"] is not False
         or previous_receipt.get("intermediate_selection") is not False
+        or {k: contract[k] for k in common} != common
+        or previous_receipt["publication"]["checkpoint_sha256"]
+        != previous_receipt["checkpoint_sha256"]
     ):
         raise ValueError("Previous segment receipt differs from the schedule")
+    if (
+        not isinstance(previous_kernel, dict)
+        or set(previous_kernel) != {"kernel_slug", "version", "source_sha256"}
+        or previous_kernel["version"] != 1
+    ):
+        raise ValueError("Exact previous kernel slug/version/source identity required")
     start, end = segments[index]
     if start != contract["end_step"]:
         raise ValueError("Segments must be contiguous")
     return {"arm": arm, "segment": index, "start_step": start, "end_step": end,
-            "previous_checkpoint_sha256": previous_receipt["checkpoint_sha256"]}
+            "previous_output": {
+                **previous_kernel,
+                "receipt_sha256": canonical(previous_receipt),
+                "publication_sha256": previous_receipt["publication"]["manifest_sha256"],
+                "checkpoint_sha256": previous_receipt["checkpoint_sha256"],
+            }, **common, "output_cap_bytes": publication_bytes(measured, (start, end))}

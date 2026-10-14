@@ -51,9 +51,22 @@ The kernel-source and Dataset-source counts (20 + 3 for engineering, 21 + 3 for 
 - **Recipe:** 2247 fitting / 1156 fixed-final outer, effective 8, 281 updates per epoch and 2810 per arm, the same mean/query pair. Only the encoder paths and `min_free_gib` differ from the committed production configs.
 - **Sessions:** each session is one bounded `segment`.
   - It restores all 3403 members (27.7 GB) from the same mounted shards.
-  - It resumes only from a previous-segment `checkpoint.pt` whose SHA the contract binds; that output is mounted read-only as an extra kernel source.
   - It stops at a scheduled optimizer boundary (`--stop-after-updates`).
-  - Epoch snapshots stay immutable through the trainer's scheduled cadence.
+  - Epoch snapshots stay immutable through the trainer's scheduled cadence (`submission_every_epochs=1`).
+- **Publication (`window_bag_t4.publish_segment`):** each segment writes a write-once private notebook output under `/kaggle/working/window-bag-segment/`, plus `window-bag-segment-accepted.json` beside it.
+  - Exact allowlist: the continuation `checkpoint.pt`, `run.json`, `invocation.json`, every completed `epoch-checkpoints/epoch-NNN.pt` with its sidecar, and `config.json`/`segment.stdout`/`segment.stderr`. The final segment also writes `result.json`/`outer_predictions.csv`.
+  - Any other file under the run directory is refused. The MRI cache, staged code, private fixtures, capsule and reports stay in `/tmp` and are never published.
+  - Every file is created with `O_EXCL`, fsynced, re-hashed and made read-only. Each epoch file must match its sidecar SHA.
+  - `segment-publication.json` lists each file's size and SHA. The total must fit the contract's `output_cap_bytes` and the API-observed `platform_limits.max_output_bytes`, with a 1 GiB free-space reserve.
+  - The cap is (complete checkpoints the segment produces) × measured `checkpoint_bytes` + 256 MiB of sidecars. Epoch snapshots are hard links in scratch but separate files in the output.
+- **Previous-output identity:** a resumed contract binds `previous_output` = {kernel slug, version 1, source SHA, receipt SHA, publication-manifest SHA, checkpoint SHA}. A free-floating checkpoint SHA is refused.
+  - `kernel_request` attaches that kernel slug to `kernelDataSources`.
+  - Before any intent, the coordinator reads back the previous kernel and checks all of the following:
+    - it is private, offline, T4/GPU and COMPLETE;
+    - its source SHA and exact input lists match, including its own previous kernel;
+    - its downloaded receipt hashes to the bound SHA and is a non-evaluated segment for the same arm, contiguous and bound to the same engineering/config;
+    - its publication and checkpoint SHAs match.
+  - Inside the session, `restore_previous` re-verifies the mounted receipt, manifest and every member hash before resume.
   - Only the final segment reaches epoch 10, which is the trainer's only outer evaluation. No intermediate epoch is evaluated or selected.
 - **Sizing:** `window_bag_plan.production_plan` sizes segments from actual measured T4 seconds per update, startup, checkpoint and final evaluation. It uses 80% of 9 h. The scientific hyperparameters never change.
 - **Chaining:** `next_segment` chains contracts and refuses skipped, non-contiguous, evaluated or arm-swapped receipts.
@@ -64,6 +77,15 @@ The kernel-source and Dataset-source counts (20 + 3 for engineering, 21 + 3 for 
   - a fresh allowance;
   - explicit checkpoint/output/storage funding;
   - an actual check of `/tmp` capacity in the T4 runtime.
+- **Funding verification (`verify_engineering`):** a truthy or nonempty `production_funding` is not enough. Before any segment intent or SaveKernel, the coordinator checks all of the following:
+  - The funding names the engineering kernel (slug, version 1, source SHA, receipt SHA).
+  - That kernel is read back as private, offline, T4, COMPLETE, on the same runtime image, with the 20 shards and the same Datasets.
+  - Its downloaded `window-bag-engineering-accepted.json` hashes to the bound SHA and reports `ENGINEERING_STATUS` for both arms.
+  - The receipt carries the same science commit, package manifest, fixture, CPU admission, index and shard manifests.
+  - The receipt's per-arm production config SHA equals the segment's.
+  - The receipt's measured seconds/update, startup, checkpoint and final evaluation equal the funding's.
+  - Recomputing `production_plan` from those measurements, fresh quota and the receipt's observed scratch reproduces the funded segment schedule. That plan must fit and stay within the authorized GPU seconds.
+  - The contract's output cap equals the recomputed cap.
 - **Expectation:** a rough range, inferred and not measured, is ~4x the one-window encoder views. That suggests production may not fit the weekly Kaggle allowance under conservative accounting, in which case Kaggle serves independent engineering only.
 
 ## Verification here
@@ -73,8 +95,11 @@ The CPU tests in `tests/test_kaggle_window_bag.py` cover:
 - refusal of tampering;
 - the immutable package;
 - quota/limit/coordinator behaviour with fakes;
-- complete recovery across an actual process and read-only session-output boundary for both arms on the canonical trainer, using a tiny engineering encoder.
+- complete recovery across an actual session-output boundary for both arms on the canonical trainer, using a tiny engineering encoder. Session 1 stops at the epoch-1 boundary and publishes. Its scratch is deleted. The publication is copied to a read-only mounted input and restored by `restore_previous`. A fresh process then resumes to bit-equal state, predictions and epoch-2 snapshot;
+- write-once/capped/cache-free publication, and refusal of tampered members, receipt, publication or chain;
+- that the resumed SaveKernel request mounts the verified previous kernel;
+- that forged funding (a bare nonempty dict, wrong receipt/measurements/schedule/source/image/config/package/GPU seconds/output cap) fails with no intent and no SaveKernel.
 
 Engineering tests are not scores, accuracy, eligibility or discovery claims.
 
-The original H100 two-arm recovery 85546 is still running. Its final receipt is absent and overall acceptance is not claimed. It is unaffected.
+The original H100 two-arm recovery has since actually COMPLETED 0 for both arms (receipt `0700d08b`, preserved in `source-window-bag-GPU-terminal-20261014-v1`). That is H100 recovery, not T4 acceptance. The notebook's `CUDA_VISIBLE_DEVICES=0` intentionally selects one T4, while quota charges both provisioned GPUs.
