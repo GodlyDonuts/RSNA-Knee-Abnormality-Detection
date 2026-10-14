@@ -228,6 +228,7 @@ class Remote:
                             "ListKernels",
                             {
                                 "group": "PROFILE",
+                                "user": owner,
                                 "page": search_page,
                                 "pageSize": 100,
                                 "language": "all",
@@ -253,10 +254,12 @@ class Remote:
                     raise RemoteError("Owned notebook search pagination did not terminate")
 
                 control = sorted(refs)[0]
-                control_refs, control_pages = search(control)
+                # The API's search field takes terms, not an owner/ref URL.
+                # Pin the owner separately and retain the positive control.
+                control_refs, control_pages = search(control.split("/", 1)[1])
                 if control not in control_refs:
                     raise RemoteError("Owned notebook search missed a known notebook")
-                target_refs, target_pages = search(slug)
+                target_refs, target_pages = search(name)
                 if slug in target_refs:
                     raise ValueError("Dedicated notebook already exists; do not overwrite")
                 return {
@@ -267,6 +270,7 @@ class Remote:
                     "positive_control_pages": control_pages,
                     "target_search_pages": target_pages,
                     "target_refs_sha256": object_hash(sorted(target_refs)),
+                    "search_scope": "authenticated_owner_basename",
                 }
             for row in rows:
                 ref = row.get("ref")
