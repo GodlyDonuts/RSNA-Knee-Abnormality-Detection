@@ -1237,6 +1237,55 @@ def kernel_request(operation_path, operation):
     return request
 
 
+SAVE_KERNEL_INVALID = (
+    "invalidTags",
+    "invalidDatasetSources",
+    "invalidCompetitionSources",
+    "invalidKernelSources",
+    "invalidModelSources",
+)
+_SECRET = re.compile(r"KGAT_\S*|(?i:bearer)\s+\S+|https?://\S*\?\S*")
+
+
+def bounded_text(value, limit=240):
+    """Sanitized short evidence: no tokens, signed URLs, control bytes or unbounded text."""
+    if value is None or isinstance(value, bool | int | float):
+        return value
+    if not isinstance(value, str):
+        return {"type": type(value).__name__}
+    text = _SECRET.sub("[redacted]", value)
+    text = "".join(ch if ch.isprintable() else " " for ch in text)
+    if len(text) <= limit:
+        return text
+    return {"prefix": text[:limit], "chars": len(value), "sanitized_sha256": object_hash(text)}
+
+
+def save_kernel_response(result):
+    """Bounded SaveKernel fields. Legacy keys stay; nothing else is trusted as identity."""
+    if not isinstance(result, dict):
+        return {"kernel_id": None, "ref": None, "version": None, "type": type(result).__name__}
+    keys = sorted(str(key) for key in result)
+    record = {
+        "kernel_id": bounded_text(result.get("kernelId")),
+        "ref": bounded_text(result.get("ref")),
+        "version": bounded_text(result.get("versionNumber")),
+        "url": bounded_text(result.get("url")),
+        "error": bounded_text(result.get("error")),
+        "response_keys": [bounded_text(key, 64) for key in keys[:32]],
+        "response_key_count": len(keys),
+    }
+    for name in SAVE_KERNEL_INVALID:
+        value = result.get(name)
+        if value is not None:
+            items = value if isinstance(value, list) else [value]
+            record[name] = {"count": len(items), "items": [bounded_text(x, 120) for x in items[:8]]}
+    return record
+
+
+def bounded_exception(exc):
+    return {"type": type(exc).__name__, "message": bounded_text(str(exc))}
+
+
 @rollback_on_error
 def push(remote, db, operation_path):
     operation = load_operation(operation_path)
@@ -1264,11 +1313,7 @@ def push(remote, db, operation_path):
     db.execute("BEGIN IMMEDIATE")
     try:
         result = remote.call("kernels.KernelsApiService", "SaveKernel", request)
-        entry["kernel_create_response"] = {
-            "kernel_id": result.get("kernelId"),
-            "ref": result.get("ref"),
-            "version": result.get("versionNumber"),
-        }
+        entry["kernel_create_response"] = save_kernel_response(result)
         version = result.get("versionNumber")
         if (
             type(version) is not int
@@ -1279,7 +1324,8 @@ def push(remote, db, operation_path):
             raise RemoteError("Kernel push needs read-only reconciliation")
         entry.update(state="pushed", kernel_version=version)
         save_entry(db, entry, "kernel version returned")
-    except Exception:
+    except Exception as exc:
+        entry["kernel_create_exception"] = bounded_exception(exc)
         entry["state"] = "push_uncertain"
         save_entry(db, entry, "push uncertain; retries prohibited")
         raise
@@ -1309,7 +1355,13 @@ def reconcile_push(remote, db, sha, version):
     db.execute("BEGIN IMMEDIATE")
     verify_account(db, remote)
     entry = read_entry(db, sha)
-    if entry["state"] not in {"push_intent", "push_uncertain", "pushed"}:
+    if entry["state"] not in {
+        "push_intent",
+        "push_uncertain",
+        "draft_commit_intent",
+        "draft_commit_uncertain",
+        "pushed",
+    }:
         raise ValueError("Entry has no kernel push to reconcile")
     check_kernel(remote, entry, version)
     entry.update(state="pushed", kernel_version=version)

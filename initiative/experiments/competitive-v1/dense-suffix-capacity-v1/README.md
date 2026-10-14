@@ -143,3 +143,69 @@ learned suffix entries, zero initial residual, frozen official tensors equal to 
 original base, identical head values and post-factory RNG. The receipt holds hashes and
 counts only. It neither funds nor infers GPU recovery; production stays fixed10 and
 streams triplets online (no prefix cache). See `cpu-admission-stage-manifest.json`.
+
+## Fixed-ten production (prepared, not staged/funded/dispatched; issue #68)
+
+`scripts/newton/run_dense_suffix_production.py` (staged by root as `ROOT/launch.py`,
+root `/tmp/rsna-dense-suffix-fit-20261014-v1`) runs the unchanged canonical trainer from
+the exactly admitted `0ecece12` tree on one assigned GPU. The dispatch order is
+predeclared as `dense` to completion, then the matched `suffix_r32`; this follows the
+owner's priority and changes no scientific input or endpoint. The arms run as isolated,
+fresh, seeded trainer processes with separate outputs, and no model or optimizer state
+is shared between them. A later arm is refused while its predecessor is incomplete, and
+both fixed-ten results are required before any comparative claim. Each arm fits 2,247 studies for 10 x 281 updates (effective batch 8) and
+predicts the same 1,156 development studies once at fixed epoch 10. The production
+configs are the unchanged recipes (`prepare`, CPU-only, materializes them for root to
+hash). No best-epoch selection, protected gold, confirmation or external initialization.
+
+Every launch rechecks, before any output:
+- the actual CPU899766 receipt `158c242f…` and its pinned source manifest, wrapper,
+  recipes, official base spec, overlay and fold file;
+- the ACTUAL after-deadline GPU recovery. The original wrapper timed out during dense
+  resume, so no `accepted.json` exists, and its presence is refused. One continuation from
+  the retained step-2 boundary was independently CPU-verified
+  (`initiative/audits/dense-suffix-deadline-continuation-20261014-v1`). Root must bind,
+  explicitly in `production-funding.json`, the output
+  `/tmp/rsna-dense-suffix-GPU-recovery-20261014-v1`, its `accepted-after-deadline.json`
+  (SHA `cb860282…`), and the verifier path and source SHA `774a7b3f…`. The launcher
+  also requires:
+  - the exact limits: original timeout preserved, dense saved boundary `[1,0,2]`, the
+    unpromoted step-4 partial preserved, and the rank32 stop1 partial not independently
+    retained for CPU recheck;
+  - per-arm checkpoint/prediction hashes, CUDA/source binding and the retained dense
+    step-2 checkpoint.
+
+  A prepared, invented or re-signed receipt is refused;
+- root's explicit node-local checkpoint/runtime/publication funding (the 12 GiB
+  engineering envelope is refused), parent job, CPUs, assigned GPU, config SHAs,
+  folds/release/supervision/overlay SHAs and the staged launcher/publisher bytes.
+
+`fit --slice-seconds S` bounds each launch to `min(S, parent remaining)`. `S` must be
+finite, at least 3600 s, and no more than root's funded `max_slice_seconds`. The launcher
+itself sends SIGUSR1 1200 s before that limit; the trainer then writes its checkpoint
+and exits 75. If the trainer is still running after a 900 s grace period, the launcher
+kills it and records a non-resumable terminal. Slurm never has to kill a healthy
+process. Funding also binds:
+- `new_node_local_envelope_bytes` (for example 80 GiB), which equals checkpoint plus
+  runtime plus publication bytes and must cover verification caches and retained
+  originals;
+- existing liabilities of at least the CPU receipt's 332,868,354,048 B;
+- the 20 GiB reserve.
+
+The whole root must stay within the envelope. Nothing is deleted to fit it.
+
+Each trainer invocation has an exclusive intent and terminal record. A trainer exit 75
+(deadline SIGUSR1 or preemption) is resumed only by a later launch via `--resume` of the
+bound checkpoint; an intent without terminal, a changed exit-75 checkpoint/binding or any
+other failure is refused, never retried. Completion requires 2810 updates, 2247/1156,
+fixed-final selection, ten snapshots and matched bindings; `terminal.json` claims no
+accuracy. Paired fixed-final analysis remains a separate step, and a negative dense
+result is reported as such.
+
+`scripts/newton/dense_suffix_epoch_publisher.py` (`ROOT/publish.py`) preserves one
+completed scheduled epoch per arm once, privately, under
+`dense-suffix-capacity-fold0-0ecece12-fixed10-seed20260922/<arm>/epoch-NNN`. It
+re-admits everything through the staged launcher and uses the pinned original transport
+(`0f929dc1`) for lock, stdin token, private destination and complete forced
+re-download/size/SHA. An existing journal/remote path or an uncertain commit is never
+retried; `reconcile` is read-only. Tests: `tests/test_dense_suffix_production.py`.
