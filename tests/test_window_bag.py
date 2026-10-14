@@ -413,3 +413,123 @@ def test_student_has_no_teacher_reference_or_variability_dependency():
     source = (ROOT / "rsna/competitive/window_bag.py").read_text()
     assert "tools." not in source and "focal_window" not in source
     assert "teacher" not in source.replace("No labels, reports, teacher", "")
+
+
+# --- Canonical trainer on the engineering encoder (no transformers needed) -------------
+
+
+def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None):
+    import argparse
+
+    from test_public_triplet_training import POLICY, build, cohort
+
+    from rsna.competitive import train
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.model import CompetitiveStudyNet
+
+    manifest, folds = cohort()
+    if not (tmp_path / "cache").exists():
+        build(tmp_path / "cache", manifest, folds)
+        (tmp_path / "series.csv").write_text("SeriesInstanceUID\na\n")
+    series = tmp_path / "series.csv"
+    release = {
+        "series_sha256": hashlib.sha256(series.read_bytes()).hexdigest(),
+        "source_revision": "synthetic",
+    }
+    config = TrainConfig(
+        epochs=2,
+        batch_size=1,
+        accumulation_steps=2,
+        slices=10,
+        side=336,
+        max_series=6,
+        freeze_encoder=False,
+        min_free_gib=0,
+        diagnostic_study_limit=16,
+        precision="fp16",
+        public_input=POLICY,
+        classifier_strategy=copy.deepcopy(STRATEGIES[arm]),
+    )
+    args = argparse.Namespace(
+        studies=tmp_path / "unused",
+        artifact_root=tmp_path,
+        folds=tmp_path / "unused",
+        series=series,
+        cache=tmp_path / "cache",
+        output=output,
+        resume=resume,
+        stop_after_updates=stop,
+    )
+    output.mkdir(parents=True, exist_ok=True)
+    patch = pytest.MonkeyPatch()
+    patch.setattr(train, "load_verified_release", lambda *_: (manifest.copy(), release))
+    try:
+        return train._run_locked(
+            args,
+            config,
+            [False],
+            0,
+            1,
+            CPU,
+            create_encoder,
+            None,
+            CompetitiveStudyNet,
+            lambda *_: folds.copy(),
+        )
+    finally:
+        patch.undo()
+
+
+@pytest.fixture(scope="module")
+def diagnostic(tmp_path_factory):
+    root = tmp_path_factory.mktemp("window-bag-diagnostic")
+    runs = {}
+    for arm in ("mean", "query"):
+        base = root / arm
+        assert _diagnostic_run(root, arm, base / "full") == 0
+        assert _diagnostic_run(root, arm, base / "replay", stop=1) == 75
+        first = json.loads((base / "replay/invocation.json").read_text())["updates"]
+        resume = base / "replay/checkpoint.pt"
+        assert _diagnostic_run(root, arm, base / "replay", resume=resume) == 0
+        runs[arm] = dict(base=base, first=first)
+    return runs
+
+
+@pytest.mark.parametrize("arm", ["mean", "query"])
+def test_diagnostic_trainer_full_and_stop1_resume_are_exact(diagnostic, arm):
+    from test_competitive_training import _assert_tree_equal
+
+    base = diagnostic[arm]["base"]
+    full = torch.load(base / "full/checkpoint.pt", weights_only=True)
+    replay = torch.load(base / "replay/checkpoint.pt", weights_only=True)
+    _assert_tree_equal(full, replay)
+    assert "amp_scaler" in full and set(full["rng_by_rank"][0]) >= {"torch", "python", "numpy"}
+    assert full["binding"]["config"]["classifier_strategy"] == STRATEGIES[arm]
+    query = full["model"]["window_query"]
+    assert (query.count_nonzero() == 0) == (arm == "mean")
+    assert (base / "full/outer_predictions.csv").read_bytes() == (
+        base / "replay/outer_predictions.csv"
+    ).read_bytes()
+    history = json.loads((base / "full/invocation.json").read_text())["updates"]
+    resumed = json.loads((base / "replay/invocation.json").read_text())["updates"]
+
+    def numeric(events):
+        return [{k: v for k, v in e.items() if k != "elapsed_seconds"} for e in events]
+
+    assert numeric(history) == numeric(diagnostic[arm]["first"] + resumed)
+
+
+def test_diagnostic_arms_share_first_update_loss_and_rng(diagnostic):
+    mean, query = (
+        json.loads((diagnostic[arm]["base"] / "full/invocation.json").read_text())["updates"]
+        for arm in ("mean", "query")
+    )
+    assert mean[0]["loss"] == query[0]["loss"]
+    a, b = (
+        torch.load(diagnostic[arm]["base"] / "full/checkpoint.pt", weights_only=True)
+        for arm in ("mean", "query")
+    )
+    assert set(a["model"]) == set(b["model"])
+    from test_competitive_training import _assert_tree_equal
+
+    _assert_tree_equal(a["rng_by_rank"], b["rng_by_rank"])

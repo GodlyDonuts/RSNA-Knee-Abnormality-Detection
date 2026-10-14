@@ -100,7 +100,9 @@ admit them.
 - `tests/test_window_bag.py`: policy tampering, arm graph/initial equality,
   mean-is-mean, NaN-poisoned window masking, missing slots never encoded,
   extreme-logit gradients, single sigmoid, augmentation equality and MRI-only
-  deployment.
+  deployment. It also runs the canonical trainer on the engineering encoder:
+  full/stop1/resume exact for both arms, and the arms share the first-update loss
+  and RNG.
 - `tests/test_window_bag_training.py`: canonical-trainer full/stop1/resume exact
   equality for both arms (model, base, AdamW, LR, counters, all RNG, scaler,
   history, prediction bytes), binding, four-group bags, and student restore.
