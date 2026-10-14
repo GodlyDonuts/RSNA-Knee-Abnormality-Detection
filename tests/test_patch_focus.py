@@ -720,3 +720,95 @@ def test_tiny_dinov3_r32_prefix_gradients_are_finite_and_reach_every_adapted_lay
     assert any(
         not torch.equal(grads["candidate"][k], grads["control"][k]) for k in grads["control"]
     )
+
+
+PROVENANCE = {"pretrained": True, "weights_sha256": "a" * 64, "config_sha256": "b" * 64}
+
+
+def frozen(net):
+    net.encoder.requires_grad_(False)
+    return net
+
+
+def test_delta_checkpoint_restores_the_learned_query_exactly():
+    from rsna.competitive.delta_checkpoint import FrozenBaseDelta
+
+    source = frozen(model("candidate"))
+    randomize_query(source)
+    stored = FrozenBaseDelta(source, PROVENANCE).checkpoint_model(source)
+    assert "patch_query" in stored["model"]
+    assert not any(name.startswith("encoder.") for name in stored["model"])
+    target = frozen(model("candidate"))
+    assert target.patch_query.count_nonzero() == 0
+    FrozenBaseDelta(target, PROVENANCE).restore(target, stored)
+    assert torch.equal(target.patch_query, source.patch_query)
+    inputs = window(views=10)
+    with torch.no_grad():
+        assert torch.equal(
+            source.eval().window_probabilities(*inputs),
+            target.eval().window_probabilities(*inputs),
+        )
+
+
+def test_delta_checkpoints_are_refused_across_old_and_patch_focus_students():
+    from rsna.competitive.delta_checkpoint import FrozenBaseDelta, restore_checkpoint_model
+
+    focus, previous = frozen(model("candidate")), frozen(old())
+    focus_state = FrozenBaseDelta(focus, PROVENANCE).checkpoint_model(focus)
+    old_state = FrozenBaseDelta(previous, PROVENANCE).checkpoint_model(previous)
+    with pytest.raises(ValueError, match="tensor schema"):
+        restore_checkpoint_model(
+            frozen(model("candidate")),
+            old_state,
+            FrozenBaseDelta(frozen(model("candidate")), PROVENANCE),
+        )
+    target = frozen(old())
+    with pytest.raises(ValueError, match="tensor schema"):
+        restore_checkpoint_model(target, focus_state, FrozenBaseDelta(target, PROVENANCE))
+    # A delta checkpoint never loads without its frozen-base guard.
+    with pytest.raises(ValueError, match="verified frozen base"):
+        restore_checkpoint_model(frozen(model("candidate")), focus_state, None)
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        lambda m: m.pop("patch_query"),
+        lambda m: m.update(patch_query=torch.zeros(T, D + 1)),
+        lambda m: m.update(patch_query=torch.zeros(T, D, dtype=torch.float16)),
+        lambda m: m.update(patch_query=torch.full((T, D), float("nan"))),
+        lambda m: m.update(extra_query=torch.zeros(T, D)),
+    ],
+    ids=["missing", "shape", "dtype", "nonfinite", "extra"],
+)
+def test_tampered_patch_query_is_refused(tamper):
+    from rsna.competitive.delta_checkpoint import FrozenBaseDelta
+
+    source = frozen(model("candidate"))
+    stored = FrozenBaseDelta(source, PROVENANCE).checkpoint_model(source)
+    stored["model"] = dict(stored["model"])
+    tamper(stored["model"])
+    target = frozen(model("candidate"))
+    with pytest.raises(ValueError, match="Delta learned tensor|Invalid delta learned"):
+        FrozenBaseDelta(target, PROVENANCE).restore(target, stored)
+    assert target.patch_query.count_nonzero() == 0
+
+
+@pytest.mark.parametrize("precision", ["fp16", "bf16"])
+def test_tiny_dinov3_r32_control_gradients_are_bitwise_the_source_slot_student(precision):
+    pytest.importorskip("transformers")
+    from test_source_matched_slot import configs as slot_configs
+    from test_source_matched_slot import fake_create_encoder
+
+    from rsna.competitive.adapters import configure_encoder_training
+
+    spec = slot_configs()["r32"]["encoder"]
+    grads = {}
+    for name, strategy in (("slot", SLOT_STRATEGY), ("control", STRATEGIES["control"])):
+        torch.manual_seed(3)
+        encoder, dim, _ = fake_create_encoder(spec)
+        configure_encoder_training(encoder, True)
+        net = pf.classifier_model(strategy)(encoder, dim, strategy)
+        grads[name] = _encoder_gradients(net, precision)
+    assert set(grads["control"]) == set(grads["slot"])
+    assert all(torch.equal(grads["control"][k], grads["slot"][k]) for k in grads["slot"])
