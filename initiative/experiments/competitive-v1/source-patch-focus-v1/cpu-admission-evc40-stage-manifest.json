@@ -1,0 +1,110 @@
+{
+  "status": "proposed_not_staged_not_funded_not_dispatched",
+  "owner": "root",
+  "issue": 84,
+  "node": "evc40",
+  "root": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1",
+  "admission": "scripts/newton/admit_patch_focus_inputs_evc40.py",
+  "admission_version": "source_patch_focus_evc40_target_admission_v1",
+  "admission_status_on_success": "source_patch_focus_evc40_target_actual_inputs_and_matched_initialization_CPU_accepted",
+  "original_evc31_admission_unchanged": "scripts/newton/admit_patch_focus_inputs.py",
+  "original_evc31_admission_still_refuses_evc40": true,
+  "allocation": "NEW standalone root-owned evc40 allocation, 1 CPU, --gres=none, no GPU; never reuses 908454 lifetime or cancelled 899766 state",
+  "forbidden_allocations": ["908454", "899766"],
+  "no_monkeypatch_of_node_placement_job_funding_or_journals": true,
+  "source": {
+    "source_git": "exact merged commit containing the evc40 admission; set by root at staging",
+    "code": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/code",
+    "source.json": "{source_git, files}: every rsna/**/*.py plus original admission REQUIRED_SOURCE, the evc40 wrapper, triplet_cache_relay.py and the three pinned audits; sha256 per file, 8 MiB cap",
+    "recovery-source-manifest.json": "byte-for-byte JSON equal to source.json files (the unchanged GPU wrapper's --source-manifest)",
+    "required_fixed_sha256": {
+      "initiative/audits/public-input-corrected-CPU-dispatch-20261013-v2/CPU-accepted.json": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+      "initiative/audits/dense-triplet-cache-relay-20261014-v1/actual-transfer-verified.json": "7104498b4c82a94a4bdd60da055dd301882b4f9b8bfe07ba29ec379075f09071",
+      "initiative/audits/final-public-source-evc40-staging-20261013-v1/runtime-restored.json": "34b2df693162c0be5907df3f928bddc24c0500aec3dd623e70107337082600f2",
+      "initiative/audits/patch-focus-target-feasibility-20261014-v1/v3-read-only.json": "aed4fcec930f4985c0cac4edeb987c03039e7dd8ce78d73cb4ccf6b06cb0596f",
+      "initiative/experiments/competitive-v1/source-matched-slot-v1/r32-config.json": "e2bfb43c4577dd78c13be3958e99c41ca250c9a3b7251236ddbff8a380fa99de",
+      "initiative/experiments/competitive-v1/source-patch-focus-v1/control-r32-config.json": "efdca23d70f175b2aff79583e7ef1222b14e71453c1432af12828e9084b94c29",
+      "initiative/experiments/competitive-v1/source-patch-focus-v1/candidate-r32-config.json": "b402ed54f7773a58dfd8774fda34c7a17f0963d022dd5c7109d5f1e7b930dae5"
+    },
+    "rsna_delta_from_original_receipt_code": "unchanged from cpu-admission-stage-manifest.json (admit_patch_focus_inputs.CODE_DELTA); no numerical module changes"
+  },
+  "runtime": {
+    "python": "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "archive_sha256": "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+    "required": "sys.executable equals the restored runtime python and installed transformers equals the original admitted encoder spec; torch/python versions recorded",
+    "restore_again": false
+  },
+  "encoder-spec.json": "identical to cpu-admission-stage-manifest.json encoder-spec.json; official base/config paths unchanged",
+  "funding.json": {
+    "status": "root_admitted_patch_focus_evc40_target_CPU_control_funding",
+    "admission_version": "source_patch_focus_evc40_target_admission_v1",
+    "experiment": "source_patch_focus_v1",
+    "node": "evc40",
+    "funded_by": "root",
+    "original_input_receipt_sha256": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+    "merged_cache_receipt_sha256": "d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "cache_relay_receipt_sha256": "7104498b4c82a94a4bdd60da055dd301882b4f9b8bfe07ba29ec379075f09071",
+    "original_overlay_sha256": "c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51",
+    "new_CPU_source_and_receipt_bytes": 16777216,
+    "new_GPU_or_checkpoint_bytes": 0,
+    "new_shared_bytes_files": 0,
+    "prefix_cache_bytes": 0,
+    "GPUs_funded": 0,
+    "GPU_reserved": false,
+    "existing_liabilities_bytes": "root measures and retains every current evc40 obligation; at least 338320442039",
+    "reserve_bytes": 21474836480,
+    "required_free_bytes": "16777216 + existing_liabilities_bytes + reserve_bytes; fresh disk_usage(root).free is rechecked inside each step"
+  },
+  "overlay_reconstruction": {
+    "step": "overlay",
+    "final_overlay": "/tmp/rsna-final-public-source-fit-evc40-20261013-v1/overlay.json",
+    "final_overlay_sha256": "54b5a652949120764a596b4d495f11950ff103a909b7efc5fe59da9cd6f2fe85",
+    "studies_and_folds": "original receipt trainer_inputs studies.parquet (2bf49fd2...) and folds/fold.csv (fe590e50...), exact byte hashes only; no full archive revalidation in this step",
+    "rosters": "fold-0 fitting 2247 (e9d38ee2...) / outer 1156 (2f365bb0...), union 3403 (6d00d9aa...)",
+    "restored_provenance": "source.name Shio-Koube/knee3 -> llm_labels_v4_blend; csv_sha256 eb4c2b29.../revision 373f4e1... unchanged",
+    "serialization": "builder key order, compact separators, ensure_ascii=False, trailing newline",
+    "original_overlay_sha256": "c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51",
+    "original_overlay_bytes": 1057379,
+    "output": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/overlay.json (O_EXCL|O_NOFOLLOW, fsync, 0400, only after exact SHA/size match) plus overlay-reconstructed.json (sanitized)",
+    "labels_masks_or_supervision_changed": false,
+    "source_acquired_downloaded_or_evc31_accessed": false
+  },
+  "cache": {
+    "path": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+    "relay_receipt": "/tmp/rsna-dense-triplet-cache-relay-20261014-v1/target-verified.json",
+    "relay_receipt_sha256": "7104498b4c82a94a4bdd60da055dd301882b4f9b8bfe07ba29ec379075f09071",
+    "index_sha256": "849855281837669efaad81596314f7770b8a936baa457e2a571418dbd87c1736",
+    "studies": 3403,
+    "files": 3404,
+    "bytes": 27668082285,
+    "merged_receipt_sha256_lineage": "d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "original_merged_cache_verified_json_on_target": "must be absent; never forged",
+    "publication_proof": "exact index membership, regular single-link 0400 members, sizes equal index, ctime/mtime not after relay verification; no member rehash or transfer"
+  },
+  "proposed_CPU_steps": [
+    "srun --jobid=<NEW root-owned evc40 allocation> --ntasks=1 --cpus-per-task=1 --gres=none env -u CUDA_VISIBLE_DEVICES PYTHONPATH=/tmp/rsna-patch-focus-evc40-admission-20261014-v1/code PYTHONNOUSERSITE=1 /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B /tmp/rsna-patch-focus-evc40-admission-20261014-v1/code/scripts/newton/admit_patch_focus_inputs_evc40.py overlay --root /tmp/rsna-patch-focus-evc40-admission-20261014-v1",
+    "srun --jobid=<same allocation> --ntasks=1 --cpus-per-task=1 --gres=none env -u CUDA_VISIBLE_DEVICES PYTHONPATH=/tmp/rsna-patch-focus-evc40-admission-20261014-v1/code PYTHONNOUSERSITE=1 /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B /tmp/rsna-patch-focus-evc40-admission-20261014-v1/code/scripts/newton/admit_patch_focus_inputs_evc40.py admit --root /tmp/rsna-patch-focus-evc40-admission-20261014-v1"
+  ],
+  "automatic_retry": false,
+  "output": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/CPU-accepted.json (exclusive create, 1 MiB cap, sanitized hashes/counts only)",
+  "future_GPU_recovery_after_CPU_acceptance": {
+    "wrapper": "scripts/newton/run_patch_focus_recovery.py (unchanged)",
+    "arguments": {
+      "--source": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/code",
+      "--source-manifest": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/recovery-source-manifest.json",
+      "--encoder-spec": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/encoder-spec.json",
+      "--artifact-root": "/home/sa305415/rsna-knee/code-stopfix-1f486765",
+      "--cache": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+      "--overlay": "/tmp/rsna-patch-focus-evc40-admission-20261014-v1/overlay.json",
+      "--max-output-bytes": 12884901888
+    },
+    "funded": false,
+    "requires": "accepted evc40 CPU receipt, then separate root GPU allocation/funding; this CPU gate funds no GPU"
+  },
+  "GPU_or_optimizer_or_clinical_inference_executed": false,
+  "MRI_state_or_case_identifiers_to_Mac_Git_or_HF": false,
+  "protected_labels_used": false,
+  "new_labels_created": false,
+  "accuracy_claimed": false,
+  "existing_jobs_modified": false
+}
