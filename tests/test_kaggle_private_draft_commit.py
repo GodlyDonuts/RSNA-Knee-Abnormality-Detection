@@ -349,3 +349,109 @@ def test_accessible_unversioned_draft_requires_exact_source_and_fresh_ui():
     assert (
         observe(Remote(accessible=changed), attestation())["classification"] == "committed_version"
     )
+
+
+MARKER = "# %% [code]\n"
+MISSING = object()
+
+
+def draft_kernel(source=MARKER + SOURCE, **change):
+    meta = {
+        "id": 123,
+        "ref": SLUG,
+        "isPrivate": True,
+        "enableInternet": False,
+        "machineShape": "NvidiaTeslaT4",
+    }
+    meta.update(change)
+    return {
+        "metadata": {k: v for k, v in meta.items() if v is not MISSING},
+        "blob": {"source": source},
+    }
+
+
+def observe_draft(kernel, value):
+    return c.observe_uncertain_push(
+        workflow,
+        Remote(accessible=kernel),
+        SLUG,
+        value,
+        expected_source_sha256=operation()["kernel_source_sha256"],
+    )
+
+
+@pytest.mark.parametrize(
+    "kernel,value,kind",
+    [
+        (draft_kernel(), attestation(), "private_draft_owner_attested"),
+        (draft_kernel(source=SOURCE), attestation(), "private_draft_owner_attested"),
+        (draft_kernel(), attestation(observed_at="2026-10-14T00:00:00+00:00"), "unresolved"),
+        (draft_kernel(), attestation(version_history="one_version"), "unresolved"),
+        (draft_kernel(), attestation(kernel_slug="owner/other"), "unresolved"),
+        (draft_kernel(), attestation(ui_save_version_performed=True), "unresolved"),
+        (draft_kernel(currentVersionNumber=None), attestation(), "unresolved"),
+        (draft_kernel(currentVersionNumber=0), attestation(), "unresolved"),
+        (draft_kernel(id=MISSING), attestation(), "unresolved"),
+        (draft_kernel(id=0), attestation(), "unresolved"),
+        (draft_kernel(id="123"), attestation(), "unresolved"),
+        (draft_kernel(ref="owner/other"), attestation(), "unresolved"),
+        (draft_kernel(ref=MISSING), attestation(), "unresolved"),
+        (draft_kernel(isPrivate=False), attestation(), "unresolved"),
+        (draft_kernel(enableInternet=True), attestation(), "unresolved"),
+        (draft_kernel(enableInternet=MISSING), attestation(), "unresolved"),
+        (draft_kernel(machineShape="NvidiaTeslaP100"), attestation(), "unresolved"),
+        (draft_kernel(source=MARKER * 2 + SOURCE), attestation(), "unresolved"),
+        (draft_kernel(source=MARKER + "\n" + SOURCE), attestation(), "unresolved"),
+        (draft_kernel(source=SOURCE + "\n"), attestation(), "unresolved"),
+        (draft_kernel(source=None), attestation(), "unresolved"),
+    ],
+)
+def test_accessible_draft_guards_are_exact(kernel, value, kind):
+    assert observe_draft(kernel, value)["classification"] == kind
+
+
+def test_accessible_draft_without_expected_source_stays_unresolved():
+    result = c.observe_uncertain_push(
+        workflow, Remote(accessible=draft_kernel()), SLUG, attestation()
+    )
+    assert result["classification"] == "unresolved"
+
+
+def test_exact_accessible_draft_commits_once_with_unmarked_prepared_source(case):
+    db, path, _ = case
+    remote = Remote(accessible=draft_kernel())
+    result = commit(db, path, remote)
+    assert remote.saves == [{"slug": SLUG, "text": SOURCE}]
+    assert result["state"] == "pushed" and result["kernel_version"] == 1
+    observation = workflow.read_entry(db, SHA)["draft_commit"]["observation"]
+    assert observation["get_kernel"] == "accessible"
+    assert observation["exact_prepared_source_verified"] is True
+    with pytest.raises(ValueError, match="null-identity"):
+        commit(db, path, Remote(accessible=draft_kernel()))
+    assert len(remote.saves) == 1
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [
+        draft_kernel(isPrivate=False),
+        draft_kernel(source="other"),
+        draft_kernel(ref="owner/x"),
+        draft_kernel(currentVersionNumber=None),
+    ],
+)
+def test_inexact_accessible_draft_cannot_commit(case, kernel):
+    db, path, _ = case
+    remote = Remote(accessible=kernel)
+    with pytest.raises(ValueError, match="owner-attested"):
+        commit(db, path, remote)
+    assert not remote.saves and workflow.read_entry(db, SHA)["state"] == "push_uncertain"
+
+
+def test_pushed_accessible_draft_is_never_committed_again(case):
+    db, path, entry = case
+    workflow.save_entry(db, {**entry, "state": "pushed", "kernel_version": 1}, "pushed")
+    remote = Remote(accessible=draft_kernel())
+    with pytest.raises(ValueError, match="null-identity"):
+        commit(db, path, remote)
+    assert not remote.saves
