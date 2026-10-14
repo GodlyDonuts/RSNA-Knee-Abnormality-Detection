@@ -9,3 +9,5 @@ label-loading bytes must remain identical to the old input proof; only reviewed
 trainer dispatch and window-bag module differ. Actual common official
 mean/query parameter values/RNG/frozen base still await the original terminal.
 Do not duplicate dispatch or infer acceptance from a prepared worker.
+
+Actual original CPU step completed0. Both arms have exactly equal learned graph/initial values/CPU RNG,10,763,020 trainable parameters and matching frozen official base/provenance. Original dataset/label-loading code is unchanged. No GPU, optimizer, new MRI transfer or clinical inference ran. This accepts initialization, not the four-window GPU trainer or its cost.
