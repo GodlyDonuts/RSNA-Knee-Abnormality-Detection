@@ -46,8 +46,11 @@ before the copy (`host_to_device`), inside the same `torch.autocast(device.type,
 dtype=precision, enabled=precision != "fp32")` context as the trainer. This is
 required for exactness: `affine_grid` is CPU-autocast-sensitive, so CPU FP16/BF16
 diagnostics differ if selection runs outside it; under a CUDA autocast context the
-CPU work is unchanged. The strict complete-state parity regression covers this. Window groups derive from (seed, epoch, update)
-and augmentation from per-study generators, so they do not depend on
+CPU work is unchanged. The strict complete-state parity regression covers this:
+with selection outside autocast (`4d05f7ef`), root measured 60 passed / 4 failed,
+all four setup-and-first-update cases with differing learned adapter tensors; the
+fix passes them without loosening equality. Window groups derive from (seed, epoch,
+update) and augmentation from per-study generators, so they do not depend on
 microbatch/chunk/workers. The head's dropout (0.2) does depend on microbatch shape.
 `views` counts acquired slots x training windows (1 for slot, 4 for bag) on valid
 samples. It is checked against `encoder_images`, the count the encoder actually

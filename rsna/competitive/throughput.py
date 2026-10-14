@@ -634,6 +634,7 @@ def profile_updates(
                         )
                     else:
                         assert strategy is not None
+
                         def select():
                             with _training_autocast(config, device):
                                 return classifier_inputs(
