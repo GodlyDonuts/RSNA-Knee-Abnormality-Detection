@@ -18,12 +18,28 @@ from scripts.kaggle import window_bag_t4 as t4
 
 MACHINE_SHAPE = "NvidiaTeslaT4"
 CONTRACT_KEYS = {
-    "kernel_slug", "source_sha256", "package_manifest_sha256", "mode", "segment",
-    "shard_kernels", "model_dataset", "wheelhouse", "capsule_dataset", "runtime_image",
-    "session_timeout_seconds", "platform_limits", "production_funding", "parallel_arms",
+    "kernel_slug",
+    "source_sha256",
+    "package_manifest_sha256",
+    "mode",
+    "segment",
+    "shard_kernels",
+    "model_dataset",
+    "wheelhouse",
+    "capsule_dataset",
+    "runtime_image",
+    "session_timeout_seconds",
+    "platform_limits",
+    "production_funding",
+    "parallel_arms",
 }
-FUNDING_KEYS = {"engineering", "measured", "segments_per_arm", "gpu_seconds_authorized",
-                "authorized_at"}
+FUNDING_KEYS = {
+    "engineering",
+    "measured",
+    "segments_per_arm",
+    "gpu_seconds_authorized",
+    "authorized_at",
+}
 KERNEL_IDENTITY_KEYS = {"kernel_slug", "version", "source_sha256", "receipt_sha256"}
 
 
@@ -50,7 +66,8 @@ def validate_contract(contract: dict) -> dict:
     ):
         raise ValueError("Exactly the 20 original completed shard kernels, version 1")
     limit = (
-        plan.ENGINEERING_TIMEOUT_SECONDS if contract["mode"] == "engineering"
+        plan.ENGINEERING_TIMEOUT_SECONDS
+        if contract["mode"] == "engineering"
         else plan.SESSION_LIMIT_SECONDS * plan.SESSION_MARGIN
     )
     if not 0 < contract["session_timeout_seconds"] <= limit:
@@ -157,20 +174,25 @@ def completed_gpu_kernel(remote, contract, identity, digest, receipt_name, extra
 def verify_engineering(remote, contract, digest, gpu) -> dict:
     """Bind the actual T4 engineering acceptance and its measured performance."""
     funding, segment = contract["production_funding"], contract["segment"]
-    receipt = completed_gpu_kernel(remote, contract, funding["engineering"], digest,
-                                   t4.ENGINEERING_RECEIPT, [])
+    receipt = completed_gpu_kernel(
+        remote, contract, funding["engineering"], digest, t4.ENGINEERING_RECEIPT, []
+    )
     arms = receipt.get("arms", {})
     if (
         receipt.get("status") != t4.ENGINEERING_STATUS
         or receipt.get("science_git") != t4.SCIENCE_GIT
         or receipt.get("package_manifest_sha256") != contract["package_manifest_sha256"]
-        or (receipt.get("fixture_sha256"), receipt.get("bag_CPU_sha256"),
-            receipt.get("index_sha256")) != (t4.FIXTURE_SHA256, t4.BAG_CPU_SHA256, t4.INDEX_SHA256)
+        or (
+            receipt.get("fixture_sha256"),
+            receipt.get("bag_CPU_sha256"),
+            receipt.get("index_sha256"),
+        )
+        != (t4.FIXTURE_SHA256, t4.BAG_CPU_SHA256, t4.INDEX_SHA256)
         or receipt.get("shard_manifest_sha256") != list(t4.SHARD_MANIFEST_SHA256)
         or set(arms) != set(t4.ARMS)
         or any(
-            a.get("complete_actual_partial_final_RNG_optimizer_scaler_and_CSV_recovery")
-            is not True for a in arms.values()
+            a.get("complete_actual_partial_final_RNG_optimizer_scaler_and_CSV_recovery") is not True
+            for a in arms.values()
         )
         or receipt.get("GPUs_used_concurrently") != 1
         or receipt.get("gold_or_confirmation_used") is not False
@@ -181,8 +203,10 @@ def verify_engineering(remote, contract, digest, gpu) -> dict:
     ):
         raise ValueError("Engineering receipt is not the actual accepted source/config/inputs")
     measured = receipt.get("measured")
-    if not isinstance(measured, dict) or set(measured) != set(t4.MEASURED_KEYS) or (
-        funding["measured"] != measured
+    if (
+        not isinstance(measured, dict)
+        or set(measured) != set(t4.MEASURED_KEYS)
+        or (funding["measured"] != measured)
     ):
         raise ValueError("Funding timings differ from the actual measured engineering session")
     scratch = receipt["resources_before"]["disk"]["/tmp"]["free"]
@@ -210,8 +234,14 @@ def verify_previous(remote, contract, digest) -> dict | None:
     previous = segment["previous_output"]
     if previous is None:
         return None
-    receipt = completed_gpu_kernel(remote, contract, previous, digest, t4.SEGMENT_RECEIPT,
-                                   _previous_inputs(remote, previous, contract))
+    receipt = completed_gpu_kernel(
+        remote,
+        contract,
+        previous,
+        digest,
+        t4.SEGMENT_RECEIPT,
+        _previous_inputs(remote, previous, contract),
+    )
     prior = receipt.get("contract", {})
     if (
         receipt.get("status") != t4.SEGMENT_STATUS
@@ -247,14 +277,16 @@ def verify_inputs(remote, publication, workflow, contract: dict) -> dict:
             meta.get("isPrivate") is not True
             or meta.get("enableGpu", False) is not False
             or meta.get("enableInternet") is not False
-            or remote.kernel("GetKernelSessionStatus", shard["slug"], 1).get("status")
-            != "COMPLETE"
+            or remote.kernel("GetKernelSessionStatus", shard["slug"], 1).get("status") != "COMPLETE"
         ):
             raise ValueError("Original shard kernel is not the private offline completed CPU v1")
     for key in ("model_dataset", "capsule_dataset"):
         record = contract[key]
         if publication.metadata(remote, record["slug"]) != {
-            "id": record["id"], "version": 1, "slug": record["slug"], "private": True
+            "id": record["id"],
+            "version": 1,
+            "slug": record["slug"],
+            "private": True,
         }:
             raise ValueError("Original private Dataset identity differs")
     workflow.verify_shared_wheelhouse(remote, contract["wheelhouse"])
@@ -265,7 +297,8 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
     """``journal`` is the root-owned exclusive-JSON writer inside the coordinator claim."""
     validate_contract(contract)
     if contract["platform_limits"] != plan.admitted_platform_limits() or (
-        contract["model_dataset"]["id"], contract["capsule_dataset"]["id"]
+        contract["model_dataset"]["id"],
+        contract["capsule_dataset"]["id"],
     ) != (plan.SUPPORTED_DATASET_IDS[0], plan.SUPPORTED_DATASET_IDS[2]):
         raise ValueError("Platform proof/Datasets differ from the actual admitted input shape")
     if digest(source) != contract["source_sha256"]:
@@ -295,34 +328,52 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
     inputs = verify_inputs(remote, publication, workflow, contract)
     quota = remote.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})
     gpu = quota["gpuQuota"]
-    funding = plan.admit_engineering(gpu, min(contract["session_timeout_seconds"], 7200)) if (
-        contract["mode"] == "engineering"
-    ) else {"available_seconds": plan.conservative_available(gpu),
-            "charge_seconds": plan.session_charge(contract["session_timeout_seconds"])}
+    funding = (
+        plan.admit_engineering(gpu, min(contract["session_timeout_seconds"], 7200))
+        if (contract["mode"] == "engineering")
+        else {
+            "available_seconds": plan.conservative_available(gpu),
+            "charge_seconds": plan.session_charge(contract["session_timeout_seconds"]),
+        }
+    )
     if funding["available_seconds"] < funding["charge_seconds"]:
         raise ValueError("Fresh conservative allowance cannot fund this session")
     # Both provisioned T4s are charged exactly once for the session, whether one or both
     # arms use them concurrently.
-    funding = {**funding, "provisioned_GPUs_charged": plan.PROVISIONED_T4,
-               "GPUs_used_concurrently": 2 if contract["parallel_arms"] else 1}
+    funding = {
+        **funding,
+        "provisioned_GPUs_charged": plan.PROVISIONED_T4,
+        "GPUs_used_concurrently": 2 if contract["parallel_arms"] else 1,
+    }
     production = None
     if contract["mode"] == "segment":
         # Both bindings are verified read-only before any segment intent or SaveKernel.
-        production = {"engineering": verify_engineering(remote, contract, digest, gpu),
-                      "previous": verify_previous(remote, contract, digest)}
+        production = {
+            "engineering": verify_engineering(remote, contract, digest, gpu),
+            "previous": verify_previous(remote, contract, digest),
+        }
     absence = remote.require_absent_kernel(contract["kernel_slug"])
-    proof = {"phase": phase, "inputs": inputs, "gpu_quota": gpu, "funding": funding,
-             "production": production, "absence": absence,
-             "request_sha256": digest(repr(sorted(request.items())))}
+    proof = {
+        "phase": phase,
+        "inputs": inputs,
+        "gpu_quota": gpu,
+        "funding": funding,
+        "production": production,
+        "absence": absence,
+        "request_sha256": digest(repr(sorted(request.items()))),
+    }
     if phase == "preflight":
         return proof
-    journal("kernel-create-intent.json", {**proof, "single_SaveKernel": True,
-                                          "automatic_retry": False})
+    journal(
+        "kernel-create-intent.json", {**proof, "single_SaveKernel": True, "automatic_retry": False}
+    )
     try:
         result = remote.call("kernels.KernelsApiService", "SaveKernel", request)
     except Exception as exc:
-        journal("kernel-create-uncertain.json", {"error_type": type(exc).__name__,
-                                                 "reconcile_read_only": True})
+        journal(
+            "kernel-create-uncertain.json",
+            {"error_type": type(exc).__name__, "reconcile_read_only": True},
+        )
         raise
     journal("kernel-create-response.json", result)
     if (

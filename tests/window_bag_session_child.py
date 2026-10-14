@@ -19,5 +19,6 @@ if __name__ == "__main__":
         stop=spec.get("stop"),
         resume=resume,
         every=spec.get("every", 0),
+        precision=spec.get("precision", "fp16"),
     )
     sys.exit(code)

@@ -32,23 +32,6 @@ Envelope:
 
 The quota charge counts both provisioned T4s for the full timeout. With the dated issue observation (108000 − 2464.964 − 0 = 105535.036 s), one engineering session charges 14400 s. Root must re-query quota inside the coordinator claim before any mutation.
 
-## Optional concurrent two-T4 engineering mode (prepared, not accepted)
-
-Kaggle's "T4 x2" session provisions and bills two T4s. The sequential path above uses only device 0. `--parallel` is an engineering-only option that uses both devices:
-- **Build switch:** `window_bag_notebook.build(parallel=True)` embeds `WINDOW_BAG_PARALLEL = True`. The coordinator contract carries `parallel_arms`, and `bound_in_source` refuses a source that does not embed the same value. `parallel_arms` is refused for segments.
-- **Two isolated processes:** the mean and query arms each run as their own single-GPU chain of fresh trainer processes, on `CUDA_VISIBLE_DEVICES=0` (mean) and `1` (query).
-  - Each process uses `OMP/MKL/OPENBLAS=2` threads.
-  - Each needs at least 4 schedulable CPUs, and exactly 2 visible T4s are required.
-  - This is not DDP: `WORLD_SIZE=1`. Config, dataset, RNG, loss, schedule and effective-8 recipe are identical to sequential mode.
-- **CPU gate first:** the CPU input/initialization admission finishes before either optimizer starts. That admission covers cohort, 16+16 tensors, full rosters/folds, and official init/RNG. After it, `freeze_cache` makes the restored admitted cache read-only (0444/0555) and records its content digest. Both arms share that cache read-only. The digest must be unchanged after both arms finish.
-- **Separate outputs:** each arm writes its own exclusive output directory `<out>/<arm>` and its own exclusive `O_EXCL` journal `<out>/<arm>-journal.jsonl`. The journal records start/exit/pid/device/returncode/seconds and is fsynced.
-- **Independent recovery:** each arm runs the real full/stop1/resume sequence on its own. The actual interrupted checkpoint is copied before resume, and `compare_recovery`/`validate_state` are applied per arm. The first-update-loss equality check across arms is kept.
-- **Failure handling:** `Supervisor` starts every trainer in its own process group. On the first failure of either arm (nonzero exit, cap, deadline or exception), `run_concurrent` stops the sibling: SIGTERM to the group, a 30 s grace period, then SIGKILL. It reaps every owned process, including grandchildren in the group. No new trainer process starts after a stop.
-- **Combined caps:** every 2 s poll measures the coordinator RSS plus the RSS of all live owned process groups, against the 29 GiB ceiling. It also checks combined output+cache bytes under `<out>` (6 GiB cap), the 3 GiB scratch reserve and the session deadline. The receipt records peak combined RSS and output, devices, threads, the shared-cache digest and the journal SHAs.
-- **Quota:** a session is charged `timeout × 2` exactly once, the same as the sequential session (`provisioned_GPUs_charged: 2`, `GPUs_used_concurrently: 1|2`). Both arms in one session therefore halve the GPU charge per matched pair.
-- **Projection:** `production_plan(..., concurrent=True)` gives a projection only. It halves the session count and charge, and adds one more arm's checkpoints to the scratch and output caps. Segments and recipe stay unchanged. Its timings must come from an actual concurrent T4 engineering session. A paired production segment runner is not implemented, and production funding still requires a sequential `GPUs_used_concurrently == 1` engineering receipt.
-- **Receipt status:** `source_window_bag_two_arm_actual_concurrent_two_T4_canonical_recovery_accepted`. It can only come from an actual Kaggle run. The CPU tests use real subprocesses and the canonical trainer on CPU, which is not parallel acceptance. Root decides after actual measurements.
-
 ## Conditional single coordinator
 
 `scripts/kaggle/window_bag_coordinator.py:run_phase` is meant to run inside `coordinator.single_coordinator` with the canonical ledger, like the original T4 recoveries.
@@ -115,22 +98,8 @@ The CPU tests in `tests/test_kaggle_window_bag.py` cover:
 - complete recovery across an actual session-output boundary for both arms on the canonical trainer, using a tiny engineering encoder. Session 1 stops at the epoch-1 boundary and publishes. Its scratch is deleted. The publication is copied to a read-only mounted input and restored by `restore_previous`. A fresh process then resumes to bit-equal state, predictions and epoch-2 snapshot;
 - write-once/capped/cache-free publication, and refusal of tampered members, receipt, publication or chain;
 - that the resumed SaveKernel request mounts the verified previous kernel;
-- the concurrent mode on CPU: both arms run the real full/stop1/resume concurrently through `Supervisor` over one read-only cache, and each reaches bit-equal state/predictions. A failing arm stops and reaps its sibling and grandchild. The combined output and RSS caps stop both arms. Cache drift is detected. The concurrent plan charges both T4s once per shared session;
 - that forged funding (a bare nonempty dict, wrong receipt/measurements/schedule/source/image/config/package/GPU seconds/output cap) fails with no intent and no SaveKernel.
 
 Engineering tests are not scores, accuracy, eligibility or discovery claims.
 
 The original H100 two-arm recovery has since actually COMPLETED 0 for both arms (receipt `0700d08b`, preserved in `source-window-bag-GPU-terminal-20261014-v1`). That is H100 recovery, not T4 acceptance. The notebook's `CUDA_VISIBLE_DEVICES=0` intentionally selects one T4, while quota charges both provisioned GPUs.
-
-## Actual input-shape bound, output cap and omitted repeated fields (issue #55 follow-up)
-
-- **Input shape:** the only admitted `platform_limits` is `plan.admitted_platform_limits()`, bound to the actual private offline CPU kernel `138609817/v1` (`rsna-input-shape-cpu-21x3-20261014-v1`, source `e06b3842`). It COMPLETED with exactly 21 kernel inputs and the same 3 Datasets (ids `12333543`, `12139697`, `12567458`).
-  - A test re-reads `kaggle-input-shape-CPU-20261014-v1/verified.json` and `contract.json`. It checks the slug, version, source, counts, the 20 shard-manifest SHAs and the Dataset ids.
-  - The coordinator refuses any other proof, including a claimed limit above 21/3, and model/capsule Dataset ids other than the probe's.
-  - This is a supported-shape bound, not a platform maximum. An engineering session mounts 20+3 and a resumed segment mounts 21+3.
-- **Output cap:** Kaggle documents 20 GB of saved `/kaggle/working` output. Every segment is held to an explicit `OUTPUT_CAP_CEILING_BYTES` = 16 GiB.
-  - `segment_contract`, `require_platform_limits` and `production_plan["output_caps_fit"]` enforce it, including the two-arm concurrent projection.
-  - The engineering cap stays 6 GiB.
-- **Omitted repeated fields:** GetKernel can omit an empty repeated field or return it as null. `repeated()` reads either as `[]` for `datasetDataSources`, `kernelDataSources` and `competitionDataSources`.
-  - Any non-list value is still refused.
-  - A nonempty competition source is still drift.

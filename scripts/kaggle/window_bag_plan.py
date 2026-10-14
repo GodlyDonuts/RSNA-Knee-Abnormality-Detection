@@ -32,7 +32,8 @@ PUBLICATION_SIDECAR_BYTES = 256 * 2**20
 # COMPLETED with exactly 21 kernel inputs (the 20 original shards plus one other kernel) and
 # these 3 Datasets. That is a supported shape, not a platform maximum.
 INPUT_SHAPE_PROOF_KERNEL = {
-    "slug": "godlydonuts/rsna-input-shape-cpu-21x3-20261014-v1", "version": 1,
+    "slug": "godlydonuts/rsna-input-shape-cpu-21x3-20261014-v1",
+    "version": 1,
     "kernel_id": 138609817,
     "source_sha256": "e06b3842e1c23022821063e9bda1f51cf525d399c097c0d70b6da3b6c06e086a",
 }
@@ -49,7 +50,9 @@ def admitted_platform_limits() -> dict:
     return {
         "observed_at": "2026-10-14 kernel 138609817/v1 COMPLETE",
         "evidence": "actual_private_CPU_21kernel_3dataset_mount_shape_accepted:"
-        + INPUT_SHAPE_PROOF_KERNEL["slug"] + "/v1:" + INPUT_SHAPE_PROOF_KERNEL["source_sha256"]
+        + INPUT_SHAPE_PROOF_KERNEL["slug"]
+        + "/v1:"
+        + INPUT_SHAPE_PROOF_KERNEL["source_sha256"]
         + ";output:kaggle.com/docs/notebooks 20GB /kaggle/working, explicit 16GiB cap",
         "max_kernel_sources": SUPPORTED_KERNEL_SOURCES,
         "max_dataset_sources": SUPPORTED_DATASET_SOURCES,
@@ -84,25 +87,36 @@ def admit_engineering(gpu_quota: dict, timeout_seconds: float = ENGINEERING_TIME
     available, charge = conservative_available(gpu_quota), session_charge(timeout_seconds)
     if available < charge:
         raise ValueError("Fresh conservative GPU allowance cannot fund the session")
-    return {"available_seconds": available, "charge_seconds": charge,
-            "remaining_after_seconds": available - charge}
+    return {
+        "available_seconds": available,
+        "charge_seconds": charge,
+        "remaining_after_seconds": available - charge,
+    }
 
 
-def require_platform_limits(proof: dict, kernel_sources: int, dataset_sources: int,
-                            output_bytes: int = 0) -> dict:
+def require_platform_limits(
+    proof: dict, kernel_sources: int, dataset_sources: int, output_bytes: int = 0
+) -> dict:
     """Refuse unless root recorded the actual API constraint (never an assumed default).
 
     Counts at or below the actually completed 21/3 shape are admitted; nothing above it.
     """
-    keys = {"observed_at", "evidence", "max_kernel_sources", "max_dataset_sources",
-            "max_output_bytes"}
+    keys = {
+        "observed_at",
+        "evidence",
+        "max_kernel_sources",
+        "max_dataset_sources",
+        "max_output_bytes",
+    }
     if not isinstance(proof, dict) or set(proof) != keys:
         raise ValueError("Actual platform source-limit observation required")
     if not isinstance(proof["evidence"], str) or not proof["evidence"].strip():
         raise ValueError("Source-limit evidence must name the actual API constraint")
-    for key, need in (("max_kernel_sources", kernel_sources),
-                      ("max_dataset_sources", dataset_sources),
-                      ("max_output_bytes", output_bytes)):
+    for key, need in (
+        ("max_kernel_sources", kernel_sources),
+        ("max_dataset_sources", dataset_sources),
+        ("max_output_bytes", output_bytes),
+    ):
         if type(proof[key]) is not int or proof[key] < need:
             raise ValueError("Requested inputs exceed the verified platform limit")
     if (
@@ -122,8 +136,9 @@ def segment_boundaries(updates_per_session: int, total: int = TOTAL_UPDATES):
     return [(a, b) for a, b in zip(edges, edges[1:])]
 
 
-def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int,
-                    concurrent: bool = False) -> dict:
+def production_plan(
+    measured: dict, gpu_quota: dict, free_scratch_bytes: int, concurrent: bool = False
+) -> dict:
     """Fixed 2810-update plan per arm from actual T4 measurements; never changes the recipe.
 
     ``measured`` requires ``seconds_per_update`` (four-window bag, effective 8),
@@ -136,8 +151,13 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int,
     arms' checkpoints and outputs. Its timings must come from an actual concurrent
     engineering session; the paired segment runner itself is not yet admitted.
     """
-    keys = {"seconds_per_update", "startup_seconds", "checkpoint_seconds",
-            "final_evaluation_seconds", "checkpoint_bytes"}
+    keys = {
+        "seconds_per_update",
+        "startup_seconds",
+        "checkpoint_seconds",
+        "final_evaluation_seconds",
+        "checkpoint_bytes",
+    }
     if set(measured) != keys or any(
         not isinstance(measured[k], (int, float)) or measured[k] <= 0 for k in keys
     ):
@@ -186,9 +206,16 @@ def publication_bytes(measured: dict, segment: tuple[int, int]) -> int:
     return (1 + epochs) * measured["checkpoint_bytes"] + PUBLICATION_SIDECAR_BYTES
 
 
-def next_segment(previous_receipt: dict | None, arm: str, segments: list, *,
-                 engineering_receipt_sha256: str, production_config_sha256: str,
-                 measured: dict, previous_kernel: dict | None = None) -> dict:
+def next_segment(
+    previous_receipt: dict | None,
+    arm: str,
+    segments: list,
+    *,
+    engineering_receipt_sha256: str,
+    production_config_sha256: str,
+    measured: dict,
+    previous_kernel: dict | None = None,
+) -> dict:
     """Bind the next session to the exact prior kernel output; refuses drift or skipped steps.
 
     ``previous_kernel`` is root's read-only observation of the completed previous segment:
@@ -196,15 +223,23 @@ def next_segment(previous_receipt: dict | None, arm: str, segments: list, *,
     """
     from scripts.kaggle.window_bag_t4 import canonical
 
-    common = {"engineering_receipt_sha256": engineering_receipt_sha256,
-              "production_config_sha256": production_config_sha256}
+    common = {
+        "engineering_receipt_sha256": engineering_receipt_sha256,
+        "production_config_sha256": production_config_sha256,
+    }
     if previous_receipt is None:
         if previous_kernel is not None:
             raise ValueError("The first segment has no previous kernel")
         start, end = segments[0]
-        return {"arm": arm, "segment": 0, "start_step": start, "end_step": end,
-                "previous_output": None, **common,
-                "output_cap_bytes": publication_bytes(measured, (start, end))}
+        return {
+            "arm": arm,
+            "segment": 0,
+            "start_step": start,
+            "end_step": end,
+            "previous_output": None,
+            **common,
+            "output_cap_bytes": publication_bytes(measured, (start, end)),
+        }
     contract = previous_receipt["contract"]
     index = contract["segment"] + 1
     if (
@@ -228,10 +263,17 @@ def next_segment(previous_receipt: dict | None, arm: str, segments: list, *,
     start, end = segments[index]
     if start != contract["end_step"]:
         raise ValueError("Segments must be contiguous")
-    return {"arm": arm, "segment": index, "start_step": start, "end_step": end,
-            "previous_output": {
-                **previous_kernel,
-                "receipt_sha256": canonical(previous_receipt),
-                "publication_sha256": previous_receipt["publication"]["manifest_sha256"],
-                "checkpoint_sha256": previous_receipt["checkpoint_sha256"],
-            }, **common, "output_cap_bytes": publication_bytes(measured, (start, end))}
+    return {
+        "arm": arm,
+        "segment": index,
+        "start_step": start,
+        "end_step": end,
+        "previous_output": {
+            **previous_kernel,
+            "receipt_sha256": canonical(previous_receipt),
+            "publication_sha256": previous_receipt["publication"]["manifest_sha256"],
+            "checkpoint_sha256": previous_receipt["checkpoint_sha256"],
+        },
+        **common,
+        "output_cap_bytes": publication_bytes(measured, (start, end)),
+    }

@@ -422,7 +422,7 @@ def test_student_has_no_teacher_reference_or_variability_dependency():
 # --- Canonical trainer on the engineering encoder (no transformers needed) -------------
 
 
-def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0):
+def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0, precision="fp16"):
     import argparse
 
     from test_public_triplet_training import POLICY, build, cohort
@@ -442,7 +442,9 @@ def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0):
     }
     if every:
         # Scheduled epoch snapshots bind the release identity.
-        release["binding_sha256"] = hashlib.sha256(json.dumps(release, sort_keys=True).encode()).hexdigest()
+        release["binding_sha256"] = hashlib.sha256(
+            json.dumps(release, sort_keys=True).encode()
+        ).hexdigest()
     config = TrainConfig(
         epochs=2,
         batch_size=1,
@@ -453,7 +455,7 @@ def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0):
         freeze_encoder=False,
         min_free_gib=0,
         diagnostic_study_limit=16,
-        precision="fp16",
+        precision=precision,
         public_input=POLICY,
         classifier_strategy=copy.deepcopy(STRATEGIES[arm]),
         submission_every_epochs=every,

@@ -81,7 +81,9 @@ FIXTURE_STATUS = (
     "public_input_recipe_native_and_public_triplet_inputs_and_official_initialization_CPU_accepted"
 )
 BAG_CPU_SHA256 = "7417e3637c4b4cb403a475deba043ce559656beb83454c7540493ffbf88818b9"
-BAG_CPU_STATUS = "source_window_bag_official_common_graph_values_RNG_and_original_inputs_CPU_accepted"
+BAG_CPU_STATUS = (
+    "source_window_bag_official_common_graph_values_RNG_and_original_inputs_CPU_accepted"
+)
 SCIENCE_GIT = "971d7dac7065681f0600064c9b3ffd959a1e8c45"
 OVERLAY_SHA256 = "c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51"
 GIB = 2**30
@@ -108,8 +110,13 @@ PUBLICATION_SIDECARS = ("config.json", "segment.stdout", "segment.stderr")
 PUBLICATION_RUN_FILES = ("checkpoint.pt", "run.json", "invocation.json")
 PUBLICATION_FINAL_FILES = ("result.json", "outer_predictions.csv")
 PUBLICATION_RESERVE_BYTES = GIB
-MEASURED_KEYS = ("seconds_per_update", "startup_seconds", "checkpoint_seconds",
-                 "final_evaluation_seconds", "checkpoint_bytes")
+MEASURED_KEYS = (
+    "seconds_per_update",
+    "startup_seconds",
+    "checkpoint_seconds",
+    "final_evaluation_seconds",
+    "checkpoint_bytes",
+)
 
 
 def sha(path) -> str:
@@ -188,9 +195,7 @@ def bag_configs(bag: dict) -> dict[str, dict]:
 def mounted_encoder(base: dict, spec: dict) -> dict:
     """Replace only the encoder file locations with the mounted pinned official base."""
     for key in set(base["encoder"]) | set(spec):
-        if key not in {"weights_path", "config_path"} and base["encoder"].get(key) != spec.get(
-            key
-        ):
+        if key not in {"weights_path", "config_path"} and base["encoder"].get(key) != spec.get(key):
             raise ValueError("Mounted encoder differs from the official pinned base")
     return dict(base, encoder=spec)
 
@@ -393,9 +398,10 @@ def admit_tensors(cache, policy, fixture, parts, outer_full, fit_full, series, r
     from rsna.competitive.public_input import PublicTripletStudyDataset, verify_public_cohort
     from scripts.newton.probe_public_input_recipe_inputs import tensor_proofs
 
-    if verify_public_cohort(cache, policy, fit_full, outer_full, revision) != fixture[
-        "public_cohort"
-    ]:
+    if (
+        verify_public_cohort(cache, policy, fit_full, outer_full, revision)
+        != fixture["public_cohort"]
+    ):
         raise ValueError("Restored cache cohort binding differs from the original fixture")
     proofs = {}
     for role, part in parts.items():
@@ -535,7 +541,11 @@ def execute(command, extra, root: Path, phase: str, expected: int, deadline, env
     started = time.monotonic()
     with (root / f"{phase}.stdout").open("x") as out, (root / f"{phase}.stderr").open("x") as err:
         result = subprocess.run(
-            command + extra, env=env, cwd=env["PYTHONPATH"], stdout=out, stderr=err,
+            command + extra,
+            env=env,
+            cwd=env["PYTHONPATH"],
+            stdout=out,
+            stderr=err,
             timeout=remaining,
         )
     timings[phase] = time.monotonic() - started
@@ -544,8 +554,20 @@ def execute(command, extra, root: Path, phase: str, expected: int, deadline, env
         raise ValueError("Canonical trainer phase failed or exceeded its cap; logs retained")
 
 
-def recover_arm(code, out, arm, values, paths, overlay, cache, fixture, hashes, deadline,
-                runner=None, device="0"):
+def recover_arm(
+    code,
+    out,
+    arm,
+    values,
+    paths,
+    overlay,
+    cache,
+    fixture,
+    hashes,
+    deadline,
+    runner=None,
+    device="0",
+):
     import torch
 
     from scripts.newton.probe_patch_witness_trainer_recovery import (
@@ -644,12 +666,22 @@ class Supervisor:
     exclusive per-arm journal.
     """
 
-    def __init__(self, cap_root: Path, deadline: float, journals: dict[str, Path],
-                 ram_ceiling: int = RAM_CEILING_BYTES, output_cap: int = CHECKPOINT_CAP_BYTES,
-                 scratch_reserve: int = SCRATCH_RESERVE_BYTES, poll: float = POLL_SECONDS):
+    def __init__(
+        self,
+        cap_root: Path,
+        deadline: float,
+        journals: dict[str, Path],
+        ram_ceiling: int = RAM_CEILING_BYTES,
+        output_cap: int = CHECKPOINT_CAP_BYTES,
+        scratch_reserve: int = SCRATCH_RESERVE_BYTES,
+        poll: float = POLL_SECONDS,
+    ):
         self.cap_root, self.deadline, self.poll = cap_root, deadline, poll
         self.ram_ceiling, self.output_cap, self.scratch_reserve = (
-            ram_ceiling, output_cap, scratch_reserve)
+            ram_ceiling,
+            output_cap,
+            scratch_reserve,
+        )
         self.stop = threading.Event()
         self.lock = threading.Lock()
         self.live: dict[int, subprocess.Popen] = {}
@@ -685,17 +717,25 @@ class Supervisor:
             raise RuntimeError("Sibling failed; no new trainer process")
         self.check()
         started = time.monotonic()
-        with (root / f"{phase}.stdout").open("x") as out, (
-            root / f"{phase}.stderr"
-        ).open("x") as err:
+        with (
+            (root / f"{phase}.stdout").open("x") as out,
+            (root / f"{phase}.stderr").open("x") as err,
+        ):
             with self.lock:
                 if self.stop.is_set():
                     raise RuntimeError("Sibling failed; no new trainer process")
-                process = subprocess.Popen(command, env=env, cwd=env["PYTHONPATH"], stdout=out,
-                                           stderr=err, start_new_session=True)
+                process = subprocess.Popen(
+                    command,
+                    env=env,
+                    cwd=env["PYTHONPATH"],
+                    stdout=out,
+                    stderr=err,
+                    start_new_session=True,
+                )
                 self.live[process.pid] = process
-            self.record(arm, phase=phase, event="start", pid=process.pid,
-                        device=env["CUDA_VISIBLE_DEVICES"])
+            self.record(
+                arm, phase=phase, event="start", pid=process.pid, device=env["CUDA_VISIBLE_DEVICES"]
+            )
             try:
                 while True:
                     try:
@@ -795,7 +835,9 @@ def code_hashes(code: Path, manifest: dict) -> dict:
     for name, value in {**manifest["files"], **manifest.get("bound_current", {})}.items():
         if sha(code / name) != value:
             raise ValueError("Numerical package or bound wrapper bytes differ")
-    return {n.removeprefix("rsna/"): h for n, h in manifest["files"].items() if n.startswith("rsna/")}
+    return {
+        n.removeprefix("rsna/"): h for n, h in manifest["files"].items() if n.startswith("rsna/")
+    }
 
 
 def prepare(args):
@@ -814,17 +856,36 @@ def prepare(args):
     shards, cohort = locate_shards(Path(args.input_root))
     manifests = verify_shards(shards, cohort)
     index = reconstruct_index(manifests, cohort, policy, json.loads(args.pixel_group.read_text()))
-    paths = {k: Path(getattr(args, k.replace("-", "_"))) for k in (
-        "studies", "artifact-root", "folds", "series")}
+    paths = {
+        k: Path(getattr(args, k.replace("-", "_")))
+        for k in ("studies", "artifact-root", "folds", "series")
+    }
     fit, outer, parts, series, binding = development_parts(paths, args.overlay, policy, fixture)
     if binding["source_revision"] != cohort["source_revision"]:
         raise ValueError("Release source revision differs from the shard cohort")
-    return code, hashes, fixture, bag, configs, spec, policy, shards, manifests, index, paths, (
-        fit, outer, parts, series, binding["source_revision"])
+    return (
+        code,
+        hashes,
+        fixture,
+        bag,
+        configs,
+        spec,
+        policy,
+        shards,
+        manifests,
+        index,
+        paths,
+        (fit, outer, parts, series, binding["source_revision"]),
+    )
 
 
-def measure(arms: dict, restored: dict, restore_seconds: float, bootstrap_seconds: float,
-            admission_seconds: float) -> dict:
+def measure(
+    arms: dict,
+    restored: dict,
+    restore_seconds: float,
+    bootstrap_seconds: float,
+    admission_seconds: float,
+) -> dict:
     """Conservative production timings derived only from this actual engineering session.
 
     Per update: the slowest observed update of either arm (effective 8, includes the
@@ -888,8 +949,18 @@ def run_engineering(args) -> dict:
         def job(arm):
             values = engineering_config(configs[arm], spec)
             return lambda: recover_arm(
-                code, out, arm, values, paths, args.overlay, cache, fixture, hashes, deadline,
-                runner=supervisor.run, device=PARALLEL_DEVICES[arm],
+                code,
+                out,
+                arm,
+                values,
+                paths,
+                args.overlay,
+                cache,
+                fixture,
+                hashes,
+                deadline,
+                runner=supervisor.run,
+                device=PARALLEL_DEVICES[arm],
             )
 
         results = run_concurrent({arm: job(arm) for arm in ARMS}, supervisor)
@@ -909,9 +980,10 @@ def run_engineering(args) -> dict:
             results[arm] = recover_arm(
                 code, out, arm, values, paths, args.overlay, cache, fixture, hashes, deadline
             )
-    if results["mean"]["finite_updates"][0]["loss"] != results["query"]["finite_updates"][0][
-        "loss"
-    ]:
+    if (
+        results["mean"]["finite_updates"][0]["loss"]
+        != results["query"]["finite_updates"][0]["loss"]
+    ):
         raise ValueError("Arms disagree on the original first-update loss")
     result = {
         "status": ENGINEERING_PARALLEL_STATUS if parallel else ENGINEERING_STATUS,
@@ -950,10 +1022,24 @@ def run_engineering(args) -> dict:
     return result
 
 
-PREVIOUS_OUTPUT_KEYS = {"kernel_slug", "version", "source_sha256", "receipt_sha256",
-                        "publication_sha256", "checkpoint_sha256"}
-SEGMENT_KEYS = {"arm", "segment", "start_step", "end_step", "previous_output",
-                "engineering_receipt_sha256", "production_config_sha256", "output_cap_bytes"}
+PREVIOUS_OUTPUT_KEYS = {
+    "kernel_slug",
+    "version",
+    "source_sha256",
+    "receipt_sha256",
+    "publication_sha256",
+    "checkpoint_sha256",
+}
+SEGMENT_KEYS = {
+    "arm",
+    "segment",
+    "start_step",
+    "end_step",
+    "previous_output",
+    "engineering_receipt_sha256",
+    "production_config_sha256",
+    "output_cap_bytes",
+}
 
 
 def _hex64(value) -> bool:
@@ -1049,15 +1135,24 @@ def publish_segment(root: Path, run_dir: Path, working: Path, cap: int, final: b
         published = entries["run/epoch-checkpoints/" + record["checkpoint_file"]]
         if published["sha256"] != record["checkpoint_sha256"]:
             raise ValueError("Epoch snapshot differs from its sidecar")
-    manifest = {"schema_version": 1, "files": entries, "bytes": total, "cap_bytes": cap,
-                "checkpoint_sha256": entries["run/checkpoint.pt"]["sha256"],
-                "MRI_cache_or_reports_included": False}
+    manifest = {
+        "schema_version": 1,
+        "files": entries,
+        "bytes": total,
+        "cap_bytes": cap,
+        "checkpoint_sha256": entries["run/checkpoint.pt"]["sha256"],
+        "MRI_cache_or_reports_included": False,
+    }
     payload = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode()
     with (target / PUBLICATION_MANIFEST).open("xb") as handle:
         handle.write(payload)
     (target / PUBLICATION_MANIFEST).chmod(0o444)
-    return {"manifest_sha256": hashlib.sha256(payload).hexdigest(), "files": len(entries),
-            "bytes": total, "checkpoint_sha256": manifest["checkpoint_sha256"]}
+    return {
+        "manifest_sha256": hashlib.sha256(payload).hexdigest(),
+        "files": len(entries),
+        "bytes": total,
+        "checkpoint_sha256": manifest["checkpoint_sha256"],
+    }
 
 
 def _find(input_root: Path, name: str, expected: str) -> list[Path]:
@@ -1119,8 +1214,11 @@ def restore_previous(input_root: Path, contract: dict, run_dir: Path) -> dict:
     staged.chmod(0o600)
     if sha(staged) != previous["checkpoint_sha256"]:
         raise ValueError("Staged checkpoint copy differs")
-    return {"publication_sha256": previous["publication_sha256"],
-            "checkpoint_sha256": previous["checkpoint_sha256"], "files": len(manifest["files"])}
+    return {
+        "publication_sha256": previous["publication_sha256"],
+        "checkpoint_sha256": previous["checkpoint_sha256"],
+        "files": len(manifest["files"]),
+    }
 
 
 def run_segment(args) -> dict:
@@ -1158,8 +1256,17 @@ def run_segment(args) -> dict:
         extra += ["--stop-after-updates", str(contract["end_step"] - contract["start_step"])]
     command = trainer_command(code, config, paths, args.overlay, out / "cache")
     timings: dict = {}
-    execute(command, extra, root, "segment", 0 if final else 75, deadline, trainer_env(code),
-            timings, root)
+    execute(
+        command,
+        extra,
+        root,
+        "segment",
+        0 if final else 75,
+        deadline,
+        trainer_env(code),
+        timings,
+        root,
+    )
     import torch
 
     state = torch.load(run_dir / "checkpoint.pt", map_location="cpu", weights_only=True)
@@ -1167,8 +1274,9 @@ def run_segment(args) -> dict:
         raise ValueError("Segment did not stop at its scheduled boundary/source")
     del state
     snapshots = sorted((run_dir / "epoch-checkpoints").glob("epoch-*.pt"))
-    publication = publish_segment(root, run_dir, Path(args.publish_root),
-                                  contract["output_cap_bytes"], final)
+    publication = publish_segment(
+        root, run_dir, Path(args.publish_root), contract["output_cap_bytes"], final
+    )
     result = {
         "status": SEGMENT_STATUS,
         "contract": contract,
@@ -1198,8 +1306,20 @@ def run_segment(args) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("engineering", "segment"), required=True)
-    for name in ("source", "source-manifest", "fixture", "bag-cpu", "encoder-spec", "overlay",
-                 "pixel-group", "studies", "artifact-root", "folds", "series", "output"):
+    for name in (
+        "source",
+        "source-manifest",
+        "fixture",
+        "bag-cpu",
+        "encoder-spec",
+        "overlay",
+        "pixel-group",
+        "studies",
+        "artifact-root",
+        "folds",
+        "series",
+        "output",
+    ):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--receipt", type=Path)
     parser.add_argument("--publish-root", type=Path, default=Path("/kaggle/working"))
@@ -1207,8 +1327,11 @@ def main() -> None:
     parser.add_argument("--segment", type=Path)
     parser.add_argument("--remaining-seconds", type=float, required=True)
     parser.add_argument("--bootstrap-seconds", type=float, required=True)
-    parser.add_argument("--parallel", action="store_true",
-                        help="Engineering only: both arms concurrently on two T4s")
+    parser.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Engineering only: both arms concurrently on two T4s",
+    )
     args = parser.parse_args()
     if args.parallel and args.mode != "engineering":
         parser.error("--parallel is an engineering-only option until separately admitted")

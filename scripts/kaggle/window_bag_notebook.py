@@ -22,12 +22,14 @@ ROOT = Path(__file__).resolve().parents[2]
 STAGE_MANIFEST = (
     ROOT / "initiative/audits/source-window-bag-GPU-recovery-dispatch-20261013-v1/stage-intent.json"
 )
-PIXEL_GROUP = ROOT / "initiative/audits/public-dinov2-real-inputs-20261013-v2/actual-input-comparison.json"
+PIXEL_GROUP = (
+    ROOT / "initiative/audits/public-dinov2-real-inputs-20261013-v2/actual-input-comparison.json"
+)
 BOUND_CURRENT = ("scripts/kaggle/window_bag_t4.py", "scripts/kaggle/window_bag_plan.py")
 ENTRY = ROOT / "scripts/kaggle/notebook_entry.py"
 ANCHOR = '    if globals().get("WITNESS_T4_RECOVERY_PROBE") is True:\n'
 SOURCE_CAP_BYTES = 1024**2
-BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
+BRANCH = """    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         import base64, gzip
         package = json.loads(gzip.decompress(base64.b64decode(WINDOW_BAG_PACKAGE, validate=True)))
         manifest = json.loads(package["manifest"])
@@ -78,7 +80,7 @@ BRANCH = '''    if globals().get("WINDOW_BAG_T4_PROBE") is True:
             command += ["--segment", str(private / "segment.json")]
         bounded_process(command, env=env, timeout=remaining)
         return
-'''
+"""
 
 
 def sha_bytes(data: bytes) -> str:
@@ -94,7 +96,8 @@ def immutable_package(root: Path = ROOT) -> tuple[dict, dict]:
     for name, expected in stage["files"].items():
         data = subprocess.run(
             ["git", "-C", str(root), "show", f"{t4.SCIENCE_GIT}:{name}"],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         ).stdout
         if sha_bytes(data) != expected:
             raise ValueError("Science commit bytes differ from the stage manifest")
@@ -112,12 +115,18 @@ def immutable_package(root: Path = ROOT) -> tuple[dict, dict]:
 
 def private_inputs(fixture: bytes, bag_cpu: bytes, overlay: bytes) -> dict[str, bytes]:
     if (sha_bytes(fixture), sha_bytes(bag_cpu), sha_bytes(overlay)) != (
-        t4.FIXTURE_SHA256, t4.BAG_CPU_SHA256, t4.OVERLAY_SHA256
+        t4.FIXTURE_SHA256,
+        t4.BAG_CPU_SHA256,
+        t4.OVERLAY_SHA256,
     ):
         raise ValueError("Root-supplied private inputs differ from the original receipts")
     group = json.loads(PIXEL_GROUP.read_text())["provenance"]["member_pixel_group"]
-    return {"fixture.json": fixture, "bag-cpu.json": bag_cpu, "overlay.json": overlay,
-            "pixel-group.json": json.dumps(group).encode()}
+    return {
+        "fixture.json": fixture,
+        "bag-cpu.json": bag_cpu,
+        "overlay.json": overlay,
+        "pixel-group.json": json.dumps(group).encode(),
+    }
 
 
 def compose(entry: str, values: dict) -> str:
@@ -132,9 +141,18 @@ def compose(entry: str, values: dict) -> str:
     return notebook
 
 
-def build(*, bundle_manifest_sha256: str, capsule: dict, fixture: bytes, bag_cpu: bytes,
-          overlay: bytes, mode: str = "engineering", segment: dict | None = None,
-          timeout_seconds: int = 7200, parallel: bool = False) -> tuple[str, dict]:
+def build(
+    *,
+    bundle_manifest_sha256: str,
+    capsule: dict,
+    fixture: bytes,
+    bag_cpu: bytes,
+    overlay: bytes,
+    mode: str = "engineering",
+    segment: dict | None = None,
+    timeout_seconds: int = 7200,
+    parallel: bool = False,
+) -> tuple[str, dict]:
     """Return (notebook source, binding record). Writes nothing and calls no API."""
     if mode not in {"engineering", "segment"} or (mode == "segment") != (segment is not None):
         raise ValueError("Engineering, or segment with an exact contract")
@@ -146,7 +164,9 @@ def build(*, bundle_manifest_sha256: str, capsule: dict, fixture: bytes, bag_cpu
         raise ValueError("Exact render-capsule layout required")
     files, manifest = immutable_package()
     manifest_text = json.dumps(manifest, sort_keys=True, indent=2) + "\n"
-    package = gzip.compress(json.dumps({"files": files, "manifest": manifest_text}).encode(), mtime=0)
+    package = gzip.compress(
+        json.dumps({"files": files, "manifest": manifest_text}).encode(), mtime=0
+    )
     inputs = private_inputs(fixture, bag_cpu, overlay)
     values = {
         "EXPECTED_MANIFEST_SHA256": bundle_manifest_sha256,
