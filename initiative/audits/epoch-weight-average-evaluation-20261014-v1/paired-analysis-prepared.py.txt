@@ -1,0 +1,86 @@
+"""Only actual accepted predictions may enter the predeclared paired analysis."""
+
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+local = Path("artifacts/epoch-weight-average-evaluation-20261014-v2")
+assert not (local / "paired-intent.json").exists()
+payload = json.loads((local / "paired-payload.json").read_text())
+program = """import hashlib,json,sys,os
+from pathlib import Path
+import numpy as np,pandas as pd,pyarrow.dataset as ds
+r=Path('/tmp/rsna-epoch-weight-average-CPU-20261014-v1');old=Path('/tmp/rsna-public-label-full-fit-20261006-v1');sys.path.insert(0,str(r/'code'))
+from rsna.schema import TARGETS
+v=json.load(sys.stdin);assert hashlib.sha256(v['rank_source'].encode()).hexdigest()==v['rank_sha256'];assert hashlib.sha256(v['paired_source'].encode()).hexdigest()==v['paired_sha256']
+ns={'__name__':'bound_rank_helpers','__file__':str(old/'code/scripts/rank_learning.py')};exec(v['rank_source'],ns);ns.update(np=np,pd=pd,TARGETS=TARGETS,ROLES=('control','candidate'));exec(v['paired_source'],ns)
+models={};gates={}
+for role,alias in [('identity','control'),('average','candidate')]:
+ gate=json.loads((r/role/'evaluation-accepted-v2.json').read_text());assert gate['status']=='actual_source_bound_epoch_weight_average_outer_prediction_accepted' and gate['studies']==1156 and gate['gold_confirmation_or_training_update_used'] is False
+ raw=(r/role/'outer_predictions.csv').read_bytes();assert hashlib.sha256(raw).hexdigest()==gate['prediction_sha256'];f=pd.read_csv(r/role/'outer_predictions.csv');assert list(f.columns)==['study_uid','fold','seed',*TARGETS] and len(f)==1156 and not f.study_uid.duplicated().any();assert f.fold.eq(0).all() and f.seed.eq(20260922).all();models[alias]=f.set_index('study_uid');gates[alias]=gate
+assert gates['control']['original_epoch10_prediction_bytes_equal'] is True
+assert gates['control']['source_binding_sha256']==gates['candidate']['source_binding_sha256']=='252129384647bacc1838eb0ac643578c92d8cf93de27eb74c3ccceee4495d2aa'
+cpu=json.loads((old/'CPU-accepted.json').read_text());uids=sorted(models['control'].index);assert set(uids)==set(models['candidate'].index)
+digest=lambda a:hashlib.sha256(json.dumps(a,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+assert digest(uids)==cpu['outer_uids_sha256']
+labels=ds.dataset(cpu['trainer_inputs']['studies'],format='parquet').to_table(columns=['study_uid','leakage_group','split',*TARGETS,*[t+'__mask' for t in TARGETS]],filter=ds.field('study_uid').isin(uids)).to_pandas().set_index('study_uid').loc[uids];assert len(labels)==1156 and labels.split.eq('train').all()
+metrics=ns['paired_metrics'](labels,models,draws=4000,seed=20261001)
+for role in models:assert abs(metrics['macro_auc'][role]-gates[role]['metrics']['macro_auc'])<1e-9
+result={'status':'actual_predeclared_epoch6_10_weight_average_paired_outer_analysis','CPU_step':os.environ.get('SLURM_STEP_ID'),'studies':1156,'epochs':[6,7,8,9,10],'comparison_epoch':10,'metrics':metrics,'prediction_sha256':{k:g['prediction_sha256'] for k,g in gates.items()},'rank_source_sha256':v['rank_sha256'],'paired_source_sha256':v['paired_sha256'],'labels_UIDs_MRI_or_weights_exported':False,'Kaggle_score':False,'protected_gold_confirmation_or_epoch_selection':False}
+with (r/'paired-analysis.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result))
+"""
+# No intent until both actual MRI gate receipts exist.
+check = "from pathlib import Path;import json;r=Path('/tmp/rsna-epoch-weight-average-CPU-20261014-v1');assert not(r/'paired-analysis.json').exists();a=json.loads((r/'identity/evaluation-accepted-v2.json').read_text());b=json.loads((r/'average/evaluation-accepted-v2.json').read_text());assert a['original_epoch10_prediction_bytes_equal'] is True and b['studies']==1156;print('actual_both_MRI_gates_accepted')"
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+base = [
+    "srun",
+    "--jobid=899766",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:10:00",
+    "env",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python",
+    "-B",
+    "-c",
+]
+pre = subprocess.run(ssh + [shlex.join(base + [check])], capture_output=True, text=True, timeout=90)
+assert pre.returncode == 0, "Incomplete actual gates: no analysis intent created"
+with (local / "paired-intent.json").open("x") as handle:
+    json.dump(
+        {
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "draws": 4000,
+            "bootstrap_seed": 20261001,
+            "CPU": 1,
+            "GPU": 0,
+            "automatic_retry": False,
+        },
+        handle,
+        indent=2,
+    )
+result = subprocess.run(
+    ssh + [shlex.join(base + [program])],
+    input=json.dumps(payload),
+    capture_output=True,
+    text=True,
+    timeout=650,
+)
+(local / "paired-result.json").write_text(
+    json.dumps(
+        {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr},
+        indent=2,
+    )
+    + "\n"
+)
+assert result.returncode == 0
+(local / "paired-analysis.json").write_text(json.dumps(json.loads(result.stdout), indent=2) + "\n")
+print(result.stdout)
