@@ -22,6 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
@@ -41,9 +42,13 @@ PINNED = {
     "dense": {"method": "dense_suffix_delta_v1", "trainable_parameters": 150_994_944, "lr": 1e-5},
 }
 ENGINEERING = dict(
-    epochs=2, diagnostic_study_limit=16, warmup_updates=2, submission_every_epochs=0, min_free_gib=3
+    epochs=2,
+    diagnostic_study_limit=16,
+    warmup_updates=2,
+    submission_every_epochs=0,
+    min_free_gib=20,
 )
-RESERVE = 3 * 2**30
+RESERVE = 20 * 2**30
 Executor = Callable[[Path, str, Path, list[str]], int]
 
 
@@ -218,6 +223,7 @@ def subprocess_executor(args: argparse.Namespace, source: Path) -> Executor:
         LOCAL_RANK="0",
         CUBLAS_WORKSPACE_CONFIG=":4096:8",
     )
+    deadline = time.monotonic() + args.remaining_seconds
     artifact = args.artifact_root
     base = [
         sys.executable,
@@ -245,6 +251,9 @@ def subprocess_executor(args: argparse.Namespace, source: Path) -> Executor:
     ]
 
     def execute(root: Path, phase: str, config: Path, extra: list[str]) -> int:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Whole recovery deadline exhausted")
         with (
             (root / f"{phase}.stdout").open("x") as out,
             (root / f"{phase}.stderr").open("x") as err,
@@ -255,7 +264,7 @@ def subprocess_executor(args: argparse.Namespace, source: Path) -> Executor:
                 cwd=source,
                 stdout=out,
                 stderr=err,
-                timeout=args.remaining_seconds,
+                timeout=remaining,
             ).returncode
 
     return execute
@@ -283,7 +292,7 @@ def run(
     if args.device == "cuda" and torch.cuda.device_count() != 1:
         raise ValueError("Exactly one visible assigned GPU required for sequential arms")
     if shutil.disk_usage(args.output.parent).free < args.max_output_bytes + RESERVE:
-        raise ValueError("Admitted output cap plus three GiB reserve unavailable")
+        raise ValueError("Admitted output cap plus twenty GiB reserve unavailable")
     args.output.mkdir(mode=0o700)
     execute = executor or subprocess_executor(args, source)
     results, bindings = {}, {}

@@ -248,8 +248,10 @@ def measure_storage(
         "cache_written": False,
     }
     for name, uids in (rosters or {}).items():
+        if name not in {"fitting", "evaluation"}:
+            raise ValueError("Unknown storage-measurement roster")
         expected = index[f"{name}_uids_sha256"]
-        if name not in {"fitting", "evaluation"} or pi.roster_sha256(uids) != expected:
+        if pi.roster_sha256(uids) != expected:
             raise ValueError("Supplied roster differs from the public index roster")
         result[name] = summary(sorted(uids))
     return result

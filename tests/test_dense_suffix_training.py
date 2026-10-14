@@ -295,7 +295,11 @@ def test_engineering_config_binds_only_mounted_paths_and_fixed_scope():
     spec.update(weights_path="/mnt/w.safetensors", config_path="/mnt/c.json")
     values = recovery.engineering_config(recipe, spec)
     assert values["encoder"]["suffix_adapter"] == recipe["encoder"]["suffix_adapter"]
-    assert {k for k in values if values[k] != recipe.get(k)} == {"encoder", *recovery.ENGINEERING}
+    changed_engineering = {
+        key for key, value in recovery.ENGINEERING.items() if value != recipe.get(key)
+    }
+    assert {k for k in values if values[k] != recipe.get(k)} == {"encoder", *changed_engineering}
+    assert values["min_free_gib"] == 20
     for bad in (dict(spec, weights_sha256="0" * 64), dict(spec, adapter={})):
         with pytest.raises(ValueError, match="Mounted"):
             recovery.engineering_config(recipe, bad)
@@ -410,7 +414,8 @@ def test_storage_measurement_reads_actual_members_and_rosters(tmp_path):
     with pytest.raises(ValueError, match="roster"):
         pc.measure_storage(tmp_path, POLICY, "synthetic", PINNED_CONFIG, {"evaluation": uids})
     member = tmp_path / pi.CACHE_DIRECTORY / "members" / f"{uids[0]}.npz"
-    member.write_bytes(member.read_bytes()[:-1] + b"\0")
+    payload = member.read_bytes()
+    member.write_bytes(payload[:-1] + bytes([payload[-1] ^ 1]))
     with pytest.raises(ValueError, match="bytes differ"):
         pc.measure_storage(tmp_path, POLICY, "synthetic", PINNED_CONFIG)
 
