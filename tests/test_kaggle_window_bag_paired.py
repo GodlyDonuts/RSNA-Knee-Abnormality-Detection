@@ -516,6 +516,8 @@ def test_paired_notebook_branch_runs_only_the_paired_segment_on_both_T4s():
     assert '"--parallel"' not in pn.BRANCH and '"--receipt"' not in pn.BRANCH
     assert '"0,1" if WINDOW_BAG_PARALLEL is True' in pn.BRANCH
     assert '"--segment"' in pn.BRANCH
+    assert "science_manifest = json.loads" in pn.BRANCH
+    assert "        manifest = json.loads" not in pn.BRANCH
     notebook = pn.compose(nb.ENTRY.read_text(), {"WINDOW_BAG_MODE": pc.MODE})
     assert notebook.count(pn.BRANCH) == 1
     segments = [(0, 2), (2, 4)]

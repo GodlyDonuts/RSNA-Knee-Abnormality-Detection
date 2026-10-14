@@ -40,6 +40,9 @@ from rsna.competitive.feature_summary import validate_patch_summary
 from rsna.competitive.loss import effective_batch_loss, observed_counts
 from rsna.competitive.mrnet_initialization import initialize_private_mrnet
 from rsna.competitive.neighbor_input import neighbor_input_channels
+from rsna.competitive.patch_focus import KIND as PATCH_FOCUS_KIND
+from rsna.competitive.patch_focus import classifier_module
+from rsna.competitive.patch_focus import training_inputs as patch_focus_training_inputs
 from rsna.competitive.plane_memory import validate_plane_memory
 from rsna.competitive.public_input import validate_public_input, verify_public_cohort
 from rsna.competitive.relations import (
@@ -56,7 +59,6 @@ from rsna.competitive.suffix_adapters import DERIVED_KEYS as SUFFIX_DERIVED_KEYS
 from rsna.competitive.suffix_adapters import validate_suffix_adapter
 from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
 from rsna.competitive.window_bag import KIND as WINDOW_BAG_KIND
-from rsna.competitive.window_bag import classifier_module
 from rsna.competitive.window_bag import training_inputs as window_bag_training_inputs
 from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
@@ -728,14 +730,9 @@ def _run_locked(
     configure_encoder_training(encoder, config.freeze_encoder)
     model: nn.Module
     if config.classifier_strategy is not None:
-        from rsna.competitive.source_slot import SourceSlotStudyNet
-        from rsna.competitive.window_bag import WindowBagSlotStudyNet
+        from rsna.competitive.patch_focus import classifier_model
 
-        model = (
-            WindowBagSlotStudyNet
-            if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
-            else SourceSlotStudyNet
-        )(
+        model = classifier_model(config.classifier_strategy)(
             encoder,
             embedding_dim,
             config.classifier_strategy,
@@ -999,10 +996,12 @@ def _run_locked(
                             enabled=config.precision != "fp32",
                         ):
                             if config.classifier_strategy is not None:
-                                classifier_inputs = (
-                                    window_bag_training_inputs
-                                    if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
-                                    else source_slot_training_inputs
+                                classifier_inputs = {
+                                    WINDOW_BAG_KIND: window_bag_training_inputs,
+                                    PATCH_FOCUS_KIND: patch_focus_training_inputs,
+                                }.get(
+                                    config.classifier_strategy["kind"],
+                                    source_slot_training_inputs,
                                 )
                                 logits = wrapped(
                                     *classifier_inputs(

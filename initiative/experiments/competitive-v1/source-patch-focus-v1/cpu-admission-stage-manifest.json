@@ -1,0 +1,121 @@
+{
+  "status": "proposed_not_staged_not_funded_not_dispatched",
+  "owner": "root",
+  "node": "evc31",
+  "root": "/tmp/rsna-patch-focus-admission-20261014-v1",
+  "admission": "scripts/newton/admit_patch_focus_inputs.py",
+  "admission_status_on_success": "source_patch_focus_actual_inputs_and_matched_initialization_gradients_CPU_accepted",
+  "source": {
+    "source_git": "exact merged commit containing the admission; set by root at staging",
+    "code": "/tmp/rsna-patch-focus-admission-20261014-v1/code",
+    "source.json": "{source_git, files}: every rsna/**/*.py plus admission REQUIRED_SOURCE, sha256 per file, 8 MiB cap",
+    "recovery-source-manifest.json": "byte-for-byte JSON equal to source.json files (the unchanged GPU wrapper's --source-manifest)",
+    "required_fixed_sha256": {
+      "initiative/audits/public-input-corrected-CPU-dispatch-20261013-v2/CPU-accepted.json": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+      "tools/research/public_dinov2_input_reference/dino_adapter.py": "f7d79508a0784db2c89534fba975bb41c6c9e98d09c72f71e488b4c92c2b5d40",
+      "initiative/experiments/competitive-v1/source-matched-slot-v1/r32-config.json": "e2bfb43c4577dd78c13be3958e99c41ca250c9a3b7251236ddbff8a380fa99de",
+      "initiative/experiments/competitive-v1/source-patch-focus-v1/control-r32-config.json": "efdca23d70f175b2aff79583e7ef1222b14e71453c1432af12828e9084b94c29",
+      "initiative/experiments/competitive-v1/source-patch-focus-v1/candidate-r32-config.json": "b402ed54f7773a58dfd8774fda34c7a17f0963d022dd5c7109d5f1e7b930dae5"
+    },
+    "rsna_delta_from_original_receipt_code": {
+      "changed": {
+        "archive.py": "8d746f111bf9b7a5ed9c194a8edddde5b61f7871d8c4534b9b5b0585921c3447",
+        "competitive/throughput.py": "d1b2cc9d81d660811d6065915104dbfec07c41e627c237a4361bd62b5f576b19",
+        "competitive/train.py": "5a176badbfa074384f149ca985da768d80eb1ccc0eaa8f379e734bc17045dc44"
+      },
+      "added": {
+        "competitive/patch_focus.py": "5df0cd272b8308cac50d0b0606883a796e5ad834e151e69069547a87d466d522",
+        "competitive/weight_average.py": "c50d0427e6ff1369aa4f60a91dd3c8472150d516dad241a83ad9ffe1e9c15253",
+        "competitive/window_bag.py": "d99ae8e86d0d008c016a27e73cbee186141db230f056113a2246e0e26c22aedb",
+        "release_cache.py": "83660e78e3b6ce745bbf89275157474f97290a43bb0c00a4a3da687352f38b6a"
+      },
+      "removed": [],
+      "input_label_code_changed_requires_fresh_replay": [
+        "competitive/train.py",
+        "release_cache.py"
+      ]
+    }
+  },
+  "encoder-spec.json": {
+    "architecture": "dinov3_l16",
+    "config_path": "/home/sa305415/rsna-knee/encoder-stage/configs/competitive/weights/dinov3-large.config.json",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+    "license": "other",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "state_dict_format": "safetensors",
+    "transformers_version": "5.6.1",
+    "weights_path": "/home/sa305415/rsna-knee/encoder-stage/artifacts/encoder-weights/dinov3-large/model.safetensors",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+  },
+  "funding.json": {
+    "experiment": "source_patch_focus_v1",
+    "funded_by": "root",
+    "original_input_receipt_sha256": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+    "merged_cache_receipt_sha256": "d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "new_CPU_source_and_receipt_bytes": 16777216,
+    "new_GPU_or_checkpoint_bytes": 0,
+    "new_shared_bytes_files": 0,
+    "prefix_cache_bytes": 0,
+    "existing_liabilities_bytes": "root measures and retains every current obligation (positive integer)",
+    "reserve_bytes": 21474836480,
+    "required_free_bytes": "16777216 + existing_liabilities_bytes + reserve_bytes; fresh disk_usage(root).free is rechecked inside the step"
+  },
+  "reused_without_download_render_transfer_or_rehash": {
+    "original_CPU_receipt": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2 (CPU899766)",
+    "complete_public_cache": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+    "complete_cache_receipt": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache-verified.json d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "whole_byte_official_base_proof": "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5 (fresh file-stat binding only)",
+    "fitting_overlay": "/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51"
+  },
+  "proposed_CPU_step": {
+    "command": "srun --jobid=<root-owned evc31 allocation> --overlap --ntasks=1 --cpus-per-task=1 --gpus=0 env -u CUDA_VISIBLE_DEVICES PYTHONPATH=/tmp/rsna-patch-focus-admission-20261014-v1/code PYTHONNOUSERSITE=1 python -B /tmp/rsna-patch-focus-admission-20261014-v1/code/scripts/newton/admit_patch_focus_inputs.py --root /tmp/rsna-patch-focus-admission-20261014-v1",
+    "CPUs": 1,
+    "GPUs": 0,
+    "automatic_retry": false,
+    "output": "/tmp/rsna-patch-focus-admission-20261014-v1/CPU-accepted.json (exclusive create, 1 MiB cap, sanitized hashes/counts only)"
+  },
+  "future_GPU_recovery_after_CPU_acceptance": {
+    "wrapper": "scripts/newton/run_patch_focus_recovery.py (unchanged canonical trainer; reference full, then control and candidate full/stop1/resume, sequential on one assigned GPU)",
+    "arguments": {
+      "--source": "/tmp/rsna-patch-focus-admission-20261014-v1/code",
+      "--source-manifest": "/tmp/rsna-patch-focus-admission-20261014-v1/recovery-source-manifest.json",
+      "--encoder-spec": "/tmp/rsna-patch-focus-admission-20261014-v1/encoder-spec.json",
+      "--artifact-root": "/home/sa305415/rsna-knee/code-stopfix-1f486765",
+      "--cache": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+      "--overlay": "/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json",
+      "--output": "/tmp/rsna-patch-focus-admission-20261014-v1/recovery",
+      "--device": "cuda",
+      "--max-output-bytes": 12884901888,
+      "--remaining-seconds": "root-chosen"
+    },
+    "requires": "accepted patch-focus CPU receipt, one assigned GPU on the owning allocation (no extra node), separate root patch-focus funding of the 12 GiB output cap plus 20 GiB reserve and runtime; the dense 12 GiB engineering funding is not reused",
+    "funded": false,
+    "extra_GPU_node": false,
+    "measures": "per-run elapsed_seconds and cuda_peak_memory_bytes; added versus the source-slot reference fit"
+  },
+  "future_production_after_accepted_GPU_recovery": {
+    "epochs": 10,
+    "effective_batch": 8,
+    "fitting_studies": 2247,
+    "development_studies": 1156,
+    "checkpoint_upper_bound_bytes": "computed inside the CPU receipt from each arm's learned_parameters: (epochs/submission_every_epochs + 1) * 3 * 4 * learned + 1 GiB",
+    "streams_acquired_triplets_online": true,
+    "prefix_cache_materialized": false,
+    "funded": false,
+    "arms": [
+      "control",
+      "candidate"
+    ],
+    "requires_separate_root_funding": true
+  },
+  "GPU_or_optimizer_or_clinical_inference_executed": false,
+  "prefix_cache_materialized": false,
+  "protected_labels_used": false,
+  "new_labels_created": false,
+  "accuracy_claimed": false,
+  "GPU_acceptance_inferred": false,
+  "existing_jobs_modified": false,
+  "funding_scope_note": "CPU admission control bytes only. The existing 12 GiB dense engineering funding is NOT patch-focus funding; GPU recovery output/checkpoint/runtime funding must be declared separately by root before any dispatch.",
+  "gradient_probe": "first fitting-order study with both observed and masked fitting targets (fitting labels/masks only); one train-mode CPU forward/backward per reference/control/candidate model, no optimizer step"
+}

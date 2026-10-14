@@ -700,9 +700,12 @@ def test_private_kernel_403_search_resolves_only_unrelated_unnamed_stub(target_u
             raise workflow.RemoteError("Kaggle GetKernel HTTP 403")
         if body["page"] > 1:
             return {}
-        if body.get("search") == "owner/previous":
+        if "search" in body:
+            assert body["user"] == remote.username
+            assert "/" not in body["search"]
+        if body.get("search") == "previous":
             return {"kernels": [{"ref": "owner/previous"}]}
-        if body.get("search") == "owner/kernel":
+        if body.get("search") == "kernel":
             return {"kernels": [{"title": "[Private Notebook]"}]} if target_unnamed else {}
         return {"kernels": [{"ref": "owner/previous"}, {"title": "[Private Notebook]"}]}
 
@@ -715,3 +718,4 @@ def test_private_kernel_403_search_resolves_only_unrelated_unnamed_stub(target_u
         assert proof["method"] == "complete_authenticated_profile_search_after403"
         assert proof["unnamed_count"] == 1
         assert proof["positive_control_ref"] == "owner/previous"
+        assert proof["search_scope"] == "authenticated_owner_basename"

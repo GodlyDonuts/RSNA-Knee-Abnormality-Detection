@@ -1,3 +1,6 @@
+Current compact state: read `docs/current-state.md` first. Original audits and live
+processes/journals remain authoritative; the historical entries below are retained.
+
 Memory fixedfinal/actualcorrected0.680control score/epoch receipt milestone
 37f6f15e privatelyverifiedONCE HF799013563a09721d25c158a8cabf52bb3ec96954/all18
 smallobjects includingownweak-development predictions; noMRI/weights/gold/
