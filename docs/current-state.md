@@ -16,6 +16,8 @@ All daily deployment controllers are terminal successful, including80209 and8968
 
 
 
+Epoch9 finite preservation observerPID85330/exec40402 is actually live, maximum1800seconds; original908454confirmedRUNNING. Noepoch9 publication yet. Original pinned coordinator, completed snapshot/absence checks, noautomaticretry. Read final-public-source-epoch9-observer-20261014-v1.
+
 ## Queued recovery after healthy training
 
 Distinct917543 submitted ONCE on evc40/oneH100/twoCPU/onehour with afterany:908454; actualPENDING Dependency. Existing unused originalevc40 recovery12GiB+32MiB reservation reassigned once after917001zero-runtime terminal/nooutput, not funded twice. Freshcapacity/source40CPU proofs retained. Frozenbf46numericalsource unchanged; no copy/restart/production dispatch. Device/full-recovery acceptance remains unobserved. Read patch-focus-evc40-followup-20261014-v1.
