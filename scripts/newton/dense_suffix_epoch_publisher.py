@@ -255,8 +255,10 @@ def publish(
         if journal.exists():
             raise ValueError("Existing publication journal requires read-only reconciliation")
         download = sum(p.stat().st_size for p in members.values()) + 2 * SMALL_OBJECT_BOUND
-        if download > funding["publication_bytes"] or shutil.disk_usage(root).free < (
-            launch.RESERVE + download
+        if (
+            download > funding["publication_bytes"]
+            or launch.tree_bytes(root) + download > funding["new_node_local_envelope_bytes"]
+            or shutil.disk_usage(root).free < launch.RESERVE + download
         ):
             raise ValueError("Funded publication scratch and reserve unavailable")
         api = api_factory(token=token)

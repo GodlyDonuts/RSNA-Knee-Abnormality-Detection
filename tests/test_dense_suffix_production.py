@@ -5,6 +5,8 @@ import copy
 import io
 import json
 import shutil
+import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -19,6 +21,8 @@ AUDIT = REPO / "initiative/audits/dense-suffix-admission-root-review-20261014-v1
 DEADLINE = REPO / "initiative/audits/dense-suffix-deadline-continuation-20261014-v1"
 SUPERVISION = {"folds_sha256": "f", "overlay_sha256": "o", "fitting_uid_sha256": "u"}
 COHORT = {"index_sha256": "i" * 64, "members": 3403}
+LIABILITIES = 332_868_354_048
+ENVELOPE = 80 * 2**30
 
 
 def write(path, value):
@@ -65,6 +69,7 @@ def env(tmp_path, monkeypatch):
         "full_fitting_studies": 2247,
         "full_outer_studies": 1156,
         "protected_labels_used_for_recipe_or_metrics": False,
+        "fresh_storage": {"existing_liabilities_bytes": LIABILITIES},
         "arms": {
             arm: {
                 "encoder_learned_parameters": p["trainable_parameters"],
@@ -163,14 +168,16 @@ def env(tmp_path, monkeypatch):
         "supervision_sha256": cpu["supervision_sha256"],
         "overlay_sha256": overlay_sha,
         "checkpoint_bytes": checkpoint,
-        "runtime_bytes": 2**30,
-        "publication_bytes": 5 * 2**30,
-        "existing_liabilities_bytes": 300 * 2**30,
+        "runtime_bytes": ENVELOPE - checkpoint - 8 * 2**30,
+        "publication_bytes": 8 * 2**30,
+        "existing_liabilities_bytes": LIABILITIES,
         "reserve_bytes": launch.RESERVE,
     }
     funding.update(
-        required_free_bytes=300 * 2**30 + checkpoint + 2**30 + 5 * 2**30 + launch.RESERVE,
+        required_free_bytes=LIABILITIES + ENVELOPE + launch.RESERVE,
         shared_future_bytes=0,
+        new_node_local_envelope_bytes=ENVELOPE,
+        max_slice_seconds=6 * 3600,
     )
     write(root / "production-funding.json", funding)
     return SimpleNamespace(
@@ -209,10 +216,12 @@ class Trainer:
 
     def __init__(self, env, plan=None, steps=2810):
         self.env, self.plan, self.calls, self.steps = env, plan or {}, [], steps
+        self.seconds = []
 
     def __call__(self, config, out, extra, logs, seconds):
         arm = out.name
         self.calls.append((arm, list(extra)))
+        self.seconds.append(seconds)
         behaviour = self.plan.get(arm, ["complete"]).pop(0) if self.plan.get(arm) else "complete"
         if behaviour == "fail":
             return 1
@@ -265,13 +274,14 @@ class Trainer:
         return 0
 
 
-def go(env, trainer):
+def go(env, trainer, slice_seconds=4 * 3600.0):
     return launch.run(
         env.root,
         env.adm,
         execute=trainer,
         placement=lambda funding: "NVIDIA H100 PCIe",
         remaining=lambda job: 48 * 3600.0,
+        slice_seconds=slice_seconds,
         pins=env.pins,
     )
 
@@ -347,7 +357,8 @@ def test_production_configs_are_the_unchanged_recipes():
 def test_both_arms_run_sequentially_once_to_fixed_final(env):
     trainer = Trainer(env)
     assert go(env, trainer) == 0
-    assert trainer.calls == [("suffix_r32", []), ("dense", [])]
+    assert trainer.calls == [("dense", []), ("suffix_r32", [])]
+    assert all(0 < s <= 4 * 3600 for s in trainer.seconds)
     terminal = json.loads((env.root / "terminal.json").read_text())
     assert terminal["status"] == launch.TERMINAL_STATUS and terminal["accuracy_claimed"] is False
     admission = json.loads((env.root / "production-admission.json").read_text())
@@ -357,23 +368,100 @@ def test_both_arms_run_sequentially_once_to_fixed_final(env):
 
 
 def test_exit75_is_resumed_exactly_only_by_a_later_launch(env):
-    trainer = Trainer(env, {"suffix_r32": ["stop", "complete"]})
+    trainer = Trainer(env, {"dense": ["stop", "complete"]})
     assert go(env, trainer) == 75
-    assert trainer.calls == [("suffix_r32", [])]
-    journal = env.root / "journal" / "suffix_r32"
+    assert trainer.calls == [("dense", [])]
+    assert not (env.root / "production" / "suffix_r32").exists()
+    journal = env.root / "journal" / "dense"
     terminal = json.loads((journal / "invocation-01-terminal.json").read_text())
     assert terminal["returncode"] == 75 and terminal["resumable"] is True
     assert go(env, trainer) == 0
-    out = env.root / "production" / "suffix_r32"
-    assert trainer.calls[1] == ("suffix_r32", ["--resume", str(out / "checkpoint.pt")])
-    assert trainer.calls[2] == ("dense", [])
+    out = env.root / "production" / "dense"
+    assert trainer.calls[1] == ("dense", ["--resume", str(out / "checkpoint.pt")])
+    assert trainer.calls[2] == ("suffix_r32", [])
     intent = json.loads((journal / "invocation-02-intent.json").read_text())
     assert intent["mode"] == "resume" and intent["resume_checkpoint_sha256"] is not None
     assert json.loads((journal / "invocation-01-intent.json").read_text())["mode"] == "fresh"
+    r32 = json.loads(
+        (env.root / "journal" / "suffix_r32" / "invocation-01-intent.json").read_text()
+    )
+    assert r32["mode"] == "fresh" and r32["resume_checkpoint_sha256"] is None
+
+
+@pytest.mark.parametrize("started", ["intent", "output"])
+def test_later_arm_refused_while_predecessor_incomplete(env, started):
+    if started == "intent":
+        write(env.root / "journal" / "suffix_r32" / "invocation-01-intent.json", {"arm": "r32"})
+    else:
+        (env.root / "production" / "suffix_r32").mkdir(parents=True)
+    trainer = Trainer(env)
+    with pytest.raises(ValueError, match="predecessor"):
+        go(env, trainer)
+    assert trainer.calls == []
+
+
+@pytest.mark.parametrize("seconds", [6 * 3600 + 1, 3599, float("inf"), float("nan")])
+def test_slice_must_be_finite_and_within_funded_bound(env, seconds):
+    trainer = Trainer(env)
+    with pytest.raises(ValueError, match="slice"):
+        go(env, trainer, slice_seconds=seconds)
+    assert trainer.calls == []
+
+
+def test_short_slice_budgets_the_trainer_not_the_parent(env):
+    trainer = Trainer(env)
+    assert go(env, trainer, slice_seconds=3700.0) == 0
+    assert all(s <= 3700 for s in trainer.seconds)
+    intent = json.loads((env.root / "journal" / "dense" / "invocation-01-intent.json").read_text())
+    assert intent["slice_seconds"] <= 3700
+
+
+CHILD = """
+import signal, sys, time
+signal.signal(signal.SIGUSR1, lambda *_: sys.exit(75) if {cooperate} else None)
+time.sleep(30)
+"""
+
+
+@pytest.mark.parametrize(("cooperate", "code"), [(True, 75), (False, -9)])
+def test_launcher_stops_trainer_itself_before_the_slice_limit(
+    tmp_path, monkeypatch, cooperate, code
+):
+    monkeypatch.setattr(launch, "STOP_MARGIN_SECONDS", 0)
+    monkeypatch.setattr(launch, "STOP_GRACE_SECONDS", 1)
+    monkeypatch.setattr(
+        launch,
+        "trainer_command",
+        lambda state, config: [sys.executable, "-c", CHILD.format(cooperate=cooperate)],
+    )
+    execute = launch.subprocess_executor({"funding": {"CPUs": 1}, "source": tmp_path})
+    started = time.monotonic()
+    assert execute(tmp_path / "c.json", tmp_path / "out", [], tmp_path / "invocation-01", 1) == (
+        code
+    )
+    assert time.monotonic() - started < 10
+    assert (tmp_path / "invocation-01.stdout").exists()
+
+
+def test_launcher_killed_trainer_is_never_resumed(env):
+    trainer = Trainer(env, {"dense": ["stop"]})
+
+    def killed(config, out, extra, logs, seconds):
+        trainer(config, out, extra, logs, seconds)
+        return -9
+
+    with pytest.raises(ValueError, match="originals preserved"):
+        go(env, killed)
+    terminal = json.loads(
+        (env.root / "journal" / "dense" / "invocation-01-terminal.json").read_text()
+    )
+    assert terminal == {"returncode": -9, "job_id": "899766", "resumable": False}
+    with pytest.raises(ValueError, match="no automatic retry"):
+        go(env, trainer)
 
 
 def test_intent_without_terminal_is_uncertain_replay(env):
-    write(env.root / "journal" / "suffix_r32" / "invocation-01-intent.json", {"arm": "r32"})
+    write(env.root / "journal" / "dense" / "invocation-01-intent.json", {"arm": "dense"})
     trainer = Trainer(env)
     with pytest.raises(ValueError, match="uncertain replay"):
         go(env, trainer)
@@ -381,17 +469,17 @@ def test_intent_without_terminal_is_uncertain_replay(env):
 
 
 def test_changed_exit75_checkpoint_is_never_resumed(env):
-    trainer = Trainer(env, {"suffix_r32": ["stop"]})
+    trainer = Trainer(env, {"dense": ["stop"]})
     assert go(env, trainer) == 75
-    (env.root / "production" / "suffix_r32" / "checkpoint.pt").write_bytes(b"other")
+    (env.root / "production" / "dense" / "checkpoint.pt").write_bytes(b"other")
     with pytest.raises(ValueError, match="exact resume refused"):
         go(env, trainer)
     assert len(trainer.calls) == 1
-    assert not (env.root / "journal" / "suffix_r32" / "invocation-02-intent.json").exists()
+    assert not (env.root / "journal" / "dense" / "invocation-02-intent.json").exists()
 
 
 def test_failed_trainer_is_preserved_and_never_retried(env):
-    trainer = Trainer(env, {"suffix_r32": ["fail"]})
+    trainer = Trainer(env, {"dense": ["fail"]})
     with pytest.raises(ValueError, match="originals preserved"):
         go(env, trainer)
     with pytest.raises(ValueError, match="no automatic retry"):
@@ -522,7 +610,21 @@ def _retained_boundary(env):
 
 
 def _engineering_funding(env):
-    refund(env, checkpoint_bytes=8 * 2**30, runtime_bytes=2**30, publication_bytes=2**30)
+    refund(
+        env,
+        checkpoint_bytes=8 * 2**30,
+        runtime_bytes=2**30,
+        publication_bytes=2**30,
+        new_node_local_envelope_bytes=10 * 2**30,
+    )
+
+
+def _reduced_liabilities(env):
+    refund(env, existing_liabilities_bytes=LIABILITIES - 1)
+
+
+def _envelope_mismatch(env):
+    refund(env, new_node_local_envelope_bytes=ENVELOPE + 1)
 
 
 def _launcher(env):
@@ -563,6 +665,8 @@ def _cpu_receipt(env):
         _missing_recovery_evidence,
         _retained_boundary,
         _engineering_funding,
+        _reduced_liabilities,
+        _envelope_mismatch,
         _launcher,
         _cpu_receipt,
     ],
@@ -736,6 +840,16 @@ def test_incomplete_epoch_refused_before_intent(env, epoch, edit):
     with pytest.raises(ValueError):
         publish(env, api)
     assert not (env.root / "epoch-publication").exists() and api.commits == 0
+
+
+def test_publication_cache_must_fit_the_funded_envelope(env, epoch):
+    with (env.root / "retained-original.bin").open("wb") as stream:
+        stream.truncate(ENVELOPE - 2**20)
+    api = Api()
+    with pytest.raises(ValueError, match="scratch"):
+        publish(env, api)
+    assert not (env.root / "epoch-publication").exists() and api.commits == 0
+    assert (env.root / "retained-original.bin").exists()
 
 
 def test_publisher_requires_actual_gpu_acceptance(env, epoch):

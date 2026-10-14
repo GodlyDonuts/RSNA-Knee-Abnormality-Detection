@@ -34,7 +34,9 @@ from pathlib import Path
 ROOT = Path("/tmp/rsna-dense-suffix-fit-20261014-v1")
 ADMISSION = Path("/tmp/rsna-dense-suffix-admission-20261014-v1")
 RECIPE = "initiative/experiments/competitive-v1/dense-suffix-capacity-v1"
-ARMS = {"suffix_r32": "suffix-r32-config.json", "dense": "dense-config.json"}
+# Predeclared dispatch order only (owner priority): dense first, then matched suffix-R32.
+# Isolated fresh seeded trainer processes; no model/optimizer state crosses arms.
+ARMS = {"dense": "dense-config.json", "suffix_r32": "suffix-r32-config.json"}
 PINNED = {
     "suffix_r32": {"method": "suffix_rs_lora_v1", "trainable_parameters": 7_077_888, "lr": 1e-4},
     "dense": {"method": "dense_suffix_delta_v1", "trainable_parameters": 150_994_944, "lr": 1e-5},
@@ -131,6 +133,8 @@ FUNDING_KEYS = {
     "reserve_bytes",
     "required_free_bytes",
     "shared_future_bytes",
+    "new_node_local_envelope_bytes",
+    "max_slice_seconds",
 }
 Executor = Callable[[Path, Path, list[str], Path, float], int]
 
@@ -320,8 +324,17 @@ def validate_funding(funding: Mapping, cpu: Mapping, root: Path, pins: Mapping) 
     if set(funding) != FUNDING_KEYS:
         raise ValueError("Complete explicit root production funding/binding required")
     upper = sum(pins["checkpoint_upper_bound_bytes"].values())
+    # One verification re-download of the largest epoch plus its scratch and small objects.
     publication = 2 * (pins["checkpoint_upper_bound_bytes"]["dense"] // EPOCHS) + 64 * 2**20
     new = funding["checkpoint_bytes"] + funding["runtime_bytes"] + funding["publication_bytes"]
+    if (
+        funding["new_node_local_envelope_bytes"] != new
+        or funding["existing_liabilities_bytes"]
+        < cpu["fresh_storage"]["existing_liabilities_bytes"]
+        or type(funding["max_slice_seconds"]) is not int
+        or funding["max_slice_seconds"] < MIN_START_SECONDS
+    ):
+        raise ValueError("Explicit envelope, retained liabilities and slice bound required")
     if (
         funding["funded_by"] != "root"
         or funding["production_funded"] is not True
@@ -613,10 +626,22 @@ def run(
     placement: Callable[[Mapping], str] = require_placement,
     remaining: Callable[[str], float] = parent_remaining_seconds,
     pins: Mapping = PINS,
+    slice_seconds: float,
 ) -> int:
-    """Run/continue both arms sequentially. Returns 0 when both are complete, 75 to continue."""
+    """Run/continue both arms sequentially within one bounded slice.
+
+    Returns 0 when both are complete and 75 when a later launch must continue by exact
+    resume. The launcher itself stops the trainer (SIGUSR1 -> checkpoint/exit 75) well
+    before the slice or parent limit and durably records the terminal; it never relies
+    on Slurm killing a healthy process.
+    """
     state = admitted(root, admission, pins)
     funding, cpu = state["funding"], state["cpu"]
+    if (
+        not (math.isfinite(slice_seconds) and MIN_START_SECONDS <= slice_seconds)
+        or slice_seconds > funding["max_slice_seconds"]
+    ):
+        raise ValueError("Finite slice within root's funded bound required")
     device = placement(funding)
     static = static_admission(root, admission, state)
     if (root / "production-admission.json").exists():
@@ -626,7 +651,7 @@ def run(
         save(root / "production-admission.json", static)
     execute = execute or subprocess_executor(state)
     job = str(funding["parent_job"])
-    deadline = time.monotonic() + remaining(job)
+    deadline = time.monotonic() + min(remaining(job), slice_seconds)
     production = root / "production"
     production.mkdir(mode=0o700, exist_ok=True)
     records = {}
@@ -638,15 +663,21 @@ def run(
         if mode == "completed":
             records[arm] = validate_completed(out, arm, values, cpu)
             continue
-        if records.keys() != set(list(ARMS)[: list(ARMS).index(arm)]):
-            raise ValueError("Arms run sequentially; previous arm must be complete")
+        later = list(ARMS)[list(ARMS).index(arm) + 1 :]
+        if records.keys() != set(list(ARMS)[: list(ARMS).index(arm)]) or any(
+            (production / other).exists()
+            or any((root / "journal" / other).glob("invocation-*-intent.json"))
+            for other in later
+        ):
+            raise ValueError("Arms run sequentially; a later arm requires its predecessor")
         seconds = deadline - time.monotonic()
         if seconds < MIN_START_SECONDS:
             return 75
         used = tree_bytes(production)
         if (
             used > funding["checkpoint_bytes"] + funding["runtime_bytes"]
-            or shutil.disk_usage(root).free + used < funding["required_free_bytes"]
+            or tree_bytes(root) > funding["new_node_local_envelope_bytes"]
+            or shutil.disk_usage(root).free + tree_bytes(root) < funding["required_free_bytes"]
         ):
             raise ValueError("Funded node-local output envelope or reserve unavailable")
         extra: list[str] = []
@@ -665,6 +696,7 @@ def run(
                 "source_git": cpu["source_git"],
                 "config_sha256": funding["config_sha256"][arm],
                 "resume_checkpoint_sha256": None if last is None else last["checkpoint_sha256"],
+                "slice_seconds": seconds,
                 "automatic_retry": False,
             },
         )
@@ -694,7 +726,10 @@ def run(
         if code != 0:
             raise ValueError("Trainer failed or stopped uncertainly; originals preserved")
         records[arm] = validate_completed(out, arm, values, cpu)
-        if tree_bytes(production) > funding["checkpoint_bytes"] + funding["runtime_bytes"]:
+        if (
+            tree_bytes(production) > funding["checkpoint_bytes"] + funding["runtime_bytes"]
+            or tree_bytes(root) > funding["new_node_local_envelope_bytes"]
+        ):
             raise ValueError("Funded node-local output envelope exceeded")
     from scripts.newton.run_dense_suffix_recovery import compare_matched
 
@@ -743,6 +778,7 @@ def main() -> None:
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=("prepare", "fit"))
+    parser.add_argument("--slice-seconds", type=float, help="bounded overlap step budget")
     args = parser.parse_args()
     # Import numerical code only from the exactly admitted tree, never the checkout.
     sys.path.insert(0, str(ADMISSION / "code"))
@@ -751,7 +787,9 @@ def main() -> None:
             raise SystemExit("prepare is CPU-only")
         print(json.dumps(prepare(), sort_keys=True), flush=True)
         return
-    code = run()
+    if args.slice_seconds is None:
+        raise SystemExit("fit requires an explicit --slice-seconds")
+    code = run(slice_seconds=args.slice_seconds)
     print(json.dumps({"status": "complete" if code == 0 else "continue_exact_resume"}))
     raise SystemExit(code)
 
