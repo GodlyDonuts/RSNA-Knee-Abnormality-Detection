@@ -320,6 +320,15 @@ def test_wall_cap_stops_at_an_update_boundary(tmp_path, monkeypatch):
         torch.device("cpu"),
         *[factories[n] for n in ("create_encoder", "dataset_class", "model_class", "load_folds")],
     )
+    assert list(state["startup_seconds"]) == [
+        "release_admission",
+        "folds",
+        "series",
+        "dataset_initialization",
+        "encoder_initialization",
+        "model_optimizer",
+    ]
+    assert all(value >= 0 for value in state["startup_seconds"].values())
     times = iter([0.0, 0.0, 1000.0])
     profile = throughput.profile_updates(
         state,

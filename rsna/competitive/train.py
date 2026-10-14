@@ -422,19 +422,36 @@ def _uid_hash(frame: pd.DataFrame) -> str:
 
 
 def verified_job_release(
-    studies: Path, artifact_root: Path, rank: int, world: int
+    studies: Path,
+    artifact_root: Path,
+    rank: int,
+    world: int,
+    admission_cache: Path | None = None,
+    admission_fallback: bool = False,
 ) -> tuple[pd.DataFrame, dict]:
     """Replay full release evidence once per job, then share the verified table.
 
     Repeating the same large provenance replay on every GPU wastes host memory.
     Every rank still checks its local manifest against the verified byte hash.
+    An explicit node-private admission cache (rsna.release_cache) may replace the
+    replay only when it proves an identical admission; the default is unchanged.
     """
+
+    def admit() -> tuple[pd.DataFrame, dict]:
+        if admission_cache is None:
+            if admission_fallback:
+                raise ValueError("Admission fallback requires an explicit admission cache")
+            return load_verified_release(studies, artifact_root)
+        from rsna.release_cache import admit_release
+
+        return admit_release(studies, artifact_root, admission_cache, admission_fallback)
+
     if world == 1:
-        return load_verified_release(studies, artifact_root)
+        return admit()
     shared: list = [None]
     if rank == 0:
         try:
-            manifest, binding = load_verified_release(studies, artifact_root)
+            manifest, binding = admit()
             shared[0] = {"manifest": manifest, "binding": binding}
         except Exception as exc:
             shared[0] = {"error_type": type(exc).__name__}
@@ -607,7 +624,14 @@ def _run_locked(
         raise ValueError(
             "Output already contains a run; resume explicitly or choose a new directory"
         )
-    manifest, release_binding = verified_job_release(args.studies, args.artifact_root, rank, world)
+    manifest, release_binding = verified_job_release(
+        args.studies,
+        args.artifact_root,
+        rank,
+        world,
+        getattr(args, "release_admission_cache", None),
+        getattr(args, "release_admission_fallback", False),
+    )
     folds = load_folds(args.folds, manifest, release_binding)
     train, outer = select_development(manifest, folds, config.fold, config.fit_scope)
     supervision_path = getattr(args, "fitting_supervision", None)
@@ -1270,7 +1294,19 @@ def main() -> None:
         type=int,
         help="Diagnostic interruption at an optimizer boundary; exits 75",
     )
+    parser.add_argument(
+        "--release-admission-cache",
+        type=Path,
+        help="Optional node-private engineering receipt from rsna.release_cache produce",
+    )
+    parser.add_argument(
+        "--release-admission-fallback",
+        action="store_true",
+        help="If the cache is refused, announce it and run the full original admission",
+    )
     args = parser.parse_args()
+    if args.release_admission_fallback and args.release_admission_cache is None:
+        parser.error("--release-admission-fallback requires --release-admission-cache")
     if args.stop_after_updates is not None and args.stop_after_updates < 1:
         parser.error("--stop-after-updates must be positive")
     raise SystemExit(run(args, stop_requested))

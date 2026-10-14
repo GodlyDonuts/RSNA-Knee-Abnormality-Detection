@@ -34,7 +34,11 @@ def main() -> None:
     parser.add_argument("--expected-device-name", required=True)
     parser.add_argument("--evict-page-cache", action="store_true")
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--release-admission-cache", type=Path)
+    parser.add_argument("--release-admission-fallback", action="store_true")
     args = parser.parse_args()
+    if args.release_admission_fallback and args.release_admission_cache is None:
+        parser.error("--release-admission-fallback requires --release-admission-cache")
     if args.receipt.exists():
         parser.error("--receipt must be a new path")
     raise SystemExit(run(args))
@@ -140,6 +144,13 @@ def run(args: argparse.Namespace, factories: dict | None = None) -> int:
         device=device,
         decomposition=decomposition,
         evidence_blockers=blockers,
+        startup_seconds=state["startup_seconds"],
+        release_admission=(
+            "full_original"
+            if getattr(args, "release_admission_cache", None) is None
+            else "node_private_cache"
+            + ("_explicit_fallback" if getattr(args, "release_admission_fallback", False) else "")
+        ),
     )
     throughput.write_new_receipt(args.receipt, receipt)
     return 0

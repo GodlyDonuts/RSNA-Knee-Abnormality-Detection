@@ -311,8 +311,26 @@ def build_profile_state(
     torch.manual_seed(config.seed)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    manifest, release_binding = verified_job_release(args.studies, args.artifact_root, 0, 1)
+    startup: dict[str, float] = {}
+    mark = time.perf_counter()
+
+    def lap(name: str) -> None:
+        nonlocal mark
+        now = time.perf_counter()
+        startup[name] = now - mark
+        mark = now
+
+    manifest, release_binding = verified_job_release(
+        args.studies,
+        args.artifact_root,
+        0,
+        1,
+        getattr(args, "release_admission_cache", None),
+        getattr(args, "release_admission_fallback", False),
+    )
+    lap("release_admission")
     folds = load_folds(args.folds, manifest, release_binding)
+    lap("folds")
     train, _ = select_development(manifest, folds, config.fold, config.fit_scope)
     if config.diagnostic_study_limit is not None:
         train = train.head(config.diagnostic_study_limit)
@@ -320,6 +338,7 @@ def build_profile_state(
     if hashlib.sha256(series_bytes).hexdigest() != release_binding["series_sha256"]:
         raise ValueError("Series sampling table differs from the accepted data release")
     series = pd.read_csv(io.BytesIO(series_bytes))
+    lap("series")
     data_config = {
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
@@ -327,7 +346,9 @@ def build_profile_state(
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     if training_data.source_revision != release_binding["source_revision"]:
         raise ValueError("Image cache source differs from the accepted release")
+    lap("dataset_initialization")
     encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
+    lap("encoder_initialization")
     configure_encoder_training(encoder, config.freeze_encoder)
     model = model_class(
         encoder,
@@ -354,6 +375,7 @@ def build_profile_state(
             }
         )
     optimizer = torch.optim.AdamW(groups, weight_decay=config.weight_decay)
+    lap("model_optimizer")
     scaler = (
         torch.amp.GradScaler(device.type, init_scale=config.amp_init_scale)
         if config.precision == "fp16"
@@ -376,6 +398,7 @@ def build_profile_state(
         scaler=scaler,
         total_updates=epoch_updates * config.epochs,
         release_binding=release_binding,
+        startup_seconds=startup,
     )
 
 
@@ -605,6 +628,8 @@ def build_receipt(
     device: torch.device,
     decomposition: dict | None,
     evidence_blockers: list[str],
+    startup_seconds: dict[str, float] | None = None,
+    release_admission: str = "full_original",
 ) -> dict[str, Any]:
     profiled_uids = [uid for record in profile["records"] for uid in record["study_uids"]]
     return {
@@ -631,6 +656,8 @@ def build_receipt(
         ),
         "pid": os.getpid(),
         "stop_reason": profile["stop_reason"],
+        "release_admission": release_admission,
+        "startup_seconds": startup_seconds,
         "updates": [
             {key: value for key, value in row.items() if key != "study_uids"}
             | {

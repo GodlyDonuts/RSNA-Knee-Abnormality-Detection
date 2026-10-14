@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import io
 import json
 import random
 from pathlib import Path
@@ -694,3 +695,144 @@ def test_fitting_supervision_requires_isolated_outer_fold(extra):
             fitting_supervision=dict(kind="effusion_review_v1", sha256="a" * 64, enabled=True),
             **extra,
         ).validate()
+
+
+def _without_wall_time(records):
+    return [
+        {
+            key: value
+            for key, value in record.items()
+            if not any(part in key for part in ("seconds", "wall", "time", "elapsed"))
+        }
+        for record in records
+    ]
+
+
+def test_optional_admission_cache_is_identical_to_original_full_stop1_resume(
+    tmp_path, tmp_path_factory, monkeypatch
+):
+    """Default and opt-in cached admission give identical complete checkpoints/outputs."""
+    from rsna import release
+    from rsna import release_cache as rc
+    from rsna.competitive import train
+    from rsna.competitive.backbones import create_encoder
+    from rsna.competitive.model import CompetitiveStudyNet
+
+    rows = []
+    for i in range(14):
+        row = {"study_uid": f"study{i:02}", "leakage_group": f"group{i}", "split": "train"}
+        for j, target in enumerate(TARGETS):
+            row[target], row[target + "__mask"] = i % 2, int(j < 6 or i % 3 == 0)
+            row[target + "__provenance"] = "synthetic_weak"
+        rows.append(row)
+    release_dir = tmp_path / "release"
+    release_dir.mkdir()
+    studies = release_dir / "studies.parquet"
+    pd.DataFrame(rows).to_parquet(studies, index=False)
+    series_path = tmp_path / "series.csv"
+    series_path.write_text("SeriesInstanceUID\na\n")
+    (release_dir / release.RECEIPT_NAME).write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "studies_sha256": hashlib.sha256(studies.read_bytes()).hexdigest(),
+                "series_sha256": hashlib.sha256(series_path.read_bytes()).hexdigest(),
+                "source_revision": "synthetic",
+                "semantic_supervision": {"registry": {"sha256": "5" * 64}},
+            }
+        )
+    )
+    admissions = []
+
+    def original_admission(studies_path, artifact_root):
+        admissions.append(studies_path)
+        receipt = (studies_path.parent / release.RECEIPT_NAME).read_bytes()
+        frame = pd.read_parquet(io.BytesIO(studies_path.read_bytes()))
+        binding = release._checkpoint_binding(
+            json.loads(receipt), hashlib.sha256(receipt).hexdigest()
+        )
+        return frame, binding
+
+    monkeypatch.setattr(release, "load_verified_release", original_admission)
+    monkeypatch.setattr(train, "load_verified_release", original_admission)
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    cache = tmp_path_factory.mktemp("node-private") / "admission"
+    rc.produce(studies, source_root, cache)
+    assert len(admissions) == 1
+    overlay = pd.DataFrame(rows)[["study_uid", "leakage_group"]]
+    overlay["fold"] = [0] * 5 + [1] * 9
+    config = TrainConfig(
+        precision="fp16",
+        diagnostic_study_limit=20,
+        epochs=2,
+        batch_size=2,
+        accumulation_steps=2,
+        slices=2,
+        side=16,
+        max_series=3,
+        hidden_dim=16,
+        freeze_encoder=False,
+        augment=True,
+        min_free_gib=0,
+    )
+
+    def execute(output, admission_cache, stop=None, resume=None):
+        args = argparse.Namespace(
+            studies=studies,
+            artifact_root=source_root,
+            folds=tmp_path / "unused",
+            series=series_path,
+            cache=tmp_path,
+            output=output,
+            resume=resume,
+            stop_after_updates=stop,
+            release_admission_cache=admission_cache,
+            release_admission_fallback=False,
+        )
+        return train._run_locked(
+            args,
+            config,
+            [False],
+            0,
+            1,
+            torch.device("cpu"),
+            create_encoder,
+            SyntheticStudies,
+            CompetitiveStudyNet,
+            lambda *args: overlay.copy(),
+        )
+
+    outcomes = {}
+    for name, admission_cache in (("original", None), ("cached", cache)):
+        before = len(admissions)
+        full, resumed = tmp_path / (name + "-full"), tmp_path / (name + "-resumed")
+        assert execute(full, admission_cache) == 0
+        assert execute(resumed, admission_cache, stop=1) == 75
+        partial = torch.load(resumed / "checkpoint.pt", weights_only=True)
+        assert partial["epoch"] == 0 and partial["next_update"] == 1
+        assert execute(resumed, admission_cache, resume=resumed / "checkpoint.pt") == 0
+        assert len(admissions) - before == (3 if admission_cache is None else 0)
+        outcomes[name] = [
+            (
+                torch.load(output / "checkpoint.pt", weights_only=True),
+                (output / "outer_predictions.csv").read_bytes(),
+            )
+            for output in (full, resumed)
+        ]
+        _assert_tree_equal(outcomes[name][0][0], outcomes[name][1][0])
+        assert outcomes[name][0][1] == outcomes[name][1][1]
+        history = json.loads((full / "invocation.json").read_text())["updates"]
+        assert history
+        outcomes[name].append(_without_wall_time(history))
+    _assert_tree_equal(outcomes["original"][0][0], outcomes["cached"][0][0])
+    _assert_tree_equal(outcomes["original"][1][0], outcomes["cached"][1][0])
+    assert outcomes["original"][0][1] == outcomes["cached"][0][1]
+    assert outcomes["original"][2] == outcomes["cached"][2]
+    assert "amp_scaler" in outcomes["cached"][0][0]
+
+    # A refused cache never silently substitutes the original admission.
+    (cache / rc.FRAME_NAME).chmod(0o644)
+    with pytest.raises(rc.AdmissionCacheRefused):
+        execute(tmp_path / "refused", cache)
+    assert len(admissions) == 4
