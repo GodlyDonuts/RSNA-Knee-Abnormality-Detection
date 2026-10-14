@@ -4,13 +4,13 @@ Updated October14,2026. This is a compact index; original audits/journals remain
 
 ## Model evidence
 
-Best confirmed solo DINOv3 Kaggle:0.865, submission57180588, all3403-development native384/public supervision/rank32/epoch4. Epoch3 submission57180081 scored0.856. Earlier fold0 epoch10 scored0.854 (internal1156-study macroAUC0.8997840648139764); data scope and checkpoint age differ, so no pure single-factor comparison is claimed.
+Best confirmed solo DINOv3 Kaggle:0.872, submissions57182737(epoch5) and57182547(epoch6), same all3403-development native384/public supervision/rank32 run908454. The complete daily checkpoint curve isepoch1=.752,3=.856,4=.865,5=.872,6=.872; allfive COMPLETE with nonzero CSV outputs, actual outcomes reconciled in the canonical ledger. This is public leaderboard evidence, not private score or significance. Earlier fold0 epoch10 scored0.854 (internal1156-study macroAUC0.8997840648139764); fitting scope/checkpointage differ, so no pure single-factor comparison. Read daily-kaggle-comparison-queue-20261014-v1/all-five-result-analysis.md.
 
 Source-faithful triplet/head rank32 finished2810updates at0.8782870961938172, independently replayed on the same weak-label outer pool. It did not improve the native reference. All ten immutable epochs are privately downloaded/hash verified. See source-slot-fixed-final-20261014-v1; recipe differences prevent single-factor causal claims.
 
 ## Kaggle comparisons
 
-Five actual code submissions today:epoch1/57178747,epoch3/57180081,epoch4/57180588,epoch6/57182547,epoch5/57182737. All exact publicMRI-only/source/CSV/RSS acceptances passed before canonical code submission; no public3-row CSV upload. Epoch3 and4 are actually scored0.856/0.865 and reconciled in the canonical Newton ledger. Epoch1/5/6 still have no reported outcome at the latest check.
+Five actual code submissions today:epoch1/57178747,epoch3/57180081,epoch4/57180588,epoch6/57182547,epoch5/57182737. All exact publicMRI-only/source/CSV/RSS acceptances passed before canonical code submission; no public3-row CSV upload. Epoch3 and4 are actually scored0.856/0.865 and reconciled in the canonical Newton ledger. All five now actually scored; latest confirmed public scores are0.752/0.856/0.865/0.872/0.872.
 
 All daily deployment controllers are terminal successful, including80209 and89682. Never restart them or repeat these submissions. Epoch2 remains the preserved unsubmitted uncertain draft; its Dataset was created once. Epoch5 was first committed exactly asversion1, after fresh owner-authenticated UI0-version evidence and a downloaded/API source body hash matching the original prepared operation. The original null response and all pre-mutation refusals remain recorded. The narrow source-verified accessible-draft guard passed3442full tests/8skipped, plus138focused/39private-commit checks. Fresh allowance is required for any future day; today'sfive-entry quota is consumed.
 

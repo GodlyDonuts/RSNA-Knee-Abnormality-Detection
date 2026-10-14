@@ -1,0 +1,5 @@
+# Private preservation of complete five-score comparison and research preparation
+
+Pushed source5d4932cf was mirrored once under the canonical Newton shared publication lock to private GodlyDonuts/RSNA-Data revisiond7bc0473093119f321689e883177cb289f906328. All16small objects were forcibly re-downloaded and exactsize/SHAverified, including source manifest, allfive actual Kaggle outcomes, three new reconciled ledger records, epoch7private receipt, actual parent/step cancellation, and reviewed patch-focus wrappers/tests/template. No MRI pixels, weight files, individual clinical cases, protected labels or private source signatures were mirrored. Never repeat this publication; original intent/commit/download receipts remain in the private local journal.
+
+Training run908454 remains healthy, latest3349finite updates/eighth epoch underway/empty stderr. Native all-data epochs1–7 are already privately preserved separately. Best actualsolo Kaggle remains0.872, notprivate leaderboard or a claimed patch-focus gain. Cancelled dense state remains inaccessible under lawful node maintenance; no recovery/resume inferred.
