@@ -1,6 +1,8 @@
 """Kaggle T4 path for the whole-window bag (issue #55): engineering only, never accuracy."""
 
+import base64
 import copy
+import gzip
 import hashlib
 import json
 import os
@@ -8,7 +10,9 @@ import shutil
 import stat
 import subprocess
 import sys
+import tarfile
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -313,6 +317,105 @@ def test_notebook_compose_inserts_one_branch_and_respects_the_cap():
         nb.compose("no anchor", {})
     with pytest.raises(ValueError):
         nb.private_inputs(b"{}", b"{}", b"{}")
+
+
+@pytest.mark.parametrize("original_shadowing_bug", [False, True])
+def test_window_bag_bootstrap_keeps_encoder_bundle_and_science_manifests_separate(
+    tmp_path, original_shadowing_bug
+):
+    """Execute the actual branch through encoder binding, before any GPU process."""
+    from scripts.kaggle import notebook_entry as entry
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    config = bundle / "config.json"
+    config.write_text("{}")
+    weights = bundle / "base.safetensors"
+    weights.write_bytes(b"original frozen encoder")
+    spec = {
+        f"{kind}_{field}": value
+        for kind, path in (("config", config), ("weights", weights))
+        for field, value in (("path", path.name), ("sha256", entry.sha256(path)))
+    }
+    (bundle / "encoder.json").write_text(json.dumps(spec))
+    bundle_manifest = {
+        "checkpoint_format": "frozen_base_delta",
+        "files": {
+            p.name: {"sha256": entry.sha256(p), "bytes": p.stat().st_size}
+            for p in (config, weights)
+        },
+    }
+    science_manifest = {"files": {}, "bound_current": {}}
+    package = {"manifest": json.dumps(science_manifest), "files": {}}
+    archive = tmp_path / "capsule.bin"
+    with tarfile.open(archive, "w"):
+        pass
+    working = tmp_path / "working"
+    working.mkdir()
+    calls = []
+
+    class EmptyCapsule:
+        def extractall(self, destination, *, filter):
+            assert filter == "data" and destination.is_dir()
+
+    @contextmanager
+    def open_capsule(path):
+        assert path == archive
+        yield EmptyCapsule()
+
+    class CapsuleTar:
+        open = staticmethod(open_capsule)
+
+    namespace = {
+        "Path": Path,
+        "json": json,
+        "hashlib": hashlib,
+        "tarfile": CapsuleTar,
+        "time": time,
+        "sha256": entry.sha256,
+        "WINDOW_BAG_T4_PROBE": True,
+        "WINDOW_BAG_PACKAGE": base64.b64encode(
+            gzip.compress(json.dumps(package).encode())
+        ).decode(),
+        "WINDOW_BAG_MANIFEST_SHA256": hashlib.sha256(package["manifest"].encode()).hexdigest(),
+        "WINDOW_BAG_PRIVATE": {},
+        "WINDOW_BAG_PRIVATE_SHA256": {},
+        "WINDOW_BAG_CAPSULE": {
+            "archive_name": archive.name,
+            "archive_sha256": entry.sha256(archive),
+            "arguments": {},
+        },
+        "WINDOW_BAG_PARALLEL": True,
+        "WINDOW_BAG_TIMEOUT_SECONDS": 7200,
+        "WINDOW_BAG_MODE": "engineering",
+        "notebook_started": time.monotonic(),
+        "bundle": bundle,
+        "manifest": bundle_manifest,
+        "working": working,
+        "python": sys.executable,
+        "env": {},
+        "attached_dataset_files": lambda *_: [archive],
+        "encoder_arguments": entry.encoder_arguments,
+        "bounded_process": lambda command, **kwargs: calls.append(command),
+    }
+    branch = nb.BRANCH.replace("/tmp/rsna-window-bag-stage", str(tmp_path / "stage"))
+    if original_shadowing_bug:
+        branch = branch.replace("science_manifest", "manifest")
+    exec("def bootstrap():\n" + branch, namespace)
+    if original_shadowing_bug:
+        with pytest.raises(ValueError, match="Bundled encoder bytes/path"):
+            namespace["bootstrap"]()
+        assert calls == []
+        return
+    namespace["bootstrap"]()
+    assert len(calls) == 1 and "--parallel" in calls[0]
+    runtime = json.loads((tmp_path / "stage/encoder-runtime.json").read_text())
+    assert runtime["weights_path"] == str(weights.resolve())
+    assert namespace["manifest"] == bundle_manifest
+    assert (
+        json.loads((tmp_path / "stage/window-bag-private/source-manifest.json").read_text())
+        == science_manifest
+    )
 
 
 SHARD_SLUGS = [f"me/shard{i:03d}" for i in range(20)]

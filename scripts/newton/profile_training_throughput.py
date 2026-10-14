@@ -36,6 +36,8 @@ def main() -> None:
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--release-admission-cache", type=Path)
     parser.add_argument("--release-admission-fallback", action="store_true")
+    parser.add_argument("--fitting-supervision", type=Path)
+    parser.add_argument("--expected-public-index-sha256")
     args = parser.parse_args()
     if args.release_admission_fallback and args.release_admission_cache is None:
         parser.error("--release-admission-fallback requires --release-admission-cache")
@@ -101,14 +103,22 @@ def run(args: argparse.Namespace, factories: dict | None = None) -> int:
     ):
         if release.get(key) != expected:
             raise ValueError(f"Release {key} differs from its explicit binding")
+    public_receipt = state["public_receipt"]
+    expected_index = getattr(args, "expected_public_index_sha256", None)
+    if (public_receipt is None) != (expected_index is None) or (
+        public_receipt is not None and public_receipt["index_sha256"] != expected_index
+    ):
+        raise ValueError("Public triplet cache index differs from its explicit binding")
     profile = throughput.profile_updates(state, candidate, device, caps, factories["collate"])
     profiled = {uid for record in profile["records"] for uid in record["study_uids"]}
     data = state["training_data"]
     indices = [i for i, uid in enumerate(data.studies.study_uid) if uid in profiled]
     decomposition = (
-        throughput.decompose_inputs(data, indices, args.evict_page_cache)
-        if hasattr(data, "_metadata")
-        else None
+        None
+        if throughput.input_format(data) is None
+        else throughput.decompose_inputs(
+            data, indices, args.evict_page_cache, throughput.expected_input_format(candidate)
+        )
     )
     blockers = []
     if device.type != "cuda":
@@ -138,6 +148,10 @@ def run(args: argparse.Namespace, factories: dict | None = None) -> int:
             "device_name": args.expected_device_name,
             "evict_page_cache": bool(args.evict_page_cache),
             "fresh_process": fresh,
+            "input_format": throughput.expected_input_format(candidate),
+            "public_input_cache": public_receipt,
+            "fitting_supervision": state["supervision_receipt"],
+            "classifier_strategy": candidate.classifier_strategy,
         },
         release_binding=release,
         train=state["train"],

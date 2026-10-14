@@ -213,6 +213,10 @@ def snapshot_cache(root: Path, cache: Path) -> None:
 def file_manifest(root: Path) -> dict:
     manifest = {}
     for path in sorted(root.rglob("*")):
+        # Python imports create local, version-specific bytecode. It is not an
+        # original audit artifact and cannot be reproduced by a clean checkout.
+        if "__pycache__" in path.relative_to(root).parts or path.suffix == ".pyc":
+            continue
         if path.is_symlink():
             raise ValueError(f"Archive contains a symlink: {path}")
         if path.is_file() and path != root / "manifest.json":

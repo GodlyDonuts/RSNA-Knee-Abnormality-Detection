@@ -32,7 +32,7 @@ SOURCE_CAP_BYTES = 1024**2
 BRANCH = """    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         import base64, gzip
         package = json.loads(gzip.decompress(base64.b64decode(WINDOW_BAG_PACKAGE, validate=True)))
-        manifest = json.loads(package["manifest"])
+        science_manifest = json.loads(package["manifest"])
         if hashlib.sha256(package["manifest"].encode()).hexdigest() != WINDOW_BAG_MANIFEST_SHA256:
             raise ValueError("Numerical package manifest differs")
         # Code, private inputs, capsule and MRI cache stay in session scratch; only the
@@ -43,7 +43,7 @@ BRANCH = """    if globals().get("WINDOW_BAG_T4_PROBE") is True:
         code.mkdir(mode=0o700)
         for name, text in package["files"].items():
             relative = Path(name)
-            expected = {**manifest["files"], **manifest["bound_current"]}[name]
+            expected = {**science_manifest["files"], **science_manifest["bound_current"]}[name]
             if relative.is_absolute() or ".." in relative.parts or hashlib.sha256(text.encode()).hexdigest() != expected:
                 raise ValueError("Numerical package path/hash differs")
             path = code / relative

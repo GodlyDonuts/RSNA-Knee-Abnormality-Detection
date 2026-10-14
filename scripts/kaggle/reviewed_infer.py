@@ -40,6 +40,8 @@ def read_admission(path: Path) -> dict:
 def validate_reviewed(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
     if admission.get("role") == "public_source_final10":
         return validate_public_source_final(checkpoint, admission, checkpoint_sha)
+    if admission.get("role") == ALL_DEVELOPMENT_ROLE:
+        return validate_all_development_epoch(checkpoint, admission, checkpoint_sha)
     binding = checkpoint["binding"]
     config = binding["config"]
     role = admission.get("role")
@@ -123,6 +125,157 @@ def validate_public_source_final(checkpoint: dict, admission: dict, checkpoint_s
         or binding.get("private_research_only")
     ):
         raise ValueError("Public-source checkpoint differs from exact final admission")
+    view = dict(checkpoint)
+    view["binding"] = dict(binding)
+    view["binding"].pop("experimental_fitting_supervision")
+    view["binding"]["config"] = dict(config)
+    view["binding"]["config"].pop("fitting_supervision")
+    infer.validate_inference_checkpoint(view, allow_scheduled_epoch=True)
+    return binding
+
+
+ALL_DEVELOPMENT_ROLE = "public_source_all_development_epoch"
+ALL_DEVELOPMENT_STATUS = "owner_authorized_exact_daily_queue_kaggle_comparison"
+ALL_DEVELOPMENT_QUEUE = "daily-kaggle-comparison-queue-20261014-v1"
+ALL_DEVELOPMENT_SOURCE = "1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9"
+ALL_DEVELOPMENT_BINDING = "5c8e14732143a479073b43a24ff7851775a1dd550dc8deb0a9291b8f8091597e"
+ALL_DEVELOPMENT_PREFIX = (
+    "experiments/dinov3-v1/training-epochs/"
+    "public-label-source-final-all-development-1bcd6c0-fixed10-seed20260922"
+)
+ALL_DEVELOPMENT_OVERLAY = "54b5a652949120764a596b4d495f11950ff103a909b7efc5fe59da9cd6f2fe85"
+ALL_DEVELOPMENT_FIT = "6d00d9aa90799aca0f32b5e0918f9716f00f7a3e516db3a4625aaed46b373844"
+ALL_DEVELOPMENT_RELEASE = "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7"
+ALL_DEVELOPMENT_FOLDS = "fe590e5072a0d82abeb377598aeef0021bbe77fe4529a19b9826a7d40d322050"
+EMPTY_ROSTER = hashlib.sha256(b"[]").hexdigest()
+ALL_DEVELOPMENT_UPDATES = 426
+ALL_DEVELOPMENT_SUPERVISION = {
+    "kind": "label_source_final_v1",
+    "overlay_sha256": ALL_DEVELOPMENT_OVERLAY,
+    "source_name": "Shio-Koube/knee3",
+    "source_revision": "373f4e1daf36984fa48bf3fc8fd9883fe17cb584",
+    "source_csv_sha256": "eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4",
+    "RSNA_competition_reports_only": True,
+}
+OFFICIAL_BASE = {
+    "architecture": "dinov3_l16",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+}
+ALL_DEVELOPMENT_FORBIDDEN = (
+    "external_initialization",
+    "private_research_only",
+    "external_weight_publication",
+    "public_input_cache",
+)
+ALL_DEVELOPMENT_KEYS = {
+    "schema_version",
+    "status",
+    "role",
+    "queue_id",
+    "scientific_source_git",
+    "checkpoint_sha256",
+    "checkpoint_bytes",
+    "training_binding_sha256",
+    "training_code_sha256",
+    "epoch",
+    "optimizer_steps",
+    "seed",
+    "training_studies",
+    "outer_studies",
+    "fit_scope",
+    "fitting_supervision",
+    "official_base",
+    "private_publication",
+    "MRI_only_inference",
+    "original_checkpoint_and_numerical_source_unchanged",
+}
+
+
+def validate_all_development_epoch(checkpoint: dict, admission: dict, checkpoint_sha: str) -> dict:
+    """Authorize one exact private-verified epoch of original all-development job 908454.
+
+    Every scheduled epoch shares the original run binding; the admission binds the
+    exact checkpoint bytes, code hashes and counters. Diagnostic, private-research,
+    external-initialization, public-input and unknown-source weights stay refused.
+    """
+    binding = checkpoint["binding"]
+    config = binding["config"]
+    encoder = config.get("encoder", {})
+    receipt = binding.get("experimental_fitting_supervision", {})
+    epoch = admission.get("epoch")
+    publication = admission.get("private_publication", {})
+    if (
+        set(admission) != ALL_DEVELOPMENT_KEYS
+        or type(epoch) is not int
+        or epoch not in range(1, 11)
+        or admission.get("schema_version") != 1
+        or admission.get("status") != ALL_DEVELOPMENT_STATUS
+        or admission.get("queue_id") != ALL_DEVELOPMENT_QUEUE
+        or admission.get("scientific_source_git") != ALL_DEVELOPMENT_SOURCE
+        or admission.get("checkpoint_sha256") != checkpoint_sha
+        or type(admission.get("checkpoint_bytes")) is not int
+        or admission.get("training_binding_sha256") != ALL_DEVELOPMENT_BINDING
+        or object_sha(binding) != ALL_DEVELOPMENT_BINDING
+        or admission.get("training_code_sha256") != object_sha(binding.get("code_sha256"))
+        or admission.get("optimizer_steps") != ALL_DEVELOPMENT_UPDATES * epoch
+        or admission.get("seed") != 20260922
+        or admission.get("training_studies") != 3403
+        or admission.get("outer_studies") != 0
+        or admission.get("fit_scope") != "all_development"
+        or admission.get("fitting_supervision") != ALL_DEVELOPMENT_SUPERVISION
+        or admission.get("official_base") != OFFICIAL_BASE
+        or not isinstance(publication, dict)
+        or set(publication) != {"repo_id", "revision", "prefix", "file_count"}
+        or publication.get("repo_id") != "GodlyDonuts/RSNA-Data"
+        or publication.get("prefix") != f"{ALL_DEVELOPMENT_PREFIX}/epoch-{epoch:03d}"
+        or publication.get("file_count") != 5
+        or not isinstance(publication.get("revision"), str)
+        or len(publication["revision"]) != 40
+        or admission.get("MRI_only_inference") is not True
+        or admission.get("original_checkpoint_and_numerical_source_unchanged") is not True
+        or (checkpoint.get("epoch"), checkpoint.get("next_update"), checkpoint.get("step"))
+        != (epoch, 0, ALL_DEVELOPMENT_UPDATES * epoch)
+        or checkpoint.get("scheduled_epoch") is not True
+        or checkpoint.get("schema_version") != 2
+        or config.get("epochs") != 10
+        or config.get("warmup_updates") != ALL_DEVELOPMENT_UPDATES
+        or config.get("seed") != 20260922
+        or config.get("fold") != 0
+        or config.get("side") != 384
+        or config.get("fit_scope") != "all_development"
+        or config.get("diagnostic_study_limit") is not None
+        or config.get("checkpoint_format") != "frozen_base_delta"
+        or config.get("submission_every_epochs") != 1
+        or config.get("public_input") is not None
+        or encoder.get("adapter", {}).get("rank") != 32
+        or any(encoder.get(k) != v for k, v in OFFICIAL_BASE.items())
+        or config.get("fitting_supervision")
+        != {"kind": "label_source_final_v1", "sha256": ALL_DEVELOPMENT_OVERLAY, "enabled": True}
+        or any(binding.get(k) is not None for k in ALL_DEVELOPMENT_FORBIDDEN)
+        or receipt.get("overlay_sha256") != ALL_DEVELOPMENT_OVERLAY
+        or receipt.get("release_sha256") != ALL_DEVELOPMENT_RELEASE
+        or receipt.get("folds_sha256") != ALL_DEVELOPMENT_FOLDS
+        or receipt.get("fitting_uid_sha256") != ALL_DEVELOPMENT_FIT
+        or receipt.get("outer_uid_sha256") != EMPTY_ROSTER
+        or receipt.get("fitting_studies") != 3403
+        or receipt.get("fit_scope") != "all_development"
+        or receipt.get("final_fit_only") is not True
+        or receipt.get("internal_validation_available") is not False
+        or receipt.get("evaluation_masks_changed") is not False
+        or receipt.get("enabled") is not True
+        or receipt.get("source", {}).get("name") != ALL_DEVELOPMENT_SUPERVISION["source_name"]
+        or receipt.get("source", {}).get("revision")
+        != ALL_DEVELOPMENT_SUPERVISION["source_revision"]
+        or receipt.get("source", {}).get("csv_sha256")
+        != ALL_DEVELOPMENT_SUPERVISION["source_csv_sha256"]
+        or binding.get("training_uids_sha256") != ALL_DEVELOPMENT_FIT
+        or binding.get("outer_uids_sha256") != EMPTY_ROSTER
+        or binding.get("release", {}).get("manifest_sha256") != ALL_DEVELOPMENT_RELEASE
+    ):
+        raise ValueError("All-development checkpoint differs from its exact queue admission")
     view = dict(checkpoint)
     view["binding"] = dict(binding)
     view["binding"].pop("experimental_fitting_supervision")
