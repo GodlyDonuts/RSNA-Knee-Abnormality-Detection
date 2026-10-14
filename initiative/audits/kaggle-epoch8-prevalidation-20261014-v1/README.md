@@ -1,0 +1,5 @@
+# Actual epoch8 private Dataset verification
+
+Distinct godlydonuts/rsna-alldev-e008-d4aed5e3ae15 Dataset12589606/version1 was created once, finalRPCcalls1. Read-only reconciliation initially returned403 while Kaggle indexed it; finite controller retried only reads. Actual terminal Dataset acceptance now verifies private visibility and all68 uploaded objects through full download/size/SHA, including125556557-byte checkpointd4aed5e3ae15d6e421a4e5098626750308e1bf2c92f8abce70adce5be2fa0f57, base, source, wheels and license.
+
+This consumed no competition submission. The finite controller94105/exec65550 is still live, maxcompetition submissions0. Notebook push has one exclusive intent; its actual result/public acceptance is unobserved. Never repeat Dataset creation or uncertain push, never upload public example CSV. Exact source/queue/FP32twoT4 inference remain unchanged. Once public receipt/source/finite13-column CSV/RSS acceptance completes, any future one code submission still requires fresh authoritative positive allowance and canonical single coordinator.
