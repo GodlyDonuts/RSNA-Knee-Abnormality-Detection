@@ -7,8 +7,10 @@ fold/release/supervision/cohort boundary, replays the 16 fitting / 16 developmen
 public tensors through the staged loader code, and builds the reviewed source-slot
 r32 model plus both patch-focus arms in the canonical trainer seed/factory order.
 
-On one real fitting-only MRI study (the first, in fitting order, with both observed
-and masked fitting targets) it runs one train-mode forward/backward per model on CPU
+On one real fitting-only MRI study it runs one train-mode forward/backward per model
+on CPU. Naturally mixed masks are used when present; otherwise a separately recorded
+backward-only cloned-mask negative control hides the last target without changing
+the accepted fitting frame, original dataset batch mask, or production supervision. It
 and requires: bitwise-identical initial logits, encoder/head values and RNG; only a
 zero ``patch_query`` extra; control gradients bitwise the source-slot gradients with
 a zero query gradient; candidate query gradients finite and nonzero exactly on the
@@ -196,6 +198,52 @@ def gradient_study(fitting) -> int:
     raise ValueError("No fitting study has both observed and masked targets")
 
 
+def routing_probe(fitting) -> tuple[int, torch.Tensor, dict]:
+    """A separate backward-only mask fixture; never changes fitting supervision.
+
+    The public source supplies either twelve labels or none. When no naturally
+    mixed row exists, remove the last observed target ONLY in a cloned probe mask
+    to exercise the masked-gradient negative control. No optimizer uses this mask.
+    """
+    from rsna.schema import TARGETS
+
+    masks = torch.tensor(fitting[[f"{t}__mask" for t in TARGETS]].to_numpy())
+    if (
+        masks.ndim != 2
+        or masks.shape[1] != len(TARGETS)
+        or not bool(((masks == 0) | (masks == 1)).all())
+    ):
+        raise ValueError("Routing fixture requires original binary fitting masks")
+    counts = masks.sum(1)
+    natural = torch.nonzero((counts > 0) & (counts < len(TARGETS))).flatten()
+    if len(natural):
+        position = int(natural[0])
+        method = "unchanged_naturally_mixed_fitting_mask"
+        removed = None
+    else:
+        eligible = torch.nonzero(counts >= 2).flatten()
+        if not len(eligible):
+            raise ValueError("No fitting row supports an observed/masked routing fixture")
+        position = int(eligible[0])
+        method = "backward_only_cloned_mask_negative_control"
+        removed = int(torch.nonzero(masks[position] > 0).flatten()[-1])
+    probe_mask = masks[position : position + 1].clone().float()
+    if removed is not None:
+        probe_mask[0, removed] = 0
+    return (
+        position,
+        probe_mask,
+        {
+            "method": method,
+            "removed_target_index": removed,
+            "original_observed_targets": int(counts[position]),
+            "probe_observed_targets": int(probe_mask.sum()),
+            "accepted_fitting_masks_changed": False,
+            "optimizer_steps": 0,
+        },
+    )
+
+
 def _values(model) -> dict:
     records = {}
     for name, parameter in model.named_parameters():
@@ -360,6 +408,7 @@ def run(root: Path) -> dict:
     from rsna.competitive.source_slot import training_inputs
     from rsna.competitive.supervision import apply_fitting_supervision
     from rsna.competitive.train import _uid_hash, select_development, verified_job_release
+    from rsna.schema import TARGETS
 
     gate.check_placement()
     if torch.cuda.is_available() or os.environ.get("SLURM_CPUS_PER_TASK") != "1":
@@ -450,7 +499,7 @@ def run(root: Path) -> dict:
     dense.check_replay(proofs, {role: _uid_hash(part) for role, part in parts.items()}, original)
 
     # Real fitting-only MRI study for the gradient probe; development rows are never read.
-    position = gradient_study(fitting)
+    position, routing_mask, routing_fixture = routing_probe(fitting)
     item = dataset(fitting.iloc[position : position + 1], True)[0]
     batch = collate_studies([item])
     batch["study_uid"] = list(fitting.study_uid.iloc[position : position + 1])
@@ -459,12 +508,22 @@ def run(root: Path) -> dict:
         batch, torch.device("cpu"), config["classifier_strategy"], seed=seed, epoch=0, update=0
     )
     labels, mask = batch["labels"].float(), batch["label_mask"].float()
+    original_mask = mask.clone()
+    fitting_mask = torch.tensor(
+        fitting.iloc[position : position + 1][[f"{t}__mask" for t in TARGETS]].to_numpy(),
+        dtype=torch.float32,
+    )
+    if not torch.equal(original_mask, fitting_mask):
+        raise ValueError("Dataset mask differs from the admitted fitting row")
+    mask = routing_mask
     probe_study = {
         "fitting_position": position,
         "images_sha256": hashlib.sha256(item["images"].numpy().tobytes()).hexdigest(),
         "labels_and_mask_sha256": hashlib.sha256(
-            labels.numpy().tobytes() + mask.numpy().tobytes()
+            labels.numpy().tobytes() + original_mask.numpy().tobytes()
         ).hexdigest(),
+        "routing_fixture": routing_fixture,
+        "routing_mask_sha256": hashlib.sha256(mask.numpy().tobytes()).hexdigest(),
         "acquired_slots": int(batch["series_mask"].sum()),
     }
 
