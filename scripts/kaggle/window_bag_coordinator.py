@@ -20,7 +20,7 @@ MACHINE_SHAPE = "NvidiaTeslaT4"
 CONTRACT_KEYS = {
     "kernel_slug", "source_sha256", "package_manifest_sha256", "mode", "segment",
     "shard_kernels", "model_dataset", "wheelhouse", "capsule_dataset", "runtime_image",
-    "session_timeout_seconds", "platform_limits", "production_funding",
+    "session_timeout_seconds", "platform_limits", "production_funding", "parallel_arms",
 }
 FUNDING_KEYS = {"engineering", "measured", "segments_per_arm", "gpu_seconds_authorized",
                 "authorized_at"}
@@ -45,6 +45,10 @@ def validate_contract(contract: dict) -> dict:
     )
     if not 0 < contract["session_timeout_seconds"] <= limit:
         raise ValueError("Session timeout exceeds its bound")
+    if type(contract["parallel_arms"]) is not bool or (
+        contract["parallel_arms"] and contract["mode"] != "engineering"
+    ):
+        raise ValueError("Concurrent two-T4 arms are an engineering-only option")
     if contract["mode"] == "engineering":
         if contract["production_funding"] is not None or contract["segment"] is not None:
             raise ValueError("Engineering contract must not carry production funding/segment")
@@ -71,6 +75,7 @@ def bound_in_source(contract: dict, source: str) -> None:
     if (
         f"WINDOW_BAG_SEGMENT = {contract['segment']!r}\n" not in source
         or f"WINDOW_BAG_MODE = {contract['mode']!r}\n" not in source
+        or f"WINDOW_BAG_PARALLEL = {contract['parallel_arms']!r}\n" not in source
         or f"WINDOW_BAG_MANIFEST_SHA256 = {contract['package_manifest_sha256']!r}\n" not in source
     ):
         raise ValueError("Notebook source does not embed the contract's segment/package")
@@ -281,6 +286,10 @@ def run_phase(phase, contract, source, remote, publication, workflow, journal, d
             "charge_seconds": plan.session_charge(contract["session_timeout_seconds"])}
     if funding["available_seconds"] < funding["charge_seconds"]:
         raise ValueError("Fresh conservative allowance cannot fund this session")
+    # Both provisioned T4s are charged exactly once for the session, whether one or both
+    # arms use them concurrently.
+    funding = {**funding, "provisioned_GPUs_charged": plan.PROVISIONED_T4,
+               "GPUs_used_concurrently": 2 if contract["parallel_arms"] else 1}
     production = None
     if contract["mode"] == "segment":
         # Both bindings are verified read-only before any segment intent or SaveKernel.

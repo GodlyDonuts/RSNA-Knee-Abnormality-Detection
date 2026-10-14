@@ -18,8 +18,9 @@ ENGINEERING_TIMEOUT_SECONDS = 7200
 SESSION_LIMIT_SECONDS = 9 * 3600
 # Each production session must finish with margin below the nine-hour ceiling.
 SESSION_MARGIN = 0.80
-# Kaggle's "T4 x2" accelerator provisions two devices; only device 0 is used, but both
-# are charged conservatively for the full requested session timeout.
+# Kaggle's "T4 x2" accelerator provisions two devices. The sequential path uses only device
+# 0; the optional concurrent mode uses both. Either way both are charged exactly once,
+# conservatively, for the full requested session timeout.
 PROVISIONED_T4 = 2
 SHARD_KERNEL_SOURCES = 20
 ENGINEERING_DATASET_SOURCES = ("model_bundle", "wheelhouse", "render_capsule")
@@ -85,13 +86,19 @@ def segment_boundaries(updates_per_session: int, total: int = TOTAL_UPDATES):
     return [(a, b) for a, b in zip(edges, edges[1:])]
 
 
-def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int) -> dict:
+def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int,
+                    concurrent: bool = False) -> dict:
     """Fixed 2810-update plan per arm from actual T4 measurements; never changes the recipe.
 
     ``measured`` requires ``seconds_per_update`` (four-window bag, effective 8),
     ``startup_seconds`` (install, mount verify, full restore, model load),
     ``checkpoint_seconds`` and ``final_evaluation_seconds`` (1156 ten-window studies),
     all from actual T4 sessions, plus ``checkpoint_bytes``.
+
+    ``concurrent`` projects the optional two-T4 mode: both arms share one session (so each
+    session is charged once for both provisioned GPUs) and one restored cache, with two
+    arms' checkpoints and outputs. Its timings must come from an actual concurrent
+    engineering session; the paired segment runner itself is not yet admitted.
     """
     keys = {"seconds_per_update", "startup_seconds", "checkpoint_seconds",
             "final_evaluation_seconds", "checkpoint_bytes"}
@@ -108,10 +115,11 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int) ->
         raise ValueError("Measured T4 performance cannot fit one update per session")
     segments = segment_boundaries(min(updates, TOTAL_UPDATES))
     timeout = min(SESSION_LIMIT_SECONDS, math.ceil(usable))
-    sessions = 2 * len(segments)
+    arms_per_session = 2 if concurrent else 1
+    sessions = 2 * len(segments) // arms_per_session
     charge = sessions * session_charge(timeout)
     available = conservative_available(gpu_quota)
-    storage = EXACT_MEMBER_BYTES + 3 * measured["checkpoint_bytes"] + 3 * GIB
+    storage = EXACT_MEMBER_BYTES + arms_per_session * 3 * measured["checkpoint_bytes"] + 3 * GIB
     return {
         "updates_per_epoch": UPDATES_PER_EPOCH,
         "total_updates_per_arm": TOTAL_UPDATES,
@@ -123,7 +131,11 @@ def production_plan(measured: dict, gpu_quota: dict, free_scratch_bytes: int) ->
         "available_seconds": available,
         "quota_fits_now": charge <= available,
         "scratch_bytes_required": storage,
-        "output_cap_bytes_per_segment": [publication_bytes(measured, s) for s in segments],
+        "output_cap_bytes_per_segment": [
+            arms_per_session * publication_bytes(measured, s) for s in segments
+        ],
+        "concurrent_arms": concurrent,
+        "provisioned_GPUs_charged_per_session": PROVISIONED_T4,
         "scratch_fits": free_scratch_bytes >= storage,
         "only_final_epoch10_evaluated": True,
         "scientific_hyperparameters_changed": False,
