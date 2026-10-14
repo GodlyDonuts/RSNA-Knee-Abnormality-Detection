@@ -52,10 +52,12 @@ from rsna.competitive.relations import (
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
 from rsna.competitive.source_slot import training_inputs as source_slot_training_inputs
-from rsna.competitive.source_slot import validate_strategy as validate_classifier_strategy
 from rsna.competitive.suffix_adapters import DERIVED_KEYS as SUFFIX_DERIVED_KEYS
 from rsna.competitive.suffix_adapters import validate_suffix_adapter
 from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
+from rsna.competitive.window_bag import KIND as WINDOW_BAG_KIND
+from rsna.competitive.window_bag import classifier_module
+from rsna.competitive.window_bag import training_inputs as window_bag_training_inputs
 from rsna.competitive.witness import validate_witness
 from rsna.model import auc_metrics
 from rsna.release import load_verified_release
@@ -136,7 +138,7 @@ class TrainConfig:
 
     def validate(self) -> None:
         if self.classifier_strategy is not None:
-            validate_classifier_strategy(self.classifier_strategy)
+            classifier_module(self.classifier_strategy).validate_strategy(self.classifier_strategy)
             if (
                 self.public_input is None
                 or self.pooling != "attention"
@@ -703,8 +705,13 @@ def _run_locked(
     model: nn.Module
     if config.classifier_strategy is not None:
         from rsna.competitive.source_slot import SourceSlotStudyNet
+        from rsna.competitive.window_bag import WindowBagSlotStudyNet
 
-        model = SourceSlotStudyNet(
+        model = (
+            WindowBagSlotStudyNet
+            if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
+            else SourceSlotStudyNet
+        )(
             encoder,
             embedding_dim,
             config.classifier_strategy,
@@ -968,8 +975,13 @@ def _run_locked(
                             enabled=config.precision != "fp32",
                         ):
                             if config.classifier_strategy is not None:
+                                classifier_inputs = (
+                                    window_bag_training_inputs
+                                    if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
+                                    else source_slot_training_inputs
+                                )
                                 logits = wrapped(
-                                    *source_slot_training_inputs(
+                                    *classifier_inputs(
                                         batch,
                                         device,
                                         config.classifier_strategy,
