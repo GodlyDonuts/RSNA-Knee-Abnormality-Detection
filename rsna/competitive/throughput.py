@@ -543,14 +543,6 @@ def _memory(device: torch.device) -> dict[str, int | None]:
     }
 
 
-def _training_autocast(config: TrainConfig, device: torch.device) -> torch.autocast:
-    return torch.autocast(
-        device.type,
-        dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
-        enabled=config.precision != "fp32",
-    )
-
-
 def profile_updates(
     state: dict[str, Any],
     config: TrainConfig,
@@ -562,9 +554,8 @@ def profile_updates(
     """Run the trainer's exact first-epoch update arithmetic with phase timing.
 
     Slot-classifier window selection/augmentation runs on CPU (``cpu_transform``) before
-    the copy (``host_to_device``), inside the same autocast context the trainer uses:
-    CPU-autocast-sensitive ops (e.g. ``affine_grid``) change values in CPU FP16/BF16
-    diagnostics, while a CUDA autocast context leaves this CPU work unchanged.
+    the copy (``host_to_device``), inside the trainer's autocast context: CPU FP16/BF16
+    diagnostics change ``affine_grid``; a CUDA context leaves this CPU work unchanged.
     """
     model, optimizer, scaler = state["model"], state["optimizer"], state["scaler"]
     strategy = config.classifier_strategy
@@ -635,13 +626,22 @@ def profile_updates(
                     else:
                         assert strategy is not None
 
-                        def select():
-                            with _training_autocast(config, device):
+                        def select_inputs():
+                            # Match the trainer's autocast context. In CPU diagnostics,
+                            # affine_grid is autocast-sensitive; on CUDA its CPU work
+                            # remains unaffected, exactly as in the trainer.
+                            with torch.autocast(
+                                device.type,
+                                dtype=(
+                                    torch.float16 if config.precision == "fp16" else torch.bfloat16
+                                ),
+                                enabled=config.precision != "fp32",
+                            ):
                                 return classifier_inputs(
                                     batch, cpu, strategy, seed=config.seed, epoch=0, update=update
                                 )
 
-                        selected = phases.measure("cpu_transform", select)
+                        selected = phases.measure("cpu_transform", select_inputs)
                         inputs = phases.measure(
                             "host_to_device",
                             lambda: (
@@ -651,7 +651,11 @@ def profile_updates(
                         )
 
                     def forward():
-                        with _training_autocast(config, device):
+                        with torch.autocast(
+                            device.type,
+                            dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
+                            enabled=config.precision != "fp32",
+                        ):
                             logits = model(*inputs[0])
                             return effective_batch_loss(logits, inputs[1], mask, counts)
 

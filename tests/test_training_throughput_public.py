@@ -235,8 +235,6 @@ def test_profiler_matches_unchanged_trainer_setup_and_first_updates(
     arm,
     supervise,
 ):
-    # Exact regression: selection/augmentation must run inside the trainer's autocast
-    # (CPU BF16/FP16 affine_grid); outside it, learned adapter tensors diverged.
     values = recipe(arm, supervised["policy"] if supervise else None)
     seen: dict = {}
     trainer = tmp_path / "trainer"

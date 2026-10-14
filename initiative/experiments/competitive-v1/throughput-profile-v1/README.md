@@ -42,15 +42,8 @@ after the first epoch's two updates the delta model/storage, AdamW, GradScaler, 
 and per-update loss/gradient norm/observed cells/optimizer steps are equal.
 
 Slot-classifier window selection and augmentation run on CPU (`cpu_transform`)
-before the copy (`host_to_device`), inside the same `torch.autocast(device.type,
-dtype=precision, enabled=precision != "fp32")` context as the trainer. This is
-required for exactness: `affine_grid` is CPU-autocast-sensitive, so CPU FP16/BF16
-diagnostics differ if selection runs outside it; under a CUDA autocast context the
-CPU work is unchanged. The strict complete-state parity regression covers this:
-with selection outside autocast (`4d05f7ef`), root measured 60 passed / 4 failed,
-all four setup-and-first-update cases with differing learned adapter tensors; the
-fix passes them without loosening equality. Window groups derive from (seed, epoch,
-update) and augmentation from per-study generators, so they do not depend on
+before the copy (`host_to_device`). Window groups derive from (seed, epoch, update)
+and augmentation from per-study generators, so they do not depend on
 microbatch/chunk/workers. The head's dropout (0.2) does depend on microbatch shape.
 `views` counts acquired slots x training windows (1 for slot, 4 for bag) on valid
 samples. It is checked against `encoder_images`, the count the encoder actually
@@ -105,3 +98,7 @@ incomplete runs are marked `evidence_eligible: false`.
 The source-slot log observation (updates 1043->1044, ~14.78 s/update on a shared
 H100 with other workloads) is contention-affected and is not isolated throughput
 evidence. No worker/chunk/batch choice is made from it.
+
+## Root precision-parity review
+
+The profiler selects and augments windows under the same autocast context as the trainer. CUDA autocast leaves CPU augmentation unchanged, but CPU BF16/FP16 diagnostics can change `affine_grid`; moving that work outside the context broke exact adapter-update parity. The corrected path retains separate CPU-transform timing and passes all64 root profiler cases, including the four complete-state parity cases. No actual GPU throughput setting has been promoted. Original failing receipts remain in private root artifacts.

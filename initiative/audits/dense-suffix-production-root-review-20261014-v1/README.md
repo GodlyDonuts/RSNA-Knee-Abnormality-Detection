@@ -1,0 +1,11 @@
+# Actual CPU production admission; full checks before GPU fitting
+
+Root reviewed PR70 and its actual-recovery update. The launcher explicitly binds the additional-deadline receipt, verifier SHA, retained boundary, actual full/replay numerical histories and predictions, exact0ece scientific source/recipes, original CPU/folds/release/supervision/official base, and genuine production funding. It now predeclares dense first and suffix-R32 second, with isolated fresh seeded trainer processes and fixed10 endpoints. Finite slices stop via the original checkpoint/exit75 protocol before the step deadline.
+
+Actual owning-node CPU staging initially refused the approved/home ->/lustre/fs1/home mount alias while reading the pinned fold artifact. That refusal and old launcher/funding were preserved. Root corrected only this fold-validation read to the canonical path; the file SHA and original trainer arguments are unchanged, and a regression accepts the alias but refuses changed fold bytes.170focused tests passed. Full checks were restarted after this correction with absolute repository PYTHONPATH. No full-suite success or GPU fit is claimed while they run.
+
+The corrected actual CPU admission passed on evc31. An80GiB new node-local envelope covers24GiB checkpoints,8GiB runtime and48GiB private publication/cache, plus the20GiB reserve and all prior liabilities. Original engineering bytes already paid were deducted once by physical inode count; hard links are not billed twice. No original deletion credit or new shared large growth. Funded four-hour slice limit; actual parent899766 remains bound, GPUindex0,2CPUs. Only assigned-device acceptance and completed required code checks remain before one full-fitting dispatch. The original numeric0ece modules, data masks/folds and official base stay unchanged.
+
+Artifacts/pinned controls: /tmp/rsna-dense-suffix-fit-20261014-v1; actual-CPU-admitted.json records the exact launcher/publisher/config/recovery/funding hashes. Never repeat staging or overwrite controls after an actual GPU intent.
+
+Actual full checks now passed3441/8skipped/2warnings in1098.37s; Ruff/format500/mypy66/archive passed. The exact corrected source is ready for one GPU fitting dispatch after the assigned-device/header admission. No GPU fitting is inferred from these checks.

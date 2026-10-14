@@ -58,7 +58,7 @@ def upload_location(args, journal, checkpoint_sha, transport=None):
 
 
 def node_journal(args, base, meta, op):
-    """Opt-in node-local journal for NEW component operations only.
+    """Opt-in node-local journal for new components or exact daily-queue epochs.
 
     The account ledger and coordinator claim stay shared. Two small shared
     markers are the durable cross-node record: an exclusive intent (written
@@ -75,8 +75,22 @@ def node_journal(args, base, meta, op):
             raise ValueError("Node-local journal cannot fall back to shared storage")
         return None
     root = Path(root)
-    if (
+    checkpoint = meta["checkpoint_sha256"]
+    admission_sha = op.get("fitting_admission_sha256")
+    daily_epoch = (
         op.get("common_bundle") is None
+        and isinstance(admission_sha, str)
+        and len(admission_sha) == 64
+        and all(c in "0123456789abcdef" for c in admission_sha)
+        and any(
+            op.get("dataset_slug") == f"godlydonuts/rsna-alldev-e{epoch:03d}-{checkpoint[:12]}"
+            and op.get("kernel_slug")
+            == f"godlydonuts/rsna-alldev-offline-e{epoch:03d}-{checkpoint[:12]}"
+            for epoch in range(1, 11)
+        )
+    )
+    if (
+        (op.get("common_bundle") is None and not daily_epoch)
         or getattr(args, "publication_revision", False)
         or (shared / meta["checkpoint_sha256"]).exists()
         or (shared / key).exists()
@@ -803,6 +817,219 @@ def supersede_uncertain_private_placeholder(workflow, remote, db, op, expected_o
     workflow.save_entry(db, entry, "preserved uncertain slug before one distinct identity attempt")
 
 
+DRAFT_ATTESTATION_KEYS = {
+    "schema_version",
+    "kind",
+    "account",
+    "kernel_slug",
+    "observed_at",
+    "editor_opened",
+    "version_history",
+    "inputs_match_operation",
+    "code_matches_operation",
+    "ui_save_version_performed",
+    "save_kernel_retry_performed",
+}
+DRAFT_ATTESTATION_MAX_AGE_SECONDS = 900
+PLACEHOLDER = {"title": "[Private Notebook]", "lastRunTime": "2010-04-01T00:00:00Z"}
+
+
+def draft_attestation_valid(attestation, account, slug, now):
+    """Owner's authenticated-UI evidence of an unversioned draft at the exact slug."""
+    from datetime import datetime
+
+    if not isinstance(attestation, dict) or set(attestation) != DRAFT_ATTESTATION_KEYS:
+        return False
+    try:
+        observed = datetime.fromisoformat(attestation["observed_at"])
+        age = (now - observed).total_seconds()
+    except (TypeError, ValueError):
+        return False
+    return (
+        attestation["schema_version"] == 1
+        and attestation["kind"] == "owner_authenticated_ui_private_draft_observation"
+        and attestation["account"] == account
+        and attestation["kernel_slug"] == slug
+        and 0 <= age <= DRAFT_ATTESTATION_MAX_AGE_SECONDS
+        and attestation["editor_opened"] is True
+        and attestation["version_history"] == "starting_fresh_no_saved_versions"
+        and attestation["inputs_match_operation"] is True
+        and attestation["code_matches_operation"] is True
+        and attestation["ui_save_version_performed"] is False
+        and attestation["save_kernel_retry_performed"] is False
+    )
+
+
+def observe_uncertain_push(
+    workflow, remote, slug, attestation=None, now=None, expected_source_sha256=None
+):
+    """Read-only. Classify committed version / owner-attested draft / unresolved.
+
+    The private placeholder alone proves neither absence nor a draft.
+    """
+    from datetime import datetime, timezone
+
+    now = now or datetime.now(timezone.utc)
+    owner, name = slug.split("/")
+    try:
+        found = remote.call(
+            "kernels.KernelsApiService", "GetKernel", {"userName": owner, "kernelSlug": name}
+        )
+    except workflow.RemoteError as error:
+        get_kernel = str(error)
+    else:
+        version = found.get("metadata", {}).get("currentVersionNumber")
+        if type(version) is int and version >= 1:
+            return {
+                "classification": "committed_version",
+                "get_kernel": "accessible",
+                "current_version": version,
+            }
+        import hashlib
+
+        meta, blob = found.get("metadata", {}), found.get("blob", {})
+        source = blob.get("source")
+        source_sha = (
+            hashlib.sha256(source.removeprefix("# %% [code]\n").encode()).hexdigest()
+            if isinstance(source, str)
+            else None
+        )
+        valid = (
+            "currentVersionNumber" not in meta
+            and type(meta.get("id")) is int
+            and meta["id"] > 0
+            and meta.get("ref") == slug
+            and meta.get("isPrivate") is True
+            and meta.get("enableInternet") is False
+            and meta.get("machineShape") == "NvidiaTeslaT4"
+            and source_sha is not None
+            and source_sha == expected_source_sha256
+            and draft_attestation_valid(attestation, remote.username, slug, now)
+        )
+        return {
+            "classification": "private_draft_owner_attested" if valid else "unresolved",
+            "get_kernel": "accessible",
+            "current_version": version,
+            "source_sha256": source_sha,
+            "exact_prepared_source_verified": valid,
+        }
+    listing = remote.call(
+        "kernels.KernelsApiService",
+        "ListKernels",
+        {
+            "group": "PROFILE",
+            "user": owner,
+            "page": 1,
+            "pageSize": 100,
+            "language": "all",
+            "kernelType": "all",
+            "outputType": "all",
+            "search": name,
+        },
+    )
+    result = {
+        "get_kernel": get_kernel,
+        "placeholder_only": listing == {"kernels": [PLACEHOLDER]},
+        "listing_sha256": workflow.object_hash(listing),
+        "owner_attestation_valid": draft_attestation_valid(attestation, remote.username, slug, now),
+        "checked_at": now.isoformat(),
+    }
+    if attestation is not None:
+        result["owner_attestation_sha256"] = workflow.object_hash(attestation)
+    draft = (
+        get_kernel == "Kaggle GetKernel HTTP 403"
+        and result["placeholder_only"]
+        and result["owner_attestation_valid"]
+    )
+    result["classification"] = "private_draft_owner_attested" if draft else "unresolved"
+    return result
+
+
+def commit_private_draft_once(workflow, remote, db, operation_path, expected_sha, attestation):
+    """One first-commit SaveKernel for the exact null-identity draft; never a new slug."""
+    import hashlib
+
+    operation = workflow.load_operation(operation_path)
+    slug = operation["kernel_slug"]
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        workflow.verify_account(db, remote)
+        entry = workflow.read_entry(db, operation["checkpoint_sha256"])
+        response = entry.get("kernel_create_response")
+        history = entry.get("superseded_operations", [])
+        if (
+            entry.get("state") != "push_uncertain"
+            or entry.get("kernel_version") is not None
+            or entry.get("submission_id") is not None
+            or entry.get("description") is not None
+            or "draft_commit" in entry
+            or entry.get("operation_sha256") != expected_sha
+            or workflow.digest(operation_path) != expected_sha
+            or entry.get("operation") != operation
+            or not isinstance(entry.get("kernel_absence_proof"), dict)
+            or not isinstance(entry.get("dataset"), dict)
+            or not isinstance(response, dict)
+            or any(response.get(key) is not None for key in ("kernel_id", "ref", "version"))
+            or any(item.get("operation_sha256") == expected_sha for item in history)
+            or slug.split("/")[0] != remote.username
+        ):
+            raise ValueError("Only the exact unsubmitted null-identity push may commit its draft")
+        request = workflow.kernel_request(operation_path, operation)
+        if (
+            request["slug"] != slug
+            or hashlib.sha256(request["text"].encode()).hexdigest()
+            != operation["kernel_source_sha256"]
+        ):
+            raise ValueError("First-commit request differs from the exact prepared source")
+        observation = observe_uncertain_push(
+            workflow,
+            remote,
+            slug,
+            attestation,
+            expected_source_sha256=operation["kernel_source_sha256"],
+        )
+        if observation["classification"] != "private_draft_owner_attested":
+            raise ValueError("No fresh exact owner-attested unversioned draft")
+        if workflow.verify_remote_dataset(remote, operation) != entry["dataset"]:
+            raise ValueError("Verified Dataset identity drifted")
+    except Exception:
+        db.rollback()
+        raise
+    entry["draft_commit"] = {
+        "schema_version": 1,
+        "kind": "first_commit_of_owner_attested_private_draft",
+        "operation_sha256": expected_sha,
+        "original_kernel_create_response_sha256": workflow.object_hash(response),
+        "request_sha256": workflow.object_hash(request),
+        "owner_attestation": attestation,
+        "observation": observation,
+        "expected_version": 1,
+        "attempted_at": workflow.utcnow(),
+        "retry_prohibited": True,
+    }
+    entry["state"] = "draft_commit_intent"
+    workflow.save_entry(db, entry, "durable intent before one first-commit SaveKernel of draft")
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        result = remote.call("kernels.KernelsApiService", "SaveKernel", request)
+        entry["draft_commit"]["response"] = workflow.save_kernel_response(result)
+        if (
+            result.get("versionNumber") != 1
+            or type(result.get("versionNumber")) is not int
+            or result.get("error")
+            or result.get("ref") != "/code/" + slug
+        ):
+            raise workflow.RemoteError("Draft first commit needs read-only reconciliation")
+        entry.update(state="pushed", kernel_version=1)
+        workflow.save_entry(db, entry, "exact draft first committed as version 1")
+    except Exception as exc:
+        entry["draft_commit"]["exception"] = workflow.bounded_exception(exc)
+        entry["state"] = "draft_commit_uncertain"
+        workflow.save_entry(db, entry, "draft commit uncertain; retries prohibited")
+        raise
+    return entry
+
+
 def supersede_failed_public_runtime(workflow, remote, db, op, expected_old_sha):
     """Archive exact unsubmitted public ERROR; pin the runtime of an accepted reference."""
     db.execute("BEGIN IMMEDIATE")
@@ -1093,6 +1320,17 @@ def run(args):
                     workflow, remote, db, op, args.superseded_operation_sha256
                 )
                 return workflow.push(remote, db, args.operation)
+            if args.action == "commit-private-draft":
+                if not args.uncertain_operation_sha256 or args.draft_attestation is None:
+                    raise ValueError("Draft commit needs the exact operation and owner attestation")
+                return commit_private_draft_once(
+                    workflow,
+                    remote,
+                    db,
+                    args.operation,
+                    args.uncertain_operation_sha256,
+                    json.loads(args.draft_attestation.read_text()),
+                )
             if args.action == "push-kernel":
                 return workflow.push(remote, db, args.operation)
             if args.action == "submit":
@@ -1118,6 +1356,7 @@ def main():
             "push-after-failed-submission",
             "push-runtime-corrected-kernel",
             "push-after-uncertain-placeholder",
+            "commit-private-draft",
             "submit",
             *COMMON_ACTIONS,
         ],
@@ -1129,6 +1368,8 @@ def main():
     parser.add_argument("--projection-sha256", required=True)
     parser.add_argument("--publication-revision", action="store_true")
     parser.add_argument("--superseded-operation-sha256")
+    parser.add_argument("--uncertain-operation-sha256")
+    parser.add_argument("--draft-attestation", type=Path)
     parser.add_argument("--dataset-publication-operation", type=Path)
     parser.add_argument("--management-python", type=Path)
     parser.add_argument("--node-local-upload-root", type=Path)

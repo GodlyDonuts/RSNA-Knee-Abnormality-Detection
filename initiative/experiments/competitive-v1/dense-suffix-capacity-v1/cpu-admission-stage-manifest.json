@@ -1,0 +1,111 @@
+{
+  "status": "proposed_not_staged_not_funded_not_dispatched",
+  "owner": "root",
+  "node": "evc31",
+  "root": "/tmp/rsna-dense-suffix-admission-20261014-v1",
+  "admission": "scripts/newton/admit_dense_suffix_inputs.py",
+  "admission_status_on_success": "dense_suffix_capacity_owning_node_inputs_and_matched_initialization_CPU_accepted",
+  "source": {
+    "source_git": "exact merged commit containing the admission; set by root at staging",
+    "code": "/tmp/rsna-dense-suffix-admission-20261014-v1/code",
+    "source.json": "{source_git, files}: every rsna/**/*.py plus admission REQUIRED_SOURCE, sha256 per file, 8 MiB cap",
+    "recovery-source-manifest.json": "byte-for-byte JSON equal to source.json files (the unchanged GPU wrapper's --source-manifest)",
+    "required_fixed_sha256": {
+      "initiative/audits/public-input-corrected-CPU-dispatch-20261013-v2/CPU-accepted.json": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+      "initiative/experiments/competitive-v1/dense-suffix-capacity-v1/suffix-r32-config.json": "92b6116f9d2ee7311dd74890b37fff7ea12474d6cd21a5df71922d375e78d2aa",
+      "initiative/experiments/competitive-v1/dense-suffix-capacity-v1/dense-config.json": "19332d2aa5c80d8134d76978e9f8e54fe56407b744002826acaafef2fd0984d6",
+      "tools/research/public_dinov2_input_reference/dino_adapter.py": "f7d79508a0784db2c89534fba975bb41c6c9e98d09c72f71e488b4c92c2b5d40"
+    },
+    "rsna_delta_from_original_receipt_code": {
+      "changed": {
+        "competitive/throughput.py": "d35ae9c617d9446b48bcbc00e7defd9a0ba3e9daf5f2a64bcfb20125a60d4e5d",
+        "competitive/train.py": "65ba6b1129ded73bf7445af326acbb4967fc4b5d15dfe406b33955146bd874f9"
+      },
+      "added": {
+        "competitive/weight_average.py": "c50d0427e6ff1369aa4f60a91dd3c8472150d516dad241a83ad9ffe1e9c15253",
+        "competitive/window_bag.py": "d99ae8e86d0d008c016a27e73cbee186141db230f056113a2246e0e26c22aedb",
+        "release_cache.py": "83660e78e3b6ce745bbf89275157474f97290a43bb0c00a4a3da687352f38b6a"
+      },
+      "removed": [],
+      "input_label_code_changed_requires_fresh_replay": [
+        "competitive/train.py",
+        "release_cache.py"
+      ]
+    }
+  },
+  "encoder-spec.json": {
+    "architecture": "dinov3_l16",
+    "config_path": "/home/sa305415/rsna-knee/encoder-stage/configs/competitive/weights/dinov3-large.config.json",
+    "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
+    "license": "other",
+    "source_id": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+    "source_revision": "ea8dc2863c51be0a264bab82070e3e8836b02d51",
+    "state_dict_format": "safetensors",
+    "transformers_version": "5.6.1",
+    "weights_path": "/home/sa305415/rsna-knee/encoder-stage/artifacts/encoder-weights/dinov3-large/model.safetensors",
+    "weights_sha256": "dcb2e45127cccbf1601e5f42fef165eea275c8e5213197e8dcf3f48822718179"
+  },
+  "funding.json": {
+    "funded_by": "root",
+    "original_input_receipt_sha256": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2",
+    "merged_cache_receipt_sha256": "d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "new_CPU_source_and_receipt_bytes": 16777216,
+    "new_GPU_or_checkpoint_bytes": 0,
+    "new_shared_bytes_files": 0,
+    "prefix_cache_bytes": 0,
+    "existing_liabilities_bytes": "root measures and retains every current obligation (positive integer)",
+    "reserve_bytes": 21474836480,
+    "required_free_bytes": "16777216 + existing_liabilities_bytes + reserve_bytes; fresh disk_usage(root).free is rechecked inside the step"
+  },
+  "reused_without_download_render_transfer_or_rehash": {
+    "original_CPU_receipt": "adb931d591c3cbe4bac79ad8ad1050ece5c9cd2c37dc98e818716e731f050ce2 (CPU899766)",
+    "complete_public_cache": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+    "complete_cache_receipt": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache-verified.json d2c0ad74370f7613b1a9983b9437b7e8e407d02242bb3328be36bf7a57d81ee0",
+    "whole_byte_official_base_proof": "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/cpu-preflight.json fa9e8a52ce05e81c08c2c3ae3a5eec28999109be74af2d4c19b8ddef0e76e9b5 (fresh file-stat binding only)",
+    "fitting_overlay": "/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51"
+  },
+  "proposed_CPU_step": {
+    "command": "srun --jobid=<root-owned evc31 allocation> --overlap --ntasks=1 --cpus-per-task=1 --gpus=0 env -u CUDA_VISIBLE_DEVICES PYTHONPATH=/tmp/rsna-dense-suffix-admission-20261014-v1/code PYTHONNOUSERSITE=1 python -B /tmp/rsna-dense-suffix-admission-20261014-v1/code/scripts/newton/admit_dense_suffix_inputs.py --root /tmp/rsna-dense-suffix-admission-20261014-v1",
+    "CPUs": 1,
+    "GPUs": 0,
+    "automatic_retry": false,
+    "output": "/tmp/rsna-dense-suffix-admission-20261014-v1/CPU-accepted.json (exclusive create, 1 MiB cap, sanitized hashes/counts only)"
+  },
+  "future_GPU_recovery_after_CPU_acceptance": {
+    "wrapper": "scripts/newton/run_dense_suffix_recovery.py (unchanged; full/stop1/resume per arm)",
+    "arguments": {
+      "--source": "/tmp/rsna-dense-suffix-admission-20261014-v1/code",
+      "--source-manifest": "/tmp/rsna-dense-suffix-admission-20261014-v1/recovery-source-manifest.json",
+      "--encoder-spec": "/tmp/rsna-dense-suffix-admission-20261014-v1/encoder-spec.json",
+      "--artifact-root": "/home/sa305415/rsna-knee/code-stopfix-1f486765",
+      "--cache": "/tmp/rsna-kaggle-public-source-shards-20261013-v1/merged-cache",
+      "--overlay": "/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json",
+      "--output": "/tmp/rsna-dense-suffix-admission-20261014-v1/recovery",
+      "--device": "cuda",
+      "--max-output-bytes": 12884901888,
+      "--remaining-seconds": "root-chosen"
+    },
+    "requires": "one assigned GPU, separate root funding of 12 GiB output plus retained liabilities and 20 GiB reserve",
+    "funded": false
+  },
+  "future_production_after_accepted_GPU_recovery": {
+    "epochs": 10,
+    "effective_batch": 8,
+    "fitting_studies": 2247,
+    "development_studies": 1156,
+    "checkpoint_upper_bound_bytes": {
+      "suffix_r32": 2008023040,
+      "dense": 21005074432
+    },
+    "streams_acquired_triplets_online": true,
+    "prefix_cache_materialized": false,
+    "funded": false
+  },
+  "GPU_or_optimizer_or_clinical_inference_executed": false,
+  "prefix_cache_materialized": false,
+  "protected_labels_used": false,
+  "new_labels_created": false,
+  "accuracy_claimed": false,
+  "GPU_acceptance_inferred": false,
+  "existing_jobs_modified": false
+}
