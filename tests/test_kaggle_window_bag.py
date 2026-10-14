@@ -1195,6 +1195,9 @@ def test_concurrent_arms_each_recover_exactly_on_the_canonical_trainer(tmp_path)
                 "stop": None,
                 "resume": None,
                 "every": 0,
+                # This is a CPU process-supervision test. Real FP16/scaler
+                # acceptance belongs to the separately bound T4 recovery.
+                "precision": "fp32",
             } | extra
             return [sys.executable, child, json.dumps(spec)]
 

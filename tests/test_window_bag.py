@@ -422,7 +422,7 @@ def test_student_has_no_teacher_reference_or_variability_dependency():
 # --- Canonical trainer on the engineering encoder (no transformers needed) -------------
 
 
-def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0):
+def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0, precision="fp16"):
     import argparse
 
     from test_public_triplet_training import POLICY, build, cohort
@@ -455,7 +455,7 @@ def _diagnostic_run(tmp_path, arm, output, stop=None, resume=None, every=0):
         freeze_encoder=False,
         min_free_gib=0,
         diagnostic_study_limit=16,
-        precision="fp16",
+        precision=precision,
         public_input=POLICY,
         classifier_strategy=copy.deepcopy(STRATEGIES[arm]),
         submission_every_epochs=every,
