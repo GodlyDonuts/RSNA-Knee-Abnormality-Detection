@@ -1,0 +1,22 @@
+{
+  "source_ref": "pilkwang/rsna-knee-baseline-v1",
+  "source_version": 15,
+  "source_sha256": "b32a9155fcc73c519e75e78c08e07d30393efc591c2798a3e40ca92f39832bb8",
+  "status": "reviewed",
+  "status_reason": "Training-time window/augmentation nodes read against the exact source for issue #47. Used only as test references for rsna.competitive.source_slot; never executed by the trainer.",
+  "nodes": ["AUG_ROT_DEG", "AUG_SCALE", "AUG_SHIFT", "AUG_INTENSITY", "take_group", "augment"],
+  "node_text_sha256": "48a1b397288001d491a2aefc40279789c7b47c0ac1215739984d0963a2201409",
+  "node_text_format": "original_source_segments_utf8",
+  "reviewed_exceptions": {
+    "augment": {
+      "strings": ["54fd78eda1dc114810ab5c9b2649a4a1429a4c4764481bb7cd2d060cae364eb4"],
+      "reason": "Docstring only ('no label depends on' explains why rigid jitter is label-invariant); the node reads only the image bag."
+    }
+  },
+  "not_extractable": {
+    "training_window_draw": "main(): `g = int(torch.randint(N_GROUP, (1,)).item())` once per BATCH_STUDIES batch, then `augment(take_group(rows, g))`; inline in main, which also reads labels, so it is documented, not compiled.",
+    "loss": "main(): `(BCE(model(imgs, m, img), y, reduction='none') * w).mean()` with gold weight 3.0 / derived 0.25+0.75*conf; replaced by the repository's accepted fitting supervision and masks.",
+    "optimizer": "main(): AdamW backbone 8e-6 / head 1e-3, weight decay 0.02, OneCycleLR pct_start 0.15, holdout epoch selection; replaced by the canonical fixed-final schedule."
+  },
+  "reviewer": "Devin session 5d30195e0e2346489e4f3d861e1670d2 (issue #47)"
+}

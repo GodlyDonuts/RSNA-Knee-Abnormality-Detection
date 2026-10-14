@@ -1,0 +1,15 @@
+{
+  "PR": 48,
+  "head": "91ca940af1e5a2d821e97ff91584f8c7dd7c665e",
+  "source_training_confirmed": "one non-overlap three-slice group shared per batch; source augmentation; per-target slot head; cls_mean",
+  "baseline_correction": "Existing model already has target-specific slice and series attention. Difference is source head formulation, cls_mean, sampling, augmentation and TTA, not absence of target conditioning.",
+  "historical_negative": "Earlier native-input patchmean contrast regressed internal AUC .8786706 to .8600333; no cls_mean benefit assumed in the new coupled source-matched recipe.",
+  "root_changes": [
+    "Keep committed dense-prefix root corrections by applying only PR48 incremental train diff",
+    "Fix floating inverse-byte assertion to exact normalized byte reconstruction",
+    "Fix nn.Module no_sync typing without changing runtime dispatch",
+    "Reject unsupported deployment precision and nonstring augmentation"
+  ],
+  "original_focused_QA": "33 passed,2 failed archive/source changed during initial review",
+  "actual_GPU_or_accuracy_claimed": false
+}

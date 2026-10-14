@@ -51,6 +51,8 @@ from rsna.competitive.relations import (
 )
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
 from rsna.competitive.snapshots import scheduled_epoch, write_epoch_snapshot
+from rsna.competitive.source_slot import training_inputs as source_slot_training_inputs
+from rsna.competitive.source_slot import validate_strategy as validate_classifier_strategy
 from rsna.competitive.suffix_adapters import DERIVED_KEYS as SUFFIX_DERIVED_KEYS
 from rsna.competitive.suffix_adapters import validate_suffix_adapter
 from rsna.competitive.supervision import apply_fitting_supervision, validate_fitting_supervision
@@ -130,8 +132,21 @@ class TrainConfig:
     patch_summary: dict | None = None
     cache_contrast: dict | None = None
     public_input: dict | None = None
+    classifier_strategy: dict | None = None
 
     def validate(self) -> None:
+        if self.classifier_strategy is not None:
+            validate_classifier_strategy(self.classifier_strategy)
+            if (
+                self.public_input is None
+                or self.pooling != "attention"
+                or self.fit_scope != "outer_fold"
+                or not isinstance(self.encoder, dict)
+                or self.encoder.get("architecture") not in {"dinov3_l16", "diagnostic_tiny"}
+            ):
+                raise ValueError(
+                    "Source-matched slot classifier requires admitted public rows and DINOv3"
+                )
         if self.public_input is not None:
             validate_public_input(self.public_input)
             if (
@@ -498,9 +513,15 @@ def predict(
             dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
             enabled=config.precision != "fp32",
         ):
-            logits = model(*_model_inputs(batch, device))
+            if config.classifier_strategy is not None:
+                # Original v15 submission aggregation: mean sigmoid over ten windows.
+                probabilities = getattr(model, "window_probabilities")(
+                    *_model_inputs(batch, device)
+                )
+            else:
+                probabilities = model(*_model_inputs(batch, device)).float().sigmoid()
         valid = batch.get("sample_valid", torch.ones(len(batch["study_uid"]), dtype=torch.bool))
-        scores.append(logits.float().sigmoid().cpu().numpy()[valid.numpy()])
+        scores.append(probabilities.float().cpu().numpy()[valid.numpy()])
         labels.append(batch["labels"].numpy()[valid.numpy()])
         masks.append(batch["label_mask"].numpy()[valid.numpy()])
         identifiers.extend(uid for uid, keep in zip(batch["study_uid"], valid.tolist()) if keep)
@@ -679,19 +700,31 @@ def _run_locked(
         **({"input_contract": "public_ordered_triplet"} if config.public_input is not None else {}),
     )
     configure_encoder_training(encoder, config.freeze_encoder)
-    model = model_class(
-        encoder,
-        embedding_dim,
-        pooling=config.pooling,
-        hidden_dim=config.hidden_dim,
-        encode_chunk_size=config.encode_chunk_size,
-        slice_context=config.slice_context,
-        **({"witness": config.witness} if config.witness is not None else {}),
-        **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
-        **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
-        **relation_model_kwargs(config.relation),
-        **({"input_channels": channels} if channels == 3 else {}),
-    ).to(device)
+    model: nn.Module
+    if config.classifier_strategy is not None:
+        from rsna.competitive.source_slot import SourceSlotStudyNet
+
+        model = SourceSlotStudyNet(
+            encoder,
+            embedding_dim,
+            config.classifier_strategy,
+            encode_chunk_size=config.encode_chunk_size,
+            input_channels=channels,
+        ).to(device)
+    else:
+        model = model_class(
+            encoder,
+            embedding_dim,
+            pooling=config.pooling,
+            hidden_dim=config.hidden_dim,
+            encode_chunk_size=config.encode_chunk_size,
+            slice_context=config.slice_context,
+            **({"witness": config.witness} if config.witness is not None else {}),
+            **({"plane_memory": config.plane_memory} if config.plane_memory is not None else {}),
+            **({"patch_summary": config.patch_summary} if config.patch_summary is not None else {}),
+            **relation_model_kwargs(config.relation),
+            **({"input_channels": channels} if channels == 3 else {}),
+        ).to(device)
     delta_guard = (
         FrozenBaseDelta(model, encoder_provenance)
         if config.checkpoint_format == "frozen_base_delta"
@@ -752,6 +785,8 @@ def _run_locked(
         bound_config.pop("cache_contrast")
     if config.public_input is None:
         bound_config.pop("public_input")
+    if config.classifier_strategy is None:
+        bound_config.pop("classifier_strategy")
     bound_config["encoder"] = encoder_provenance
     package_root = Path(__file__).resolve().parents[1]
     code_hashes = {
@@ -926,13 +961,25 @@ def _run_locked(
             ):
                 for micro, (batch, mask) in enumerate(zip(batches, masks)):
                     synchronize = micro == len(batches) - 1 or world == 1
-                    with contextlib.nullcontext() if synchronize else wrapped.no_sync():
+                    with contextlib.nullcontext() if synchronize else getattr(wrapped, "no_sync")():
                         with torch.autocast(
                             device.type,
                             dtype=torch.float16 if config.precision == "fp16" else torch.bfloat16,
                             enabled=config.precision != "fp32",
                         ):
-                            if config.relation is None:
+                            if config.classifier_strategy is not None:
+                                logits = wrapped(
+                                    *source_slot_training_inputs(
+                                        batch,
+                                        device,
+                                        config.classifier_strategy,
+                                        seed=config.seed,
+                                        epoch=epoch,
+                                        update=update,
+                                    )
+                                )
+                                auxiliary = torch.zeros((), device=device)
+                            elif config.relation is None:
                                 logits = wrapped(*_model_inputs(batch, device))
                                 auxiliary = torch.zeros((), device=device)
                             else:
