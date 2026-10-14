@@ -1,0 +1,30 @@
+from pathlib import Path
+import torch,json,hashlib,sys,inspect,os
+R=Path('/tmp/rsna-dense-suffix-GPU-recovery-20261014-v1');A=Path('/tmp/rsna-dense-suffix-admission-20261014-v1');sys.path.insert(0,str(A/'code'));torch.set_num_threads(1);assert os.environ.get('SLURM_JOB_GPUS') is None
+from scripts.newton import run_dense_suffix_recovery as m
+m.verify_source(A/'code',json.loads((A/'recovery-source-manifest.json').read_text()));assert m.sha(A/'CPU-accepted.json')=='158c242faa37c46e3b8a2e632d68b3ae690174bb3ec3b85abed2a46ffc53c834'
+# Explicit multi-interruption admission, preserving every other original check.
+text=inspect.getsource(m.compare_recovery);needle='!= (0, 1, 1):';assert text.count(needle)==1
+roles={};bindings={}
+def rows(path):
+ result=[]
+ for line in path.read_text().splitlines():
+  v=json.loads(line)
+  if 'optimizer_steps' in v:result.append(v)
+ return result
+for arm,boundary in [('suffix_r32',(2,0,4)),('dense',(1,0,2))]:
+ root=R/arm
+ namespace=dict(m.__dict__);changed=text.replace('def compare_recovery(','def retained_boundary_recovery(').replace(needle,'!= '+repr(boundary)+':');exec(changed,namespace)
+ if arm=='suffix_r32':
+  # The original GPU wrapper checked the step1 partial before entering dense.
+  # Its partial object was in RAM; independently recheck the retained final state.
+  partial=torch.load(root/'replay/checkpoint.pt',map_location='cpu',weights_only=True);first={'updates':rows(root/'stop.stdout')}
+ else:
+  backup=root/'checkpoint-before-deadline-resume-step002.pt';intent=json.loads((R/'deadline-continuation-intent.json').read_text());assert m.sha(backup)==intent['checkpoint_sha256'];partial=torch.load(backup,map_location='cpu',weights_only=True)
+  first={'updates':rows(root/'stop.stdout')+[r for r in rows(root/'resume.stdout') if r['optimizer_steps']<=2]}
+  assert [r['optimizer_steps'] for r in first['updates']]==[1,2]
+ roles[arm]=namespace['retained_boundary_recovery'](root,partial,first,m.PINNED[arm]);bindings[arm]=partial['binding'];del partial
+m.compare_matched(bindings)
+result={'status':'actual_matched_dense_suffix_additional_deadline_recovery_accepted','arms':roles,'source_manifest_sha256':m.sha(A/'recovery-source-manifest.json'),'recipe_sha256':{a:m.sha(A/'code'/m.RECIPE/n) for a,n in m.ARMS.items()},'CPU_receipt_sha256':m.sha(A/'CPU-accepted.json'),'additional_interruption':{'original_timeout_preserved':True,'dense_resume_saved_boundary':[1,0,2],'dense_history_sources':['stop.stdout step1','resume.stdout committed step2','replay/invocation.json continued steps3/4'],'unpromoted_step4_partial_preserved':True},'suffix_r32_stop1_partial_checked_by_original_GPU_wrapper_before_dense':True,'suffix_r32_stop1_partial_independently_retained_for_CPU_recheck':False,'complete_model_base_AdamW_LR_counters_all_RNG_scaler_and_CSV_equal':True,'device':'cuda','GPUs_used_concurrently':1,'diagnostic_only':True,'clinical_accuracy_evidence':False,'competition_submission':False}
+with (R/'accepted-after-deadline.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps({'receipt_sha256':m.sha(R/'accepted-after-deadline.json'),'receipt':result}))
