@@ -418,7 +418,12 @@ def plan(queue: dict, records: dict[str, dict], journal: Journal) -> Action:
                 return act("reconcile-dataset")
             return act("push-kernel", read_only=False)
         state = record.get("state")
-        if state in {"push_intent", "push_uncertain"}:
+        if state in {
+            "push_intent",
+            "push_uncertain",
+            "draft_commit_intent",
+            "draft_commit_uncertain",
+        }:
             return act("reconcile-push")
         if state in {"submit_intent", "submit_uncertain"}:
             return act("reconcile-submission")
