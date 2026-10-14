@@ -31,6 +31,20 @@ def write(path, value):
     return launch.sha(path)
 
 
+def update(step, loss):
+    return {"epoch": (step - 1) // 2, "update": (step - 1) % 2 + 1, "optimizer_steps": step,
+            "loss": loss, "gradient_norm": 1.0 + step}  # fmt: skip
+
+
+def lines(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+
+HISTORY = [update(s, 1.0 / s) for s in range(1, 5)]
+TIMED = [dict(r, elapsed_seconds=float(r["optimizer_steps"])) for r in HISTORY]
+
+
 @pytest.fixture
 def env(tmp_path, monkeypatch):
     monkeypatch.setattr(
@@ -105,13 +119,37 @@ def env(tmp_path, monkeypatch):
         encoder_spec_path_sha256=spec_sha,
         recovery_output=str(gpu),
         recovery_verifier_sha256=launch.sha(verifier),
+        recovery_unpromoted_partial={"name": "checkpoint-0albmazm.partial", "bytes": 7},
     )
     (gpu / "dense").mkdir(parents=True)
     (gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY).write_bytes(b"step2")
+    retained = launch.sha(gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY)
     write(
         gpu / "deadline-continuation-intent.json",
-        {"checkpoint_sha256": launch.sha(gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY)},
+        {
+            "status": "original_dense_saved_epoch1_step2_continuation",
+            "checkpoint_sha256": retained,
+            "output_cap": 12 * 2**30,
+            "original_numerical_source_unchanged": True,
+            "new_optimization_recipe": False,
+            "automatic_retry": False,
+        },
     )
+    write(
+        gpu / "deadline-continuation-result.json",
+        {
+            "returncode": 0,
+            "checkpoint_before_resume_sha256": retained,
+            "source_unchanged": True,
+            "complete_engineering_acceptance": False,
+        },
+    )
+    (gpu / "dense" / "replay").mkdir()
+    (gpu / "dense" / "replay" / "checkpoint-0albmazm.partial").write_bytes(b"step4!!")
+    lines(gpu / "dense" / "resume.stdout", [TIMED[1], TIMED[2]])
+    (gpu / "dense" / "resume.stderr").write_text("TimeoutExpired\n")
+    lines(gpu / "dense" / "resume-after-deadline.stdout", TIMED[2:])
+    (gpu / "dense" / "resume-after-deadline.stderr").write_text("")
     arms = {}
     for arm, p in launch.PINNED.items():
         full = gpu / arm / "full"
@@ -119,10 +157,16 @@ def env(tmp_path, monkeypatch):
         (full / "checkpoint.pt").write_bytes(arm.encode())
         (full / "outer_predictions.csv").write_text("study_uid\n")
         write(full / "run.json", {"binding": {"device_type": "cuda", "code_sha256": code_sha}})
+        write(full / "invocation.json", {"updates": TIMED})
+        lines(gpu / arm / "stop.stdout", [{"arm": arm, "phase": "stop"}, TIMED[0]])
+        write(gpu / arm / "replay" / "invocation.json", {"updates": TIMED[(arm == "dense") + 1 :]})
+        (gpu / arm / "replay" / "outer_predictions.csv").write_text("study_uid\n")
         arms[arm] = {
             "exact_complete_state_history_and_prediction_recovery": True,
             "trainable_encoder_parameters": p["trainable_parameters"],
-            "finite_updates": [{"loss": 0.5, "optimizer_steps": i + 1} for i in range(4)],
+            "finite_updates": copy.deepcopy(HISTORY),
+            "complete_state_sha256": "c" * 64,
+            "frozen_base_tensors": 417,
             "checkpoint_sha256": launch.sha(full / "checkpoint.pt"),
             "prediction_sha256": launch.sha(full / "outer_predictions.csv"),
         }
@@ -345,6 +389,21 @@ def test_pins_match_the_actual_committed_after_deadline_GPU_recovery():
     assert intent["verifier_sha256"] == launch.PINS["recovery_verifier_sha256"]
     assert launch.PINS["recovery_output"] in verifier and launch.RECOVERY_RECEIPT in verifier
     assert launch.DENSE_RETAINED_BOUNDARY in verifier
+    assert set(receipt) == launch.RECOVERY_KEYS | set(launch.PINS["recovery_limits"])
+    for row in receipt["arms"].values():
+        assert set(row) == launch.RECOVERY_ARM_KEYS
+        assert row["frozen_base_tensors"] == launch.PINS["recovery_frozen_base_tensors"]
+    readonly = json.loads((DEADLINE / "checkpoint-readonly.json").read_text())
+    partial = launch.PINS["recovery_unpromoted_partial"]
+    assert readonly[partial["name"]]["bytes"] == partial["bytes"]
+    assert readonly[partial["name"]]["step"] == 4
+    boundary = readonly["checkpoint.pt"]
+    expected = launch.PINS["recovery_limits"]["additional_interruption"]
+    assert [boundary["epoch"], boundary["next_update"], boundary["step"]] == expected[
+        "dense_resume_saved_boundary"
+    ]
+    program = (DEADLINE / "program.py.txt").read_text()
+    assert "deadline-continuation-result.json" in program and "resume-after-deadline" in program
 
 
 def test_production_configs_are_the_unchanged_recipes():
@@ -609,6 +668,92 @@ def _retained_boundary(env):
     (env.gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY).write_bytes(b"other")
 
 
+def _rewrite(path, edit):
+    value = json.loads(path.read_text())
+    path.unlink()
+    write(path, edit(value))
+
+
+def _intent_boundary(env):
+    path = env.gpu / "deadline-continuation-intent.json"
+    _rewrite(path, lambda v: dict(v, checkpoint_sha256="0" * 64))
+
+
+def _continuation_failed(env):
+    _rewrite(env.gpu / "deadline-continuation-result.json", lambda v: dict(v, returncode=1))
+
+
+def _continuation_new_recipe(env):
+    path = env.gpu / "deadline-continuation-intent.json"
+    _rewrite(path, lambda v: dict(v, new_optimization_recipe=True))
+
+
+def _dense_prefix_history(env):
+    lines(env.gpu / "dense" / "stop.stdout", [update(1, 0.75)])
+
+
+def _committed_step2_missing(env):
+    lines(env.gpu / "dense" / "resume.stdout", [TIMED[2]])
+
+
+def _uncommitted_step3_differs(env):
+    lines(env.gpu / "dense" / "resume.stdout", [TIMED[1], update(3, 0.3)])
+
+
+def _dense_resume_history(env):
+    path = env.gpu / "dense" / "replay" / "invocation.json"
+    _rewrite(path, lambda v: {"updates": [TIMED[2], update(4, 0.3)]})
+
+
+def _r32_prefix_history(env):
+    lines(env.gpu / "suffix_r32" / "stop.stdout", TIMED[:2])
+
+
+def _full_history(env):
+    path = env.gpu / "suffix_r32" / "full" / "invocation.json"
+    _rewrite(path, lambda v: {"updates": TIMED[:3] + [update(4, 0.2)]})
+
+
+def _receipt_history(env):
+    arms = copy.deepcopy(env.recovery["arms"])
+    arms["dense"]["finite_updates"][3]["loss"] = 0.2
+    _receipt(env, arms=arms)
+
+
+def _receipt_frozen_records(env):
+    arms = copy.deepcopy(env.recovery["arms"])
+    arms["dense"]["frozen_base_tensors"] = 416
+    _receipt(env, arms=arms)
+
+
+def _receipt_extra_key(env):
+    _receipt(env, accepted_by_assumption=True)
+
+
+def _missing_replay_predictions(env):
+    (env.gpu / "dense" / "replay" / "outer_predictions.csv").unlink()
+
+
+def _replay_predictions_differ(env):
+    (env.gpu / "suffix_r32" / "replay" / "outer_predictions.csv").write_text("study_uid\nb\n")
+
+
+def _missing_unpromoted_partial(env):
+    (env.gpu / "dense" / "replay" / "checkpoint-0albmazm.partial").unlink()
+
+
+def _changed_unpromoted_partial(env):
+    (env.gpu / "dense" / "replay" / "checkpoint-0albmazm.partial").write_bytes(b"x")
+
+
+def _missing_original_resume_log(env):
+    (env.gpu / "dense" / "resume.stderr").unlink()
+
+
+def _missing_continuation_log(env):
+    (env.gpu / "dense" / "resume-after-deadline.stdout").unlink()
+
+
 def _engineering_funding(env):
     refund(
         env,
@@ -664,6 +809,24 @@ def _cpu_receipt(env):
         _recovery_evidence,
         _missing_recovery_evidence,
         _retained_boundary,
+        _intent_boundary,
+        _continuation_failed,
+        _continuation_new_recipe,
+        _dense_prefix_history,
+        _committed_step2_missing,
+        _uncommitted_step3_differs,
+        _dense_resume_history,
+        _r32_prefix_history,
+        _full_history,
+        _receipt_history,
+        _receipt_frozen_records,
+        _receipt_extra_key,
+        _missing_replay_predictions,
+        _replay_predictions_differ,
+        _missing_unpromoted_partial,
+        _changed_unpromoted_partial,
+        _missing_original_resume_log,
+        _missing_continuation_log,
         _engineering_funding,
         _reduced_liabilities,
         _envelope_mismatch,

@@ -46,6 +46,25 @@ RECOVERY_STATUS = "actual_matched_dense_suffix_additional_deadline_recovery_acce
 RECOVERY_RECEIPT = "accepted-after-deadline.json"
 RECOVERY_VERIFIER = "verifier.py"
 DENSE_RETAINED_BOUNDARY = "checkpoint-before-deadline-resume-step002.pt"
+DENSE_LOGS, LOG_STREAMS = ("resume", "resume-after-deadline"), ("stdout", "stderr")
+RECOVERY_KEYS = {
+    "status",
+    "CPU_receipt_sha256",
+    "device",
+    "GPUs_used_concurrently",
+    "source_manifest_sha256",
+    "recipe_sha256",
+    "arms",
+}
+RECOVERY_ARM_KEYS = {
+    "complete_state_sha256",
+    "checkpoint_sha256",
+    "prediction_sha256",
+    "finite_updates",
+    "trainable_encoder_parameters",
+    "frozen_base_tensors",
+    "exact_complete_state_history_and_prediction_recovery",
+}
 ADMISSION_STATUS = "actual_dense_suffix_fixed10_production_admitted"
 TERMINAL_STATUS = "matched_dense_suffix_fixed10_both_arms_completed_requires_fixed_final_replay"
 # Actual CPU899766 admission (initiative/audits/dense-suffix-admission-root-review-20261014-v1).
@@ -95,6 +114,8 @@ PINS = {
         "clinical_accuracy_evidence": False,
         "competition_submission": False,
     },
+    "recovery_frozen_base_tensors": 417,
+    "recovery_unpromoted_partial": {"name": "checkpoint-0albmazm.partial", "bytes": 1_814_597_419},
 }
 EPOCHS, UPDATES, FITTING, OUTER, SEED = 10, 281, 2247, 1156, 20260922
 GIB = 2**30
@@ -264,6 +285,64 @@ def admitted_cpu(admission: Path, pins: Mapping) -> dict:
     return cpu
 
 
+def stdout_updates(path: Path) -> list[dict]:
+    """Optimizer-update events exactly as the original trainer printed them."""
+    rows = [json.loads(line) for line in regular(path).read_text().splitlines()]
+    return [row for row in rows if "optimizer_steps" in row]
+
+
+def verify_recovery_histories(output: Path, receipt: Mapping) -> None:
+    """Stitch only original observed records; each must equal the full fit and receipt."""
+    from scripts.newton.probe_patch_witness_trainer_recovery import numerical_updates
+
+    interruption = PINS["recovery_limits"]["additional_interruption"]
+    boundary = interruption["dense_resume_saved_boundary"][2]
+    for arm in ARMS:
+        root = output / arm
+        full = numerical_updates(load(root / "full" / "invocation.json"))
+        continued = numerical_updates(load(root / "replay" / "invocation.json"))
+        prefix = stdout_updates(root / "stop.stdout")
+        if arm == "dense":
+            resumed = stdout_updates(root / "resume.stdout")
+            prefix += [r for r in resumed if r["optimizer_steps"] <= boundary]
+            uncommitted = numerical_updates(
+                {"updates": [r for r in resumed if r["optimizer_steps"] > boundary]}
+            )
+            if any(u != full[u["optimizer_steps"] - 1] for u in uncommitted):
+                raise ValueError("Preserved uncommitted dense updates differ from the full fit")
+        prefix = numerical_updates({"updates": prefix})
+        expected = list(range(1, (boundary if arm == "dense" else 1) + 1))
+        if (
+            [u["optimizer_steps"] for u in prefix] != expected
+            or prefix + continued != full
+            or full != receipt["arms"][arm]["finite_updates"]
+        ):
+            raise ValueError("Stitched prefix/resume numerical history differs from the full fit")
+
+
+def verify_retained_originals(output: Path, pins: Mapping) -> None:
+    """Retained promoted dense step-2 boundary, its continuation and preserved originals."""
+    dense = output / "dense"
+    intent = load(output / "deadline-continuation-intent.json")
+    result = load(output / "deadline-continuation-result.json")
+    retained = sha(regular(dense / DENSE_RETAINED_BOUNDARY))
+    partial = pins["recovery_unpromoted_partial"]
+    if intent.get("checkpoint_sha256") != retained:
+        raise ValueError("Retained dense step-2 recovery boundary changed")
+    if (
+        intent.get("status") != "original_dense_saved_epoch1_step2_continuation"
+        or intent.get("original_numerical_source_unchanged") is not True
+        or intent.get("new_optimization_recipe") is not False
+        or intent.get("automatic_retry") is not False
+        or result.get("checkpoint_before_resume_sha256") != retained
+        or result.get("returncode") != 0
+        or result.get("source_unchanged") is not True
+        or regular(dense / "replay" / partial["name"]).stat().st_size != partial["bytes"]
+        or not all(regular(dense / f"{n}.{x}").exists() for n in DENSE_LOGS for x in LOG_STREAMS)
+    ):
+        raise ValueError("Dense continuation or preserved original records differ")
+
+
 def admitted_recovery(cpu: Mapping, funding: Mapping, pins: Mapping) -> dict:
     """The ACTUAL after-deadline GPU recovery: exact receipt, verifier and runtime evidence."""
     output = Path(pins["recovery_output"])
@@ -294,6 +373,7 @@ def admitted_recovery(cpu: Mapping, funding: Mapping, pins: Mapping) -> dict:
         or receipt.get("GPUs_used_concurrently") != 1
         or receipt.get("source_manifest_sha256") != pins["recovery_source_manifest_sha256"]
         or receipt.get("recipe_sha256") != pins["recipe_sha256"]
+        or set(receipt) != RECOVERY_KEYS | set(pins["recovery_limits"])
         or any(receipt.get(k) != v for k, v in pins["recovery_limits"].items())
         or set(receipt.get("arms", {})) != set(ARMS)
     ):
@@ -302,21 +382,24 @@ def admitted_recovery(cpu: Mapping, funding: Mapping, pins: Mapping) -> dict:
         row, full = receipt["arms"][arm], output / arm / "full"
         updates = row.get("finite_updates")
         if (
-            row.get("exact_complete_state_history_and_prediction_recovery") is not True
+            set(row) != RECOVERY_ARM_KEYS
+            or row.get("exact_complete_state_history_and_prediction_recovery") is not True
+            or row.get("frozen_base_tensors") != pins["recovery_frozen_base_tensors"]
             or row.get("trainable_encoder_parameters") != PINNED[arm]["trainable_parameters"]
             or not isinstance(updates, list)
             or [u.get("optimizer_steps") for u in updates] != [1, 2, 3, 4]
             or not all(math.isfinite(u.get("loss", math.nan)) for u in updates)
             or sha(regular(full / "checkpoint.pt")) != row.get("checkpoint_sha256")
             or sha(regular(full / "outer_predictions.csv")) != row.get("prediction_sha256")
+            or sha(regular(output / arm / "replay" / "outer_predictions.csv"))
+            != row.get("prediction_sha256")
         ):
             raise ValueError("Actual recovery runtime evidence differs from its receipt")
         binding = load(full / "run.json")["binding"]
         if binding.get("device_type") != "cuda" or binding.get("code_sha256") != cpu["code_sha256"]:
             raise ValueError("Recovery ran a different numerical source or device")
-    intent = load(output / "deadline-continuation-intent.json")
-    if sha(regular(output / "dense" / DENSE_RETAINED_BOUNDARY)) != intent.get("checkpoint_sha256"):
-        raise ValueError("Retained dense step-2 recovery boundary changed")
+    verify_retained_originals(output, pins)
+    verify_recovery_histories(output, receipt)
     return receipt
 
 
