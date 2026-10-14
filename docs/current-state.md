@@ -18,7 +18,7 @@ Epoch3 Dataset created once/all68verified; exact notebook pushed once/version1, 
 
 ## Active training/research
 
-Original908454 evc40 continues the all3403-study native fit, source1bcd6c0. Epochs1–5 privately preserved; inspect new completed epochs before publishing once. Original899766 evc31 continues the public-label repeat. Source-slot work inside it completed, not restarted.
+Original908454 evc40 continues the all3403-study native fit, source1bcd6c0. Epochs1–6 privately preserved; inspect new completed epochs before publishing once. Original899766 evc31 continues the public-label repeat. Source-slot work inside it completed, not restarted.
 
 Dense-versus-suffixR32 actual GPU recovery36739 is live, source0ecece12, exact CPU admission158c242f…, wrapper582fa587…. Original899766 overlap, oneH100/twoCPU,30minutes. Rank32 full and stop1 completed finite updates; resume is running with matching losses so far. Dense and complete acceptance still pending. Root funded12GiB engineering output, retaining existing liabilities/20GiB node reserve, zero shared growth. This does not fund production or prove accuracy. See dense-suffix-GPU-recovery-dispatch-20261014-v1. Issue68 prepares matched fixed10 production/preservation after actual acceptance and separate funding.
 
