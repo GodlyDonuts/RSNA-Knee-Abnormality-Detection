@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -19,6 +20,26 @@ GIB = 2**30
 
 def current_code():
     return {str(p.relative_to(ROOT / "rsna")): gate.sha(p) for p in (ROOT / "rsna").rglob("*.py")}
+
+
+def admitted_code():
+    """The actual frozen GPU run's source, not the subsequently evolving main tree."""
+    wrapper = json.loads(
+        (
+            ROOT
+            / "initiative/audits/dense-suffix-admission-root-review-20261014-v1"
+            / "actual-CPU-accepted.json"
+        ).read_text()
+    )
+    receipt = wrapper["receipt"]
+    original_bytes = (json.dumps(receipt, sort_keys=True, indent=2) + "\n").encode()
+    assert (
+        hashlib.sha256(original_bytes).hexdigest()
+        == ("158c242faa37c46e3b8a2e632d68b3ae690174bb3ec3b85abed2a46ffc53c834")
+        == wrapper["receipt_sha256"]
+    )
+    assert receipt["source_git"] == "0ecece12407e5b802eec6c33302213a3b5352353"
+    return dict(receipt["code_sha256"])
 
 
 def funding(**changes):
@@ -114,7 +135,7 @@ def test_encoder_spec_must_be_the_pinned_mounted_official_spec():
 
 
 def test_code_delta_is_exact_and_flags_changed_loader_code():
-    delta = admit.code_delta(ORIGINAL["code_sha256"], current_code())
+    delta = admit.code_delta(ORIGINAL["code_sha256"], admitted_code())
     assert delta["input_label_code_changed"] == ["competitive/train.py", "release_cache.py"]
     assert (delta["changed_files"], delta["added_files"], delta["removed_files"]) == (2, 3, 0)
 
@@ -130,10 +151,16 @@ def test_code_delta_is_exact_and_flags_changed_loader_code():
     ],
 )
 def test_old_receipt_cannot_admit_any_other_loader_or_label_change(edit):
-    code = current_code()
+    code = admitted_code()
     edit(code)
     with pytest.raises(ValueError, match="reviewed delta"):
         admit.code_delta(ORIGINAL["code_sha256"], code)
+
+
+def test_evolving_main_is_not_silently_admitted_into_the_frozen_dense_run():
+    assert current_code() != admitted_code()
+    with pytest.raises(ValueError, match="reviewed delta"):
+        admit.code_delta(ORIGINAL["code_sha256"], current_code())
 
 
 def test_changed_loader_semantics_must_replay_the_admitted_tensors():
