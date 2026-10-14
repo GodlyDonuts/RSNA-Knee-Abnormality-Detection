@@ -19,3 +19,7 @@ in the mean control. The first focused run saw an archive membership failure
 before manifest refresh; it was interrupted when the source changed. That run
 is not an accepted test result. Committed-source focused/full checks follow.
 No GPU, production fit or accuracy acceptance exists for either bag arm.
+
+Committed-source focused checks passed:169 passed,1 skipped; Ruff482/mypy64/archive and current v2 89/89 complete. Full suite is running; no full-suite/GPU/accuracy acceptance claimed yet.
+
+Full committed suite passed3138 tests,5 skipped. The candidate is implementation-accepted; real MRI/common initialization, GPU recovery, performance and funding remain separate requirements.
