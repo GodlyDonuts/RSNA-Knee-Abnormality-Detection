@@ -8,7 +8,8 @@ listed directory membership. Consumer refuses stale, unsafe or altered evidence;
 full fallback is explicit. No labels, roster or scientific recipe are changed.
 
 Root focused152 passed/2 skipped, including original/cached complete synthetic
-full/stop/resume equality; Ruff484/mypy65 passed. Full committed QA is pending.
+full/stop/resume equality; Ruff484/mypy65 passed. Full committed QA passed: 3171 tests/3 skipped/2 warnings in 1154.06 seconds;
+Ruff484/mypy65/archive/current89 draft and89 reviewed checks passed.
 Devin measured61–63seconds versus1.1–1.2seconds on its CPU environment; that is
 not a measurement on Newton or attribution of all observed startup time. Actual
 owning-node source-bound timing and real MRI recovery remain necessary before
