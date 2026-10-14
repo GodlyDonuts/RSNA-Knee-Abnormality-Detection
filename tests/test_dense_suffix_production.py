@@ -1020,3 +1020,16 @@ def test_publisher_requires_actual_gpu_acceptance(env, epoch):
     with pytest.raises(ValueError, match="GPU recovery"):
         publish(env, Api())
     assert not (env.root / "epoch-publication").exists()
+
+
+def test_admitted_fold_mount_alias_retains_original_hash_boundary(env):
+    """The cluster's approved /home mount alias is canonicalized for artifact reads."""
+    parent = env.fold.parent
+    canonical = parent.with_name("folds-canonical")
+    parent.rename(canonical)
+    parent.symlink_to(canonical, target_is_directory=True)
+    state = launch.admitted(env.root, env.adm, env.pins)
+    assert state["cpu"]["folds_sha256"] == env.cpu["folds_sha256"]
+    env.fold.write_text("study_uid,fold\nchanged,2\n")
+    with pytest.raises(ValueError, match="overlay or fold"):
+        launch.admitted(env.root, env.adm, env.pins)

@@ -472,7 +472,9 @@ def admitted(root: Path = ROOT, admission: Path = ADMISSION, pins: Mapping = PIN
     artifact = Path(inputs["artifact-root"])
     if (
         sha(regular(Path(inputs["overlay"]))) != cpu["overlay_sha256"]
-        or sha(regular(artifact / "initiative/experiments/competitive-v1/folds/fold.csv"))
+        or sha(
+            regular((artifact / "initiative/experiments/competitive-v1/folds/fold.csv").resolve())
+        )
         != cpu["folds_sha256"]
     ):
         raise ValueError("Admitted fitting overlay or fold assignment changed")
