@@ -17,3 +17,5 @@ Funding retains the previous full reservation without deletion or completed-byte
 credit, adds six GiB checkpoint capacity and nine MiB controls/receipts, and keeps
 the 20 GiB node reserve. No new shared bytes or GPU node is required. Actual
 staging, CPU and GPU receipts must be inspected before claiming acceptance.
+
+Actual source4fedbec3 CPU admission completed successfully; own initialization is repeatable and frozen base/provenance match. The separately dispatched H100 recovery has passed allocated-device/memory admission; terminal recovery and accuracy remain unproven. Focused121 tests passed; no numerical production code changed.
