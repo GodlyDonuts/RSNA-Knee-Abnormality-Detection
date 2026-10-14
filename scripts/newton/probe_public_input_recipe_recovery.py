@@ -170,12 +170,16 @@ def validate_state(whole: dict, values: dict, arm: str, cpu: dict, code: dict) -
         or scaler["scale"] <= 0
     ):
         raise ValueError("Recovered FP16 scaler differs from four finite updates")
+    from rsna.competitive.train import learning_rate_multiplier
+
+    # A four-update cosine diagnostic ends at exactly zero LR. Require the
+    # actual declared schedule, rather than incorrectly requiring positivity.
+    multiplier = learning_rate_multiplier(3, 4, values["warmup_updates"], values["lr_schedule"])
+    expected_rates = [values["head_lr"] * multiplier, values["encoder_lr"] * multiplier]
     if (
-        len(optimizer["param_groups"]) < 1
-        or any(
-            not math.isfinite(group["lr"]) or group["lr"] <= 0
-            for group in optimizer["param_groups"]
-        )
+        [group["lr"] for group in optimizer["param_groups"]] != expected_rates
+        or not all(math.isfinite(rate) and rate >= 0 for rate in expected_rates)
+        or not optimizer["state"]
         or any(float(state["step"]) != 4 for state in optimizer["state"].values())
     ):
         raise ValueError("Recovered AdamW learning rate/counters differ")

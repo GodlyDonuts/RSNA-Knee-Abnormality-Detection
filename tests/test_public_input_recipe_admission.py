@@ -459,7 +459,7 @@ def recovered(arm, cpu):
         },
         optimizer={
             "state": {0: {"step": torch.tensor(4.0), "exp_avg": torch.tensor([0.5])}},
-            "param_groups": [{"lr": 1e-4, "params": [0]}, {"lr": 3e-4, "params": []}],
+            "param_groups": [{"lr": 0.0, "params": [0]}, {"lr": 0.0, "params": []}],
         },
         amp_scaler={"scale": 128.0, "_growth_tracker": 4},
         rng_by_rank=[rng],
@@ -601,3 +601,17 @@ def test_initialization_is_independent_of_lazy_import_python_rng(monkeypatch):
     states, provenance = initialized(gate.load_configs(ROOT))
     gate.common_initialization(states, provenance)
     assert len(calls) >= 2
+
+
+@pytest.mark.parametrize("policy, rates", [("cosine", [0.0, 0.0]), ("constant", [3e-4, 1e-4])])
+def test_terminal_rates_match_exact_schedule(policy, rates):
+    cpu = cpu_receipt()
+    values, full, _, _ = recovered("public", cpu)
+    values["lr_schedule"] = policy
+    full["binding"]["config"]["lr_schedule"] = policy
+    for group, rate in zip(full["optimizer"]["param_groups"], rates, strict=True):
+        group["lr"] = rate
+    recovery.validate_state(full, values, "public", cpu, cpu["code_sha256"])
+    full["optimizer"]["param_groups"][0]["lr"] += 0.001
+    with pytest.raises(ValueError, match="learning rate"):
+        recovery.validate_state(full, values, "public", cpu, cpu["code_sha256"])
