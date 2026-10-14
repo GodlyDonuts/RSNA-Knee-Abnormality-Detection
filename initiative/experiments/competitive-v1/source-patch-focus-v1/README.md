@@ -151,3 +151,13 @@ native-public, and is not mixed with dense-versus-low-rank capacity factors.
   `transformers` is installed. These are CPU autocast checks only; full-prefix gradient flow on
   the real DINOv3-L weights under CUDA BF16/FP16 has not been run and is part of the GPU
   admission step below, not claimed here.
+
+## October14 root admission-wrapper review
+
+Root integrated the prepared PR75 CPU admission and sequential GPU recovery wrappers, retaining the exact source-slot rank32/all120 recipe and unchanged numerical modules. The audited rsna code-delta hashes match current main. One-CPU admission checks original2247/1156 source membership, original tensor replay and official initialized values/RNG, then tests zero-query prediction/control-gradient identity and observed-only query gradient routing on a real fitting study. The finite GPU wrapper requires independent full/stop1/resume processes and complete state/CSV equality, with measured time and memory overhead. Tiny engineering outcomes cannot choose the recipe.
+
+Root repaired test import ordering and two type errors (explicit dataset soft-target argument and phase-time dictionary annotation). Original27 synthetic admission cases passed; the first combined run yielded83passes/one missing archive-entry failure. That failure was caused by adding the new stage template without refreshing the archive manifest, not a model numerical failure. The archive is refreshed before rerun. No real MRI admission, GPU recovery, funding, staging or production dispatch has occurred.
+
+Current placement restriction deliberately remains original evc31 CPU-only. Parent899766 completed and maintenance/PAM blocks access; do not pretend the original placement is available or bypass it. Target evc40 has the verified public triplet cache, but original overlay/runtime/proofs still require lawful recovery or a separately reviewed target admission. The gradient probe requires a fitting row with both observed and masked targets; inspect actual admitted masks before dispatch and retain refusal if absent. Never modify accepted labels to satisfy this check.
+
+Root final focused regression passed84tests/2warnings; lint and format pass on all three new Python files. Targeted Python3.12 mypy with imported legacy modules followed silently passes2new source files; this is not a whole-repository type check. Default imported legacy helper checking produced10pre-existing typing errors, preserved as a limitation. No full-suite rerun or actual-MRI acceptance claimed.
