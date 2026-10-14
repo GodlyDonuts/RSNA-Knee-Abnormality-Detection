@@ -1,0 +1,22 @@
+import json,hashlib,sys,os
+from pathlib import Path
+import pandas as pd,numpy as np,pyarrow.dataset as ds
+R=Path('/tmp/rsna-source-slot-fit-20261013-v1');A=Path('/tmp/rsna-source-slot-recovery-20261013-v1');sys.path.insert(0,str(A/'code'))
+from rsna.model import auc_metrics
+from rsna.schema import TARGETS
+from scripts.newton.probe_public_input_recipe_inputs import canonical
+assert os.environ.get('SLURM_JOB_GPUS') is None
+own=json.loads((A/'CPU-accepted.json').read_text());ad=json.loads((R/'production-admission.json').read_text());run=json.loads((R/'production/run.json').read_text());result=json.loads((R/'production/result.json').read_text());inv=json.loads((R/'production/invocation.json').read_text());binding=run['binding']
+assert ad['source_git']=='4fedbec3d6457a5b9df8b85dd848f001b0f81c6a' and binding['code_sha256']==own['code_sha256']
+assert (result['status'],result['optimizer_steps'],result['training_studies'],result['outer_studies'])==('completed',2810,2247,1156) and inv['status']=='completed'
+assert canonical(binding)==result['binding_sha256']
+snapshot=json.loads((R/'production/epoch-checkpoints/epoch-010.json').read_text());assert snapshot['checkpoint_sha256']==result['checkpoint_sha256']
+raw=(R/'production/outer_predictions.csv').read_bytes();assert hashlib.sha256(raw).hexdigest()==result['predictions_sha256']
+f=pd.read_csv(R/'production/outer_predictions.csv');assert list(f.columns)==['study_uid','fold','seed',*TARGETS] and len(f)==1156 and not f.study_uid.duplicated().any() and f.fold.eq(0).all() and f.seed.eq(20260922).all()
+uids=sorted(f.study_uid);assert canonical(uids)==binding['outer_uids_sha256']
+original=json.loads(Path('/tmp/rsna-public-input-recipe-admission-20261013-v2/CPU-accepted.json').read_text());path=original['trainer_inputs']['studies']
+labels=ds.dataset(path,format='parquet').to_table(columns=['study_uid','split',*TARGETS,*[t+'__mask' for t in TARGETS]],filter=ds.field('study_uid').isin(uids)).to_pandas().set_index('study_uid').loc[f.study_uid];assert len(labels)==1156 and labels.split.eq('train').all()
+metrics=auc_metrics(labels[list(TARGETS)].to_numpy(),f[list(TARGETS)].to_numpy(),labels[[t+'__mask' for t in TARGETS]].to_numpy())
+assert abs(metrics['macro_auc']-result['metrics']['macro_auc'])<1e-12
+assert all(abs(metrics['per_target_auc'][t]-result['metrics']['per_target_auc'][t])<1e-12 for t in TARGETS)
+print(json.dumps({'status':'source_slot_fixed_final_original_binding_and_independent_masked_AUC_replay_verified','source_git':ad['source_git'],'result':result,'result_sha256':hashlib.sha256((R/'production/result.json').read_bytes()).hexdigest(),'labels_UIDs_pixels_or_weights_exported':False,'Kaggle_score':False,'protected_gold_confirmation_used':False}))
