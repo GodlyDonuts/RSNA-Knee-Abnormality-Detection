@@ -1,0 +1,37 @@
+"""One immutable fixed-final slot fit, conditional on its actual own recovery."""
+from pathlib import Path
+import os,json,hashlib,subprocess,sys,time,shutil
+R=Path('/tmp/rsna-source-slot-fit-20261013-v1');A=Path('/tmp/rsna-source-slot-recovery-20261013-v1')
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def save(p,v):
+ with Path(p).open('x') as f:json.dump(v,f,indent=2);f.flush();os.fsync(f.fileno())
+assert os.uname().nodename=='evc31' and os.environ.get('SLURM_CPUS_PER_TASK')=='2'
+assert R.is_dir() and not(R/'production').exists() and not(R/'production-admission.json').exists()
+controls=json.loads((R/'files.json').read_text())
+for n,h in controls['files'].items():assert sha(R/n)==h
+fund=json.loads((R/'funding.json').read_text());assert shutil.disk_usage(R).free>fund['required_free_bytes']
+# Import precisely the separately admitted numerical tree, never the current checkout.
+sys.path.insert(0,str(A/'code'))
+from scripts.newton.probe_source_slot_recovery import prerequisites,CPU_STATUS
+from scripts.newton.probe_public_input_recipe_recovery import trainer_command,check_placement
+from rsna.competitive.train import TrainConfig
+check_placement();code,hashes,original,values=prerequisites(A)
+actual=json.loads((A/'recovery-accepted.json').read_text());cpu=json.loads((A/'CPU-accepted.json').read_text())
+assert actual['status']=='source_slot_r32_actual_canonical_GPU_recovery_accepted'
+assert actual['source_git']==cpu['source_git']==controls['source_git']
+assert actual['CPU_receipt_sha256']==sha(A/'CPU-accepted.json') and cpu['status']==CPU_STATUS
+assert cpu['code_sha256']==hashes and cpu['config']==values and len(actual['finite_updates'])==4
+assert json.loads((R/'config.json').read_text())==values
+TrainConfig(**values).validate();assert (values['epochs'],values['diagnostic_study_limit'],values['fit_scope'])==(10,None,'outer_fold')
+parent=json.loads(subprocess.check_output(['scontrol','show','job',os.environ['SLURM_JOB_ID'],'--json'],text=True))['jobs'][0]
+end=parent['end_time'];end=end.get('number') if isinstance(end,dict) else end
+remaining=float(end)-time.time();assert remaining>3600
+wall=min(14*3600,remaining-600)
+inputs=original['trainer_inputs'];output=R/'production'
+save(R/'production-admission.json',{'source_git':cpu['source_git'],'recovery_receipt_sha256':sha(A/'recovery-accepted.json'),'own_CPU_sha256':sha(A/'CPU-accepted.json'),'config_sha256':sha(R/'config.json'),'training_studies':2247,'outer_studies':1156,'epochs':10,'updates_per_epoch':281,'checkpoint_cap_bytes':fund['checkpoint_cap_bytes'],'allocated_parent_job':os.environ['SLURM_JOB_ID'],'wall_seconds':wall,'production_fitting':True,'clinical_accuracy_evidence':False})
+env=os.environ.copy();env.update(PYTHONPATH=str(code),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',WORLD_SIZE='1',RANK='0',LOCAL_RANK='0',CUBLAS_WORKSPACE_CONFIG=':4096:8')
+command=trainer_command(code,R/'config.json',original,'public')+['--output',str(output)]
+with (R/'trainer.stdout').open('x') as out,(R/'trainer.stderr').open('x') as err:
+ x=subprocess.run(command,env=env,cwd=code,stdout=out,stderr=err,timeout=wall)
+save(R/'trainer-terminal.json',{'returncode':x.returncode,'source_git':cpu['source_git'],'accuracy_requires_independent_final_replay':True});assert x.returncode==0
+print(json.dumps({'status':'source_slot_fixed10_trainer_terminal_requires_final_verification','returncode':x.returncode}),flush=True)
