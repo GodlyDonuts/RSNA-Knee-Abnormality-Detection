@@ -1,0 +1,128 @@
+"""One original CPU-only candidate build; no datasets, GPU, or publication."""
+
+import hashlib
+import io
+import json
+import shlex
+import subprocess
+import tarfile
+from pathlib import Path
+
+local = Path("artifacts/epoch-weight-average-CPU-20261014-v1")
+remote = "/tmp/rsna-epoch-weight-average-CPU-20261014-v1"
+assert not (local / "intent.json").exists(), "Reconcile the original attempt; never retry"
+assert not subprocess.check_output(["git", "diff", "--", "rsna/competitive/weight_average.py"])
+prior = json.loads(
+    Path("artifacts/release-cache-owning-node-20261014-v2/stage-intent.json").read_text()
+)["funding"]["required_free_bytes"]
+module = Path("rsna/competitive/weight_average.py").read_bytes()
+worker = (local / "worker.py").read_bytes()
+contract = {
+    "module_source_git": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+    "averaging_module_sha256": hashlib.sha256(module).hexdigest(),
+    "worker_sha256": hashlib.sha256(worker).hexdigest(),
+    "original_run_sha256": hashlib.sha256(
+        Path(
+            "initiative/audits/public-label-source-full-fit-preparation-v1/paired-fixed-final/public-run.json"
+        ).read_bytes()
+    ).hexdigest(),
+    "prior_required_free_bytes_retained": prior,
+    "required_free_bytes": prior + 2 * 2**30 + 4 * 2**20,
+    "candidate_control_cap_bytes": 2 * 2**30,
+    "new_stage_control_cap_bytes": 4 * 2**20,
+    "reserve_bytes": 20 * 2**30,
+    "new_shared_bytes_files": 0,
+    "CPUs": 1,
+    "GPUs": 0,
+    "MRI_or_optimizer_or_submission": False,
+}
+archive = io.BytesIO()
+with tarfile.open(fileobj=archive, mode="w:gz") as stream:
+    for name, data in [
+        ("worker.py", worker),
+        ("weight_average.py", module),
+        ("contract.json", json.dumps(contract).encode()),
+    ]:
+        member = tarfile.TarInfo(name)
+        member.size = len(data)
+        member.mode = 0o600
+        stream.addfile(member, io.BytesIO(data))
+assert len(archive.getvalue()) < 4 * 2**20
+program = (
+    "import sys,io,json,tarfile,shutil,hashlib,os,subprocess;from pathlib import Path;r=Path(%r);assert not r.exists();assert shutil.disk_usage('/tmp').free>%d;b=sys.stdin.buffer.read(4*2**20+1);assert len(b)<4*2**20;r.mkdir(mode=0o700);t=tarfile.open(fileobj=io.BytesIO(b),mode='r:gz');t.extractall(r,filter='data');t.close();c=json.loads((r/'contract.json').read_text());assert hashlib.sha256((r/'worker.py').read_bytes()).hexdigest()==c['worker_sha256'];os.umask(0o077);x=subprocess.run([sys.executable,'-B',str(r/'worker.py')]);sys.exit(x.returncode)"
+    % (remote, contract["required_free_bytes"])
+)
+with (local / "intent.json").open("x") as handle:
+    json.dump(
+        {
+            "contract": contract,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "automatic_retry": False,
+        },
+        handle,
+        indent=2,
+    )
+command = [
+    "srun",
+    "--jobid=899766",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:20:00",
+    "env",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python",
+    "-B",
+    "-c",
+    program,
+]
+result = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(command),
+    ],
+    input=archive.getvalue(),
+    capture_output=True,
+    timeout=1230,
+)
+with (local / "result.json").open("x") as handle:
+    json.dump(
+        {
+            "returncode": result.returncode,
+            "stdout": result.stdout.decode(),
+            "stderr": result.stderr.decode(),
+            "automatic_retry": False,
+        },
+        handle,
+        indent=2,
+    )
+assert result.returncode == 0, "Reconcile actual original outputs; never repeat a build"
+receipt = json.loads(result.stdout)
+assert (
+    receipt["status"]
+    == "actual_original_public_run_epoch10_identity_and_epoch6_10_average_CPU_built"
+)
+with (local / "built.json").open("x") as handle:
+    json.dump(receipt, handle, indent=2)
+print(
+    json.dumps(
+        {
+            "status": receipt["status"],
+            "roles": {
+                k: {"sha256": v["candidate_sha256"], "bytes": v["candidate_bytes"]}
+                for k, v in receipt["roles"].items()
+            },
+        }
+    )
+)
