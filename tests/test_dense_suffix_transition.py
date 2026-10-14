@@ -630,3 +630,30 @@ def test_scheduler_facts_parse_and_refuse_ambiguous_allocations(monkeypatch):
     rows = "1|gres/gpu:2|evc[31,40]\n"
     with pytest.raises(ValueError, match="multi-node"):
         tr.scheduler_facts("912345", "evc40")
+
+
+def test_relocation_includes_actual_gpu_recovery_proofs_and_refuses_drift(t):
+    stop_original(t)
+    summary = record(t)
+    recovery_root = Path(t.env.funding["GPU_recovery_output"])
+    assert summary["member_roots"]["recovery"] == str(recovery_root)
+    assert any(m["class"] == "recovery" for m in launch.load(t.dir / "record.json")["manifest"])
+    fund(t)
+    receipt = recovery_root / launch.RECOVERY_RECEIPT
+    receipt.write_text(receipt.read_text() + " ")
+    with pytest.raises(ValueError):
+        admit(t)
+
+
+def test_loading_original_wrapper_does_not_generate_bytecode(tmp_path, monkeypatch):
+    import hashlib
+    import sys
+
+    source = tmp_path / "original.py"
+    source.write_text("value = 42\n")
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+    loaded = tr._load(
+        source, "immutable_original_wrapper", hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    assert loaded.value == 42
+    assert not (tmp_path / "__pycache__").exists()

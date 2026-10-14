@@ -77,7 +77,7 @@ FORBIDDEN_NODE_STATES = {
 MAX_GPU_NODES = 2
 # Node-local private members that a relocation must transport exactly; shared /home inputs
 # (artifact folds/studies/series and the official base) are verified in place, never copied.
-NODE_LOCAL = ("original_root", "admission", "public_cache", "overlay", "runtime")
+NODE_LOCAL = ("original_root", "admission", "public_cache", "overlay", "runtime", "recovery")
 MAX_INVOCATIONS = 12
 FUNDING_KEYS = {
     "funded_by",
@@ -127,6 +127,7 @@ def _load(path: Path, name: str, expected: str):
 
     if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         raise ValueError(f"Pinned original {name} bytes changed")
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -198,6 +199,7 @@ def member_roots(state: Mapping, root: Path, admission: Path, runtime: Path) -> 
         "public_cache": Path(inputs["cache"]),
         "overlay": Path(inputs["overlay"]),
         "runtime": runtime,
+        "recovery": Path(state["funding"]["GPU_recovery_output"]),
         "shared_studies": artifact / "initiative/releases/report-supervision-v1/studies.parquet",
         "shared_folds": artifact / "initiative/experiments/competitive-v1/folds",
         "shared_series": artifact

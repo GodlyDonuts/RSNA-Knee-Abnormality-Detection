@@ -5,7 +5,12 @@ produced. Importing this module touches no CUDA device, environment secret or fi
 Only loader/microbatch/chunk settings may differ from the bound recipe; the global
 effective batch, loss masks/normalization, sampling, optimizer, LR schedule and
 precision stay identical. Batch/chunk changes alter floating-point reduction order
-and adapter dropout draws, so they are never claimed to be bit-identical.
+and adapter/head dropout draws, so they are never claimed to be bit-identical.
+
+Admitted recipes: the plain native-cache canonical classifier, the public ordered-
+triplet input (``public_input``) with or without the source-slot / window-bag
+``classifier_strategy``, and the ``label_source_v1`` fitting supervision (enabled or
+control). Every other recipe component is refused.
 """
 
 from __future__ import annotations
@@ -29,8 +34,13 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader, Dataset
 
 from rsna.competitive.adapters import configure_encoder_training
+from rsna.competitive.checkpoint import file_sha256
+from rsna.competitive.delta_checkpoint import FrozenBaseDelta
 from rsna.competitive.loss import effective_batch_loss, observed_counts
+from rsna.competitive.public_input import verify_public_cohort
 from rsna.competitive.sampling import EffectiveBatchSampler, SeededDataset
+from rsna.competitive.source_slot import training_inputs as source_slot_training_inputs
+from rsna.competitive.supervision import apply_fitting_supervision
 from rsna.competitive.train import (
     TrainConfig,
     _hash,
@@ -40,6 +50,9 @@ from rsna.competitive.train import (
     select_development,
     verified_job_release,
 )
+from rsna.competitive.window_bag import KIND as WINDOW_BAG_KIND
+from rsna.competitive.window_bag import TRAINING_VIEWS as WINDOW_BAG_VIEWS
+from rsna.competitive.window_bag import training_inputs as window_bag_training_inputs
 
 SCHEMA_VERSION = 1
 CANONICAL_EFFECTIVE_STUDIES = 8
@@ -50,12 +63,22 @@ HARD_MAX_WARMUP_UPDATES = 4
 HARD_MAX_WALL_SECONDS = 7200.0
 PHASES = (
     "data_wait",
+    "cpu_transform",
     "host_to_device",
     "forward",
     "encoder_forward",
     "backward",
     "encoder_backward",
     "optimizer",
+)
+
+NATIVE_FORMAT = "native_cache_npz"
+PUBLIC_FORMAT = "public_ordered_triplet_npz"
+MRNET_FIELDS = (
+    "mrnet_checkpoint",
+    "mrnet_checkpoint_sha256",
+    "mrnet_terminal",
+    "mrnet_terminal_sha256",
 )
 
 BIT_IDENTICAL = "bit_identical_expected"
@@ -134,6 +157,18 @@ def numerical_audit(base: TrainConfig, candidate: TrainConfig) -> dict[str, Any]
             )
             + "."
         )
+    strategy = base.classifier_strategy
+    if strategy is not None:
+        reasons.append(
+            "Source window groups derive from (seed, epoch, update) and augmentation from "
+            "per-study CPU generators in the main process, so window/augmentation draws are "
+            "unchanged by microbatch, chunk or loader workers."
+        )
+        if "batch_size" in changed:
+            reasons.append(
+                f"The slot head's dropout ({strategy['dropout']}) draws its device RNG mask "
+                "per microbatch call, so microbatch changes alter head dropout masks."
+            )
     if changed == ["workers"] or not changed:
         expectation = BIT_IDENTICAL
         reasons.append(
@@ -227,11 +262,26 @@ class EncoderTimer:
         self.device = device
         self.forward_pairs: list[tuple[Any, Any]] = []
         self.first_gradient: Any = None
+        self.encoded_images = 0
         self._pending: Any = None
         self.handles = [
             encoder.register_forward_pre_hook(self._before),
             encoder.register_forward_hook(self._after),
         ]
+        # Slot classifiers call ``forward_features`` directly (no module hooks fire); an
+        # instance-level wrapper times it without changing arguments or outputs.
+        self._features_owner: nn.Module | None = None
+        features = getattr(encoder, "forward_features", None)
+        if callable(features) and "forward_features" not in vars(encoder):
+
+            def timed_features(images, *args, **kwargs):
+                self._before(encoder, (images,))
+                output = features(images, *args, **kwargs)
+                self._after(encoder, (images,), output)
+                return output
+
+            object.__setattr__(encoder, "forward_features", timed_features)
+            self._features_owner = encoder
 
     def _mark(self) -> Any:
         if self.device.type == "cuda":
@@ -247,6 +297,8 @@ class EncoderTimer:
         return start.elapsed_time(end) / 1000
 
     def _before(self, module, inputs) -> None:
+        if inputs and isinstance(inputs[0], Tensor):
+            self.encoded_images += len(inputs[0])
         self._pending = self._mark()
 
     def _after(self, module, inputs, output) -> None:
@@ -274,6 +326,9 @@ class EncoderTimer:
     def close(self) -> None:
         for handle in self.handles:
             handle.remove()
+        if self._features_owner is not None:
+            object.__delattr__(self._features_owner, "forward_features")
+            self._features_owner = None
 
 
 def build_profile_state(
@@ -285,7 +340,13 @@ def build_profile_state(
     model_class: Callable,
     load_folds: Callable,
 ) -> dict[str, Any]:
-    """Mirror the trainer's single-rank setup/RNG order for the plain recipe only."""
+    """Mirror ``train._run_locked``'s single-rank setup/RNG order for admitted recipes.
+
+    Admitted: the plain native-cache classifier, the public ordered-triplet input with
+    or without the source-slot/window-bag classifier, and ``label_source_v1`` fitting
+    supervision. The evaluation roster is bound (cohort/overlay checks) but never read.
+    """
+    supervision = config.fitting_supervision
     if (
         any(
             value is not None
@@ -296,15 +357,18 @@ def build_profile_state(
                 config.neighbor_channels,
                 config.patch_summary,
                 config.cache_contrast,
-                config.public_input,
             )
         )
-        or (config.fitting_supervision is not None and config.fitting_supervision.get("enabled"))
+        or (supervision is not None and supervision.get("kind") != "label_source_v1")
+        or (config.classifier_strategy is not None and config.public_input is None)
         or config.pooling != "attention"
         or config.fit_scope != "outer_fold"
-        or getattr(args, "mrnet_checkpoint", None) is not None
+        or any(getattr(args, name, None) is not None for name in MRNET_FIELDS)
     ):
-        raise ValueError("The profiler is bound to the plain canonical outer-fold recipe")
+        raise ValueError(
+            "The profiler is bound to the plain, public-triplet or source-slot outer-fold "
+            "recipes with optional label_source_v1 fitting supervision"
+        )
     torch.set_num_threads(2)
     random.seed(config.seed)
     np.random.seed(config.seed % 2**32)
@@ -331,7 +395,29 @@ def build_profile_state(
     lap("release_admission")
     folds = load_folds(args.folds, manifest, release_binding)
     lap("folds")
-    train, _ = select_development(manifest, folds, config.fold, config.fit_scope)
+    train, outer = select_development(manifest, folds, config.fold, config.fit_scope)
+    supervision_path = getattr(args, "fitting_supervision", None)
+    supervision_receipt = None
+    if supervision is not None or supervision_path is not None:
+        train, supervision_receipt = apply_fitting_supervision(
+            train,
+            outer,
+            supervision_path,
+            supervision,
+            release_sha256=release_binding["manifest_sha256"],
+            folds_sha256=file_sha256(
+                (args.folds if args.folds.is_dir() else args.folds.parent) / "fold.csv"
+            ),
+            fold=config.fold,
+        )
+    public_receipt = (
+        None
+        if config.public_input is None
+        else verify_public_cohort(
+            args.cache, config.public_input, train, outer, release_binding["source_revision"]
+        )
+    )
+    lap("supervision_and_cohort")
     if config.diagnostic_study_limit is not None:
         train = train.head(config.diagnostic_study_limit)
     series_bytes = args.series.read_bytes()
@@ -339,25 +425,68 @@ def build_profile_state(
         raise ValueError("Series sampling table differs from the accepted data release")
     series = pd.read_csv(io.BytesIO(series_bytes))
     lap("series")
-    data_config = {
+    data_config: dict[str, Any] = {
         name: getattr(config, name)
         for name in ("slices", "side", "max_series", "slice_sampling", "series_sampling")
     }
+    if config.public_input is not None:
+        # As in the trainer, the bound policy owns its source; native caches never substitute.
+        from rsna.competitive.public_input import PublicTripletStudyDataset
+
+        dataset_class = PublicTripletStudyDataset
+        data_config.update(
+            public_input=config.public_input, source_revision=release_binding["source_revision"]
+        )
+    if supervision is not None:
+        data_config["soft_targets"] = True
     training_data = dataset_class(train, series, args.cache, augment=config.augment, **data_config)
     if training_data.source_revision != release_binding["source_revision"]:
         raise ValueError("Image cache source differs from the accepted release")
+    if public_receipt is not None and training_data.index_sha256 != public_receipt["index_sha256"]:
+        raise ValueError("Public triplet cache index changed during dataset construction")
     lap("dataset_initialization")
-    encoder, embedding_dim, encoder_provenance = create_encoder(config.encoder)
+    channels = 3 if config.public_input is not None else 1
+    encoder, embedding_dim, encoder_provenance = create_encoder(
+        config.encoder,
+        **(
+            {"input_channels": 3, "input_contract": "public_ordered_triplet"}
+            if config.public_input is not None
+            else {}
+        ),
+    )
     lap("encoder_initialization")
     configure_encoder_training(encoder, config.freeze_encoder)
-    model = model_class(
-        encoder,
-        embedding_dim,
-        pooling=config.pooling,
-        hidden_dim=config.hidden_dim,
-        encode_chunk_size=config.encode_chunk_size,
-        slice_context=config.slice_context,
-    ).to(device)
+    model: nn.Module
+    if config.classifier_strategy is not None:
+        from rsna.competitive.source_slot import SourceSlotStudyNet
+        from rsna.competitive.window_bag import WindowBagSlotStudyNet
+
+        model = (
+            WindowBagSlotStudyNet
+            if config.classifier_strategy["kind"] == WINDOW_BAG_KIND
+            else SourceSlotStudyNet
+        )(
+            encoder,
+            embedding_dim,
+            config.classifier_strategy,
+            encode_chunk_size=config.encode_chunk_size,
+            input_channels=channels,
+        ).to(device)
+    else:
+        model = model_class(
+            encoder,
+            embedding_dim,
+            pooling=config.pooling,
+            hidden_dim=config.hidden_dim,
+            encode_chunk_size=config.encode_chunk_size,
+            slice_context=config.slice_context,
+            **({"input_channels": channels} if channels == 3 else {}),
+        ).to(device)
+    delta_guard = (
+        FrozenBaseDelta(model, encoder_provenance)
+        if config.checkpoint_format == "frozen_base_delta"
+        else None
+    )
     encoder_ids = {id(parameter) for parameter in encoder.parameters()}
     groups = [
         {
@@ -399,6 +528,9 @@ def build_profile_state(
         total_updates=epoch_updates * config.epochs,
         release_binding=release_binding,
         startup_seconds=startup,
+        delta_guard=delta_guard,
+        supervision_receipt=supervision_receipt,
+        public_receipt=public_receipt,
     )
 
 
@@ -419,8 +551,24 @@ def profile_updates(
     collate: Callable,
     clock: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
-    """Run the trainer's exact first-epoch update arithmetic with phase timing."""
+    """Run the trainer's exact first-epoch update arithmetic with phase timing.
+
+    Slot-classifier window selection/augmentation runs on CPU (``cpu_transform``) before
+    the copy (``host_to_device``); the trainer runs the same CPU code and copies inside
+    autocast, which affects neither CPU augmentation nor copies, so values are equal.
+    """
     model, optimizer, scaler = state["model"], state["optimizer"], state["scaler"]
+    strategy = config.classifier_strategy
+    classifier_inputs = (
+        None
+        if strategy is None
+        else (
+            window_bag_training_inputs
+            if strategy["kind"] == WINDOW_BAG_KIND
+            else source_slot_training_inputs
+        )
+    )
+    cpu = torch.device("cpu")
     encoder = state["encoder"]
     training_data = state["training_data"]
     sampler = EffectiveBatchSampler(
@@ -454,6 +602,7 @@ def profile_updates(
                 stop_reason = "wall_cap"
                 break
             phases = PhaseClock(device)
+            timer.encoded_images = 0
             if device.type == "cuda":
                 torch.cuda.reset_peak_memory_stats(device)
             update_started = time.perf_counter()
@@ -469,10 +618,37 @@ def profile_updates(
             loss_total = torch.zeros((), device=device)
             if counts.any():
                 for batch, mask in zip(batches, masks):
-                    inputs = phases.measure(
-                        "host_to_device",
-                        lambda: (_model_inputs(batch, device), batch["labels"].to(device)),
-                    )
+                    if classifier_inputs is None:
+                        inputs = phases.measure(
+                            "host_to_device",
+                            lambda: (_model_inputs(batch, device), batch["labels"].to(device)),
+                        )
+                    else:
+                        assert strategy is not None
+
+                        def select_inputs():
+                            # Match the trainer's autocast context. In CPU diagnostics,
+                            # affine_grid is autocast-sensitive; on CUDA its CPU work
+                            # remains unaffected, exactly as in the trainer.
+                            with torch.autocast(
+                                device.type,
+                                dtype=(
+                                    torch.float16 if config.precision == "fp16" else torch.bfloat16
+                                ),
+                                enabled=config.precision != "fp32",
+                            ):
+                                return classifier_inputs(
+                                    batch, cpu, strategy, seed=config.seed, epoch=0, update=update
+                                )
+
+                        selected = phases.measure("cpu_transform", select_inputs)
+                        inputs = phases.measure(
+                            "host_to_device",
+                            lambda: (
+                                tuple(t.to(device, non_blocking=True) for t in selected),
+                                batch["labels"].to(device),
+                            ),
+                        )
 
                     def forward():
                         with torch.autocast(
@@ -530,9 +706,8 @@ def profile_updates(
                         sum(float(b["profile_item_seconds"].sum()) for b in batches)
                     ),
                     "studies": int(valid.sum()),
-                    "views": int(
-                        sum(int(b["slice_mask"][b["sample_valid"]].sum()) for b in batches)
-                    ),
+                    "views": sum(encoded_views(b, strategy) for b in batches),
+                    "encoder_images": timer.encoded_images,
                     "microbatch_studies": [len(b["study_uid"]) for b in batches],
                     "study_uids": [uid for b in batches for uid in b["study_uid"]],
                     "observed_cells": float(counts.sum()),
@@ -546,6 +721,15 @@ def profile_updates(
         timer.close()
         iterator = None
     return {"records": records, "stop_reason": stop_reason, "optimizer_steps": step}
+
+
+def encoded_views(batch: dict, strategy: dict | None) -> int:
+    """Encoder images one microbatch contributes: valid slices, or acquired slots x windows."""
+    valid = batch["sample_valid"]
+    if strategy is None:
+        return int(batch["slice_mask"][valid].sum())
+    windows = len(WINDOW_BAG_VIEWS) if strategy["kind"] == WINDOW_BAG_KIND else 1
+    return int(batch["series_mask"][valid].sum()) * windows
 
 
 def summarize(records: list[dict]) -> dict[str, Any]:
@@ -574,8 +758,97 @@ def summarize(records: list[dict]) -> dict[str, Any]:
     }
 
 
-def decompose_inputs(dataset: Any, indices: list[int], evict_page_cache: bool) -> dict[str, float]:
-    """Separate cache read, checksum, decompression and CPU transform for real studies."""
+def input_format(dataset: Any) -> str | None:
+    """The cache format a dataset reads; ``None`` for unsupported (e.g. synthetic) data."""
+    from rsna.competitive.data import CompetitiveStudyDataset
+    from rsna.competitive.public_input import PublicTripletStudyDataset
+
+    if isinstance(dataset, PublicTripletStudyDataset):
+        return PUBLIC_FORMAT
+    if isinstance(dataset, CompetitiveStudyDataset):
+        return NATIVE_FORMAT
+    return None
+
+
+def expected_input_format(config: TrainConfig) -> str:
+    return PUBLIC_FORMAT if config.public_input is not None else NATIVE_FORMAT
+
+
+def _evict(path: Path, evict_page_cache: bool) -> None:
+    if evict_page_cache and hasattr(os, "posix_fadvise"):
+        with path.open("rb") as handle:
+            os.posix_fadvise(handle.fileno(), 0, 0, getattr(os, "POSIX_FADV_DONTNEED"))
+
+
+def decompose_inputs(
+    dataset: Any, indices: list[int], evict_page_cache: bool, expected_format: str
+) -> dict[str, Any]:
+    """Separate read, checksum, decompression and CPU transform for real studies.
+
+    Native-cache and public-triplet members are decomposed by their own readers; a
+    dataset whose format differs from the bound recipe's is refused.
+    """
+    actual = input_format(dataset)
+    if actual is None or actual != expected_format:
+        raise ValueError("Dataset input format differs from the bound recipe; refused")
+    timings = (
+        _decompose_public(dataset, indices, evict_page_cache)
+        if actual == PUBLIC_FORMAT
+        else _decompose_native(dataset, indices, evict_page_cache)
+    )
+    return {"format": actual, "studies": len(indices), **timings}
+
+
+def _decompose_public(dataset: Any, indices: list[int], evict_page_cache: bool) -> dict[str, Any]:
+    """Public NPZ member read, SHA-256, decompression and source ten-window construction.
+
+    Training window selection/augmentation is timed per update as ``cpu_transform``.
+    """
+    from rsna.competitive.public_input import MEMBER_ARRAYS
+    from rsna.schema import TARGETS
+
+    totals = dict.fromkeys(("read", "checksum", "decompress", "transform"), 0.0)
+    total_bytes = 0
+    empty = torch.zeros(len(TARGETS), dtype=torch.float32)
+    for index in indices:
+        uid = dataset.studies.iloc[index].study_uid
+        member = dataset.index["members"][uid]
+        path = dataset.root / member["path"]
+        _evict(path, evict_page_cache)
+        started = time.perf_counter()
+        payload = path.read_bytes()
+        totals["read"] += time.perf_counter() - started
+        total_bytes += len(payload)
+        started = time.perf_counter()
+        if (
+            len(payload) != member["bytes"]
+            or hashlib.sha256(payload).hexdigest() != member["sha256"]
+        ):
+            raise ValueError("Public triplet member checksum/size mismatch during decomposition")
+        totals["checksum"] += time.perf_counter() - started
+        started = time.perf_counter()
+        with np.load(io.BytesIO(payload), allow_pickle=False) as archive:
+            if set(archive.files) != set(MEMBER_ARRAYS):
+                raise ValueError("Public triplet member arrays differ from the source contract")
+            arrays = {name: archive[name] for name in MEMBER_ARRAYS}
+        totals["decompress"] += time.perf_counter() - started
+        started = time.perf_counter()
+        tensors = {name: torch.from_numpy(value) for name, value in arrays.items()}
+        dataset.adapter.study_inputs(
+            tensors["images"],
+            tensors["slot_mask"],
+            tensors["features"],
+            tensors["positions"],
+            empty,
+            empty,
+            study_uid=uid,
+        )
+        totals["transform"] += time.perf_counter() - started
+    return {**{f"{name}_seconds": value for name, value in totals.items()}, "bytes": total_bytes}
+
+
+def _decompose_native(dataset: Any, indices: list[int], evict_page_cache: bool) -> dict[str, Any]:
+    """Native cache volume read, checksum, decompression and slice/neighbor sampling."""
     from rsna.competitive.data import _indices, _positions
     from rsna.competitive.neighbor_input import sample_neighbor_images
     from rsna.data import select_series
@@ -588,9 +861,7 @@ def decompose_inputs(dataset: Any, indices: list[int], evict_page_cache: bool) -
             series_uid = entry["SeriesInstanceUID"]
             path = dataset.cache / dataset.raw_split / uid / f"{series_uid}.npz"
             meta = dataset._metadata[(uid, series_uid)][1]
-            if evict_page_cache and hasattr(os, "posix_fadvise"):
-                with path.open("rb") as handle:
-                    os.posix_fadvise(handle.fileno(), 0, 0, getattr(os, "POSIX_FADV_DONTNEED"))
+            _evict(path, evict_page_cache)
             started = time.perf_counter()
             payload = path.read_bytes()
             totals["read"] += time.perf_counter() - started
