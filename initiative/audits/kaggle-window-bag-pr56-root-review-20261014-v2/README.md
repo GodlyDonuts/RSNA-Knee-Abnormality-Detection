@@ -14,3 +14,10 @@ T4 optimizer acceptance or throughput exists yet. Root formatting applied.
 Full QA and notebook preparation remain pending. The optional parallel two-T4
 mode is requested separately; sequential engineering is preserved as a fallback.
 No notebook/Dataset/GPU/competition mutation occurred from integration.
+
+Actual oneCPU owning-node build prepared the489428-byte private engineering
+source41fe73d3, numerical source971d7dac/package9993c89b, directly from original
+private input/overlay bytes on Newton. Nothing private was copied to Mac/Git/HF.
+No notebook push or GPU dispatch occurred. Immutable bound wrapper/plan hashes
+are in prepared-source.json. Do not repeat this build. Full QA98295 is running;
+parallel changes must not overwrite this frozen sequential candidate during QA.
