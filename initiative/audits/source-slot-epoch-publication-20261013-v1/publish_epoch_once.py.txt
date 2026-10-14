@@ -1,0 +1,23 @@
+"""One completed source-slot epoch; token enters the original CPU step through stdin."""
+from pathlib import Path
+import subprocess,json,shlex,os,re,sys
+from dotenv import dotenv_values
+from huggingface_hub import HfApi
+L=Path('artifacts/source-slot-publication-20261013-v1');e=int(sys.argv[1]);assert e in range(1,11)
+J=L/'publication'/f'epoch-{e:03d}';assert not J.exists(),'Existing dispatch: read-only reconciliation required'
+R='/tmp/rsna-source-slot-fit-20261013-v1';py='/tmp/rsna-environment-870947-4lemnh2d/environment/bin/python';ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+staged=json.loads((L/'staged.json').read_text())['files']
+pre="from pathlib import Path;import json,hashlib;r=Path(%r);e=%d;expected=json.loads(%r);assert not(r/'epoch-publication'/f'epoch-{e:03d}').exists();assert all(hashlib.sha256((r/n).read_bytes()).hexdigest()==h for n,h in expected.items());a=json.loads((r/'production-admission.json').read_text());assert a['source_git']=='4fedbec3d6457a5b9df8b85dd848f001b0f81c6a';p=r/'production'/'epoch-checkpoints'/f'epoch-{e:03d}.json';m=json.loads(p.read_text());c=p.with_suffix('.pt');assert m['epoch']==e and m['optimizer_steps']==281*e and m['diagnostic_only'] is False and c.stat().st_size==m['checkpoint_bytes'];print(json.dumps({'epoch':e,'checkpoint_sha256':m['checkpoint_sha256'],'binding_sha256':m['binding_sha256'],'publisher_sha256':expected['publish.py']}))"%(R,e,json.dumps(staged))
+a=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=128M','--time=00:02:00','/usr/bin/python3.12','-B','-c',pre]
+x=subprocess.run(ssh+[shlex.join(a)],capture_output=True,text=True,timeout=150);assert x.returncode==0,'Incomplete/already attempted: no new intent'
+snapshot=json.loads(x.stdout);env=Path('.env');assert env.stat().st_mode&0o077==0;token=dotenv_values(env)['HF_TOKEN'];api=HfApi(token=token);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private
+prefix='experiments/dinov3-v1/training-epochs/source-slot-publictriplet-fold0-4fedbec3-fixed10-seed20260922'+f'/epoch-{e:03d}'
+names=['checkpoint.pt','snapshot.json','source-and-input-provenance.json','DINOv3-LICENSE.md','manifest.json'];assert not api.get_paths_info('GodlyDonuts/RSNA-Data',[prefix,*[prefix+'/'+n for n in names]],repo_type='dataset',revision=info.sha)
+J.mkdir(mode=0o700,parents=True)
+with (J/'dispatch-intent.json').open('x') as f:json.dump({'snapshot':snapshot,'prefix':prefix,'CPU':1,'GPU':0,'automatic_retry':False,'credential_transport':'ignored0600.env_RAM_SSH_Slurm_stdin'},f,indent=2);f.flush();os.fsync(f.fileno())
+a=['srun','--jobid=899766','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=01:00:00','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','HF_HUB_DISABLE_PROGRESS_BARS=1','HF_HOME='+R+'/publication-hf-cache',py,'-B',R+'/publish.py',str(e)]
+x=subprocess.run(ssh+[shlex.join(a)],input=json.dumps({'token':token}),capture_output=True,text=True,timeout=3650)
+clean=lambda s:re.sub(r'hf_[A-Za-z0-9]{10,}','[redacted]',s)
+(J/'dispatch-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':clean(x.stdout),'stderr':clean(x.stderr),'automatic_retry':False},indent=2));assert x.returncode==0,'Uncertain publication: reconcile read-only, never retry'
+r=json.loads(x.stdout);assert r['status']=='private_source_slot_epoch_full_download_size_SHA_verified' and r['file_count']==5 and r['checkpoint_sha256']==snapshot['checkpoint_sha256']
+(J/'verified.json').write_text(json.dumps(r,indent=2));print(json.dumps(r))
