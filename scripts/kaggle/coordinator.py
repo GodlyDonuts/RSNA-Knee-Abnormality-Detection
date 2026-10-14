@@ -832,6 +832,7 @@ DRAFT_ATTESTATION_KEYS = {
 }
 DRAFT_ATTESTATION_MAX_AGE_SECONDS = 900
 PLACEHOLDER = {"title": "[Private Notebook]", "lastRunTime": "2010-04-01T00:00:00Z"}
+DRAFT_CLASSIFICATIONS = {"private_draft_owner_attested", "private_draft_accessible_owner_attested"}
 
 
 def draft_attestation_valid(attestation, account, slug, now):
@@ -860,10 +861,40 @@ def draft_attestation_valid(attestation, account, slug, now):
     )
 
 
-def observe_uncertain_push(workflow, remote, slug, attestation=None, now=None):
+DRAFT_EXPORT_MARKER = "# %% [code]\n"
+
+
+def accessible_draft_exact(workflow, found, operation, slug):
+    """Exact private offline T4 draft metadata and source, minus only one generated marker."""
+    import hashlib
+
+    meta = found.get("metadata", {})
+    source = found.get("blob", {}).get("source")
+    if not isinstance(source, str):
+        return False, None
+    marker = source.startswith(DRAFT_EXPORT_MARKER)
+    body = source[len(DRAFT_EXPORT_MARKER) :] if marker else source
+    runtime = operation.get("runtime_image")
+    exact = (
+        operation.get("kernel_slug") == slug
+        and meta.get("ref") == slug
+        and meta.get("isPrivate") is True
+        and meta.get("enableInternet") is False
+        and meta.get("machineShape") == "NvidiaTeslaT4"
+        and meta.get("competitionDataSources") == [workflow.COMPETITION]
+        and sorted(meta.get("datasetDataSources") or [])
+        == sorted(workflow.dataset_sources(operation))
+        and (runtime is None or meta.get("dockerImage") == runtime)
+        and hashlib.sha256(body.encode()).hexdigest() == operation["kernel_source_sha256"]
+    )
+    return exact, marker
+
+
+def observe_uncertain_push(workflow, remote, slug, attestation=None, now=None, operation=None):
     """Read-only. Classify committed version / owner-attested draft / unresolved.
 
-    The private placeholder alone proves neither absence nor a draft.
+    The private placeholder alone proves neither absence nor a draft. An accessible
+    kernel without a version is a draft only with exact metadata/source and owner evidence.
     """
     from datetime import datetime, timezone
 
@@ -877,8 +908,33 @@ def observe_uncertain_push(workflow, remote, slug, attestation=None, now=None):
         get_kernel = str(error)
     else:
         version = found.get("metadata", {}).get("currentVersionNumber")
-        kind = "committed_version" if type(version) is int and version >= 1 else "unresolved"
-        return {"classification": kind, "get_kernel": "accessible", "current_version": version}
+        if type(version) is int and version >= 1:
+            return {
+                "classification": "committed_version",
+                "get_kernel": "accessible",
+                "current_version": version,
+            }
+        accessible = {
+            "classification": "unresolved",
+            "get_kernel": "accessible",
+            "current_version": version,
+            "checked_at": now.isoformat(),
+        }
+        if version is not None or operation is None:
+            return accessible
+        exact, marker = accessible_draft_exact(workflow, found, operation, slug)
+        accessible.update(
+            draft_metadata_and_source_exact=exact,
+            draft_export_marker_removed=marker,
+            owner_attestation_valid=draft_attestation_valid(
+                attestation, remote.username, slug, now
+            ),
+        )
+        if attestation is not None:
+            accessible["owner_attestation_sha256"] = workflow.object_hash(attestation)
+        if exact and accessible["owner_attestation_valid"]:
+            accessible["classification"] = "private_draft_accessible_owner_attested"
+        return accessible
     listing = remote.call(
         "kernels.KernelsApiService",
         "ListKernels",
@@ -947,8 +1003,10 @@ def commit_private_draft_once(workflow, remote, db, operation_path, expected_sha
             != operation["kernel_source_sha256"]
         ):
             raise ValueError("First-commit request differs from the exact prepared source")
-        observation = observe_uncertain_push(workflow, remote, slug, attestation)
-        if observation["classification"] != "private_draft_owner_attested":
+        observation = observe_uncertain_push(
+            workflow, remote, slug, attestation, operation=operation
+        )
+        if observation["classification"] not in DRAFT_CLASSIFICATIONS:
             raise ValueError("No fresh exact owner-attested unversioned draft")
         if workflow.verify_remote_dataset(remote, operation) != entry["dataset"]:
             raise ValueError("Verified Dataset identity drifted")
