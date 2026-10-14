@@ -316,3 +316,36 @@ def test_draft_states_are_reconcilable_read_only(case):
         )
         assert workflow.reconcile_push(remote, db, SHA, 1)["state"] == "pushed"
         assert not remote.saves
+
+
+def test_accessible_unversioned_draft_requires_exact_source_and_fresh_ui():
+    found = {
+        "metadata": {
+            "id": 123,
+            "ref": SLUG,
+            "isPrivate": True,
+            "enableInternet": False,
+            "machineShape": "NvidiaTeslaT4",
+        },
+        "blob": {"source": "# %% [code]\n" + SOURCE},
+    }
+    expected = hashlib.sha256(SOURCE.encode()).hexdigest()
+
+    def observe(remote, value):
+        return c.observe_uncertain_push(
+            workflow, remote, SLUG, value, expected_source_sha256=expected
+        )
+
+    assert (
+        observe(Remote(accessible=found), attestation())["classification"]
+        == "private_draft_owner_attested"
+    )
+    assert observe(Remote(accessible=found), None)["classification"] == "unresolved"
+    changed = copy.deepcopy(found)
+    changed["blob"]["source"] += "\nprint('changed')"
+    assert observe(Remote(accessible=changed), attestation())["classification"] == "unresolved"
+    changed = copy.deepcopy(found)
+    changed["metadata"]["currentVersionNumber"] = 1
+    assert (
+        observe(Remote(accessible=changed), attestation())["classification"] == "committed_version"
+    )
