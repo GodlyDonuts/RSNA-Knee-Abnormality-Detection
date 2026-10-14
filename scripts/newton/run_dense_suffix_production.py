@@ -40,7 +40,10 @@ PINNED = {
     "dense": {"method": "dense_suffix_delta_v1", "trainable_parameters": 150_994_944, "lr": 1e-5},
 }
 CPU_STATUS = "dense_suffix_capacity_owning_node_inputs_and_matched_initialization_CPU_accepted"
-RECOVERY_STATUS = "actual_matched_dense_suffix_full_stop1_resume_recovery_accepted"
+RECOVERY_STATUS = "actual_matched_dense_suffix_additional_deadline_recovery_accepted"
+RECOVERY_RECEIPT = "accepted-after-deadline.json"
+RECOVERY_VERIFIER = "verifier.py"
+DENSE_RETAINED_BOUNDARY = "checkpoint-before-deadline-resume-step002.pt"
 ADMISSION_STATUS = "actual_dense_suffix_fixed10_production_admitted"
 TERMINAL_STATUS = "matched_dense_suffix_fixed10_both_arms_completed_requires_fixed_final_replay"
 # Actual CPU899766 admission (initiative/audits/dense-suffix-admission-root-review-20261014-v1).
@@ -65,6 +68,31 @@ PINS = {
         "config_sha256": "135ecd23e34a70b6fbed8b083fdecb319b7e3a54e3d849258bbe4ddcf1783bb5",
     },
     "checkpoint_upper_bound_bytes": {"suffix_r32": 2_008_023_040, "dense": 21_005_074_432},
+    # Actual root GPU recovery: the original wrapper timed out in dense resume (its
+    # accepted.json never existed); one continuation from the retained step-2 boundary
+    # was independently CPU-verified (initiative/audits/dense-suffix-deadline-
+    # continuation-20261014-v1). These limits are bound exactly, never relaxed.
+    "recovery_output": "/tmp/rsna-dense-suffix-GPU-recovery-20261014-v1",
+    "recovery_receipt_sha256": "cb8602821133e77e8c904c6b4c05a802600904e378ba58828d6c4e32edfb3de4",
+    "recovery_verifier_sha256": "774a7b3f167ad3e8c6d37acd51413c9e2cdbed452fdb10223ec1d82e01b4329d",
+    "recovery_limits": {
+        "additional_interruption": {
+            "original_timeout_preserved": True,
+            "dense_resume_saved_boundary": [1, 0, 2],
+            "dense_history_sources": [
+                "stop.stdout step1",
+                "resume.stdout committed step2",
+                "replay/invocation.json continued steps3/4",
+            ],
+            "unpromoted_step4_partial_preserved": True,
+        },
+        "suffix_r32_stop1_partial_checked_by_original_GPU_wrapper_before_dense": True,
+        "suffix_r32_stop1_partial_independently_retained_for_CPU_recheck": False,
+        "complete_model_base_AdamW_LR_counters_all_RNG_scaler_and_CSV_equal": True,
+        "diagnostic_only": True,
+        "clinical_accuracy_evidence": False,
+        "competition_submission": False,
+    },
 }
 EPOCHS, UPDATES, FITTING, OUTER, SEED = 10, 281, 2247, 1156, 20260922
 GIB = 2**30
@@ -84,7 +112,11 @@ FUNDING_KEYS = {
     "CPUs",
     "source_git",
     "CPU_receipt_sha256",
+    "GPU_recovery_output",
+    "GPU_recovery_receipt_path",
     "GPU_recovery_receipt_sha256",
+    "GPU_recovery_verifier_path",
+    "GPU_recovery_verifier_sha256",
     "launcher_sha256",
     "publisher_sha256",
     "config_sha256",
@@ -228,22 +260,37 @@ def admitted_cpu(admission: Path, pins: Mapping) -> dict:
     return cpu
 
 
-def admitted_recovery(admission: Path, cpu: Mapping, funding: Mapping, pins: Mapping) -> dict:
-    """The ACTUAL original GPU recovery: receipt plus its bound on-disk runtime evidence."""
-    output = Path(cpu["GPU_wrapper_arguments"].get("output", admission / "recovery"))
-    path = output / "accepted.json"
-    if not path.exists():
-        raise ValueError("Actual GPU recovery acceptance is absent; production refused")
-    if sha(regular(path)) != funding["GPU_recovery_receipt_sha256"]:
+def admitted_recovery(cpu: Mapping, funding: Mapping, pins: Mapping) -> dict:
+    """The ACTUAL after-deadline GPU recovery: exact receipt, verifier and runtime evidence."""
+    output = Path(pins["recovery_output"])
+    receipt_path = output / RECOVERY_RECEIPT
+    if (
+        funding["GPU_recovery_output"] != str(output)
+        or funding["GPU_recovery_receipt_path"] != str(receipt_path)
+        or funding["GPU_recovery_receipt_sha256"] != pins["recovery_receipt_sha256"]
+        or funding["GPU_recovery_verifier_sha256"] != pins["recovery_verifier_sha256"]
+    ):
         raise ValueError("Root has not admitted this exact actual GPU recovery receipt")
-    receipt = load(path)
+    if not receipt_path.exists():
+        raise ValueError("Actual GPU recovery acceptance is absent; production refused")
+    if (output / "accepted.json").exists():
+        raise ValueError("Recorded original wrapper timeout contradicted; reconcile read-only")
+    if sha(regular(receipt_path)) != pins["recovery_receipt_sha256"]:
+        raise ValueError("Actual GPU recovery receipt bytes changed")
+    if (
+        sha(regular(Path(funding["GPU_recovery_verifier_path"])))
+        != (pins["recovery_verifier_sha256"])
+    ):
+        raise ValueError("Actual independent recovery verifier source changed")
+    receipt = load(receipt_path)
     if (
         receipt.get("status") != RECOVERY_STATUS
+        or receipt.get("CPU_receipt_sha256") != pins["CPU_receipt_sha256"]
         or receipt.get("device") != "cuda"
         or receipt.get("GPUs_used_concurrently") != 1
         or receipt.get("source_manifest_sha256") != pins["recovery_source_manifest_sha256"]
         or receipt.get("recipe_sha256") != pins["recipe_sha256"]
-        or receipt.get("competition_submission") is not False
+        or any(receipt.get(k) != v for k, v in pins["recovery_limits"].items())
         or set(receipt.get("arms", {})) != set(ARMS)
     ):
         raise ValueError("Exact actual one-GPU matched recovery acceptance required")
@@ -254,7 +301,7 @@ def admitted_recovery(admission: Path, cpu: Mapping, funding: Mapping, pins: Map
             row.get("exact_complete_state_history_and_prediction_recovery") is not True
             or row.get("trainable_encoder_parameters") != PINNED[arm]["trainable_parameters"]
             or not isinstance(updates, list)
-            or len(updates) < 4
+            or [u.get("optimizer_steps") for u in updates] != [1, 2, 3, 4]
             or not all(math.isfinite(u.get("loss", math.nan)) for u in updates)
             or sha(regular(full / "checkpoint.pt")) != row.get("checkpoint_sha256")
             or sha(regular(full / "outer_predictions.csv")) != row.get("prediction_sha256")
@@ -263,6 +310,9 @@ def admitted_recovery(admission: Path, cpu: Mapping, funding: Mapping, pins: Map
         binding = load(full / "run.json")["binding"]
         if binding.get("device_type") != "cuda" or binding.get("code_sha256") != cpu["code_sha256"]:
             raise ValueError("Recovery ran a different numerical source or device")
+    intent = load(output / "deadline-continuation-intent.json")
+    if sha(regular(output / "dense" / DENSE_RETAINED_BOUNDARY)) != intent.get("checkpoint_sha256"):
+        raise ValueError("Retained dense step-2 recovery boundary changed")
     return receipt
 
 
@@ -330,7 +380,7 @@ def admitted(root: Path = ROOT, admission: Path = ADMISSION, pins: Mapping = PIN
         != cpu["folds_sha256"]
     ):
         raise ValueError("Admitted fitting overlay or fold assignment changed")
-    recovery = admitted_recovery(admission, cpu, funding, pins)
+    recovery = admitted_recovery(cpu, funding, pins)
     configs = {}
     for arm, name in ARMS.items():
         recipe = json.loads((source / RECIPE / name).read_text())

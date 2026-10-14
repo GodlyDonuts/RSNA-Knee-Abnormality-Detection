@@ -157,9 +157,21 @@ hash). No best-epoch selection, protected gold, confirmation or external initial
 Every launch rechecks, before any output:
 - the actual CPU899766 receipt `158c242f…` and its pinned source manifest, wrapper,
   recipes, official base spec, overlay and fold file;
-- the ACTUAL original GPU recovery `recovery/accepted.json`, whose SHA root binds in
-  `production-funding.json`, plus its on-disk per-arm checkpoint/prediction hashes and
-  CUDA/source binding (a prepared or invented receipt is refused);
+- the ACTUAL after-deadline GPU recovery. The original wrapper timed out during dense
+  resume, so no `accepted.json` exists, and its presence is refused. One continuation from
+  the retained step-2 boundary was independently CPU-verified
+  (`initiative/audits/dense-suffix-deadline-continuation-20261014-v1`). Root must bind,
+  explicitly in `production-funding.json`, the output
+  `/tmp/rsna-dense-suffix-GPU-recovery-20261014-v1`, its `accepted-after-deadline.json`
+  (SHA `cb860282…`), and the verifier path and source SHA `774a7b3f…`. The launcher
+  also requires:
+  - the exact limits: original timeout preserved, dense saved boundary `[1,0,2]`, the
+    unpromoted step-4 partial preserved, and the rank32 stop1 partial not independently
+    retained for CPU recheck;
+  - per-arm checkpoint/prediction hashes, CUDA/source binding and the retained dense
+    step-2 checkpoint.
+
+  A prepared, invented or re-signed receipt is refused;
 - root's explicit node-local checkpoint/runtime/publication funding (the 12 GiB
   engineering envelope is refused), parent job, CPUs, assigned GPU, config SHAs,
   folds/release/supervision/overlay SHAs and the staged launcher/publisher bytes.

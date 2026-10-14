@@ -16,6 +16,7 @@ from scripts.newton import run_dense_suffix_production as launch
 
 REPO = Path(__file__).resolve().parents[1]
 AUDIT = REPO / "initiative/audits/dense-suffix-admission-root-review-20261014-v1"
+DEADLINE = REPO / "initiative/audits/dense-suffix-deadline-continuation-20261014-v1"
 SUPERVISION = {"folds_sha256": "f", "overlay_sha256": "o", "fitting_uid_sha256": "u"}
 COHORT = {"index_sha256": "i" * 64, "members": 3403}
 
@@ -86,19 +87,29 @@ def env(tmp_path, monkeypatch):
             "artifact-root": str(art),
             "cache": str(tmp_path / "cache"),
             "overlay": str(overlay),
-            "output": str(adm / "recovery"),
         },
     }
     cpu_sha = write(adm / "CPU-accepted.json", cpu)
+    gpu = tmp_path / "gpu-recovery"
+    verifier = tmp_path / "verifier.py"
+    verifier.write_text("# independent CPU verifier\n")
     pins = dict(
         launch.PINS,
         CPU_receipt_sha256=cpu_sha,
         recovery_source_manifest_sha256=manifest_sha,
         encoder_spec_path_sha256=spec_sha,
+        recovery_output=str(gpu),
+        recovery_verifier_sha256=launch.sha(verifier),
+    )
+    (gpu / "dense").mkdir(parents=True)
+    (gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY).write_bytes(b"step2")
+    write(
+        gpu / "deadline-continuation-intent.json",
+        {"checkpoint_sha256": launch.sha(gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY)},
     )
     arms = {}
     for arm, p in launch.PINNED.items():
-        full = adm / "recovery" / arm / "full"
+        full = gpu / arm / "full"
         full.mkdir(parents=True)
         (full / "checkpoint.pt").write_bytes(arm.encode())
         (full / "outer_predictions.csv").write_text("study_uid\n")
@@ -112,15 +123,16 @@ def env(tmp_path, monkeypatch):
         }
     recovery = {
         "status": launch.RECOVERY_STATUS,
+        "CPU_receipt_sha256": cpu_sha,
         "device": "cuda",
         "GPUs_used_concurrently": 1,
         "source_manifest_sha256": manifest_sha,
         "recipe_sha256": launch.PINS["recipe_sha256"],
-        "competition_submission": False,
-        "diagnostic_only": True,
         "arms": arms,
+        **copy.deepcopy(launch.PINS["recovery_limits"]),
     }
-    recovery_sha = write(adm / "recovery" / "accepted.json", recovery)
+    recovery_sha = write(gpu / launch.RECOVERY_RECEIPT, recovery)
+    pins["recovery_receipt_sha256"] = recovery_sha
     root.mkdir()
     shutil.copy(REPO / "scripts/newton/run_dense_suffix_production.py", root / "launch.py")
     shutil.copy(REPO / "scripts/newton/dense_suffix_epoch_publisher.py", root / "publish.py")
@@ -138,7 +150,11 @@ def env(tmp_path, monkeypatch):
         "CPUs": 2,
         "source_git": launch.PINS["source_git"],
         "CPU_receipt_sha256": cpu_sha,
+        "GPU_recovery_output": str(gpu),
+        "GPU_recovery_receipt_path": str(gpu / launch.RECOVERY_RECEIPT),
         "GPU_recovery_receipt_sha256": recovery_sha,
+        "GPU_recovery_verifier_path": str(verifier),
+        "GPU_recovery_verifier_sha256": launch.sha(verifier),
         "launcher_sha256": launch.sha(root / "launch.py"),
         "publisher_sha256": launch.sha(root / "publish.py"),
         "config_sha256": prepared["config_sha256"],
@@ -158,7 +174,16 @@ def env(tmp_path, monkeypatch):
     )
     write(root / "production-funding.json", funding)
     return SimpleNamespace(
-        root=root, adm=adm, code=code, pins=pins, cpu=cpu, funding=funding, fold=fold
+        root=root,
+        adm=adm,
+        code=code,
+        pins=pins,
+        cpu=cpu,
+        funding=funding,
+        fold=fold,
+        gpu=gpu,
+        verifier=verifier,
+        recovery=recovery,
     )
 
 
@@ -289,6 +314,29 @@ def test_pins_match_the_actual_committed_CPU_admission():
     assert launch.sha(REPO / "scripts/newton/final_fit_epoch_publisher.py") == pub.TRANSPORT_SHA
 
 
+def test_pins_match_the_actual_committed_after_deadline_GPU_recovery():
+    record = json.loads((DEADLINE / "accepted.json").read_text())
+    receipt = record["receipt"]
+    assert record["receipt_sha256"] == launch.PINS["recovery_receipt_sha256"]
+    assert receipt["status"] == launch.RECOVERY_STATUS
+    assert receipt["CPU_receipt_sha256"] == launch.PINS["CPU_receipt_sha256"]
+    assert receipt["source_manifest_sha256"] == launch.PINS["recovery_source_manifest_sha256"]
+    assert receipt["recipe_sha256"] == launch.PINS["recipe_sha256"]
+    assert (receipt["device"], receipt["GPUs_used_concurrently"]) == ("cuda", 1)
+    for key, value in launch.PINS["recovery_limits"].items():
+        assert receipt[key] == value
+    for arm, pinned in launch.PINNED.items():
+        row = receipt["arms"][arm]
+        assert row["trainable_encoder_parameters"] == pinned["trainable_parameters"]
+        assert [u["optimizer_steps"] for u in row["finite_updates"]] == [1, 2, 3, 4]
+    verifier = (DEADLINE / "verifier.py.txt").read_text()
+    intent = json.loads((DEADLINE / "verification-intent.json").read_text())
+    assert launch.sha(DEADLINE / "verifier.py.txt") == launch.PINS["recovery_verifier_sha256"]
+    assert intent["verifier_sha256"] == launch.PINS["recovery_verifier_sha256"]
+    assert launch.PINS["recovery_output"] in verifier and launch.RECOVERY_RECEIPT in verifier
+    assert launch.DENSE_RETAINED_BOUNDARY in verifier
+
+
 def test_production_configs_are_the_unchanged_recipes():
     for name in launch.ARMS.values():
         recipe = json.loads((REPO / launch.RECIPE / name).read_text())
@@ -388,23 +436,89 @@ def _base(env):
     write(path, dict(value, weights_sha256="0" * 64))
 
 
+def _receipt(env, **edit):
+    path = env.gpu / launch.RECOVERY_RECEIPT
+    path.unlink()
+    value = write(path, dict(copy.deepcopy(env.recovery), **edit))
+    env.pins["recovery_receipt_sha256"] = value
+    refund(env, GPU_recovery_receipt_sha256=value)
+
+
 def _missing_gpu(env):
-    (env.adm / "recovery" / "accepted.json").unlink()
+    (env.gpu / launch.RECOVERY_RECEIPT).unlink()
 
 
 def _prepared_receipt(env):
-    path = env.adm / "recovery" / "accepted.json"
-    value = json.loads(path.read_text())
-    path.unlink()
-    refund(env, GPU_recovery_receipt_sha256=write(path, dict(value, status="prepared_not_run")))
+    _receipt(env, status="prepared_not_run")
+
+
+def _original_wrapper_status(env):
+    _receipt(env, status="actual_matched_dense_suffix_full_stop1_resume_recovery_accepted")
+
+
+def _hidden_timeout(env):
+    limits = dict(env.recovery["additional_interruption"], original_timeout_preserved=False)
+    _receipt(env, additional_interruption=limits)
+
+
+def _changed_boundary(env):
+    limits = dict(env.recovery["additional_interruption"], dense_resume_saved_boundary=[2, 0, 4])
+    _receipt(env, additional_interruption=limits)
+
+
+def _claimed_r32_retention(env):
+    _receipt(env, suffix_r32_stop1_partial_independently_retained_for_CPU_recheck=True)
+
+
+def _receipt_bytes(env):
+    path = env.gpu / launch.RECOVERY_RECEIPT
+    path.write_text(path.read_text() + " ")
 
 
 def _unadmitted_gpu(env):
     refund(env, GPU_recovery_receipt_sha256="0" * 64)
 
 
+def _changed_output(env):
+    refund(env, GPU_recovery_output=str(env.adm / "recovery"))
+
+
+def _changed_receipt_path(env):
+    refund(env, GPU_recovery_receipt_path=str(env.gpu / "accepted.json"))
+
+
+def _changed_verifier_path(env):
+    other = env.verifier.with_name("other.py")
+    other.write_text("# other\n")
+    refund(env, GPU_recovery_verifier_path=str(other))
+
+
+def _changed_verifier_hash(env):
+    refund(env, GPU_recovery_verifier_sha256="0" * 64)
+
+
+def _changed_verifier_bytes(env):
+    env.verifier.write_text("# edited verifier\n")
+
+
+def _missing_verifier(env):
+    env.verifier.unlink()
+
+
+def _original_accepted_present(env):
+    write(env.gpu / "accepted.json", env.recovery)
+
+
 def _recovery_evidence(env):
-    (env.adm / "recovery" / "dense" / "full" / "checkpoint.pt").write_bytes(b"invented")
+    (env.gpu / "dense" / "full" / "checkpoint.pt").write_bytes(b"invented")
+
+
+def _missing_recovery_evidence(env):
+    (env.gpu / "suffix_r32" / "full" / "outer_predictions.csv").unlink()
+
+
+def _retained_boundary(env):
+    (env.gpu / "dense" / launch.DENSE_RETAINED_BOUNDARY).write_bytes(b"other")
 
 
 def _engineering_funding(env):
@@ -432,8 +546,22 @@ def _cpu_receipt(env):
         _base,
         _missing_gpu,
         _prepared_receipt,
+        _original_wrapper_status,
+        _hidden_timeout,
+        _changed_boundary,
+        _claimed_r32_retention,
+        _receipt_bytes,
         _unadmitted_gpu,
+        _changed_output,
+        _changed_receipt_path,
+        _changed_verifier_path,
+        _changed_verifier_hash,
+        _changed_verifier_bytes,
+        _missing_verifier,
+        _original_accepted_present,
         _recovery_evidence,
+        _missing_recovery_evidence,
+        _retained_boundary,
         _engineering_funding,
         _launcher,
         _cpu_receipt,
@@ -611,7 +739,7 @@ def test_incomplete_epoch_refused_before_intent(env, epoch, edit):
 
 
 def test_publisher_requires_actual_gpu_acceptance(env, epoch):
-    (env.adm / "recovery" / "accepted.json").unlink()
+    (env.gpu / launch.RECOVERY_RECEIPT).unlink()
     with pytest.raises(ValueError, match="GPU recovery"):
         publish(env, Api())
     assert not (env.root / "epoch-publication").exists()
