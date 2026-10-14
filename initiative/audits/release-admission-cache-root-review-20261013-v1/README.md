@@ -14,3 +14,15 @@ not a measurement on Newton or attribution of all observed startup time. Actual
 owning-node source-bound timing and real MRI recovery remain necessary before
 using this path for a new run. Frozen live971/4fed/a990/1bcd sources are untouched.
 No real cache, GPU, new fitting or clinical accuracy was admitted in this change.
+
+## Actual owning-node timing
+
+The original 971d7dac release admission completed successfully on evc31 in
+497.9337718691677 seconds, returning the expected 4407-by-131 frame and release
+binding e2ecb283915a5b1810bfc9a2f6e1dda1f1d0d762f91cf2487140af3d05cb6c35.
+This was one CPU, zero GPU, inside the existing shared allocation. Concurrent
+training and engineering workers contended for its two CPU cores; this is an
+actual elapsed observation, not an isolated CPU benchmark or full startup
+attribution. Only aggregate timing, dimensions and binding were exported.
+The original local observer completed once; do not repeat it. No cache was
+created by this measurement. See original-owning-node-timing.json.
