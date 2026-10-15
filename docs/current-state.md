@@ -1,10 +1,14 @@
+# Access priority: October15 00:54UTC
+
+UCF VPN is actually Disconnected/Newton unreachable. Owner reconnect/sign-in/MFA requested once. E8slot controller14936 is now terminal transportfailure/missing; no submit intent, authenticatedKaggle0today/5available/noE8submission. After reconnect reconcile canonicalledger then one distinct exactE8v1submission; neverrestart oldcontroller or repeatDataset/push. Recovery919305lastRUNNING is unobserved, not terminal authority. Read access-loss-20261015-0052-v1.
+
 # Current RSNA work
 
-Observed October 14, 2026, 18:43 UTC. This is the current index; exact original receipts, live processes and canonical ledgers govern action. The prior long state is preserved in `initiative/audits/current-state-compaction-20261014-v1/previous-current-state.md`. Historical descriptions there do not override the live state below.
+Updated October 15, 2026, 00:54 UTC. This is the current index; exact original receipts, live processes and canonical ledgers govern action. The prior long state is preserved in `initiative/audits/current-state-compaction-20261014-v1/previous-current-state.md`. Historical descriptions there do not override the live state below.
 
 ## Confirmed model evidence
 
-Best solo DINOv3 public Kaggle **0.872**. Today's five original code submissions all COMPLETE with nonzero CSV output: epoch1/57178747=.752, epoch3/57180081=.856, epoch4/57180588=.865, epoch5/57182737=.872, epoch6/57182547=.872. All five outcomes are reconciled in the sole Newton ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Never repeat them or upload public example CSVs. See `daily-kaggle-comparison-queue-20261014-v1/all-five-result-analysis.md`.
+Best solo DINOv3 public Kaggle **0.872**. October14's five original code submissions all COMPLETE with nonzero CSV output: epoch1/57178747=.752, epoch3/57180081=.856, epoch4/57180588=.865, epoch5/57182737=.872, epoch6/57182547=.872. All five outcomes are reconciled in the sole Newton ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Never repeat them or upload public example CSVs. See `daily-kaggle-comparison-queue-20261014-v1/all-five-result-analysis.md`.
 
 These are public scores, not private scores or significance. Older fold0 epoch10=.854/internal1156-study AUC=.8997840648 differs in fitting scope/checkpoint age. Source-faithful336-triplet rank32 fixed-final internal=.8782870962 did not improve the native reference; all ten source-slot epochs privately verified. No patch-focus/focal-window/dense gain is established.
 
@@ -18,7 +22,7 @@ All E10 publication work is terminal verified; never repeat. Historical coordina
 
 ## Next Kaggle candidate: epoch8 prevalidation
 
-Last authenticated allowance:5today/0remaining/37total. Queue `daily-kaggle-later-epoch8-20261014-v1/queue.json` binds actual E8checkpointd4aed5e3…/3408updates/HF92a7b333… to unchanged offline FP32twoT4 engine. Node-private prepared bundle1340298526B/184files within separate5GiB cap; never prepare again.
+Latest authenticated October15 allowance:0today/5remaining/37total; no matchingE8submission. Queue `daily-kaggle-later-epoch8-20261014-v1/queue.json` binds actual E8checkpointd4aed5e3…/3408updates/HF92a7b333… to unchanged offline FP32twoT4 engine. Node-private prepared bundle1340298526B/184files within separate5GiB cap; never prepare again.
 
 Original prevalidation **PID94105 missing after interruption**, `artifacts/daily-kaggle-later-epoch8-20261014-v1/prevalidation/finish_once.py`, maxcompetition submissions0. Private Dataset12589606/v1 createdONCE and all68objects fully downloaded/size/SHA verified. Notebook138720577/v1 pushedONCE and exactpublicthree-study/13column/CSV/RSS acceptance passed via distinctread-only standaloneCPU reconciliation. No hiddensubmission/score. Slugs `godlydonuts/rsna-alldev-e008-d4aed5e3ae15` and `godlydonuts/rsna-alldev-offline-e008-d4aed5e3ae15`. Inspect original per-phase intents/results and actual process before any action; never repeat uncertain creation/push.
 
