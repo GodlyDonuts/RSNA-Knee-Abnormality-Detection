@@ -1,3 +1,15 @@
+# Exact epoch10 public run started
+
+Dataset12613343/v1 now all68objects fully download/size/SHAverified. Exact private/offline2T4 notebook138929766 godlydonuts/rsna-alldev-offline-e010-0f0ab3f260e9 v1 pushedONCE and actuallyRUNNING its public example; NOT a competitionentry/score yet. Original recovered E10 payload/source/metadata match the existing Newton prepared hashes exactly. Active finite PID40110/exec28734 will verify exact MRI/CSV/RSS receipt then max1code submission with fresh allowance; portable localledger/phaseintents govern and must later reconcile withNewton. Never repeatDataset/push or restartoldcoordinators. Github issue90 assigned toDevin to remove repeated1.2GBbaseuploads for futurecandidate efficiency.
+
+# Portable epoch10 interruption reconciliation
+
+Explicit prior-turn interruption left firstcontinuation missing after14/68 fileproofs; no notebookpush/localledger/submission existed. Distinct continue_after_interruption.py PID40110/exec28734 re-admitted exact Dataset12613343/v1 and authenticated notebook/submission absence; resumes remaining read-only verification using original14 proofs, then at most one push/submit. NeverrepeatDatasetcreate or restartoldworkers. Inspect current original artifacts beforeany action.
+
+# Actual portable epoch10 preparation: October15 follow-up
+
+Owner authorization removed Newton-only infrastructure blockers. E10 originalprepared manifest/source/allmetadata hashes exactly reconstructed using verified E8 commonbytes + originalHF E10 checkpoint/snapshot, private ignored Macstorage/noMRI. Private Dataset12613343/v1 createdONCE, READY/68files; every-file re-download verification in progress. No E10notebook/competitionentry yet at this observation. OriginaldeployPID35392 terminal after create-return/read-only status403, neverrestart. Distinct continuation artifacts/kaggle-epoch10-portable-20261015-v1/continue_after_create.py is finite and active (exec61955); inspects SAME DatasetID, caches each successful fileproof, then exact offlinepublic acceptance and max1code submission if freshquota. Existingintents forbid duplicatecreate/push/submission. Localportable ledger authorized pending eventualNewton reconciliation. Read kaggle-epoch10-portable-20261015-v1.
+
 # Actual epoch8 result: October15 11:39UTC
 
 Submission57221755 COMPLETE,248792bytes, public0.863, exactE8v1. AuthenticatedAPI + refreshedUI agree. Fourlive slots. Same trajectoryE5/E6 .872; E8 .009lower, no monotonic late-epoch gain. E10prepared/unpublished remains finalcomparison; no newcloudpush or fit. Read kaggle-epoch8-direct-submit-20261015-v1/scored.json and analysis.md. NEVERresubmitE8; canonical reconciliation pendingaccess.

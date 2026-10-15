@@ -1,0 +1,63 @@
+"""Recover exact already-prepared E10 bytes from verified E8 common objects + private HF originals. No cloud mutations."""
+import hashlib,json,os,shutil,time,zipfile
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import requests
+from huggingface_hub import hf_hub_download
+from scripts.kaggle import workflow as w,publication as pub,daily_queue as q
+from scripts.hf.dispatch_native384_epoch import credential
+L=Path(__file__).resolve().parent
+os.umask(0o077)
+def save(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2);f.write('\n');f.flush();os.fsync(f.fileno())
+def sha(p):return pub.digest(p)
+assert not (L/'verified.json').exists() and not (L/'common-recovery.json').exists()
+assert shutil.disk_usage(L).free>26*2**30
+old=json.loads(Path('artifacts/daily-kaggle-later-epoch8-20261014-v1/prevalidation/journal/epoch-008/prepare.result.json').read_text())['operation']
+prepared=json.loads(Path('artifacts/daily-kaggle-later-epoch10-20261014-v1/prepared.json').read_text());op=prepared['operation']
+proof=json.loads(Path('artifacts/daily-kaggle-later-epoch8-20261014-v1/prevalidation/journal/epoch-008/reconcile-dataset.result.json').read_text())['files']
+hfproof=json.loads(Path('initiative/audits/final-public-source-fixed10-20261014-v1/verified-epoch10.json').read_text())
+save(L/'read-only-recovery-v4.intent.json',{'status':'read_only_exact_prepared_payload_recovery','checkpoint_sha256':op['checkpoint_sha256'],'node_prepared_manifest_sha256':op['manifest_sha256'],'local_private_cap_bytes':6*2**30,'observed_free_bytes':shutil.disk_usage(L).free,'cloud_mutation':False,'automatic_mutation_retry':False})
+r=w.Remote();meta=r.dataset(old['dataset_slug']);assert meta['isPrivate'] is True and meta['currentVersionNumber']==1 and meta['id']==12589606
+data=L/'prepared/dataset';data.mkdir(parents=True,exist_ok=True)
+mapping=pub.map_members(pub.list_files(r,old['dataset_slug']),proof)
+for name,remote_name in mapping.items():
+ existing=data/name
+ if existing.exists():
+  assert existing.stat().st_size==proof[name]['bytes'] and sha(existing)==proof[name]['sha256'],name
+  continue
+ time.sleep(3);r.session.cookies.clear();r.session.headers['Connection']='close'
+ response=r.session.post(w.API+'datasets.DatasetApiService/DownloadDataset',json={'ownerSlug':'godlydonuts','datasetSlug':old['dataset_slug'].split('/')[1],'datasetVersionNumber':1,'fileName':remote_name},timeout=(15,180),allow_redirects=False,stream=True)
+ target_file=data/name;pub.confined(name);target_file.parent.mkdir(parents=True,exist_ok=True)
+ started=time.monotonic()
+ for _ in range(6):
+  if response.status_code==200:
+   count=0;h=hashlib.sha256()
+   with target_file.open('xb') as f:
+    for block in response.iter_content(4*1024**2):
+     count+=len(block);assert count<=proof[name]['bytes'] and time.monotonic()-started<1800;h.update(block);f.write(block)
+   response.close();assert count==proof[name]['bytes'] and h.hexdigest()==proof[name]['sha256'],name
+   print('Verified original file',name,flush=True);break
+  assert response.status_code in (301,302,303,307,308),('dataset file download status',response.status_code,name)
+  target=urljoin(response.url,response.headers.get('Location',''));u=urlparse(target)
+  assert u.scheme=='https' and not u.username and not u.password and u.port in (None,443) and (u.hostname=='storage.googleapis.com' or (u.hostname or '').endswith('.kaggleusercontent.com'))
+  response.close();response=requests.get(target,timeout=(15,180),allow_redirects=False,stream=True)
+ else:raise ValueError('Redirect bound')
+save(L/'common-recovery.json',{'status':'all_original_dataset_bytes_matched','files':proof,'source_dataset_id':meta['id'],'source_dataset_version':1})
+for name in ['checkpoint.pt','snapshot.json']:
+ source=Path(hf_hub_download('GodlyDonuts/RSNA-Data',hfproof['prefix']+'/'+name,repo_type='dataset',revision=hfproof['revision'],token=credential(),local_dir=L/'hf-originals'))
+ expected=hfproof['files'][name];assert source.stat().st_size==expected['bytes'] and sha(source)==expected['sha256'];(data/name).unlink();shutil.copyfile(source,data/name)
+queue=q.load_queue(Path('initiative/audits/daily-kaggle-later-epoch10-20261014-v1/queue.json'));entry=q.queue_entry(queue,10)
+(data/'fitting-admission.json').write_bytes(q.admission_bytes(queue,entry));assert sha(data/'fitting-admission.json')==op['fitting_admission_sha256']
+manifest=json.loads((data/'bundle-manifest.json').read_text());manifest.update(checkpoint_sha256=op['checkpoint_sha256'],epoch=10,snapshot_sidecar_sha256=sha(data/'snapshot.json'),dataset_slug=op['dataset_slug'],fitting_admission_sha256=op['fitting_admission_sha256'])
+for name in ['checkpoint.pt','snapshot.json','fitting-admission.json']:manifest['files'][name]={'sha256':sha(data/name),'bytes':(data/name).stat().st_size}
+(data/'bundle-manifest.json').unlink();w.new_json(data/'bundle-manifest.json',manifest)
+assert sha(data/'bundle-manifest.json')==op['manifest_sha256'],'Reconstructed E10 manifest must match original prepared bytes exactly'
+w.new_json(data/'dataset-metadata.json',{'id':op['dataset_slug'],'title':op['dataset_slug'].split('/')[1].replace('-',' '),'licenses':[{'name':'other'}]});assert sha(data/'dataset-metadata.json')==op['dataset_metadata_sha256']
+kernel=L/'prepared/kernel';kernel.mkdir();source=r.kernel('GetKernel',old['kernel_slug'],1)['blob']['source'];assert hashlib.sha256(source.encode()).hexdigest()==old['kernel_source_sha256'];assert source.count(old['manifest_sha256'])==1
+source=source.replace(old['manifest_sha256'],op['manifest_sha256']).replace(old['dataset_slug'],op['dataset_slug']);(kernel/'run.py').write_text(source);assert sha(kernel/'run.py')==op['kernel_source_sha256']
+km={'id':op['kernel_slug'],'title':op['kernel_slug'].split('/')[1].replace('-',' '),'code_file':'run.py','language':'python','kernel_type':'script','is_private':True,'enable_gpu':True,'enable_internet':False,'dataset_sources':w.dataset_sources(op),'competition_sources':[w.COMPETITION],'kernel_sources':[],'model_sources':[],'docker_image':op['runtime_image'],'docker_image_pinning_type':'original'}
+w.new_json(kernel/'kernel-metadata.json',km);assert sha(kernel/'kernel-metadata.json')==op['kernel_metadata_sha256']
+w.new_json(L/'prepared/operation.json',op);pub.expected_files(data,manifest)
+save(L/'verified.json',{'status':'exact_original_node_prepared_epoch10_payload_recovered','original_prepared':prepared,'manifest_sha256':sha(data/'bundle-manifest.json'),'kernel_source_sha256':sha(kernel/'run.py'),'dataset_metadata_sha256':sha(data/'dataset-metadata.json'),'kernel_metadata_sha256':sha(kernel/'kernel-metadata.json'),'all_common_original_bytes_matched':True,'HF_original_checkpoint_snapshot_matched':True,'cloud_mutations':False,'local_private_bytes':sum(x.stat().st_size for x in L.rglob('*') if x.is_file())})
+print('Exact epoch10 prepared payload reconstructed and verified; no cloud mutation',flush=True)

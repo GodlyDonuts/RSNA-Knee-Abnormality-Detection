@@ -1,0 +1,49 @@
+"""Single locally journaled E10 deployment after exact original payload recovery."""
+import base64,json,os,time,fcntl
+from pathlib import Path
+from dotenv import dotenv_values
+from scripts.kaggle import workflow as w,publication as p,daily_queue as q
+L=Path(__file__).resolve().parent;os.umask(0o077)
+def save(path,v):p.exclusive_json(path,v)
+lock=(L/'coordinator.lock').open('a');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+assert (L/'verified.json').exists() and not (L/'deploy.intent.json').exists()
+verified=json.loads((L/'verified.json').read_text());assert verified['status']=='exact_original_node_prepared_epoch10_payload_recovered'
+operation=L/'prepared/operation.json';op=w.load_operation(operation);prepared=verified['original_prepared']
+queue=q.load_queue(Path('initiative/audits/daily-kaggle-later-epoch10-20261014-v1/queue.json'));entry=q.queue_entry(queue,10);q.check_prepared(queue,entry,prepared)
+r=w.Remote();account=r.account();assert account['num_allowed_now']>0 and account['entered']
+assert not [x for x in r.submissions() if '0f0ab3f260e9' in json.dumps(x)],'Existing exact submission needs reconciliation'
+r.require_absent_kernel(op['kernel_slug']);p.require_absent(r,op['dataset_slug'])
+save(L/'deploy.intent.json',{'epoch':10,'operation':op,'account':account,'owner_override':'Explicit permission to remove prior workflow restrictions; local receipts defer Newton reconciliation','automatic_mutation_retry':False})
+upload=L/'upload';upload.mkdir();data=L/'prepared/dataset';manifest=json.loads((data/'bundle-manifest.json').read_text());files=p.expected_files(data,manifest);archive=p.build_zip(data,files,upload/'bundle.zip');save(L/'archive.json',archive)
+env=Path('.env');assert env.stat().st_mode&0o077==0;token=dotenv_values(env)['KAGGLE_API_TOKEN']
+p.create_once(r,token,op['dataset_slug'],files,upload,L/'dataset-create',{'archive_sha256':archive['sha256'],'operation_sha256':w.digest(operation),'checkpoint_sha256':op['checkpoint_sha256']});token=None
+print('E10 private Dataset create returned once',flush=True)
+owner,slug=op['dataset_slug'].split('/');deadline=time.monotonic()+1800
+while time.monotonic()<deadline:
+ status=r.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':owner,'datasetSlug':slug})
+ if status.get('status') in ('READY',5):break
+ assert status.get('status') not in ('ERROR','FAILED');time.sleep(20)
+else:raise TimeoutError('Dataset readiness deadline; reconcile read-only')
+def paced_stream(*args,**kwargs):time.sleep(2);return p.stream_file(*args,**kwargs)
+proof=p.reconcile(r,op['dataset_slug'],files,stream=paced_stream);save(L/'dataset-verified.json',proof)
+print('E10 private Dataset every object download/hash verified',flush=True)
+quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda x:float(x.removesuffix('s'));available=min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved']);save(L/'accelerator-quota.json',{'available_seconds':available,'request_seconds':32400,'GPU_count':2});assert available>=2*32400,'Not enough independent GPU time'
+with w.ledger(L/'portable-account-ledger.sqlite3',r.username) as db:
+ record={**prepared['snapshot'],'snapshot_sidecar_sha256':w.digest(data/'snapshot.json'),'state':'queued','queued_at':w.utcnow(),'portable_origin':'original Newton-prepared hashes reproduced exactly; owner authorized local deployment'}
+ w.save_entry(db,record,'queue exact original E10 under owner override')
+ pushed=w.push(r,db,operation);save(L/'push.result.json',pushed)
+print('E10 private offline notebook pushed exactly once',flush=True)
+deadline=time.monotonic()+3600
+while time.monotonic()<deadline:
+ status=w.check_kernel(r,{'operation':op},1);(L/'latest-kernel-status.json').write_text(json.dumps(status,indent=2)+'\n')
+ if status.get('status')=='COMPLETE':break
+ assert status.get('status') in ('RUNNING','QUEUED'),('Public notebook terminal failure',status)
+ time.sleep(45)
+else:raise TimeoutError('Public run deadline; reconcile read-only')
+with w.ledger(L/'portable-account-ledger.sqlite3',r.username) as db:
+ record=w.read_entry(db,op['checkpoint_sha256']);out=q._collect(r,w,op,record)
+ expected=json.loads(Path('artifacts/daily-five-native-deployment-20261014-v1/expected-uids.json').read_text())
+ accepted=q.accept_public(queue,entry,op,out['receipt'],out['metrics'],base64.b64decode(out['csv']),expected);save(L/'public-accepted.json',accepted)
+ account=r.account();assert w.allowance(db,account)>0
+ result=w.submit(r,db,op['checkpoint_sha256']);save(L/'submit.result.json',result)
+print(json.dumps({'epoch':10,'submission_id':result['submission_id'],'hidden_score':None,'status':'submitted_once_exact_public_acceptance_passed'}),flush=True)
