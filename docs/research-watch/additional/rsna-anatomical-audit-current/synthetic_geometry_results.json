@@ -1,0 +1,112 @@
+{
+  "source_commit": "c83ffa8b58a3bb28dc63e7f10f4805faab0a8893",
+  "only_synthetic": true,
+  "checks": {
+    "geometry_overrides_instance": {
+      "method": "patient_geometry",
+      "instance_order": [
+        3,
+        2,
+        1
+      ],
+      "passed": true
+    },
+    "missing_geometry_explicit_fallback": {
+      "method": "instance_number",
+      "warnings": [
+        "missing_or_mixed_geometry"
+      ],
+      "passed": true
+    },
+    "physical_identity_is_not_tensor_canonicalization": {
+      "same_physical_voxels": true,
+      "new_order": [
+        "synthetic-2",
+        "synthetic-1",
+        "synthetic-0"
+      ],
+      "old_normal": [
+        0,
+        0,
+        1
+      ],
+      "new_normal": [
+        0,
+        0,
+        -1
+      ],
+      "old_position_by_id": {
+        "synthetic-0": -0.02,
+        "synthetic-1": 0.0,
+        "synthetic-2": 0.02
+      },
+      "new_position_by_id": {
+        "synthetic-2": -0.02,
+        "synthetic-1": 0.0,
+        "synthetic-0": 0.02
+      },
+      "passed": true
+    },
+    "native_16_slice_reversal_symmetric_selection": {
+      "counts_checked": [
+        1,
+        1000
+      ],
+      "passed": true
+    },
+    "anisotropic_pixel_physical_aspect": {
+      "input_shape": [
+        16,
+        32
+      ],
+      "spacing": [
+        2.0,
+        1.0
+      ],
+      "output_content_shape": [
+        384,
+        384
+      ],
+      "passed": true
+    },
+    "prior_public_full_slot_window_boundary_counts": {
+      "source_status": "conditional reconstruction from prior verified audit, exact notebook not reread",
+      "total_windows": 94,
+      "cross_slot_centers_0based": [
+        25,
+        26,
+        47,
+        48,
+        65,
+        66,
+        77,
+        78
+      ],
+      "cross_plane_centers_0based": [
+        47,
+        48,
+        77,
+        78
+      ],
+      "mixed_mirror_rule_centers_0based": [
+        47,
+        48
+      ],
+      "passed": true
+    },
+    "joint_permutation_vs_reassigned_position": {
+      "joint_permutation_preserved": true,
+      "images_only_reversal_changed": true,
+      "passed": true
+    }
+  },
+  "limitations": [
+    "No full PyTorch/pydicom execution; neither dependency is installed",
+    "No real DICOMs, clinical metadata, caches, prediction rows, weights, or training",
+    "No assertion of actual-cohort prevalence or accuracy effect"
+  ],
+  "source_file_sha256": {
+    "rsna/dicom.py": "383a0677dd145bd93cd3de0f676004756835f91c95c84fca885bf6aa5d6d2afe",
+    "rsna/competitive/data.py": "18147d1babd214ded0c110d3b8cafc985bf33b810be558b126bb2e01578b31ed"
+  }
+}

@@ -1,0 +1,357 @@
+<!-- Revised research document, 14 October 2026: source identity reconciled; historical model results unchanged. -->
+
+# Research ledger: completed experiments, failures, and evidence gaps
+
+Evidence snapshot: **8300cfd20c2acaeef9d684a81dbc7fe977282a62**, main on **2026-10-14 at 18:08 UTC**. Repository visibility was checked: private. This issue records aggregate project evidence only. It does not contain case-level records, clinical reports, images, private predictions, credentials, or new training results.
+
+## Bottom line
+
+- Best verified **own single-model public score: 0.872**, achieved by both all-3403-fit native384/public-supervision rank32 epoch 5 and epoch 6. Equal three-decimal scores are not proof of a plateau.
+- Best relevant native-public fold-0 fixed-final internal macro AUC: **0.8997840648** on 1,156 weak-label development studies. This is not a public score or independent clinical confirmation.
+- The completed older-source-slot recipe scored **0.8782870962 internally**, below native-public by 0.0214969686. It targeted the older public DINO v15 interface, whose reported score was 0.891, rather than reproducing the newer 0.949 CoAtNet pipeline.
+- The strongest completed supervision result is the **full public-label recipe**; neither public values on the old mask nor coverage-only reproduced its gain. This supports testing the complete recipe, not a proven causal explanation of why it works.
+- Many tempting ideas have already failed, been inconclusive, or reached engineering acceptance only. Their exact boundaries are preserved below. Neither a successful test suite nor a finite recovery run establishes accuracy.
+
+Canonical orientation: [current state](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/current-state.md); [research brief](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/research-brief.md); [chronological continuation](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/codex-continuation.md); [decisions](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/decisions.md); [submission history](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/kaggle-submissions.md); [project work agreements](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/AGENTS.md). Newer terminal receipts supersede stale opening paragraphs in historical README files.
+
+## 1. Evidence and validation rules
+
+**Public score** means an actual scored competition submission with its original identity and nonzero output. COMPLETE with an error/zero output is not a score. **Weak-development** means the fixed disjoint development roster scored against accepted report-derived labels. **Source-task validation** means a different dataset/task. **Engineering accepted** means identity, recovery, numerical, runtime or input properties passed; it does not imply clinical performance. **Prepared/partial/unknown** remains explicitly unscored.
+
+Data lineage: 4,407 original training studies and 819,078 training DICOMs; accepted release 3,904 train / 441 weak-validation / 58 official evaluation / 4 quarantine. Competitive fitting uses 3,403 eligible non-gold studies; fold 0 is **2,247 fitting / 1,156 development**, with **1,106 development leakage components**. These are different scopes and should not be added together. All-data fitting uses all 3,403 and has no internal holdout.
+
+Legacy v1 labels/splits are not a trustworthy comparator: the supposed manual labels included rule/NLI output; four targets had zero non-gold positives, and earlier gold-calibrated/non-isolated work is historical only. Accepted v2 extraction completed 89/89 two-reader report batches with 569 corrections. Uncertain/unmentioned findings are masked. This is report-derived supervision, not independent image adjudication. Distinct source PatientIDs do not prove real-patient independence.
+
+The common fixed-final analysis uses all 12 target AUCs and paired whole-leakage-component bootstrap, 4,000 draws, seed 20261001. Many comparisons have **2,836 defined and 1,164 undefined all-target macro draws**. Reported intervals are conditional on defined draws, not unconditional confidence intervals. MCL and fracture each have only two positive development observations; Baker has three; Synovitis has five negatives. Do not discard inconvenient targets, redraw undefined replicates, choose the best epoch/target post hoc, or tune protected confirmation/gold.
+
+### Reference recipe and what is actually shared
+
+Later native-public and its strongest matched controls use official DINOv3-L, native384 input, rank32 rsLoRA, seed 20260922, fold0 2247/1156, effective batch8, FP16 scale128/chunk8, encoder LR1e-4/head LR3e-4, warmup281 plus cosine, gradient clip1, fixed ten epochs/2,810 updates. Original rank32 adoption, earlier BF16/sampling work, and source-slot recipes have declared execution/input differences; this template must not be retroactively assigned to all historical runs. Each linked original config and receipt remains authoritative.
+
+The current encoder has 10,223,616 learned adapter parameters (10,426,636 including its original head). Attention adapters span all 24 blocks; FFN adapters cover the last12. Alpha8/sqrt(rank), dropout0.05. Target-specific slice/series attention is already implemented. Merely proposing “add attention” is not a new experiment.
+
+## 2. Completed scientific comparisons
+
+Unless explicitly stated otherwise, these are **internal weak-development** results, not Kaggle or independent validation. Deltas are candidate minus stated control. CIs below retain the sparse-support/conditional-bootstrap caveat above.
+
+| Experiment | Budget / lineage | Measured result | Interpretation / no-repeat boundary | Source |
+|---|---|---|---|---|
+| Frozen DINOv3 three-fold OOF | 10 epochs, seed20260922; all3,403 OOF | Primary pair-weighted macro **0.7522657162**; pooled-OOF secondary **0.7253858835**; folds0/1/2 **0.7783102649 / 0.7128332913 / 0.7590158140** | Different fold score scales make pooled and pair-weighted endpoints different; rare supports remain tiny | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-threefold-oof-v1) |
+| Frozen patch-attention replacement | 10 epochs each; fold1 job847119,2850 updates; fold2 job848958,2860 | Fold1 **0.7214765382** (+0.0086432469); fold2 **0.7197381600** (−0.0392776540). Three-fold macro **0.7360400218** vs0.7522657162, **−0.0162256943** | Reject wholesale replacement. Lateral-meniscus aggregate +0.0185916049 does not rescue macro; historical fold0 archive was not prediction-replayed in that aggregate | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-patch-attention-fold2-result-v1) |
+| Rank32 adaptation | Job864856;10 epochs/2810;7:03:29;2247/1156 | **0.8620940794** vs frozen0.7783102649, **+0.0837838145**, all12 targets improved | Strong practical recipe improvement, but precision/head LR/schedule/chunking/worldsize changed too; not isolated LoRA causality | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-adapter-a32-fold0-result-v1) |
+| Rank64 vs rank32 | Job865578;10 epochs/2810;6:47:01 | **0.8340496537** vs0.8620940794, **−0.0280444257**; CI[−0.050331,−0.006980] | Retain rank32. MCL accounts for ~92% of decline; rank changes initialization/RNG and scaling. Public direction differs; no automatic rank128 escalation | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-rank-learning-v1) |
+| Whole-series cached coverage | Job865357;10 epochs;224-input/256-cache | **0.8603399208** vs sampled0.8620940794, **−0.0017541586** | No gain; does not prove all additional coverage harmful | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-whole-series-control-fold0-result-v1) |
+| Stratified vs uniform sampling | Jobs866716/866719;10 epochs/2810 each;one H100/two CPUs | **0.8615144870** vs0.8606037925, **+0.0009106945**; CI[−0.0090501,+0.0099533] | No established internal gain. Unique slices185,929→364,647 at identical1,859,290 presentations. Keep uniform as internal default; publicscores separately below | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/sampling-fixed-final-v1) |
+| Native384 vs uniform224 route | Job867367;10 epochs/2810 | **0.8630558226** vs0.8606037925, **+0.0024520301**; CI[−0.01422843,+0.01814998] | Inconclusive; exact initial-state equality not collected and caches differ. Not a clean resolution-only effect | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/native384-fixed-final-v1) |
+| Effusion +31 reviewed-positive fit cells, seed1 | Jobs869815/869816;seed20260922;3 epochs/843;continuations complete | Primary Effusion **0.853370→0.894105**, +0.040735; CI[−0.011129,+0.116394]. Macro **0.786090→0.787312**, +0.001222; CI[−0.005310,+0.008490] | Effusion support9positive/671negative. Fracture secondary−0.060811 CI[−0.097954,−0.032324]. No overall promotion; preserve original preemption and resumed lineage | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/effusion-supervision-screen-final-v1) |
+| Effusion same change, seed2 | Jobs870025/870026;seed20261004;3 epochs/843 | Effusion **0.928051→0.941795**, +0.013744; CI[−0.012795,+0.045965]. Macro **0.809696→0.801626**, −0.008070; CI[−0.014051,−0.001754] | No replicated macro win; retain original labels. Three-epoch results must not be compared causally to ten-epoch recipes | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/effusion-supervision-seed2-final-v1) |
+| Physical neighbor vs gray vs distant channels | Job872279;three3-epoch/843-update arms;seed20260922 | Macros gray **0.7860903**, physical **0.788548**, distant **0.797655**. Primary MM physical−gray **−0.000948**, physical−distant **−0.000785**, distant−gray **−0.000163**; all relevant CIs span0 | Keep gray. Gray CSV exactly matches Effusion control. Donor-count confound275vs419 was fixed; perturbation magnitudes still unmatched. Not evidence that physical context cannot work | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/neighbor-channels-full-fit-v1) |
+| Smooth witness readout | Job875858;3 epochs/843 per arm;source3b7e437 | Primary MM **0.7940554905→0.7948903582**, +0.0008348678; CI[−0.0004347,+0.002102163]. Macro **0.7810206776→0.8019438992**, +0.02092322; CI[−0.02619225,+0.06969714] | Keep original readout. Baker/fracture explain ~94% macro delta. Hardzero selector gradient coverage0.0868% vs smooth100% is engineering evidence only; hardBF16 and smoothFP16 are distinct routes | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/smooth-witness-full-fit-v2) |
+| Plane-memory residual | Job877134;3 epochs/843;11:19:31;seed20260922 | Macro **0.7821848052→0.7864650884**, +0.0042802833; CI[−0.0120927,+0.0224585]. MM secondary+0.0030026 CI[+0.0009665,+0.0050479] | No primary win. Same encoder presentations and shared graph/RNG with gate0/1; secondary endpoint cannot replace primary | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/plane-memory-full-fit-v1) |
+| CLS plus mean-patch residual | Job878853;10 epochs/2810 | Macro **0.8786705965→0.8600333**, **−0.0186373**; CI[−0.0327478,−0.00659094]. MM **0.8737467→0.8566727**, CI[−0.026142,−0.00828333] | Reject this tested mean branch; does not reject all spatial/focal pooling. Zero-branch control is the later source-disabled common reference | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/cls-patch-summary-full-fit-v2) |
+| Full public-label source | Job879172;10 epochs/2810;sourcea9902f3;matched2247/1156/seed20260922 | Macro **0.8786705965→0.8997840648**, **+0.0211134683**; CI[+0.0029817801,+0.0405243740]. MM **0.8737466522→0.8590684633**, −0.0146781888; CI[−0.0295708757,−0.0000974954] | Strongest completed full-recipe internal gain. Coverage, softness and values all change. MCL/Baker/fracture account for72.89% net gain; remaining9 mean+0.007632 is descriptive, not a new endpoint. Replication pending | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-source-full-fit-preparation-v1) |
+| Public values on original mask | Job897333;fixed10 epochs | Macro **0.8536812809**, vs common control **−0.0249893156**, CI[−0.0439907607,−0.0054025504]; vs full-public **−0.0461027839**, CI[−0.0699827667,−0.0233718012] | Reject fixed-mask values-only. MM−0.0224577335 CI[−0.0349129324,−0.0109315061]. Does not identify every mechanism in full-public improvement | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-fixedmask-production-20261010-v1) |
+| Coverage-only public-label ablation | Job898474;fixed10 epochs | Macro **0.8693023133**, vs commoncontrol **−0.0093682832**, CI[−0.0402732007,+0.0222779240]; vs full-public−0.0304817515 CI[−0.0686296539,+0.0072858211] | No promotion; macro inconclusive, not equivalent. MM−0.0185658688 CI[−0.0331400631,−0.0035182629]. An interaction remains possible, unproven | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-coverage-production-20261011-v1) |
+| Cache p1–p99 contrast | Job894060;fixed10 epochs;17:09:32 | Macro **0.8537006030** vs0.8786705965, **−0.0249699936**, CI[−0.0488046470,−0.0013862788]. MM−0.0145568296 CI[−0.0229070323,−0.0065959416] | Reject isolated full-field cache contrast. This does not test the complete public raw physical-crop/contrast pipeline | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/cache-contrast-production-20261008-v1) |
+| Equal effective-weight average E6–E10 | One checkpoint built from predeclared native-public epochs;no retraining | Macro **0.8990962409** vsE10 **0.8997840648**, **−0.000687824**, CI[−0.004788950,+0.003119967] | Retain E10; no gain established, no public score. Control CSV exactly reproduced; no target-specific weight splicing | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/epoch-weight-average-fixed-final-20261014-v1) |
+| Older-source-slot DINOv3 recipe | Source4fedbec3;10 epochs/2810;2247/1156 | Macro **0.8782870961938172**; contextual native-public0.8997840648 difference **−0.0214969686**; MCL0.7167/LM0.7268 | No promotion over native-public. Input/crop/windowing/patch pooling/augmentation/head differ together, so no single-mechanism causal claim | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/source-slot-fixed-final-20261014-v1) |
+| MRNet source training | Job867694;1:48:26;1129fit/119sourcevalidation;10epochs/1420updates | ACL **0.8621082621**, genericmeniscus **0.7215843858**, abnormality **0.9285087719** | Completed source-task validation only; no RSNA transfer benefit. Tasks/cohort differ. Ten source snapshots preserved; source membership disjointness independently checked | [receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/mrnet-full-source-final-v1) |
+
+## 3. Actual public submissions, separated from internal AUC
+
+The canonical [submission ledger](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/kaggle-submissions.md) retains identities, runtime failures and uncertain mutation states. A score difference across these rows is not automatically a matched experiment: fit membership, age, labels, precision, preprocessing or runtime can differ.
+
+| Own trained solo recipe | Submission / evidence | Actual public score | Important limit |
+|---|---|---:|---|
+| Fold0 rank32 | 56697342 | 0.769 | Original internal0.862094 recipe |
+| All3403 rank32 | 56711823 | 0.792 | No internal holdout |
+| Fold0 rank64 | 56740377 | 0.778 | Public direction differs from internal rank contrast |
+| Matched uniform | 56766962 | 0.770 | Same named sampling experiment, distinct metric |
+| Matched stratified | 56767196 | 0.784 | Does not turn weak-development inconclusiveness into a clean generalization proof |
+| Native384 fold0 | 56770284 | 0.785 | Input/recipe comparison limits above |
+| Native384 all3403 epoch5 | 56783855 | 0.804 | Historical best before public-supervision adoption |
+| Native384 all3403 finalepoch10 | 56833260 | 0.802 | Rounded public decrease alone is not causal overfitting proof |
+| Effusion seed1 candidate,3epochs | 56833608 | 0.685 | Short-schedule recipe; compare only with its matched control |
+| Effusion seed1 correctedcontrol,3epochs | 56889124 | 0.680 | Original control56833454 failed; do not replace failure history |
+| Later CLS reference | 56923572 | 0.783 | Internal0.8786705965; not same fit as all-data0.804 |
+| Fold0 native-public epoch10 | 57128606 | 0.854 | Internal0.8997840648. Different labels/populations/selection mean subtracting them is not a measured generalization gap |
+| All3403 native-public epoch1 | 57178747 | 0.752 | Same source/binding family as rows below |
+| All3403 native-public epoch3 | 57180081 | 0.856 | — |
+| All3403 native-public epoch4 | 57180588 | 0.865 | — |
+| All3403 native-public epoch5 | 57182737 | **0.872** | Verified nonzero248638-byte output |
+| All3403 native-public epoch6 | 57182547 | **0.872** | Verified nonzero248857-byte output |
+
+The last five were verified COMPLETE through authenticated ListSubmissions on **October14 at16:03:56UTC**, with nonzero output for each, consuming that day's five slots. Shared science source1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9, binding5c8e14732143a479073b43a24ff7851775a1dd550dc8deb0a9291b8f8091597e, effectivebatch8 and426updates/epoch. Actual code submission used the admitted private offline two-T4 route, not upload of the three-example CSV. Epoch2 remains a preserved uncertain unsubmitted draft; do not retry an uncertain mutation. Epoch8 is privately prepared without a new score. [all-five result evidence](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/hf-all-five-scores-training-recovery-20261014-v1); [fold0 public-source evidence](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/kaggle-publicsource-e10-ebeb3c394286-v1)
+
+Copied public-ensemble submissions **0.936 (55969300)** and **0.942 (56407271)** are preserved separately. They combine DINOv2/CNN/CoAtNet via rank fusion; they are not the user's own trained solo model. Source-version attribution is based on title/version/timing rather than an explicit API source reference where that field was absent.
+
+### What high public scores do and do not establish
+
+The existing [primary-source research review](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/research/public-high-score-update-20261013-v1) records Danial Zakaria's reported **single CoAtNet0.949** with epoch-weight averaging, dense triplet bags, target-specific attention, anatomical mirror inference, mixed weak supervision and external OAI examples. It also records repeated small-annotated-set tuning. This is author-reported complete-pipeline evidence, not our reproduction or independent validation, and does not itself establish external-data eligibility. Primary [discussion](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/discussion/746792).
+
+Older Pilkwang DINO v15 was reported0.891. Source-slot correspondence to that interface is not evidence we reproduced0.95. A “single architecture” or “single notebook” can still average multiple trained checkpoints; checkpoint count, seed/fold ensemble, SWA and test-time transforms must be recorded separately. New claimed0.95+ evidence is being audited separately; this ledger does not certify an unexamined single-model claim.
+
+## 4. Supervision, missingness and input diagnostics
+
+- Full-public supervision changes **13,760 observed fit cells to26,964** (+13,204), with26,952 strictly soft values and13,750 old values changed. Mean absolute old/new distance0.138868, median0.025,p95 0.91;1,624/13,760(11.8%) cross0.5. These are distribution differences, not proof either source is truth. [density audit](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-supervision-density-20261010-v1); [value-distance audit](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-value-distance-20261010-v1)
+- The source is Shio-Koube/knee3 at revision 373f4e1daf36984fa48bf3fc8fd9883fe17cb584. Although that mirror lacks a dataset card/license, the archived original-download receipt establishes byte identity with Steven Lee’s Kaggle version 6 (SHA256 eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4). The publisher declares CC0 and report-label parents: Steven v2 and lixin73 GPT-5.6-Sol. Gold58 guided source choices; undecided Synovitis was filled from Effusion. No MRI-teacher parent is documented. Exact blend coefficients and full upstream obligations remain unresolved. This source is therefore not an executed trial of independently cross-fitted image-teacher supervision. [Identity receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-source-research-v1/sources.json) · [Live publisher version 6](https://www.kaggle.com/datasets/stevenleehans/rsna-knee-llm-report-labels/versions/6)
+- In a fitting-only six-series-selector audit, **214/2247 studies(9.52%) omit an available sagittal/coronal non-fluid category**;103 sagittal/131 coronal omissions all have a tier0 option.924 studies repeat categories. All available three fluid-sensitive fat-suppressed plane categories are retained. Categories can contain genuinely different information; metadata lacks a T1-specific field, so do not equate descriptor categories to anatomical/source slots without review. Complementary selection is a diagnostic candidate, not a completed accuracy result. [coverage evidence](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/fitting-series-coverage-20261007-v1)
+- In a small deterministic fitting sample16studies/84series, median valid-content p1–p99 span was0.48049 of full min/max range;47/84 were below half and2/84 below one quarter. Median maximum physical FOV165.50mm versus public130mm crop. This supports an input-difference hypothesis but not universal contrast collapse or image diagnostic validity. [input measurement](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/fitting-intensity-range-20261007-v1)
+- Robust-contrast input engineering passed actual16study/84series parity and later2247study/11639series coverage with zero rejections. The subsequent trained isolated contrast result was negative; an earlier engineering-pass paragraph must not be mistaken for improvement.
+- Adapter update audit confirms all120 intended projections changed in epoch1:96attention+24FFN. Residual Frobenius ratio median0.00346857, range0.00111878–0.0066468. This rules out accidental head-only fitting, not underfitting. [adapter audit](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-update-audit-v2)
+- The same weak-development cohort has been reused across many hypotheses. Nominal per-experiment intervals do not erase adaptive selection or establish independent confirmation. Public score checking adds another adaptive feedback channel.
+
+## 5. Partial, prepared, superseded and non-results
+
+| Family | Latest observed status at pinned snapshot | What must not be claimed |
+|---|---|---|
+| Public-label matched repeat | seed20261012 control fixed-final **0.8691356747434318**; candidate completed2810training updates/epoch10 preserved, outer evaluation unobserved after parent allocation ended | No completed second-seed paired result or replicated gain |
+| All-data native-public908454 | Healthy last observation3420updates/epoch9 underway; epochs1–8 privately preserved; epoch8 deployment bundle prepared | No epoch7/8/9 public score or final ten-epoch completion inferred |
+| Dense frozen-prefix12 capacity | Engineering normalized-input/recovery accepted; production step899766.705 canceled signal15/dispatcher143 when parent899766 completed at15:38:28UTC Oct14; last905updates/threeepochs; final promoted checkpoint unobserved | This was **not intentional exit75** and not a completed negative scientific contrast; no restart/access bypass |
+| Dense first input check | Original dense-official-MRI-v1 omitted uint8 /255 and is superseded by normalized-MRI-v2 | Do not count the first check as correct input acceptance |
+| Source window bag mean vs disease query | GPU terminal899766.543/observer85546 completed full/stop1/resume exact state/CSV recovery | No full-fit accuracy result; both new arms train four groups perstudy, ~4x encoder work versus one-group slot recipe |
+| Patch-focus residual | CPU916922 completed0:0/2:34 with16+16 actualMRI tensor/fullsplit/base/graph/RNG/query-gradient acceptance; GPU917001 pending at snapshot; target relocation proof only | No GPU recovery, production fit, clinical improvement or mirrored runtime acceptance yet |
+| Teacher windows | Exact-source CPU8fit ×10windows ×12targets finite; aggregation bitwise;22/96 confidence weights zero; >0.9 outputs with≤3positivewindows: **zero** in this tiny sample | No focal localization truth, no sparse-witness demonstration, no teacher independence or student improvement |
+| Teacher full collector | Last aggregate observation1900/2247; terminal completion not established here | No complete cache or distillation-training result |
+| MRI-CORE prototype | Isolated scaffolding; normalization/feature-extraction differences documented; no accepted weights/parity or accuracy | No knee-specific transfer result or equivalent upstream encoder reproduction |
+| MRNet transfer | Source training completed, sourceweights remain private;92advisory cross-source pairs require original-image review before transfer | No RSNA gain, no confirmed duplicates from coarse pairs, no automatic publication/competition rights |
+| KneeCoT intake | Private engineering intake2exams/3volumes/2reports,107420372bytes; grayscale/affines checked,unitsunknown; no targetQA/CoTtopfields in the2 inspected | No broader absence claim, no training result, no competition admission from possession |
+| Larger DINOv3 H+/16 and7B | Config/meta graphs reviewed;840.6M(~3.36GB FP32) and6.716B(~26.86GB FP32); weights not acquired/trained | No “bigger is better” knee result |
+| AI upscaling / hierarchical morphology / complementary-category selector | Hypotheses or diagnostics, no completed matched result identified | No generated-detail clinical fidelity or accuracy gain |
+
+Original sources: [repeat](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-repeat-production-20261012-v1); [dense protocol](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/experiments/competitive-v1/dense-suffix-capacity-v1); [window-bag recovery](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/source-window-bag-GPU-terminal-20261014-v1); [patch-focus protocol](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/experiments/competitive-v1/source-patch-focus-v1); [teacher evidence](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-teacher-evidence-final-20261013-v1); [MRI-CORE](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/mri-core-prototype-intake-20261012-v1); [MRNet](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/mrnet-full-source-final-v1); [larger-backbone audit](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-larger-backbone-feasibility-v1).
+
+### Controls that must not be silently substituted
+
+Source-slot trains one non-overlapping group per update and evaluates ten overlapping windows by mean probability. Original v15 held-out scoring used four-group mean logits, while its submission used ten-window mean probabilities. Our DINOv3 bridge excludes register tokens from patch means and retains canonical labels/loss/schedule rather than the original DINOv2 training recipe. These are declared differences.
+
+Window-bag mean is a **new training control**: four groups jointly pooled under one study-level label. It is not the old one-window training trajectory even if its evaluation mean matches. Query bag uses identical graphs/initialization/budget with query disabled/enabled and a fixed0.25uniform floor.
+
+Patch focus is already implemented as an identity-preserving disease-specific spatial residual: zero-query exact output cancellation, shared dropout/RNG, candidate query gradients, masked-target zero gradient. Its own gate0/1 control is required; native-public is only a contextual comparator. Do not launch a duplicate “label-specific patch attention” proposal as though absent.
+
+Dense-prefix12 compares7,077,888 suffix-R32 parameters/LR1e-4 against150,994,944 dense delta parameters/LR1e-5, same72projections. Both use FP32 frozen eval prefix and deterministic RoPE, unlike live all-block adapted train-mode stochastic RoPE. It is a recipe contrast, not isolated parameter count. Source-slot prefix18 dense is a separate75,497,472-parameter proposal.
+
+## 6. Engineering failures and successes, kept separate from science
+
+1. Initial two-H100 runs840562/840578 stalled atupdate22 after small pilots passed; no checkpoint. CPU840800 exposed20 interpolated pixels at1.000000238 causing the range assertion; FP32 roundoff clipping corrected this.841094 failed CUDA preflight;841107 completed. Device failures and a passing tiny pilot do not establish full-run readiness.
+2. DINO state-key conversion, missing Python.h/Triton build prerequisites, CUDA/NVML visibility and preflight failures occurred before accuracy evaluation. Later native evc24 cuInit999/NVML6 was an infrastructure failure, not a model diagnosis.
+3. Early Kaggle submissions56482890/56483451/56483731/56483949/56485356 and56550973 completed with errors/zero outputs and **no score**. The three public examples passing was insufficient hidden execution validation.
+4. Synthetic repeated positions[0,0,2] reproduced an own-cache acceptance followed by dataset strict-order failure while the public reader stayed finite. This proves a deployment defect; it does not prove the actual hidden failure cause.
+5. Default Python3.13 versus cp312 wheels failed before model and was corrected with explicit3.12. Cache/bootstrap directory-walk limits and title/slug identity differences were execution problems, not scientific negatives.
+6. Full-FP16 inference failed its predeclared0.003agreement bound: in a40study test, max ACL difference0.00496838 and LM0.00667844, despite the first32 being within0.00287424. Preserve that rejection; do not widen the bound afterward. Exact CPU preparation speedup2.3194x was separately demonstrated.
+7. Exact-FP32 resident dual-T4/prefetch execution passed original32 numerical checks with no fallback and one model load/device. Time/memory improvements are deployment evidence, not AUC improvement or a blanket hidden-set9h guarantee. Earlier host memory accounting omitted child workers; corrected process-group accounting is required.
+8. T4 recovery wrapper rejected15-column research CSVs because it expected13-column submission CSVs after training had already completed. Reuse the original outputs for corrected read-only validation; do not retrain to repair a reader. A later72,854-byte helper exceeded65,536wrappercap before model; explicit128KiB admission fixed packaging without changing science.
+9. MRNet terminal observers initially required raw-byte equality between equivalent JSON serializations differing by a final newline; corrected independent replay verified the original fit. This was not a training failure.
+10. Source-slot observer looked for run.code_sha256 instead of binding.code_sha256; corrected read-only replay verified results. Checkpoint discovery/observer bugs are not justification for duplicate fits.
+11. Dense recovery's original1700second wrapper timed out; distinct recovery resumed the already promotedstep2, preserving the unpromotedstep4partial. Explicit after-deadline recovery acceptance differs from an original wrapper accepted.json.
+12. SaveKernel403/ingestion failures, output-index races, null references and observation loss remain in their original journals. Never retry an uncertain mutation simply because a read is missing. The latest epoch5 first version was recovered only after freshUIzero versions plus exact sourcehash; epoch2 uncertainty remains preserved.
+
+Shared controls: the zero-patch control and disabled-public-label control had identical early numeric logs and common epoch5 learned tensors; later fixed-final common predictions provide a reusable reference where full equivalence is established. Early258tensor equality alone did not establish complete optimizer/RNG/final equivalence. Predeclare verified common controls for new compatible hypotheses rather than spending duplicated training; do not mutate already healthy jobs retroactively.
+
+## 7. Practical no-repeat map
+
+- Keep rank32 as the current adaptation reference; a strict matched-rank question remains different from repeating confounded rank64 or jumping to128.
+- Do not repeat frozen patch-attention replacement, native mean-patch residual, fixed-mask public values or isolated p1–p99cachecontrast as untested suggestions.
+- Effusion correction, neighboring channels, smooth witness, plane memory, stratified sampling, native resolution and weight averaging each have bounded/inconclusive or mixed evidence. A new test must explain the mechanism and control that changes, not simply rename the failed recipe.
+- Full public supervision is a practical gain with an unresolved mechanism and incomplete second-seed replication. Finish/reconcile the original repeat before claiming replication; protect the rare-target and adaptive-selection caveats.
+- Current pending window-bag, patch-focus and dense work already covers major focal-evidence/capacity hypotheses. Reconcile its original lineage before commissioning duplicates.
+- MRNet/MRI-CORE/KneeCoT/larger models are not demonstrated RSNA improvements. Rights, membership, task mapping and matched extra-compute controls precede transfer claims.
+- Monotonic per-target calibration preserves ROC-AUC ranking; coarse rounding cannot repair representation or supervision. Multi-model ensembles do not meet the present solo-model objective.
+
+## 8. Coverage, reproducibility and open gaps
+
+This is a comprehensive **initial synthesis**, not a claim that every historical artifact was individually read. The pinned nonrecursive audit tree contains **1,090 entries: 1,058 directories and 32 files**; the GitHub contents endpoint capped its listing at1,000, so the complete git-tree API was used to avoid silent coverage loss. Core docs, current state, decision/submission histories, the major completed-result receipts and current experiment protocols were reviewed. The20 completed-family rows above are the principal extracted scientific outcomes; infrastructure/recovery/transfer directories often contain many receipts for the same experiment and must not be counted as separate trials.
+
+Full inventory: [pinned audit directory](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits). Archive integrity: [archive manifest](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/manifest.json). Exactconfigs/protocols: [competitive experiments](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/experiments/competitive-v1). Chronology/late corrections: [continuation](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/codex-continuation.md). Historical source SHA, checkpoint hash, roster/fold/release binding and exact targets remain in each original receipt; this issue is an index and interpretation layer, not a replacement for provenance.
+
+Outstanding reconciliation: long-tail early baselines and engineering-only audits; final state of terminated-allocation evaluation/retained checkpoints; teacher full collection terminal; pending patch-focus GPU admission/relocation; newest competitor checkpoint-count claims. The fixed snapshot prevents concurrent main changes from silently changing this ledger. Later evidence should be appended with its own commit/time and never overwrite an original failure.
+
+No repository runtime files were changed, no model was trained, no predictions submitted and no source data copied in creating this issue. Repository-wide push tests are not claimed: this is an evidence issue, not a code commit.
+
+## 9. Historical runtime and release appendix (extended after initial synthesis)
+
+The earliest real-data pipeline diagnostic used150 training studies plus3 public examples,848series and28,882slices. It completed126 optimizer updates over two epochs with exact continuous/resumed model, optimizer and RNG state. This was a pipeline smoke test, not competitive initialization or a score. Its subset pixel-duplicate checks could not replace the later full leakage graph.
+
+Original frozen DINOv3 fold0 job841107 (source b74060b98f01bff1b924070ccba5ce44dd002f40) completed2,810updates in8,014.1seconds on twoH100/fourCPUs. Its final macro0.7783102649 and1,156-row predictions were independently bound; finalcheckpoint1464f64063d2ac8729452f0f3edc112a21516ce51ad3b8718a176a599dc3f28e. Alltenepoch checkpoints were preserved privately. The one-off epoch1 replay841126 resumed the same verifiedupdate26, replayed255events tostep281, intentionally exited75 and was marked FAILED1:0 by Slurm. IndependentCPU841157 verified the completed intended stop. This is an example where scheduler FAILED is not training failure; it must not be confused with the later dense signal15 cancellation. [Original preservation receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/tree/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/epoch1-baseline-and-epoch-preservation-v1)
+
+The complete audit metadata inventory has1,090 entries (1,058directories/32files). A deterministic name-prefix coverage grouping gives105 model/input/supervision-experiment entries,306 deployment/publication entries,372 annotation-governance entries,16 external-source/teacher entries and291 other engineering/review entries. These are navigation groups, not experiment counts or claims that every artifact was read. Clinical annotation-governance contents were deliberately not inspected for this aggregate ledger. The complete metadata-only inventory is maintained alongside the draft.
+
+## 10. Training-population exclusion and validation-history clarification
+
+The full-public rare-support decomposition is bound to the [original macro-support diagnostic](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-source-full-fit-preparation-v1/paired-fixed-final/macro-support-diagnostic.json): MCL2positive/946negative delta+0.05972516; Baker3/382 +0.03228621; Fracture2/259 +0.09266409. Their combined contribution is+0.01538962 of the+0.02111347macro gain, or72.8901%. The remaining nine-target mean+0.007631795 is descriptive only.
+
+The aggregate release table and actual selector reconcile a potential4,349nongold competitor population with the3,403 used here:
+
+**4,349 − 3,403 = 441 reserved confirmation + 4 quarantine + 501 training-split studies with all original target masks zero.**
+
+The selector applies the observed-mask predicate before the dense public overlay. Thus the full-public recipe supplies more target cells within the same3,403 studies; it does not restore those501. This is a separate population-selection question. The release records18 report-correspondence exclusions and23 unresolved nongold all-masked cases, but their exact overlap with the501 cannot be inferred from aggregates. Do not label all501 unsafe, and do not blanket-admit them as eligible either.
+
+Existing policy already contemplates image-only consistency on technically/source-admitted fully masked **training-fold** images. Public/teacher supervision adds separate provenance, membership and correspondence requirements. Bilateral or ambiguous examination units need validated knee/series binding. Any expansion contrast needs matched optimizer/image exposure to separate extra examples from extra compute;441confirmation,58officialevaluation and quarantine stay excluded. This is an evidence-backed diagnostic opportunity, not a completed run or automatic training authorization.
+
+Sources: [release coverage]( https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/data-readiness-report.md ); [selector lines471–493](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/rsna/competitive/train.py#L471-L493); [existing image-only policy](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/dinov3-adapter-and-supervision-plan.md#L215-L233).
+
+The58 official studies were exposed during historical legacy calibration. The corrected project keeps them outside training and selection, but they must not be described as globally untouched validation. The441 reserve is distinct from the repeatedly reused1,156-study weak-development fold. Independently adjudicated patient/component-level evaluation remains unresolved rather than supplied by bootstrap resampling.
+
+
+
+
+
+---
+
+# Historical evidence supplement — October 14, 2026
+
+Pinned snapshot: 8300cfd20c2acaeef9d684a81dbc7fe977282a62. This supplement extends the separately delivered ledger without modifying its delivered version. Read-only aggregate documentation/code searches; no case records, models, training, submissions or GitHub writes.
+
+## Coverage delta
+
+Nine additional full audit READMEs were inspected: ranking-supervision-exposure-v1; public-report-supervision-diagnostic-v1; effusion-focused-reliability-v1; public-label-fixedmask-20261010-v1; public-label-coverage-production-20261011-v1; dinov3-patch-attention-epochs-v1; shared-control-final-20261008-v1; fitting-series-coverage-20261007-v1; public-recipe-gap-review-20261008-v1. Targeted default-branch searches for complementary selection and shared controls returned the same pinned snapshot. This adds one explicitly quantified completed fold to an already-covered scientific family, two consequential diagnostics, exact intervention definitions and completed final-control equivalence. It does not discover a new winning model or establish that every historic audit has been read.
+
+## 1. Missing completed patch-attention fold0 result
+
+Job845218 completed ten epochs /2,810 updates on2,247 fitting studies, one H100/two CPUs, with final macro **0.7451169387** on1,156 development studies versus frozen CLS **0.7783102649**: delta **−0.0331933262**. MCL fell from0.5973 to0.2162. All ten epochs were privately preserved. No patch-attention checkpoint was submitted to Kaggle.
+
+This fills the first ledger's missing explicit fold0 number. Combined with fold1's modest improvement and fold2's regression, it strengthens rejection of that particular frozen replacement head. It does not test the current identity-preserving residual patch-focus branch and does not reject all spatial information.
+
+[Original fold0 receipt](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-patch-attention-epochs-v1/README.md)
+
+## 2. Final common-control equivalence is actually complete
+
+Original CPU882567 compared the two privately verified ten-epoch controls. Exactly equal:
+- All258 common learned tensors, frozen proofs and encoder provenance
+- Named common head and ordered identical-encoder AdamW states
+- AMP scaler, all RNG state and progress counters
+- All2,810 six-field numerical update records
+- Complete final1,156-study prediction CSV bytes
+
+The only graph addition is131,072 all-zero patch-summary parameters; optimizer state is absent or zero. Whole graph/binding serialization still differs. This closes the earlier epoch5/early-log-only evidence gap.
+
+Consequence: for a prospective compatible contrast, establish exact source/default-input initialization, reference/recipe compatibility and actual GPU recovery, then reuse the accepted reference rather than automatically spend another ten-epoch fit. It is not permission to substitute this control for source-slot, a new bag-training exposure, changed labels, or changed runtime without those checks.
+
+[Final proof](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/shared-control-final-20261008-v1/README.md)
+
+## 3. Complementary series selection remains a distinct unanswered question
+
+The original audit replayed the frozen selector on12,476 eligible series from2,247 fitting studies.214 studies omit an available non-fluid category:103 sagittal,131 coronal,20 both. All omitted categories have a tier0 candidate.924 selected bags repeat plane/fluid/fat-suppression categories, but these can be genuinely distinct informative images. All available three fluid-sensitive fat-suppressed plane categories are retained.
+
+A new same-budget selector reserving complementary categories before filling six slots was proposed, preserving16 slices/384pixels and effectivebatch8. The audit explicitly says no selector integrated or training dispatched. Targeted repository search found the proposal and later bundled public-source input work, but no isolated completed selector contrast. Absence from these searches is not proof of absence in every historical branch.
+
+The later source-slot negative changes crop, input resolution, windowing, augmentation, head and sampling together. It therefore does not answer the isolated selector question. Before testing, resolve descriptor semantics: the table has no T1 field and no sagittal fluid/non-fat-suppressed category. Non-fluid is a proxy, not proof of T1 or equivalence to public slots.
+
+[Coverage receipt and proposed control](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/fitting-series-coverage-20261007-v1/README.md)
+
+## 4. Exact failed supervision interventions do not rule out image-teacher blending
+
+Fixed-mask ablation retained exactly2,247 fitting studies,13,760 observed cells and original masks. It **replaced**13,750 observed values with pinned Shio-Koube/knee3 probabilities; masked numerical values normalized to0 while masks stayed0. It was not an interpolation of accepted labels and image-teacher OOF predictions.
+
+Coverage-only retained the original observed values and used pinned public soft targets only in formerly masked fitting cells. It was not replacement of observed labels and was not a tested learned confidence mixture.
+
+Full-public changes both values and coverage; its observed internal improvement and the negative/inconclusive ablations leave a possible interaction unproven. None of these tests constitutes a failure of fold-safe image-teacher soft blending, ranking transfer or same-window-aligned teacher supervision. Those still require teacher ancestry, nested fold exclusion, exact input/loss and compute-matched controls. Existing ordinary/confidence-weighted teacher and committee protocols must be reviewed rather than re-proposed as new.
+
+[Fixed-mask definition](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-fixedmask-20261010-v1/README.md) · [Coverage-only definition](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-coverage-production-20261011-v1/README.md)
+
+## 5. Reconciled public label source identities
+
+The earlier training-only diagnostic used Pilkwang's rsna-knee-llm-labels dataset ID11529209/version1, markedCC0, with YES/NO/UNK verdicts. Its author described scores as rank-usable and uncalibrated. The provided script imported an absent llm_labeler.to_scores implementation, so the exact numerical mapping was not independently reproduced. This is distinct from the current Shio-Koube/knee3 overlay.
+
+The historical diagnostic did not admit Steven/JEV sources at that time. Subsequent reconciliation establishes that the active Shio blend and Steven version 6 are byte-identical. Steven’s declared gold-guided source changes apply to the current supervision lineage. Pilkwang and JEV remain distinct unless exact identity is separately demonstrated; historical diagnostic admission status must not be confused with current training use.
+
+Measured fitting-only disagreement examples are not population error estimates:739 observed Effusion negatives received publicYES/0.68, plausibly reflecting mild rather than moderate/large effusion;197 MCL negatives receivedYES/0.68. In the exact fitting cohort272 original-positive Effusion annotations were masked and280 cells carried incomplete-reliability holds; these overlap and must not be summed. All-development count422 masked-positive Effusion annotations is a different scope.
+
+Independent report rereading agreed on8/9 proposed diagnostic states, with one fracture acuity disagreement retained. A narrow follow-up retained one ambiguous Effusion hold rather than treating multiple historical agreements as clinical truth. The subsequent31-cell intervention already has completed model results in the main ledger. These diagnostic samples support severity/missingness questions without proving erroneous accepted labels.
+
+[Diagnostic and source distinctions](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-report-supervision-diagnostic-v1/README.md) · [Focused reliability process](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/effusion-focused-reliability-v1/README.md)
+
+## 6. Ranking exposure was measured before implementing a ranking loss
+
+The actual trainer forwards one study at a time and accumulates eight microbatches. A pairwise same-target term inside each ordinary forward has **zero** positive/negative study pairs for every target. Accumulation alone does not build a coupled ranking graph.
+
+Even if comparisons are assembled across the effective eight-study update, the original strict labels supply cross-component positive/negative pairs in:
+- MCL15/843 updates (1.78%)
+- Fracture5–7/843 (0.59–0.83%)
+- Baker17–18/843 (2.02–2.14%)
+- Synovitis16–22/843 (1.90–2.61%), limited by negatives
+- Medial meniscus820–826/843
+
+Counts were replayed at seeds20260922/20261004, with exact sampler/masks/rosters and no protected targets, and checked against843 actual GPU observed-cell counters. This is an execution/support diagnostic, not a failed ranking-training run. A new teacher-order objective may supply different pair support, but it still needs fresh differentiable paired outputs or correctly replayed gradient caching, explicit compute accounting and stable teacher-order selection. Do not fix zero-comparison support by arbitrarily increasing the loss coefficient or inventing rare negatives.
+
+[Original measured exposure](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/ranking-supervision-exposure-v1/README.md)
+
+## 7. Recipe differences predate the latest experiments
+
+The October8 source review already documented original DINOv2-small last-six-block training, backbone/headLR8e-6/1e-3,30epochs/cycle10,130mm crop/robust contrast/central neighboring channels, versus current all-block adapters1e-4/3e-4 and ten fixed epochs. The source text also described image-annotated-study weighting. These were observational differences, not a controlled demonstration of a capacity bottleneck. The failed native mean-patch branch did not reproduce the public full input recipe.
+
+[Original recipe-gap review](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-recipe-gap-review-20261008-v1/README.md)
+
+## Practical conclusion
+
+The meaningful coverage changes are: complete fold0 patch-head failure; genuine final-state shared-control reuse; still-untested same-budget complementary selection; and a sharp distinction between failed public-value replacement and not-yet-tested fold-safe image-teacher blending. These change what should be considered new. They do not justify fresh GPU work or label admission by themselves.
+
+
+
+---
+
+# Correction addendum: active public-label source identity
+
+**October 14, 2026. Applies to the experiment ledger delivered earlier today and the accompanying historical supplement.** The original files remain unchanged so their versions stay identifiable. This correction uses an existing source receipt at the same pinned snapshot 8300cfd20c2acaeef9d684a81dbc7fe977282a62; it is not a new label download or training result.
+
+## Corrected conclusion
+
+The active Shio-Koube/knee3 llm_labels_v4_blend.csv is **byte-identical to Steven's Kaggle version6 file**, according to the repository's September29 original-download receipt. It is incorrect to leave their identity as unknown or to imply that the active source's licensing/provenance evidence consists only of a missing Hugging Face card.
+
+Verified identity:
+- Hugging Face repository: Shio-Koube/knee3
+- Immutable source revision:373f4e1daf36984fa48bf3fc8fd9883fe17cb584
+- File:llm_labels_v4_blend.csv
+- Size:630,153bytes;4,407rows
+- SHA256:eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4
+- Matching Kaggle source:stevenleehans/rsna-knee-llm-report-labels, version6
+- Original receipt explicitly records same_downloaded_bytes=true
+- That Kaggle source declares CC0/Public Domain
+
+The same receipt records **gold-guided changes declared**, **Synovitis proxy filling from Effusion declared**, and two declared parents: author's v2 extraction and lixin73 GPT-5.6-Sol extraction. Exact parent transformations and full upstream derivation remain incompletely established. Known immediate identity must not be downgraded to unknown simply because deeper parent provenance needs work.
+
+Primary repository evidence: [original sources.json](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-source-research-v1/sources.json). Its checked_date is2026-09-29. Its historical diagnostic_only/not_admitted status describes that discovery stage, not the later training history.
+
+## Connection to the current training and public-score artifacts
+
+This is not merely a matching unused file in a repository. The current reviewed inference binding records the same source revision and source_csv_sha256. The all-development source-overlay worker asserts that exact SHA before constructing the3,403-study overlay. This connects the established Steven-v6 identity to the active public-supervision line.
+
+[Reviewed inference binding](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/scripts/kaggle/reviewed_infer.py) · [All-development overlay worker](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-final-inputs-20261013-v1/worker.py.txt)
+
+The header statement RSNA_competition_reports_only in a local binding does not negate declared gold-guided upstream processing. Fitting-only row selection protects local data access and membership, but cannot remove source-level dependence already incorporated into label-generation rules.
+
+## Exact earlier passages requiring correction
+
+### Experiment ledger, section4, source paragraph (line95 in the43,488-byte local version)
+
+Earlier text:
+
+“The source is Shio-Koube/knee3 at373f4e1daf36984fa48bf3fc8fd9883fe17cb584. It was publicly accessible/ungated at the audited revision; no dataset card/license was found. Access is not proof of redistribution rights, label provenance, teacher independence or competition eligibility.”
+
+Correction: the missing-card observation is specific to the HF repository. Add the confirmed byte identity to Steven Kagglev6, declaredCC0, gold-guided source changes, Synovitis proxy fill and declared parents. Do not imply no license or lineage evidence exists. The cautions about full upstream rights and independence remain relevant; their factual basis must include the known provenance.
+
+### Historical supplement, section5, heading and source-identity paragraph
+
+Earlier heading: “Three public label sources must not be conflated.”
+
+Clarification: Pilkwang's earlier YES/NO/UNK diagnostic source remains distinct, and JEV is not automatically the same. But **Shio's specific active blend file and Stevenv6 are the same downloaded bytes**, not merely similarly named sources.
+
+Earlier text:
+
+“Metadata for Steven's and JEV-Knee labels described blending/target choices tuned on58 or74 gold-like reports; those were not admitted in this diagnostic. Neither same filenames nor source-page claims establish identical ancestry or clean protected-cohort use.”
+
+Correction: “not admitted in this diagnostic” describes only the earlier diagnostic stage. It must not be read as saying Steven's exact bytes are absent from the current trained model. Identity here is established by equal size and SHA, independently of filename. Gold-independent validation is still not established, and known gold-guided source transformations make that limitation concrete.
+
+### Historical supplement, section7, recipe-gap interpretation
+
+The linked October8 recipe-gap README warns that public descriptions cannot certify exact Shio origin/license. Preserve that as the historical source's statement, but add that the earlier September29 source receipt supplies a specific stronger identity/declared-license fact overlooked by that warning. The ledger's current conclusion must reconcile both rather than repeat the weaker warning as the full evidence state.
+
+## What changes, and what does not
+
+- **Changes:** provenance is partly established, not wholly unknown. The active supervision has known gold-guided source-level processing and a declared source license. Proposed validation must account for this ancestry rather than calling source-filtered fitting automatically clean.
+- **Does not change:** measured training/public outcomes, source hashes, fixed-mask/coverage intervention definitions, negative experiment results, or the fact that neither failed ablation was fold-safe image-teacher soft blending.
+- **Still unknown:** complete reproducible parent extraction/blending logic and all downstream rights/competition-eligibility implications. The archived declaration does not itself adjudicate compliance or prove a violation.
+- **Required before stronger claims:** trace the declared parent transformations and exact gold influence; distinguish direct row exclusion from upstream rule/threshold selection. Do not infer that the held-out weak-development rows were used by the source without evidence, and do not call the upstream gold influence nonexistent.
+
+No GitHub write, source-data acquisition, case-level inspection, training change or competition submission was performed for this addendum.
+

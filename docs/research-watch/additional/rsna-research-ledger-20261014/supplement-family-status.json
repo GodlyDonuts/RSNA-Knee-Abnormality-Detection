@@ -1,0 +1,306 @@
+{
+  "snapshot": "8300cfd20c2acaeef9d684a81dbc7fe977282a62",
+  "families": [
+    {
+      "id": "frozen_dinov3",
+      "title": "Frozen DINOv3 CLS",
+      "status": "Completed three folds; internal pair-weighted macro 0.7522657162. Five additional fold2 public scores are now explicitly listed in the supplement.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/kaggle-checkpoint-comparison-v1/README.md",
+      "matching_entries": 10
+    },
+    {
+      "id": "frozen_patch_attention",
+      "title": "Frozen patch-attention replacement",
+      "status": "Completed three folds; aggregate macro 0.7360400218. Fold0 and fold2 declined; no wholesale replacement.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-patch-attention-fold2-result-v1/README.md",
+      "matching_entries": 6
+    },
+    {
+      "id": "rank32_fold0",
+      "title": "Rank32 encoder adaptation",
+      "status": "Completed fixed ten epochs; internal 0.8620940794 and public 0.769. Projection-update diagnostics support real adaptation, not isolated LoRA causality.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-adapter-a32-fold0-result-v1/README.md",
+      "matching_entries": 5
+    },
+    {
+      "id": "rank32_all_development",
+      "title": "Rank32 224 all-development fit",
+      "status": "Epoch10 / 4260 updates privately verified; public 0.792. No internal holdout. Explicit completion added.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-adapter-a32-all-development-v1/epoch-publication/epoch-010/snapshot.json",
+      "matching_entries": 1
+    },
+    {
+      "id": "rank_capacity",
+      "title": "Rank64 and stricter rank proposal",
+      "status": "Original rank64 completed; internal 0.8340496537, public 0.778. Stricter common-initialization paired-seed rank experiment remains proposed.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-rank-learning-v1/README.md",
+      "matching_entries": 4
+    },
+    {
+      "id": "whole_series_and_context",
+      "title": "Whole-series coverage and adjacent-feature context",
+      "status": "No-context all-series/all-slice control completed at 0.8603399208. The distinct 66433-parameter adjacent-feature context production contrast remains prepared only.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/experiments/competitive-v1/whole-series-context-v1/README.md",
+      "matching_entries": 3
+    },
+    {
+      "id": "slice_sampling",
+      "title": "Uniform versus stratified slices",
+      "status": "Both completed; internal delta +0.0009106945 inconclusive; public 0.770 versus 0.784.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/sampling-fixed-final-v1/README.md",
+      "matching_entries": 6
+    },
+    {
+      "id": "native384_all_development",
+      "title": "Original-label native384 all-development fit",
+      "status": "Job868093 completed0:0, ten epochs / 4260 updates; public E5 0.804 and E10 0.802. No internal holdout.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/native384-all-development-epochs-v1/README.md",
+      "matching_entries": 2
+    },
+    {
+      "id": "native384_fold_and_inputs",
+      "title": "Native384 fold0 and native-cache work",
+      "status": "Completed fold0 at 0.8630558226 versus uniform224 0.8606037925; inconclusive. Cache, reconstruction and streaming receipts are supporting engineering, not additional independent fits.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/native384-fixed-final-v1/README.md",
+      "matching_entries": 18
+    },
+    {
+      "id": "effusion_supervision",
+      "title": "Reviewed Effusion supervision across two seeds",
+      "status": "Four full three-epoch arms completed. Neither seed established primary Effusion gain; seed2 macro declined. Early initialization and three deployment failures remain distinct.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/effusion-supervision-seed2-final-v1/README.md",
+      "matching_entries": 8
+    },
+    {
+      "id": "neighbor_channels",
+      "title": "Gray versus physical and distant neighboring channels",
+      "status": "Three full three-epoch arms completed; primary MM contrasts inconclusive. Original gray remains the default.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/neighbor-channels-full-fit-v1/README.md",
+      "matching_entries": 5
+    },
+    {
+      "id": "hard_patch_witness",
+      "title": "Original hard top-k signed patch witness",
+      "status": "Real recovery engineering is reported in subsequent summaries; no completed full accuracy contrast identified for this original BF16 hard selector. Initial tied-score gradient coverage 0.0868056%.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/witness-initial-gradient-v1/README.md",
+      "matching_entries": 5
+    },
+    {
+      "id": "smooth_witness",
+      "title": "Smooth local witness",
+      "status": "Completed three-epoch control/candidate; primary MM delta +0.0008348678 inconclusive. FP16/scaler and hard-selector recovery are not separate accuracy wins.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/smooth-witness-full-fit-v2/README.md",
+      "matching_entries": 3
+    },
+    {
+      "id": "plane_memory",
+      "title": "Plane-memory residual",
+      "status": "Completed control/candidate; macro delta +0.0042802833 inconclusive. Secondary MM gain cannot replace the primary endpoint.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/plane-memory-full-fit-v1/README.md",
+      "matching_entries": 2
+    },
+    {
+      "id": "cls_patch_mean",
+      "title": "CLS plus mean-patch residual",
+      "status": "Completed ten-epoch control/candidate; macro fell about 0.0186373. Reject this tested mean branch.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/cls-patch-summary-full-fit-v2/README.md",
+      "matching_entries": 5
+    },
+    {
+      "id": "public_labels_full",
+      "title": "Full public-label supervision",
+      "status": "Completed control/candidate; macro 0.8997840648 versus 0.8786705965, delta +0.0211134683. Retain known Steven-v6/Gold58-guided source ancestry and sparse-support caveats.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-source-full-fit-preparation-v1/paired-fixed-final/macro-support-diagnostic.json",
+      "matching_entries": 7
+    },
+    {
+      "id": "public_labels_fixedmask",
+      "title": "Public values on original masks",
+      "status": "Completed candidate; macro 0.8536812809, negative versus shared control. Not an image-teacher blending experiment.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-fixedmask-production-20261010-v1/README.md",
+      "matching_entries": 2
+    },
+    {
+      "id": "public_labels_coverage",
+      "title": "Coverage-only public supervision",
+      "status": "Completed candidate; macro 0.8693023133, primary difference inconclusive and MM lower. Not equivalent to full public supervision.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-label-coverage-production-20261011-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "public_labels_repeat",
+      "title": "Public-label second-seed repeat",
+      "status": "Control endpoint 0.8691356747; public arm finished2810 training updates but fixed-final evaluation remains unobserved after parent terminal. No replication claim.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/current-state.md",
+      "matching_entries": 3
+    },
+    {
+      "id": "public_labels_all_development",
+      "title": "All-development native-public fit",
+      "status": "Original908454 is partial at the snapshot; eight epochs preserved and epoch9 underway. Public E1/E3/E4/E5/E6 are 0.752/0.856/0.865/0.872/0.872.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/current-state.md",
+      "matching_entries": 20
+    },
+    {
+      "id": "contrast",
+      "title": "Robust cache contrast",
+      "status": "Completed ten-epoch isolated p1\u2013p99 contrast at 0.8537006030 versus 0.8786705965. Input-parity and full-cohort coverage checks do not alter this negative outcome.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/cache-contrast-production-20261008-v1/README.md",
+      "matching_entries": 10
+    },
+    {
+      "id": "checkpoint_average",
+      "title": "Equal E6\u2013E10 weight average",
+      "status": "Completed evaluation without new fitting; macro 0.8990962409, no established gain over native-public E10.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/epoch-weight-average-fixed-final-20261014-v1/README.md",
+      "matching_entries": 4
+    },
+    {
+      "id": "source_slot",
+      "title": "Older-source-slot DINOv3 recipe",
+      "status": "Completed ten epochs; macro 0.8782870962, below contextual native-public 0.8997840648. Many recipe elements differ.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/source-slot-fixed-final-20261014-v1/README.md",
+      "matching_entries": 7
+    },
+    {
+      "id": "window_bag",
+      "title": "Four-group mean versus query window bag",
+      "status": "Completed actual GPU recovery engineering; no completed full-fit accuracy contrast identified. New joint-group training control is distinct from source-slot.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/source-window-bag-GPU-terminal-20261014-v1/README.md",
+      "matching_entries": 5
+    },
+    {
+      "id": "patch_focus",
+      "title": "Disease-query residual patch focus",
+      "status": "Actual CPU MRI/model admission completed; GPU917001 pending at pinned snapshot and target relocation incomplete. No completed training result.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/docs/current-state.md",
+      "matching_entries": 9
+    },
+    {
+      "id": "dense_suffix",
+      "title": "Dense suffix versus suffix rank32",
+      "status": "Real production started; dense canceled by parent completion after last905 updates/three epochs. Not planned exit75 or a completed negative contrast. Matched suffix full endpoint unestablished.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/training-preservation-cancellation-20261014-v1/README.md",
+      "matching_entries": 12
+    },
+    {
+      "id": "teacher_committee",
+      "title": "Public image-teacher and twenty-member committee",
+      "status": "Eight-study CPU/GPU evidence and bit-exact twenty-member shared-prefix forward accepted. Full collector terminal and student fitting remain unestablished.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-teacher-shared-prefix-GPU-20261013-v1/README.md",
+      "matching_entries": 9
+    },
+    {
+      "id": "slice_relations",
+      "title": "Physical slice-distance auxiliary objective",
+      "status": "Full-cohort geometry and H100 initialization-gradient scale measured. Failed original compiler probe followed by corrected completed probe. No accepted full production accuracy contrast.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/slice-relations-gradient-header-recovery-v1/training-only-scale-decision.json",
+      "matching_entries": 9
+    },
+    {
+      "id": "anatomical_sharing",
+      "title": "Logical anatomical task sharing",
+      "status": "Fitting-only aggregate support measured; shared-query and disease-residual mechanism not integrated or trained. Do not count logical unions as new rare-disease labels.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/anatomical-sharing-support-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "patch_geometry",
+      "title": "Patch geometry and padding hypothesis",
+      "status": "All12476 fitting-series geometry audited; mean wholly artificial patch fraction0.9248%. Negative diagnostic for letterboxing as a main explanation; no registration or accuracy claim.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/patch-geometry-research-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "ranking_support",
+      "title": "Ranking-objective pair support",
+      "status": "Measured one-study forwards yield zero same-target pairs; effective-eight support sparse for rare targets. No ranking-loss fit completed.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/ranking-supervision-exposure-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "complementary_selection",
+      "title": "Complementary series selection",
+      "status": "214/2247 fitting studies omit an available sagittal/coronal non-fluid category. Same-budget revised selector proposed; no isolated trained contrast found.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/fitting-series-coverage-20261007-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "public_recipe_input_parity",
+      "title": "Source-faithful public rendering and triplets",
+      "status": "Completed eight-study source/input comparisons and exact triplet adapter checks; later source-slot supplies the trained bundled recipe result. Individual parity/retrieval fixes are engineering.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/public-dinov2-real-inputs-20261013-v2/README.md",
+      "matching_entries": 21
+    },
+    {
+      "id": "public_source_review",
+      "title": "Public source provenance and recipe review",
+      "status": "Aggregate source collection and identity review only. Active Shio bytes are Steven-v6 report-label blend; no documented MRI-teacher ancestor.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/adapter-source-research-v1/sources.json",
+      "matching_entries": 4
+    },
+    {
+      "id": "mrnet_source_transfer",
+      "title": "MRNet source fit and possible transfer",
+      "status": "Ten source epochs completed: ACL0.8621082621 / meniscus0.7215843858 / abnormality0.9285087719. RSNA transfer not completed; overlap and rights gates distinct.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/mrnet-full-source-final-v1/README.md",
+      "matching_entries": 8
+    },
+    {
+      "id": "mri_core",
+      "title": "MRI-CORE prototype",
+      "status": "Scaffolding/intake only; no accepted pretrained parity or knee classification result.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/mri-core-prototype-intake-20261012-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "kneecot",
+      "title": "KneeCoT private intake",
+      "status": "Bounded intake engineering only; no training or RSNA improvement. Clinical records deliberately not inspected here.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/kneecot-private-research-access-20261006-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "larger_dinov3",
+      "title": "Larger DINOv3 backbones",
+      "status": "Config/meta feasibility only; no H+ or7B weight acquisition/training result established.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-larger-backbone-feasibility-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "early_backbone_screen",
+      "title": "Early ConvNeXt and DINOv2 screen",
+      "status": "ConvNeXt actual pretrained CPU forward/head backward on synthetic input; DINOv2 header topology only. No current clinical comparison.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/competitive-pretrained-local-check-v1/convnext-actual-cpu-receipt.json",
+      "matching_entries": 1
+    },
+    {
+      "id": "early_pipeline_diagnostic",
+      "title": "Early CNN pipeline and first DINOv3 pilot",
+      "status": "126-update pipeline smoke and26-update two-H100 DINOv3 pilot completed recovery checks. They are diagnostic, not competitive fits. Protected acceptance records were not read.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/dinov3-h100-pilot-v6/README.md",
+      "matching_entries": 4
+    },
+    {
+      "id": "training_throughput",
+      "title": "Training throughput profiler",
+      "status": "Prepared/corrected implementation and64 root tests; no actual isolated MRI GPU setting promoted. Measured existing-run timings are motivation, not new profiler benchmarks.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/experiments/competitive-v1/throughput-profile-v1/README.md",
+      "matching_entries": 1
+    },
+    {
+      "id": "shared_control_equivalence",
+      "title": "Exact common-control equivalence",
+      "status": "Final learned tensors, optimizer/scaler/RNG/history and final prediction bytes were equal across two completed controls. Reuse requires recipe compatibility; this is not a new accuracy trial.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/shared-control-final-20261008-v1/README.md",
+      "matching_entries": 2
+    },
+    {
+      "id": "run_cancellation",
+      "title": "Training cancellation and preservation",
+      "status": "Parent899766 terminal canceled dense overlap by signal15/143; repeat final evaluation unobserved. Already-preserved source-slot result stays complete.",
+      "source": "https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/8300cfd20c2acaeef9d684a81dbc7fe977282a62/initiative/audits/training-preservation-cancellation-20261014-v1/README.md",
+      "matching_entries": 1
+    }
+  ]
+}
