@@ -1,3 +1,7 @@
+# Latest owner priority and actual submission: October15 07:46UTC
+
+Owner explicitly removed prior workflow restrictions and authorized direct Kaggle action despite unreachable Newton. Exact existing E8v1 code notebook was submitted ONCE via authenticated browser at07:45:56UTC, scriptVersionId358433328, submission.csv selected, unique description rsna-epoch-v1:d84ced2a4d9a02e85803b8be586c9a37277e7af3ec743c70f4ccfbe30ab52ced. Actual hidden state Notebook Running/no score. Numeric submissionID not exposed yet. See kaggle-epoch8-direct-submit-20261015-v1 and local exclusive intent/result. NEVER resubmitE8/restartoldcontroller; canonicalledger reconciliation awaits access. New owner authorization supersedes infrastructure-only blockers below.
+
 # Access priority: October15 00:54UTC
 
 UCF VPN is actually Disconnected/Newton unreachable. Owner reconnect/sign-in/MFA requested once. E8slot controller14936 is now terminal transportfailure/missing; no submit intent, authenticatedKaggle0today/5available/noE8submission. After reconnect reconcile canonicalledger then one distinct exactE8v1submission; neverrestart oldcontroller or repeatDataset/push. Recovery919305lastRUNNING is unobserved, not terminal authority. Read access-loss-20261015-0052-v1.

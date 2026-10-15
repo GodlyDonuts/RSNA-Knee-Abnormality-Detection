@@ -1,0 +1,5 @@
+# Epoch 8 direct competition submission
+
+Owner explicitly overrode prior workflow restrictions after reviewing the exact prepared epoch8 submission. Root submitted the existing private notebook v1 once through the authenticated Kaggle browser, with submission.csv selected as the hidden rerun output. No Dataset/notebook push or CSV upload was repeated. Kaggle visibly accepted the unique description and reported Notebook Running at October15 07:45:56UTC. No hidden score exists yet; numeric submission ID is not exposed in the observed UI. Exact scriptVersionId358433328, checkpoint/source/public acceptance remain unchanged.
+
+Newton remains unreachable. The original slot controller had terminated without a submit intent. The local exclusive intent/result at artifacts/kaggle-local-focus-20261015-v1 is authoritative for preventing a duplicate until later canonical ledger reconciliation. Never restart the old controller or submit epoch8 again. Owner authorization removes infrastructure-only waiting; source provenance, valid competition output and truthful outcome checks remain necessary.
