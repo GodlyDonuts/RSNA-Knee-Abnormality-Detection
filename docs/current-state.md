@@ -1,3 +1,7 @@
+# Actual epoch8 result: October15 11:39UTC
+
+Submission57221755 COMPLETE,248792bytes, public0.863, exactE8v1. AuthenticatedAPI + refreshedUI agree. Fourlive slots. Same trajectoryE5/E6 .872; E8 .009lower, no monotonic late-epoch gain. E10prepared/unpublished remains finalcomparison; no newcloudpush or fit. Read kaggle-epoch8-direct-submit-20261015-v1/scored.json and analysis.md. NEVERresubmitE8; canonical reconciliation pendingaccess.
+
 # Latest owner priority and actual submission: October15 07:46UTC
 
 Owner explicitly removed prior workflow restrictions and authorized direct Kaggle action despite unreachable Newton. Exact existing E8v1 code notebook was submitted ONCE via authenticated browser at07:45:56UTC, scriptVersionId358433328, submission.csv selected, unique description rsna-epoch-v1:d84ced2a4d9a02e85803b8be586c9a37277e7af3ec743c70f4ccfbe30ab52ced. Actual hidden state Notebook Running/no score. Numeric submissionID not exposed yet. See kaggle-epoch8-direct-submit-20261015-v1 and local exclusive intent/result. NEVER resubmitE8/restartoldcontroller; canonicalledger reconciliation awaits access. New owner authorization supersedes infrastructure-only blockers below.
