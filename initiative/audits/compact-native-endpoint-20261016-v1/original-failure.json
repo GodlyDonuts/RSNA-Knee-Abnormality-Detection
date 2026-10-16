@@ -1,0 +1,23 @@
+{
+  "kernel_id": 138966459,
+  "version": 1,
+  "terminal": "ERROR",
+  "actual_runtime_seconds": 196.1,
+  "observed_source": "authenticated Kaggle Logs tab",
+  "exception": "AttributeError",
+  "message": "module 'original_process_deadline' has no attribute 'run_bounded'",
+  "before_MRI_inference": true,
+  "correction": "bounded_process(command, env=env, timeout=2100)",
+  "actual_owning_node_payload_signature": {
+    "bounded_process": {
+      "positional": [
+        "command"
+      ],
+      "keyword_only": [
+        "env",
+        "timeout"
+      ]
+    }
+  },
+  "competition_submission": false
+}

@@ -1,0 +1,1 @@
+Actual fitting-only quality milestone c796040c privately mirrored once under canonical lock; all3objects/32140B fully downloaded/size/SHA verified HF4d175f22a5ece1c03d9ffcb2a43dbe2d1f46aaec. No MRI/labels/original IDs/weights. Never repeat.

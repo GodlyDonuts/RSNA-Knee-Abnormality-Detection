@@ -141,6 +141,15 @@ def prepare_runtime(expected_manifest_sha256):
     return bundle, python, env
 
 
+def run_bounded_native(command, bundle, env, timeout):
+    """Use the pinned bootstrap's actual keyword-only process-group helper."""
+    helper = bundle / "code/scripts/kaggle/notebook_entry.py"
+    spec = importlib.util.spec_from_file_location("native_process_deadline", helper)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.bounded_process(command, env=env, timeout=timeout)
+
+
 def run(expected_manifest_sha256):
     bundle, python, env = prepare_runtime(expected_manifest_sha256)
     command = [

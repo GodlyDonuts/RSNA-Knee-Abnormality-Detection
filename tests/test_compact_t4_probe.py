@@ -45,3 +45,24 @@ def test_payload_discovery_prunes_competition_tree(tmp_path):
     hidden.mkdir(parents=True)
     (hidden / "bundle-manifest.json").write_text("{}")
     assert discover_bundle(tmp_path, hashlib.sha256(b"{}").hexdigest()) == expected
+
+
+def test_native_deadline_calls_the_real_bootstrap_interface(tmp_path):
+    import inspect
+
+    from scripts.kaggle import notebook_entry
+    from scripts.kaggle.compact_t4_entry import run_bounded_native
+
+    assert list(inspect.signature(notebook_entry.bounded_process).parameters) == [
+        "command",
+        "env",
+        "timeout",
+    ]
+    helper = tmp_path / "code/scripts/kaggle/notebook_entry.py"
+    helper.parent.mkdir(parents=True)
+    helper.write_text(
+        "def bounded_process(command, *, env, timeout):\n"
+        " assert command == ['native-runtime']\n"
+        " assert env == {'BOUND': '1'} and timeout == 2100\n"
+    )
+    run_bounded_native(["native-runtime"], tmp_path, {"BOUND": "1"}, 2100)

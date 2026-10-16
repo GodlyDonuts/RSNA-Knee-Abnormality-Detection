@@ -5,3 +5,5 @@ Each completed epoch1–16 is preserved once with full checkpoint/snapshot/run/i
 Dispatch only a completed original epoch with scripts/hf/dispatch_compact_epoch.py EPOCH --ssh-control /tmp/rsna-research-20261001-stable.sock. It checks sidecar/scope/source and original local/remote attempt absence before credentials or intent. No production epoch had completed at staging; no upload yet. Keep original training healthy. Actual first upload acceptance remains to be observed.
 
 Real-MRI MC128 CPU931077 independently passed on70 candidate windows: six encoder calls/70 encoded windows,128 bags, unchanged globalRNG, finite12-target output. Maximum full-versus-MC probability difference .0022319555 belongs to a diagnostic checkpoint/one study, NOT an accuracy comparison. No T4 qualification or new model score follows.
+
+Epoch2 privately published once at HF42107885cca9d4198512431995df498d55188611, all8 objects fully re-downloaded/size/SHA verified. Checkpoint740c29fb7193575f20a063dd3b1f38f6d0537d55e0073e2162c718ea855f569d. CPU931365. Never repeat. Healthy original progressed596finiteupdates/epoch3.

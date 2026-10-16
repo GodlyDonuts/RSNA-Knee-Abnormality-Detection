@@ -1,3 +1,11 @@
+# October16: compact epoch2 preserved; raw-endpoint bootstrap correction actually launched
+
+Healthy original930744 is in epoch3/596finiteupdates. Completed epochs1/2 each privately published/download-size-SHA verified ONCE; newE2HF42107885cca9d4198512431995df498d55188611/all8objects/CPU931365. Original finite publication watcher exec47365 remains live; never repeat epochs.
+
+Original native endpoint138966459/v1 ERROR196.1s before inference: generated code called nonexistent run_bounded. Correct actual pinned API bounded_process(command,*,env,timeout) is independently owning-node AST verified and regression-tested. Distinct corrected private/offline2T4 endpoint138967256/v1 rsna-compact-native-endpoint2-bcc8d6223af8 pushedONCE source07de19d8, actualRUNNING. Same verified Dataset12622515/v1/diagnostic weights; no new Dataset or competition submission. Confirmed-push finite observer exec52346 handles exact terminal/release929938; earlier pre-push observer terminal403 made no mutation. Never restart/repush. Eight focused tests/Ruff passed. No raw-endpoint acceptance or CoAtNet accuracy result yet.
+
+Expanded-supervision quality milestone sourcec796040c privately verified ONCE HF4d175f22a5ece1c03d9ffcb2a43dbe2d1f46aaec/all3smallobjects. New Devin issue92 investigates37uniform0.25 source rows and provenance; no automatic label exclusion/inclusion. Preserve original correspondence exclusions.
+
 Fitting-only expanded-label audit now qualifies the earlier356-case opportunity:11 original report-correspondence exclusions must remain excluded, leaving345 additional/2592total fitting candidates. Of356,37 source rows are0.25 for every target (fallback semantics unverified),22 uniformlylow; source coverage is not label quality. Existing release/live N3 unchanged. Full report-eligible capacity3887train; separately scope-frozen final could reach4327 including440weakvalidation. Read research-paper1-assessment-20261016-v1 latest qualification. Source d17e2881 native-endpoint/availability milestone is privately verified ONCE HF5d662f900597192a4d5dceecf36fb2f4ccbeb34e/all12smallobjects. Never repeat.
 
 # October16: native compact Kaggle endpoint actually running; expanded inputs located
