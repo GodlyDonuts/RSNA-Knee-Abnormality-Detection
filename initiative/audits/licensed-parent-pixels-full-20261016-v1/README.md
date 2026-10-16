@@ -60,3 +60,14 @@ that exact prefix, requires HTTP206/exactContent-Range and matching64KiBoverlap,
 appends only the missing suffix in256MiBrequests, then verifies the complete
 original SHA and every member/rendered input. Canonical claim remains free
 during bulk read/local replay. Other original sources are not repeated.
+
+
+October16 23:10UTC current state supersedes the original running observations:
+all FOUR immutable CPU sources are COMPLETE, zero empty/decode-error cases,
+972/972/972/971studies. Actual original full producer proofs and the exact3887UID
+join are in the full-production audit. The model is training on BOTH T4s from
+those exact mounted outputs; original Kaggle readiness is distinct from Newton
+backup. Independent replica/replay shards0/1 passed CPU939550/939676, wholeSHA/
+everymember/both94-window hashes. Shard2collector939777 is currently RUNNING;
+keep original80537 alive, do not retransfer either completed shard or repush any
+producer. No original bytes were deleted or replaced.

@@ -8,7 +8,7 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the **October 16, 21:39 UTC** check, our own CoAtNet epoch 16 scored
+At the **October 16, 23:10 UTC** check, our own CoAtNet epoch 16 scored
 **0.894**, following epochs 4/8/12 at 0.821/0.869/0.890. The reproduced external
 author-trained model scored **0.949**; that is an attributed baseline, not our
 training improvement. Both matched CNN challengers completed. Positive weighting
@@ -39,9 +39,13 @@ foundation. Both actual two-T4 recovery paths passed, including complete state
 and prediction equality. The new whole-study path trains all94windows together
 with all73.1Mparameters trainable, using **5.97GBpeak/GPU**, versus7.60GBfor the
 sampled12-window path. This is an engineering result, not an accuracy gain.
-Four full3887-study CPU cache shards are still running; its compact private
-training-target/teacher Dataset is already fully verified. Full production has
-not started. [Current whole-study program](initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
+All four full-population CPU cache shards have completed with zero decode errors
+or empty studies. Full production139111324v1 is now **RUNNING on both T4s**:
+3,887studies, all94windows, all73,136,096parameters trainable, **43finite updates**
+observed in epoch1. The fixed three-epoch schedule carries optimizer/RNG state
+between bounded sessions. No epoch is complete and this adaptation has no score
+yet. Completed-epoch preservation and exact inference/submission owners are live.
+[Actual training and proof](initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
 
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
 on 3,887 fitting studies. This is evidence about training exposure, **not disease

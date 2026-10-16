@@ -278,24 +278,29 @@ training time. [12window receipt](../initiative/audits/licensed-parent-trainer-r
 Whole-study MIL keeps all94original windows in each bag, checkpoint-recomputing
 8-window encoder chunks to bound activation memory. Every encoder/head parameter
 still trains. Inference uses the unchanged parent encoder and94two-view path.
-Prospective full recipe:3epochs/3887eligible fitting studies/1458updates,
-effective8, low encoder/headLR3e-6/3e-5,AdamW/10%warmup-cosine/clip1,
+The full production recipe is now running:3epochs/3887eligible fitting studies/
+1458updates/effective8, low encoder/headLR3e-6/3e-5, AdamW/10%warmup-cosine/clip1,
 .25original source+.75view-specific full-parent teacher, frozen parent BN buffers.
 Protected Gold/confirmation remain unused. No independent localOOF is possible
-for this exposed parent. CPU939476 has actually staged the full production
-control from sourcec68d8752. Live finiteowner80039/exec6555 waits for all original
-producer receipts, then launches up to3checkpoint-continuous seven-hour twoT4
-sessions at486/972/1458steps, preserving one complete LR/optimizer/RNG schedule.
-No full GPU production notebook has yet been pushed.
+for this exposed parent. CPU939476 staged the unchanged production sourcec68d8752;
+CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle.
+Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
+was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
+T4s, all73,136,096parameters trainable and **43finite optimizer updates** in epoch1
+at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
+[Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
 
-The required original pixel population is projected~39.70GB. Of the four original private CPU
-cache notebooks139103622/139103665/139103730/139103781 v1, shard0 is COMPLETE
-(972studies,zero decode errors/empty cases,9.456GBarchive,1996.89seconds); the
-other three remained RUNNING at the latest read,
-covering3887ordered fitting studies exactly; reuse32original members and encode
-only3855new cases. No competition slots/GPU used. Each output is bounded14GiB;
-training will mount them read-only instead of creating a second40GBworking tree.
-The remaining original producer outcomes and private backup collection are pending. [Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
+Live finiteowner80039/exec6555 continues up to3checkpoint-continuous seven-hour
+sessions at486/972/1458steps, preserving one complete LR/optimizer/RNG schedule.
+All four original private CPU cache notebooks139103622/139103665/139103730/
+139103781 v1 are COMPLETE:972/972/972/971studies, zero decode errors/empty cases,
+38,870,763,520new archive bytes plus326,799,360reused original32bytes. All3887
+ordered fitting studies and both94-window input-view hashes passed. The trainer
+mounts those immutable originals read-only without a second40GBworking tree.
+Independent Newton backup/replay is separately complete for shards0/1 via
+CPU939550/939676; original shard2collector939777 was RUNNING on evc39 at23:09UTC.
+Do not claim all Newton replicas verified or repeat any original producer.
+[Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
 
 CPU939271 compacted all3887original labels/masks and both teacher-logit views
 bit-exactly into483656bytes. CPU939291 created ONE private training Dataset
@@ -309,11 +314,10 @@ Original numerical/input engineering checks:52passed,Ruff/mypy clean, including 
 The new loader also passed actualCPU939362: all32original MRI cases/64views,
 all94window inputs, source labels/masks and both teacher views matched bit-exactly
 in37.01seconds, reading directly inside the original tar without a second pixel
-tree. This engineering acceptance does not admit the still-running full cache.
-Production must bind all4actual original Kaggle producer proofs, exact weight/source/labels,
-accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
-fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
-never reset the LR/optimizer schedule per segment.
+tree. Full production additionally passed all4actual original Kaggle producer
+proofs, exact weight/source/label bindings, accepted whole94GPU receipt and fresh
+resource state. Its fixed-schedule sessions retain the original LR/optimizer
+schedule across the three segments.
 
 Latest exact-parent source and actual engineering/input receipts are privately
 fully verified at HFa879e194d2646971b0b9238ce588abce64c2d03f:71small objects,
@@ -342,3 +346,24 @@ b08293736906370bfc050aef5509c721a457e703,35objects/247805bytes fully re-download
 size/SHAverified under the shared lock byCPU939577. No MRI/identities/labels/
 teachers/prediction rows/parent body/weights mirrored. Never repeat this or old
 prefixes. [Original preservation receipt](../initiative/audits/hf-licensed-parent-full-production-20261016-v1/verified.json).
+
+
+## Exact learned-epoch serving and single comparison owners
+
+CPU939778 actually staged the separate inference controls from source095d3a7d.
+Live82392/exec1021 waits for the first actual completed, independently preserved
+full epoch, then checks exact trained-wrapper/original-class state,32MRI cases,
+all94two-view tensors and probabilities on bothT4s. It subsequently qualifies the
+exact private offline public MRI/CSV notebook, reusing the immutable original
+training output directly; no new model Dataset or repeated weight upload. No
+serving GPU has yet been pushed because epoch1 is still training. Three actual
+epochs/six notebooks maximum, quota waits reserve no GPU and create no intent.
+
+Live82509 is a separate finite ONE-entry epoch1 owner. It waits for actual
+private complete-model preservation and bothT4/publicMRI/CSV acceptance, the
+original context comparison's actual scored outcome, no unresolved entries and
+fresh authoritative daily allowance. It sends the exact code notebook ONCE,
+then observes its actual hidden outcome. Maximum one entry; no three-row CSV
+upload, diagnostic model or uncertain-mutation retry. The existing spaced head
+comparisons remain unchanged. Inspect each original intent/result before action.
+[Actual stage, owners and source](../initiative/audits/licensed-parent-epoch-serving-20261016-v1/README.md).

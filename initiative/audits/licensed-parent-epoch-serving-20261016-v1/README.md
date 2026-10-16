@@ -1,6 +1,8 @@
 # Full learned-epoch inference and comparison path
 
-Prepared source, not actual serving/GPU/public acceptance yet. Requires an actual
+Actual CPU939778 staged the immutable controls from source095d3a7d; live owner
+82392/exec1021 waits for actual completed/preserved epochs. No serving GPU or
+public acceptance exists yet. Requires an actual
 completed production epoch and its independent CPU full model/AdamW/history/
 RNG/scaler preservation plus private whole download/size/SHA proof. Diagnostic,
 partial, wrong-parent/recipe/population/head or nonfinite artifacts are refused.
@@ -34,3 +36,14 @@ A local documentation-copy filename mismatch originally prevented the source
 commit, so the first stage command stopped BEFORE its local intent or any remote
 job/API action. The source snapshot is now committed before the one real stage.
 No source GPU, notebook push, weight transfer or competition entry was repeated.
+
+
+Separate finite entry owner82509 is LIVE, with maximumONE epoch1 code submission.
+It waits for the exact privately verified learned epoch and actual bothT4/public
+MRI acceptance, a scored original context result, no unresolved account entries
+and fresh daily allowance. It observes the resulting hidden outcome; it cannot
+submit other epochs or upload the public CSV. Entry deadlineOct17 23:10UTC and
+outcome observation deadlineOct18 10:00UTC. Existing entry-finish.intent and all
+phase intents are immutable; no actor restart/mutation retry. This is an installed
+conditional path, not an actual entry or accuracy result. Exact source and owner
+receipts are retained here without credentials or private patient/model arrays.
