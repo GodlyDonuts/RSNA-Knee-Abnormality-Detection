@@ -402,3 +402,10 @@ Canonical ledger/claim and original exact private notebook versions remain bindi
 Root implements directly; Devin unavailable. Next priority is full input admission
 and bounded whole94full adaptation from the strong MRI parent, not another
 head-only re-fit or replay of completed diagnostic work.
+
+Latest input bridge: CPU939362 COMPLETED0:0,37.01seconds actual32MRI/64views/94
+windows/source labels/masks/two-view teachers bit-exact through production
+PixelBags857a374f. No second pixel tree/GPU/newDataset. Do not repeat this gate;
+full3887cache still unobserved. Implement the full checkpoint-continuous compiler
+from accepted whole94source after exact original cache proofs; whole-model production
+has NOT been staged or dispatched. Preserve all original owners and outputs.

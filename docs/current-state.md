@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 22:01 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 22:07 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -314,7 +314,8 @@ deadline17 23:15UTC, hidden observation deadline18 10:00UTC, no mutation retry.
 The20:31UTCaccount/ledger confirms5used/0live slots and all four unsubmitted.
 Existing next-window entry owners remain
 unchanged. [Next larger initialization/input-cache direction](../initiative/experiments/competitive-v1/licensed-parent-end-to-end-v1/README.md)
-is prepared only; no new cache/weight transfer/end-to-end GPU fit was dispatched.
+now has actual exact-input and full-model T4 engineering acceptance; see the
+current whole-study adaptation section below. Full GPU production remains pending.
 
 Sourcea823bebe and36small source/result/ownership objects (251,672bytes) are
 privately fully re-downloaded/hash verified at HF29421f9826d34cdf3ddcdaccc1c1d8ac33bcc252.
@@ -376,7 +377,10 @@ private UID/label/logit arrays stay on cluster/Kaggle, not Git/smallHF mirrors.
 
 Current focused engineering checks:52passed,Ruff/mypy clean, including fresh
 2rank CPU recovery, exact whole94gradient/RNG parity and input/target roundtrips.
-The new full-population loader still needs its own actual32CPU bridge admission.
+The new loader also passed actualCPU939362: all32original MRI cases/64views,
+all94window inputs, source labels/masks and both teacher views matched bit-exactly
+in37.01seconds, reading directly inside the original tar without a second pixel
+tree. This engineering acceptance does not admit the still-running full cache.
 Production must bind all4actual cache proofs, exact original weight/source/labels,
 accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;

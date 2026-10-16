@@ -305,3 +305,8 @@ Production must bind all4actual cache proofs, exact original weight/source/label
 accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
 never reset the LR/optimizer schedule per segment.
+
+ActualCPU939362 also accepted the production loader on32original MRI cases: all
+64full94-window input tensors, source labels/masks and both teacher views are
+bit-exact. No new pixel extraction tree, model fitting or accuracy claim. The
+full3887cache and full GPU production remain pending.
