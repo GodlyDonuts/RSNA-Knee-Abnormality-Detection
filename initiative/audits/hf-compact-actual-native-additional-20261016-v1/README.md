@@ -1,0 +1,1 @@
+Source4264d037 actual native T4 acceptance/64-case launch/additional345 cache/code milestone privately mirrored ONCE under canonical lock, all22objects/126163B fully re-downloaded/size/SHA verified HF3c1edaf090282d1e53bca5e5244595ba24f386fc. No MRI/labels/original IDs/weights; never repeat.

@@ -1,0 +1,11 @@
+# Fixed secondary Kaggle checkpoint curve
+
+Declared while original N3 is training epoch4/update856, before any CoAtNet clinical/Kaggle result or per-epoch outer predictions have been inspected. This does not change the fixed16-epoch primary outer endpoint.
+
+Compare original scheduled full-model epochs4,8,12,16 on Kaggle as separately qualified code versions, each once. Their identical fitting population is2247, not the old all3403 DINO final-fit population; do not claim isolated architecture or training-duration effects against that other recipe. Use full-bag FP16 inference for this curve. MC128 remains its separately preregistered secondary evaluator, not an adaptively per-target tuned transform.
+
+Before each version: actual immutable checkpoint/source/run binding and private preservation; exact full-model CPU/T4 precision; private offline native pipeline; verified complete13-column CSV; live authoritative submission allowance and original-intent reconciliation. Reuse immutable wheelhouse/common components. Never upload the public3-row CSV or repeat a scored/uncertain version. At most five daily entries under live allowance, leaving time for actual outcomes. No permission question is needed for these already authorized useful checkpoint comparisons.
+
+A fifth candidate may be a fixed late-weight average of epochs14/15/16, selected now by position in the training schedule rather than observed scores. It must have an explicit standalone inference format, complete equal parent run/source/base bindings, floating tensor/BatchNorm-buffer averaging and a declared integer-counter policy (maximum BatchNorm counter; other integer buffers identical). It is not resumable training state or a fake scheduled epoch16. It requires its own CPU/T4/finite-output acceptance; until implemented and actually verified it is not a submitted or eligible candidate. No gold/confirmation selection or new primary outer checkpoint search.
+
+Current state: curve declared, no CoAtNet competition entry made; production component/precision coordinator remains next.64-case raw-DICOM benchmark138968653 is running, not a competition submission. Preserve healthy original training930744 and its checkpoint-continuous schedule.
