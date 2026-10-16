@@ -134,7 +134,7 @@ def make_optimizer(model: CompactBagClassifier, settings: Settings, steps: int):
     return optimizer, scheduler
 
 
-def masked_cell_loss(logits, labels, mask, active_cells: float):
+def masked_cell_loss(logits, labels, mask, active_cells: float, *, pos_weight=None):
     """One bag's contribution to BCE over all active cells of the effective batch."""
     if logits.shape != (12,) or labels.shape != logits.shape or mask.shape != logits.shape:
         raise ValueError("Expected twelve aligned logits, labels and masks")
@@ -150,6 +150,21 @@ def masked_cell_loss(logits, labels, mask, active_cells: float):
     ):
         raise ValueError("Nonfinite prediction/target or invalid active-cell denominator")
     safe = torch.where(observed, labels, torch.zeros_like(labels))
+    if pos_weight is not None:
+        if (
+            pos_weight.shape != (12,)
+            or pos_weight.dtype != torch.float32
+            or pos_weight.device != logits.device
+            or not torch.isfinite(pos_weight).all()
+            or ((pos_weight < 1) | (pos_weight > 10)).any()
+        ):
+            raise ValueError("Twelve bound FP32 positive weights in [1,10] required")
+        return (
+            nn.functional.binary_cross_entropy_with_logits(
+                logits.float(), safe.float(), reduction="none", pos_weight=pos_weight
+            )
+            * mask
+        ).sum() / active_cells
     return (
         nn.functional.binary_cross_entropy_with_logits(
             logits.float(), safe.float(), reduction="none"
@@ -210,6 +225,14 @@ def fit(
     policy = dataset_input_policy(data)
     if policy is not None and binding.get("input_policy") != policy:
         raise ValueError("Source-neighbor dataset requires exact input-policy binding")
+    positive_weights = None
+    loss_policy = binding.get("loss_policy")
+    if loss_policy is not None:
+        if policy is not None:
+            raise ValueError("Positive weighting and neighbor inputs are separate contrasts")
+        from rsna.competitive.compact_loss import loss_weights
+
+        positive_weights = loss_weights(loss_policy, data, binding, device)
     runtime = {
         "device": str(device),
         "GPU": torch.cuda.get_device_name(device) if device.type == "cuda" else None,
@@ -232,6 +255,10 @@ def fit(
         from rsna.competitive.compact_source_neighbors import ENGINE
 
         expected["engine"] = ENGINE
+    if loss_policy is not None:
+        from rsna.competitive.compact_loss import ENGINE as LOSS_ENGINE
+
+        expected["engine"] = LOSS_ENGINE
     checkpoint = output / "checkpoint.pt"
     model.to(device)
     optimizer, scheduler = make_optimizer(model, settings, total)
@@ -320,7 +347,11 @@ def fit(
                 images = model_windows(sample, windows, policy).to(device)
                 logits = model(images)
                 loss = masked_cell_loss(
-                    logits, sample["labels"].to(device), sample["label_mask"].to(device), active
+                    logits,
+                    sample["labels"].to(device),
+                    sample["label_mask"].to(device),
+                    active,
+                    pos_weight=positive_weights,
                 )
                 loss.backward()
                 loss_value += float(loss.detach())
@@ -446,6 +477,18 @@ def admitted_datasets(args):
     if file_sha256(args.series) != release["series_sha256"]:
         raise ValueError("Native series table differs from accepted release")
     series = pd.read_csv(args.series)
+    loss_policy = None
+    requested_loss = getattr(args, "loss_policy", "unweighted")
+    if requested_loss == "positive-weighted":
+        if getattr(args, "input_policy", "n3") != "n3":
+            raise ValueError("Positive weighting and neighbor inputs are separate contrasts")
+        from rsna.competitive.compact_loss import derive_policy
+
+        # Estimate on ALL accepted fitting rows before engineering subsetting.
+        # Neither outer labels nor the tiny engineering subset set these weights.
+        loss_policy = derive_policy(fitting)
+    elif requested_loss != "unweighted":
+        raise ValueError("Unrecognized compact loss policy")
     if args.engineering:
         fitting, outer = fitting.head(16), outer.head(16)
     kwargs = dict(
@@ -484,6 +527,8 @@ def admitted_datasets(args):
             "std": [0.5] * 3,
         },
     }
+    if loss_policy is not None:
+        binding["loss_policy"] = loss_policy
     policy = getattr(args, "input_policy", "n3")
     if policy == "matched-source-neighbors":
         from rsna.competitive.compact_source_neighbors import POLICY, MatchedSourceNeighborDataset
@@ -518,6 +563,9 @@ def main() -> None:
     parser.add_argument("--stop-after-updates", type=int)
     parser.add_argument("--inputs-only", action="store_true")
     parser.add_argument("--input-policy", choices=("n3", "matched-source-neighbors"), default="n3")
+    parser.add_argument(
+        "--loss-policy", choices=("unweighted", "positive-weighted"), default="unweighted"
+    )
     args = parser.parse_args()
     if (args.output / "result.json").exists():
         parser.error("Fixed-final run already finalized; do not repeat fitting/evaluation")
