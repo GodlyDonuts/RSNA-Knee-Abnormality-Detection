@@ -53,6 +53,10 @@ class Pool:
                 "result": {
                     "rows": {uid: [int(uid[1:]) / 10] * 12 for uid in c["identifiers"]},
                     "model_load_count": 1,
+                    "device_index": 0,
+                    "encoded_windows": len(c["identifiers"]) * 14,
+                    "insufficient_window_studies": 0,
+                    "peak_GPU_bytes": 100,
                     "checkpoint_sha256": c["checkpoint_sha256"],
                 },
             }
@@ -108,6 +112,13 @@ def test_exact_roster_tail_chunk_and_only_image_unavailability_fallback(tmp_path
     assert Pool.last.closed and Preparation.last.closed
     assert result["studies"] == 5 and result["chunks"][0]["unusable_MRI_studies"] == 1
     assert not list(a.scratch.glob("chunk-*"))
+    import hashlib
+
+    assert result["CSV_sha256"] == hashlib.sha256(a.output.read_bytes()).hexdigest()
+    assert len(result["test_roster_sha256"]) == 64
+    assert len(result["chunks"][0]["workers"]) == 2
+    assert all(c["preparation_wait_seconds"] >= 0 for c in result["chunks"])
+    assert all(c["inference_wait_seconds"] >= 0 for c in result["chunks"])
 
 
 def test_model_failure_is_fatal_and_never_converted_to_neutral(tmp_path, monkeypatch):

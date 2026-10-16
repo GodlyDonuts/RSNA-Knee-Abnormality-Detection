@@ -1,3 +1,7 @@
+# October16: actual compact native T4 MRI-to-CSV acceptance
+
+Corrected138967256/v1 COMPLETE; exact source/private/offline2T4/receipt verified. All3 publicMRIstudies/15series/13columns, zero unusable-MRI fallbacks; native pipeline46.27686s/maxsummedlifetimeRSS8,812,535,808B; session254s including bootstrap/rendering. No clinical result/hidden-scale claim. Original929938 releasedONCE, confirmedobserver52346 terminalsuccess. Do not repeat this notebook/Dataset. Current runtime adds per-chunk CPU-wait/inference-wait/worker-window/VRAM/CSV-roster hashes for next64 fitting-only unlabelled MRI benchmark; prepared source only, not yet pushed.
+
 # October16: additional345 original-image cache actually building
 
 CPU931411 RUNNING on evc33/oneCPU/zeroGPU, distinct original new345-only paired256/384 cache plan from a7a53304.345 correspondence-eligible additional fitting cases/1769series/54562slices/36,349,800,124 originalDICOMbytes; all1301fold0cases excluded. Current labels/release/folds/N3 training unchanged. Fresh70GiB envelope leaves192,716,445,757bytes after all retained/new liabilities; sharedgrowth0. Seven whole-study shards verify corrected original source bytes, accepted256reference and native384geometry/loader/archive bytes, retain privately on node. Initial shard in progress; no completed new cache/training/accuracy claim. Finite controller exec25543, output /tmp/rsna-additional345-native-cache-20261016-v1 on evc33. Inspect original logs/terminal before action, never duplicate/retry uncertainty.

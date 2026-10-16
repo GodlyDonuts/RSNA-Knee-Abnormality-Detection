@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import json
 import os
 import shutil
@@ -220,10 +221,12 @@ def run(
         for index, offset in enumerate(range(0, len(ids), 4)):
             if time.monotonic() - started >= args.max_seconds:
                 raise TimeoutError("Total compact inference budget exhausted")
+            chunk_started = time.monotonic()
             chosen = ids[offset : offset + 4]
             root = args.scratch / f"chunk-{index:04d}"
             root.mkdir(mode=0o700)
             cache = root / "cache"
+            preparation_started = time.monotonic()
             selected, receipt = preparation.prepare(
                 series.loc[series.StudyInstanceUID.isin(chosen)].copy(),
                 chosen,
@@ -238,6 +241,7 @@ def run(
                 allow_unusable_studies=True,
                 series_sampling="selected",
             )
+            preparation_wait = time.monotonic() - preparation_started
             unavailable = set(receipt["unusable_study_ids"])
             if not unavailable <= set(chosen):
                 raise ValueError("Invalid MRI recovery roster")
@@ -259,6 +263,8 @@ def run(
                         "allow_diagnostic": args.allow_diagnostic,
                     }
                 )
+            inference_started = time.monotonic()
+            worker_receipts = []
             for reply in pool.exchange(commands) if commands else []:
                 if reply.get("status") != "passed":
                     raise RuntimeError(reply.get("stderr", "Compact worker failed"))
@@ -271,6 +277,18 @@ def run(
                 if set(result["rows"]) & set(rows):
                     raise ValueError("Duplicate worker study prediction")
                 rows.update(result["rows"])
+                worker_receipts.append(
+                    {
+                        key: result[key]
+                        for key in [
+                            "device_index",
+                            "model_load_count",
+                            "encoded_windows",
+                            "insufficient_window_studies",
+                            "peak_GPU_bytes",
+                        ]
+                    }
+                )
             if set(rows) != set(ids[: offset + len(chosen)]):
                 raise ValueError("Incomplete chunk prediction roster")
             max_memory = max(
@@ -281,6 +299,10 @@ def run(
                     "studies": len(chosen),
                     "unusable_MRI_studies": len(unavailable),
                     "selected_series": receipt["selected_series"],
+                    "preparation_wait_seconds": preparation_wait,
+                    "inference_wait_seconds": time.monotonic() - inference_started,
+                    "total_chunk_seconds": time.monotonic() - chunk_started,
+                    "workers": worker_receipts,
                 }
             )
             # This is this invocation's decoded cache only; original inputs and
@@ -301,6 +323,10 @@ def run(
             "maximum_summed_lifetime_RSS_bytes": max_memory,
             "chunks": receipts,
             "hidden_scale_runtime_qualified": False,
+            "CSV_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
+            "test_roster_sha256": hashlib.sha256(
+                json.dumps(ids, separators=(",", ":")).encode()
+            ).hexdigest(),
         }
         args.output.with_suffix(".metrics.json").write_text(json.dumps(result, indent=2) + "\n")
         return result
