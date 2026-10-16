@@ -1,0 +1,29 @@
+"""Finite read-only monitor; reconciles terminal and releases original pending job once."""
+import json,subprocess,sys,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent;intent=L/'t4-finish.intent.json';assert not intent.exists()
+with intent.open('x') as f:json.dump({'kernel':'godlydonuts/rsna-compact-t4-precision-bcc8d6223af8','version':1,'maximum_seconds':4500,'poll_seconds':60,'new_push_or_submission':False,'automatic_retry':False},f)
+r=Remote();slug='godlydonuts/rsna-compact-t4-precision-bcc8d6223af8';started=time.monotonic()
+try:
+ while time.monotonic()-started<4500:
+  value=r.kernel('GetKernelSessionStatus',slug,1);status=value.get('status')
+  (L/'t4-finish-progress.json').write_text(json.dumps({'status':status,'elapsed_seconds':time.monotonic()-started,'version':1},indent=2)+'\n')
+  if status in ['COMPLETE','ERROR','CANCELLED']:
+   # Original remote coordinator checks exact source/version/private/offline then
+   # releases929938 only after actual terminal. No repeat of the push.
+   x=subprocess.run([sys.executable,str(L/'run_t4_phase.py'),'status'],capture_output=True,text=True,timeout=1850)
+   (L/'t4-finish-terminal-reconciliation.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+   if x.returncode:raise RuntimeError('terminal source/hold reconciliation requires review')
+   if status=='COMPLETE':
+    receipt=r.output_json(slug,1,'compact-T4-precision-accepted.json')
+    assert receipt['status']=='actual_two_T4_compact_precision_and_encoder_timing_accepted'
+    assert receipt['diagnostic_only'] is True and receipt['competition_eligible'] is False
+    assert receipt['hidden_scale_end_to_end_runtime_qualified'] is False
+    (L/'t4-actual-accepted.json').write_text(json.dumps(receipt,indent=2)+'\n')
+   result={'status':status,'actual_engineering_accepted':status=='COMPLETE','competition_submission':False};break
+  time.sleep(60)
+ else:result={'status':'finite_observation_deadline','last_status':status,'competition_submission':False}
+except Exception as exc:
+ result={'status':'stopped_for_readonly_review','error_type':type(exc).__name__,'reason':str(exc),'competition_submission':False}
+(L/'t4-finish-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

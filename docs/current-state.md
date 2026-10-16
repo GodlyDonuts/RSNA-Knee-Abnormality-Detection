@@ -1,3 +1,9 @@
+# October16: actual private compact T4 diagnostic running
+
+Private offline notebook138964322/v1 `godlydonuts/rsna-compact-t4-precision-bcc8d6223af8` RUNNING, exact SourceSHAeb406c27.../image/twoT4/private/version verified. Dataset12622515/v1 created once, all18objects fully downloaded/hash verified. Diagnostic4-update weights only,70 unlabeled native windows/synthetic identity/no original case IDs. No submission.csv/competition entry. Finite observer exec50077 `artifacts/compact-native-n3-launch-20261016-v1/finish_t4_probe_once.py` active; inspect actual process/phase receipts, never restart it or duplicate any mutation. Original pending patch929938 held once during this bounded GPU test; terminal observer releases same job. Actual precision/throughput result still pending; hidden end-to-end runtime NOT qualified by this probe.
+
+Healthy original compact930744 reached246finiteupdates/epoch1; publisher watcher exec47365 is active, no completed epochs at latest observation. Keep training unchanged. See compact-T4-precision-preparation-20261016-v1. All66focused compact tests passed. Current goal remains active, no new accuracy score.
+
 # October16: compact production actually running
 
 **930744 RUNNING on evc33 H100**, original source dcfff319 / wrapper d24c1c98. 99 finite optimizer updates verified in epoch1/4496; empty stderr. Fixed16 epochs,2247 fitting/1156 outer, effective8. Unique node-private `/tmp/rsna-compact-native-n3-production-evc33-20261016-v1`. Never duplicate/restart healthy original. Four-hour allocation supports verified terminal/checkpoint continuation of SAME schedule, not a shorter fit.
