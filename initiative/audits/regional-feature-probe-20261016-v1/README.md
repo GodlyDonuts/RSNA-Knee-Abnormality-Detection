@@ -1,0 +1,5 @@
+# Frozen regional feature route: actual CPU graph
+
+ActualCPU936392 confirmed the exact installed timm1.0.30 MaxxVit/ClassifierHead/SelectAdaptivePool2d graph exposes NCHW1024×10×10before global pooling. On one deterministic synthetic image, forward_features equals actual pool input and forward_head reconstructs the original backbone output bit-exactly. Model sourceSHAa904be655fc8ec4f5171ad313a1ee8b189c6a29e10ff2d82429f22a1fb3cbdc8. **Random untrained architecture only**: no pretrained checkpoint, MRI, labels, reports, downloads or GPU. This is not actual learned-parent/input or accuracy acceptance. [Actual receipt](actual-CPU-graph.json).
+
+New pure observer/summary and private streaming-probe compiler pass11focused CPUtests, Ruff and two-fileMypy. Constant-mean focal/uniform synthetic maps differ in regional summaries, and the observer leaves original pooling output bit-equal. Actual licensed-weight MRI/twoT4acceptance remains separate. [Fixed hypothesis/gates](../../experiments/competitive-v1/regional-feature-v1/README.md). No full regional cache/trainer/competition entry is dispatched by these artifacts.
