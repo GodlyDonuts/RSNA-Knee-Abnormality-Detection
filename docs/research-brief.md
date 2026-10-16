@@ -35,7 +35,7 @@ Current N3 triples are consecutive **selected slots**, not guaranteed consecutiv
 source slices. The source-neighbor challenger preserves original centers and all
 other registered settings. Its full fit and a separate positive-weight full fit
 were submitted after actual H100 recovery. Neighbor932957 is now actually training;
-weighted933001 is RUNNING; epoch1 privately verified.
+weighted933001 is RUNNING; epochs1–6 privately verified. Neighbor epochs1–13 are privately verified.
 Neither has demonstrated an accuracy gain. Public one-study gradient accumulation
 also means mixed-study BatchNorm is not a known missing ingredient.
 
@@ -128,31 +128,10 @@ has a competition submission/hidden score yet. This is an
 unproven mechanism and external adaptation, not an own-training improvement or
 independent internal validation. [Protocol and interpretation](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md).
 
-The next learned mechanism preserves the licensed strong encoder and adds a small
-zero-start, bounded contextual head over its per-window features. It tests whether
-relations across slices/series help beyond independent window MIL, while avoiding
-retraining a73M CNN every head epoch. It is implemented; the exact
-label-free32-MRI feature probe COMPLETED successfully. The distinct full3,887
-feature pass hit actual memory exhaustion.832records are byte-recovered; bounded suffix recovery uses a private Dataset after Kaggle omitted failed-notebook inputs. Parent exposure
-precludes independent internal OOF. The complete production head engine passed actual32-MRI full/stop/resume; full fitting awaits complete features.
-[Mechanism, literature, fixed proposal and rejection criteria](../initiative/experiments/competitive-v1/released-context-v1/README.md).
+The context mechanism now has a complete accepted3,887study/two-view feature cache. Its exact fixed10epoch/2430update FP32engine completed in430.943seconds and all10checkpoints/finalcomponent are privately download/hash verified. The model relates all94windows through a bounded zero-start attention correction while retaining the strong licensed parent. The cache cost3,519seconds on twoT4s after832savedrecords were reused; later head experiments need no repeatedCNN encoding. RAM exhaustion in the original unbounded producer and the omitted failed-notebook dependency are preserved negatives; bounding both task submission and consumption fixed the actual extraction path. No new context clinical/Kaggle result or independent internal OOF exists.
 
-The registered averaging experiment is now complete: raw-servingE16 0.92068844
-versus fixed average0.92100408 internal macroAUC, delta+.00031564 with paired
-whole-component conditional95%[-.00214034,.00293081]. No established gain; retain
-E16 as own-model default. Raw/cachedE16 aggregate difference-.00023691 also has
-interval crossing zero; no large aggregate serving collapse was observed, but
-this is not proof of pixel parity or an isolated decoder/precision experiment.
+A complementary idea addresses small-bag training exposure using importance sampling inspired by Monte Carlo estimators. Against the strong teacher's fullMILreadout, fixed influence sampling with inverse-proposal correction reduced approximation MSE42.0%on32engineering cases and45.6%onall3,887fitting cases, with everytarget improved. This consumed no disease labels/newCNN/GPU in the fullrepeat. [Actual fullcohort result](../initiative/audits/licensed-MIL-sampling-20261016-v1/README.md).
 
-The context feature probe ACTUALLY passed32 MRI studies in60.166s on both T4s,
-with exact original pixels/cache-head probabilities/zero-start logits. Features
-are FP32, so no quantization is assumed. A separately funded full3,887-study
-frozen feature pass requires bounded suffix recovery, reusing832verified records. The exact full FP32head engine is accepted on real features; no full fit or accuracy result yet.
-The actual cache enables repeated context-head experiments without repeating
-expensive CNN inference. Raw/index/features remain private.
+This is evidence of better teacher fidelity per16-windowbag, not better disease classification. The teacher may be wrong, finite self-normalized estimates can be biased, and computing its influence requires the complete teacher feature bag. It suggests a cache-guided training contrast; it does not establish a cheaper inference scheme or justify untested CNN promotion. No such CNNfit is dispatched. Preserve this distinction in further plans and reports.
 
-## October16 feature-cache memory negative
-
-The label-free32-MRI feature pipeline passed, but the scaled3887pass139034277/v1 hit actual system-memory exhaustion at970.3s. Partial832records have0recorded per-study failures; they are not a complete accepted cache. Bound producer submissions as well as the consumer queue, then verify/reuse existing private feature bytes. This engineering failure is not a disease-classification result. The complete FP32context head engine source2ee0cffe passed actual32-MRI full/stop1/resume with complete state/prediction equality before full fitting.
-
-The dependency-corrected bounded suffix139044146 is now actually RUNNING. Its49.5s gate verified all832saved feature records and4privateDataset metadata files before new MRI, so only3055cases require new CNN inference. The finite owner advances to the exact accepted FP32head engine after full feature acceptance. No new disease score exists.
+The registered averaging result remains null: raw-servingE16 0.92068844 versus fixedaverage0.92100408, delta+.00031564 with whole-component conditional95%[-.00214034,.00293081]. Keep E16 as own-model default; no independent evidence supports an averaging improvement.

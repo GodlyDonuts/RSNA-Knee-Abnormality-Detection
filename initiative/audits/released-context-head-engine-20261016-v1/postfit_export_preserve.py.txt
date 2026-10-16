@@ -1,0 +1,70 @@
+"""After real fixed-final fitting only: export, CPU reference, private epoch preservation."""
+import hashlib,importlib.util,json,os,subprocess,sys,tempfile
+from pathlib import Path
+import numpy as np
+import torch
+v=PACKAGE;R=ROOT;P=R/'production';assert (P/'terminal.json').is_file()
+SROOT=Path('/tmp/rsna-released-context-serving-20261016-v1');accepted=json.loads((SROOT/'accepted.json').read_text());assert accepted['status']=='actual32_nonzero_context_serving_CPU_math_accepted' and accepted['source_git']=='558352e1b55ea25e0824c1966695b8cabe35140e'
+for name,h in accepted['source_files'].items():assert hashlib.sha256((SROOT/'code'/name).read_bytes()).hexdigest()==h
+# This is a fresh postfit process environment; the actual fitter numerical files
+# remain byte-identical. Serving code imports the same registered head engine.
+sys.path.insert(0,str(SROOT/'code'))
+from rsna.competitive.released_context_infer import export_component,load_component,predict_context_pair,sha256
+from scripts.kaggle.released_context_notebook import build
+D=SROOT/'full-component-v1';assert not D.exists();D.mkdir(mode=0o700)
+component=export_component(P/'checkpoint.pt',P/'terminal.json',R/'accepted.json',D/'component.pt')
+name='context-head-e10-'+component['component_sha256'][:12]+'.pt';os.link(D/'component.pt',D/name)
+model,provenance=load_component(D/name,component['component_sha256'])
+index_path=R/'features32/index.private.json';assert sha256(index_path)=='a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100';rows=json.loads(index_path.read_text())['records'];assert len(rows)==32
+reference=[];maximum=0.0
+for row in rows:
+ p=index_path.parent/row['file'];assert p.stat().st_size==row['bytes'] and sha256(p)==row['sha256']
+ with np.load(p,allow_pickle=False) as a:
+  probability,correction=predict_context_pair(model,torch.from_numpy(a['features']),torch.from_numpy(a['parent_logits']),torch.from_numpy(a['centers']),torch.from_numpy(a['present']))
+ reference.append(probability.numpy());maximum=max(maximum,float(correction.abs().max()))
+assert maximum>1e-8
+with (D/'reference.private.npy').open('xb') as f:os.fchmod(f.fileno(),0o600);np.save(f,np.stack(reference).astype(np.float32),allow_pickle=False)
+reference_sha=sha256(D/'reference.private.npy');reference_name='context-cpu-reference-'+reference_sha[:12]+'.npy';os.link(D/'reference.private.npy',D/reference_name)
+assert hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+code=SROOT/'code';parts=[(code/n).read_text() for n in ['rsna/competitive/released_context.py','rsna/competitive/released_context_train.py','rsna/competitive/released_context_infer.py','rsna/competitive/bounded_preparation.py']];bindings={}
+for mode in ('qualification','competition'):
+ text,b=build(v['parent_source'],*parts,component['component_sha256'],mode=mode,reference_sha=reference_sha if mode=='qualification' else None);(D/(mode+'.private.py')).write_text(text);(D/(mode+'.private.py')).chmod(0o600);bindings[mode]=b
+(D/'component.json').write_text(json.dumps(component,sort_keys=True,indent=2)+'\n');(D/'source-permission.txt').write_text(v['permission_text'])
+# Prepare all ten immutable original epochs. The HF payload contains no feature,
+# index, UID, CPU-reference prediction array or generated external source body.
+common=D/'publication-common';common.mkdir(mode=0o700);term=json.loads((P/'terminal.json').read_text());final=torch.load(P/'checkpoint.pt',map_location='cpu',weights_only=False);assert final['completed']==2430 and final['epoch']==10 and final['binding']==term['binding']
+common_values={'recipe.json':final['recipe'],'source.json':{'fitting_git':final['binding']['source_git'],'fitting_source_files':json.loads((R/'source.json').read_text()) if (R/'source.json').is_file() else json.loads((R/'code/source.json').read_text()),'binding':final['binding'],'serving_git':accepted['source_git'],'serving_source_files':accepted['source_files']},'environment.json':{'torch':torch.__version__,'numpy':np.__version__,'python':sys.version,'training_device':'CPU','precision':'FP32','threads':1},'component.json':component}
+for n,x in common_values.items():(common/n).write_text(json.dumps(x,sort_keys=True,indent=2)+'\n')
+(common/'source-permission.txt').write_text(v['permission_text'])
+payload={};epochs={}
+for epoch in range(1,11):
+ p=P/'epochs'/f'epoch-{epoch:03d}.pt';state=torch.load(p,map_location='cpu',weights_only=False);assert state['completed']==epoch*243 and state['epoch']==epoch and state['cursor']==0 and state['order'] is None and state['binding']==final['binding'] and state['recipe']==final['recipe'] and len(state['history'])==epoch*243
+ assert state['model'].keys()==final['model'].keys()
+ if epoch==10:assert all(torch.equal(t,final['model'][k]) for k,t in state['model'].items())
+ for k,t in state['model'].items():assert k in final['model'] and t.shape==final['model'][k].shape and t.dtype==torch.float32 and torch.isfinite(t).all()
+ row={'epoch':epoch,'completed_updates':epoch*243,'checkpoint_sha256':sha256(p),'checkpoint_bytes':p.stat().st_size,'engine':state['version'],'source_git':state['binding']['source_git'],'safe_population_uid_sha256':state['binding']['safe_population_uid_sha256'],'parent_weights_sha256':state['binding']['parent_weights_sha256'],'source_permission_sha256':hashlib.sha256(v['permission_text'].encode()).hexdigest(),'clinical_accuracy_claim':False};epochs[str(epoch)]=row
+ side=common/f'epoch-{epoch:03d}.json';side.write_text(json.dumps(row,sort_keys=True,indent=2)+'\n');payload[f'epoch-{epoch:03d}/checkpoint.pt']=str(p);payload[f'epoch-{epoch:03d}/epoch.json']=str(side)
+for n in common_values:payload['common/'+n]=str(common/n)
+payload['final/checkpoint.pt']=str(P/'checkpoint.pt');payload['final/terminal.json']=str(P/'terminal.json')
+payload['common/source-permission.txt']=str(common/'source-permission.txt');payload['serving/'+name]=str(D/name)
+for n in ['rsna/__init__.py','rsna/schema.py','rsna/competitive/__init__.py','rsna/competitive/released_context.py','rsna/competitive/released_context_train.py','scripts/newton/run_released_context_fit.py']:payload['common/source/'+n]=str(R/'code'/n)
+assert sum(Path(p).stat().st_size for p in payload.values())<128*2**20
+prepared={'status':'actual_fixed_final_context_component_CPU_prepared','component':component,'reference_sha256':reference_sha,'reference_bytes':(D/reference_name).stat().st_size,'max_abs_actual_context_correction_on32':maximum,'notebook_bindings':bindings,'actual_T4_acceptance':False,'clinical_or_competition_accuracy':False};(D/'prepared.json').write_text(json.dumps(prepared,sort_keys=True,indent=2)+'\n')
+HF=r'''
+import hashlib,importlib.util,json,os,sys,tempfile
+from pathlib import Path
+from huggingface_hub import HfApi,CommitOperationAdd
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path(v['root']);assert not (R/'publication').exists();J=R/'publication';J.mkdir(mode=0o700)
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert hashlib.sha256(core.read_bytes()).hexdigest()=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde';s=importlib.util.spec_from_file_location('publisher',core);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+with m.shared_publication_lock():
+ api=HfApi(token=v['token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True;prefix='experiments/licensed-sequence-context/train3887-fixed10-2ee0cffe-v1';table={name:{'bytes':Path(path).stat().st_size,'sha256':m.sha(path)} for name,path in v['files'].items()};paths=[prefix+'/'+n for n in table];assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=paths,repo_type='dataset'));m.atomic_new(J/'intent.json',{'prefix':prefix,'parent':info.sha,'files':table,'epochs':v['epochs'],'no_MRI_labels_indices_UIDs_or_predictions':True})
+ result=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve all10 immutable licensed-context head epochs and exact final serving component',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+name,path_or_fileobj=path) for name,path in v['files'].items()]);m.atomic_new(J/'commit.json',{'revision':result.oid})
+ with tempfile.TemporaryDirectory(prefix='rsna-context-epoch-verify-',dir='/tmp') as tmp:
+  for name,row in table.items():
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+name,repo_type='dataset',revision=result.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and m.sha(p)==row['sha256']
+ receipt={'status':'all10_context_epochs_and_final_component_privately_full_download_size_SHA_verified','revision':result.oid,'prefix':prefix,'epochs':v['epochs'],'objects':len(table),'bytes':sum(x['bytes'] for x in table.values()),'no_MRI_labels_indices_UIDs_or_predictions':True};m.atomic_new(J/'verified.json',receipt);print(json.dumps(receipt),flush=True)
+'''
+with (D/'private-publication.log').open('x') as log:
+ x=subprocess.run(['/home/sa305415/rsna-knee/hf-epoch-publisher-v1/env-cp312/bin/python','-B','-c',HF],env={**os.environ,'HF_HUB_DISABLE_XET':'1','HF_HOME':str(D/'hf-home-private'),'HF_XET_CACHE':str(D/'hf-xet-private')},input=json.dumps({'token':v['hf_token'],'files':payload,'root':str(D),'epochs':epochs}),text=True,stdout=log,stderr=subprocess.STDOUT)
+assert x.returncode==0,'Actual full fitting completed; private publication requires read-only reconciliation'
+receipt=json.loads((D/'publication/verified.json').read_text());print(json.dumps({'status':'actual_context_final_CPU_component_prepared_and_epochs_preserved','prepared':prepared,'private_preservation':receipt,'new_Kaggle_mutations':0}),flush=True)

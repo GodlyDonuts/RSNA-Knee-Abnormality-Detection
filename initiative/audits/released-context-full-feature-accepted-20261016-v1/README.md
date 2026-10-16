@@ -1,0 +1,5 @@
+# Full licensed-context feature cache accepted
+
+Exact private offline two-T4 kernel139044146/v1 **godlydonuts/rsna-released-features-data800-6c6ed23f5e7d** COMPLETED once in3,519.157seconds. All3,887admitted safe training studies have two94-windowFP32views.832original records were reused with byte acceptance before new MRI; only3,055newstudies were encoded. Original CPU/GPU pixels/cache-head/zero-start gates passed on bothT4s. PeakGPU3,186,399,744bytes/device; parentRSS3,898,580,992bytes; pendingCPUcap4. No labels/reports/fitting/clinical evaluation in extraction. [Actual receipt](actual-full-feature-accepted.json).
+
+CPU936070 collected the new2,366,576,640-byte archive exactly once, whole-size/SHA and all memberNPZ/metadata verified, while reusing the original32+800node-local records. FullindexSHA5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113. Private arrays/index/UIDs stay evc33/Kaggle. The same accepted numerical engine2ee0cffe is now fitting the fixed10epoch/2430update context head. Existing finite owner35582 advances it, exports only actualfinalweights and preserves every epoch. No duplicate run or feature transfer.

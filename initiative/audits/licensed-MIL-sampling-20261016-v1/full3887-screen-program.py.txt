@@ -1,0 +1,38 @@
+
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+R=Path('/tmp/rsna-licensed-MIL-sampling-full3887-20261016-v1');assert not R.exists()
+threshold=581021415363+2*2**30+(2+16+64+32+256+32)*2**20+4*2**30+2*2**30
+assert shutil.disk_usage('/tmp').free>threshold
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1')
+admission=json.loads((F/'full-input-admitted.json').read_text());assert admission['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted' and admission['all3887_feature_members_exact_size_SHA_NPY_metadata'] is True
+index=F/'full-features/index.private.json';raw=index.read_bytes();assert hashlib.sha256(raw).hexdigest()==admission['binding']['feature_index_sha256']
+records=json.loads(raw)['records'];assert len(records)==3887
+# Deliberately do not open full-inputs.private.json, the label CSV or report release.
+ids=[r['study_uid'] for r in records];assert ids==sorted(ids) and len(set(ids))==3887 and hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+R.mkdir(mode=0o700);(R/'mil_sampling.py').write_text(v['source']);assert hashlib.sha256(v['source'].encode()).hexdigest()==v['source_sha256']
+sys.path.insert(0,'/tmp/rsna-released-context-serving-20261016-v1/code');torch.set_num_threads(1)
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.schema import TARGETS
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+# Dummy all-masked tensors satisfy the original feature reader without clinical data.
+data=FrozenFeatures(records,roots,np.zeros((3887,12),dtype=np.float32),np.zeros((3887,12),dtype=bool),{'scope':'label_free_estimator_fidelity_only'})
+headpath=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt');assert headpath.stat().st_size==1122765 and hashlib.sha256(headpath.read_bytes()).hexdigest()=='8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5'
+head=torch.load(headpath,map_location='cpu',weights_only=True)
+s=importlib.util.spec_from_file_location('mil_sampling',R/'mil_sampling.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+case_mse=np.zeros((3887,2,12));uniques=np.zeros((3887,2));cpu_gap=0.0;moment_gap=0.0;started=time.monotonic()
+for i in range(len(data)):
+ example=data[i];weights,votes,bias,cpu=m.readout_moments(head,example[0]);cached=m.probability(example[1].numpy().astype(np.float64)).mean(0)
+ result=m.benchmark(weights,votes,bias,draws=128,bag=16,seed=20261016+i)
+ case_mse[i]=[result['uniform_per_target_MSE'],result['influence_per_target_MSE']];uniques[i]=[result['uniform_mean_unique_windows'],result['influence_mean_unique_windows']]
+ cpu_gap=max(cpu_gap,float(np.max(np.abs(cpu-cached))));moment_gap=max(moment_gap,float(np.max(np.abs(cpu-result['mean_view_full_probability']))))
+ if (i+1)%256==0:
+  tmp=R/'progress.tmp';tmp.write_text(json.dumps({'completed_studies':i+1,'expected_studies':3887,'elapsed_seconds':time.monotonic()-started}));os.replace(tmp,R/'progress.json')
+assert np.isfinite(case_mse).all() and (case_mse>=0).all();mse=case_mse.mean(0);valid=mse[0]>1e-12;ratios=np.divide(mse[1],mse[0],out=np.full(12,np.nan),where=valid);ratio=float(mse[1].mean()/mse[0].mean())
+with (R/'case-MSE.private.npy').open('xb') as out:os.fchmod(out.fileno(),0o600);np.save(out,case_mse,allow_pickle=False)
+result={'status':'actual3887_label_free_MIL_sampling_fidelity_repeat_completed','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_sha256':v['source_sha256'],'feature_index_sha256':admission['binding']['feature_index_sha256'],'safe_population_uid_sha256':admission['binding']['safe_population_uid_sha256'],'readout_component_sha256':'8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5','actual_feature_studies':3887,'views':2,'full_windows':94,'IID_draws_per_view':16,'Monte_Carlo_repeats':128,'fixed_seed_base':20261016,'proposal_uniform_floor':0.25,'uniform_mean_MSE':float(mse[0].mean()),'influence_mean_MSE':float(mse[1].mean()),'adaptive_to_uniform_MSE_ratio':ratio,'same_proxy_threshold_passed':bool(ratio<=0.8 and np.all(ratios[valid]<=2) and cpu_gap<=0.003),'worst_defined_target_MSE_ratio':float(np.nanmax(ratios)),'max_CPU_FP32_parent_vs_cached_FP16_probability_gap':cpu_gap,'max_FP64_moments_vs_CPU_FP32_probability_gap':moment_gap,'mean_unique_windows':{'uniform':float(uniques[:,0].mean()),'influence':float(uniques[:,1].mean())},'targets':{t:{'uniform_MSE':float(mse[0,j]),'influence_MSE':float(mse[1,j]),'MSE_ratio':float(ratios[j]) if valid[j] else None} for j,t in enumerate(TARGETS)},'elapsed_seconds':time.monotonic()-started,'clinical_labels_reports_Gold_confirmation_read':False,'clinical_accuracy_or_Kaggle_score':False,'independent_validation':False,'new_CNN_inference_or_training_or_GPU':False,'feature_or_readout_transfers':0,'new_shared_bytes_files':0,'private_output_bytes':(R/'case-MSE.private.npy').stat().st_size,'full_cohort_pairwise_order_secondary_omitted_to_keep_predeclared_primary_and_bounded_compute':True}
+(R/'result.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');assert sum(p.stat().st_size for p in R.iterdir() if p.is_file())<2*2**20
+print(json.dumps(result),flush=True)

@@ -1,0 +1,9 @@
+# Actual fixed-final licensed context head
+
+Original CPU936070 completed **3,887training studies /10epochs /2,430finite updates** in430.943seconds using unchanged engine2ee0cffe.402,956FP32head parameters; no CNN weights fitted, independent internal validation or clinical accuracy evaluated. Exact finalcheckpointSHAc5d53af3d60eace275670c0953cb53df273db4b8daf219355d959718d777e634. [Actual terminal](terminal.json).
+
+Strict final-component export and actual32-MRI CPUreference construction passed. Component1,625,783bytes/SHA59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316, referenceSHA660ce679df4e44118cec1190d8db1d0eeddcfb6d48077c9390bb9c7f42b0fbf7. Maximum32-MRI bounded correction0.46008795. Exact qualification/competition source hashes are bound in [prepared receipt](prepared.json); original CNN/rendererASTs unchanged. Reference array/generated external notebook bodies stay private, not Git/HF.
+
+The first preservation child failed **before any local publication intent or remote commit**: it passed a string to the existing SHA helper that requires Path. The outer courier wrote success while neglecting its recorded returncode1. Actual logs/result supersede that summary. CPU936138 corrected only publication preparation after checking the original empty journal and exact failure. No training, model export, CPUreference or epoch serialization was repeated. [Negative/provenance](controller-negative.json).
+
+All10original immutable epochs, rawfinal, exact slimcomponent, license, source and environment are now privately preserved ONCE at **HF81d542359d3c06435367c173a2b9a2947f561b1f**,34objects/57,003,961bytes, all fully re-downloaded/size/SHA verified under canonical shared lock. [Original receipt](private_preservation.json). No MRI/labels/index/UID/prediction arrays included; never repeat the prefix. This is preservation/serving preparation, not T4 or competition acceptance or an accuracy gain.

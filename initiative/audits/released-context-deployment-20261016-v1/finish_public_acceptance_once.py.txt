@@ -1,0 +1,25 @@
+"""One finite deployment owner; no competition entries or mutation retries."""
+import json,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'finite-public.intent.json').exists()
+created=json.loads((L/'dataset-result-0.json').read_text());pushed=json.loads((L/'qualification-push-result-0.json').read_text());assert created['returncode']==pushed['returncode']==0
+with (L/'finite-public.intent.json').open('x') as out:json.dump({'maximum_seconds':2400,'component_sha256':'59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316','new_qualification_pushes':0,'maximum_competition_source_pushes':1,'competition_submissions':0,'automatic_mutation_retry':False},out,indent=2)
+started=time.monotonic()
+def phase(name):
+ x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),name],capture_output=True,text=True,timeout=700)
+ assert x.returncode==0,'Original phase '+name+' failed; inspect its original intent/result'
+ courier=json.loads(x.stdout);assert courier['returncode']==0,'Original cloud phase stopped';return json.loads(courier['stdout'])
+try:
+ for role in ('qualification','competition'):
+  if role=='competition':
+   assert not (L/'competition-push.intent.json').exists();push=phase('competition-push');assert push['status']=='one_exact_context_competition_pushed'
+  while time.monotonic()-started<2400:
+   value=phase(role+'-status');(L/'finite-public-progress.json').write_text(json.dumps({'role':role,'status':value['status'],'elapsed_seconds':time.monotonic()-started},indent=2)+'\n')
+   if value['status'] in ('COMPLETE','ERROR','CANCELLED'):
+    (L/(role+'-actual-terminal.json')).write_text(json.dumps(value,sort_keys=True,indent=2)+'\n');assert value['status']=='COMPLETE','Exact '+role+' failed; no new push or diagnostic submission';break
+   time.sleep(60)
+  else:raise TimeoutError('Finite original deployment observation expired, not job failure')
+ result={'status':'actual_final_context_T4_precision_and_public_MRI_CSV_accepted','qualification':json.loads((L/'qualification-actual-terminal.json').read_text()),'competition':json.loads((L/'competition-actual-terminal.json').read_text()),'elapsed_seconds':time.monotonic()-started,'competition_submissions':0,'next':'fresh authoritative allowance and canonical single code submission, never public CSV upload'}
+except BaseException as exc:result={'status':'stopped_for_original_deployment_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_retry':False,'competition_submissions':0}
+(L/'finite-public-result.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)
+if result['status'].startswith('stopped'):raise SystemExit(1)

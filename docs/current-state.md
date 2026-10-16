@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 14:59 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 16:06 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -39,11 +39,11 @@ Our external0.949/own0.894 results are distinct and below that reference.
 | Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **nine completed epochs**, empty stderr; epochs 1–9
+Neighbor 932957 has **13 completed epochs**, empty stderr; epochs 1–13
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epoch1 is privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–6 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -165,47 +165,18 @@ byCPU934786 under the canonical lock. Never repeat; see
 [verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
 No private clinical/identity/image/weight bytes in this milestone.
 
-## Sequence-context experiment: real engine accepted, cache recovery running
+## Sequence-context experiment: full features accepted, head fitting
 
-A bounded zero-start context readout is implemented over the licensed0.949
-model's frozen encoder/head. It compares slices/series rather than treating
-windows independently. The parent was developed using our internal cohorts and
-Gold58, so this experiment cannot claim independent internal OOF. No new accuracy
-result exists. [Protocol](../initiative/experiments/competitive-v1/released-context-v1/README.md).
+The exact bounded two-T4 feature pass139044146/v1 **COMPLETED all3,887studies** in3,519.157seconds. It reused832verified originals and encoded only3,055newcases, with3.90GBparentRSS and3.19GBpeakGPU/device. CPU936070 collected the new2.37GBarchive once, verified every member and admitted the full fitting-only source boundary. Original arrays/UID/index stay private. [Full cache proof](../initiative/audits/released-context-full-feature-accepted-20261016-v1/README.md).
 
-The original32-MRI two-T4 probe passed exact pixels/cache-head/zero-start identity.
-Its scaled pass exhausted RAM after832saved records. All32original plus800new
-journaled records were privately recovered and byte/FP32NPY verified. A bounded
-attempt then stopped before encoding because Kaggle omitted its failed-notebook
-input. One private Dataset12634368v1 bridges those800records; no Dataset creation
-or failed kernel was repeated. Kaggle expanded its tar; an offline mounted-byte
-check now verifies all800feature+4metadata files before new MRI. External download
-checks were rate-limited and are not called successful full-download proofs.
+The exact full engine2ee0cffe **COMPLETED as CPU936070**: all10epochs/2,430updates on3,887studies in430.943seconds,402,956FP32context parameters, batch16studies/two views. It preserves the licensed0.949parent and learns a bounded±0.5logit sequence correction;25%source/75%detached-parent anchoring. This is completed training, not a new accuracy result. The attributed parent was developed using our internal cohort/Gold58, so no independent internal OOF is claimed. Protected clinical values remain unused by us. [Exact engine/admission](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
 
-The distinct dependency-corrected **139044146/v1 is RUNNING** on twoT4s, source
-6c6ed23f5e7d32d824d22bf2bf282a319c4526efe7794589ce73127700c9e575. Its actual49.5s
-log confirms all832saved input records passed before any new MRI encoding; only
-3,055new studies remain. Pending CPU results are capped at4 to enforce RAM
-backpressure. This is a frozen feature pass, not fitted-head accuracy.
-[Actual source, failures and finite owner](../initiative/audits/released-context-full-cache-dataset-recovery-20261016-v3/README.md).
+The strict final exporter/serving compiler is implemented. CPU935892 passed actual32MRI nonzero-head serving math (maximum probability difference5.96e-8) and correctly rejected the diagnostic checkpoint as a deployablefinal. Actual final export/CPUreference passed. All10epochs+final+slimcomponent/license/source/runtime are now privately fully download/hash verified at HF81d542359d3c06435367c173a2b9a2947f561b1f (34objects/57.00MB). A pre-intent publication path-type error was corrected without repeating the fit; the original courier misleading success is preserved. Private final-head Dataset12636011v1 is fully6-object verified. Exact privateoffline qualification139054096/v1 is pushed once; originalfinite62742 advances it then publicMRI/CSV acceptance. Separate actual two-T4/public MRI acceptance is pending; no new context competition entry/score exists. [Fixed-final proof](../initiative/audits/released-context-fixed-final-20261016-v1/README.md). [Serving gate](../initiative/audits/released-context-serving-preparation-20261016-v1/README.md).
 
-The complete FP32context production trainer **passed actual CPU935437 recovery**:
-32realMRI tensors, three fresh full/stop1/resume processes,2epochs/4updates;
-complete head/AdamW/LR/order/counters/allRNG/history and prediction bytes matched.
-The branch learned nonzero weights. Fixed full recipe:402,956parameters,
-3,887safe training studies,16study batches/two views,10epochs/2,430updates,
-AdamW3e-4/WD.01, one-epoch warmup/cosine,clip1,25%source+75%parent anchoring.
-The once-only finite owner will collect the accepted suffix and start that
-same full engine after the feature pass completes. **Full fitting has not started.**
-[Real recovery receipt](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
-Final learned-head T4 serving qualification and actual competition outcomes remain
-required; a software or recovery pass is not an improvement in score.
+## New measured sampling mechanism
 
-Sourcea2558281 and53smallobjects/462927B were privately fully re-downloaded/size/SHA
-verified at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8 byCPU935355. Never repeat.
-[Exact preservation](../initiative/audits/hf-context-features-paired-20261016-v1/verified.json).
-Independent Kaggle work uses actual account quota under the owner's later removal
-of the old research cap; healthy Slurm jobs/holds and daily competition limits
-remain intact. No paid upgrade or private clinical/feature publication occurred.
+A label-free importance proposal targets windows that stabilize the strong frozen teacher's full-study MIL readout. Fixed25%uniformcoverage/75%normalizedinfluence,16IIDwindows with inverse-proposal correction,128repeats. The32-study screen reduced teacher-approximation MSE42.0%; the unchanged full3,887study repeat **reduced it45.6%**, ratio0.54401685, with all12targets improving. It took31.3seconds/oneCPU and reused the existing feature cache. No labels/reports/Gold/confirmation or newCNN inference were used. [Exact results/limits](../initiative/audits/licensed-MIL-sampling-20261016-v1/README.md).
 
-Sourceccb8523207682c8f519341fa5c63e0c4c26ae4a8 and36distinct smallobjects/165794B are privately fully re-downloaded/size/SHA verified once at HF3b6ccde8c36723627c9de1796137b59907ea10ce viaCPU935653. [Receipt](../initiative/audits/hf-context-engine-mounted-20261016-v1/verified.json). Never repeat this mirror. The suffix log has actual1024completed records (832reused+192new) at280s; no full-cache result or head accuracy yet.
+This is a concrete training-exposure hypothesis, **not disease accuracy or an independent validation result**. Teacher attention is not verified anatomy, and computing its proposal still needs the full teacher cache. No guided CNN training has been dispatched; matched same-input/initialization/compute evidence remains necessary before promotion.
+
+Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6ccde8c36723627c9de1796137b59907ea10ce (36objects/165,794bytes). Never repeat that or earlier mirrors. New serving/sampling/full-feature results await their own distinct small milestone preservation.

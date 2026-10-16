@@ -1,4 +1,16 @@
-# Execution handoff — October 16, 2026, 14:59 UTC
+# Immediate active handoff — October16 16:06UTC
+
+Root implements directly; Devin is unavailable. Context fullfeature139044146/v1 COMPLETE3887/3519.157s; new3055archive2,366,576,640bytes/SHA980f3ee47624d388d5a0f14394ed021022aacf1eb65cfe1e70dba9fc99dd73fa collected once; original832reused. FullindexSHA5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113. Allmembers/source/fittingboundary admittedCPU936070, fullprivateinputSHAa4c5b4910dc818293cdfb6ed59ba92bfa16faa5e0cb2c39c7a5e5b41df877ab0. SAMEengine2ee0cffe completed10epochs/2430updates/430.943seconds. FinalSHAc5d53af3d60eace275670c0953cb53df273db4b8daf219355d959718d777e634. Do not restart fit/originalfinite35582, which is nowterminal; its success summary ignored recordedpostfitchild1. Actualfull-fit.result/log is authoritative.
+
+Strictactualfinal component1,625,783bytes/SHA59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316 and private32referenceSHA660ce679df4e44118cec1190d8db1d0eeddcfb6d48077c9390bb9c7f42b0fbf7 prepared. D=/tmp/rsna-released-context-serving-20261016-v1/full-component-v1. Generatedqualification70caffc870382173aa728c5eea8d697af6f3200c7b04d4b94e0f32dfeefe56bd andcompetitionc9c7fdcff56393ac924b656f403879a2717b71dd4f5432d3954e9b195c2a3a18 stayprivate. All10epochs/rawfinal/component/license/source/runtime fullyprivateverifiedONCE HF81d542359d3c06435367c173a2b9a2947f561b1f/34objects57,003,961bytes undercanonical lock. Firstpublisherfailed pre-intent(strinsteadPath), distinctpublication-only936138 correctedwithoutrepeatfit/export/reference. Neverrepeatprefix. Audit released-context-fixed-final-20261016-v1.
+
+Current sole deploymentcontroller artifacts/released-context-deployment-20261016-v1/run_phase_once.py: Dataset12636011v1 fully6objectdownloadSHAverifiedonce; exactqualification139054096/v1 godlydonuts/rsna-context-precision-59ca63ca875e source70caffc870382173aa728c5eea8d697af6f3200c7b04d4b94e0f32dfeefe56bd pushedonce. Existingfiniteexec62742 handlesqualificationstatus thenonepublicMRIpush/status; noentries. Neverrestartit. Inspectallintents/results/actualcanonicalmeta beforeaction. RemoteR=/tmp/rsna-released-context-deployment-20261016-v1. Phasesdataset,qualification-push,qualification-status,competition-push,competition-status,submit,outcome. SeparateactualT4headprecision <=1e-5/real32cachedMRI/noCSV mustpass beforecompetitionpush. Public3MRI/CSVcounts strict then fresh allowance/canonicalexactonecodesubmission. No directpublicCSVupload. At12:36fiveused/zero slots; neverassumereset. No newcontextscore. Parent.949checkpointentrypreservedunchanged; generatedsource/privatearraysneverGitHF.
+
+Full3887label-freeimportanceproxyCPU936087 COMPLETE31.319s: uniformMSE.0065363787013/adaptive.0035559001636/ratio.54401685/all12better/worst.65505007. Samef04b4e9fmodule/seed/proposal16draws128repeats as32screen936037, no labels/reports/clinicalmanifest/newCNN/GPU/transfers. PrivatecaseMSE0.75MB evc33 only, aggregateauditlicensed-MIL-sampling-20261016-v1. No guidedCNNfit/pixelcache dispatched, notclinicalaccuracy. Fullpairwiseranksecondary omittedbeforeexecution; primaryunchanged.
+
+Originalneighbor932957/weighted933001 healthyevc33; allneighbor1–13/allweighted1–6 nowprivate8objectfullyverifiedonce. Originalwatchers93110/24451 preserveonlynewdistinctepochs; expanded933382pending. Don'tduplicatejobs.
+
+# Execution handoff — October 16, 2026, 15:59 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -36,7 +48,7 @@ read-only. All local controls are in `artifacts/compact-native-n3-launch-2026101
 ## Current training
 
 Source-neighbor full932957 is actually RUNNING on evc33, allocated H100 checks
-passed, nine completed epochs observed. Epochs1–9 now
+passed, 13 completed epochs observed. Epochs1–13 now
 privately fully8-object download/size/SHA verified once. Latest epoch2 HF
 37aa0d19308ae5a8bdf10f7a75dd1f2ade12ea1a; never repeat them. Do not stop,
 relocate, restart or change it. Source3803b717b69db6c5e89e11724c4daee15490cbe2;
@@ -306,13 +318,13 @@ logged all832saved feature records and4Dataset metadata size/SHA/FP32NPY checks
 PASSED at49.5s, before any new MRI encoding. This is actual mounted-byte proof,
 NOT a successful external full-download verification. Private data stay private.
 
-**Current sole suffix139044146/v1 is RUNNING**, exactslug
+**Original sole suffix139044146/v1 is now COMPLETE**, exactslug
  godlydonuts/rsna-released-features-data800-6c6ed23f5e7d. CPU935611 stage/935612
 first push; local artifacts/released-context-full-cache-dataset-recovery-20261016-v3,
 remote /tmp/rsna-released-context-full-cache-dataset-recovery-20261016-v3.
 It reuses832records and encodes only3055new, with bounded4pending CPU tasks,
 unchanged per-study numerical functions and private4h two-T4 cap. Source/mount
-checks precede all new MRI work. **Finite owner35582 is LIVE**; inspect finite
+checks precede all new MRI work. **Finite owner35582 is terminal**; inspect finite
 intent/progress/result before any action. It handles exact full cache acceptance
 then invokes the once-only full collector/fitter. Do not restart it or repeat
 v3 stage/push. Old6991 and96498 are failed terminal owners, never restart.
@@ -323,13 +335,13 @@ processes on32realMRI tensors,2epochs/4updates. Complete head/AdamW/LR/counters/
 order/allRNG/history and32x12 prediction bytes identical, learned branch nonzero.
 Receipt /tmp/rsna-released-context-head-fit-20261016-v1/accepted.json;
 inputmanifestSHAd615d341e0f1c2130c9a66ac5b69a4211f8dfbadbe6876286165ede24fe7d3aa.
-No full3887fit or clinical result yet. Source module/train wrapper are frozen,
+Full3887fit actually completed2430updates/10epochs onCPU936070 in430.943seconds; no clinical result. Source module/train wrapper are frozen,
 not the prior four-update toy loop. [Actual engine](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
 
-The once-only full collector/fitter is prepared at artifacts/released-context-head-fit-20261016-v1/collect_full_and_fit_once.py.
-After actual v3 feature acceptance it collects only3055new archive bytes once,
+The executed once-only full collector/fitter is preserved at artifacts/released-context-head-fit-20261016-v1/collect_full_and_fit_once.py.
+After actual v3 feature acceptance it collected only3055new archive bytes once,
 reuses the original32 and800 on-node files, checks every member/metadata and
-fitting-only source rows, then executes the SAME full CPUengine. Recipe:
+fitting-only source rows, then executed the SAME full CPUengine. Recipe:
 402956params,16studies/two views,10epochs/2430updates,AdamW3e-4/WD.01,
 oneepochwarmup/cosine/clip1,25%observed source+75%detached parent. Missing labels
 are teacher-only. No protected values, independent internal OOF or CNN fitting.
@@ -353,14 +365,14 @@ fully re-downloaded/size/SHA verified byCPU935355 at HFaf4bf28765f81aaf5819cb8ca
 Never repeat that prefix. It records the then-running scaled pass; its later
 memory/dependency failures are distinct new evidence, not edits to old receipts.
 
-Neighbor932957 remains RUNNING; epochs1–9 privately verified once, eight objects
+Neighbor932957 remains RUNNING; epochs1–13 privately verified once, eight objects
 each. New8 HFbd8e279c0ac36529e59da6ccb8d8a786f763535a;9 HFcab5cc3377b3feb33d01652bbf78177ee5146479.
-Weighted933001 RUNNING; epoch1 private HFc94baa34310c93f949692f83a96192a3cc50b047.
+Weighted933001 RUNNING; epochs1–6 privately verified once.
 Existing publication watchers remain original owners; do not repeat dispatches.
 No challenger fixed-final result exists yet. Root works directly; Devin unavailable.
 
-Sourceccb8523207682c8f519341fa5c63e0c4c26ae4a8 and36distinct smallobjects/165794B are privately fully re-downloaded/size/SHA verified once at HF3b6ccde8c36723627c9de1796137b59907ea10ce viaCPU935653. [Receipt](../initiative/audits/hf-context-engine-mounted-20261016-v1/verified.json). Never repeat this mirror. The suffix log has actual1024completed records (832reused+192new) at280s; no full-cache result or head accuracy yet.
+Sourceccb8523207682c8f519341fa5c63e0c4c26ae4a8 and36distinct smallobjects/165794B are privately fully re-downloaded/size/SHA verified once at HF3b6ccde8c36723627c9de1796137b59907ea10ce viaCPU935653. [Receipt](../initiative/audits/hf-context-engine-mounted-20261016-v1/verified.json). Never repeat this mirror. That milestone predates completion; actual full3887cache is now accepted, head2430updates completed, no new accuracy result.
 
 ## Prepared strict context serving, not deployed
 
-New released_context_infer/export CLI and released_context_notebook compiler strictly require final3887/10epoch/2430-update provenance. They exclude clinical rows/features/predictions from the component. Qualification and competition are separate explicit modes; no real full component or GPU serving job exists yet. Actual compile against the licensed source preserves18original model/renderer ASTs; placeholder-generated files in artifacts/released-context-serving-20261016-v1 are NEVER deployable. 73focused tests pass. After real full fit, export/reference on owning node, preserve production epochs once, admit exact final-head T4 qualification then publicMRI/CSV before a competition submission. Boundary generator typing guard changes no generated bytes.
+New released_context_infer/export CLI and released_context_notebook compiler strictly require final3887/10epoch/2430-update provenance. They exclude clinical rows/features/predictions from the component. Qualification and competition are separate explicit modes; the actual full component now exists (SHA59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316), actual GPU serving remains next. Actual compile against the licensed source preserves18original model/renderer ASTs; placeholder-generated files in artifacts/released-context-serving-20261016-v1 are NEVER deployable. 73focused tests pass. After real full fit, export/reference on owning node, preserve production epochs once, admit exact final-head T4 qualification then publicMRI/CSV before a competition submission. Boundary generator typing guard changes no generated bytes.

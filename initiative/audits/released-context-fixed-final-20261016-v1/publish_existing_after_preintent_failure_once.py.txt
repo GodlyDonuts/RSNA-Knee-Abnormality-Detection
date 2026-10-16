@@ -1,0 +1,34 @@
+"""Publish already-completed artifacts after proven zero-intent path-type failure."""
+import ast,hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'postfit-publication-corrected.intent.json').exists()
+tree=ast.parse((L/'postfit_export_preserve.py.txt').read_text());hf=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='HF' for t in n.targets))
+old="assert not (R/'publication').exists();J=R/'publication';J.mkdir(mode=0o700)";new="assert (R/'publication').is_dir() and not list((R/'publication').iterdir());J=R/'publication'";assert hf.count(old)==1 and hf.count('m.sha(path)')==1
+hf=hf.replace(old,new).replace('m.sha(path)','m.sha(Path(path))');compile(hf,'corrected_publication_only','exec')
+program=r'''
+import hashlib,json,os,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');D=Path('/tmp/rsna-released-context-serving-20261016-v1/full-component-v1');J=D/'publication'
+assert J.is_dir() and not list(J.iterdir()) and not (D/'publication-corrected-intent.json').exists()
+log=(D/'private-publication.log').read_text();assert "AttributeError: 'str' object has no attribute 'open'" in log and 'in sha' in log
+terminal=json.loads((F/'production/terminal.json').read_text());assert terminal['status']=='fixed_final_complete' and terminal['completed_updates']==2430 and terminal['epochs']==10
+prepared=json.loads((D/'prepared.json').read_text());assert prepared['status']=='actual_fixed_final_context_component_CPU_prepared';component=prepared['component'];assert component['original_checkpoint_sha256']==terminal['checkpoint_sha256']
+common=D/'publication-common';epochs={str(e):json.loads((common/f'epoch-{e:03d}.json').read_text()) for e in range(1,11)};files={}
+for e,row in epochs.items():
+ assert row['epoch']==int(e) and row['completed_updates']==243*int(e) and row['source_git']=='2ee0cffeae9dd023fef7ff98403e0508d4d22554';files[f'epoch-{int(e):03d}/checkpoint.pt']=str(F/'production/epochs'/f'epoch-{int(e):03d}.pt');files[f'epoch-{int(e):03d}/epoch.json']=str(common/f'epoch-{int(e):03d}.json')
+for name in ['recipe.json','source.json','environment.json','component.json','source-permission.txt']:files['common/'+name]=str(common/name)
+files['final/checkpoint.pt']=str(F/'production/checkpoint.pt');files['final/terminal.json']=str(F/'production/terminal.json');files['serving/context-head-e10-'+component['component_sha256'][:12]+'.pt']=str(D/('context-head-e10-'+component['component_sha256'][:12]+'.pt'))
+for name in ['rsna/__init__.py','rsna/schema.py','rsna/competitive/__init__.py','rsna/competitive/released_context.py','rsna/competitive/released_context_train.py','scripts/newton/run_released_context_fit.py']:files['common/source/'+name]=str(F/'code'/name)
+assert len(files)==34 and sum(Path(p).stat().st_size for p in files.values())<128*2**20
+with (D/'publication-corrected-intent.json').open('x') as out:json.dump({'kind':'publish_existing_completed_epochs_only','original_failed_before_remote_or_local_publication_intent':True,'original_failure_log_sha256':hashlib.sha256(log.encode()).hexdigest(),'program_sha256':hashlib.sha256(v['HF'].encode()).hexdigest(),'no_training_export_or_prediction_repeated':True,'automatic_retry':False},out,indent=2)
+with (D/'private-publication-corrected.log').open('x') as out:
+ x=subprocess.run([sys.executable,'-B','-c',v['HF']],input=json.dumps({'token':v['token'],'root':str(D),'files':files,'epochs':epochs}),env={**os.environ,'HF_HUB_DISABLE_XET':'1','HF_HOME':str(D/'hf-home-private'),'HF_XET_CACHE':str(D/'hf-xet-private')},text=True,stdout=out,stderr=subprocess.STDOUT)
+assert x.returncode==0,'Original corrected publication stopped; read-only reconcile'
+receipt=json.loads((J/'verified.json').read_text());print(json.dumps({'status':'actual_context_fixed_final_preserved_after_preintent_path_type_fix','terminal':terminal,'prepared':prepared,'private_preservation':receipt,'original_fit_not_repeated':True,'new_Kaggle_mutations':0}),flush=True)
+'''
+compile(program,'publish_existing_context','exec');(L/'postfit-publication-corrected-program.py.txt').write_text(program);(L/'postfit-publication-corrected-HF.py.txt').write_text(hf)
+E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('\"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+with (L/'postfit-publication-corrected.intent.json').open('x') as out:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'HF_sha256':hashlib.sha256(hf.encode()).hexdigest(),'new_training':False,'automatic_retry':False},out,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:10:00','--job-name=rsna-context-preserve-final','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/hf-epoch-publisher-v1/env-cp312/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['HF_TOKEN'],'HF':hf}),capture_output=True,text=True,timeout=650);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'postfit-publication-corrected.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+if x.returncode:raise SystemExit(1)
