@@ -1,0 +1,45 @@
+import hashlib,json,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;P=Path('artifacts/released-context-deployment-20261016-v1');deadline=datetime.fromisoformat('2026-10-17T22:30:00+00:00').timestamp();windows={'regional':'2026-10-17T02:00:00+00:00','global_repeat':'2026-10-17T06:00:00+00:00'};immutable={name:hashlib.sha256((L/name).read_bytes()).hexdigest() for name in ('cloud.py.txt','run_phase_once.py','read_live_allowance_readonly.py')}
+with (L/'submit-spaced.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'files':immutable,'earliest_submission_windows':windows,'submission_deadline':datetime.fromtimestamp(deadline,timezone.utc).isoformat(),'maximum_competition_entries':2,'each_prior_actual_hidden_score_required_before_next':True,'fresh_live_allowance_and_single_canonical_coordinator':True,'old_context_owner_not_restarted_or_duplicated':True,'automatic_mutation_retry':False},f,indent=2)
+assert not any((L/(r+'-submit.intent.json')).exists() for r in windows)
+def progress(stage,**extra):(L/'submit-spaced.progress.json').write_text(json.dumps({'checked_at_UTC':datetime.now(timezone.utc).isoformat(),'phase':stage,**extra},indent=2)+'\n')
+def until(check,stage):
+ progress(stage)
+ while not check():
+  assert time.time()<deadline,'Finite original observation deadline'
+  time.sleep(60)
+def await_original_file(path,pid,fragment,stage):
+ progress(stage)
+ while not path.exists():
+  assert time.time()<deadline,'Finite dependency observation deadline'
+  observed=subprocess.run(['ps','-p',str(pid),'-o','command='],capture_output=True,text=True);assert observed.returncode==0 and fragment in observed.stdout,'Original dependency handle missing; inspect actual state without restarting'
+  time.sleep(60)
+def run(name,*args):
+ for n,h in immutable.items():assert hashlib.sha256((L/n).read_bytes()).hexdigest()==h
+ x=subprocess.run([sys.executable,str(L/name),*args],capture_output=True,text=True,timeout=750);assert x.returncode==0,'Original phase failed, inspect its own intent/result; no retry: '+name+' '+str(args);out=json.loads(x.stdout);assert out['returncode']==0;return json.loads(out['stdout'])
+try:
+ await_original_file(L/'finish.result.json',68421,'regional-context-deployment-20261016-v1/finish_public_acceptance_once.py','await_original_both_role_T4_and_public_MRI_acceptance')
+ assert json.loads((L/'finish.result.json').read_text())['status']=='both_original_spatial_roles_actual_T4precision_and_public_MRI_CSV_accepted'
+ await_original_file(P/'submit-when-allowed-result.json',54576,'released-context-deployment-20261016-v1/submit_when_allowed_once.py','await_old_original_context_actual_hidden_terminal')
+ context=json.loads((P/'submit-when-allowed-result.json').read_text());assert context['status']=='single_context_submission_actual_hidden_terminal';parent=context['actual_submission'];assert parent['status']=='COMPLETE' and parent['publicScore'] is not None and not parent.get('errorDescription'),'First context hidden run failed; investigate before another slot';parent_id=parent['ref'];submissions={}
+ for role,earliest in windows.items():
+  timestamp=datetime.fromisoformat(earliest).timestamp();until(lambda:time.time()>=timestamp,'await_spaced_window_'+role)
+  while time.time()<deadline:
+   ready=run('read_live_allowance_readonly.py',role,str(parent_id));assert ready['exact_role_state']=='competition_accepted' and ready['version']==1;prior=ready['observed_prior_submission'];assert prior['status']=='COMPLETE' and prior['publicScore'] is not None and not prior.get('errorDescription')
+   progress('actual_live_allowance_'+role,canonical_effective_allowance=ready['canonical_effective_allowance'],coordinator_busy=ready['coordinator_busy'])
+   if ready['canonical_effective_allowance']>0 and not ready['coordinator_busy']:break
+   # No waiting allocation and no mutation on absent allowance or a busy claim.
+   wait_until=min(deadline,time.time()+(30 if ready['coordinator_busy'] else 600));until(lambda:time.time()>=wait_until,'wait_live_account_or_claim_'+role)
+  assert time.time()<deadline;submitted=run('run_phase_once.py','submit',role);assert submitted['status']=='one_fixed_final_spatial_code_submission_accepted' and submitted['role']==role;submissions[role]=submitted;(L/(role+'-actual-submitted.json')).write_text(json.dumps(submitted,sort_keys=True,indent=2)+'\n');progress('one_exact_entry_wait_actual_hidden_'+role,submission=submitted)
+  next_read=time.time()+180
+  while time.time()<deadline:
+   until(lambda:time.time()>=next_read,'wait_original_hidden_'+role);value=run('run_phase_once.py','outcome',role);actual=value['actual_submission'];progress('actual_hidden_observed_'+role,actual=actual)
+   if actual.get('status')=='COMPLETE' and (actual.get('publicScore') is not None or actual.get('errorDescription')):
+    (L/(role+'-actual-hidden-terminal.json')).write_text(json.dumps(actual,sort_keys=True,indent=2)+'\n');assert actual.get('publicScore') is not None and not actual.get('errorDescription'),'Actual hidden failure; stop before the next entry';parent_id=actual['ref'];break
+   next_read=time.time()+300
+  else:raise RuntimeError('Finite original hidden observation deadline, never resubmit')
+ (L/'submit-spaced.result.json').write_text(json.dumps({'status':'two_original_spatial_entries_actual_scored','submissions':submissions,'automatic_retry':False},indent=2)+'\n');print('Both original spatial entries have actual scored outcomes.',flush=True)
+except Exception as exc:
+ (L/'submit-spaced.result.json').write_text(json.dumps({'status':'original_spatial_entries_require_readonly_review','error':str(exc),'automatic_retry':False},indent=2)+'\n');raise

@@ -37,3 +37,16 @@ original fit/preservation owner34894/PID66597, then runs the original full-expor
 Dataset and sequential regional/control T4/public phases. Inspect its exact
 finish.intent/progress/result and all per-phase intents first. No Dataset/push or
 competition entry exists at this observation. It occupies no waiting SlurmGPU.
+
+Fresh read-onlyCPU938404 at19:45UTC: five used/zero live slots, exact regionalv1
+competition_accepted/unsubmitted; no Kaggle mutation. A separate finite entry
+coordinator is prepared: preserve old context-owner00:03UTCentry, require its
+ACTUAL scored hidden outcome, then regional no earlier thanOctober17 02:00UTC,
+then global-repeat no earlier06:00UTC and only after regional's ACTUAL score.
+These are spacing windows, not server-reset assertions. Each entry needs fresh
+authoritative live allowance, exact accepted state/source/version and free
+canonical claim; max2newentries, no mutation retry/CSVupload. Any actual hidden
+error stops for investigation before another slot. Dependencies' original live
+process handles are checked; no waiting Slurm/GPU. DeadlineOctober17 22:30UTC.
+The remaining daily capacity is available for separately justified candidates;
+no blind filling or repeated scored checkpoint is scheduled here.
