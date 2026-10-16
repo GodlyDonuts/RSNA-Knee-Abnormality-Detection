@@ -1,0 +1,75 @@
+"""Once-only original feature suffix collection and fixed full CPU head fit."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'full-fit.intent.json').exists()
+F=Path('artifacts/released-context-full-cache-dataset-recovery-20261016-v3');accepted=json.loads((F/'actual-terminal.json').read_text());assert accepted['status']=='COMPLETE';receipt=accepted['receipt'];assert receipt['studies']==3887 and receipt['original_reused_studies']==832
+program=r'''
+import csv,hashlib,importlib.util,io,json,os,shutil,subprocess,sys,tarfile,time
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import numpy as np
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+R=Path('/tmp/rsna-released-context-head-fit-20261016-v1');old=json.loads((R/'accepted.json').read_text());assert old['status']=='actual32_MRI_full_context_engine_complete_recovery_accepted' and old['source_git']=='2ee0cffeae9dd023fef7ff98403e0508d4d22554'
+assert json.loads((R/'failed-prefix800/verified.json').read_text())['all_original_NPZ_bytes_unchanged'] is True
+threshold=581021415363+2*2**30+(2+16+64+32+256+32)*2**20+4*2**30+2*2**30;free=shutil.disk_usage('/tmp').free;assert free>threshold
+D=R/'full-features';assert not D.exists() and not (R/'production').exists();D.mkdir(mode=0o700)
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');spec=importlib.util.spec_from_file_location('workflow',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';slug=v['slug'];assert r.kernel('GetKernelSessionStatus',slug,1)['status']=='COMPLETE';actual=r.output_json(slug,1,'context-full-features-accepted.json');assert actual==v['receipt']
+# Full3887 index exceeds the small receipt reader's1MiB ceiling. Fetch exact
+# private JSON bytes directly into bounded RAM on the owning node, not the Mac.
+response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':'released-context-features-full/index.private.json'},timeout=(10,60),allow_redirects=False,stream=True)
+for _ in range(6):
+ if response.status_code==200:break
+ assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'));response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,timeout=(10,60),allow_redirects=False,stream=True)
+assert response.status_code==200;buf=bytearray()
+for block in response.iter_content(65536):buf.extend(block);assert len(buf)<=4*2**20
+response.close();raw=bytes(buf);assert len(raw)==actual['index_bytes'] and hashlib.sha256(raw).hexdigest()==actual['index_sha256'];index=json.loads(raw);rows=index['records'];assert len(rows)==3887 and len({r['study_uid'] for r in rows})==3887
+ids=[r['study_uid'] for r in rows];assert ids==sorted(ids) and hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+M=D/'index.private.json';M.write_bytes(raw);M.chmod(0o600)
+response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':'released-context-features-full/features.tar'},timeout=(10,60),allow_redirects=False,stream=True)
+for _ in range(6):
+ if response.status_code==200:break
+ assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'));response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,timeout=(10,60),allow_redirects=False,stream=True)
+assert response.status_code==200;h=hashlib.sha256();n=0
+with (D/'features.tar').open('xb') as out:
+ os.fchmod(out.fileno(),0o600)
+ for b in response.iter_content(2**20):n+=len(b);assert n<=actual['archive_bytes'];out.write(b);h.update(b)
+response.close();assert n==actual['archive_bytes'] and h.hexdigest()==actual['archive_sha256']
+# Every selected fitting source value is admitted only after the UID boundary.
+S=R/'code';sys.path.insert(0,str(S));from rsna.schema import TARGETS
+from rsna.competitive.released_context_train import FrozenFeatures,digest,Recipe
+for name,sha in old['source_files'].items():assert digest(name)==sha
+source=Path('/tmp/rsna-compact-expanded2592-inputs-20261016-v1/source.csv');source_sha='eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4';assert digest(source)==source_sha
+import pyarrow.dataset as ds
+release=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet');table=ds.dataset(release,format='parquet').to_table(columns=['study_uid'],filter=(ds.field('split')=='train')&(ds.field('report_supervision_allowed')==True));assert set(table.column('study_uid').to_pylist())==set(ids)
+labels={};wanted=set(ids)
+with source.open() as f:
+ for row in csv.DictReader(f):
+  uid=row.get('StudyInstanceUID',row.get('study_uid'))
+  if uid not in wanted:continue
+  assert uid not in labels
+  y=[float(row[t]) if row[t].strip() else float('nan') for t in TARGETS];assert all(not np.isfinite(x) or 0<=x<=1 for x in y);labels[uid]=y
+Y=[labels.get(u,[float('nan')]*12) for u in ids];masks=[[bool(np.isfinite(x)) for x in row] for row in Y]
+probe='godlydonuts/rsna-released-context-probe-d077e354611d';failed='godlydonuts/rsna-released-full-features-5ab9b091c0f1';roots={'self':str(D),probe:str(R/'features32'),failed:str(R/'failed-prefix800')};binding={'source_git':old['source_git'],'parent_weights_sha256':index['weights_sha256'],'parent_source_sha256':index['parent_source_sha256'],'feature_pipeline_helper_sha256':index['helper_sha256'],'feature_index_sha256':digest(M),'new_feature_archive_sha256':actual['archive_sha256'],'safe_population_uid_sha256':actual['roster_sha256'],'label_source_sha256':source_sha,'eligible_release_sha256':digest(release),'actual_engine_recovery_sha256':digest(R/'accepted.json'),'original_feature_recovery_source_sha256':v['source_sha256'],'parent_adaptation_license':'original nartaa public source/model competition adaptation and noncommercial redistribution permission; retain attribution; no independent OOF'}
+manifest={'index':str(M),'index_sha256':digest(M),'roots':roots,'uids_sha256':actual['roster_sha256'],'labels':Y,'masks':masks,'binding':binding,'clinical_evaluation_used':False,'source_rows_filtered_before_numeric_read':True,'independent_internal_validation':False,'source_files':old['source_files']}
+I=R/'full-inputs.private.json';I.write_text(json.dumps(manifest,sort_keys=True));I.chmod(0o600)
+data=FrozenFeatures(rows,roots,Y,masks,binding)
+for i in range(len(data)):data[i]
+assert sum(p.stat().st_size for d in [R/'features32',R/'failed-prefix800',D] for p in d.iterdir() if p.is_file())<4*2**30
+recipe=Recipe();(R/'full-recipe.json').write_text(json.dumps(recipe.__dict__,sort_keys=True,indent=2)+'\n')
+admission={'status':'actual3887_context_features_and_source_fitting_only_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'studies':3887,'observed_source_studies':len(labels),'observed_source_cells':sum(sum(x) for x in masks),'all3887_feature_members_exact_size_SHA_NPY_metadata':True,'original32_reused_without_download':True,'original800_reused_without_download':True,'new3055_archive_sha256':actual['archive_sha256'],'new3055_archive_bytes':n,'all_feature_original_and_derived_bytes_under_4GiB_cap':True,'input_manifest_sha256':digest(I),'binding':binding,'full_recipe':recipe.__dict__,'updates':2430,'no_independent_internal_validation':True,'CNN_parameters_fitted':0,'protected_values_read':False,'free_after_all_liabilities':free-threshold,'new_shared_bytes_files':0}
+(R/'full-input-admitted.json').write_text(json.dumps(admission,sort_keys=True,indent=2)+'\n');print(json.dumps(admission),flush=True)
+env=os.environ.copy();env.update({'PYTHONPATH':str(S),'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','PYTHONNOUSERSITE':'1','CUDA_VISIBLE_DEVICES':'','PYTHONDONTWRITEBYTECODE':'1'})
+with (R/'production.private.log').open('x') as log:
+ x=subprocess.run([sys.executable,'-B',str(S/'scripts/newton/run_released_context_fit.py'),'--inputs',str(I),'--inputs-sha256',digest(I),'--recipe',str(R/'full-recipe.json'),'--output',str(R/'production')],env=env,stdout=log,stderr=subprocess.STDOUT)
+assert x.returncode==0,'Original full fitter failed; no automatic retry'
+terminal=json.loads((R/'production/terminal.json').read_text());assert terminal['status']=='fixed_final_complete' and terminal['completed_updates']==2430 and terminal['epochs']==10
+assert sum(p.stat().st_size for d in [R/'production',R/'full',R/'stop',R/'resume'] for p in d.rglob('*.pt'))<256*2**20
+print(json.dumps({'status':'actual3887_fixed10_context_head_fit_completed','CPU_job':os.environ['SLURM_JOB_ID'],'terminal':terminal,'original_source_git':old['source_git'],'head_checkpoint_cap_passed':True,'clinical_or_competition_accuracy_evaluated':False,'next':'nonzero learned-head actual T4 precision/serving acceptance and private checkpoint preservation'}),flush=True)
+'''
+compile(program,'context_full_fitting','exec');(L/'full-fit-program.py.txt').write_text(program)
+env=Path('.env');assert env.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('\"\'') for line in env.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+payload={'token':values['KAGGLE_API_TOKEN'],'receipt':receipt,'slug':accepted['kernel_slug'],'source_sha256':json.loads((F/'prepared.json').read_text())['binding']['source_sha256']}
+with (L/'full-fit.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_git':'2ee0cffeae9dd023fef7ff98403e0508d4d22554','GPU':0,'CPU':1,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=02:00:00','--job-name=rsna-context-fixed10-fit','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=7250);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'full-fit.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

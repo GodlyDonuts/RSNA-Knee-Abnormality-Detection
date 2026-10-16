@@ -79,17 +79,16 @@ Protected labels remain unused by our experiment. Do not report the new head's
 training loss as accuracy, or evaluate it against a held-out set already seen by
 its parent and call that independent validation.
 
-## Predeclared next fit, not yet admitted or executed
+## Exact engine accepted; full fitting awaits complete features
 
-Only after the actual feature gate, freeze the numerical production head engine
-and verify its complete fresh full/stop/resume behavior on actual cached tensors.
+The numerical production engine is now frozen at2ee0cffe and actually accepted by CPU935437:32realMRI tensors, three fresh full/stop1/resume processes,4updates, complete learned/AdamW/LR/counter/order/allRNG/history equality and identical predictions. This is engineering acceptance only.
 Then admit the full correspondence-safe **3,887 training studies**, no gold or
 weak-validation fitting, under a separately funded cache/runtime/checkpoint plan.
 The32-study stage did not fund the full pass. A distinct CPU935131 admission
 now funds the full frozen feature cache only; its numerical functions match
-the actual probe. The production head engine and fitting remain unadmitted.
+the actual probe. The engine/recovery and separate256MiBhead checkpoint/publication plus32MiBcontrols are now admitted; full3887fitting still awaits full cache acceptance. Original feature pass hit memory exhaustion; bounded suffix recovery is separate and never restarts a failed source.
 
-Proposed fixed recipe: FP32 head-only fitting, batch16 studies with both views,
+Fixed full recipe, not yet run: FP32 head-only fitting, batch16 studies with both views,
 10 epochs, AdamW LR3e-4/WD.01, one-epoch warmup then cosine, clip1, seed20261016.
 Use the original pinned public soft-label source only for eligible fitting rows;
 no report re-extraction, target blending based on gold, or internal best-epoch
@@ -109,3 +108,5 @@ fresh allowance before a distinct code submission. An improvement must be an
 actual competition outcome above the unchanged0.949 parent, within runtime and
 complete MRI/CSV requirements. Public feedback is development, not an independent
 private-leaderboard guarantee. No score for this head exists yet.
+
+The scaled original feature run failed with memory exhaustion; the partial800newNPZs were independently recovered/size/SHA/NPY verified on the owning node. Together with original32,832studies can be reused. The first bounded suffix run stopped before encoding because Kaggle omitted its failed-notebook input. A private Dataset bridge preserves those exact bytes for a distinct dependency-corrected source execution. No original model/checkpoint or clinical label was changed to hide these engineering negatives.

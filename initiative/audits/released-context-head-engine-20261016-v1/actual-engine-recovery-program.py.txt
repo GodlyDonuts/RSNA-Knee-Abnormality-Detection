@@ -1,0 +1,84 @@
+
+import csv,hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import numpy as np
+import requests
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+R=Path('/tmp/rsna-released-context-head-fit-20261016-v1');assert not R.exists()
+prior=581021415363+2*2**30+(2+16+64+32)*2**20+4*2**30;new=(256+32)*2**20;free=shutil.disk_usage('/tmp').free;assert free>prior+new
+R.mkdir(mode=0o700);S=R/'code'
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+source_files={str(S/n):hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()}
+(S/'source.json').write_text(json.dumps({'source_git':v['source_git'],'files':source_files},indent=2))
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');spec=importlib.util.spec_from_file_location('workflow',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+slug='godlydonuts/rsna-released-context-probe-d077e354611d';assert r.kernel('GetKernelSessionStatus',slug,1)['status']=='COMPLETE'
+
+def download(name,path,size,sha):
+ assert not path.exists();r.session.cookies.clear()
+ response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':name},timeout=(10,60),allow_redirects=False,stream=True)
+ for _ in range(6):
+  if response.status_code==200:break
+  assert response.status_code in (301,302,303,307,308)
+  url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'))
+  response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,timeout=(10,60),allow_redirects=False,stream=True)
+ assert response.status_code==200
+ h=hashlib.sha256();n=0
+ with path.open('xb') as f:
+  os.fchmod(f.fileno(),0o600)
+  for b in response.iter_content(65536):n+=len(b);assert n<=size;f.write(b);h.update(b)
+ response.close();assert n==size and h.hexdigest()==sha
+
+D=R/'features32';D.mkdir(mode=0o700)
+receipt=r.output_json(slug,1,'context-features-accepted.json');assert receipt==v['accepted']
+index=r.output_json(slug,1,'released-context-features/index.private.json');raw=json.dumps(index,sort_keys=True).encode();assert len(raw)==8574 and hashlib.sha256(raw).hexdigest()=='a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100'
+(D/'index.private.json').write_bytes(raw);(D/'index.private.json').chmod(0o600)
+records=index['records'];assert len(records)==32
+for row in records:
+ assert row['file']==hashlib.sha256(row['study_uid'].encode()).hexdigest()+'.npz'
+ download('released-context-features/'+row['file'],D/row['file'],row['bytes'],row['sha256'])
+assert sum(row['bytes'] for row in records)==24767936
+# The fixed source exists already. Filter membership before any numeric label read.
+source=Path('/tmp/rsna-compact-expanded2592-inputs-20261016-v1/source.csv');source_sha='eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4';assert hashlib.sha256(source.read_bytes()).hexdigest()==source_sha
+sys.path.insert(0,str(S));from rsna.schema import TARGETS
+import pyarrow.dataset as ds
+release=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet');table=ds.dataset(release,format='parquet').to_table(columns=['study_uid'],filter=(ds.field('split')=='train')&(ds.field('report_supervision_allowed')==True));eligible=set(table.column('study_uid').to_pylist());assert len(eligible)==3887
+ids=[row['study_uid'] for row in records];assert set(ids)<=eligible
+labels={};wanted=set(ids)
+with source.open() as f:
+ for row in csv.DictReader(f):
+  uid=row.get('StudyInstanceUID',row.get('study_uid'))
+  if uid not in wanted:continue
+  assert uid not in labels
+  y=[float(row[t]) if row[t].strip() else float('nan') for t in TARGETS];assert all(not np.isfinite(x) or 0<=x<=1 for x in y);labels[uid]=y
+assert set(labels)==wanted
+binding={'source_git':v['source_git'],'parent_weights_sha256':index['weights_sha256'],'parent_source_sha256':index['parent_source_sha256'],'feature_index_sha256':hashlib.sha256(raw).hexdigest(),'label_source_sha256':source_sha,'feature_pipeline_helper_sha256':index['helper_sha256'],'safe_eligible_population':3887,'engineering_studies':32,'license':'attributed licensed parent; competition adaptation admitted; no independent OOF'}
+manifest={'index':str(D/'index.private.json'),'index_sha256':hashlib.sha256(raw).hexdigest(),'default_source_kernel':slug,'roots':{slug:str(D)},'uids_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),'labels':[labels[u] for u in ids],'masks':[[bool(np.isfinite(x)) for x in labels[u]] for u in ids],'binding':binding,'clinical_evaluation_used':False,'source_rows_filtered_before_numeric_read':True,'independent_internal_validation':False,'source_files':source_files}
+M=R/'engineering-inputs.private.json';M.write_text(json.dumps(manifest,sort_keys=True));M.chmod(0o600);msha=hashlib.sha256(M.read_bytes()).hexdigest()
+recipe={'epochs':2};(R/'recovery-recipe.json').write_text(json.dumps(recipe))
+funding={'prior_all_liabilities_and_reserve_bytes':prior,'new_head_checkpoint_recovery_publication_cap_bytes':256*2**20,'new_controls_cap_bytes':32*2**20,'actual_free_bytes':free,'free_after_all_liabilities':free-prior-new,'new_shared_bytes_files':0,'deletion_credit':0};(R/'funding.json').write_text(json.dumps(funding,indent=2))
+py=sys.executable;env=os.environ.copy();env.update({'PYTHONPATH':str(S),'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','PYTHONNOUSERSITE':'1','CUDA_VISIBLE_DEVICES':'','PYTHONDONTWRITEBYTECODE':'1'})
+base=[py,'-B',str(S/'scripts/newton/run_released_context_fit.py'),'--inputs',str(M),'--inputs-sha256',msha,'--recipe',str(R/'recovery-recipe.json')]
+for name,extra in [('full',[]),('stop',['--stop-after','1']),('resume',['--resume',str(R/'stop/checkpoint.pt')])]:
+ with (R/(name+'.private.log')).open('x') as log:
+  x=subprocess.run(base+['--output',str(R/name)]+extra,env=env,stdout=log,stderr=subprocess.STDOUT)
+ assert x.returncode==0,name+' original engine failed; inspect private log'
+a=torch.load(R/'full/checkpoint.pt',map_location='cpu',weights_only=False);b=torch.load(R/'resume/checkpoint.pt',map_location='cpu',weights_only=False)
+def same(a,b):
+ if isinstance(a,torch.Tensor):assert torch.equal(a,b)
+ elif isinstance(a,np.ndarray):assert np.array_equal(a,b)
+ elif isinstance(a,dict):
+  assert a.keys()==b.keys()
+  for k in a:same(a[k],b[k])
+ elif isinstance(a,(list,tuple)):
+  assert len(a)==len(b)
+  for x,y in zip(a,b,strict=True):same(x,y)
+ else:assert a==b
+same(a,b);assert a['completed']==4 and a['epoch']==2 and a['model']['output'].abs().sum()>0
+assert (R/'full/predictions.private.npy').read_bytes()==(R/'resume/predictions.private.npy').read_bytes()
+full=json.loads((R/'full/terminal.json').read_text());assert full['status']=='fixed_final_complete'
+result={'status':'actual32_MRI_full_context_engine_complete_recovery_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':source_files,'input_manifest_sha256':msha,'original_feature_index_sha256':hashlib.sha256(raw).hexdigest(),'feature_members':32,'feature_bytes_fully_download_size_SHA_verified':24767936,'fresh_processes':3,'completed_updates':4,'two_epochs':True,'all_head_AdamW_LR_counters_order_all_RNG_history_exact':True,'all32x12_prediction_bytes_exact':True,'nonzero_learned_context':True,'checkpoint_sha256':full['checkpoint_sha256'],'clinical_or_competition_accuracy':False,'full3887_fit':False,'funding':funding,'protected_values_read':False}
+(R/'accepted.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)

@@ -1,0 +1,63 @@
+"""Suffix-only feature recovery, bounded producers, unchanged per-case numerical code."""
+import ast,hashlib,json
+ORIGINAL='5ab9b091c0f13ba540df1f68117d97f22cf9b6f91f7a1ba1cfbaa578bc203ff6'
+FAILED='godlydonuts/rsna-released-full-features-5ab9b091c0f1'
+
+def replace(s,a,b):
+ assert s.count(a)==1,a[:100]
+ return s.replace(a,b)
+
+def build(original,ids,old_ids,partial_sha,bounded_source):
+ assert hashlib.sha256(original.encode()).hexdigest()==ORIGINAL and len(ids)==3887 and ids[:32]==old_ids
+ tree=ast.parse(original);protected={n.name:ast.dump(n,include_attributes=False) for n in tree.body if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name!='_context_probe_main'}
+ s=replace(original,'records = _reuse_original_context_records()','records = _reuse_completed_context_records()')
+ s=replace(s,'pool.imap_unordered(_context_private_pre_one,[sid for sid in _CONTEXT_ROSTER if sid not in reused_ids],chunksize=1)','bounded_results(pool,_context_private_pre_one,[sid for sid in _CONTEXT_ROSTER if sid not in reused_ids],limit=4)')
+ s=replace(s,"'original_reused_studies':32,'newly_encoded_studies':3855", "'original_reused_studies':832,'newly_encoded_studies':3055,'original_probe_reused_studies':32,'failed_run_reused_studies':800,'pending_CPU_results_cap':4")
+ s=replace(s,"'original_reused':32","'original_reused':832")
+ s=replace(s,"'clinical_labels_reports_read':False,'fitting_or_optimizer':False", "'clinical_labels_reports_read':False,'fitting_or_optimizer':False,'parent_max_RSS_bytes':__import__('resource').getrusage(__import__('resource').RUSAGE_SELF).ru_maxrss*1024")
+ bounded_tree=ast.parse(bounded_source);body=[ast.get_source_segment(bounded_source,n) for n in bounded_tree.body if not isinstance(n,ast.Expr)]
+ reuse=r'''
+def _reuse_completed_context_records():
+    import io,tarfile
+    rows=_reuse_original_context_records()
+    old={r['study_uid']:r for r in rows}
+    # Discover only the exact attached failed notebook output, no DICOM tree.
+    candidates=[Path('/kaggle/input/rsna-released-full-features-5ab9b091c0f1/released-context-features-full/partial-index.private.json'),Path('/kaggle/input/notebooks/godlydonuts/rsna-released-full-features-5ab9b091c0f1/released-context-features-full/partial-index.private.json')]
+    for directory in Path('/kaggle/input').iterdir():
+        if not directory.is_dir() or 'competition' in directory.name or 'abnormality-detection' in directory.name:continue
+        if any((directory/n).exists() for n in ('train.csv','test.csv','train_series','train_images')):continue
+        for root,dirs,files in os.walk(directory):
+            if len(Path(root).relative_to(directory).parts)>=5:dirs[:]=[]
+            if 'partial-index.private.json' in files:candidates.append(Path(root)/'partial-index.private.json')
+    found=[]
+    for p in dict.fromkeys(candidates):
+        if p.is_file() and p.stat().st_size<2**20:
+            v=json.loads(p.read_text())
+            if hashlib.sha256(json.dumps(v,sort_keys=True,separators=(',',':')).encode()).hexdigest()==PARTIAL_SHA:found.append((p,v))
+    assert found,'Exact original private partial feature index required'
+    p,v=found[0];assert v['failed_studies']==0 and v['status']=='partial_not_admitted' and len(v['records'])==832
+    assert len({r['study_uid'] for r in v['records']})==832 and all(r['study_uid'] in _CONTEXT_ROSTER for r in v['records'])
+    for r in v['records']:
+        if r['study_uid'] in old:assert r==old[r['study_uid']]
+    wanted={r['file']:r for r in v['records'] if r['study_uid'] not in old};assert len(wanted)==800
+    archive=p.parent/'features.tar';assert archive.is_file()
+    # Read only the800 fully journaled original members. A killed writer need not
+    # have a complete trailing tar footer; never use an unjournaled tail member.
+    done=set()
+    with tarfile.open(archive,'r:') as stream:
+        while len(done)<len(wanted):
+            member=stream.next();assert member is not None and member.isreg() and Path(member.name).name==member.name
+            if member.name not in wanted:continue
+            assert member.name not in done
+            row=wanted[member.name];assert member.size==row['bytes'] and row['file']==hashlib.sha256(row['study_uid'].encode()).hexdigest()+'.npz'
+            f=stream.extractfile(member);assert f is not None;raw=f.read();assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+            with np.load(io.BytesIO(raw),allow_pickle=False) as a:
+                assert a['features'].shape==(2,94,1024) and a['features'].dtype==np.float32 and a['parent_logits'].shape==(2,12) and np.isfinite(a['features']).all() and np.isfinite(a['parent_logits']).all()
+            done.add(member.name);rows.append({**row,'source_kernel':FAILED_KERNEL,'source_version':1})
+    assert len(rows)==832 and sum(r['bytes'] for r in rows)==643966336
+    return rows
+'''.replace('PARTIAL_SHA',repr(partial_sha)).replace('FAILED_KERNEL',repr(FAILED))
+ marker="if __name__ == '__main__':\n    _context_probe_main()";s=replace(s,marker,'\n'.join(body)+'\n'+reuse+'\n'+marker)
+ now=ast.parse(s);same={n.name:ast.dump(n,include_attributes=False) for n in now.body if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in protected};assert same==protected
+ assert s.count('model.encode(x[None])')==1 and 'imap_unordered(_context_private_pre_one' not in s
+ return s,{'source_sha256':hashlib.sha256(s.encode()).hexdigest(),'source_bytes':len(s.encode()),'original_probe_source_sha256':'d077e354611d8bd17c72d0fa11eefd67454938e2ce46f8e983e13617c4ea5872','original_failed_source_sha256':ORIGINAL,'original_probe_index_sha256':'a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100','partial_index_object_sha256':partial_sha,'roster_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),'studies':3887,'reused_original_studies':832,'newly_encoded_studies':3055,'protected_numerical_functions_identical':sorted(protected),'CPU_pending_result_cap':4,'clinical_labels_reports':False,'competition_submission':False}

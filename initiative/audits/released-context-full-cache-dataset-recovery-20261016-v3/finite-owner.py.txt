@@ -1,0 +1,26 @@
+"""Finite original bounded suffix owner; accept then collect/fixed-fit once, no submissions."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'finite.intent.json').exists()
+x=json.loads((L/'push-courier-result.json').read_text());assert x['returncode']==0
+prepared=json.loads((L/'prepared.json').read_text());slug=prepared['kernel_slug']
+with (L/'finite.intent.json').open('x') as f:json.dump({'kernel':slug,'version':1,'source_sha256':prepared['binding']['source_sha256'],'automatic_retry':False,'max_poll_seconds':18000,'clinical_accuracy_or_submission':False},f,indent=2)
+started=time.monotonic()
+try:
+ while time.monotonic()-started<18000:
+  x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),'status'],capture_output=True,text=True,timeout=700)
+  assert x.returncode==0,'Original status observer failed; reconcile read-only'
+  courier=json.loads(x.stdout);state=json.loads(courier['stdout'])
+  (L/'finite-progress.json').write_text(json.dumps({'kernel':slug,'status':state['status'],'elapsed_seconds':time.monotonic()-started},indent=2)+'\n')
+  if state['status'] in ('COMPLETE','ERROR','CANCELLED'):
+   (L/'actual-terminal.json').write_text(json.dumps(state,indent=2)+'\n');assert state['status']=='COMPLETE','Original bounded suffix failed; preserve partials, no retry'
+   head=Path('artifacts/released-context-head-fit-20261016-v1');assert not (head/'full-fit.intent.json').exists()
+   x=subprocess.run([sys.executable,str(head/'collect_full_and_fit_once.py')],capture_output=True,text=True,timeout=7300)
+   (L/'full-fit-courier-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Original collection/full-fit stopped; inspect exact intent/result'
+   result={'status':'bounded_feature_cache_and_fixed10_context_head_fit_completed','kernel':slug,'elapsed_seconds':time.monotonic()-started,'competition_submissions':0};break
+  time.sleep(120)
+ else:raise TimeoutError('Original finite feature observation expired; do not infer job failure or repeat')
+except BaseException as exc:
+ result={'status':'stopped_for_original_bounded_cache_or_fit_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_retry':False,'competition_submissions':0}
+(L/'finite-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+if result['status'].startswith('stopped'):raise SystemExit(1)

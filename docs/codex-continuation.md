@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 14:35 UTC
+# Execution handoff — October 16, 2026, 14:56 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -36,7 +36,7 @@ read-only. All local controls are in `artifacts/compact-native-n3-launch-2026101
 ## Current training
 
 Source-neighbor full932957 is actually RUNNING on evc33, allocated H100 checks
-passed, seven completed epochs observed. Epochs1–7 now
+passed, nine completed epochs observed. Epochs1–9 now
 privately fully8-object download/size/SHA verified once. Latest epoch2 HF
 37aa0d19308ae5a8bdf10f7a75dd1f2ade12ea1a; never repeat them. Do not stop,
 relocate, restart or change it. Source3803b717b69db6c5e89e11724c4daee15490cbe2;
@@ -78,8 +78,7 @@ Root `/tmp/rsna-compact-late-average-20261016-v1/serving-CPU-v1`; source-manifes
 ecd21c91341860cc849eb32bb27ab767c82f7d1945b6f6d2b44ab55b6d5182fd.
 ReferenceSHA df29bf2b6bd0a3e35bc37b18d3e32719199bd7339f5b725b466c53f86fe18d24
 remains private. This is no GPU qualification, accuracy result or submission.
-Next: actual fixed-final held-out comparison/paired uncertainty and exact target
-precision/runtime/source acceptance before distinct deployment.
+Actual paired139017805 completed1156raw-MRI studies/6000.47s: E16 .9206884392 vs equal average .9210040798, delta+.00031564, conditional95%[-.00214034,+.00293081],2836defined/1164undefined. No established averaging gain; retain E16. Source/data/probability vectors stayed private. Read compact-average-raw-outer-comparison-20261016-v1; no new inference or repeat downloads.
 
 ## Dense coverage target probe
 
@@ -142,7 +141,7 @@ all these obligations. No shared growth.
 No deletion credit. evc39 independently funded160GiBnative+20GiBruntime+16GiBfit/
 recovery+128MiBcontrols+20GiBuntouched reserve. Fresh actual quota governs action.
 The owner's later removal of prior resource limits supersedes the old
-two-node research cap; use actual account/Slurm limits and minimum CPUs. Current GPU work is neighbor on evc33 plus the private full frozen-feature pass
+two-node research cap; use actual account/Slurm limits and minimum CPUs. Current GPU work is neighbor and weighted on evc33; the private feature suffix is separately reconciled below
 in Kaggle; the paired evaluation and32-MRI probe are terminal. Dense probe is terminal. Credentials stay ignored0600.env/RAM/stdin. All private
 source/weight/license/environment/fold proofs remain bound to each immutable model.
 
@@ -269,116 +268,93 @@ byCPU934786 under the canonical lock. Never repeat; see
 [verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
 No private clinical/identity/image/weight bytes in this milestone.
 
-## Licensed context feature/zero-start probe: actual32-MRI acceptance
+## Licensed frozen features and exact context fitter
 
-Frozen learned-head/probe source9af5d42cc9ca4cb08c38eb312f6856e805675fab,
-21new targeted tests passed. Original CPU934887 COMPLETED0:0 prepared source
-d077e354611d8bd17c72d0fa11eefd67454938e2ce46f8e983e13617c4ea5872,
-helper4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9.
-Exactslug godlydonuts/rsna-released-context-probe-d077e354611d v1 was pushed
-ONCE byCPU935000, kernel139031253, actualCOMPLETE32MRI/60.166s. Never push it again.
-Control /tmp/rsna-released-context-features-20261016-v1; local
-artifacts/released-context-features-20261016-v1. Canonical meta/events use an
-explicit source identity, preserving the already-scored parent weight record.
-No new Dataset/weight upload, no clinical labels/reports, no protected evaluation.
+Parent0.949 source493c7b0d/weight7e5315dad125 and permission remain unchanged.
+Probe godlydonuts/rsna-released-context-probe-d077e354611d v1 /139031253
+COMPLETED32actual MRI in60.166s on twoT4s; original pixels/cache-head/zero-start
+identity passed, FP32features24,767,936bytes. IndexSHA
+ a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100.
+No clinical labels/optimizer in that GPU probe. Queue90551 stopped while waiting;
+finite41924 terminalsuccessful. Never repeat either or their first push.
 
-Actual accepted metadata population3887safe train rows, UIDhash
+Actual safe population3887 train/report-allowed studies, ordered UIDhash
 0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42.
-Probe chooses32lexical UIDs privately, rosterhash6ca592004ae972a93a8bb96dc7024b46c7ad86525388c02542dca844a6b1605f.
-No case list enters Git/HF/Mac. New64MiBnode obligation covers controls plus
-future private32MiBfeature collection; fresh remaining79956633661bytes AFTER
-all retained liabilities. Full3887cache/fit is NOT funded/admitted by this gate.
+Original scaled pass139034277/v1 ERRORed970.3s, platform memory exhaustion.
+Private partial832records/0recorded study failures survived. Unbounded CPU Pool
+results can accumulate while the GPU queue blocks; full allocation trace absent.
+CPU935461 salvaged800new members, all byte/SHA/FP32NPY verified; retain original
+failed archive645284352B/SHAa3d0c8133aaf587a351b928e4e4979a86f4950ad78e262ddede6bfd9abbe12d3.
+Complete derived800tar619735040B/SHA987c54f0c9e051e4f96c17ad41cec479f495c429cd2bd98e72872b4ec6caaa01.
+Both stay private under /tmp/rsna-released-context-head-fit-20261016-v1/failed-prefix800.
+Original32 NPZs were separately collected once into sibling/features32 byCPU935437.
+No832CNN cases need to be repeated. Old6991 is terminalfailed, never restart.
 
-Original queue90551/PID36900 was intentionally terminated143 WHILE WAITING,
-with canonicalprepared/serverabsence/no local or remote pushintent proved.
-No actual GPU job was cancelled. Separate parallel-admission-readonly.json and
-original-observer-superseded-before-push.json preserve the scheduling decision.
-The owner removed prior resource caps; finite41924 is TERMINALsuccessful after
-one actual independent GPU push139031253 and terminal, never modifying929938
-or any other original Slurm hold. Account safe minimum/total remaining exceeded
-7200s for a3600s two-T4 cap; no paid upgrade. Original paired/collector/boundary histories are preserved; their exact
-terminal and recovery states are recorded below. Inspect parallel-finite.intent/progress/result and
-per-phase originals; NEVER restart old90551 or repeat the original prepare/push.
-V2program/courier/finite source is archived; original numerical9af5/source d077
-and helper remain unchanged. No submission phase. Uncertain mutation retains
-canonicalclaim for read-only reconciliation. Parent exactsource493c7b0d/weight7e5315dad125 unchanged.
+First bounded suffix139041552/v1 source d1c669af479f800a2ef67c1560b6a1b781cc2989aaacae5bbb81fc0bb513189a
+ERRORed35.6s before new MRI encoding: Kaggle silently dropped the failed notebook
+input. Strict observer stopped on actual metadata mismatch. It has zero output;
+never re-push or restart its finite owner. Bounded preparation caps pending CPU
+results at4 and leaves all per-study numerical functions unchanged.
 
-Module tests include complete syntheticCPUAdamW state/prediction continuation;
-not actual full production trainer recovery. After actual feature acceptance,
-implement/freeze the full head numerical engine and verify it before any fullfit.
-Actual feature/index output remains PRIVATE in Kaggle/owning cluster. Only
-sanitized aggregate/hash receipts may be collected. Protocol has initial fixed
-recipe, anchoring/positional/TTA rules and external-parent exposure limitations.
+One private saved800 Dataset12634368v1 was created ONCE byCPU935531:
+ godlydonuts/rsna-context-saved800-987c54f0c9e0. Kaggle recursively expanded its
+800NPZs+4metadata. Closure935519 failed before create; corrected create returned
+Ok. Original tar-shaped verifier stopped; individual download checks hit429 and
+whole-ZIP attempt was unavailable. Never repeat those creates/verifiers. Instead
+actual offline139044146/v1 source6c6ed23f5e7d32d824d22bf2bf282a319c4526efe7794589ce73127700c9e575
+logged all832saved feature records and4Dataset metadata size/SHA/FP32NPY checks
+PASSED at49.5s, before any new MRI encoding. This is actual mounted-byte proof,
+NOT a successful external full-download verification. Private data stay private.
 
-Neighbor immutable epoch6 privately fully verified once at HF2209881dbcd50a6d109da3b86bdc5520785027ec;
-checkpointSHA1cf46840ff1b4aab81219d4e14fae7754631f168ef69a9ead18978f0fd53825c. Never repeat1–6.
+**Current sole suffix139044146/v1 is RUNNING**, exactslug
+ godlydonuts/rsna-released-features-data800-6c6ed23f5e7d. CPU935611 stage/935612
+first push; local artifacts/released-context-full-cache-dataset-recovery-20261016-v3,
+remote /tmp/rsna-released-context-full-cache-dataset-recovery-20261016-v3.
+It reuses832records and encodes only3055new, with bounded4pending CPU tasks,
+unchanged per-study numerical functions and private4h two-T4 cap. Source/mount
+checks precede all new MRI work. **Finite owner35582 is LIVE**; inspect finite
+intent/progress/result before any action. It handles exact full cache acceptance
+then invokes the once-only full collector/fitter. Do not restart it or repeat
+v3 stage/push. Old6991 and96498 are failed terminal owners, never restart.
 
-## October16 actual paired result, probe pass and full cache RUNNING
+**Production head numerical source2ee0cffeae9dd023fef7ff98403e0508d4d22554**
+actually accepted byCPU935437 COMPLETED0:0/38s: three fresh full/stop1/resume
+processes on32realMRI tensors,2epochs/4updates. Complete head/AdamW/LR/counters/
+order/allRNG/history and32x12 prediction bytes identical, learned branch nonzero.
+Receipt /tmp/rsna-released-context-head-fit-20261016-v1/accepted.json;
+inputmanifestSHAd615d341e0f1c2130c9a66ac5b69a4211f8dfbadbe6876286165ede24fe7d3aa.
+No full3887fit or clinical result yet. Source module/train wrapper are frozen,
+not the prior four-update toy loop. [Actual engine](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
 
-Original paired139017805 completed1156raw-MRI studies/6000.47s/zero unusable
-MRI/12.22GBRSS. Finite96998 stopped on read-only GetDataset503 in CPU935001
-before terminal hold release; exact same source terminal was then recovered
-read-only (no newGPU/Dataset/push). Original collector83697 stopped before
-CPU dispatch. Distinct first CPU935075 downloaded both exact CSVs but failed
-on nonexistent cachedCSV fold/seed columns. V3 analysis reused those same files
-and independent originalN3model/roster/CSV proof; no repeated download/inference.
-Actual aggregate is compact-average-raw-outer-comparison-20261016-v1:
-E16raw0.9206884391543326 vs avg0.9210040798139386, delta+.00031564066,
-conditional95%[-.00214033531,.00293081327],2836defined/1164undefined of4000.
-No established gain; retain E16. Cached0.9209253491 vs rawE160.9206884392,
-delta-.00023690997 CI[-.00111728628,.00077064107], combined contrast only.
-Analysis collector39748 is TERMINALsuccessful; never restart old83697/17569.
+The once-only full collector/fitter is prepared at artifacts/released-context-head-fit-20261016-v1/collect_full_and_fit_once.py.
+After actual v3 feature acceptance it collects only3055new archive bytes once,
+reuses the original32 and800 on-node files, checks every member/metadata and
+fitting-only source rows, then executes the SAME full CPUengine. Recipe:
+402956params,16studies/two views,10epochs/2430updates,AdamW3e-4/WD.01,
+oneepochwarmup/cosine/clip1,25%observed source+75%detached parent. Missing labels
+are teacher-only. No protected values, independent internal OOF or CNN fitting.
+Full parent used internal cohorts/Gold development; do not tune this head on Gold.
+Actual nonzero final-head T4 serving/precision and private production epoch
+preservation remain required before a distinct competition submission.
 
-Boundary first CPU935011 stopped at foreign-hold guard BEFOREremote cloud
-intent; no kernel was pushed by that attempt. Paired owner released its own
-hold via actual terminal recovery. Separate reconciled-v2 controls preserved
-prepared scientific bytes, no original Slurm holds modified; finite27639 now
-TERMINALsuccess after both exact v1 public MRI/CSV acceptances. No competition
-submissions/hidden scores. Do not restart old20793 or repeat either first push.
-Original within/edge exact prepared/notebook/source receipts remain canonical.
+Funding retains all prior liabilities:581021415363B base +2GiBpaired +2MiBsmall
++16MiBboundary +64MiBprobe +4GiBcache +32MiBfullcontrols; additionally256MiBhead
+checkpoint/recovery/publication +32MiBheadcontrols +2GiBprivate Dataset ZIPs.
+No originals deleted, no deletion credit, zero new shared data. Fresh actual
+quota governs dispatch. Extra ZIP reserve allows retaining original failed tar,
+derived complete prefix and the new immutable publication verification ZIP.
+Use oneCPU/noGPU for the small FP32head and network-only preparation, preserving
+healthy H100 jobs. Source features/index/UIDs/predictions never enterMac/Git/HF.
 
-Private context probe139031253/v1 ACTUALLY COMPLETE32studies/60.166092306s,
-402956contextparams, FP32features24767936bytes, bothT4pixel/cache-head/zero-logit
-identity accepted; peak3.19GB. Actual indexhasha1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100,
-8574bytes. Finite41924 TERMINALsuccessful, never repeat it. This is not trained
-head or optimizer acceptance. No private index/feature files sent toMac/Git/HF.
+## Latest preserved milestones and original jobs
 
-NEXT: original full feature cache139034277/v1 RUNNING once. Exactslug
-godlydonuts/rsna-released-full-features-5ab9b091c0f1; source
-5ab9b091c0f13ba540df1f68117d97f22cf9b6f91f7a1ba1cfbaa578bc203ff6.
-CPU935131 prepared successfully; courier had stale status-literal assertion
-AFTERsaving successful remote result. Reconciled locally without stage rerun.
-CPU935140 then made its FIRSTpush once. Controlroot
-/tmp/rsna-released-context-full-cache-20261016-v1; local
-artifacts/released-context-full-cache-20261016-v1. Finite6991 LIVE handles this
-original run only, max6.5h observation/6hGPU session/5hpreprocessing target.
-It reuses original32privateNPZs via kernelDataSources and encodes3855new MRI
-for3887safe train rows (originalUIDhash0485d1b1...). Actual25numericalASTs
-unchanged from accepted probe. CPU935175 executed the exact new archive-write
-block with syntheticFP32arrays and verified whole bytes/streaming safe0600tar
-members/dtypes. Full run uses only private frozen features, no labels/optimizer,
-no new Dataset/weights/competition slot. StatusRUNNING is not terminal success.
+Sourcea25582819259c996206455a06bf6966777e1acca and53smallobjects/462927B privately
+fully re-downloaded/size/SHA verified byCPU935355 at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8.
+Never repeat that prefix. It records the then-running scaled pass; its later
+memory/dependency failures are distinct new evidence, not edits to old receipts.
 
-Full outputs: released-context-features-full/features.tar (new3855NPZmembers),
-index.private.json (all3887, original32point to prior probe), partial-index for
-failure review, context-full-features-accepted.json aggregate. Preserve every
-case/index/vector on owning node/Kaggle only. Later download the archive once
-directly to private node and verify SHA/length; random-access tar fitting avoids
-duplicate extraction and4GiB footprint. Original32source files remain in probe.
-Do not repeat any feature inference or original large artifacts.
-
-New4GiBfuturecache/privatecollection+32MiBcontrols are explicitly funded AFTER
-all prior obligations including64MiBprobe,16MiBboundary,2GiBpaired,2MiBsmall.
-CPU935131 remaining75333531709bytes; no new shared data. Do not count this
-cache admission as funding/head-engine acceptance. NEXT implement/freeze full
-FP32 head training engine (fixed proposal in protocol), actual full/stop/resume
-on cached tensors, exact source/label/roster binding, final checkpoint andT4
-nonzero-head serving acceptance before competition deployment.
-
-Neighbor7 privately verified once HF90d7ac7924bc119b1bc40ef9c27196a1455f42d1; no repeat1–7.
-
-## October16 actual feature memory failure and next engine
-
-Original full feature139034277/v1 is ERROR970.3s, platform memory exhaustion; private partial832records/0recorded study failures remain reusable after byte checks. Its old finite controller is terminal and must never restart. Bounded pending CPU results are now implemented; a distinct suffix-only recovery remains to be admitted. New FP32context fitting engine implements fixed recipe, exact member checks, all RNG/order/AdamW/LR/update state and recovery; synthetic tests pass, but actual32-tensor engine recovery and full fitting are not yet run. No new accuracy is claimed.
-
-Sourcea2558281 and53smallobjects/462927B privately verified at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8 viaCPU935355; never repeat. [Receipt](../initiative/audits/hf-context-features-paired-20261016-v1/verified.json).
+Neighbor932957 remains RUNNING; epochs1–9 privately verified once, eight objects
+each. New8 HFbd8e279c0ac36529e59da6ccb8d8a786f763535a;9 HFcab5cc3377b3feb33d01652bbf78177ee5146479.
+Weighted933001 RUNNING; epoch1 private HFc94baa34310c93f949692f83a96192a3cc50b047.
+Existing publication watchers remain original owners; do not repeat dispatches.
+No challenger fixed-final result exists yet. Root works directly; Devin unavailable.

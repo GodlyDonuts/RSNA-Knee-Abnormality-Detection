@@ -35,7 +35,7 @@ Current N3 triples are consecutive **selected slots**, not guaranteed consecutiv
 source slices. The source-neighbor challenger preserves original centers and all
 other registered settings. Its full fit and a separate positive-weight full fit
 were submitted after actual H100 recovery. Neighbor932957 is now actually training;
-weighted933001 remains pending.
+weighted933001 is RUNNING; epoch1 privately verified.
 Neither has demonstrated an accuracy gain. Public one-study gradient accumulation
 also means mixed-study BatchNorm is not a known missing ingredient.
 
@@ -133,8 +133,8 @@ zero-start, bounded contextual head over its per-window features. It tests wheth
 relations across slices/series help beyond independent window MIL, while avoiding
 retraining a73M CNN every head epoch. It is implemented; the exact
 label-free32-MRI feature probe COMPLETED successfully. The distinct full3,887
-feature pass is RUNNING, with no trained-head accuracy result. Parent exposure
-precludes independent internal OOF. A production head engine/fit remains unadmitted.
+feature pass hit actual memory exhaustion.832records are byte-recovered; bounded suffix recovery uses a private Dataset after Kaggle omitted failed-notebook inputs. Parent exposure
+precludes independent internal OOF. The complete production head engine passed actual32-MRI full/stop/resume; full fitting awaits complete features.
 [Mechanism, literature, fixed proposal and rejection criteria](../initiative/experiments/competitive-v1/released-context-v1/README.md).
 
 The registered averaging experiment is now complete: raw-servingE16 0.92068844
@@ -147,11 +147,12 @@ this is not proof of pixel parity or an isolated decoder/precision experiment.
 The context feature probe ACTUALLY passed32 MRI studies in60.166s on both T4s,
 with exact original pixels/cache-head probabilities/zero-start logits. Features
 are FP32, so no quantization is assumed. A separately funded full3,887-study
-frozen feature pass is RUNNING once, reusing the original32. It creates no new
-weights or accuracy result; the full head training engine is the next task.
+frozen feature pass requires bounded suffix recovery, reusing832verified records. The exact full FP32head engine is accepted on real features; no full fit or accuracy result yet.
 The actual cache enables repeated context-head experiments without repeating
 expensive CNN inference. Raw/index/features remain private.
 
 ## October16 feature-cache memory negative
 
-The label-free32-MRI feature pipeline passed, but the scaled3887pass139034277/v1 hit actual system-memory exhaustion at970.3s. Partial832records have0recorded per-study failures; they are not a complete accepted cache. Bound producer submissions as well as the consumer queue, then verify/reuse existing private feature bytes. This engineering failure is not a disease-classification result. The complete FP32context head engine is now implemented for actual recovery acceptance before fitting.
+The label-free32-MRI feature pipeline passed, but the scaled3887pass139034277/v1 hit actual system-memory exhaustion at970.3s. Partial832records have0recorded per-study failures; they are not a complete accepted cache. Bound producer submissions as well as the consumer queue, then verify/reuse existing private feature bytes. This engineering failure is not a disease-classification result. The complete FP32context head engine source2ee0cffe passed actual32-MRI full/stop1/resume with complete state/prediction equality before full fitting.
+
+The dependency-corrected bounded suffix139044146 is now actually RUNNING. Its49.5s gate verified all832saved feature records and4privateDataset metadata files before new MRI, so only3055cases require new CNN inference. The finite owner advances to the exact accepted FP32head engine after full feature acceptance. No new disease score exists.
