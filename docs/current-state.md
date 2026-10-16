@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 16:34 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 17:10 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -39,11 +39,11 @@ Our external0.949/own0.894 results are distinct and below that reference.
 | Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **13 completed epochs**, empty stderr; epochs 1–13
+Neighbor 932957 has **15 completed epochs**, empty stderr; epochs 1–15
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–6 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–9 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -182,3 +182,14 @@ This is a concrete training-exposure hypothesis, **not disease accuracy or an in
 Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6ccde8c36723627c9de1796137b59907ea10ce (36objects/165,794bytes). Never repeat that or earlier mirrors. New serving/sampling/full-feature/final-head/T4/publicMRI evidence and the single next-allowance owner are now separately private-HF verified at e9d200fbbc9d6fcc9d12838279ceaf28bd75a35a:64objects/269,278bytes from source4428247b, all fully re-downloaded/size/SHA under the canonical lock. [Verified small milestone](../initiative/audits/hf-context-final-sampling-20261016-v1/verified.json). Never repeat.
 
 Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).
+
+Regional-feature research update17:10UTC: original32probe139062311/v1 ERROR;
+distinct diagnostic139064546/v1 COMPLETE but no32acceptance. Observer features/
+logits were bit-exact; cross-run old-cache feature mismatch caused the two observed
+refusals despite <=0.000139parent probability drift. Corrected local compiler saves
+coherent global+regional+parent-logit same-forward records, preserves all remaining
+numerical bounds, adds sanitized failure observations; no full cache/trainer/score.
+[Original evidence and explicit decision](../initiative/audits/regional-feature-probe-20261016-v1/README.md).
+Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
+1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
+Root implements directly; Devin remains unavailable.

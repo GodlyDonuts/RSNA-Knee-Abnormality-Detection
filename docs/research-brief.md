@@ -137,3 +137,14 @@ This is evidence of better teacher fidelity per16-windowbag, not better disease 
 The registered averaging result remains null: raw-servingE16 0.92068844 versus fixedaverage0.92100408, delta+.00031564 with whole-component conditional95%[-.00214034,.00293081]. Keep E16 as own-model default; no independent evidence supports an averaging improvement.
 
 A post-fit label-free check found the context adaptation changes0.935%–3.829%of strict study-pair orders (3,887fitting cases), rather than only shifting class calibration. This establishes behavior, not correctness or a clinical gain. The larger2,592study route now has actual CPUstaged production/preservation controls and one finite conditional owner; it still requires original real-H100 recovery933382 before any full GPU dispatch. No queued/staged process is counted as completed training.
+
+Regional-feature research update17:10UTC: original32probe139062311/v1 ERROR;
+distinct diagnostic139064546/v1 COMPLETE but no32acceptance. Observer features/
+logits were bit-exact; cross-run old-cache feature mismatch caused the two observed
+refusals despite <=0.000139parent probability drift. Corrected local compiler saves
+coherent global+regional+parent-logit same-forward records, preserves all remaining
+numerical bounds, adds sanitized failure observations; no full cache/trainer/score.
+[Original evidence and explicit decision](../initiative/audits/regional-feature-probe-20261016-v1/README.md).
+Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
+1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
+Root implements directly; Devin remains unavailable.

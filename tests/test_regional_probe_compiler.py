@@ -25,6 +25,8 @@ def test_new_probe_keeps_old_functions_and_calls_only_private_entrypoint():
     text, binding = _build(parent, *sources(), [f"safe-{i:02d}" for i in range(32)])
     tree = ast.parse(text)
     assert binding["studies"] == 32 and binding["competition_submission"] is False
+    assert binding["representation"] == "same_forward_global_regional_v1"
+    assert binding["same_forward_global_regional_and_parent_logits"] is True
     old = next(
         n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "original_renderer"
     )
@@ -46,6 +48,12 @@ def test_new_probe_keeps_old_functions_and_calls_only_private_entrypoint():
     )
     assert len(summary.decorator_list) == 1
     assert binding["new_feature_cap_bytes"] == 128 * 2**20
+    assert "global_features.append(actual);parent_logits.append(p[0].cpu().numpy())" in text
+    assert "'features':np.stack(global_features),'parent_logits':np.stack(parent_logits)" in text
+    assert "assert error<=.001" not in text
+    assert "assert pe<=.003" in text
+    assert "'old_global_embeddings_used_as_new_inputs':False" in text
+    assert "regional-probe-observation.json" in text
 
 
 def test_unbound_public_parent_wrong_roster_and_helpers_are_rejected():

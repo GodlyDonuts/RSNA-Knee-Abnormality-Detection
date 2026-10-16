@@ -23,9 +23,14 @@ or unrelated forwards cannot mix into an MRI bag.
 First bounded engineering test: original32allowed fitting studies, original
 licensed parent7e5315da/source493c7b0d, two94-window views. Compare original
 pixelsCPU/GPU, hooked versus unhooked original features/logits within the same
-forward, and old cached global features/probabilities. Within-pass identity is
-bit-exact; cross-run scaled globalfeature error<=0.001 and probability error<=0.003
-are reported, including bit-exact view counts. Check the first actual feature-map
+forward, and old cached probabilities (unchanged error bound0.003). Within-pass identity is
+bit-exact. Original32failed a cross-run globalfeature0.001bound; the distinct
+two-study diagnostic found bit-exact observer identity but1.51–2.79%cross-run
+feature differences and <=0.000139parent probability differences. Root numerical
+cause is unproven. The corrected representation saves global FP32features and
+parent logits from the SAME forward as regional features, and never substitutes
+old global embeddings. Old feature error/bit-exact view counts are diagnostic,
+not an acceptance criterion for the new coherent input. Check the first actual feature-map
 chunk CPU/GPU regional scaled error<=0.0001 on bothT4s. Retain all regions/channels,
 stream one private tar,4pendingCPUtasks/2workers/2queue,128MiBprobe cap. No labels,
 reports, Gold, confirmation, optimizer, model fitting or submission.csv. Actual
