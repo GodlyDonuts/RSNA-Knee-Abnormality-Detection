@@ -1,0 +1,72 @@
+"""Stream the working exact runtime and frozen neighbor inputs to the new endpoint."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'runtime-evc39-relay.intent.json').exists()
+source=r'''
+import hashlib,json,os,sys,tarfile
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+paths=['rsna-environment-907632-7sr9a7i6/environment','rsna-compact-native-n3-assets-20261016-v1','rsna-python312-devel-20261016-v1/usr/include','rsna-compact-matched-neighbor-inputs-20261016-v1/code','rsna-compact-matched-neighbor-inputs-20261016-v1/inputs/inputs.json','rsna-compact-matched-neighbor-inputs-20261016-v1/accepted.json','rsna-compact-matched-neighbor-inputs-20261016-v1/recovery-v1/accepted.json','rsna-public-label-repeat-inputs-20261012-v1/overlay.json','rsna-compact-native-n3-production-evc33-20261016-v1/production/run.json']
+assert all((Path('/tmp')/p).exists() for p in paths)
+# Pre-enumerate resolved regular files; omit only bytecode, never a numerical .py/.so.
+files={}
+for rel in paths:
+ p=Path('/tmp')/rel
+ if p.is_file():files[rel]=p
+ else:
+  for directory,dirs,names in os.walk(p,followlinks=True):
+   dirs[:]=[d for d in dirs if d!='__pycache__']
+   for name in names:
+    q=Path(directory)/name
+    if q.suffix=='.pyc':continue
+    assert q.is_file(),str(q)
+    files[str(q.relative_to('/tmp'))]=q
+assert len(files)<150000 and sum(p.stat().st_size for p in files.values())<20*2**30
+class Writer:
+ def __init__(self):self.h=hashlib.sha256();self.n=0
+ def write(self,b):self.n+=len(b);assert self.n<=20*2**30;self.h.update(b);return sys.stdout.buffer.write(b)
+ def flush(self):sys.stdout.buffer.flush()
+w=Writer()
+with tarfile.open(fileobj=w,mode='w|',dereference=True) as a:
+ for name,p in sorted(files.items()):
+  before=p.stat();info=a.gettarinfo(str(p),arcname=name);assert info.isfile()
+  with p.open('rb') as f:a.addfile(info,f)
+  after=p.stat();assert (before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns)==(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns)
+w.flush();print('SOURCE_RUNTIME39 '+json.dumps({'job':os.environ['SLURM_JOB_ID'],'node':'evc33','sha256':w.h.hexdigest(),'bytes':w.n,'files':len(files),'originals_retained':True}),file=sys.stderr,flush=True)
+'''
+target=r'''
+import hashlib,json,os,shutil,sys,tarfile
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-neighbor-runtime39-20261016-v1');assert not R.exists()
+allowed={'rsna-environment-907632-7sr9a7i6','rsna-compact-native-n3-assets-20261016-v1','rsna-python312-devel-20261016-v1','rsna-compact-matched-neighbor-inputs-20261016-v1','rsna-public-label-repeat-inputs-20261012-v1','rsna-compact-native-n3-production-evc33-20261016-v1'}
+assert all(not (Path('/tmp')/n).exists() for n in allowed)
+# Native160GiB, runtime20GiB, full/recovery16GiB,20GiB reserve,128MiB controls.
+required=(160+20+16+20)*2**30+128*2**20;assert shutil.disk_usage('/tmp').free>required
+R.mkdir(mode=0o700);(R/'intent.json').write_text(json.dumps({'job':os.environ['SLURM_JOB_ID'],'archive_cap_bytes':20*2**30,'remaining_all_liabilities_bytes':required,'GPU_used':False,'automatic_retry':False}))
+class Reader:
+ def __init__(self):self.h=hashlib.sha256();self.n=0
+ def read(self,n=-1):
+  b=sys.stdin.buffer.read(n);self.n+=len(b);assert self.n<=20*2**30;self.h.update(b);return b
+reader=Reader();seen=set();payload=0
+with tarfile.open(fileobj=reader,mode='r|') as a:
+ for member in a:
+  p=Path(member.name);assert not p.is_absolute() and '..' not in p.parts and p.parts[0] in allowed and member.isfile() and member.name not in seen
+  seen.add(member.name);assert len(seen)<=150000
+  out=Path('/tmp')/p;out.parent.mkdir(parents=True,exist_ok=True,mode=0o700);assert out.resolve().is_relative_to(Path('/tmp')/p.parts[0])
+  payload+=member.size;assert payload<20*2**30
+  with a.extractfile(member) as src,out.open('xb') as dst:shutil.copyfileobj(src,dst,2**20)
+  assert out.stat().st_size==member.size;out.chmod(0o600|(member.mode&0o100))
+while reader.read(2**20):pass
+v={'status':'runtime39_received_pending_source_digest_reconciliation','node':'evc39','job':os.environ['SLURM_JOB_ID'],'sha256':reader.h.hexdigest(),'bytes':reader.n,'files':len(seen),'payload_bytes':payload,'GPU_used':False,'new_shared_bytes_files':0}
+(R/'received.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v),flush=True)
+'''
+for n,p in [('source',source),('target',target)]:compile(p,n,'exec');(L/f'runtime-evc39-relay-{n}.py.txt').write_text(p)
+with (L/'runtime-evc39-relay.intent.json').open('x') as f:json.dump({'source':'evc33','destination':'evc39','CPU_per_endpoint':1,'GPU':0,'archive_cap_bytes':20*2**30,'exact_working_source_prefix':True,'no_devel_libpython_dangling_link':True,'originals_retained':True,'automatic_retry':False},f,indent=2)
+def cmd(n,p):return ['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist='+n,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=512M','--time=00:30:00','--job-name=rsna-runtime39-'+n,'/usr/bin/python3.12','-B','-c',p]
+pipeline=shlex.join(cmd('evc33',source))+' | '+shlex.join(cmd('evc39',target))
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['bash','-o','pipefail','-c',pipeline])],capture_output=True,text=True,timeout=1900)
+v={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'runtime-evc39-relay.result.json').write_text(json.dumps(v,indent=2)+'\n')
+if x.returncode:print(json.dumps(v),flush=True);raise SystemExit(1)
+a=json.loads(next(line.removeprefix('SOURCE_RUNTIME39 ') for line in x.stderr.splitlines() if line.startswith('SOURCE_RUNTIME39 ')));b=json.loads(x.stdout);assert all(a[k]==b[k] for k in ('sha256','bytes','files'))
+p={'status':'runtime39_exact_source_target_stream_SHA_bytes_files_verified','source':a,'target':b,'actual_target_runtime_admission_pending':True};(L/'runtime-evc39-relay.verified.json').write_text(json.dumps(p,indent=2)+'\n');print(json.dumps(p),flush=True)

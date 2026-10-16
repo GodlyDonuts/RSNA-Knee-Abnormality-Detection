@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 09:26 UTC.** This is the canonical research entry point.
+**Checked October 16, 2026, 10:05 UTC.** This is the canonical research entry point.
 Job states and unscored submissions are observations at that time, not promises
 about their present state. Exact original receipts and authenticated live state
 resolve uncertainty. Earlier observations are in the [history](current-state.history-20261016.md).
@@ -42,9 +42,9 @@ and [weighted receipts](../initiative/audits/compact-positive-weight-full-fit-20
 
 Original N3 stopped gracefully at 2,983/4,496 updates under its explicit boundary
 return code 75; continuation preserves the same state and fixed schedule. Do not
-count it as a new fit or numerical failure. Original epochs **1–14** have private
+count it as a new fit or numerical failure. Original epochs **1–16** have private
 full download/size/SHA verification in the publication handoff receipt observed
-09:26 UTC. Do not republish them.
+10:05 UTC. Do not republish them.
 
 ## Exact current model and observations
 
@@ -158,10 +158,19 @@ HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8,41objects/146295bytes.
 Dense target-device diagnostic is now staged from actual CPU933635: anonymous
 fitting fixture84original→180dense windows, CPU FP32 reference257.962s, diagnostic
 four-update neighbor checkpoint only. Root owns implementation; no Devin dependency.
-Single finite controller37475 handles one private Dataset/create verification, then
+Private diagnostic Dataset12628782v1 is now fully8-object download/size/SHA verified.
+Single finite controller37475 now
 waits originalE16 public/submission completion before one two-T4 diagnostic push.
 It consumes no competition slot; no GPU/accuracy acceptance yet. Exact receipts:
 [diagnostic audit](../initiative/audits/compact-dense30-T4-diagnostic-20261016-v1/README.md).
 Never restart existing controller/intents. Private root
 `/tmp/rsna-compact-neighbor-dense-T4-20261016-v1`; new2GiB component/ZIP cap retains
 all previous obligations. No new rawMRI or reference vectors copied intoGit/HF/Mac.
+
+## Parallel training capacity
+
+Actual evc39 CPU933712 found875.3GB free; the scheduler showed one unallocated
+H100. CPU-only native/runtime relocations are live, preserving frozen source3803
+and all original assets. Target GPU/CPU input acceptance is still required; no
+second full neighbor fit has been dispatched or existing job changed.
+[Original transfer intents](../initiative/audits/compact-neighbor-evc39-relocation-20261016-v1/README.md).

@@ -78,3 +78,14 @@ def test_full_fit_refuses_old_or_incomplete_recovery():
         bad["comparison"][field] = False
         with pytest.raises(ValueError):
             verify_acceptance(a, bad)
+
+
+def test_relocated_endpoint_requires_explicit_matching_node():
+    relocated = {**admitted(), "node": "evc39"}
+    with pytest.raises(ValueError):
+        validate_admission(relocated)
+    validate_admission(relocated, "evc39")
+    with pytest.raises(ValueError):
+        validate_admission(admitted(), "evc39")
+    with pytest.raises(ValueError):
+        validate_admission({**admitted(), "node": "evc40"}, "evc40")

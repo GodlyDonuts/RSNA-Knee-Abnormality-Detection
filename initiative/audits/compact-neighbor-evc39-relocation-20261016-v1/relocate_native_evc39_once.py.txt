@@ -1,0 +1,47 @@
+"""Distinct CPU-only whole native cache endpoint for parallel neighbor production."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'native-evc39-relay.intent.json').exists()
+relay=subprocess.check_output(['git','show','2e6ebec814bffb0866330970bf5ea9e960c474f2:scripts/newton/native_cache_relay.py'],text=True);assert hashlib.sha256(relay.encode()).hexdigest()=='9c34e9602210b74e847144afa8dc133954e8ce6d7c0f216a27175b5545ecfcf0'
+common='''import hashlib,json,os,shutil,struct,sys,types\nfrom pathlib import Path\nm=types.ModuleType('native_relay');exec(RELAY_SOURCE,m.__dict__)\nG=Path('/home/sa305415/rsna-knee/native384-assembly-c9-v1/registry.json');H='73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770';members=m.members_from_registry(G,H,37812)\n'''.replace('RELAY_SOURCE',repr(relay))
+source=common+r'''
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-native-evc33-relocation-20261016-v1');v=json.loads((C/'native-cache-verified.json').read_text());assert v['members']==37812 and v['bytes']==140626483351 and v['all_original_member_size_SHA_verified_during_transfer'] is True
+# Source size/stat stability is a transport boundary; target independently hashes
+# EVERY arriving byte against the original registry, not against fresh source stats.
+signatures={}
+for n,row in members.items():
+ p=C/n;assert not p.is_symlink() and p.stat().st_size==row['bytes'];signatures[n]=m.signature(p)
+w=sys.stdout.buffer;w.write(m.MAGIC+bytes.fromhex(H)+struct.pack('>QQ',len(members),sum(x['bytes'] for x in members.values())))
+for n,row in members.items():
+ p=C/n;assert m.signature(p)==signatures[n]
+ with p.open('rb') as f:
+  remaining=row['bytes']
+  while remaining:
+   b=f.read(min(2**20,remaining));assert b;w.write(b);remaining-=len(b)
+  assert not f.read(1)
+ assert m.signature(p)==signatures[n]
+w.write(m.END);w.flush()
+print('SOURCE_NATIVE39 '+json.dumps({'node':'evc33','job':os.environ['SLURM_JOB_ID'],'members':len(members),'bytes':sum(x['bytes'] for x in members.values()),'original_retained':True}),file=sys.stderr,flush=True)
+'''
+target=common+r'''
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-neighbor-evc39-20261016-v1');assert not R.exists()
+# New endpoint has no previous RSNA liabilities. Reserve20GiB runtime,16GiB
+# recovery/full fit,128MiB controls and20GiB untouched headroom, plus160GiB cache.
+reserve=(20+16+20)*2**30+128*2**20;required=reserve+160*2**30
+assert shutil.disk_usage('/tmp').free>required and os.statvfs('/tmp').f_favail>150000
+R.mkdir(mode=0o700);(R/'intent.json').write_text(json.dumps({'node':'evc39','job':os.environ['SLURM_JOB_ID'],'source_node':'evc33','cache_cap_bytes':160*2**30,'remaining_liabilities_bytes':reserve,'source_retained':True,'automatic_retry':False}))
+a=m.target_stream(sys.stdin.buffer,R,members,H,byte_cap=160*2**30,remaining_funding=reserve+140626483351)
+sigs={n:m.signature(R/n) for n in members};(R/'cache-signatures.json').write_text(json.dumps(sigs,separators=(',',':'))+'\n')
+a.update(status='native_original_cache_evc39_whole_bytes_verified',node='evc39',job=os.environ['SLURM_JOB_ID'],source_node='evc33',source_retained=True,cache=str(R/'cache'),cache_signatures_sha256=m.sha(R/'cache-signatures.json'),free_bytes=shutil.disk_usage('/tmp').free,reserve_after_cache_bytes=reserve,GPU_used=False,new_shared_bytes_files=0)
+(R/'native-cache-verified.json').write_text(json.dumps(a,indent=2)+'\n');print(json.dumps(a),flush=True)
+'''
+for n,p in [('source',source),('target',target)]:compile(p,n,'exec');(L/f'native-evc39-relay-{n}.py.txt').write_text(p)
+with (L/'native-evc39-relay.intent.json').open('x') as f:json.dump({'source':'evc33','destination':'evc39','CPU_per_endpoint':1,'GPU':0,'originals_retained':True,'members':37812,'bytes':140626483351,'registry_sha256':'73d06c86900f03e8571fb68a8d341333c547ab984c7a4317387754949b8ab770','purpose':'parallel fixed-source neighbor training; no scientific recipe changes','target_runtime_fit_control_reserve_bytes':(20+16+20)*2**30+128*2**20,'automatic_retry':False},f,indent=2)
+def cmd(n,p):return ['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist='+n,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=512M','--time=01:00:00','--job-name=rsna-native39-'+n,'/usr/bin/python3.12','-B','-c',p]
+pipeline=shlex.join(cmd('evc33',source))+' | '+shlex.join(cmd('evc39',target))
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(['bash','-o','pipefail','-c',pipeline])],capture_output=True,text=True,timeout=3700)
+v={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'native-evc39-relay.result.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v),flush=True)
+if x.returncode:raise SystemExit(1)

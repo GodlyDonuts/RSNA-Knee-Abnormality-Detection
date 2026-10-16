@@ -16,11 +16,12 @@ import time
 from pathlib import Path
 
 
-def validate_admission(value: dict) -> None:
+def validate_admission(value: dict, expected_node: str = "evc33") -> None:
     if (
-        value.get("status") != "matched_source_neighbor_inputs_admitted"
+        expected_node not in {"evc33", "evc39"}
+        or value.get("status") != "matched_source_neighbor_inputs_admitted"
         or value.get("source_git") != "3803b717b69db6c5e89e11724c4daee15490cbe2"
-        or value.get("node") != "evc33"
+        or value.get("node") != expected_node
         or value.get("fitting_count") != 2247
         or value.get("outer_count") != 1156
         or value.get("center_channel_bit_equal") is not True
@@ -44,6 +45,7 @@ def main():
     ):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--expected-admission-sha256", required=True)
+    parser.add_argument("--expected-node", choices=("evc33", "evc39"), default="evc33")
     args = parser.parse_args()
 
     def digest(p):
@@ -52,7 +54,7 @@ def main():
     if digest(args.input_admission) != args.expected_admission_sha256:
         raise ValueError("Exact original actual input receipt required")
     admitted = json.loads(args.input_admission.read_text())
-    validate_admission(admitted)
+    validate_admission(admitted, args.expected_node)
     if (
         Path(admitted["source"]) != args.source
         or Path(admitted["cache"]) != args.cache
