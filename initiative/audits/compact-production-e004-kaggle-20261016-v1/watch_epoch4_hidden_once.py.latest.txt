@@ -1,0 +1,18 @@
+"""Finite read-only observation of actual submission57256756; no new mutation."""
+import json,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote,utcnow
+L=Path(__file__).resolve().parent
+with (L/'epoch4-hidden-watch.intent.json').open('x') as f:json.dump({'submission_id':57256756,'maximum_seconds':10800,'poll_seconds':60,'new_submission':False,'new_push':False,'read_only':True},f)
+r=Remote();started=time.monotonic()
+try:
+ while time.monotonic()-started<10800:
+  rows=[x for x in r.submissions() if x.get('ref')==57256756];assert len(rows)==1;value=rows[0];assert value['description']=='rsna-epoch-v1:1af9ff261714a56008d9e8906d8280c44addb1da19d77247b2ecdceb06b3c2a8'
+  progress={'checked_at':utcnow(),'elapsed_seconds':time.monotonic()-started,'submission':value};(L/'epoch4-hidden-watch-progress.json').write_text(json.dumps(progress,indent=2)+'\n')
+  score=value.get('publicScore');status=value.get('status')
+  if score not in (None,'') or status in ['complete','COMPLETE','error','ERROR','cancelled','CANCELLED'] or value.get('errorDescription'):
+   result={'status':'actual_hidden_outcome_observed','observed':progress,'account':r.account(),'scored':score not in (None,''),'new_submission':False};break
+  time.sleep(60)
+ else:result={'status':'finite_observation_deadline','last_observed':progress,'new_submission':False}
+except Exception as exc:result={'status':'observation_interrupted','error_type':type(exc).__name__,'reason':str(exc),'new_submission':False}
+(L/'epoch4-hidden-watch-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
