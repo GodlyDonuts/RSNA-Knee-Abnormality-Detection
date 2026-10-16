@@ -113,7 +113,7 @@ def main() -> None:
         raise ValueError("Resume requires an actual original production checkpoint")
     if (
         shutil.disk_usage("/tmp").free
-        < 396100843459 + (20 + 24 + 2 + 70 + 1 + 16) * 2**30 + 144 * 2**20
+        < 396100843459 + (20 + 24 + 2 + 70 + 4 + 16 + 16) * 2**30 + 192 * 2**20
     ):
         raise OSError("Original liabilities, full production and reserve must remain funded")
     args.output.mkdir(mode=0o700, exist_ok=args.resume)
