@@ -48,6 +48,27 @@ VERSION = "native_coatnet_bag12_N3_full_v1"
 OVERLAY_SHA256 = "c8fd2e860d8a3913dbeab34a9d1078316a8f893360124eac088453dc2ed6cf51"
 
 
+def dataset_input_policy(data):
+    policy = getattr(data, "input_policy", None)
+    if policy is None:
+        return None
+    from rsna.competitive.compact_source_neighbors import POLICY
+
+    if policy != POLICY:
+        raise ValueError("Unrecognized compact input policy")
+    return dict(policy)
+
+
+def model_windows(sample, windows, policy):
+    if policy is None:
+        if "source_window_images" in sample:
+            raise ValueError("Source-neighbor tensors require explicit dataset binding")
+        return window_tensor(sample["images"], windows)
+    from rsna.competitive.compact_source_neighbors import select_window_tensor
+
+    return select_window_tensor(sample, windows)
+
+
 @dataclass(frozen=True)
 class Settings:
     seed: int = 20260922
@@ -186,6 +207,9 @@ def fit(
         raise ValueError("Stop boundary must be a positive integer")
     batches = math.ceil(len(data) / settings.effective_batch)
     total = batches * settings.epochs
+    policy = dataset_input_policy(data)
+    if policy is not None and binding.get("input_policy") != policy:
+        raise ValueError("Source-neighbor dataset requires exact input-policy binding")
     runtime = {
         "device": str(device),
         "GPU": torch.cuda.get_device_name(device) if device.type == "cuda" else None,
@@ -204,6 +228,10 @@ def fit(
         total_steps=total,
         runtime=runtime,
     )
+    if policy is not None:
+        from rsna.competitive.compact_source_neighbors import ENGINE
+
+        expected["engine"] = ENGINE
     checkpoint = output / "checkpoint.pt"
     model.to(device)
     optimizer, scheduler = make_optimizer(model, settings, total)
@@ -289,7 +317,7 @@ def fit(
                     epoch=epoch + 1,
                     study_uid=sample["study_uid"],
                 )
-                images = window_tensor(sample["images"], windows).to(device)
+                images = model_windows(sample, windows, policy).to(device)
                 logits = model(images)
                 loss = masked_cell_loss(
                     logits, sample["labels"].to(device), sample["label_mask"].to(device), active
@@ -349,11 +377,12 @@ def fit(
 def predict(model: CompactBagClassifier, data: Sequence, device: torch.device, chunk_size=12):
     """Final-only evaluation of all valid windows; no test-time BN updates."""
     model.to(device).eval()
+    policy = dataset_input_policy(data)
     rows = []
     with torch.inference_mode():
         for sample in data:
             windows = candidate_windows(sample["series_mask"], sample["slice_mask"])
-            images = window_tensor(sample["images"], windows).to(device)
+            images = model_windows(sample, windows, policy).to(device)
             probability = model(images, chunk_size=chunk_size).sigmoid().float().cpu()
             if not torch.isfinite(probability).all():
                 raise ValueError("Nonfinite final predictions")
@@ -455,6 +484,18 @@ def admitted_datasets(args):
             "std": [0.5] * 3,
         },
     }
+    policy = getattr(args, "input_policy", "n3")
+    if policy == "matched-source-neighbors":
+        from rsna.competitive.compact_source_neighbors import POLICY, MatchedSourceNeighborDataset
+
+        binding["input_policy"] = dict(POLICY)
+        return (
+            MatchedSourceNeighborDataset(train),
+            MatchedSourceNeighborDataset(evaluation),
+            binding,
+        )
+    elif policy != "n3":
+        raise ValueError("Unrecognized compact input policy")
     return train, evaluation, binding
 
 
@@ -476,6 +517,7 @@ def main() -> None:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--stop-after-updates", type=int)
     parser.add_argument("--inputs-only", action="store_true")
+    parser.add_argument("--input-policy", choices=("n3", "matched-source-neighbors"), default="n3")
     args = parser.parse_args()
     if (args.output / "result.json").exists():
         parser.error("Fixed-final run already finalized; do not repeat fitting/evaluation")
@@ -493,7 +535,7 @@ def main() -> None:
             for i in range(min(16, len(data))):
                 sample = data[i]
                 windows = candidate_windows(sample["series_mask"], sample["slice_mask"])
-                values = window_tensor(sample["images"], windows)
+                values = model_windows(sample, windows, dataset_input_policy(data))
                 tensors.update(values.contiguous().numpy().tobytes())
                 for name in ("labels", "label_mask", "series_mask", "slice_mask"):
                     tensors.update(sample[name].contiguous().numpy().tobytes())
