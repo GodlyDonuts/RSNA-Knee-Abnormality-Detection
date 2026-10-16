@@ -1,0 +1,70 @@
+"""One exact released-model code candidate; owned old post-receipt error preserved."""
+import hashlib,importlib.util,json,os,shutil,subprocess,types
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('push','status','submit')
+assert os.uname().nodename=='evc33' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-released0949-offline-baseline-20261016-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');OLD=Path('/tmp/rsna-released0949-private-baseline-20261016-v1')
+if phase=='push':assert not R.exists();assert shutil.disk_usage('/tmp').free>542280726467+16*2**20;R.mkdir(mode=0o700)
+else:assert R.is_dir()
+for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('released_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication');csv=types.ModuleType('released_output_csv');exec(compile(v['csv_helper'],'released_output_csv','exec'),csv.__dict__)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+sha='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';slug='godlydonuts/rsna-released0949-offline-7e5315dad125';old_slug='godlydonuts/rsna-released0949-private-7e5315dad125';dataset='nartaa/rsna-knee-publication-swa-weights-20261007';source_sha=hashlib.sha256(v['entry'].encode()).hexdigest();assert source_sha=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+assert v['decision']['external_model_competition_admitted'] is True and v['decision']['protected_internal_evaluation_permitted'] is False
+original=r.kernel('GetKernel','nartaa/rsna-knee-0949-anatomical-mirror',2);assert hashlib.sha256(original['blob']['source'].encode()).hexdigest()=='8f1f96530b08543bd6caeed48489eea7c01657d6994f22e21a8400047fd4e100'
+d=r.dataset(dataset);assert d['id']==12431568 and d['currentVersionNumber']==1 and d.get('isPrivate',False) is False;assert hashlib.sha256(d['description'].encode()).hexdigest()==v['permission_description_sha256']
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':v['entry'],'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);p.exclusive_json(claim/'owner.json',{'pid':os.getpid(),'slurm_job_id':os.environ['SLURM_JOB_ID'],'host':'evc33','operation':'attributed_released_baseline'})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),r.username) as db:
+  w.verify_account(db,r);record=w.read_entry(db,sha)
+  if phase=='push':
+   assert record['state']=='external_private_pushed' and record['kernel_slug']==old_slug and record['source_sha256']=='43730e6a3ab9e8b4f92dcfd24c961a0dc157b2b502310a6964c507a3689baeea'
+   assert r.kernel('GetKernelSessionStatus',old_slug,1).get('status')=='ERROR' and (OLD/'patch-released.json').exists() and not (OLD/'submit-intent.json').exists()
+   actual=csv.verify_csv(csv.download_csv(r,old_slug,1),v['columns'],v['expected_roster_sha256']);assert actual['CSV_sha256']==v['original_CSV_sha256'] and actual['studies']==3;p.exclusive_json(R/'original_private_CSV_verified.json',actual)
+   running=subprocess.check_output(['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b'],text=True).splitlines();nodes={x.split('|')[0] for x in running if 'gpu' in x.split('|')[-1]};assert len(nodes)<=1
+   q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));assert min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])>=64800
+   absent=r.require_absent_kernel(slug);state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip()
+   if state=='PENDING':
+    job=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True);assert 'Reason=JobHeldUser' not in job
+    p.exclusive_json(R/'patch-hold-intent.json',{'job_id':'929938','reason':'released-model exact offline acceptance'});subprocess.run(['scontrol','hold','929938'],check=True);p.exclusive_json(R/'patch-held.json',{'held':True,'job_id':'929938'})
+   p.exclusive_json(R/'push-intent.json',{'request_sha256':w.object_hash(request),'absence':absent,'checkpoint_sha256':sha,'source_sha256':source_sha,'automatic_retry':False,'decision_sha256':w.object_hash(v['decision'])})
+   record.setdefault('superseded_operations',[]).append({'kernel_slug':old_slug,'version':1,'source_sha256':record['source_sha256'],'actual_terminal':'ERROR','failure_after_successful_MRI_CSV':'agent_added_post_receipt_missing_pd_import','actual_CSV_sha256':actual['CSV_sha256'],'competition_submission':False,'never_resubmit':True})
+   record.update(state='released_baseline_push_intent',kernel_slug=slug,kernel_version=1,source_sha256=source_sha,agent_admission=v['decision'],competition_eligible=True,competition_eligibility='admitted_public_pretrained_model_under_current_rules',own_training=False,operation={'kind':'attributed_public_released_baseline_v1','kernel_slug':slug,'source_sha256':source_sha,'dataset_slug':dataset,'checkpoint_sha256':sha})
+   w.save_entry(db,record,'exact author code, no added runtime cell; preserve failed private receipt append')
+   try:response=r.call('kernels.KernelsApiService','SaveKernel',request)
+   except Exception:
+    record['state']='released_baseline_push_uncertain';w.save_entry(db,record,'released baseline push uncertain; read-only reconciliation');raise
+   p.exclusive_json(R/'push-response.json',response);assert response.get('versionNumber')==1 and response.get('ref')=='/code/'+slug and not response.get('error');record['state']='released_baseline_pushed';w.save_entry(db,record,'exact author source version accepted once')
+   out={'status':'one_exact_released_baseline_pushed','kernel_id':response.get('kernelId'),'kernel_slug':slug,'version':1,'checkpoint_sha256':sha,'source_sha256':source_sha,'competition_submission':False}
+  else:
+   assert record['state']=='released_baseline_pushed' and record['kernel_slug']==slug
+   current=r.kernel('GetKernel',slug,1);assert current['blob']['source']==v['entry'];m=current['metadata']
+   for key in ['isPrivate','enableInternet','machineShape','dockerImage']:assert m.get(key)==request[key]
+   for key in ['datasetDataSources','competitionDataSources']:assert sorted(m.get(key,[]))==sorted(request[key])
+   status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'kernel_slug':slug,'version':1,'exact_source_private_offline_T4_verified':True,'competition_submission':False}
+   if status in ['COMPLETE','ERROR','CANCELLED']:
+    if (R/'patch-held.json').exists() and not (R/'patch-release-intent.json').exists():
+     p.exclusive_json(R/'patch-release-intent.json',{'actual_Kaggle_terminal':status,'job_id':'929938'});subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(R/'patch-released.json',{'released':True})
+    if status=='COMPLETE':
+     actual=csv.verify_csv(csv.download_csv(r,slug,1),v['columns'],v['expected_roster_sha256']);assert actual['CSV_sha256']==v['original_CSV_sha256'] and actual['studies']==3
+     if not (R/'actual-public-Csv.json').exists():p.exclusive_json(R/'actual-public-Csv.json',actual)
+     out['receipt']=actual
+   if phase=='submit':
+    assert status=='COMPLETE' and actual['CSV_sha256']==v['original_CSV_sha256'] and not (R/'submit-intent.json').exists()
+    account=r.account();slots=w.allowance(db,account);assert slots>0
+    description='rsna-released-baseline-v1:'+w.object_hash({'checkpoint_sha256':sha,'kernel':slug,'version':1});assert not [x for x in r.submissions() if x.get('description')==description]
+    record.update(state='submit_intent',attempted_at=w.utcnow(),description=description,quota_before=account,inference_receipt=actual);w.save_entry(db,record,'durable attributed external-model code submission intent')
+    p.exclusive_json(R/'submit-intent.json',{'checkpoint_sha256':sha,'kernel_slug':slug,'version':1,'description':description,'fresh_allowance':slots})
+    try:
+     owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});p.exclusive_json(R/'submit-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     record.update(state='submitted',submission_id=response['ref'],submitted_at=w.utcnow(),competition_submission=True);w.save_entry(db,record,'one attributed exact released-model code submission accepted');out=record
+    except Exception:
+     record['state']='submit_uncertain';w.save_entry(db,record,'submission uncertain; read-only reconciliation required');raise
+ print(json.dumps(out),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()

@@ -1,0 +1,47 @@
+"""Finite exact-author source run then one attributed code entry, after actual acceptance."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+from rsna.schema import TARGETS
+L=Path(__file__).resolve().parent;D=L/'public-nartaa-contract-current';entry=(D/'source.py').read_text();assert hashlib.sha256(entry.encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde';compile(entry,'exact_released_source','exec')
+prior=json.loads((L/'public-baseline-reviewed-controller-result.json').read_text());assert prior['actual']['status']=='ERROR'
+original=json.loads((L/'public-baseline-original-MRI-CSV-verified.json').read_text());assert original['studies']==3
+program=(L/'released_baseline_offline_cloud.py').read_text();compile(program,'released_offline_cloud','exec')
+helpers={n:Path('scripts/kaggle',n).read_text() for n in ['workflow.py','publication.py','components.py']};csv_helper=Path('scripts/kaggle/output_csv.py').read_text();meta=json.loads((D/'dataset-metadata.json').read_text())
+decision={'external_model_competition_admitted':True,'own_training':False,'protected_internal_evaluation_permitted':False,
+ 'rules_source':'https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/rules','rules_verified_from_live_browser':'2026-10-16',
+ 'reason':'Current section2.6 permits reasonably accessible public external models unless specifically prohibited. This exact model is freely public with explicit competition use and adaptation/redistribution permission, including CC BY-NC4.0 winning submissions. No controlled OAI data are accessed or redistributed by this operation. No specific ban on this released model was found. This is an agent admission decision, not a claimed host endorsement of upstream OAI access.',
+ 'host_upstream_OAI_condition_source':'https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/discussion/741819',
+ 'upstream_OAI_exposure_disclosed':True,'acknowledgement_must_be_retained':True,
+ 'source_owner':'nartaa','source_notebook_version':2,'public_Dataset_id':12431568,'public_Dataset_version':1,
+ 'no_claim_of_independent_internal_validation_or_own_training':True,
+ 'original_private_failure':'agent_added_post_receipt_NameError_after_successful_MRI_CSV; source body unchanged and CSV externally verified',
+ 'no_parent_numeric_or_preprocessing_change':True,'remaining_control_within_combined16MiB_node_cap':True}
+(L/'released-baseline-agent-admission.json').write_text(json.dumps(decision,indent=2)+'\n')
+with (L/'released-baseline-offline-controller.intent.json').open('x') as f:json.dump({'checkpoint_sha256':'7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef','source_sha256':hashlib.sha256(entry.encode()).hexdigest(),'decision_sha256':hashlib.sha256(json.dumps(decision,sort_keys=True).encode()).hexdigest(),'maximum_distinct_pushes':1,'maximum_competition_submissions':1,'new_Datasets':0,'automatic_mutation_retry':False},f)
+
+def phase(name):
+ if name in ('push','submit'):
+  with (L/f'released-baseline-offline-{name}.intent.json').open('x') as f:json.dump({'phase':name,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_sha256':hashlib.sha256(entry.encode()).hexdigest(),'automatic_retry':False},f)
+ env=Path('.env');assert env.stat().st_mode&0o077==0;values={}
+ for line in env.read_text().splitlines():
+  k,sep,value=line.partition('=')
+  if sep:values[k.strip()]=value.strip().strip('\"\'')
+ payload={'program':program,'phase':name,'entry':entry,'helpers':helpers,'csv_helper':csv_helper,'columns':['StudyInstanceUID',*TARGETS],'expected_roster_sha256':original['test_roster_sha256'],'original_CSV_sha256':original['CSV_sha256'],'decision':decision,'permission_description_sha256':hashlib.sha256(meta['description'].encode()).hexdigest(),'token':values['KAGGLE_API_TOKEN']}
+ bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"released_model_offline","exec"),{"__name__":"__main__","PACKAGE":v})'
+ cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:10:00','--job-name=rsna-released-offline-'+name,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',bootstrap]
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=650)
+ out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};p=L/f'released-baseline-offline-{name}-result-{len(list(L.glob("released-baseline-offline-"+name+"-result-*.json")))}.json';p.write_text(json.dumps(out,indent=2)+'\n');assert x.returncode==0,'Original released baseline phase stopped; reconcile exact intent without retry';return json.loads(x.stdout)
+started=time.monotonic()
+try:
+ pushed=phase('push');(L/'released-baseline-offline-pushed.json').write_text(json.dumps(pushed,indent=2)+'\n');r=Remote()
+ while time.monotonic()-started<3600:
+  status=r.kernel('GetKernelSessionStatus',pushed['kernel_slug'],1).get('status');(L/'released-baseline-offline-controller-progress.json').write_text(json.dumps({'status':status,'elapsed_seconds':time.monotonic()-started}))
+  if status in ['COMPLETE','ERROR','CANCELLED']:
+   actual=phase('status');assert status=='COMPLETE' and actual['receipt']['CSV_sha256']==original['CSV_sha256']
+   submitted=phase('submit');assert submitted['state']=='submitted';(L/'released-baseline-canonical-submitted.json').write_text(json.dumps(submitted,indent=2)+'\n')
+   result={'status':'one_attributed_released_baseline_code_submission_accepted','submission_id':submitted['submission_id'],'kernel_slug':pushed['kernel_slug'],'version':1,'own_training':False,'hidden_score':None};break
+  time.sleep(45)
+ else:raise TimeoutError('Original released version remains nonterminal; inspect same version read-only')
+except Exception as e:result={'status':'stopped_for_original_released_baseline_review','reason':str(e),'error_type':type(e).__name__,'automatic_mutation_retry':False}
+(L/'released-baseline-offline-controller-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
