@@ -25,3 +25,13 @@ compilerMypy passed. The actual licensed parent compiled in all four role/mode
 combinations locally; placeholders were never pushed. No actual final spatial
 export/T4precision/MRIexecution or Kaggle entry is claimed yet. Full fits are
 original937942/937975; wait actual final/publication before final export/qualification.
+
+Actual CPU938126 now passed on the original32MRI coherent records for BOTH
+roles, using original learned four-update engineering checkpoints: serving versus
+original trainer probability max1.192e-7/global-repeat and5.96e-8/regional, both
+nonzero corrections. The final exporter correctly refused both diagnostic models
+before producing any component. No fitting/clinical metric/newCNN/Kaggle push.
+Full fitting weights are not yet exported. Original source packaging first stopped
+locally before any intent because empty generated scripts package markers are
+not Git files; their exact original empty SHA was preserved in the corrected
+package. No remote job or numerical run was repeated.

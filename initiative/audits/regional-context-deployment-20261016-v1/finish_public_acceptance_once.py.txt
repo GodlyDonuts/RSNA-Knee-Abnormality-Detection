@@ -1,0 +1,36 @@
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;S=Path('artifacts/regional-context-serving-20261016-v1');F=Path('artifacts/regional-context-production-20261016-v1');deadline=time.monotonic()+8*3600;driver=L/'run_phase_once.py';sdriver=S/'run_phase_once.py';original_pid=66597
+with (L/'finish.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'cloud_program_sha256':hashlib.sha256((L/'cloud.py.txt').read_bytes()).hexdigest(),'driver_sha256':hashlib.sha256(driver.read_bytes()).hexdigest(),'serving_program_sha256':hashlib.sha256((S/'program.py.txt').read_bytes()).hexdigest(),'serving_driver_sha256':hashlib.sha256(sdriver.read_bytes()).hexdigest(),'original_fitting_owner_pid':original_pid,'maximum_seconds':8*3600,'competition_entries':0,'automatic_restart_or_mutation_retry':False},f,indent=2)
+assert (S/'stage.accepted.json').exists() and not (L/'dataset.intent.json').exists() and all(not (S/('export-'+r+'.intent.json')).exists() for r in ('global_repeat','regional'))
+def record(stage,extra=None):
+ (L/'finish.progress.json').write_text(json.dumps({'checked_at_UTC':datetime.now(timezone.utc).isoformat(),'phase':stage,**(extra or {})},indent=2)+'\n')
+def execute(args):
+ assert time.monotonic()<deadline
+ x=subprocess.run([sys.executable,*[str(a) for a in args]],capture_output=True,text=True,timeout=750)
+ assert x.returncode==0,'Original phase failed; inspect its own result/intent, no retry: '+str(args)
+ outer=json.loads(x.stdout);assert outer['returncode']==0
+ return json.loads(outer['stdout'])
+try:
+ record('awaiting_original_full_fit_and_private_all20_epoch_preservation')
+ while not (F/'finish.result.json').exists():
+  assert time.monotonic()<deadline
+  live=subprocess.run(['ps','-p',str(original_pid),'-o','command='],capture_output=True,text=True);assert live.returncode==0 and 'regional-context-production-20261016-v1/finish_once.py' in live.stdout,'Original observer no longer live; inspect actual jobs, never restart'
+  time.sleep(60)
+ original=json.loads((F/'finish.result.json').read_text());assert original['status']=='both_original_full3887_fixed10_roles_complete_and_all20_epochs_privately_verified'
+ for role in ('global_repeat','regional'):
+  record('actual_final_export_'+role);result=execute([sdriver,'export-'+role]);assert result['status']=='actual_full3887_fixed10_spatial_component_CPU_prepared' and result['role']==role
+ record('one_private_combined_head_Dataset');dataset=execute([driver,'dataset']);assert dataset['status']=='private_matched_spatial_Dataset_all_objects_full_download_size_SHA_verified'
+ for role in ('regional','global_repeat'):
+  for step in ('qualification','competition'):
+   record(role+'_'+step+'_one_push');execute([driver,step+'-push',role])
+   while True:
+    assert time.monotonic()<deadline
+    result=execute([driver,step+'-status',role]);record(role+'_'+step+'_original_status',{'status':result['status']})
+    if result['status']=='COMPLETE':assert 'receipt' in result;break
+    if result['status'] in ('ERROR','CANCELLED'):raise RuntimeError('Original '+role+' '+step+' '+result['status']+'; no retry')
+    time.sleep(90)
+ (L/'finish.result.json').write_text(json.dumps({'status':'both_original_spatial_roles_actual_T4precision_and_public_MRI_CSV_accepted','competition_entries':0,'public_completion_is_not_a_hidden_score':True},indent=2)+'\n');print('Both original fixed-final spatial roles passed actual T4 and public MRI acceptance; no competition entry.',flush=True)
+except Exception as exc:
+ (L/'finish.result.json').write_text(json.dumps({'status':'original_spatial_pipeline_requires_readonly_inspection','error':str(exc),'automatic_restart_or_retry':False},indent=2)+'\n');raise

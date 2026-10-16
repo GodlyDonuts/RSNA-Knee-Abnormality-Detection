@@ -1,0 +1,62 @@
+import hashlib,io,json,os,shutil,subprocess,sys,tarfile
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('stage','export-global_repeat','export-regional') and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+R=Path('/tmp/rsna-regional-context-serving-20261016-v1');E=Path('/tmp/rsna-regional-context-engine-20261016-v2');F=Path('/tmp/rsna-regional-context-production-20261016-v1');P=Path('/tmp/rsna-regional-feature-probe-20261016-v2/collected');sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert shutil.disk_usage('/tmp').free>605669242819
+if phase=='stage':
+ assert not R.exists();assert sha(E/'recovery/accepted.json')=='3b986f6328fcb236877e88bed9f09900131febaf93d1098726795bc6622c6ec6';R.mkdir(mode=0o700);(R/'program.py.txt').write_text(v['program']);(R/'parent.py').write_text(v['parent']);assert sha(R/'parent.py')=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+ for name,text in v['files'].items():
+  p=R/'code'/name;assert p.resolve().is_relative_to((R/'code').resolve());p.parent.mkdir(parents=True,mode=0o700,exist_ok=True);p.write_text(text);assert sha(p)==v['source_files'][name]
+ admitted=json.loads((E/'accepted.json').read_text())['admission']
+ for old,h in admitted['source_files'].items():
+  assert sha(old)==h;rel=Path(old).relative_to(E/'code');assert sha(R/'code'/rel)==h
+ (R/'source.json').write_text(json.dumps({'source_git':v['source_git'],'files':v['source_files'],'program_sha256':sha(R/'program.py.txt'),'parent_source_sha256':sha(R/'parent.py'),'training_source_git':admitted['source_git']},sort_keys=True,indent=2)+'\n')
+else:
+ meta=json.loads((R/'source.json').read_text());assert all(sha(R/'code'/name)==h for name,h in meta['files'].items()) and sha(R/'program.py.txt')==meta['program_sha256'] and sha(R/'parent.py')==meta['parent_source_sha256'];assert (R/'engineering-accepted.json').is_file()
+sys.path.insert(0,str(R/'code'));import numpy as np,torch
+torch.set_num_threads(1);torch.set_num_interop_threads(1)
+from rsna.competitive.regional_context_infer import export_component,load_component,predict_pair,RECOVERY_SHA
+from rsna.competitive.regional_context_train import feature_vector,ROLES
+from rsna.competitive.released_context import ContextResidual,tta_probabilities
+from scripts.kaggle.regional_context_notebook import build
+index=json.loads((P/'index.private.json').read_text());assert sha(P/'index.private.json')=='280b3d04e4506a1fc0771280a16a6c1a9fe6ae3455ffdac8fbbc048f2a343481' and json.loads((P/'verified.json').read_text())['all32_members_size_SHA_NPY_dtype_shape_finite'];rows=index['records'];assert len(rows)==32 and (P/'features.tar').stat().st_size==111052800
+sources={key:(R/'code/rsna/competitive'/(name+'.py')).read_text() for key,name in {'context':'released_context','trainer':'released_context_train','summaries':'regional_features','regional':'regional_context_train','infer':'regional_context_infer','common':'released_context_infer','bounded':'bounded_preparation'}.items()};parent=(R/'parent.py').read_text()
+def arrays(tar,row):
+ member=tar.getmember(row['file']);assert member.isfile() and member.size==row['bytes'] and member.size<4*2**20;raw=tar.extractfile(member).read();assert hashlib.sha256(raw).hexdigest()==row['sha256']
+ with np.load(io.BytesIO(raw),allow_pickle=False) as value:return {key:torch.from_numpy(value[key].copy()) for key in ('features','regional','parent_logits','centers','slots','depth','present')}
+def predictions(model,role):
+ values=[];corrections=[]
+ with tarfile.open(P/'features.tar','r:') as tar:
+  for row in rows:
+   a=arrays(tar,row);prob,delta=predict_pair(model,role,*[a[k] for k in ('features','regional','parent_logits','centers','present')]);values.append(prob.numpy());corrections.append(float(delta.abs().max()))
+ return np.stack(values),max(corrections)
+if phase=='stage':
+ receipts={}
+ for role in ROLES:
+  O=E/'recovery'/role/'full';state=torch.load(O/'checkpoint.pt',map_location='cpu',weights_only=False);assert state['completed']==4 and state['population']==32;model=ContextResidual(8192).eval();model.load_state_dict(state['model'],strict=True);setattr(model,'_regional_role',role);actual,largest=predictions(model,role);expected=np.load(O/'predictions.private.npy',allow_pickle=False);error=float(np.abs(actual-expected).max());assert error<=1e-5 and largest>1e-8
+  refused=False
+  try:export_component(O/'checkpoint.pt',O/'terminal.json',E/'recovery/accepted.json',R/(role+'-diagnostic-MUST-NOT-EXIST.pt'),role)
+  except ValueError:refused=True
+  assert refused and not (R/(role+'-diagnostic-MUST-NOT-EXIST.pt')).exists();compiled={}
+  for mode in ('qualification','competition'):
+   text,meta=build(parent,sources,'a'*64,role=role,mode=mode,reference_sha='b'*64 if mode=='qualification' else None);compiled[mode]=meta
+  receipts[role]={'actual32_MRI_probability_max_error_vs_original_trainer':error,'nonzero_correction':largest,'diagnostic_export_refused':True,'original_engineering_updates':4,'placeholder_compilation':compiled}
+ out={'status':'actual32_spatial_serving_math_and_diagnostic_rejection_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'roles':receipts,'no_final_component_or_Kaggle_push':True,'no_new_CNN_or_training':True,'no_accuracy_claim':True};(R/'engineering-accepted.json').write_text(json.dumps(out,sort_keys=True,indent=2)+'\n');print(json.dumps(out),flush=True)
+else:
+ role=phase.removeprefix('export-');assert role in ROLES;submitted=json.loads((F/role/'submitted.json').read_text());jid=submitted['job_id'];assert subprocess.check_output(['sacct','-X','-j',str(jid),'-n','-P','--format=State,ExitCode'],text=True).strip()=='COMPLETED|0:0';publication=json.loads((F/role/'publication/verified.json').read_text());assert publication['role']==role and publication['status']=='all10_matched_regional_role_epochs_private_full_download_size_SHA_verified' and set(publication['epochs'])=={str(i) for i in range(1,11)}
+ O=F/role/'fit';terminal=json.loads((O/'terminal.json').read_text());assert publication['epochs']['10']['checkpoint_sha256']==terminal['checkpoint_sha256'] and terminal['completed_updates']==2430 and terminal['diagnostic_only'] is False and sha(E/'recovery/accepted.json')==RECOVERY_SHA
+ D=R/role;assert not D.exists();D.mkdir(mode=0o700);temporary=D/'component.pt';component=export_component(O/'checkpoint.pt',O/'terminal.json',E/'recovery/accepted.json',temporary,role);final=D/('spatial-'+role+'-e10-'+component['component_sha256'][:12]+'.pt');temporary.rename(final);model,provenance=load_component(final,component['component_sha256'],role);reference,largest=predictions(model,role);assert reference.shape==(32,12) and reference.dtype==np.float32 and np.isfinite(reference).all() and largest>1e-8
+ # Compare the typed readout against the original complete learned graph, using
+ # the exact generic batched two-view probability path, not a new fitted metric.
+ rawstate=torch.load(O/'checkpoint.pt',map_location='cpu',weights_only=False);original_model=ContextResidual(8192).eval();original_model.load_state_dict(rawstate['model'],strict=True);batched=[]
+ with torch.no_grad(),tarfile.open(P/'features.tar','r:') as tar:
+  for start in range(0,32,16):
+   chunk=[arrays(tar,row) for row in rows[start:start+16]];f=torch.cat([feature_vector(a['features'],a['regional'],role) for a in chunk]);p=torch.cat([a['parent_logits'] for a in chunk]);slots=torch.cat([a['slots'][None].expand(2,-1) for a in chunk]);depth=torch.cat([a['depth'] for a in chunk]);present=torch.cat([a['present'][None].expand(2,-1) for a in chunk]);keep=torch.ones((32,94),dtype=torch.bool);logits,_=original_model(f,p,slots,depth,present,keep);batched.append(tta_probabilities(logits.reshape(16,2,12)).numpy())
+ error=float(np.abs(np.concatenate(batched)-reference).max());assert error<=1e-5
+ ref=D/'reference.npy'
+ with ref.open('xb') as f:os.fchmod(f.fileno(),0o600);np.save(f,reference,allow_pickle=False)
+ refsha=sha(ref);ref.rename(D/('spatial-'+role+'-cpu-reference-'+refsha[:12]+'.npy'));compiled={}
+ for mode in ('qualification','competition'):
+  text,binding=build(parent,sources,component['component_sha256'],role=role,mode=mode,reference_sha=refsha if mode=='qualification' else None);(D/(mode+'.py')).write_text(text);compiled[mode]=binding
+ permission=F/'permission.txt';assert sha(permission)==provenance['permission_text_sha256'];os.link(permission,D/'source-permission.txt');component.update(provenance=provenance,original_private_epoch_revision=publication['revision'],serving_source_git=json.loads((R/'source.json').read_text())['source_git']);(D/'component.json').write_text(json.dumps(component,sort_keys=True,indent=2)+'\n')
+ component_ref_bytes=sum(p.stat().st_size for r in ROLES if (R/r).exists() for p in (R/r).iterdir() if p.suffix in ('.pt','.npy'));assert component_ref_bytes<16*2**20
+ out={'status':'actual_full3887_fixed10_spatial_component_CPU_prepared','CPU_job':os.environ['SLURM_JOB_ID'],'role':role,'component':component,'reference_sha256':refsha,'reference_bytes':32*12*4+128,'CPU_readout_max_error_vs_original_batched_graph':error,'max_abs_nonzero_correction':largest,'compiled':compiled,'component_and_reference_bytes_so_far':component_ref_bytes,'component_and_reference_cap_bytes':16*2**20,'private_clinical_or_identity_rows_exported':False,'new_training_or_CNN':False,'accuracy_gain_claim':False};(D/'prepared.json').write_text(json.dumps(out,sort_keys=True,indent=2)+'\n');print(json.dumps(out),flush=True)
