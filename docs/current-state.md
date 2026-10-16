@@ -1,3 +1,5 @@
+Latest sanitized compact milestone source11d536aa is privately mirrored ONCE at HF7fb0b54af4e835fde69b8a4b790e95a237b3faf3, all47objects/247055B force-download/size/SHA verified under canonical lock. Never repeat. No MRI/labels/identifiers/weights mirrored. Prepared compact_runtime.py has70focused compact tests/Ruff/scoped mypy passing; actual native raw-input/T4 endpoint remains next.
+
 # October16: T4 precision accepted; first compact epoch privately preserved
 
 Original T4 notebook138964322/v1 COMPLETE: both actualT4s passed original CPU FP32/FP16 full/MC128 comparisons. MaxFP32error8.35e-7/maxFP16error.001519323;84-window FP16 medians1.29247/1.34524s, peak2.564GB/device. This is diagnostic encoder throughput, NOT full hidden pipeline/runtime or accuracy. Original929938 released after terminal; never repeat original push/Dataset. Finite T4observer exec50077 terminal success.
