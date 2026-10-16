@@ -10,11 +10,17 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import socket
 import struct
 from pathlib import Path, PurePosixPath
 
 BLOCK = 2**20
 MAX_JSON = 64 * 2**20
+
+
+def configure_socket(connection):
+    """File acknowledgements must not incur TCP's delayed-ACK/Nagle stall."""
+    connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
 
 def read_exact(stream, count):

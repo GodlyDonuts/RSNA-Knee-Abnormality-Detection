@@ -102,3 +102,17 @@ def test_entire_final_buffer_policy_includes_non_BN_buffers():
     out = average_parameters(states, {"weight"})
     assert out["weight"].item() == 4
     assert out["anything"].item() == 8
+
+
+def test_builder_distinguishes_serialized_buffers_from_relative_position_cache():
+    from scripts.newton.build_compact_late_average import verify_buffers
+
+    model = nn.Sequential(nn.Linear(2, 2), nn.BatchNorm1d(2))
+    model.register_buffer("relative_position_index", torch.arange(4), persistent=False)
+    final = {k: v.clone() for k, v in model.state_dict().items()}
+    reconstructed = {"relative_position_index": model.relative_position_index.clone()}
+    result = verify_buffers(model, final, final, reconstructed)
+    assert result == {"persistent_buffers": 3, "reconstructed_buffers": 1}
+    model.relative_position_index[0] = 99
+    with pytest.raises(ValueError, match="graph caches"):
+        verify_buffers(model, final, final, reconstructed)

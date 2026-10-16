@@ -6,12 +6,19 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 
 from scripts.newton.direct_compact_transport import (
+    configure_socket,
     confined,
     receive_file,
     receive_json,
     send_json,
     serve_file,
 )
+
+
+def test_tcp_acknowledgements_disable_nagle():
+    with socket.socket() as connection:
+        configure_socket(connection)
+        assert connection.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY)
 
 
 def transfer(source, target, record):

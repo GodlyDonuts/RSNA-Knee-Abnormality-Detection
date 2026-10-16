@@ -15,6 +15,7 @@ from pathlib import Path
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--runtime-manifest-sha256", required=True)
+    p.add_argument("--transport-proof", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     if os.uname().nodename != "evc39" or os.environ.get("SLURM_JOB_GPUS") or args.output.exists():
@@ -41,7 +42,9 @@ def main():
     from rsna.competitive.compact_train import admitted_datasets, input_census
 
     torch.set_num_threads(1)
-    runtime = json.loads((root / "direct-suffix-v2/verified.json").read_text())
+    if not args.transport_proof.resolve().is_relative_to(root.resolve()):
+        raise ValueError("Private transport proof must belong to this endpoint")
+    runtime = json.loads(args.transport_proof.read_text())
     native = json.loads((root / "native-cache-verified.json").read_text())
     if (
         runtime["manifest_sha256"] != args.runtime_manifest_sha256

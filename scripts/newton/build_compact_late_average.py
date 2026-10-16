@@ -15,6 +15,27 @@ import shutil
 from pathlib import Path
 
 
+def verify_buffers(model, averaged, final, reconstructed_before):
+    """Saved buffers retain E16; nonsaved graph caches retain blueprint values."""
+    import torch
+
+    saved = set(model.state_dict())
+    parameters = set(dict(model.named_parameters()))
+    buffers = dict(model.named_buffers())
+    persistent = set(buffers) & saved
+    reconstructed = set(buffers) - saved
+    if saved != set(averaged) or saved != set(final) or saved != parameters | persistent:
+        raise ValueError("Complete original parameter/persistent-buffer graph required")
+    if set(reconstructed_before) != reconstructed:
+        raise ValueError("Exact blueprint nonpersistent-buffer inventory required")
+    if any(
+        not torch.equal(averaged[name], final[name]) or not torch.equal(buffers[name], final[name])
+        for name in persistent
+    ) or any(not torch.equal(buffers[name], reconstructed_before[name]) for name in reconstructed):
+        raise ValueError("Saved E16 buffers or reconstructed graph caches changed")
+    return {"persistent_buffers": len(persistent), "reconstructed_buffers": len(reconstructed)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("source", "original", "output"):
@@ -85,12 +106,10 @@ def main():
         raise ValueError("Actual original full graph differs")
     parameters = set(dict(model.named_parameters()))
     value = derive_checkpoint(checkpoints, parameters, shas)
+    saved = set(model.state_dict())
+    reconstructed = {n: b.clone() for n, b in model.named_buffers() if n not in saved}
     model.load_state_dict(value["model"], strict=True)
-    if any(
-        not torch.equal(value["model"][n], checkpoints[-1]["model"][n])
-        for n, _ in model.named_buffers()
-    ):
-        raise ValueError("Actual final BN/other buffers changed")
+    buffer_counts = verify_buffers(model, value["model"], checkpoints[-1]["model"], reconstructed)
     args.output.mkdir(mode=0o700)
     path = args.output / "checkpoint.pt"
     save_checkpoint(path, value)
@@ -112,7 +131,9 @@ def main():
         "checkpoint_bytes": path.stat().st_size,
         "engine": value["binding"]["engine"],
         "parameter_count": 73136096,
-        "all_final_buffers_exact": True,
+        "all_final_serialized_buffers_exact": True,
+        "nonpersistent_graph_buffers_unchanged_from_blueprint": True,
+        **buffer_counts,
         "BN_counters_retained": sum(
             n.endswith("num_batches_tracked") for n, _ in model.named_buffers()
         ),
