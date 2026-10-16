@@ -1,4 +1,4 @@
-# Execution handoff — October16, 2026, 20:31UTC
+# Execution handoff — October16, 2026, 20:35UTC
 
 Root implements directly. **Devin is unavailable.** Read current-state.md and
 research-brief.md; current original receipts/live Slurm/Kaggle resolve changes.
@@ -277,8 +277,9 @@ Actual readonlyCPU93873420:31UTC: account5today/44total/0allowed, resetunknown;
 all four exact candidate states accepted/UNSUBMITTED; coordinatorfree. Nodefree
 633223086080bytes versus conservative605971232707all-prior+new requirement.
 Source-confidence raw20epochs/HF775e9f5d/f326b093 and servingHF28f29480 already
-fully verified, never repeat. Final source/findings/entry milestone still needs
-a distinct small private mirror under canonical shared lock after final commit.
+fully verified, never repeat. Final sourcea823bebe/findings/entry milestone is now privately fully verified
+under the canonical lock atHF29421f9826d34cdf3ddcdaccc1c1d8ac33bcc252, all36small
+objects/251672bytes, CPU938753. Never repeat this or earlier model/mirror prefixes.
 
 Fifth next-window slot remains for a separately justified actual-ready candidate:
 prefer expanded938284fixed16after actual completion/recovery/publication/serving
@@ -287,3 +288,11 @@ edge-repeat candidate before acting, ensuring no existing owner/intent. No blind
 resubmission. Current larger next research task remains the bounded private
 CPU32source-pixel-cache gate for exact licensed MRI initialization; protocol
 prepared only, no cache/parentweight acquisition/new GPU fitting dispatched.
+
+Final20:35UTC actualSlurm938522COMPLETED0:0/16:27, export938675COMPLETED0:0/16s,
+aggregate938676COMPLETED0:0/1s; expanded938284stillPENDINGPriority. Live entry
+PIDs54576/69887/72998 and original preservationwatcher69208 confirmed alive.
+Exact terminal snapshot in source-confidence-context-20261016-v1/original-terminal-and-live-owners.json.
+No new hidden score; next useful independent work is implementing/executing the
+private32CPU pixel-cache gate, not rerunning completed head fits or waiting idle
+for next-day allowance. Root implements directly without Devin.

@@ -8,7 +8,7 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the **October 16, 20:31 UTC** check, our own CoAtNet epoch 16 scored
+At the **October 16, 20:35 UTC** check, our own CoAtNet epoch 16 scored
 **0.894**, following epochs 4/8/12 at 0.821/0.869/0.890. The reproduced external
 author-trained model scored **0.949**; that is an attributed baseline, not our
 training improvement. Both matched CNN challengers completed. Positive weighting
