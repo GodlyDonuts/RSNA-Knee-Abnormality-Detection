@@ -108,3 +108,11 @@ Use [research brief](research-brief.md) for findings and limitations,
 linked audits for proof. Historical markdown is preserved for provenance and
 **must not be interpreted as current process state**. Update this page in place
 when a result or run phase changes; put chronology in the audits/history.
+
+## Preservation of this documentation correction
+
+Source `ec137184b8741cb9077b9290bcaa93f57d8f4eaa` is pushed to GitHub main
+and privately mirrored at HF `4a3c3a848ecb3fa67afcc491f0a31c1e874aa408`.
+All 17 small objects / 1,056,289 bytes were fully re-downloaded, size-checked
+and SHA-verified under the canonical lock. [Verification receipt](../initiative/audits/documentation-reconciliation-20261016-v1/private-mirror-verified.json).
+No training job or Kaggle submission was changed by this correction.
