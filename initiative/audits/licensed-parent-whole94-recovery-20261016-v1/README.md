@@ -35,3 +35,14 @@ bindings. The12-window diagnostic cannot accept a different encode path.
 No whole94GPU/full fit is dispatched by this preparation snapshot. Protected
 Gold/confirmation and original accepted labels/folds remain unchanged. No new
 competition score is inherited from the released.949initialization.
+
+Actual whole94recovery is now pushed ONCE/RUNNING:139105348v1,
+godlydonuts/rsna-parent-whole94-recovery-a45d2a00322d, source60eb779b,
+exact notebooka45d2a00322d. CPU939196 admitted original32pixel/source/label joins,
+full unchanged initial model tensor equality and the separate checkpointed source.
+CPU939197 performed the sole SaveKernel; fresh conservative83131.984GPU seconds.
+Original12GPU recovery had actually completed before this new GPU was dispatched.
+At most one KaggleGPU VM plus the separately queued own H100job. Onehour max,
+no competition entry. Sole finite owner exec70752/PID75947 observes terminal,
+never auto-retries/pushes or starts a production fit. No actual whole94acceptance
+or accuracy is claimed until its exact terminal receipt.

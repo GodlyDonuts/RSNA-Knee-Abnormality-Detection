@@ -42,3 +42,11 @@ double charging. No deletion credit, shared growth or new parent-weight copy.
 Eighteen focused cache tests passed. The new end-to-end engine/compiler adds
 18 more engineering tests (36 combined), including fresh two-rank CPU recovery;
 none establishes MRI accuracy or accepts a GPU trainer.
+
+Original cache owner75016 stopped during a READ-ONLY status on a busy coordinator
+claim, not a Kaggle/source failure. All4original v1notebooks remained healthyRUNNING;
+no collection was attempted. Distinct observer exec50099/PID76976 has NO stage/push
+phase, batches all4status reads into one CPUallocation, waits boundedly for the
+canonical claim, and collects each actual completed original exactly once. Inspect
+collection-observer.* and observer-* receipts. Never restart either old owner or
+push new cache notebooks. Existing scientific/source/roster/pixel bytes unchanged.

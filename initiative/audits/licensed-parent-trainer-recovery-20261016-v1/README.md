@@ -55,3 +55,14 @@ actual terminal once and has no production/competition phase. Original75484 is
 terminal pre-push failure and must not restart. Exact stage/first failure/current
 control sources are preserved here. The12-window probe source is frozen even
 while a distinct whole94checkpointed extension is developed.
+
+Actual terminal now COMPLETE/accepted:139104577v1. All73,136,096parameters
+were trainable with complete finite encoder/MIL gradients and4optimizer updates.
+TwoT4 full/stop1/resume matched complete learned/base/AdamW/LR/cursors/allrankRNG/
+GradScaler plus exact16engineering two-view prediction bytes. Original BN buffers
+remained unchanged. Both actual peaks7,603,887,104bytes on15,636,037,632byte T4s.
+Entire three-process-flow diagnostic224.73seconds; full arm76.80seconds includes
+engineering inference and is NOT a production per-update timing measurement.
+2,928,269,999retained diagnostic bytes remain private in the original Kaggle output.
+No new competition score or clinical metric. Never submit these diagnostic weights
+or rerun original12recovery. Actual accepted receipt is preserved here.
