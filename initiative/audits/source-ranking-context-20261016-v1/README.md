@@ -1,44 +1,37 @@
-# Prospective pairwise-ranking implementation
+# Actual full-cohort study-pair ranking experiment
 
-Separate versioned source; frozen original/context/confidence/full-parent
-engines and live controllers are unchanged. Eighteen focused tests passed,
-including closed-form binary loss, an independent fractional pair loop, actual
-two-view probability ordering, masked NaNs/ties/no-pair fallback, finite extreme
-logits, complete update-boundary recovery and uniform original-engine equality.
-Ruff and mypy3source checks passed. These are software checks, not actual MRI
-acceptance or disease accuracy. The fixed experiment is declared in
-[the protocol](../../experiments/competitive-v1/source-ranking-context-v1/README.md).
+Original939891 COMPLETED0:0/8:13 on oneCPU/zeroGPU evc33. Exact source27434ede,
+3887eligible fitting studies,402956parameters,10epochs2430finite updates; fitting
+417.42seconds. Same original MRI features/labels/masks/teacher/init/order/update
+budget, only the predeclared objective differs. All actual32feature full/stop1/
+resume model/AdamW/LR/cursors/allRNG/history/prediction bytes match; uniform32
+numerics equal the frozen original. The original full uniform model was reused,
+not re-fit or re-published. No independent OOF or disease accuracy is claimed.
 
-Actual CPU staging, full32feature engineering, full3,887study fitting and private
-epoch publication have not yet occurred. No new GPU or competition submission
-is requested by the implementation itself.
+All TEN immutable checkpoints privately fully re-downloaded/size/SHA verified
+ONCE at HF9f27825ef383b30bf5c77486e09ada62165be991:40objects55,403,596bytes.
+Final SHAe0fc7c891d2d9f00ad9fb37aa4de27c239e1ef6f41c849e5cea77fde9e768a05.
+CPU939970 accepted typed final export and actual32feature trained-vs-serving
+probabilities with ZERO error. Component6e0894d90343/1,626,295bytes is separately
+private/full verified HFca34866401e2e68a87dd8b1f0dcf517d0d14856b:19objects.
+All raw checkpoints/features/labels/predictions stay on the authorized owner.
 
+Dataset12642673v1 is all6objects verified. Exact private offline T4precision
+139119567v1 actually COMPLETED on bothTeslaT4s,32original MRI feature cases,
+maxCPU/GPU probability difference1.1920928955078125e-7, zero new CNN encodings.
+No public MRI/CSV qualification, competition entry or accuracy score yet.
 
-Actual originalCPU939891 is RUNNING on evc33 after its unchanged pending request
-moved to preemptable/oneCPU/zeroGPU/4GiB/20minutes. Original45minute normal request
-and both exact scheduler adjustments are retained. A later pending-only revision
-was correctly refused after allocation, without any update. Never restart this
-healthy source. Actual seven-process32MRI-feature acceptance passed, receipt
-8e4e6e41aea5bd6cb67f1be6500e3b6d0100c9f475a6fcd22631e422998cc153;
-complete model/AdamW/LR/order/allRNG/history and prediction-byte recovery match.
-Uniform32 numerics match the original engine. Full candidate fitting is active,
-200finite updates observed; the complete original full control is reused.
+Original84212 was deliberately stopped only in its idle pre-public quota wait;
+no public push/intent occurred. Its initial bound retired sessions on push
+responses, which do not prove full remaining-time reservation. Distinct public-
+only 84548/exec49246 retains7hours per ACTUAL-unfinished primary epoch plus1hour
+reserve. It reuses the original Dataset and accepted precision version; maximum
+one public notebook and ZERO newDatasets/precision pushes/entries. Never restart
+old84212 or repeat any original mutation. Models/numerical sources unchanged.
 
-A separately typed final exporter/compiler is locally prepared and passes8export
-plus3notebook checks, Ruff/mypy3more sources;29new checks total. It requires the
-actual fixed10/2430state, original full-control terminalc5d53af3 checkpoint binding,
-new actual recovery and exact source27434ede. No new serving GPU, Dataset,
-competition entry or accuracy result exists. The conditional CPU export is not
-staged/dispatched yet; no source-derived clinical rows go toGit/HF.
-
-
-Final actual update:939891 COMPLETED0:0, full3887/10epochs2430steps,417.42seconds
-of fitting. All ten epochs privately verified HF9f27825e/all40objects. CPU939970
-final export and actual32feature trained-vs-serving math passed with ZERO error;
-component6e0894d90343, privateHFca348664/all19objects verified. All raw outputs
-remain private on evc33; no accuracy or clinical result is inferred.
-Private Dataset12642673v1 is all6objects verified; actual precision139119567v1
-was pushed once and has not yet returned terminal acceptance. Finite84212 is
-live with no competition-entry capability; future original full-image training
-VM budget/reserve is retained before its optional pushes. Read serving-* actual
-receipts. This supersedes earlier prepared/running observations above.
+Actual funding retained607095306179prior required bytes plus256MiBcheckpoint/
+recovery/publication and32MiBcontrols;25.494GB reserve after all liabilities.
+Raw checkpoints138,599,668bytes. No deletion credit or shared growth.29focused
+math/recovery/export/compiler tests,Ruff/mypy6source files passed. These are
+engineering checks, not accuracy. Exact original receipts and immutable controls
+are retained here. [Prospective mechanism and primary sources](../../experiments/competitive-v1/source-ranking-context-v1/README.md).

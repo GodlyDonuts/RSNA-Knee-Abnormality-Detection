@@ -1,0 +1,34 @@
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert json.loads((L/'qualification-actual-accepted.json').read_text())['status']=='COMPLETE'
+assert (L/'original-owner-stopped-pre-public-funding-review.json').is_file() and not (L/'competition-actual-pushed.json').exists()
+files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('cloud-public-v2.py.txt','run_public_v2_phase_once.py')}
+start=time.monotonic();limit=24*3600
+with (L/'public-v2.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_seconds':limit,'immutable_files':files,'maximum_public_notebook_pushes':1,'new_Datasets':0,'new_qualification_pushes':0,'competition_entries':0,'fund_every_actual_unfinished_full_parent_epoch_plus_reserve':True,'automatic_mutation_retry':False},f,indent=2)
+def progress(phase,**extra):(L/'public-v2.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds):
+ until=min(time.monotonic()+seconds,start+limit)
+ while time.monotonic()<until:time.sleep(min(60,max(.01,until-time.monotonic())))
+ assert time.monotonic()<start+limit,'Finite public qualification expired; reconcile read-only'
+def run(phase):
+ for name,sha in files.items():assert hashlib.sha256((L/name).read_bytes()).hexdigest()==sha
+ progress(phase);x=subprocess.run([sys.executable,str(L/'run_public_v2_phase_once.py'),phase],env={**os.environ,'PYTHONPATH':str(Path.cwd())},capture_output=True,text=True,timeout=700)
+ with (L/('public-v2-child-'+str(len(list(L.glob('public-v2-child-*.json'))))+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original v2 operation failed; do not retry mutation';outer=json.loads(x.stdout);assert outer['returncode']==0;return json.loads(outer['stdout'])
+try:
+ while True:
+  pushed=run('competition-push')
+  if pushed['status']=='one_exact_context_competition_pushed':break
+  assert pushed['status']=='waiting_authoritative_VM_allowance_preserving_original_full_fit' and pushed['mutation_intent_created'] is False
+  progress('waiting_fresh_VM_allowance_after_funding_all_unfinished_primary_epochs',actual=pushed);wait(300)
+ (L/'competition-actual-pushed.json').write_text(json.dumps(pushed,indent=2)+'\n');progress('one_original_ranking_public_MRI_pushed',actual=pushed);wait(90)
+ while True:
+  actual=run('competition-status');assert actual['status'] not in ('ERROR','CANCELLED'),'Actual original public notebook failed; no repush'
+  if actual['status']=='COMPLETE':assert 'receipt' in actual and 'CSV_verified' in actual;break
+  progress('observed_original_ranking_public_MRI',actual=actual);wait(120)
+ (L/'competition-actual-accepted.json').write_text(json.dumps(actual,indent=2)+'\n')
+ result={'status':'actual_fixed_final_ranking_head_T4_and_public_MRI_CSV_accepted','public':actual,'new_Datasets':0,'new_qualification_pushes':0,'competition_entries':0,'score_inferred':False}
+ (L/'public-v2.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+except BaseException as e:
+ result={'status':'stopped_original_ranking_public_v2_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False};(L/'public-v2.result.json').write_text(json.dumps(result,indent=2)+'\n');raise

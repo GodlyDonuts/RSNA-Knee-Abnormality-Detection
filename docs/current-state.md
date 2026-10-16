@@ -476,17 +476,24 @@ HFca34866401e2e68a87dd8b1f0dcf517d0d14856b:19objects/1,723,620bytes.
 Never repeat this fit, either publication, acquisition or full uniform control.
 
 Private Dataset12642673v1,godlydonuts/rsna-ranking-head-e10-6e0894d90343, is fully
-6object download/hash verified. Exact private offline precision notebook
-139119567v1,godlydonuts/rsna-ranking-precision-6e0894d90343, was pushed ONCE;
-actual T4 terminal acceptance is not known yet. Finite84212/exec82735 is LIVE,
-maximum1Dataset/2notebooks/zeroentries. It retains the remaining full-parent
-training VM budget plus1hour reserve before optional GPU pushes. PublicMRI may
-wait for that funding; no mutation intent on quota waits. No ranking competition
-entry/score exists.29focused math/recovery/export/compiler checks and Ruff/mypy
-6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
+6object download/hash verified. Exact private offline precision139119567v1,
+godlydonuts/rsna-ranking-precision-6e0894d90343, actually COMPLETED on BOTH T4s:
+all32MRI feature cases, maximum CPU/GPU probability error1.1920928955078125e-7,
+no new CNN encodings. This is engineering acceptance, not disease accuracy.
+
+Original84212 was stopped ONLY while idle in its confirmed pre-public quota wait;
+no public notebook intent/push existed. A SaveKernel response alone does not
+prove an entire future timeout is reserved by account stats. Distinct finite
+public-only owner84548/exec49246 therefore retains7hours for EVERY actual-unfinished
+original full-model epoch plus1hour reserve before its optional9hour public push.
+It reuses the exact original Dataset/qualified version/model/source; maximum
+ONE public notebook,zero newDatasets/precision pushes/competition entries.
+No mutation intent on quota waits; never restart the old84212 or repeat qualified
+139119567. Public MRI/CSV and a ranking competition result do not yet exist.
+29focused math/recovery/export/compiler checks and Ruff/mypy6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
 [actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
 
-The original full CoAtNet139111324v1 independently continues on bothT4s,78finite
+The original full CoAtNet139111324v1 independently continues on bothT4s,113finite
 updates last verified in epoch1. All four original lossless pixel caches are now
 also independently collected/replayed on Newton:3887studies,3.204MBprivate
 registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.

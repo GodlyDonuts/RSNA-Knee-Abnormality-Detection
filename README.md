@@ -50,7 +50,7 @@ yet. Completed-epoch preservation and exact inference/submission owners are live
 A separate study-pair ranking head completed all3,887studies/10epochs/2,430updates
 on one CPU, with all10checkpoints privately verified. Its strict final inference
 export matches the trained graph on32MRI feature cases; actual Kaggle precision
-qualification139119567v1 is now pushed, with no score yet. The full image-encoder
+qualification139119567v1 has passed on bothT4s, with no accuracy score yet. The full image-encoder
 fit continues independently. [Actual ranking experiment](initiative/audits/source-ranking-context-20261016-v1/README.md).
 
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
