@@ -1,0 +1,1 @@
+Exact source34ec623bfcf26b8e11492b75e3dc6d8a5b29cda5 actual E4 production/T4/submission/recovery milestone privately preservedONCE at HF56f085b17a53fc9c9699147a4a3af3d1c7335a6a. All19smallobjects/85734bytes fully re-downloaded/size/SHA verified under canonical shared publication lock. No MRI/labels/original identifiers/weights mirrored. Never repeat.
