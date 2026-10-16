@@ -71,16 +71,21 @@ CPU probe. **Actual expanded CPU gate933324 passed**; receiptSHA
 235538195accbac10369779324f10c3fbd7eea42981c95a7164144a17591c3de.
 Private metadata union/index and overlay are under
 `/tmp/rsna-compact-expanded2592-inputs-20261016-v1/inputs`.
-No expanded GPU fit has been dispatched. Separate expanded-engine H100 recovery
-wrapper is prepared; require actual complete recovery before full fitting.
+Expanded full fit is unsubmitted. Distinct H100 recovery933382 is submitted
+once after CPU stage933381, scientific sourcea1ca238526dad75b2a5cea46edba44fd95c71938.
+Root `/tmp/rsna-compact-expanded2592-engine-20261016-v1`, recovery `/recovery-v1`.
+Finite read-only observer42253 collects actual outcome; never repeat it.
+Require actual complete recovery before full fitting.
 The original public-label CSV already exists privately locally; no new acquisition
 or repeated credential request is needed. Do not commit individual rows/indices.
 
 Retained conservative obligations total **559,510,927,299 bytes** before new
 expanded metadata work; includes both 16GiB contrasts and the existing reserve.
 Expanded CPU gate funded an additional 1GiB node-local source/metadata/output;
-retain that obligation. New expanded GPU recovery/production requires separate
-checkpoint/runtime funding; CPU gate does not fund it.
+retain that obligation. CPU933381 additionally funded16GiB expanded recovery/future-production and
+separate1GiB late-average construction. Total retained bound578838280131bytes;
+actual free668623691776bytes leaves89785411645bytes beyond all bounds. No
+deletion credit or retirement of old obligations.
 Do not silently retire old liabilities or count deletion credit. Latest weighted
 stage retained 110,620,133,437 bytes beyond all existing bounds; use fresh quota.
 At most two concurrent GPU nodes; preserve healthy original jobs.
@@ -97,3 +102,7 @@ Latest small private milestone: source8047e6ea at
 HF7c1f812352df8e0e06b356b5c781c7e341202e75, 40 objects fully verified once.
 No newer documentation/expanded-input source mirror is claimed yet. Credentials
 stay in ignored 0600 `.env`, RAM/stdin; raw clinical assets stay private.
+
+Root owns dense coverage and source research directly; Devin is unavailable.
+Do not depend on issue96 execution. New CPU dense30 input probe is prepared
+in `scripts/newton/probe_compact_dense_inputs.py`, not yet dispatched.

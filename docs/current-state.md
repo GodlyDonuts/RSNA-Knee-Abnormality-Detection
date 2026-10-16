@@ -79,7 +79,10 @@ population, unchanged 1,156-study outer endpoint and byte-preserving metadata un
 The actual zero-GPU CPU input gate **933324 passed**: metadata union covers
 3,748 studies/20,675 series; original image/label/mask engineering tensors remain
 bit-equal. [Exact CPU proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
-Expanded training is **not yet dispatched**. Existing source rows are reused; original 2,247 overlay cells must
+Expanded full training is **not yet dispatched**; distinct actual-source H100
+recovery **933382** was submitted once after CPU stage933381 and fresh funding.
+It is a diagnostic, not the expanded full fit. Existing observer42253 collects
+its exact terminal result without redispatch. Existing source rows are reused; original 2,247 overlay cells must
 remain exact. No clinical label perfection is claimed.
 
 After correspondence exclusions, capacities are **2,592 development fitting,
@@ -125,3 +128,16 @@ No training job or Kaggle submission was changed by this correction.
 is preregistered: original epochs12/14/16, learned parameters averaged equally,
 epoch16 BatchNorm/all other buffers retained exactly. Separate engine identity;
 13 synthetic tests passed, no derived checkpoint/GPU result yet.
+
+## Direct Paper 3 coverage work
+
+Root implements [dense30 source coverage](../initiative/experiments/competitive-v1/compact-dense30-v1/README.md)
+directly; Devin is unavailable and is not a critical-path dependency. Every original
+window is preserved; additional geometry-valid centers cap at180windows/study.
+Local tests pass; actual MRI and target-device acceptance are still required.
+
+A fitting-only source audit replayed existing issue92: original2247 have14all-target
+uniform rows; added345 have59 (37at.25,18at.025,4at.015). These are source distributions,
+not confirmed label errors. The .25 missingness interpretation remains disputed;
+no labels/masks are silently changed. Expansion remains an experiment, not a
+claim of345additional clinically correct labels.

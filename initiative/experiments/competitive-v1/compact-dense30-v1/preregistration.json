@@ -1,0 +1,24 @@
+{
+  "inference_policy": {
+    "version": "compact_neighbor_dense30_original_subset_v1",
+    "maximum_centers_per_series": 30,
+    "maximum_series": 6,
+    "original_centers_and_fallbacks": "retain_exact_original_matched_neighbor_windows",
+    "extra_centers": "both_original_physical_edges_admitted",
+    "selection": "farthest_physical_depth_from_retained_centers_ties_lower_source_index",
+    "new_training_or_label_based_selection": false
+  },
+  "trained_model_family": "matched-source-neighbor CoAtNet; existing full fit932957",
+  "control": "exact original14-center selected-source bag, including original fallback triples",
+  "sole_change": "additional admitted physical centers at inference",
+  "primary_endpoint": "same1156 weak-label development, all12targets and paired leakage-component uncertainty",
+  "additional_endpoints": [
+    "per-target prediction correlation",
+    "runtime",
+    "fallback fraction",
+    "subgroup support where defined"
+  ],
+  "no_scored_gain_or_target_runtime_acceptance": true,
+  "prepared_CPU_input_probe": "scripts/newton/probe_compact_dense_inputs.py",
+  "owner": "root; Devin unavailable"
+}
