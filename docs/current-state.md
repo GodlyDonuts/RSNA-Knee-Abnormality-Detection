@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 16:12 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 16:34 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -112,7 +112,7 @@ weight qualification or hidden nine-hour end-to-end claim. Root implements direc
 Additional **345 fitting-only studies / 1,769 series / 54,562 slices** have complete
 paired 256/384 caches; all seven shards / 42 private objects are fully verified.
 The expanded 2,592-study CPU gate 933324 passed original tensor/label/mask parity.
-Its distinct H100 recovery is queued; full expanded training is not dispatched.
+Its original H100 recovery933382 is queued. New source0d1adeaa production/preservation controls passed30targeted tests/Ruff/Mypy and actual CPU936315 staging/funding review. Finiteowner51853 waits for the exact original actual acceptance, then dispatches one full fit/preserves all16epochs; it reserves no waiting GPU. Full expanded training is not yet dispatched. [Conditional route](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
 Sixteen expanded passes mean 5,184 updates, so a later result is not data-only.
 [Expansion proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
 Correspondence-filtered capacities are 2,592 development fitting / 3,887 train /
@@ -180,3 +180,5 @@ A label-free importance proposal targets windows that stabilize the strong froze
 This is a concrete training-exposure hypothesis, **not disease accuracy or an independent validation result**. Teacher attention is not verified anatomy, and computing its proposal still needs the full teacher cache. No guided CNN training has been dispatched; matched same-input/initialization/compute evidence remains necessary before promotion.
 
 Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6ccde8c36723627c9de1796137b59907ea10ce (36objects/165,794bytes). Never repeat that or earlier mirrors. New serving/sampling/full-feature/final-head/T4/publicMRI evidence and the single next-allowance owner are now separately private-HF verified at e9d200fbbc9d6fcc9d12838279ceaf28bd75a35a:64objects/269,278bytes from source4428247b, all fully re-downloaded/size/SHA under the canonical lock. [Verified small milestone](../initiative/audits/hf-context-final-sampling-20261016-v1/verified.json). Never repeat.
+
+Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).

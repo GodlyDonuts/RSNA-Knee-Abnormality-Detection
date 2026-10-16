@@ -1,0 +1,22 @@
+"""Stage only wrappers; original pending recovery and healthy fits stay untouched."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+from scripts.newton.run_compact_expanded_production import REQUIRED_FREE
+L=Path(__file__).resolve().parent;assert not (L/'stage.intent.json').exists()
+names=['scripts/newton/run_compact_expanded_production.py','scripts/hf/publish_compact_expanded_epoch.py'];files={Path(n).name:Path(n).read_text() for n in names};hashes={n:hashlib.sha256(t.encode()).hexdigest() for n,t in files.items()}
+assert not subprocess.check_output(['git','status','--porcelain','--',*names],text=True).strip()
+program=r'''
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-compact-expanded2592-engine-20261016-v1');C=R/'production-control-v1';assert R.is_dir() and not C.exists() and not Path('/tmp/rsna-compact-expanded2592-production-20261016-v1').exists();assert shutil.disk_usage('/tmp').free>v['required_free']
+manifest=R/'source-manifest.json';assert hashlib.sha256(manifest.read_bytes()).hexdigest()=='bb550e783816611fc409a636e92495ff7524bd0f21553e66e19c8f65ba244ee9';value=json.loads(manifest.read_text());assert value['source_git']=='a1ca238526dad75b2a5cea46edba44fd95c71938'
+for name,h in value['files'].items():assert hashlib.sha256((R/'code'/name).read_bytes()).hexdigest()==h
+C.mkdir(mode=0o700)
+for name,text in v['files'].items():assert Path(name).name==name and hashlib.sha256(text.encode()).hexdigest()==v['hashes'][name];compile(text,name,'exec');(C/name).write_text(text)
+result={'status':'expanded2592_production_controls_CPU_staged_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':value['source_git'],'wrapper_git':v['wrapper_git'],'files':v['hashes'],'new_GPU_jobs':0,'actual_recovery_admission_required_before_any_GPU_dispatch':True,'retained_production_recovery_preservation_cap_bytes':16*2**30,'required_free_bytes_including_all_liabilities':v['required_free'],'actual_free_bytes':shutil.disk_usage('/tmp').free,'new_shared_bytes_files':0};(C/'staged.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)
+'''
+compile(program,'stage_expanded_controls','exec');(L/'stage-program.py.txt').write_text(program);commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+with (L/'stage.intent.json').open('x') as out:json.dump({'files':hashes,'wrapper_git':commit,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPU':1,'GPU':0,'automatic_retry':False},out,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-expanded-production-stage','/usr/bin/python3.12','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'files':files,'hashes':hashes,'wrapper_git':commit,'required_free':REQUIRED_FREE}),capture_output=True,text=True,timeout=230);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'stage.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+if x.returncode:raise SystemExit(1)

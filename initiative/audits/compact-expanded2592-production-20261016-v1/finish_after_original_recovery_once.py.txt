@@ -1,0 +1,29 @@
+"""No waiting GPU reservation; after actual933382 acceptance dispatch/preserve once."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;B=Path('artifacts/compact-native-n3-launch-20261016-v1');assert not (L/'finite.intent.json').exists()
+stage=json.loads((L/'stage.result.json').read_text());assert stage['returncode']==0
+frozen={name:hashlib.sha256((L/name).read_bytes()).hexdigest() for name in ['dispatch_after_actual_recovery_once.py','watch_epochs_once.py']}
+with (L/'finite.intent.json').open('x') as out:json.dump({'original_recovery_job':'933382','maximum_wait_seconds':28800,'maximum_production_GPU_jobs':1,'CPU':2,'GPU':1,'new_waiting_GPU_reservations':0,'files':frozen,'automatic_retry':False},out,indent=2)
+started=time.monotonic()
+def progress(value):
+ temp=L/'finite-progress.tmp';temp.write_text(json.dumps({**value,'elapsed_seconds':time.monotonic()-started},indent=2)+'\n');temp.replace(L/'finite-progress.json')
+try:
+ while time.monotonic()-started<28800:
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton','sacct -X -j 933382 -n -P --format=State,ExitCode'],capture_output=True,text=True,timeout=40)
+  assert x.returncode==0,'Observation lost; no original job state inferred';rows=[s for s in x.stdout.splitlines() if s.strip()];assert len(rows)==1;state,code=rows[0].split('|')[:2];progress({'phase':'waiting_actual_original_recovery','original_job':'933382','state':state,'exit':code})
+  if state not in ('PENDING','CONFIGURING','RUNNING','COMPLETING'):
+   assert state=='COMPLETED' and code=='0:0','Original actual recovery did not complete successfully'
+   receipt=B/'expanded2592-recovery-terminal-CPU.result.json'
+   if receipt.is_file():
+    actual=json.loads(receipt.read_text());assert actual['returncode']==0;assert json.loads(actual['stdout'])['receipt']['status']=='actual_expanded2592_H100_recovery_accepted';break
+  time.sleep(60)
+ else:raise TimeoutError('Original recovery observation deadline, not a new dispatch authority')
+ for name,h in frozen.items():assert hashlib.sha256((L/name).read_bytes()).hexdigest()==h
+ x=subprocess.run([sys.executable,str(L/'dispatch_after_actual_recovery_once.py')],capture_output=True,text=True,timeout=400);(L/'finite-dispatch.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Original full dispatch stopped; inspect original intents only';submitted=json.loads(x.stdout);assert submitted['status']=='expanded2592_full_fixed16_submitted_once_after_actual_recovery';progress({'phase':'one_production_job_submitted','submission':submitted})
+ assert not (L/'expanded2592-publication-watcher.intent.json').exists()
+ x=subprocess.run([sys.executable,str(L/'watch_epochs_once.py')],capture_output=True,text=True,timeout=58000);(L/'finite-publication.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0;actual=json.loads(x.stdout);assert actual['status']=='all16_original_epochs_privately_verified','Original preservation stopped; no retry or GPU restart'
+ result={'status':'original_expanded2592_production_dispatched_and_all16_epochs_privately_preserved','job_id':submitted['job_id'],'publication':actual,'new_GPU_jobs':1,'actual_final_held_out_metric_not_inferred':True,'next':'actual Slurm terminal and complete fixed-final endpoint/paired uncertainty review before promotion'}
+except BaseException as exc:result={'status':'stopped_for_exact_original_expanded2592_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_retry':False}
+(L/'finite-result.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)
+if result['status'].startswith('stopped'):raise SystemExit(1)

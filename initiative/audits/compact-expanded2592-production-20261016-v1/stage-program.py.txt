@@ -1,0 +1,9 @@
+
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-compact-expanded2592-engine-20261016-v1');C=R/'production-control-v1';assert R.is_dir() and not C.exists() and not Path('/tmp/rsna-compact-expanded2592-production-20261016-v1').exists();assert shutil.disk_usage('/tmp').free>v['required_free']
+manifest=R/'source-manifest.json';assert hashlib.sha256(manifest.read_bytes()).hexdigest()=='bb550e783816611fc409a636e92495ff7524bd0f21553e66e19c8f65ba244ee9';value=json.loads(manifest.read_text());assert value['source_git']=='a1ca238526dad75b2a5cea46edba44fd95c71938'
+for name,h in value['files'].items():assert hashlib.sha256((R/'code'/name).read_bytes()).hexdigest()==h
+C.mkdir(mode=0o700)
+for name,text in v['files'].items():assert Path(name).name==name and hashlib.sha256(text.encode()).hexdigest()==v['hashes'][name];compile(text,name,'exec');(C/name).write_text(text)
+result={'status':'expanded2592_production_controls_CPU_staged_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':value['source_git'],'wrapper_git':v['wrapper_git'],'files':v['hashes'],'new_GPU_jobs':0,'actual_recovery_admission_required_before_any_GPU_dispatch':True,'retained_production_recovery_preservation_cap_bytes':16*2**30,'required_free_bytes_including_all_liabilities':v['required_free'],'actual_free_bytes':shutil.disk_usage('/tmp').free,'new_shared_bytes_files':0};(C/'staged.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)
