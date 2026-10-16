@@ -1,0 +1,80 @@
+"""Executed on owning Newton CPU; all credentials supplied in RAM/stdin only."""
+import contextlib,hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+
+v=PACKAGE
+R=Path('/tmp/rsna-compact-T4-probe-20261016-v1');D=R/'dataset';C=R/'cloud-control'
+assert os.uname().nodename=='evc33' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+assert (R/'prepared.json').is_file()
+if v['phase']=='create':
+ assert not C.exists();C.mkdir(mode=0o700)
+ for name,text in v['helpers'].items():(C/name).write_text(text)
+else:
+ for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('compact_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication')
+import requests
+remote=w.Remote.__new__(w.Remote);remote.session=requests.Session();remote.session.headers['Authorization']='Bearer '+v['token']
+identity=remote.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';remote.username='godlydonuts'
+prepared=json.loads((R/'prepared.json').read_text());slug=prepared['dataset_slug'];manifest=json.loads((D/'bundle-manifest.json').read_text());assert p.digest(D/'bundle-manifest.json')==prepared['manifest_sha256']
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700)
+p.exclusive_json(claim/'owner.json',{'pid':os.getpid(),'slurm_job_id':os.environ['SLURM_JOB_ID'],'host':'evc33','recovery':'manual after scheduler and intent reconciliation'})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+  if v['phase']=='create':
+   import importlib.metadata
+   assert {n:importlib.metadata.version(n) for n in ['kaggle','kagglesdk']}=={'kaggle':'2.2.3','kagglesdk':'0.1.30'}
+   assert shutil.disk_usage('/tmp').free>396100843459+(20+24+2)*2**30
+   files=p.expected_files(D,manifest);upload=R/'upload';upload.mkdir();p.build_zip(D,files,upload/'bundle.zip')
+   response=p.create_once(remote,v['token'],slug,files,upload,R/'dataset-create',{'archive_sha256':p.digest(upload/'bundle.zip'),'diagnostic_only':True,'source_training_git':manifest['source_training_git']})
+   out={'phase':'create','response':response,'competition_submission':False}
+  elif v['phase']=='verify':
+   files=p.expected_files(D,manifest);proofs=R/'download-proofs';proofs.mkdir(exist_ok=True)
+   def stream(remote,slug,name,expected):
+    proof=proofs/(expected['sha256']+'.json')
+    if proof.exists():
+     assert json.loads(proof.read_text())==expected;return expected
+    value=p.stream_file(remote,slug,name,expected);p.exclusive_json(proof,value);return value
+   receipt=p.reconcile(remote,slug,files,stream=stream)
+   if not (R/'dataset-verified.json').exists():p.exclusive_json(R/'dataset-verified.json',receipt)
+   else:assert json.loads((R/'dataset-verified.json').read_text())==receipt
+   out=receipt
+  elif v['phase'] in ['push','status']:
+   verified=json.loads((R/'dataset-verified.json').read_text());assert verified['status']=='all_payload_bytes_verified'
+   assert p.metadata(remote,slug)=={k:verified[k] for k in ['id','version','slug','private']}
+   notebook_slug='godlydonuts/rsna-compact-t4-precision-bcc8d6223af8'
+   source='EXPECTED_MANIFEST_SHA256 = '+repr(prepared['manifest_sha256'])+'\n'+v['entry'];source_sha=hashlib.sha256(source.encode()).hexdigest()
+   request={'slug':notebook_slug,'newTitle':notebook_slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[slug,manifest['shared_wheelhouse']['dataset_slug']],'competitionDataSources':[],'sessionTimeoutSeconds':3600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','dockerImagePinningType':'original'}
+   if v['phase']=='push':
+    assert not (R/'kernel-create-intent.json').exists()
+    quota=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'));assert min(seconds(quota['totalTimeAllowed']),seconds(quota['minimumTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved'])>=7200
+    absent=remote.require_absent_kernel(notebook_slug)
+    # Preserve pending original patch recovery while one Kaggle GPU node and the
+    # healthy compact H100 node run; no science/output changes or new Slurm job.
+    state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip()
+    assert state=='PENDING','Recheck actual GPU-node concurrency before push'
+    job=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True);assert 'JobName=rsna-patch-headers-v1' in job
+    p.exclusive_json(R/'patch-hold-intent.json',{'job_id':'929938','original_state':state,'reason':'bounded private T4 inference qualification; preserve two-GPU-node limit'})
+    subprocess.run(['scontrol','hold','929938'],check=True)
+    p.exclusive_json(R/'patch-held.json',{'job_id':'929938','held':True})
+    p.exclusive_json(R/'kernel-create-intent.json',{'source_sha256':source_sha,'request_sha256':w.object_hash(request),'absence':absent,'diagnostic_only':True,'competition_submission':False})
+    response=remote.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(R/'kernel-create-response.json',response)
+    assert response.get('versionNumber')==1 and response.get('ref')=='/code/'+notebook_slug and not response.get('error')
+    out={'status':'private_offline_two_T4_diagnostic_pushed_once','kernel_slug':notebook_slug,'version':1,'kernel_id':response.get('kernelId'),'source_sha256':source_sha,'competition_submission':False}
+   else:
+    assert json.loads((R/'kernel-create-intent.json').read_text())['source_sha256']==source_sha
+    original=remote.kernel('GetKernel',notebook_slug,1);assert original.get('blob',{}).get('source','')==source
+    meta=original['metadata']
+    for k in ['isPrivate','enableInternet','machineShape','dockerImage']:assert meta.get(k)==request[k],k
+    for k in ['datasetDataSources','competitionDataSources']:assert sorted(meta.get(k,[]))==sorted(request[k]),k
+    status=remote.kernel('GetKernelSessionStatus',notebook_slug,1)
+    out={'status':status.get('status'),'kernel_slug':notebook_slug,'version':1,'exact_source_private_offline_T4_verified':True,'competition_submission':False,'actual':status}
+    if status.get('status') in ['COMPLETE','ERROR','CANCELLED'] and (R/'patch-held.json').exists() and not (R/'patch-release-intent.json').exists():
+     p.exclusive_json(R/'patch-release-intent.json',{'job_id':'929938','actual_Kaggle_terminal':status.get('status')})
+     subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(R/'patch-released.json',{'job_id':'929938','released':True})
+  else:raise ValueError('Unknown phase')
+ print(json.dumps(out),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
