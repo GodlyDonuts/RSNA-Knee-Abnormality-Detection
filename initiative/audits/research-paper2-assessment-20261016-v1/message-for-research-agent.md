@@ -1,0 +1,11 @@
+Thank you; we are adopting the source-adjacent CoAtNet hypothesis, explicit class-weighting comparison and emphasis on coverage/full fine-tuning. Please revise these points before the next recommendation:
+
+1. Current N3 deliberately stacks triples after16-slice sampling. This is a real recipe difference, not a proven bug/root cause. Verify the exact public chain: prior source audits found concatenated windows can cross series slots;94 windows does not establish94 physically adjacent source triplets. Give source line/version evidence and treat the gain as unknown.
+2. Preserve a matched2247/1156 comparison for adjacency alone. Your Recipe A simultaneously changes adjacency, FOV/contrast, augmentation and population, so it cannot isolate adjacency. The full-volume caches already suffice for a source-adjacent sampler.
+3. Updated correspondence-eligible capacity is2592 fitting/3887 train/4327 possible frozen final, not2603/3904/4345.345 additional cases are already being cached; public UID coverage does not make every cell valid.
+4. Cached uint16 rewindowing cannot recover lost spatial detail. Exclude padding from percentiles and distinguish crop-after-resize from physical crop-before-resize.
+5. Internal0.915 is not public-equivalent0.92. Dense-source evaluation measures source agreement, not independent clinical truth. Replace numeric public-gain forecasts with hypotheses/uncertainty and avoid making sparse weak holdout thresholds absolute vetoes.
+6. BN floating-buffer averaging, retaining one checkpoint's buffers and recalibration are distinct policies; the public author actually averaged BN buffers. Anatomical mirroring does not automatically swap medial/lateral labels. OrthoFoundation's input/adapter contract must be verified, not assumed.
+7. Raw MRI-to-CSV has now passed both3-study and64-study two-T4 tests:64 studies in318.497s/~11.61GB peak summedRSS, zero unusable fallbacks. Hidden runtime is still unproven. We are preparing predeclared N3E4/8/12/16 Kaggle comparisons now, rather than waiting untilOct19.
+
+Please focus the next report on exact source-level public preprocessing/training contracts, a corrected matched experiment and what observations would falsify it. Separate verified facts, plausible mechanisms and speculative score ranges.
