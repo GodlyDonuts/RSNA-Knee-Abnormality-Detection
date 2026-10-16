@@ -30,3 +30,15 @@ actual fixed10/2430state, original full-control terminalc5d53af3 checkpoint bind
 new actual recovery and exact source27434ede. No new serving GPU, Dataset,
 competition entry or accuracy result exists. The conditional CPU export is not
 staged/dispatched yet; no source-derived clinical rows go toGit/HF.
+
+
+Final actual update:939891 COMPLETED0:0, full3887/10epochs2430steps,417.42seconds
+of fitting. All ten epochs privately verified HF9f27825e/all40objects. CPU939970
+final export and actual32feature trained-vs-serving math passed with ZERO error;
+component6e0894d90343, privateHFca348664/all19objects verified. All raw outputs
+remain private on evc33; no accuracy or clinical result is inferred.
+Private Dataset12642673v1 is all6objects verified; actual precision139119567v1
+was pushed once and has not yet returned terminal acceptance. Finite84212 is
+live with no competition-entry capability; future original full-image training
+VM budget/reserve is retained before its optional pushes. Read serving-* actual
+receipts. This supersedes earlier prepared/running observations above.

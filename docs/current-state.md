@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 23:10 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 23:36 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -374,9 +374,10 @@ All four original private CPU cache notebooks139103622/139103665/139103730/
 38,870,763,520new archive bytes plus326,799,360reused original32bytes. All3887
 ordered fitting studies and both94-window input-view hashes passed. The trainer
 mounts those immutable originals read-only without a second40GBworking tree.
-Independent Newton backup/replay is separately complete for shards0/1 via
-CPU939550/939676; original shard2collector939777 was RUNNING on evc39 at23:09UTC.
-Do not claim all Newton replicas verified or repeat any original producer.
+Independent Newton backup/replay is now complete for ALL4shards via
+CPU939550/939676/939777/939861, each original archive/member/both-view hash
+verified once. Collector80537 completed successfully; do not restart it or repeat
+any original producer or transfer. The complete private registry SHA is8cc5c194.
 [Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
 
 CPU939271 compacted all3887original labels/masks and both teacher-logit views
@@ -454,25 +455,48 @@ body/weights mirrored. Never repeat this or earlier prefixes.
 [Verified preservation](../initiative/audits/hf-licensed-parent-live-training-serving-20261016-v1/verified.json).
 
 
-## New study-pair objective: actual CPU fitting
+## New study-pair objective: complete fixed-final model
 
-Separate source27434ede changes only the loss on the existing licensed-parent
-context graph/features: replace half of25%source BCE with per-target weighted
-study-pair logistic risk, ranking the actual mean-of-two-view probabilities.
-The75%teacher contribution stays unchanged. Same3887studies/402956parameters/
-10epochs2430updates/seed/order; reuse the already completed full uniform control.
-No new CNN encoding/GPU is required. ActualCPU939891 is RUNNING on evc33,
-oneCPU/zeroGPU/preemptable/4GiB/20minutes; actual32feature full/stop1/resume and
-uniform frozen-engine equality passed,200finite full-fit updates observed.
-Twenty-nine focused math/recovery/export/compiler checks passed,Ruff/mypy6sources.
-This is a ranking-surrogate hypothesis, not independent validation or accuracy.
-[Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
-[actual acceptance/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
+OriginalCPU939891 COMPLETED0:0/8:13 on evc33. Its actual32MRI-feature seven-process
+recovery and uniform frozen-engine numerical equality passed. The distinct ranking
+candidate completed all3887studies/10epochs/2430finite updates in417.42seconds,
+402956parameters; no CNN was re-encoded or fitted. The original full uniform fit
+was reused, not repeated. Half of25%source BCE becomes study-pair logistic risk
+on the actual mean-of-two-view probabilities; the75%teacher contribution remains.
+Same graph/features/labels/masks/seed/order/update budget. No clinical or
+independent internal accuracy claim follows from that completed training.
 
-The full CoAtNet139111324v1 independently remains healthy on bothT4s;78finite
-updates were observed in its original unchanged epoch1. Do not restart either
-source, duplicate the completed uniform model or submit diagnostics. New ranking
-final export/private preservation and later exact inference acceptance remain
-required before any competition comparison. Prior607095306179required bytes plus
-new256MiBcheckpoint/publication+32MiBcontrols were actually funded with25.494GB
-remaining after all liabilities; no deletion credit or shared growth.
+All TEN immutable epochs were privately fully re-downloaded/size/SHA verified
+ONCE at HF9f27825ef383b30bf5c77486e09ada62165be991:40objects/55,403,596bytes.
+Final checkpoint e0fc7c891d2d9f00ad9fb37aa4de27c239e1ef6f41c849e5cea77fde9e768a05.
+ActualCPU939970 accepted strict fixed-final export, matching the trained graph
+with zero probability error on the original32MRI feature cases. The1,626,295byte
+component6e0894d90343 is separately private/full verified at
+HFca34866401e2e68a87dd8b1f0dcf517d0d14856b:19objects/1,723,620bytes.
+Never repeat this fit, either publication, acquisition or full uniform control.
+
+Private Dataset12642673v1,godlydonuts/rsna-ranking-head-e10-6e0894d90343, is fully
+6object download/hash verified. Exact private offline precision notebook
+139119567v1,godlydonuts/rsna-ranking-precision-6e0894d90343, was pushed ONCE;
+actual T4 terminal acceptance is not known yet. Finite84212/exec82735 is LIVE,
+maximum1Dataset/2notebooks/zeroentries. It retains the remaining full-parent
+training VM budget plus1hour reserve before optional GPU pushes. PublicMRI may
+wait for that funding; no mutation intent on quota waits. No ranking competition
+entry/score exists.29focused math/recovery/export/compiler checks and Ruff/mypy
+6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
+[actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
+
+The original full CoAtNet139111324v1 independently continues on bothT4s,78finite
+updates last verified in epoch1. All four original lossless pixel caches are now
+also independently collected/replayed on Newton:3887studies,3.204MBprivate
+registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.
+Original collector80537 is TERMINALsuccess; never restart it or repeat transfers.
+Total archive bytes39,197,562,880including the unchanged original32. Zero decode
+errors/empty cases; all pixels/masks/two-view94-window hashes match.
+
+The rank experiment actually funded all prior607095306179required bytes plus
+new256MiBcheckpoint/publication+32MiBcontrols, leaving25.494GB after liabilities.
+Raw retained checkpoints138,599,668bytes stay private. No deletion credit or
+shared growth. Both existing main training and all prior entry owners remain
+unchanged; choose future exact ranking entries only after actual acceptance and
+relevant outcomes/fresh daily allowance.

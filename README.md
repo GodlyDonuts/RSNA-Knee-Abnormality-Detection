@@ -47,6 +47,12 @@ between bounded sessions. No epoch is complete and this adaptation has no score
 yet. Completed-epoch preservation and exact inference/submission owners are live.
 [Actual training and proof](initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
 
+A separate study-pair ranking head completed all3,887studies/10epochs/2,430updates
+on one CPU, with all10checkpoints privately verified. Its strict final inference
+export matches the trained graph on32MRI feature cases; actual Kaggle precision
+qualification139119567v1 is now pushed, with no score yet. The full image-encoder
+fit continues independently. [Actual ranking experiment](initiative/audits/source-ranking-context-20261016-v1/README.md).
+
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
 on 3,887 fitting studies. This is evidence about training exposure, **not disease
 accuracy**. Exact versions, provenance, negative findings, uncertainty and remaining

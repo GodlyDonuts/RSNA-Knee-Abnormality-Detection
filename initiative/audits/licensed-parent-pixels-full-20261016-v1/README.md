@@ -71,3 +71,9 @@ backup. Independent replica/replay shards0/1 passed CPU939550/939676, wholeSHA/
 everymember/both94-window hashes. Shard2collector939777 is currently RUNNING;
 keep original80537 alive, do not retransfer either completed shard or repush any
 producer. No original bytes were deleted or replaced.
+
+
+Actual final registry: ALL4private Newton replicas/replays now complete, original
+CPU939550/939676/939777/939861. All3887original-study proofs and all-member/two-view
+hashes accepted, zero errors/empty; private registry8cc5c194,3,204,449bytes. The
+finite collector80537 completed successfully, no repeat acquisition/transfer.

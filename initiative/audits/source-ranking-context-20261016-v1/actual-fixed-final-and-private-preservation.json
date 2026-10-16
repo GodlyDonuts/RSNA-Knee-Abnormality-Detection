@@ -1,0 +1,294 @@
+{
+  "admission": {
+    "status": "actual32_recovery_accepted_full3887_ranking_contrast_admitted",
+    "CPU_job": "939891",
+    "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+    "source_files": {
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/__init__.py": "ecf9ff9807f088bffd497458b28d2163c74d8c8d0b3ce5a84948ade85067622e",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/competitive/__init__.py": "ff098e00adb13fdb1292452f77fe38dcf44d04ccd62bc9f8bfa6bb8a5b8f6cd1",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/competitive/released_context.py": "4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/competitive/released_context_train.py": "5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/rsna/competitive/ranking_context_train.py": "05ffb0788fd2bd78905b6e0c054dc49fabfc6f2526a37b79e5aea15dab02642c",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/scripts/newton/run_released_context_fit.py": "946bba02abbda257548c2fe7b464d29b50c4c5d302e96673e321f6f2df5d8db2",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/scripts/newton/run_ranking_context_fit.py": "12772481c7893c1ae2f13370b25eeaee79bd5d7acb1a8d77c11d9a0ea35aca11",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/scripts/newton/probe_ranking_context_recovery.py": "2dd03a7c5618973d35d8d719d3415227dd310e511e2fb3ca4e25f163ceedeb52",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/scripts/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/tmp/rsna-source-ranking-context-20261016-v1/code/scripts/newton/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "actual_recovery_sha256": "8e4e6e41aea5bd6cb67f1be6500e3b6d0100c9f475a6fcd22631e422998cc153",
+    "recovery": {
+      "CPU_job": "939891",
+      "clinical_or_competition_accuracy_evaluated": false,
+      "fresh_processes": 7,
+      "protected_values_read": false,
+      "roles": {
+        "source_rank": {
+          "all32x12_prediction_bytes_equal": true,
+          "checkpoint_sha256": "e1d245994dfed6f8775748506a435259cb25bc7b37ec03a8387e37fdd4c4de7d",
+          "complete_model_AdamW_LR_order_counters_allRNG_history_equal": true,
+          "fresh_processes": 3,
+          "updates": 4
+        },
+        "uniform": {
+          "all32x12_prediction_bytes_equal": true,
+          "checkpoint_sha256": "9e20a5b700f162c82a55fee8a69b35a89c0137cc2442e84a3d276da4407ced0b",
+          "complete_model_AdamW_LR_order_counters_allRNG_history_equal": true,
+          "fresh_processes": 3,
+          "updates": 4
+        }
+      },
+      "status": "actual32_source_rank_engine_recovery_and_uniform_parity_accepted",
+      "uniform_complete_numerical_state_and_predictions_equal_frozen_original": true
+    },
+    "funding": {
+      "all_prior_required_free_bytes": 607095306179,
+      "new_checkpoint_recovery_publication_cap_bytes": 268435456,
+      "new_controls_cap_bytes": 33554432,
+      "actual_free_bytes": 632891686912,
+      "free_after_all_liabilities_bytes": 25494390845,
+      "new_shared_bytes_files": 0,
+      "deletion_credit": 0
+    },
+    "source_ranking_statistics": {
+      "per_target": {
+        "ACL": {
+          "observed": 3887,
+          "distinct_source_values": 99
+        },
+        "MCL": {
+          "observed": 3887,
+          "distinct_source_values": 92
+        },
+        "Medial Meniscus": {
+          "observed": 3887,
+          "distinct_source_values": 100
+        },
+        "Lateral Meniscus": {
+          "observed": 3887,
+          "distinct_source_values": 88
+        },
+        "Medial OA": {
+          "observed": 3887,
+          "distinct_source_values": 106
+        },
+        "Lateral OA": {
+          "observed": 3887,
+          "distinct_source_values": 108
+        },
+        "PF OA": {
+          "observed": 3887,
+          "distinct_source_values": 89
+        },
+        "Effusion": {
+          "observed": 3887,
+          "distinct_source_values": 81
+        },
+        "Synovitis": {
+          "observed": 3887,
+          "distinct_source_values": 90
+        },
+        "Baker's": {
+          "observed": 3887,
+          "distinct_source_values": 50
+        },
+        "Contusion": {
+          "observed": 3887,
+          "distinct_source_values": 110
+        },
+        "Fracture": {
+          "observed": 3887,
+          "distinct_source_values": 65
+        }
+      },
+      "all_observed_cells": 46644,
+      "rank_fraction": 0.5,
+      "source_weight": 0.25,
+      "teacher_contribution_unchanged": true,
+      "ranking_score": "stable_logit_mean_two_sigmoid_views",
+      "pair_weight": "max(y_i-y_j,0)",
+      "clinical_accuracy_claim": false
+    },
+    "full_studies": 3887,
+    "per_role_epochs": 10,
+    "per_role_updates": 2430,
+    "same_original_global_features_labels_masks_unchanged": true,
+    "same_graph_recipe_seed_update_budget": true,
+    "no_independent_internal_validation": true,
+    "no_clinical_accuracy_claim": true
+  },
+  "fit_and_publication": {
+    "fit": {
+      "CNN_parameters_fitted": 0,
+      "binding": {
+        "actual_engine_recovery_sha256": "62519641631a76256f3b6b4c39df85ab92c68a2bd1897daf270b1d6613f74f29",
+        "eligible_release_sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+        "feature_index_sha256": "5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113",
+        "feature_pipeline_helper_sha256": "4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9",
+        "label_source_sha256": "eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4",
+        "new_feature_archive_sha256": "980f3ee47624d388d5a0f14394ed021022aacf1eb65cfe1e70dba9fc99dd73fa",
+        "objective": "source_rank",
+        "original_feature_recovery_source_sha256": "6c6ed23f5e7d32d824d22bf2bf282a319c4526efe7794589ce73127700c9e575",
+        "original_full_input_manifest_sha256": "a4c5b4910dc818293cdfb6ed59ba92bfa16faa5e0cb2c39c7a5e5b41df877ab0",
+        "parent_adaptation_license": "original nartaa public source/model competition adaptation and noncommercial redistribution permission; retain attribution; no independent OOF",
+        "parent_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+        "parent_weights_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "ranking_engine": "licensed_study_pair_ranking_context_trainer_v1",
+        "ranking_source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+        "safe_population_uid_sha256": "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42",
+        "source_git": "2ee0cffeae9dd023fef7ff98403e0508d4d22554"
+      },
+      "checkpoint_sha256": "e0fc7c891d2d9f00ad9fb37aa4de27c239e1ef6f41c849e5cea77fde9e768a05",
+      "clinical_accuracy_evaluated": false,
+      "competition_submissions": 0,
+      "completed_updates": 2430,
+      "elapsed_seconds": 417.42023165899445,
+      "engine": "licensed_study_pair_ranking_context_trainer_v1",
+      "epochs": 10,
+      "independent_internal_validation": false,
+      "inputs_sha256": "2a2cdaf81701797d8a69a34e8f34d69156ad2a3cb21dacb0f9df5f3774010722",
+      "objective": "source_rank",
+      "prediction_sha256": "b82508833e9ab947a642e4c2f59ac2f2f02b99f8fddddae69bbceedc9d2fcd73",
+      "recipe": {
+        "batch_size": 16,
+        "clip": 1.0,
+        "embedding_dim": 1024,
+        "epochs": 10,
+        "layers": 2,
+        "learning_rate": 0.0003,
+        "limit": 0.5,
+        "objective": "source_rank",
+        "rank_fraction": 0.5,
+        "seed": 20261016,
+        "source_weight": 0.25,
+        "targets": 12,
+        "warmup_epochs": 1,
+        "weight_decay": 0.01,
+        "width": 128
+      },
+      "status": "fixed_final_complete",
+      "studies": 3887,
+      "trainable_parameters": 402956
+    },
+    "publication": {
+      "status": "all10_source_rank_role_epochs_private_full_download_size_SHA_verified",
+      "objective": "source_rank",
+      "revision": "9f27825ef383b30bf5c77486e09ada62165be991",
+      "prefix": "experiments/licensed-source-ranking/train3887-fixed10-27434edef158-v1/source_rank",
+      "epochs": {
+        "1": {
+          "objective": "source_rank",
+          "epoch": 1,
+          "updates": 243,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "454de9658bcc8f32ca620e9db48bfe2717f17377510dbcd227c26954da4cb3ec",
+          "checkpoint_bytes": 4919771,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "2": {
+          "objective": "source_rank",
+          "epoch": 2,
+          "updates": 486,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "3d51828dd30b57c671d127faedac1f375b724061c1cea018776498d43d036663",
+          "checkpoint_bytes": 4942363,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "3": {
+          "objective": "source_rank",
+          "epoch": 3,
+          "updates": 729,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "4981cc458c553a4a2631e6e19af841c595c2c7167f23aa46fcb8b67f684cbc36",
+          "checkpoint_bytes": 4964955,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "4": {
+          "objective": "source_rank",
+          "epoch": 4,
+          "updates": 972,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "ae24ffb705f0017482a053aead5398069176f96487b5499501f5319e2c875685",
+          "checkpoint_bytes": 4987547,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "5": {
+          "objective": "source_rank",
+          "epoch": 5,
+          "updates": 1215,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "2cc4a32b165004f04c857e09c21b56645e862feaa5c6aafc89aa2713c29d1ced",
+          "checkpoint_bytes": 5010203,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "6": {
+          "objective": "source_rank",
+          "epoch": 6,
+          "updates": 1458,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "9cbe0ad87ffdcf5ae31ca4d0d7cdd0b6f105ed0f04e8e560cea1ea78d974ae00",
+          "checkpoint_bytes": 5032795,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "7": {
+          "objective": "source_rank",
+          "epoch": 7,
+          "updates": 1701,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "3b0031d41ab909417f1443dfcbd47f138b11a66eca44e1d100584d5b07d221df",
+          "checkpoint_bytes": 5055387,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "8": {
+          "objective": "source_rank",
+          "epoch": 8,
+          "updates": 1944,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "b8435479ec379592cdfd69af65393a58934907ec9a8b162503761b4f39f329db",
+          "checkpoint_bytes": 5077979,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "9": {
+          "objective": "source_rank",
+          "epoch": 9,
+          "updates": 2187,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "830b48c19de5232208ec48ab9263c246c798155787e021eabc4a58eefac094bb",
+          "checkpoint_bytes": 5100571,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        },
+        "10": {
+          "objective": "source_rank",
+          "epoch": 10,
+          "updates": 2430,
+          "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+          "checkpoint_sha256": "e0fc7c891d2d9f00ad9fb37aa4de27c239e1ef6f41c849e5cea77fde9e768a05",
+          "checkpoint_bytes": 5123163,
+          "fixed_final_no_best_epoch_selection": true,
+          "accuracy_claim": false
+        }
+      },
+      "objects": 40,
+      "bytes": 55403596,
+      "no_MRI_labels_indices_UIDs_features_or_predictions": true
+    },
+    "elapsed_with_publication_seconds": 438.0165491680091
+  },
+  "terminal": {
+    "status": "one_full3887_ranking_candidate_completed_and_all10_epochs_privately_verified",
+    "CPU_job": "939891",
+    "source_git": "27434edef1589e2490b17e73e5aaaf0e9da9680b",
+    "root": "/tmp/rsna-source-ranking-context-20261016-v1",
+    "raw_checkpoint_bytes": 138599668,
+    "no_accuracy_claim": true
+  }
+}
