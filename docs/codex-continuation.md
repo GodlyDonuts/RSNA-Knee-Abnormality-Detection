@@ -184,3 +184,11 @@ verifiedONCE at HFc6e848a5e21090b2cf3b462680bf8166a064aee0/all49smallobjects
 236002bytes, CPU938041/canonical shared lock. Never repeat this or old prefixes. Original core publisher4e327e27 at
 /home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py.
 Shared lock /home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock.
+
+Latest actual small preservation: source16dc318e99c032cc0e10dc0bd9bdf085a4cd2380,
+HF56671edc96e98252a5183f6cfaefcb955916017a,59objects242393bytes fully re-download/
+size/SHAverified byCPU938456 under canonical shared lock. Never repeat this or
+previous6c06674d/HFc6e848a5etc. Model76raw objects and Dataset12639590already
+have their own original full verified proofs; no double publication. No new hidden
+score yet. Current source-level next research proposal remains source-confidence
+anchoring; keep exact accepted current models/owners immutable.

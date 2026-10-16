@@ -276,3 +276,9 @@ privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
 under the canonical lock byCPU938041; no private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
+
+Latest verified small milestone: source16dc318e/all59objects242,393bytes at
+privateHF56671edc96e98252a5183f6cfaefcb955916017a, fully re-downloaded/size/SHA
+under the canonical lock byCPU938456. No private arrays/images/identities/weights.
+[Exact receipt](../initiative/audits/hf-spatial-T4-weighted-final-20261016-v1/verified.json).
+Never repeat this or earlier verified prefixes.
