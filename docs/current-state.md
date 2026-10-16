@@ -282,3 +282,13 @@ privateHF56671edc96e98252a5183f6cfaefcb955916017a, fully re-downloaded/size/SHA
 under the canonical lock byCPU938456. No private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-spatial-T4-weighted-final-20261016-v1/verified.json).
 Never repeat this or earlier verified prefixes.
+
+## New supervision contrast — prepared20:06UTC
+
+A distinct source-confidence objective is implemented: uncertain report targets
+return unused influence to the detached MRI teacher, with the same all-cell BCE
+mean, stored labels/masks and original402,956parameter global-context graph.
+Thirty focused tests passed; actual32-MRI recovery and full3887fits have not yet
+run. This differs from positive-class weighting and has no accuracy claim.
+[Prospective protocol](../initiative/experiments/competitive-v1/source-confidence-context-v1/README.md).
+Existing accepted candidates and next-window entry owners remain unchanged.
