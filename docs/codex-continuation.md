@@ -98,9 +98,10 @@ include UTC observation time, and distinguish prepared/CPU-admitted/GPU-admitted
 submitted/running/complete/scored. Archive older snapshots; do not stack conflicting
 “latest” blocks on entry pages. Source-level tests are not accuracy evidence.
 
-Latest small private milestone: source8047e6ea at
-HF7c1f812352df8e0e06b356b5c781c7e341202e75, 40 objects fully verified once.
-No newer documentation/expanded-input source mirror is claimed yet. Credentials
+Latest verified documentation milestone: sourceec137184 at
+HF4a3c3a848ecb3fa67afcc491f0a31c1e874aa408,17objects fully verified once.
+New actual expanded/dense/score/late-average staging milestones await their
+distinct private mirror; never repeat older mirrors. Credentials
 stay in ignored 0600 `.env`, RAM/stdin; raw clinical assets stay private.
 
 Root owns dense coverage and source research directly; Devin is unavailable.
@@ -113,5 +114,7 @@ epochs1–14 fully privately verified; do not repeat publications. Root-owned de
 CPU gate933517 COMPLETED0:0 on evc33, source243eca52, local session59074terminal.
 Actual receiptSHA2b3186baab40f8f8e535891dd3930be94ecf0efb59d1cfef5290acfc6cb97ff6.
 32MRI/2345original-window tensors bit-equal,4188dense windows; no encoder run.
-No Devin dependency. Late-average CPU construction wrapper prepared; no derived
-checkpoint/evaluation exists yet.
+No Devin dependency. Late-average CPU933573 submitted ONCE afterok:932869; root
+`/tmp/rsna-compact-late-average-20261016-v1`. Source85d9939b, exact workerSHA
+85203cabd6e6ed25379b11ef1ffa34099ad96b712b92f4acc758780e4bcf01ea.
+No derived checkpoint/evaluation exists until actual parent and privateE16 pass.

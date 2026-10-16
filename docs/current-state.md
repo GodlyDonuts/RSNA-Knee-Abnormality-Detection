@@ -129,7 +129,9 @@ No training job or Kaggle submission was changed by this correction.
 [Late-parameter average](../initiative/experiments/competitive-v1/compact-late-average-v1/README.md)
 is preregistered: original epochs12/14/16, learned parameters averaged equally,
 epoch16 BatchNorm/all other buffers retained exactly. Separate engine identity;
-13 synthetic tests passed, no derived checkpoint/GPU result yet.
+13 synthetic tests passed. CPU builder **933573** is submitted once with
+`afterok:932869`, zeroGPU, and requires verified originalE16 before writing.
+No derived checkpoint/GPU/accuracy result exists yet.
 
 ## Direct Paper 3 coverage work
 
@@ -138,7 +140,7 @@ directly; Devin is unavailable and is not a critical-path dependency. Every orig
 window is preserved; additional geometry-valid centers cap at180windows/study.
 Local tests pass; actual zero-GPU MRI admission **933517 passed** on evc33:
 32MRI studies preserve2345original windows exactly while exposing4188dense windows.
-Full held-out window census rises84333→158073 (about1.88x).
+Full held-out window census rises84333→158073 (about1.87x).
 [Actual MRI proof](../initiative/audits/compact-dense30-inputs-20261016-v1/README.md).
 Target-device throughput and accuracy acceptance remain required.
 
