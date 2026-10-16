@@ -41,7 +41,7 @@ original0.92092535, delta-0.00572762, conditional95%[-0.02522802,+0.01337630],
 keep original N3. Lateral-meniscus/contusion secondary improvements need matched
 replication and do not justify post-hoc target splicing. Narrower adjacency versus
 wider anatomical context is a plausible tradeoff, not a proved explanation.
-Weighted933001 is RUNNING with10privateverified epochs; no final result yet.
+Weighted933001 is RUNNING with14privateverified epochs; no final result yet.
 Public one-study gradient accumulation also means mixed-study BatchNorm is not a
 known missing ingredient. [Full paired evidence](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
@@ -156,10 +156,10 @@ Actual32MRI/both-T4engineering acceptance139066640/v1 passed, with original
 observer features/logits bit-equal. Cross-run global-feature differences caused
 the first probe's refusal, despite small parent probability drift; root numerical
 cause remains unproven. The corrected representation caches global, regional and
-parent outputs from one forward, never mixes old/new embeddings. An exact full
-3,887-study feature pass139068442/v1 is now RUNNING, reusing32accepted originals.
-No regional head training or accuracy result exists. Future real recovery,
-fixed-final comparisons and deployment acceptance remain necessary.
+parent outputs from one forward, never mixes old/new embeddings. The full3,887-study feature pass139068442/v1 COMPLETED in4,382seconds, reusing32
+accepted originals. Whole archive collection is recovering interrupted HTTP
+streams using only missing suffixes. No regional full fit or accuracy result exists;
+complete cache acceptance and fixed-final comparisons remain necessary.
 [Original failure](../initiative/audits/regional-feature-probe-20261016-v1/README.md),
 [actual32acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md),
 [full experiment](../initiative/audits/regional-feature-full-20261016-v1/README.md).
@@ -179,10 +179,12 @@ Neighbor fixed-final sourcea44f476a and10smallobjects are private-HF fully verif
 ONCE at fd2b776e0bc977cdac4dc7730d2e894d1bfbfb32 (CPU936842).
 [Verified preservation](../initiative/audits/hf-neighbor-fixed-final-20261016-v1/verified.json).
 
-Matched spatial-head engine is locally implemented (37targeted tests, Ruff and
-three-fileMypy): identical1,334,796parameter/8192-input graph in both roles,
-control repeats coherent globals8times; candidate uses globals+7regions. It reuses
-the unchanged5addea82FP32numerical trainer, binds role/cache/source/complete roster,
-and preserves the old1024serving rejection. Six-process actual32MRIrecovery is
-prepared but not yet dispatched; no regional full fit or accuracy result.
-[Engine protocol](../initiative/audits/regional-context-engine-20261016-v1/README.md).
+The matched spatial-head engine now has actual six-process CPU937321 acceptance,
+not only38local tests: each arm full/stop1/resume, complete numerical state and
+32x12prediction bytes exact, both with nonzero learning. Same1,334,796parameter/
+8192-input graph and initial values isolate feature content:8coherent global
+copies versus global+7regional summaries. It reuses unchanged5addea82FP32training.
+This is engineering acceptance, not disease accuracy. Full3887fixed10fits remain
+pending complete archive collection. The original pre-update CPU rounding verifier
+failure and corrected exact same-batch check are preserved.
+[Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).

@@ -28,7 +28,8 @@ from the actual batched predictor. The matched-batch oracle is bit-exact. This
 was a verifier shape-dependent CPUrounding failure, not a model/data failure.
 Original code, input admission and failure are preserved; no training was repeated.
 The distinct corrected admission keeps exact equality and all numerical/data/
-model policies unchanged. It is not yet dispatched.
+model policies unchanged. Its distinct corrected CPU937321 subsequently COMPLETED0:0; see the v2actual
+recovery audit. This original v1failure remains unchanged.
 Before full fitting, run six fresh processes: full/stop1/resume for each arm,
 32actual cached fitting studies/twoepochs/fourupdates. Require exact complete
 model/AdamW/LR/counter/order/allRNG/history and32x12NPYbytes, actual stop1,

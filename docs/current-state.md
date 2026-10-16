@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 17:41 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 18:51 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -46,7 +46,7 @@ delta-0.00572762, whole-component conditional95%[-0.02522802,+0.01337630],
 2,836defined/1,164undefined draws. No established primary gain; keep originalN3.
 [Fixed-final result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md). Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–10 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–14 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -186,7 +186,7 @@ Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6
 
 Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).
 
-## Spatial context: full feature pass running
+## Spatial context: full feature pass complete; collection recovering
 
 The corrected probe **139066640/v1 completed all 32 MRI studies on both T4s** in
 54.176 seconds. The observer left original features/logits bit-equal; CPU/GPU
@@ -198,18 +198,20 @@ The corrected input stores global features, spatial summaries and parent logits
 from the **same forward pass**. It does not combine old embeddings with new regions.
 [Actual acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
 
-Full private offline two-T4 pass **139068442/v1 is RUNNING**. It reuses the accepted
-32 records and encodes only 3,855 new cases for the exact 3,887-study fitting
-population. Seven summaries retain all 1,024 channels before global pooling;
-useful anatomical information and an accuracy gain remain unproven. Actual source,
-release membership, license, quota and fresh storage reserve passed before its
-single push. Finite owner48632 observes that exact original and collects its new
-archive once on completion. **No regional head has been trained or submitted.**
+Full private offline two-T4 pass **139068442/v1 COMPLETED all3,887studies**
+in4,382.071seconds, reusing32 and encoding3,855new cases. BothT4peak3.185GB;
+original pixels/observer outputs passed exact checks. Coherent global/regional/
+parent outputs come from one forward; no model fitting occurred. Its13.378GB
+archive transfer was interrupted twice. Original collector937837 and first suffix
+937877 are terminal failures; all received prefix bytes remain. A distinct bounded
+256MiB-range collector now fetches only missing bytes, checks exact206boundaries,
+whole SHA and everyNPZ before full fitting. No GPU/kernel/push is repeated.
+**No regional full fit, accuracy result or competition entry exists yet.**
 [Full source, funding and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
 
 Neighbor932957 is COMPLETED and independently verified:0.91519773internal macro,
 originalN3control0.92092535; no established primary gain (interval includes zero).
-Weighted933001 has10privately verified epochs and remains RUNNING, no final result.
+Weighted933001 has14privately verified epochs and remains RUNNING, no final result.
 Original expanded recovery933382 remains PENDING; conditional owner51853 and
 context-entry owner33015 stay alive. Root implements directly; Devin is unavailable.
 [Neighbor full paired result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
@@ -229,10 +231,19 @@ Neighbor fixed-final sourcea44f476a and10smallobjects are private-HF fully verif
 ONCE at fd2b776e0bc977cdac4dc7730d2e894d1bfbfb32 (CPU936842).
 [Verified preservation](../initiative/audits/hf-neighbor-fixed-final-20261016-v1/verified.json).
 
-Matched spatial-head engine is locally implemented (37targeted tests, Ruff and
-three-fileMypy): identical1,334,796parameter/8192-input graph in both roles,
-control repeats coherent globals8times; candidate uses globals+7regions. It reuses
-the unchanged5addea82FP32numerical trainer, binds role/cache/source/complete roster,
-and preserves the old1024serving rejection. Six-process actual32MRIrecovery is
-prepared but not yet dispatched; no regional full fit or accuracy result.
-[Engine protocol](../initiative/audits/regional-context-engine-20261016-v1/README.md).
+The matched spatial-head engine passed actual CPU937321 **COMPLETED0:0**:
+six fresh full/stop1/resume processes, four updates per arm on32real MRI caches,
+complete model/AdamW/LR/counters/allRNG/history and32x12prediction bytes exact.
+Both roles learn nonzero changes. Same1,334,796-parameter8192-input graph and
+initial state; control repeats globals8times, candidate uses globals+7regions.
+The original pre-update verifier refusal is preserved; same-batch CPU oracle
+corrected shape-dependent5.96e-8rounding without changing numerical training.
+[Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).
+
+Full10epoch/2430update controls are prepared, pending complete cache acceptance;
+each uses oneCPU/zeroGPU and preserves all10immutable epochs privately once.
+The accepted source46f5014d and unchanged5addea82numerical loop are frozen.
+512MiBtotal head/recovery cap and all prior resource liabilities are retained.
+A new typed final exporter and actualT4serving remain separate work. No independent
+internalOOF is claimed for the externally trained parent.
+[Prospective full controls](../initiative/audits/regional-context-production-20261016-v1/README.md).

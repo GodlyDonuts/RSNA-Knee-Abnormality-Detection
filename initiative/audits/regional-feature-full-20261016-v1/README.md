@@ -24,3 +24,11 @@ retry a mutation. Inspect original intents/progress/results before action.
 No original obligation was retired, no deletion credit was used and no shared data
 were added. Future head training requires its own real engine recovery. No regional
 accuracy or competition submission is claimed.
+
+Actual terminal now COMPLETE: all3,887studies/3,855new/32reused in4,382.071seconds,
+3.185GBpeak eachT4, source/version unchanged. See actual-complete.json. The
+original finite owner finished with a transfer failure, not an inference failure.
+Original collector937837 and first suffix937877 stopped on incomplete HTTP streams;
+the archive prefix is preserved. New256MiBbounded-range collection is active,
+whole SHA/NPYacceptance not yet claimed. No repeated GPU pass or original prefix
+transfer. See collection-failures.json and actual subsequent acceptance receipts.

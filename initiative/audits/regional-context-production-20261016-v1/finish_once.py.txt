@@ -1,0 +1,22 @@
+import hashlib,json,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;deadline=time.monotonic()+12*3600
+with (L/'finish.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'automatic_restart':False,'maximum_seconds':12*3600,'phases_sha256':hashlib.sha256((L/'run_phase_once.py').read_bytes()).hexdigest(),'control_sha256':hashlib.sha256((L/'program.py.txt').read_bytes()).hexdigest()},f,indent=2)
+assert all((L/(r+'-submitted.json')).exists() for r in ('global_repeat','regional'));published=set();count=0
+try:
+ while time.monotonic()<deadline:
+  x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),'status'],capture_output=True,text=True,timeout=1300);assert x.returncode==0,x.stderr;outer=json.loads(x.stdout);state=json.loads(outer['stdout']);count+=1;(L/'finish.progress.json').write_text(json.dumps({'checked_at_utc':datetime.now(timezone.utc).isoformat(),'observations':count,'state':state,'published_roles':sorted(published)},indent=2)+'\n')
+  for role,row in state['roles'].items():
+   slurm=row['Slurm'];terminal=slurm.split('|')[0]
+   if role in published:continue
+   if terminal=='COMPLETED':
+    assert slurm=='COMPLETED|0:0' and row['terminal_exists'] and row['status']=='fixed_final_complete' and row['updates']==2430 and row['epochs']==10
+    p=subprocess.run([sys.executable,str(L/'run_phase_once.py'),'publish-'+role],capture_output=True,text=True,timeout=1300);assert p.returncode==0,p.stderr;published.add(role)
+   elif terminal in ('FAILED','CANCELLED','TIMEOUT','OUT_OF_MEMORY','NODE_FAIL','PREEMPTED'):raise RuntimeError('Original '+role+' terminal '+slurm+'; no restart')
+  if len(published)==2:
+   (L/'finish.result.json').write_text(json.dumps({'status':'both_original_full3887_fixed10_roles_complete_and_all20_epochs_privately_verified','roles':sorted(published)},indent=2)+'\n');print('Both original matched roles completed and were privately fully verified.',flush=True);break
+  time.sleep(120)
+ else:raise RuntimeError('Finite observation deadline; inspect originals, never restart')
+except Exception as e:
+ (L/'finish.result.json').write_text(json.dumps({'status':'original_roles_require_readonly_inspection','error':str(e),'published_roles':sorted(published),'automatic_restart':False},indent=2)+'\n');raise
