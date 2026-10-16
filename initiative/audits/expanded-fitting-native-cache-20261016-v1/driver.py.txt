@@ -1,0 +1,33 @@
+
+import hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);R=Path('/tmp/rsna-additional345-native-cache-20261016-v1');assert os.uname().nodename=='evc33' and os.environ['SLURM_CPUS_PER_TASK']=='1' and not os.environ.get('SLURM_JOB_GPUS')
+assert not R.exists();base=396100843459+(20+24+2)*2**30;cap=70*2**30;free=shutil.disk_usage('/tmp').free;assert free>base+cap
+assert shutil.disk_usage('/tmp').free>cap+20*2**30
+assert (Path('/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar')).stat().st_size==82834493440
+assert subprocess.check_output(['git','-C','/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e','rev-parse','HEAD'],text=True).strip()=='c9fcc7eefb09103942be89bf4fa87410eb9ec5ab'
+R.mkdir(mode=0o700);(R/'outputs').mkdir(mode=0o700)
+def save(name,value):
+ with (R/name).open('x') as f:json.dump(value,f,indent=2)
+for name,text in v['files'].items():
+ p=R/name;assert p.resolve().is_relative_to(R.resolve());p.parent.mkdir(parents=True,exist_ok=True,mode=0o700);p.write_text(text);assert hashlib.sha256(p.read_bytes()).hexdigest()==v['table'][name]['sha256'] and p.stat().st_size==v['table'][name]['bytes']
+plan=json.loads((R/'plan/manifest.json').read_text());assert hashlib.sha256((R/'plan/manifest.json').read_bytes()).hexdigest()==v['manifest_sha256'];assert plan['study_count']==345 and plan['excluded_all_fold0_studies']==1301 and plan['new_training_or_label_admission'] is False
+save('start.json',{'job_id':os.environ['SLURM_JOB_ID'],'node':'evc33','source_git':v['source_git'],'manifest_sha256':v['manifest_sha256'],'files':v['table'],'prior_and_reserve_bytes':base,'new_cap_bytes':cap,'actual_free_bytes':free,'after_all_obligations_bytes':free-base-cap,'GPU':0,'CPU':1,'new_shared_bytes_files':0,'automatic_retry':False})
+print(json.dumps({'status':'additional345_cache_actual_started','job_id':os.environ['SLURM_JOB_ID'],'new_node_cap':cap,'after_all_obligations':free-base-cap}),flush=True)
+env=dict(os.environ,PYTHONPATH='/home/sa305415/rsna-knee/code-delta-recovery-c9fcc7e',PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+python='/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python';completed=[];started=time.monotonic()
+try:
+ for name in sorted(plan['shards']):
+  n=int(name.removeprefix('shard-').removesuffix('.json'));out=R/'outputs'/f'shard-{n:03d}';assert not out.exists()
+  cmd=[python,'-B',str(R/'worker.py'),'--root','/home/sa305415/rsna-knee/code-stopfix-1f486765','--plan-manifest',str(R/'plan/manifest.json'),'--plan-manifest-sha256',v['manifest_sha256'],'--shard',str(n),'--reference-archive','/home/sa305415/rsna-knee/cache/cache256-v3-official-recovery-v1.tar','--output',str(out),'--science-binding',str(R/'science-binding.json')]
+  with (R/f'shard-{n:03d}.stdout').open('x') as stdout,(R/f'shard-{n:03d}.stderr').open('x') as stderr:
+   x=subprocess.run(cmd,input=json.dumps({'token':v['token']}),text=True,env=env,stdout=stdout,stderr=stderr,timeout=7200)
+  if x.returncode:raise RuntimeError(f'original shard {n} terminal code {x.returncode}; no retry')
+  report=json.loads((out/'cache-verified.json').read_text());assert report['status']=='native_paired_shard_cache_and_loader_verified' and report['execution_provenance']['plan_manifest_sha256']==v['manifest_sha256'];completed.append(n)
+  used=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert used<=cap and shutil.disk_usage('/tmp').free>base+cap-used
+  (R/'progress.json').write_text(json.dumps({'completed_shards':completed,'total_shards':len(plan['shards']),'actual_owned_bytes':used,'new_training_or_label_admission':False}))
+  print(json.dumps({'completed_shard':n,'series':report['series'],'completed_shards':len(completed)}),flush=True)
+ save('terminal.json',{'status':'additional345_paired_native_cache_built_and_verified_node_private','job_id':os.environ['SLURM_JOB_ID'],'completed_shards':completed,'elapsed_seconds':time.monotonic()-started,'training_or_accuracy_claim':False,'private_cloud_cache_publication':False})
+except BaseException as e:
+ save('failure.json',{'status':'stopped_for_original_shard_review','error_type':type(e).__name__,'reason':str(e),'completed_shards':completed,'no_retry':True});raise
+finally:v.pop('token',None)

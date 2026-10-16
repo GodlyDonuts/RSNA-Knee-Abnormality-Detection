@@ -1,3 +1,9 @@
+# October16: additional345 original-image cache actually building
+
+CPU931411 RUNNING on evc33/oneCPU/zeroGPU, distinct original new345-only paired256/384 cache plan from a7a53304.345 correspondence-eligible additional fitting cases/1769series/54562slices/36,349,800,124 originalDICOMbytes; all1301fold0cases excluded. Current labels/release/folds/N3 training unchanged. Fresh70GiB envelope leaves192,716,445,757bytes after all retained/new liabilities; sharedgrowth0. Seven whole-study shards verify corrected original source bytes, accepted256reference and native384geometry/loader/archive bytes, retain privately on node. Initial shard in progress; no completed new cache/training/accuracy claim. Finite controller exec25543, output /tmp/rsna-additional345-native-cache-20261016-v1 on evc33. Inspect original logs/terminal before action, never duplicate/retry uncertainty.
+
+Corrected Kaggle native endpoint138967256/v1 is still actualRUNNING under observer52346, no outcome yet. Healthy original930744 continues; original publisher47365 preserves distinct completed epochs once.
+
 # October16: compact epoch2 preserved; raw-endpoint bootstrap correction actually launched
 
 Healthy original930744 is in epoch3/596finiteupdates. Completed epochs1/2 each privately published/download-size-SHA verified ONCE; newE2HF42107885cca9d4198512431995df498d55188611/all8objects/CPU931365. Original finite publication watcher exec47365 remains live; never repeat epochs.
