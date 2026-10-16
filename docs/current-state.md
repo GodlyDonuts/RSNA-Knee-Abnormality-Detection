@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 20:26 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 20:31 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -21,7 +21,7 @@ Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 Epoch 16 is also COMPLETE, no error, 382,473 bytes and canonically reconciled at
 12:36 UTC. [Scored E16 receipt](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json).
 The .894 does not establish parity with the external .949 or a hidden-private score.
-The authoritative 19:45 UTC allowance is **five submissions used, zero available**.
+The authoritative 20:31 UTC allowance is **five submissions used, zero available**.
 The original curve controller finished all three scheduled E8/E12/E16 submissions;
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
@@ -300,12 +300,20 @@ changes.25→.19512, Synovitis→.13581. Fitting pair-order changes.633%–2.472
 are behavior, not accuracy. **No confidence Kaggle/clinical improvement exists.**
 [Full actual receipts, negative finding and limits](../initiative/audits/source-confidence-context-20261016-v1/README.md).
 
-Actual final export/CPU math passed with zero probability error; serving
-componentd215637cb2e4is privately full verifiedHF28f29480. Original finite47360
-stopped on a local missing-PYTHONPATH import before its first Dataset phase;
-no remote mutation occurred. Distinct continuation14084/PID72652 fixes only
-that environment and created privateDataset12640289v1 once/all6objects verified.
-Exact T4qualification139097480v1 was pushed once; actual terminal/publicMRI
-acceptance pending. No competition entry. [Original export/failure/deployment](../initiative/audits/source-confidence-deployment-20261016-v1/README.md). Existing next-window entry owners remain
+Actual final export/CPU math passed with zero probability error; component
+d215637cb2e4is privately full verifiedHF28f29480. A local import-path failure
+stopped the original controller BEFORE any Dataset attempt. Its distinct
+continuation corrected only the environment and is now TERMINALsuccess. Private
+Dataset12640289v1 is all6object verified; exact twoT4qualification139097480v1
+passed max5.96e-8; publicMRI139097695v1 passed3studies/zero fallback/13columns
+in22.381seconds. **No hidden entry/score exists.** [Original serving/failure/
+acceptance receipts](../initiative/audits/source-confidence-deployment-20261016-v1/README.md).
+
+New sole finite72900/PID72998 owns this fourth candidate: no earlierOctober17
+10:00UTC, after all three original context/spatial actual scored outcomes, fresh
+authoritative allowance and canonical claim; at most one exact code entry. Entry
+deadline17 23:15UTC, hidden observation deadline18 10:00UTC, no mutation retry.
+The20:31UTCaccount/ledger confirms5used/0live slots and all four unsubmitted.
+Existing next-window entry owners remain
 unchanged. [Next larger initialization/input-cache direction](../initiative/experiments/competitive-v1/licensed-parent-end-to-end-v1/README.md)
 is prepared only; no new cache/weight transfer/end-to-end GPU fit was dispatched.

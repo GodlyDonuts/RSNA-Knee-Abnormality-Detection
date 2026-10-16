@@ -1,0 +1,14 @@
+"""Credentials only in stdin; actual final source lives on owning node."""
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+from rsna.schema import TARGETS
+L=Path(__file__).resolve().parent;phase=sys.argv[1];assert phase in ('submit','outcome')
+program=(L/'submission.py.txt').read_text();compile(program,'context_deployment','exec')
+if phase in ('dataset','qualification-push','competition-push','submit'):
+ with (L/(phase+'.intent.json')).open('x') as out:json.dump({'phase':phase,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'automatic_retry':False},out,indent=2)
+E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('\"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+public=json.loads(Path('artifacts/compact-native-n3-launch-20261016-v1/public-baseline-original-MRI-CSV-verified.json').read_text());payload={'program':program,'phase':phase,'token':values['KAGGLE_API_TOKEN'],'csv_helper':Path('scripts/kaggle/output_csv.py').read_text(),'columns':['StudyInstanceUID',*TARGETS],'expected_roster_sha256':public['test_roster_sha256'],**json.loads((L/'entry-dependencies.json').read_text())}
+bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"context_deployment","exec"),{"__name__":"__main__","PACKAGE":v})'
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=3G','--time=00:10:00','--job-name=rsna-confidence-'+phase,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=650);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/(phase+'-result-'+str(len(list(L.glob(phase+'-result-*.json'))))+'.json')).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+if x.returncode:raise SystemExit(1)

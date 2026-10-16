@@ -1,0 +1,16 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;dependencies=json.loads((L/'entry-dependencies.json').read_text())
+program=r'''
+import hashlib,importlib.util,json,os,sqlite3,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('confidence_allowance',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts';r.username='godlydonuts'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ w.verify_account(db,r);account=r.account();slots=w.allowance(db,account);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-confidence-context-serving:d215637cb2e46d169761ed15c1be96ec97b2181c878f317fa0df518b2fcea671',)).fetchone()[0]);assert record['state']=='context_competition_accepted';prior=r.submissions();actual=[]
+ for jid in v['prior_submissions']:
+  matches=[x for x in prior if x['ref']==jid];assert len(matches)==1;actual.append({k:matches[0].get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')})
+print(json.dumps({'status':'authoritative_confidence_allowance_and_exact_state_readonly','account':account,'canonical_effective_allowance':slots,'exact_state':record['state'],'slug':record['competition']['slug'],'version':record['competition']['version'],'observed_prior_submissions':actual,'coordinator_busy':Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim').exists(),'new_Kaggle_mutations':0}),flush=True)
+'''
+E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep};cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-confidence-allowance','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program];x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['KAGGLE_API_TOKEN'],**dependencies}),capture_output=True,text=True,timeout=250);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/('entry-allowance-result-'+str(len(list(L.glob('entry-allowance-result-*.json'))))+'.json')).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+if x.returncode:raise SystemExit(1)

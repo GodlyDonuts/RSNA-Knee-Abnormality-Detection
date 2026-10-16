@@ -1,0 +1,96 @@
+"""Final context Dataset/precision/serving, canonical exact-once operations."""
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('submit','outcome')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-source-confidence-deployment-20261016-v1');S=Path('/tmp/rsna-source-confidence-serving-20261016-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+assert json.loads((S/'publication/verified.json').read_text())['status']=='all10_context_epochs_and_final_component_privately_full_download_size_SHA_verified'
+prepared=json.loads((S/'prepared.json').read_text());assert prepared['status']=='actual_fixed_final_context_component_CPU_prepared' and prepared['objective']=='source_confidence' and prepared['component']['format']=='licensed_parent_fixed10_source_confidence_component_v1'
+component=prepared['component'];sha=component['component_sha256'];reference=prepared['reference_sha256'];weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef'
+threshold=605971232707;assert shutil.disk_usage('/tmp').free>threshold;raw=sum(p.stat().st_size for p in Path('/tmp/rsna-source-confidence-context-20261016-v1').rglob('*.pt'));assert raw+sum((S/n).stat().st_size for n in ('component.pt','context-head-e10-'+sha[:12]+'.pt'))+2*2**20+6*2**20<=256*2**20
+if phase=='dataset':assert not R.exists();R.mkdir(mode=0o700)
+else:assert R.is_dir()
+def module(name):
+ spec=importlib.util.spec_from_file_location('context_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication');import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'fixed_final_source_confidence_deployment','phase':phase,'job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);parent=w.read_entry(db,weight);parent_hash=w.object_hash(parent);assert parent['remote_outcome']=='scored' and parent['public_score']=='0.949';key='licensed-confidence-context-serving:'+sha
+  def save(record):
+   db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  if phase=='dataset':
+   assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   D=R/'dataset';U=R/'upload';D.mkdir(mode=0o700);U.mkdir(mode=0o700)
+   names=['context-head-e10-'+sha[:12]+'.pt','context-cpu-reference-'+reference[:12]+'.npy','component.json','source-permission.txt']
+   for name in names:os.link(S/name,D/name)
+   (D/'README.md').write_text('PRIVATE. Attributed nartaa CoAtNet frozen encoder plus separately fitted source-confidence sequence-context head. Parent public Dataset nartaa/rsna-knee-publication-swa-weights-20261007 v1 ID12431568. Author competition/adaptation/noncommercial redistribution permission retained in source-permission.txt. 3887 admitted training studies,10epochs2430updates; no independent internal OOF or clinical accuracy claim. CPU reference contains32fitting model probabilities for precision qualification only, no identities or labels. Keep private.\n')
+   files={q.name:{'bytes':q.stat().st_size,'sha256':p.digest(q)} for q in D.iterdir()};w.new_json(D/'bundle-manifest.json',{'kind':'licensed_fixed_final_context_component_v1','files':files,'component_sha256':sha,'reference_sha256':reference});files['bundle-manifest.json']={'bytes':(D/'bundle-manifest.json').stat().st_size,'sha256':p.digest(D/'bundle-manifest.json')};archive=p.build_zip(D,files,U/'bundle.zip');assert archive['bytes']<2*2**20
+   slug='godlydonuts/rsna-confidence-head-e10-'+sha[:12];absence=p.require_absent(r,slug);record={'state':'context_dataset_create_intent','component_sha256':sha,'reference_sha256':reference,'dataset_slug':slug,'private':True,'archive':archive,'files':files,'absence':absence,'prepared':prepared,'automatic_retry':False};w.new_json(R/'dataset-create-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES (?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+   try:
+    response=p.sdk_create_once(v['token'],slug,'RSNA confidence head e10 '+sha[:12],U);w.new_json(R/'dataset-create-response.json',response)
+   except BaseException:record['state']='context_dataset_create_uncertain';save(record);retain=True;raise
+   record['state']='context_dataset_create_returned';save(record);started=time.monotonic()
+   while True:
+    try:meta=p.metadata(r,slug);mapping=p.map_members(p.list_files(r,slug),files);break
+    except (ValueError,w.RemoteError):
+     if time.monotonic()-started>300:raise
+     time.sleep(10)
+   verified={name:p.stream_file(r,slug,remote,files[name]) for name,remote in mapping.items()};assert p.metadata(r,slug)==meta
+   receipt={'status':'private_context_head_Dataset_all_objects_full_download_size_SHA_verified','dataset':meta,'files':verified,'objects':len(verified),'component_sha256':sha,'reference_sha256':reference,'new_shared_bytes_files':0};w.new_json(R/'dataset-verified.json',receipt);record.update(state='context_dataset_fully_verified',dataset=meta,dataset_verified=receipt);save(record);out=receipt
+  else:
+   record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['component_sha256']==sha and record['dataset_verified']['component_sha256']==sha
+   ds=record['dataset'];assert p.metadata(r,ds['slug'])==ds
+   role='qualification' if phase.startswith('qualification') else 'competition';source=(S/(role+'.private.py')).read_text();binding=prepared['notebook_bindings'][role];source_sha=binding['source_sha256'];assert hashlib.sha256(source.encode()).hexdigest()==source_sha
+   slug='godlydonuts/rsna-confidence-'+('precision' if role=='qualification' else 'e10')+'-'+sha[:12];D=R/role
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007',ds['slug']],'competitionDataSources':[] if role=='qualification' else ['rsna-knee-abnormality-detection'],'kernelDataSources':['godlydonuts/rsna-released-context-probe-d077e354611d'] if role=='qualification' else [],'sessionTimeoutSeconds':1800 if role=='qualification' else 32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   if phase.endswith('-push'):
+    assert not D.exists()
+    if role=='qualification':assert record['state']=='context_dataset_fully_verified'
+    else:assert record['state']=='context_qualification_accepted' and record['qualification']['receipt']['component_sha256']==sha
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda s:float(s.removesuffix('s'));assert min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved'])>=2*request['sessionTimeoutSeconds']
+    absence=r.require_absent_kernel(slug);D.mkdir(mode=0o700);w.new_json(D/'push-intent.json',{'slug':slug,'source_sha256':source_sha,'component_sha256':sha,'request_sha256':w.object_hash(request),'absence':absence,'GPU_quota':quota,'automatic_retry':False});record['state']='context_'+role+'_push_intent';save(record)
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:record['state']='context_'+role+'_push_uncertain';save(record);retain=True;raise
+    record[role]={'slug':slug,'version':1,'kernel_id':response['kernelId'],'source_sha256':source_sha};record['state']='context_'+role+'_pushed';save(record);out={'status':'one_exact_context_'+role+'_pushed','component_sha256':sha,**record[role],'competition_submission':False}
+   else:
+    actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+    for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+    for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':state,'role':role,'slug':slug,'version':1,'component_sha256':sha,'competition_submission':False}
+    if phase.endswith('-status') and state in ('ERROR','CANCELLED'):
+     if not (D/'terminal.json').exists():w.new_json(D/'terminal.json',out);record['state']='context_'+role+'_failed';save(record)
+    if phase.endswith('-status') and state=='COMPLETE':
+     receipt=r.output_json(slug,1,'context-head-precision-accepted.json' if role=='qualification' else 'context-MRI-accepted.json')
+     if role=='qualification':
+      assert receipt['status']=='fixed_final_context_head_actual_twoT4_precision_accepted' and receipt['component_sha256']==sha and receipt['CPU_reference_sha256']==reference and len(receipt['devices'])==2 and all('T4' in d['name'] and d['max_CPU_GPU_probability_error']<=1e-5 and d['original_MRI_feature_studies']==32 and d['max_abs_nonzero_correction']>1e-8 for d in receipt['devices'])
+     else:
+      assert receipt['status']=='fixed_final_context_MRI_CSV_complete' and receipt['context_component_sha256']==sha and receipt['completed_training_updates']==2430 and receipt['fitted_studies']==3887 and receipt['studies']==3 and receipt['counts']=={'pairs_started':3,'pairs_completed':3,'head_fallbacks':0,'empty_studies':0}
+      import types
+      csv=types.ModuleType('context_csv');exec(compile(v['csv_helper'],'output_csv','exec'),csv.__dict__);checked=csv.verify_csv(csv.download_csv(r,slug,1),v['columns'],v['expected_roster_sha256']);assert checked['CSV_sha256']==receipt['CSV_sha256'];out['CSV_verified']=checked
+     out['receipt']=receipt
+     if not (D/'terminal.json').exists():w.new_json(D/'terminal.json',out);record[role]['receipt']=receipt;record['state']='context_'+role+'_accepted';save(record)
+    if phase=='submit':
+     assert hashlib.sha256((C/'workflow.py').read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+     prior=r.submissions();assert len(v['prior_submissions'])==3 and len(set(v['prior_submissions']))==3
+     context=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-context-serving:59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316',)).fetchone()[0]);spatial=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-spatial-pair:'+v['spatial_joint'],)).fetchone()[0]);assert context['state']=='context_scored' and context['submission_id']==v['prior_submissions'][0]
+     for role,jid in zip(('regional','global_repeat'),v['prior_submissions'][1:]):assert spatial['roles'][role]['state']=='scored' and spatial['roles'][role]['submission_id']==jid
+     for jid in v['prior_submissions']:
+      matches=[x for x in prior if x['ref']==jid];assert len(matches)==1 and matches[0].get('status')=='COMPLETE' and matches[0].get('publicScore') is not None and not matches[0].get('errorDescription')
+     assert state=='COMPLETE' and record['state']=='context_competition_accepted' and not (D/'submit-intent.json').exists();receipt=r.output_json(slug,1,'context-MRI-accepted.json');assert receipt==record['competition']['receipt'];account=r.account();slots=w.allowance(db,account);assert slots>0
+     description='rsna-confidence-e10:'+sha;assert not [row for row in r.submissions() if row.get('description')==description]
+     w.new_json(D/'submit-intent.json',{'component_sha256':sha,'description':description,'account':account,'fresh_allowance':slots,'version':1,'slug':slug});record.update(state='context_submit_intent',description=description);save(record)
+     try:
+      owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});w.new_json(D/'submit-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     except BaseException:record['state']='context_submit_uncertain';save(record);retain=True;raise
+     record.update(state='context_submitted',submission_id=response['ref']);save(record);out={'status':'one_fixed_final_context_code_submission_accepted','submission_id':response['ref'],'component_sha256':sha,'slug':slug,'version':1,'competition_submission':True}
+    if phase=='outcome':
+     assert record['state'] in ('context_submitted','context_scored','context_hidden_failed');matches=[row for row in r.submissions() if row['ref']==record['submission_id']];assert len(matches)==1;found=matches[0];out['actual_submission']={k:found.get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')}
+     if found.get('status')=='COMPLETE' and found.get('publicScore') is not None:assert not found.get('errorDescription');record.update(state='context_scored',public_score=found['publicScore']);save(record)
+     elif found.get('status')=='COMPLETE' and found.get('errorDescription'):record.update(state='context_hidden_failed',error=found['errorDescription']);save(record)
+  assert w.object_hash(w.read_entry(db,weight))==parent_hash
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

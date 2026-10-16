@@ -44,7 +44,8 @@ Actual CPU938675final export/32-MRI math passed with zero probability error.
 The first controller stopped before its Dataset phase on a local import-path
 error; a distinct continuation fixes only the execution environment. Private
 Dataset12640289v1 is fully6object verified; exact T4qualification139097480v1
-was pushed once. No actual T4/publicMRI result or hidden score yet at20:26UTC.
+was pushed once. Both-T4 precision and publicMRI/CSV acceptance subsequently PASSED; no hidden
+entry or score exists at20:31UTC.
 [Separate original deployment receipts](../source-confidence-deployment-20261016-v1/README.md).
 
 New independent256MiBcheckpoint/recovery/publication+32MiBcontrol obligations

@@ -1,0 +1,34 @@
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];P=Path('artifacts/released-context-deployment-20261016-v1');S=Path('artifacts/regional-context-deployment-20261016-v1');accepted=json.loads((L/'continue-preintent-import.result.json').read_text());assert accepted['status']=='source_confidence_final_actual_twoT4_and_public_MRI_accepted_unsubmitted';pub=json.loads((L/'competition-actual-terminal.json').read_text());assert pub['slug']=='godlydonuts/rsna-confidence-e10-d215637cb2e4' and pub['version']==1 and pub['receipt']['counts']=={'pairs_started':3,'pairs_completed':3,'head_fallbacks':0,'empty_studies':0};assert not (L/'submit.intent.json').exists();files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('submission.py.txt','run_entry_phase_once.py','read_entry_allowance_readonly.py')};earliest=datetime.fromisoformat('2026-10-17T10:00:00+00:00').timestamp();entry_deadline=datetime.fromisoformat('2026-10-17T23:15:00+00:00').timestamp();outcome_deadline=datetime.fromisoformat('2026-10-18T10:00:00+00:00').timestamp();env={**os.environ,'PYTHONPATH':str(ROOT),'PYTHONNOUSERSITE':'1'}
+with (L/'entry-after-comparisons.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'immutable_files':files,'earliest_UTC':datetime.fromtimestamp(earliest,timezone.utc).isoformat(),'entry_deadline_UTC':datetime.fromtimestamp(entry_deadline,timezone.utc).isoformat(),'outcome_deadline_UTC':datetime.fromtimestamp(outcome_deadline,timezone.utc).isoformat(),'maximum_competition_entries':1,'requires_all_three_original_comparisons_actual_scored':True,'fresh_live_allowance_and_canonical_claim_required':True,'automatic_mutation_retry':False,'public_CSV_upload':False},f,indent=2)
+def progress(phase,**extra):(L/'entry-after-comparisons.progress.json').write_text(json.dumps({'phase':phase,'UTC':datetime.now(timezone.utc).isoformat(),'PID':os.getpid(),**extra},indent=2)+'\n')
+def await_file(path,pid,fragment):
+ while not path.exists():
+  assert time.time()<entry_deadline;alive=subprocess.run(['ps','-p',str(pid),'-o','command='],capture_output=True,text=True);assert alive.returncode==0 and fragment in alive.stdout,'Original dependency absent; reconcile read-only, never restart';time.sleep(60)
+def run(name,arg=None):
+ for n,h in files.items():assert hashlib.sha256((L/n).read_bytes()).hexdigest()==h
+ argv=[sys.executable,str(L/name)]+([arg] if arg else []);x=subprocess.run(argv,capture_output=True,text=True,env=env,timeout=750);assert x.returncode==0,'Original phase failed; inspect intent/result, never repeat mutation';row=json.loads(x.stdout);assert row['returncode']==0;return json.loads(row['stdout'])
+try:
+ progress('await_original_context_and_both_spatial_actual_scores')
+ await_file(S/'submit-spaced.result.json',69887,'regional-context-deployment-20261016-v1/submit_spaced_after_actual_outcome_once.py');assert json.loads((S/'submit-spaced.result.json').read_text())['status']=='two_original_spatial_entries_actual_scored'
+ context=json.loads((P/'submit-when-allowed-result.json').read_text());assert context['status']=='single_context_submission_actual_hidden_terminal';prior=[context['actual_submission']]+[json.loads((S/(r+'-actual-hidden-terminal.json')).read_text()) for r in ('regional','global_repeat')];assert all(x.get('status')=='COMPLETE' and x.get('publicScore') is not None and not x.get('errorDescription') for x in prior)
+ pair=json.loads(json.loads((S/'dataset-result-0.json').read_text())['stdout'])['pair_sha256'];(L/'entry-dependencies.json').write_text(json.dumps({'prior_submissions':[x['ref'] for x in prior],'spatial_joint':pair},indent=2)+'\n')
+ while time.time()<earliest:assert time.time()<entry_deadline;progress('await_spaced_confidence_window');time.sleep(min(60,earliest-time.time()))
+ while time.time()<entry_deadline:
+  ready=run('read_entry_allowance_readonly.py');assert ready['exact_state']=='context_competition_accepted' and ready['version']==1;assert all(x.get('status')=='COMPLETE' and x.get('publicScore') is not None and not x.get('errorDescription') for x in ready['observed_prior_submissions']);progress('actual_allowance_observed',allowance=ready['canonical_effective_allowance'],coordinator_busy=ready['coordinator_busy'])
+  if ready['canonical_effective_allowance']>0 and not ready['coordinator_busy']:break
+  end=min(entry_deadline,time.time()+(30 if ready['coordinator_busy'] else 600))
+  while time.time()<end:time.sleep(min(60,end-time.time()))
+ assert time.time()<entry_deadline;submitted=run('run_entry_phase_once.py','submit');assert submitted['status']=='one_fixed_final_context_code_submission_accepted';(L/'actual-submitted.json').write_text(json.dumps(submitted,indent=2)+'\n');progress('one_exact_confidence_entry_wait_actual_hidden',submission=submitted);next_read=time.time()+180
+ while time.time()<outcome_deadline:
+  if time.time()<next_read:time.sleep(min(60,next_read-time.time()));continue
+  value=run('run_entry_phase_once.py','outcome');actual=value['actual_submission'];progress('actual_hidden_observed',actual=actual)
+  if actual.get('status')=='COMPLETE' and (actual.get('publicScore') is not None or actual.get('errorDescription')):
+   result={'status':'single_confidence_entry_actual_hidden_terminal','actual_submission':actual,'competition_entries':1,'automatic_retry':False};break
+  next_read=time.time()+300
+ else:result={'status':'finite_original_hidden_observation_expired_pending_or_unknown','competition_entries':1,'submission':submitted,'automatic_retry':False}
+ (L/'entry-after-comparisons.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+except BaseException as e:
+ (L/'entry-after-comparisons.result.json').write_text(json.dumps({'status':'stopped_original_confidence_entry_for_readonly_review','error_type':type(e).__name__,'message':str(e),'automatic_retry':False},indent=2)+'\n');raise

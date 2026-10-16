@@ -1,0 +1,26 @@
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];start=time.monotonic();failed=json.loads((L/'child-1.json').read_text());assert failed['script']=='run_phase_once.py' and failed['args']==['dataset'] and failed['stdout']=='' and failed['returncode']==1 and "ModuleNotFoundError: No module named 'rsna'" in failed['stderr'];assert not (L/'dataset.intent.json').exists() and not list(L.glob('dataset-result-*.json'));export=json.loads((L/'export.result.json').read_text());assert export['returncode']==0;assert json.loads((L/'finish.result.json').read_text())['status']=='stopped_original_failure_no_retry';first=json.loads((L/'finish.intent.json').read_text());assert hashlib.sha256((L/'cloud.py.txt').read_bytes()).hexdigest()==first['cloud_sha256']
+with (L/'continue-preintent-import.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'original_failure_before_local_intent_token_read_or_remote_call':True,'original_child_sha256':hashlib.sha256((L/'child-1.json').read_bytes()).hexdigest(),'environment_fix':'explicit project PYTHONPATH for child execution','old_export_and_all20_epochs_reused_without_mutation':True,'cloud_sha256':first['cloud_sha256'],'competition_entries':0,'automatic_mutation_retry':False,'max_seconds':3600},f,indent=2)
+env={**os.environ,'PYTHONPATH':str(ROOT),'PYTHONNOUSERSITE':'1'}
+def progress(phase):(L/'continue-preintent-import.progress.json').write_text(json.dumps({'phase':phase,'UTC':datetime.now(timezone.utc).isoformat(),'PID':os.getpid()},indent=2)+'\n')
+def run(phase):
+ if time.monotonic()-start>3600:raise TimeoutError('Finite public acceptance deadline')
+ x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),phase],capture_output=True,text=True,env=env)
+ with (L/('continuation-child-'+str(len(list(L.glob('continuation-child-*.json'))))+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ if x.returncode:raise RuntimeError('Original phase failed; reconcile exact phase intent/result read-only')
+ row=json.loads(x.stdout);assert row['returncode']==0;return json.loads(row['stdout'])
+try:
+ progress('first_dataset_attempt_after_proven_local_preintent_failure');dataset=run('dataset')
+ for role in ('qualification','competition'):
+  progress('one_exact_'+role+'_push');pushed=run(role+'-push');assert pushed['status']=='one_exact_context_'+role+'_pushed'
+  while True:
+   progress('read_only_'+role+'_actual_terminal');status=run(role+'-status')
+   if status['status']=='COMPLETE':assert 'receipt' in status;break
+   if status['status'] in ('ERROR','CANCELLED'):raise RuntimeError('Original '+role+' terminal failure')
+   time.sleep(45)
+  with (L/(role+'-actual-terminal.json')).open('x') as f:json.dump(status,f,indent=2)
+ result={'status':'source_confidence_final_actual_twoT4_and_public_MRI_accepted_unsubmitted','competition_entries':0,'dataset':dataset,'UTC':datetime.now(timezone.utc).isoformat()};(L/'continue-preintent-import.result.json').write_text(json.dumps(result,indent=2)+'\n');progress('terminal_success_UNSUBMITTED');print(json.dumps(result),flush=True)
+except BaseException as error:
+ (L/'continue-preintent-import.result.json').write_text(json.dumps({'status':'stopped_original_phase_failure_no_retry','error_type':type(error).__name__,'message':str(error),'UTC':datetime.now(timezone.utc).isoformat()},indent=2)+'\n');raise

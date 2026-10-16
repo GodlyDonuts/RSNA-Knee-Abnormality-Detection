@@ -1,4 +1,4 @@
-# Execution handoff — October16, 2026, 20:23UTC
+# Execution handoff — October16, 2026, 20:31UTC
 
 Root implements directly. **Devin is unavailable.** Read current-state.md and
 research-brief.md; current original receipts/live Slurm/Kaggle resolve changes.
@@ -245,3 +245,45 @@ New serving19objects1723336bytes privately full downloaded/hash verified at
 HF28f294803c2a43ec3e749b0fe2b7010ea696b18d; raw20epochs NOT uploaded again.
 Never repeat export/serving publication. Actual T4/public outcome still pending
 in this snapshot; consult the continuation original before any action.
+
+## Final October16 20:31 confidence serving/entry update
+
+Continuation14084/PID72652 is TERMINALsuccess. Do not restart it/original47360,
+repeat export/Dataset/push/publication or touch their frozen source files.
+PrivateDataset**12640289v1** godlydonuts/rsna-confidence-head-e10-d215637cb2e4
+fully6objectdownload/hash verified. Exact T4qualification**139097480v1**
+godlydonuts/rsna-confidence-precision-d215637cb2e4 COMPLETEDbothT4, max5.96e-8;
+source65a506536c0d0ad793ed4a3fd237ebf66627ad86876d5866a20e231dbe5204a7.
+PublicMRI**139097695v1** godlydonuts/rsna-confidence-e10-d215637cb2e4
+COMPLETED22.381s/3pairs/zero fallback/zeroempty/13cols470B, source
+87ef1a0cbc38d4c30067bb38d2c2f03a8f845edf10973709195cf68852fc795b.
+No hidden entry/score. Exact sanitized receipts/source in
+initiative/audits/source-confidence-deployment-20261016-v1/.
+
+NEW sole confidence entry **exec72900/PID72998**
+artifacts/source-confidence-deployment-20261016-v1/submit_after_original_comparisons_once.py,
+entry-after-comparisons.intent/progress/result. Current phase awaits original
+context54576 plus both spatial69887ACTUALscored outcomes; earliestOct17 10:00UTC.
+One exact already-accepted code entry only, fresh authoritative allowance plus
+all three prior live/canonical scored records and free atomic coordinator claim.
+Entry deadlineOct17 23:15UTC; actual hidden observation deadlineOct18 10:00UTC.
+submission.py.txt/run_entry_phase_once.py/read_entry_allowance_readonly.py are
+immutable-hash-bound; explicit project PYTHONPATH for children. Never restart
+or duplicate the owner or mutation. No idle Slurm/GPU while waiting. Stop on
+any prior hidden error or uncertainty. Uniform is identical to original global
+control and must NOT get a duplicate entry. Existing33015 and49213 owners unchanged.
+
+Actual readonlyCPU93873420:31UTC: account5today/44total/0allowed, resetunknown;
+all four exact candidate states accepted/UNSUBMITTED; coordinatorfree. Nodefree
+633223086080bytes versus conservative605971232707all-prior+new requirement.
+Source-confidence raw20epochs/HF775e9f5d/f326b093 and servingHF28f29480 already
+fully verified, never repeat. Final source/findings/entry milestone still needs
+a distinct small private mirror under canonical shared lock after final commit.
+
+Fifth next-window slot remains for a separately justified actual-ready candidate:
+prefer expanded938284fixed16after actual completion/recovery/publication/serving
+acceptance; otherwise inspect originals of already-public-accepted boundary
+edge-repeat candidate before acting, ensuring no existing owner/intent. No blind
+resubmission. Current larger next research task remains the bounded private
+CPU32source-pixel-cache gate for exact licensed MRI initialization; protocol
+prepared only, no cache/parentweight acquisition/new GPU fitting dispatched.
