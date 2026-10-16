@@ -178,3 +178,11 @@ unchanged. [Actual targeted check](../initiative/audits/context-cross-cache-nume
 Neighbor fixed-final sourcea44f476a and10smallobjects are private-HF fully verified
 ONCE at fd2b776e0bc977cdac4dc7730d2e894d1bfbfb32 (CPU936842).
 [Verified preservation](../initiative/audits/hf-neighbor-fixed-final-20261016-v1/verified.json).
+
+Matched spatial-head engine is locally implemented (37targeted tests, Ruff and
+three-fileMypy): identical1,334,796parameter/8192-input graph in both roles,
+control repeats coherent globals8times; candidate uses globals+7regions. It reuses
+the unchanged5addea82FP32numerical trainer, binds role/cache/source/complete roster,
+and preserves the old1024serving rejection. Six-process actual32MRIrecovery is
+prepared but not yet dispatched; no regional full fit or accuracy result.
+[Engine protocol](../initiative/audits/regional-context-engine-20261016-v1/README.md).
