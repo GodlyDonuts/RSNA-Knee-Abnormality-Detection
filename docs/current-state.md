@@ -154,3 +154,14 @@ Latest new-research sourcea5f18d35 (expanded/dense actual MRI proofs, ownE8score
 E12submission and fixed-average staging) is also privately fully verified once:
 HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8,41objects/146295bytes.
 [Receipt](../initiative/audits/hf-paper3-actual-progress-20261016-v1/verified.json).
+
+Dense target-device diagnostic is now staged from actual CPU933635: anonymous
+fitting fixture84original→180dense windows, CPU FP32 reference257.962s, diagnostic
+four-update neighbor checkpoint only. Root owns implementation; no Devin dependency.
+Single finite controller37475 handles one private Dataset/create verification, then
+waits originalE16 public/submission completion before one two-T4 diagnostic push.
+It consumes no competition slot; no GPU/accuracy acceptance yet. Exact receipts:
+[diagnostic audit](../initiative/audits/compact-dense30-T4-diagnostic-20261016-v1/README.md).
+Never restart existing controller/intents. Private root
+`/tmp/rsna-compact-neighbor-dense-T4-20261016-v1`; new2GiB component/ZIP cap retains
+all previous obligations. No new rawMRI or reference vectors copied intoGit/HF/Mac.

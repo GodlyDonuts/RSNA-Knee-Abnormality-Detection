@@ -1,0 +1,77 @@
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('create','verify','push','status')
+assert os.uname().nodename=='evc33' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-neighbor-dense-T4-20261016-v1');D=R/'dataset';E=R/'cloud';C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('dense_diag_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication')
+import requests
+remote=w.Remote.__new__(w.Remote);remote.session=requests.Session();remote.session.headers['Authorization']='Bearer '+v['token'];identity=remote.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') and identity.get('username')=='godlydonuts';remote.username='godlydonuts'
+prepared=json.loads((R/'prepared.json').read_text());assert prepared==v['prepared'];manifest=json.loads((D/'component-manifest.json').read_text());assert manifest['kind']=='compact_neighbor_dense30_diagnostic_component_v1' and manifest['diagnostic_only'] is True and manifest['competition_eligible'] is False
+assert p.digest(D/'component-manifest.json')==prepared['component_manifest_sha256'];files=dict(manifest['files']);files['component-manifest.json']={'bytes':(D/'component-manifest.json').stat().st_size,'sha256':prepared['component_manifest_sha256']}
+for n,item in files.items():
+ path=D/p.confined(n);assert not path.is_symlink() and path.resolve().is_relative_to(D.resolve()) and path.stat().st_size==item['bytes'] and p.digest(path)==item['sha256']
+assert {x.name for x in D.iterdir()}==set(files)|{'dataset-metadata.json'}
+sha=prepared['checkpoint_sha256'];slug=v['notebook']['kernel_slug'];dataset=prepared['dataset_slug'];entry=v['entry'];source_sha=hashlib.sha256(entry.encode()).hexdigest();assert source_sha==v['notebook']['source_sha256']
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':entry,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset,'godlydonuts/rsna-compact-t4-probe-bcc8d6223af8','godlydonuts/rsna-wheels-cp312-e326c50a4a6a'],'competitionDataSources':[],'sessionTimeoutSeconds':3600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700)
+try:
+ (claim/'owner.json').write_text(json.dumps({'pid':os.getpid(),'job_id':os.environ['SLURM_JOB_ID'],'operation':'dense30_target_GPU_diagnostic','phase':phase,'competition_submission':False}))
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+  w.verify_account(db,remote)
+  if phase=='create':
+   assert not E.exists() and db.execute('SELECT record FROM entries WHERE sha=?',(sha,)).fetchone() is None
+   assert shutil.disk_usage('/tmp').free>578871834563+2*2**20+2*2**30
+   E.mkdir(mode=0o700);record={'checkpoint_sha256':sha,'state':'dense_diagnostic_prepared','queued_at':w.utcnow(),'diagnostic_only':True,'submission_eligible':False,'operation':{'kind':'compact_dense30_GPU_diagnostic','kernel_slug':slug,'source_sha256':source_sha,'component_manifest_sha256':prepared['component_manifest_sha256'],'dataset_slug':dataset}}
+   w.save_entry(db,record,'queue diagnostic-only dense30 target validation; never a competition candidate')
+   U=E/'upload';U.mkdir(mode=0o700);p.build_zip(D,files,U/'bundle.zip')
+   response=p.create_once(remote,v['token'],dataset,files,U,E/'dataset-create',{'archive_sha256':p.digest(U/'bundle.zip'),'checkpoint_sha256':sha,'component_manifest_sha256':prepared['component_manifest_sha256'],'diagnostic_only':True,'competition_submission':False})
+   out={'status':'dense_diagnostic_private_Dataset_created_once','response':response,'competition_submission':False}
+  elif phase=='verify':
+   proofs=E/'download-proofs';proofs.mkdir(exist_ok=True)
+   def stream(r,slug,name,expected):
+    path=proofs/(expected['sha256']+'.json')
+    if path.exists():assert json.loads(path.read_text())==expected;return expected
+    result=p.stream_file(r,slug,name,expected);p.exclusive_json(path,result);return result
+   out=p.reconcile(remote,dataset,files,stream=stream,manifest_name='component-manifest.json')
+   if not (E/'dataset-verified.json').exists():p.exclusive_json(E/'dataset-verified.json',out)
+   else:assert json.loads((E/'dataset-verified.json').read_text())==out
+  else:
+   verified=json.loads((E/'dataset-verified.json').read_text());assert verified['status']=='all_payload_bytes_verified' and p.metadata(remote,dataset)=={k:verified[k] for k in ('id','version','slug','private')}
+   record=w.read_entry(db,sha);assert record['diagnostic_only'] is True and record['submission_eligible'] is False and record['operation']['source_sha256']==source_sha
+   if phase=='push':
+    assert record['state']=='dense_diagnostic_prepared' and not (E/'kernel-create-intent.json').exists()
+    q=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'));assert min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])>=7200
+    # ParentE16 must already have completed its exact public run/submission.
+    parent=v['parent_result']
+    assert parent['status']=='all_three_scheduled_code_submissions_accepted' and parent['epochs']==[8,12,16]
+    running=subprocess.check_output(['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b'],text=True).splitlines();nodes={x.split('|')[0] for x in running if 'gpu' in x.split('|')[-1]};assert len(nodes)<=1
+    absent=remote.require_absent_kernel(slug)
+    state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip()
+    if state=='PENDING':
+     job=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True);assert 'Reason=JobHeldUser' not in job
+     p.exclusive_json(E/'patch-hold-intent.json',{'job_id':'929938','reason':'bounded dense30 T4 diagnostic after E16 public completion'});subprocess.run(['scontrol','hold','929938'],check=True);p.exclusive_json(E/'patch-held.json',{'job_id':'929938','held':True})
+    p.exclusive_json(E/'kernel-create-intent.json',{'source_sha256':source_sha,'absence':absent,'request_sha256':w.object_hash(request),'diagnostic_only':True,'automatic_retry':False})
+    record['state']='dense_diagnostic_push_intent';w.save_entry(db,record,'durable one-shot diagnostic push intent')
+    try:response=remote.call('kernels.KernelsApiService','SaveKernel',request)
+    except Exception:
+     record['state']='dense_diagnostic_push_uncertain';w.save_entry(db,record,'uncertain diagnostic kernel push; read-only reconciliation only');raise
+    p.exclusive_json(E/'kernel-create-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    record.update(state='dense_diagnostic_pushed',kernel_version=1);w.save_entry(db,record,'exact private offline diagnostic pushed once')
+    out={'status':'dense_diagnostic_pushed_once','kernel_slug':slug,'version':1,'kernel_id':response.get('kernelId'),'source_sha256':source_sha,'competition_submission':False}
+   else:
+    original=remote.kernel('GetKernel',slug,1);assert original.get('blob',{}).get('source','')==entry;meta=original['metadata']
+    for k in ('isPrivate','enableInternet','machineShape','dockerImage'):assert meta.get(k)==request[k],k
+    for k in ('datasetDataSources','competitionDataSources'):assert sorted(meta.get(k,[]))==sorted(request[k]),k
+    status=remote.kernel('GetKernelSessionStatus',slug,1).get('status')
+    if status in ('COMPLETE','ERROR','CANCELLED') and (E/'patch-held.json').exists() and not (E/'patch-release-intent.json').exists():
+     p.exclusive_json(E/'patch-release-intent.json',{'job_id':'929938','actual_terminal':status});subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(E/'patch-released.json',{'job_id':'929938','released':True})
+    if status in ('COMPLETE','ERROR','CANCELLED'):
+     record.update(state='dense_diagnostic_terminal',remote_status=status);w.save_entry(db,record,'actual diagnostic terminal; not a competition submission')
+    out={'status':status,'kernel_slug':slug,'version':1,'exact_source_private_offline_twoT4_verified':True,'competition_submission':False}
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+print(json.dumps(out),flush=True)

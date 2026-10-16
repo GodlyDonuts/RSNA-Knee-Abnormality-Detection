@@ -1,0 +1,74 @@
+"""Finite diagnostic-only controller. Never creates a competition submission."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+from scripts.kaggle.compact_dense_probe_notebook import build
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent
+S='/tmp/rsna-research-20261001-stable.sock'
+program=(L/'dense_T4_cloud.py.txt').read_text();compile(program,'dense_cloud','exec')
+helpers={n:Path('scripts/kaggle',n).read_text() for n in ('workflow.py','publication.py','components.py')}
+with (L/'dense-T4-controller.intent.json').open('x') as f:json.dump({'diagnostic_only':True,'competition_submission':False,'maximum_seconds':36000,'maximum_creates':1,'maximum_pushes':1,'automatic_mutation_retry':False,'cloud_program_sha256':hashlib.sha256(program.encode()).hexdigest()},f,indent=2)
+start=time.monotonic();remote=Remote()
+def progress(phase,**fields):
+ (L/'dense-T4-controller-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-start,**fields},indent=2)+'\n')
+def pause():
+ if time.monotonic()-start>36000:raise TimeoutError('Finite original controller expired; reconcile read-only')
+ time.sleep(60)
+def token():
+ p=Path('.env');assert p.stat().st_mode&0o077==0
+ values={k.strip():v.strip().strip('\"\'') for line in p.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+ return values['KAGGLE_API_TOKEN']
+try:
+ component=L/'dense-T4-component-CPU.result.json'
+ while not component.exists():progress('waiting_original_CPU_component');pause()
+ result=json.loads(component.read_text());assert result['returncode']==0
+ prepared=json.loads(result['stdout']);assert prepared['status']=='actual_neighbor_dense_T4_diagnostic_CPU_component_prepared' and prepared['diagnostic_only'] and prepared['competition_eligible'] is False
+ d=L/'dense-T4';d.mkdir()
+ (d/'prepared.json').write_text(json.dumps(prepared,indent=2)+'\n')
+ notebook=build(prepared,d/'notebook.py');(d/'notebook-prepared.json').write_text(json.dumps(notebook,indent=2)+'\n');entry=(d/'notebook.py').read_text()
+ parent_result=None
+ def phase(name):
+  progress(name)
+  if name in ('create','push'):
+   with (d/(name+'.intent.json')).open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'automatic_retry':False},f)
+  payload={'phase':name,'program':program,'prepared':prepared,'notebook':notebook,'entry':entry,'helpers':helpers,'token':token(),'parent_result':parent_result}
+  bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"dense_T4_control","exec"),{"__name__":"__main__","PACKAGE":v})'
+  cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:30:00','--job-name=rsna-dense-T4-'+name,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',bootstrap]
+  x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=1900)
+  n=len(list(d.glob(name+'-result-*.json')));(d/f'{name}-result-{n}.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+  if x.returncode:raise RuntimeError(name+' stopped; inspect original result, no mutation retry')
+  return json.loads(x.stdout)
+ phase('create')
+ owner,name=prepared['dataset_slug'].split('/')
+ for attempt in range(30):
+  try:status=remote.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':owner,'datasetSlug':name}).get('status')
+  except Exception as exc:status='read_unavailable:'+type(exc).__name__
+  progress('waiting_original_Dataset_ingestion',dataset_status=status)
+  if status=='READY':break
+  if status in ('ERROR','FAILED'):raise RuntimeError('Original diagnostic Dataset ingestion failed')
+  pause()
+ else:raise TimeoutError('Original Dataset not ready; read-only reconciliation required')
+ verified=phase('verify');assert verified['status']=='all_payload_bytes_verified'
+ # Original E16 deployment has priority over this engineering diagnostic.
+ p=L/'scheduled-curve-controller-result.json'
+ while not p.exists():progress('waiting_original_E16_public_completion');pause()
+ parent_result=json.loads(p.read_text());assert parent_result['status']=='all_three_scheduled_code_submissions_accepted' and parent_result['epochs']==[8,12,16]
+ while True:
+  x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',"squeue -h -u sa305415 -t RUNNING -o '%N|%b'"],capture_output=True,text=True,timeout=40);assert x.returncode==0
+  nodes={line.split('|')[0] for line in x.stdout.splitlines() if 'gpu' in line.split('|')[-1]}
+  q=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'));available=min(seconds(q['minimumTimeAllowed']),seconds(q['totalTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])
+  if len(nodes)<=1 and available>=7200:break
+  progress('waiting_actual_GPU_capacity',active_cluster_nodes=len(nodes),available_Kaggle_seconds=available);pause()
+ phase('push');public=time.monotonic()
+ while time.monotonic()-public<4500:
+  state=remote.kernel('GetKernelSessionStatus',notebook['kernel_slug'],1).get('status');progress('exact_public_diagnostic_execution',public_status=state)
+  if state in ('COMPLETE','ERROR','CANCELLED'):
+   phase('status');assert state=='COMPLETE','Actual diagnostic failed; retain original evidence'
+   accepted=remote.output_json(notebook['kernel_slug'],1,'dense-T4-accepted.json')
+   assert accepted['status']=='actual_neighbor_dense30_two_T4_precision_and_timing_accepted' and accepted['checkpoint_sha256']==prepared['checkpoint_sha256'] and accepted['component_manifest_sha256']==prepared['component_manifest_sha256'] and accepted['source_projection_sha256']==notebook['source_projection_sha256'] and accepted['diagnostic_only'] and accepted['competition_eligible'] is False
+   (d/'actual-GPU-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n')
+   result={'status':'actual_dense30_target_GPU_engineering_accepted','kernel_slug':notebook['kernel_slug'],'competition_submission':False,'accuracy_claim':False};break
+  pause()
+ else:raise TimeoutError('Original diagnostic nonterminal; inspect state before releasing owned hold')
+except Exception as exc:result={'status':'stopped_for_exact_original_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_mutation_retry':False,'competition_submission':False}
+(L/'dense-T4-controller-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

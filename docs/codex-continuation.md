@@ -119,3 +119,14 @@ No Devin dependency. Late-average CPU933573 submitted ONCE afterok:932869; root
 `/tmp/rsna-compact-late-average-20261016-v1`. Source85d9939b, exact workerSHA
 85203cabd6e6ed25379b11ef1ffa34099ad96b712b92f4acc758780e4bcf01ea.
 No derived checkpoint/evaluation exists until actual parent and privateE16 pass.
+
+Dense target-device diagnostic is now staged from actual CPU933635: anonymous
+fitting fixture84original→180dense windows, CPU FP32 reference257.962s, diagnostic
+four-update neighbor checkpoint only. Root owns implementation; no Devin dependency.
+Single finite controller37475 handles one private Dataset/create verification, then
+waits originalE16 public/submission completion before one two-T4 diagnostic push.
+It consumes no competition slot; no GPU/accuracy acceptance yet. Exact receipts:
+[diagnostic audit](../initiative/audits/compact-dense30-T4-diagnostic-20261016-v1/README.md).
+Never restart existing controller/intents. Private root
+`/tmp/rsna-compact-neighbor-dense-T4-20261016-v1`; new2GiB component/ZIP cap retains
+all previous obligations. No new rawMRI or reference vectors copied intoGit/HF/Mac.
