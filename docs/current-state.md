@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 14:56 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 14:59 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -207,3 +207,5 @@ verified at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8 byCPU935355. Never repeat
 Independent Kaggle work uses actual account quota under the owner's later removal
 of the old research cap; healthy Slurm jobs/holds and daily competition limits
 remain intact. No paid upgrade or private clinical/feature publication occurred.
+
+Sourceccb8523207682c8f519341fa5c63e0c4c26ae4a8 and36distinct smallobjects/165794B are privately fully re-downloaded/size/SHA verified once at HF3b6ccde8c36723627c9de1796137b59907ea10ce viaCPU935653. [Receipt](../initiative/audits/hf-context-engine-mounted-20261016-v1/verified.json). Never repeat this mirror. The suffix log has actual1024completed records (832reused+192new) at280s; no full-cache result or head accuracy yet.

@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 14:56 UTC
+# Execution handoff — October 16, 2026, 14:59 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -358,3 +358,5 @@ each. New8 HFbd8e279c0ac36529e59da6ccb8d8a786f763535a;9 HFcab5cc3377b3feb33d0165
 Weighted933001 RUNNING; epoch1 private HFc94baa34310c93f949692f83a96192a3cc50b047.
 Existing publication watchers remain original owners; do not repeat dispatches.
 No challenger fixed-final result exists yet. Root works directly; Devin unavailable.
+
+Sourceccb8523207682c8f519341fa5c63e0c4c26ae4a8 and36distinct smallobjects/165794B are privately fully re-downloaded/size/SHA verified once at HF3b6ccde8c36723627c9de1796137b59907ea10ce viaCPU935653. [Receipt](../initiative/audits/hf-context-engine-mounted-20261016-v1/verified.json). Never repeat this mirror. The suffix log has actual1024completed records (832reused+192new) at280s; no full-cache result or head accuracy yet.
