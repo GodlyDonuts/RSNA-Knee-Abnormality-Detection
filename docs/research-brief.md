@@ -300,13 +300,12 @@ private UID/label/logit arrays stay on cluster/Kaggle, not Git/smallHF mirrors.
 
 Current focused engineering checks:52passed,Ruff/mypy clean, including fresh
 2rank CPU recovery, exact whole94gradient/RNG parity and input/target roundtrips.
-The new full-population loader still needs its own actual32CPU bridge admission.
+The new loader also passed actualCPU939362: all32original MRI cases/64views,
+all94window inputs, source labels/masks and both teacher views matched bit-exactly
+in37.01seconds, reading directly inside the original tar without a second pixel
+tree. This engineering acceptance does not admit the still-running full cache.
 Production must bind all4actual cache proofs, exact original weight/source/labels,
 accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
 never reset the LR/optimizer schedule per segment.
 
-ActualCPU939362 also accepted the production loader on32original MRI cases: all
-64full94-window input tensors, source labels/masks and both teacher views are
-bit-exact. No new pixel extraction tree, model fitting or accuracy claim. The
-full3887cache and full GPU production remain pending.

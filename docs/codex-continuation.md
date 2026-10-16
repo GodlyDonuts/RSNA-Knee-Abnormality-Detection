@@ -350,7 +350,10 @@ private UID/label/logit arrays stay on cluster/Kaggle, not Git/smallHF mirrors.
 
 Current focused engineering checks:52passed,Ruff/mypy clean, including fresh
 2rank CPU recovery, exact whole94gradient/RNG parity and input/target roundtrips.
-The new full-population loader still needs its own actual32CPU bridge admission.
+The new loader also passed actualCPU939362: all32original MRI cases/64views,
+all94window inputs, source labels/masks and both teacher views matched bit-exactly
+in37.01seconds, reading directly inside the original tar without a second pixel
+tree. This engineering acceptance does not admit the still-running full cache.
 Production must bind all4actual cache proofs, exact original weight/source/labels,
 accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
@@ -377,8 +380,9 @@ TERMINALsuccess. Never restart either or submit its diagnostic weights. Exact
 12source10baa6a1/427f3be6d494; whole94source60eb779b/a45d2a00322d,
 worker9f87ffd3b4a3a090817a42fe0ee43161367efb582784db0a2176df2453606791.
 Whole numerical modules: enginecf238d91,mixin74a4e19e,checkpointera70ef871,
-loss4ed7cd19. New production PixelBags is a separate input wrapper and must have
-actual CPU bridge acceptance; it cannot inherit that merely from unit tests.
+loss4ed7cd19. Production PixelBags857a374f passed its separate actualCPU939362
+bridge on32original MRI cases/64views; do not repeat it. Full3887cache remains
+unobserved, and whole-model production is NOT staged or dispatched.
 
 Private compact target root evc33/tmp/rsna-licensed-parent-production-inputs-
 20261016-v1; targetSHA48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285.
@@ -403,9 +407,3 @@ Root implements directly; Devin unavailable. Next priority is full input admissi
 and bounded whole94full adaptation from the strong MRI parent, not another
 head-only re-fit or replay of completed diagnostic work.
 
-Latest input bridge: CPU939362 COMPLETED0:0,37.01seconds actual32MRI/64views/94
-windows/source labels/masks/two-view teachers bit-exact through production
-PixelBags857a374f. No second pixel tree/GPU/newDataset. Do not repeat this gate;
-full3887cache still unobserved. Implement the full checkpoint-continuous compiler
-from accepted whole94source after exact original cache proofs; whole-model production
-has NOT been staged or dispatched. Preserve all original owners and outputs.
