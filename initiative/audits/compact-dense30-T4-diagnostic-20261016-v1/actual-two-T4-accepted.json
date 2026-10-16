@@ -1,0 +1,93 @@
+{
+  "status": "actual_neighbor_dense30_two_T4_precision_and_timing_accepted",
+  "diagnostic_only": true,
+  "competition_eligible": false,
+  "clinical_accuracy_claim": false,
+  "checkpoint_sha256": "42997259ff6cfce07eb25bd12872f2f6ee524648a6392688fc2385cd6ba94b7a",
+  "fixture_sha256": "bb0ae9203b91449d286e69bfe8fc8829d9a78e99226be09dbd9eac34ac2cf11d",
+  "inference_policy": {
+    "version": "compact_neighbor_dense30_original_subset_v1",
+    "maximum_centers_per_series": 30,
+    "maximum_series": 6,
+    "original_centers_and_fallbacks": "retain_exact_original_matched_neighbor_windows",
+    "extra_centers": "both_original_physical_edges_admitted",
+    "selection": "farthest_physical_depth_from_retained_centers_ties_lower_source_index",
+    "new_training_or_label_based_selection": false
+  },
+  "original_windows": 84,
+  "dense_windows": 180,
+  "devices": [
+    {
+      "index": 0,
+      "name": "Tesla T4",
+      "precision_probability_max_errors_vs_CPU": {
+        "float32": {
+          "original": 5.960464477539062e-07,
+          "dense": 7.152557373046875e-07
+        },
+        "float16": {
+          "original": 0.0020657777786254883,
+          "dense": 0.0019431114196777344
+        }
+      },
+      "FP16_encoder_bag_timings": {
+        "84": {
+          "seconds": [
+            1.3205999100000554,
+            1.320705748000023,
+            1.3247702620000155
+          ],
+          "median_seconds": 1.320705748000023
+        },
+        "180": {
+          "seconds": [
+            2.8509259620000194,
+            2.8632848830000057,
+            2.874157428999979
+          ],
+          "median_seconds": 2.8632848830000057
+        }
+      },
+      "peak_allocated_bytes": 2908334592
+    },
+    {
+      "index": 1,
+      "name": "Tesla T4",
+      "precision_probability_max_errors_vs_CPU": {
+        "float32": {
+          "original": 5.960464477539062e-07,
+          "dense": 7.152557373046875e-07
+        },
+        "float16": {
+          "original": 0.0020657777786254883,
+          "dense": 0.0019431114196777344
+        }
+      },
+      "FP16_encoder_bag_timings": {
+        "84": {
+          "seconds": [
+            1.3193290120000256,
+            1.3195118639999919,
+            1.3235202710000067
+          ],
+          "median_seconds": 1.3195118639999919
+        },
+        "180": {
+          "seconds": [
+            2.84946254700003,
+            2.867917217000013,
+            2.864496337999981
+          ],
+          "median_seconds": 2.864496337999981
+        }
+      },
+      "peak_allocated_bytes": 2908334592
+    }
+  ],
+  "torch": "2.14.0+cu130",
+  "cuda": "13.0",
+  "hidden_scale_end_to_end_runtime_qualified": false,
+  "competition_submission": false,
+  "source_projection_sha256": "74c1915fa7fa42d92c4ea0bd2818fcd3030645aff10e7774d3e104041f7b74cf",
+  "component_manifest_sha256": "9cbe81acd3c27de7e4f15277398018096474efa39368630e9e52acf629492b86"
+}

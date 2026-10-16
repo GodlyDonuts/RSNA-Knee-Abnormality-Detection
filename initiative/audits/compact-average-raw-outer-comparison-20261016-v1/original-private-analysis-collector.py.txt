@@ -1,0 +1,83 @@
+"""Finite original-output collector; clinical rows/predictions never enter this Mac."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+intent=L/'average-pair-analysis-observer.intent.json'
+with intent.open('x') as f:json.dump({'maximum_seconds':28800,'original_execution_only':True,'maximum_CPU_analysis_jobs':1,'new_GPU_or_cloud_mutation':False,'predictions_destination':'private owning evc33 only','automatic_retry':False},f,indent=2)
+started=time.monotonic()
+try:
+ p=L/'average-pair-after-create-result.json'
+ while not p.exists():
+  if time.monotonic()-started>28800:raise TimeoutError('Original comparison still nonterminal; no inference or dispatch')
+  (L/'average-pair-analysis-observer-progress.json').write_text(json.dumps({'phase':'waiting_exact_original_pair_terminal','elapsed_seconds':time.monotonic()-started},indent=2)+'\n');time.sleep(60)
+ done=json.loads(p.read_text());assert done['status']=='actual_paired_outer_raw_MRI_execution_complete'
+ accepted=json.loads((L/'average-pair/actual-accepted.json').read_text());notebook=json.loads((L/'average-pair/notebook-prepared.json').read_text());prepared=json.loads((L/'average-pair/prepared.json').read_text())
+ program=r'''
+import hashlib,importlib.util,json,os,shutil,sys
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-average-paired-outer-20261016-v2');assert json.loads((R/'prepared.json').read_text())==v['prepared'];C=R/'analysis-v1';assert not C.exists() and shutil.disk_usage('/tmp').free>581021415363+2*2**20+2*2**30
+C.mkdir(mode=0o700);code=C/'code'
+for name,text in v['analysis_source'].items():
+ p=code/name;assert p.resolve().is_relative_to(code.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text)
+sys.path[:0]=[str(code),str(R/'code'),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()==v['workflow_sha256'];spec=importlib.util.spec_from_file_location('paired_collection_workflow',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+slug=v['notebook']['kernel_slug'];original=r.kernel('GetKernel',slug,1);assert hashlib.sha256(original['blob']['source'].encode()).hexdigest()==v['notebook']['source_sha256'];assert original['metadata']['isPrivate'] and not original['metadata']['enableInternet']
+assert r.kernel('GetKernelSessionStatus',slug,1).get('status')=='COMPLETE'
+actual=r.output_json(slug,1,'paired-outer-accepted.json');assert actual==v['accepted'] and actual['status']=='paired_late_average_E16_raw_MRI_complete' and actual['studies']==1156 and actual['test_roster_sha256']==v['prepared']['roster_order_sha256']
+(C/'actual-source-accepted.json').write_text(json.dumps(actual,indent=2)+'\n')
+def download_private(name,expected):
+ owner,kernel=slug.split('/');target=C/name;assert not target.exists();response=None
+ try:
+  response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':owner,'kernelSlug':kernel,'versionNumber':1,'filePath':name},timeout=(10,60),allow_redirects=False,stream=True)
+  for _ in range(6):
+   with response:
+    if response.status_code==200:
+     h=hashlib.sha256();count=0
+     with target.open('xb') as f:
+      for block in response.iter_content(65536):
+       count+=len(block);assert count<=2**20;h.update(block);f.write(block)
+     assert h.hexdigest()==expected and count>0;return {'sha256':expected,'bytes':count}
+    assert response.status_code in (301,302,303,307,308)
+    url=urljoin(response.url,response.headers.get('Location',''));u=urlparse(url);host=u.hostname or ''
+    assert u.scheme=='https' and (host in {'storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com'} or host.endswith('.googleusercontent.com'))
+   session=r.session if host=='api.kaggle.com' else requests;response=session.get(url,timeout=(10,60),allow_redirects=False,stream=True)
+  raise ValueError('Excess output redirects')
+ except requests.RequestException:raise RuntimeError('Private prediction transport failed; no automatic retry') from None
+ finally:
+  if response is not None:response.close()
+proofs={}
+for name,key in [('private-average-outer.csv','CSV_sha256'),('private-E16-outer.csv','epoch_CSV_sha256')]:proofs[name]=download_private(name,actual[key])
+import numpy as np,pandas as pd,pyarrow.dataset as ds
+from rsna.schema import TARGETS
+from scripts.research.compare_smooth_witness import paired_metrics
+ids=pd.read_csv(R/'dataset/outer-images.csv',dtype=str).StudyInstanceUID.tolist();assert len(ids)==len(set(ids))==1156 and hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest()==actual['test_roster_sha256']
+models={}
+for role,name in [('control','private-E16-outer.csv'),('candidate','private-average-outer.csv')]:
+ frame=pd.read_csv(C/name,dtype={'StudyInstanceUID':str});assert list(frame.columns)==['StudyInstanceUID',*TARGETS] and frame.StudyInstanceUID.tolist()==ids
+ models[role]=frame.rename(columns={'StudyInstanceUID':'study_uid'}).set_index('study_uid')
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');release=A/'initiative/releases/report-supervision-v1/studies.parquet'
+labels=ds.dataset(release,format='parquet').to_table(columns=['study_uid','split','leakage_group',*TARGETS,*[t+'__mask' for t in TARGETS]],filter=ds.field('study_uid').isin(ids)).to_pandas().set_index('study_uid').loc[sorted(ids)]
+assert len(labels)==1156 and labels.split.eq('train').all() and set(labels.index)==set(ids)
+assert hashlib.sha256(json.dumps(sorted(ids)).encode()).hexdigest()==v['prepared']['outer_uids_sha256']
+primary=paired_metrics(labels,models,draws=4000,seed=20261001);primary.pop('primary_meniscus');primary.update(primary_endpoint='full12 macro, average minus unchanged E16, identical raw-serving windows',control='original N3 E16 raw FP16',candidate='fixed equal E12/E14/E16 learned-parameter average raw FP16')
+cached=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/outer_predictions.csv');assert hashlib.sha256(cached.read_bytes()).hexdigest()=='2ed6f4be7fdeeaf6ab264db50153acd83abe2407a589e05394b6ecdcc62a8463'
+cache=pd.read_csv(cached);assert len(cache)==1156 and cache.fold.eq(0).all() and cache.seed.eq(20260922).all() and set(cache.study_uid)==set(ids)
+secondary=paired_metrics(labels,{'control':cache.set_index('study_uid'),'candidate':models['control']},draws=4000,seed=20261001);secondary.pop('primary_meniscus');assert abs(secondary['macro_auc']['control']-.9209253491221031)<1e-12
+secondary.update(scope='secondary combined raw-serving/cache/precision contrast; not one isolated cause')
+result={'status':'actual_private_fixed_average_E16_raw_outer_paired_analysis_complete','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_slug':slug,'version':1,'source_sha256':v['notebook']['source_sha256'],'source_projection_sha256':actual['source_projection_sha256'],'average_sha256':actual['checkpoint_sha256'],'E16_sha256':actual['epoch_sha256'],'outer_studies':1156,'outer_uids_sha256':v['prepared']['outer_uids_sha256'],'original_private_prediction_bytes_verified':proofs,'primary':primary,'secondary_raw_E16_vs_original_cached':secondary,'unusable_MRI_studies':sum(x['unusable_MRI_studies'] for x in actual['chunks']),'private_prediction_case_and_clinical_rows_exported':False,'gold_confirmation_used':False,'clinical_or_Kaggle_gain_claim':False,'competition_submission':False}
+(C/'aggregate-analysis.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+'''
+ compile(program,'private_paired_analysis','exec');(L/'average-pair-analysis-program.py.txt').write_text(program)
+ sources={n:Path(n).read_text() for n in ['scripts/rank_learning.py','scripts/research/compare_smooth_witness.py']}
+ env=Path('.env');assert env.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('\"\'') for line in env.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+ payload={'prepared':prepared,'accepted':accepted,'notebook':notebook,'token':values['KAGGLE_API_TOKEN'],'analysis_source':sources,'workflow_sha256':hashlib.sha256(Path('scripts/kaggle/workflow.py').read_bytes()).hexdigest()}
+ with (L/'average-pair-analysis-dispatch.intent.json').open('x') as f:json.dump({'actual_original_kernel_complete':True,'kernel':notebook['kernel_slug'],'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPU':1,'GPU':0,'analysis_source_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in sources.items()},'automatic_retry':False},f,indent=2)
+ cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=6G','--time=00:20:00','--job-name=rsna-average-pair-analysis','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=1250);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'average-pair-analysis-CPU.result.json').write_text(json.dumps(out,indent=2)+'\n');assert x.returncode==0
+ aggregate=json.loads(x.stdout);assert aggregate['status']=='actual_private_fixed_average_E16_raw_outer_paired_analysis_complete';A=Path('initiative/audits/compact-average-raw-outer-comparison-20261016-v1');(A/'actual-paired-aggregate.json').write_text(json.dumps(aggregate,indent=2)+'\n');result={'status':'actual_paired_aggregate_collected_no_private_rows','primary':aggregate['primary']['macro_auc'],'delta':aggregate['primary']['macro_delta'],'interval':aggregate['primary']['macro_delta_uncertainty'],'GPU_jobs_dispatched':0}
+except Exception as e:result={'status':'stopped_for_original_paired_output_review','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False,'new_GPU_jobs':0}
+(L/'average-pair-analysis-observer-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

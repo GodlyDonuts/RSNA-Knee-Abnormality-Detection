@@ -1,0 +1,53 @@
+"""Finite single coordinator for private fixed-average/E16 evaluation; never submits."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent;S='/tmp/rsna-research-20261001-stable.sock'
+program=(L/'average_pair_cloud.py.txt').read_text();compile(program,'average_pair_cloud','exec')
+helpers={n:Path('scripts/kaggle',n).read_text() for n in ('workflow.py','publication.py','components.py')}
+with (L/'average-pair-after-create.intent.json').open('x') as f:json.dump({'competition_submission':False,'maximum_seconds':28800,'maximum_creates':1,'maximum_pushes':1,'automatic_mutation_retry':False,'cloud_program_sha256':hashlib.sha256(program.encode()).hexdigest()},f,indent=2)
+started=time.monotonic();remote=Remote()
+def progress(phase,**fields):(L/'average-pair-after-create-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started,**fields},indent=2)+'\n')
+def pause():
+ if time.monotonic()-started>28800:raise TimeoutError('Finite original comparison controller expired; read-only reconciliation required')
+ time.sleep(60)
+def token():
+ p=Path('.env');assert p.stat().st_mode&0o077==0
+ values={k.strip():v.strip().strip('\"\'') for line in p.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep};return values['KAGGLE_API_TOKEN']
+try:
+ result=json.loads((L/'average-pair-component-v2.result.json').read_text());assert result['returncode']==0;prepared=json.loads(result['stdout'])
+ epoch=json.loads((L/'scheduled-e016/prepared.json').read_text());d=L/'average-pair';assert d.is_dir()
+ assert json.loads((d/'prepared.json').read_text())==prepared;notebook=json.loads((d/'notebook-prepared.json').read_text());entry=(d/'notebook.py').read_text();assert hashlib.sha256(entry.encode()).hexdigest()==notebook['source_sha256']
+ def phase(name):
+  progress(name)
+  if name in ('create','push'):
+   with (d/(name+'.intent.json')).open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'automatic_retry':False},f)
+  payload={'phase':name,'program':program,'prepared':prepared,'epoch':epoch,'notebook':notebook,'entry':entry,'helpers':helpers,'token':token()}
+  bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"paired_average_cloud","exec"),{"__name__":"__main__","PACKAGE":v})'
+  cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:30:00','--job-name=rsna-average-pair-'+name,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',bootstrap]
+  x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=1900)
+  number=len(list(d.glob(name+'-result-*.json')));(d/f'{name}-result-{number}.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+  if x.returncode:raise RuntimeError(name+' stopped; inspect original intent/result, never repeat uncertainty')
+  return json.loads(x.stdout)
+ original=json.loads((L/'average-pair-controller-result.json').read_text());assert original['status']=='stopped_for_exact_original_review' and original['reason']=='Kaggle GetDatasetStatus HTTP 403'
+ created=json.loads((d/'create-result-0.json').read_text());assert created['returncode']==0 and json.loads(created['stdout'])['status']=='private_paired_outer_Dataset_created_once'
+ metadata=remote.dataset(prepared['dataset_slug']);assert metadata['id']==12630620 and metadata['isPrivate'] is True and metadata['currentVersionNumber']==1
+ assert not (d/'push.intent.json').exists()
+ phase('verify')
+ while True:
+  x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',"squeue -h -u sa305415 -t RUNNING -o '%N|%b'"],capture_output=True,text=True,timeout=40);assert x.returncode==0
+  nodes={line.split('|')[0] for line in x.stdout.splitlines() if 'gpu' in line.split('|')[-1]}
+  if len(nodes)<=1:break
+  progress('waiting_GPU_node_capacity',active_cluster_nodes=len(nodes));pause()
+ phase('push');public=time.monotonic()
+ while time.monotonic()-public<23000:
+  state=remote.kernel('GetKernelSessionStatus',notebook['kernel_slug'],1).get('status');progress('exact_private_paired_execution',kernel_status=state)
+  if state in ('COMPLETE','ERROR','CANCELLED'):
+   phase('status');assert state=='COMPLETE','Original paired evaluation failed; retain exact evidence'
+   accepted=remote.output_json(notebook['kernel_slug'],1,'paired-outer-accepted.json');assert accepted['status']=='paired_late_average_E16_raw_MRI_complete' and accepted['source_projection_sha256']==notebook['source_projection_sha256'] and accepted['studies']==1156 and accepted['checkpoint_sha256']==prepared['checkpoint_sha256'] and accepted['test_roster_sha256']==prepared['roster_order_sha256']
+   (d/'actual-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n')
+   result={'status':'actual_paired_outer_raw_MRI_execution_complete','kernel_slug':notebook['kernel_slug'],'version':1,'private_prediction_collection_pending':True,'competition_submission':False};break
+  pause()
+ else:raise TimeoutError('Original paired evaluation nonterminal; do not repeat')
+except Exception as exc:result={'status':'stopped_for_exact_original_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_mutation_retry':False,'competition_submission':False}
+(L/'average-pair-after-create-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

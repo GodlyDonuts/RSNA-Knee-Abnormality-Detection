@@ -18,6 +18,10 @@ It cannot submit to the competition and rejects a submission.csv output.
 
 The target test compares both T4s' FP32/FP16 predictions with the actual CPU
 reference, times84/180-window encoder bags and measures memory. This does not
-establish hidden9-hour end-to-end acceptance or accuracy. GPU acceptance remains
-unobserved. Existing intents prohibit restart or repeated mutations; reconcile
+establish hidden9-hour end-to-end acceptance or accuracy. Actual offline two-T4 precision/encoder timing now passed. Both devices
+matched the FP32 CPU reference within7.16e-7; FP16 max absolute probability error
+was.002066 (bound.003). Median84-window time was1.32s;180-window time2.86s.
+Peak allocated memory2908334592bytes perT4. Original coordinator completed and
+released its own pending929938hold. This uses diagnostic4-update weights; it
+is not model-specific qualification of the future full fit or a clinical gain. Existing intents prohibit restart or repeated mutations; reconcile
 original remote journals read-only if uncertain.

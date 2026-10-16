@@ -1,176 +1,135 @@
 # Current project state
 
-**Checked October 16, 2026, 10:05 UTC.** This is the canonical research entry point.
-Job states and unscored submissions are observations at that time, not promises
-about their present state. Exact original receipts and authenticated live state
-resolve uncertainty. Earlier observations are in the [history](current-state.history-20261016.md).
+**Checked October 16, 2026, 11:40 UTC.** This is the current research entry point.
+Scores and job states below are verified observations; original receipts, Slurm
+and authenticated Kaggle resolve later changes. Historical observations are in
+[current-state history](current-state.history-20261016.md).
 
 ## Actual competition results
 
-| Candidate | Submission | Actual public score | Meaning |
+| Candidate | Submission | Public score | Interpretation |
 |---|---:|---:|---|
-| Released author-trained CoAtNet, reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not an improvement from our own training |
-| Prior own DINO model | 57182737 / 57182547 | **0.872** | Best previously verified own-trained score; not the current CoAtNet result |
-| Own N3 CoAtNet, epoch 4 | 57256756 | **0.821** | Successful hidden execution, below our prior own best |
-| Own N3 CoAtNet, epoch 8 | 57259376 | **0.869** | Actual COMPLETE/no error; up .048 from epoch4, below prior own .872 |
-| Own N3 CoAtNet, epoch12 | 57262392 | **Unreported** | Submitted once; authenticated09:26UTC, no hidden score yet |
+| Released author-trained CoAtNet, reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not our training improvement |
+| Own N3 CoAtNet, epoch 4 | 57256756 | **0.821** | Successful hidden execution |
+| Own N3 CoAtNet, epoch 8 | 57259376 | **0.869** | Up .048 from epoch 4 |
+| Own N3 CoAtNet, epoch 12 | 57262392 | **0.890** | New verified own-trained best; up .021 from epoch 8 |
+| Own N3 CoAtNet, epoch 16 | 57265916 | **Unreported** | Submitted once; no score/error at the 11:40 UTC check |
+| Prior own DINO best | 57182737 / 57182547 | **0.872** | Historical own-trained reference, now exceeded |
 
-The own DINO [epoch-5](../initiative/audits/daily-kaggle-comparison-queue-20261014-v1/epoch-005-hidden-scored-reconciled.json)
-and [epoch-6](../initiative/audits/daily-kaggle-comparison-queue-20261014-v1/epoch-006-hidden-scored-reconciled.json) receipts establish the .872 tie.
-The external result is [canonically reconciled](../initiative/audits/released0949-baseline-20261016-v1/actual-scored-canonical.json).
-The own epoch-8 result is [canonically reconciled](../initiative/audits/compact-production-e008-kaggle-20261016-v1/actual-scored-canonical.json).
-The own epoch-4 result is [canonically reconciled](../initiative/audits/compact-production-e004-kaggle-20261016-v1/actual-scored-canonical.json).
-Zero bytes on an unreported submission do not establish failure. Public three-study
-execution and submission acceptance do not establish a hidden score.
-The09:26UTC account allowance was four submissions used/one available, reserved forE16;
-query authoritative live allowance before any additional submission.
+Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
+[Original scored receipt](../initiative/audits/compact-production-e012-kaggle-20261016-v1/actual-scored-canonical.json).
+The .890 does not establish parity with the external .949 or a hidden-private score.
+The authoritative 11:22 UTC allowance is **five submissions used, zero available**.
+The original curve controller finished all three scheduled E8/E12/E16 submissions;
+never restart it, resubmit those exact versions or upload a public three-row CSV.
+A null score/zero bytes on an unreported submission does not establish failure.
 
 ## What is actually training
 
-| Experiment | Original/current Slurm | Observed state | Scientific change |
+| Experiment | Original/current Slurm | Observed state | Isolated change |
 |---|---|---|---|
-| N3 selected-slot triples, unweighted BCE | 930744 → continuation **932869** | **RUNNING**, evc33 | Original fixed 16-epoch recipe unchanged |
-| Source-neighbor challenger | **932957** | **PENDING** | Only donor channels become physical source neighbors where geometry is valid |
-| Positive-weight challenger | **933001** | **PENDING** | Only fitting-derived positive BCE term weights change |
+| N3 selected-slot triples | 930744 → 932869 | **COMPLETED 0:0**, evc33 | Original fixed 16 epochs / 4,496 updates |
+| Source-neighbor challenger | **932957** | **RUNNING**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
+| Positive-weight challenger | **933001** | **PENDING**, evc33 | Fitting-derived positive BCE term weights |
+| Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Both challengers passed their own actual H100 full/stop/resume checks, including
-complete model, BatchNorm, optimizer, scheduler, RNG and prediction equality.
-That accepts execution/recovery, not accuracy. They are submitted full runs,
-not merely proposals, and no full challenger accuracy is available yet.
-See [neighbor receipts](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md)
-and [weighted receipts](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
+Neighbor 932957 has **740 finite updates, epoch 3**, empty stderr; epochs 1–3
+are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
+verified. Leave it healthy and unchanged. Both challengers passed actual H100
+full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
+Those are engineering results, not challenger accuracy gains. The weighted fit
+has not started. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+[weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
-Original N3 stopped gracefully at 2,983/4,496 updates under its explicit boundary
-return code 75; continuation preserves the same state and fixed schedule. Do not
-count it as a new fit or numerical failure. Original epochs **1–16** have private
-full download/size/SHA verification in the publication handoff receipt observed
-10:05 UTC. Do not republish them.
+## Exact own N3 model and completed internal endpoint
 
-## Exact current model and observations
-
-N3 is a **fully fine-tuned 73,136,096-parameter CoAtNet**, not a small frozen-DINO
-adapter. Backbone: `coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`; finding-specific MIL
-attention over 1,024-dimensional image embeddings. Frozen numerical source:
+This is a **fully fine-tuned 73,136,096-parameter CoAtNet**, not the old frozen-DINO
+small head. Backbone `coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k`; finding-specific MIL
+attention over 1,024-dimensional image embeddings. Frozen numerical source
 `dcfff319cb7bd7bbae679a20da2b1b9268e8d680`.
 
-- 2,247 fitting studies; 1,156 disjoint weak-label development studies.
-- Up to six series, 16 uniformly selected slices per series, 384-pixel inputs.
-- Three-channel windows form **after slice selection**; up to 84 windows per study.
+- 2,247 fitting studies and 1,156 disjoint weak-label development studies.
+- Six series maximum, 16 uniformly selected slices per series, 384-pixel inputs.
+- Three-channel windows form **after slice selection**; at most 84 windows/study.
   Training samples 12 windows; inference aggregates the full selected bag.
-- Fixed 16 epochs / 4,496 updates, effective batch eight; one-study forwards.
+- Fixed 16 epochs / 4,496 updates, effective batch eight, one-study forwards.
 - AdamW encoder LR 3e-5/head LR 1e-3, weight decay .02, OneCycle, clip 3.
-- BF16 training forward/FP32 loss; no training augmentation in this registered run.
-- Fitting labels are dense public soft supervision, not the old sparse hard-label
-  release. Accepted release masks/folds and protected evaluation remain unchanged.
+- BF16 forward/FP32 loss; no augmentation in this registered run.
+- Dense public soft fitting supervision; accepted release/folds and protected
+  evaluation remain unchanged. Gold/confirmation are unused for tuning.
 
-Source adjacency, coverage, preprocessing, label semantics and domain adaptation
-are hypotheses. No single established bug explains the score gap. The released
-0.949 author also describes one-study forwards with accumulation; our microbatch
-BatchNorm behavior is not a demonstrated mismatch. See the
-[public training contract](research-watch/additional/rsna-public-training-contract-update-2026-10-16.md).
+All 16 immutable original epochs are privately fully download/size/SHA verified.
+CPU 933901 independently matched the complete final model to immutable E16,
+source/rosters/masks/boundary and all masked AUCs: **0.9209253491 internal macro AUC**.
+This measures weak-label agreement, not a Kaggle or clinical score. Several targets
+are unstable: MCL/fracture each two positives, Baker's three, effusion/lateral OA
+nine each, synovitis five negatives. [Final evidence](../initiative/audits/compact-native-n3-fixed-final-20261016-v1/README.md).
 
-## Data expansion: completed assets versus unexecuted fitting
+No single established bug explains the remaining competition gap. The external
+author also describes one-study forwards with accumulation; microbatch BatchNorm
+is not a demonstrated difference. [Public recipe contract](research-watch/additional/rsna-public-training-contract-update-2026-10-16.md).
 
-The additional **345 fitting-only studies / 1,769 series / 54,562 slices** have
-completed paired 256/384 cache construction. All seven shards / 42 private objects
-were fully downloaded, size-checked and SHA-verified. This is **complete**, not
-still being cached. [Original proof](../initiative/audits/additional345-cache-terminal-20261016-v1/all7-private-verified.json).
+## Current model comparisons
 
-Source `b009a4a991be508cbe7af2f9b349b1bbef114106` prepares a 2,592-study fitting
-population, unchanged 1,156-study outer endpoint and byte-preserving metadata union.
-The actual zero-GPU CPU input gate **933324 passed**: metadata union covers
-3,748 studies/20,675 series; original image/label/mask engineering tensors remain
-bit-equal. [Exact CPU proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
-Expanded full training is **not yet dispatched**; distinct actual-source H100
-recovery **933382** was submitted once after CPU stage933381 and fresh funding.
-It is a diagnostic, not the expanded full fit. Existing observer42253 collects
-its exact terminal result without redispatch. Existing source rows are reused; original 2,247 overlay cells must
-remain exact. No clinical label perfection is claimed.
+The predeclared equal learned-parameter average of E12/E14/E16 is **built**, with
+all saved E16 buffers retained. Original CPU 933573 failed before output because a
+nonpersistent cache was treated as a saved buffer; distinct corrected CPU 933892
+passed. Private HF `4791c7e74af82220d521d0ecc1097172253aeea5` has all nine objects
+fully re-downloaded/size/SHA verified. CPU 933958 accepted the strict complete-model
+serving loader and anonymous 70-window reference. No averaged-model accuracy or
+competition score exists. [Evidence](../initiative/audits/compact-late-average-v2-20261016-v1/README.md).
 
-After correspondence exclusions, capacities are **2,592 development fitting,
-3,887 train, potentially 4,327 frozen-final**. These are population capacities,
-not counts already used in the live run. Sixteen expanded passes would mean
-5,184 updates, so that comparison would also increase compute.
+The next experiment compares **that fixed average versus unchanged E16 on the
+same 1,156 raw-MRI outer studies in Kaggle**. One decode supplies identical windows
+to both models; both T4s must first match the original CPU references. Clinical
+labels stay on the cluster; only private image identities and models go to Kaggle.
+Original CPU 934300 bound the complete outer roster, and private Dataset **12630620
+version 1** was created once. All ten objects are fully re-downloaded/size/SHA verified. Exact private offline
+two-T4 notebook `godlydonuts/rsna-fixedavg-e16-outer-5cc0e5bffb05` v1 was pushed
+once (kernel 139017805); it is actually RUNNING, no evaluation result yet. A transient GetDatasetStatus 403 was reconciled through the
+exact authenticated private Dataset metadata; no duplicate upload was made.
+[Registered comparison](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
 
-## Deployment and immediate decisions
+A metadata-only counterfactual found **zero selected-series changes on all 1,156
+outer studies** when dropping Selection_Tier. Thus this field alone cannot explain
+a held-out cache/serving gap. It does not establish complete official metadata or
+pixel-rendering parity. [Scope and receipt](../initiative/audits/compact-serving-tier-counterfactual-20261016-v1/README.md).
 
-The existing finite curve controller has completed epoch-8 submission and is
-**submitted epoch12 once as57262392 at08:54UTC** after exact public acceptance.
-It now waits for epoch16. [Canonical receipt](../initiative/audits/compact-scheduled-curve-dispatch-20261016-v1/epoch012-canonical-submitted.json). Do not restart it, duplicate notebooks/Datasets, or submit public example CSVs.
-Epoch12 has no hidden score and epoch16 is unsubmitted at this observation.
+Dense source coverage is separately CPU-admitted: 2,345 original windows on 32 MRI
+studies remain bit-equal inside 4,188 dense windows. Both T4s actually accepted
+precision/timing with four-update diagnostic weights: 84→180 windows costs median
+1.32→2.86 seconds per GPU, peak 2.91 GB. This is not a dense clinical result, full-fit
+weight qualification or hidden nine-hour end-to-end claim. Root implements directly;
+**Devin is unavailable**. [Dense proof](../initiative/audits/compact-dense30-T4-diagnostic-20261016-v1/README.md).
 
-The 64-study two-T4 raw-MRI benchmark completed in 318.497 seconds with zero
-unusable fallbacks and approximately 11.61 GB process RAM. This is measured
-engineering throughput, not proof that every hidden study fits the nine-hour cap.
+## Completed assets and available compute
 
-Next decisions: finish the original curve; compare each isolated challenger on
-fixed-final held-out evidence; admit the 345-study expansion; then freeze the
-final refit recipe. Do not block completed eligible deployment on unrelated
-Stanford research. Gold/confirmation remain unused for tuning.
+Additional **345 fitting-only studies / 1,769 series / 54,562 slices** have complete
+paired 256/384 caches; all seven shards / 42 private objects are fully verified.
+The expanded 2,592-study CPU gate 933324 passed original tensor/label/mask parity.
+Its distinct H100 recovery is queued; full expanded training is not dispatched.
+Sixteen expanded passes mean 5,184 updates, so a later result is not data-only.
+[Expansion proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
+Correspondence-filtered capacities are 2,592 development fitting / 3,887 train /
+4,327 potential frozen-final; these are not the counts already used in N3.
 
-## How to research this repository
+The evc39 endpoint now has **all 37,812 native cache members plus 55,969 runtime
+members fully verified**. Suffix-only TLS reused 143.69 GB and transferred only the
+remaining 9.36 GB. CPU 934232 reproduced the exact original and neighbor 32-MRI
+tensors, scientific bindings and initial head. No second neighbor fit was created.
+Other users occupy evc39 GPUs; an earlier free-GPU observation is not a reservation.
+[Transport negatives and actual acceptance](../initiative/audits/compact-neighbor-evc39-relocation-20261016-v1/README.md).
 
-Use [research brief](research-brief.md) for findings and limitations,
-[continuation](codex-continuation.md) for exact execution bindings, and original
-linked audits for proof. Historical markdown is preserved for provenance and
-**must not be interpreted as current process state**. Update this page in place
-when a result or run phase changes; put chronology in the audits/history.
+Kaggle raw training-image access was already proved by the original 64-study T4
+benchmark (318.497 seconds, no unusable fallbacks, about 11.61 GB process RAM).
+A separate CPU-only probe measured four cores and 20.94 GB scratch. Bounded selected
+cache shards could support an independent training lane; **no cache shard or full
+Kaggle fit has run**. [Capacity receipt](../initiative/audits/kaggle-CPU-training-capacity-20261016-v1/README.md).
 
-## Preservation of this documentation correction
+## Documentation and decisions
 
-Source `ec137184b8741cb9077b9290bcaa93f57d8f4eaa` is pushed to GitHub main
-and privately mirrored at HF `4a3c3a848ecb3fa67afcc491f0a31c1e874aa408`.
-All 17 small objects / 1,056,289 bytes were fully re-downloaded, size-checked
-and SHA-verified under the canonical lock. [Verification receipt](../initiative/audits/documentation-reconciliation-20261016-v1/private-mirror-verified.json).
-No training job or Kaggle submission was changed by this correction.
-
-## New fixed Paper 3 experiment
-
-[Late-parameter average](../initiative/experiments/competitive-v1/compact-late-average-v1/README.md)
-is preregistered: original epochs12/14/16, learned parameters averaged equally,
-epoch16 BatchNorm/all other buffers retained exactly. Separate engine identity;
-13 synthetic tests passed. CPU builder **933573** is submitted once with
-`afterok:932869`, zeroGPU, and requires verified originalE16 before writing.
-No derived checkpoint/GPU/accuracy result exists yet.
-
-## Direct Paper 3 coverage work
-
-Root implements [dense30 source coverage](../initiative/experiments/competitive-v1/compact-dense30-v1/README.md)
-directly; Devin is unavailable and is not a critical-path dependency. Every original
-window is preserved; additional geometry-valid centers cap at180windows/study.
-Local tests pass; actual zero-GPU MRI admission **933517 passed** on evc33:
-32MRI studies preserve2345original windows exactly while exposing4188dense windows.
-Full held-out window census rises84333→158073 (about1.87x).
-[Actual MRI proof](../initiative/audits/compact-dense30-inputs-20261016-v1/README.md).
-Target-device throughput and accuracy acceptance remain required.
-
-A fitting-only source audit replayed existing issue92: original2247 have14all-target
-uniform rows; added345 have59 (37at.25,18at.025,4at.015). These are source distributions,
-not confirmed label errors. The .25 missingness interpretation remains disputed;
-no labels/masks are silently changed. Expansion remains an experiment, not a
-claim of345additional clinically correct labels.
-
-Latest new-research sourcea5f18d35 (expanded/dense actual MRI proofs, ownE8score,
-E12submission and fixed-average staging) is also privately fully verified once:
-HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8,41objects/146295bytes.
-[Receipt](../initiative/audits/hf-paper3-actual-progress-20261016-v1/verified.json).
-
-Dense target-device diagnostic is now staged from actual CPU933635: anonymous
-fitting fixture84original→180dense windows, CPU FP32 reference257.962s, diagnostic
-four-update neighbor checkpoint only. Root owns implementation; no Devin dependency.
-Private diagnostic Dataset12628782v1 is now fully8-object download/size/SHA verified.
-Single finite controller37475 now
-waits originalE16 public/submission completion before one two-T4 diagnostic push.
-It consumes no competition slot; no GPU/accuracy acceptance yet. Exact receipts:
-[diagnostic audit](../initiative/audits/compact-dense30-T4-diagnostic-20261016-v1/README.md).
-Never restart existing controller/intents. Private root
-`/tmp/rsna-compact-neighbor-dense-T4-20261016-v1`; new2GiB component/ZIP cap retains
-all previous obligations. No new rawMRI or reference vectors copied intoGit/HF/Mac.
-
-## Parallel training capacity
-
-Actual evc39 CPU933712 found875.3GB free; the scheduler showed one unallocated
-H100. CPU-only native/runtime relocations are live, preserving frozen source3803
-and all original assets. Target GPU/CPU input acceptance is still required; no
-second full neighbor fit has been dispatched or existing job changed.
-[Original transfer intents](../initiative/audits/compact-neighbor-evc39-relocation-20261016-v1/README.md).
+Use [research brief](research-brief.md) for conclusions and limitations and
+[execution handoff](codex-continuation.md) for exact jobs/paths/intents. Preserve
+negative results and originals; never interpret dated historical “pending” or
+“unsubmitted” snapshots as live state. Keep healthy training running and judge
+isolated mechanisms by fixed-final held-out evidence and actual Kaggle outcomes.

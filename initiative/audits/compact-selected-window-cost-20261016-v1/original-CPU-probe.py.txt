@@ -1,0 +1,32 @@
+
+import argparse,hashlib,json,os,statistics,sys,time
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-neighbor-evc39-20261016-v1');P=R/'admission/accepted.json';assert hashlib.sha256(P.read_bytes()).hexdigest()=='3f14790ba6891b6eeeaeb4682974392956e5cf0de85ca3a05b8712aa7724fd40'
+accepted=json.loads(P.read_text());S=Path(accepted['source']);sys.path[:0]=[str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay'];os.environ['HF_HUB_OFFLINE']='1'
+import torch
+from rsna.competitive.compact_bag import candidate_windows,window_tensor
+from rsna.competitive.compact_train import admitted_datasets
+from rsna.competitive.checkpoint import file_sha256
+proof=json.loads((R/'admission/inputs/inputs.json').read_text())
+for n,h in proof['binding']['source_sha256'].items():assert file_sha256(S/n)==h
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');torch.set_num_threads(1)
+args=argparse.Namespace(studies=A/'initiative/releases/report-supervision-v1/studies.parquet',series=A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv',folds=A/'initiative/experiments/competitive-v1/folds',artifact_root=A,cache=R/'cache',fitting_supervision=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json'),engineering=True,input_policy='n3',loss_policy='unweighted')
+fit,_,binding=admitted_datasets(args);assert len(fit)==16
+C=R/'selected-window-cost-v1';assert not C.exists();C.mkdir(mode=0o700)
+rows=[];all_hash=hashlib.sha256();rng=torch.get_rng_state().clone()
+for index in range(len(fit)):
+ start=time.perf_counter();sample=fit[index];loading=time.perf_counter()-start
+ candidates=candidate_windows(sample['series_mask'],sample['slice_mask']);chosen=torch.randperm(len(candidates),generator=torch.Generator().manual_seed(20261016+index))[:12]
+ assert len(chosen)==12;selected=[candidates[int(i)] for i in chosen]
+ # Separate repeated timing, original normalized pixels/candidate order unchanged.
+ timings={'full_then_select':[],'select_then_materialize':[]}
+ for repeat in range(4):
+  start=time.perf_counter();full=window_tensor(sample['images'],candidates);old=full[chosen];elapsed_old=time.perf_counter()-start
+  start=time.perf_counter();new=window_tensor(sample['images'],selected);elapsed_new=time.perf_counter()-start
+  assert torch.equal(old,new)
+  if repeat:timings['full_then_select'].append(elapsed_old);timings['select_then_materialize'].append(elapsed_new)
+ all_hash.update(old.contiguous().numpy().tobytes());rows.append({'windows':len(candidates),'selected_windows':len(selected),'data_loading_seconds':loading,'median_full_then_select_seconds':statistics.median(timings['full_then_select']),'median_select_then_materialize_seconds':statistics.median(timings['select_then_materialize']),'full_window_bytes':full.numel()*full.element_size(),'selected_window_bytes':new.numel()*new.element_size()})
+assert torch.equal(torch.get_rng_state(),rng) and not torch.cuda.is_initialized()
+result={'status':'actual_fitting16_selected_window_cost_profile_complete','CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc39','source_git':accepted['source_git'],'original_admission_sha256':file_sha256(P),'studies':16,'all_selected_values_bit_equal':True,'global_CPU_RNG_unchanged':True,'private_selected_tensors_sha256':all_hash.hexdigest(),'rows':rows,'full_materialization_seconds':sum(x['median_full_then_select_seconds'] for x in rows),'selected_materialization_seconds':sum(x['median_select_then_materialize_seconds'] for x in rows),'data_loading_seconds':sum(x['data_loading_seconds'] for x in rows),'GPU_used':False,'model_or_optimizer_run':False,'live_trainer_changed':False,'training_accuracy_or_end_to_end_speedup_claim':False,'new_shared_bytes_files':0}
+(C/'accepted.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

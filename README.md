@@ -8,9 +8,13 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the October 16, 09:26 UTC check: reproduced **external author-trained 0.949**;
-prior best **own-trained 0.872**; new own CoAtNet **epoch 4 scored 0.821**, epoch8 **0.869**, epoch12 submitted/unreported. Original fixed-16 training is running; separate source-neighbor
-and positive-weight fits are queued. These are different evidence categories.
+At the October 16, 11:22 UTC check, our own CoAtNet epoch 12 scored **0.890**,
+up from epoch 8's 0.869 and prior own DINO best 0.872. The reproduced external
+author-trained model scored **0.949**. Epoch 16 is submitted but unreported.
+The fixed-16 internal weak-label AUC is **0.920925**, not a Kaggle score.
+Source-neighbor training is running; all five daily submission slots are used.
+The fixed checkpoint average is privately verified and CPU-serving accepted;
+its paired raw-MRI held-out comparison is being deployed to Kaggle.
 
 **Start with [the initiative archive](initiative/README.md) and
 [the continuation guide](docs/continuation.md).** GitHub contains source reports,

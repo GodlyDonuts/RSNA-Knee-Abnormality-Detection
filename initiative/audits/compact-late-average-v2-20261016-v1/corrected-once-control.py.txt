@@ -1,0 +1,23 @@
+"""Correct only post-average buffer verification; original mathematical recipe is unchanged."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'late-average-v2-CPU.intent.json').exists()
+worker=Path('scripts/newton/build_compact_late_average.py').read_text();digest=hashlib.sha256(worker.encode()).hexdigest();compile(worker,'fixed_average_worker','exec')
+program=r'''
+import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+row=__import__('subprocess').check_output(['sacct','-X','-j','933573','-n','-P','--format=State,ExitCode'],text=True).strip();assert row.split('|')[:2]==['FAILED','1:0']
+R=Path('/tmp/rsna-compact-late-average-20261016-v1');C=R/'control-v2';assert not C.exists() and not (R/'derived').exists() and not (R/'derived-v2').exists()
+assert hashlib.sha256(v['worker'].encode()).hexdigest()==v['worker_sha256'];assert hashlib.sha256((R/'source-manifest.json').read_bytes()).hexdigest()=='2a441e240aaa807b8cf9ce921c9aff8bea0191be399cb8c08a71a6569a7160f0'
+m=json.loads((R/'source-manifest.json').read_text());S=R/'code'
+for n,h in m['files'].items():assert hashlib.sha256((S/n).read_bytes()).hexdigest()==h
+C.mkdir(mode=0o700);p=C/'build_compact_late_average.py';p.write_text(v['worker']);(C/'intent.json').write_text(json.dumps({'correction_source_git':v['source_git'],'worker_sha256':v['worker_sha256'],'source_math_git':m['source_git'],'previous_job':'933573','old_output_not_created':True,'GPU_used':False,'automatic_retry':False}))
+sys.path[:0]=[str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay'];sys.argv=[str(p),'--source',str(S),'--original','/tmp/rsna-compact-native-n3-production-evc33-20261016-v1','--output',str(R/'derived-v2')]
+exec(compile(v['worker'],str(p),'exec'),{'__name__':'__main__','__file__':str(p)})
+'''
+with (L/'late-average-v2-CPU.intent.json').open('x') as f:json.dump({'source_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'worker_sha256':digest,'previous_actual_job':'933573','CPU':1,'GPU':0,'changed_average_recipe':False,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:05:00','--job-name=rsna-fixed-average-buffer-v2','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'worker_sha256':digest,'worker':worker}),capture_output=True,text=True,timeout=380)
+r={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'late-average-v2-CPU.result.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r),flush=True)
+if x.returncode:raise SystemExit(1)

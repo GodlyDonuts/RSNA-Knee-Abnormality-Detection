@@ -6,11 +6,16 @@ status. This brief records conclusions; it is not another execution log.
 
 ## What the evidence supports
 
-We reproduced an attributed author-trained model at **0.949** on Kaggle. Our
-best previously verified own-trained model scored **0.872**; the new full-trunk
-CoAtNet epoch 4 scored **0.821**. Epoch8 actually scored **0.869** (+.048 from epoch4); epoch12 is submitted
-but unreported at the latest observation. Reproducing .949 establishes a working competitive reference, not
-that our training has matched it. Exact scored receipts are linked in current state.
+The attributed author-trained model scored **0.949** on Kaggle. Our own CoAtNet
+epoch 12 now scored **0.890**, up from epochs 4/8 at **0.821/0.869** and prior own
+DINO best **0.872**. Epoch 16 is submitted but unreported. These competition
+results remain distinct from the completed fixed-16 internal macro AUC of
+**0.920925**, independently replayed on 1,156 weak-label holdout studies.
+
+That internal endpoint has only two MCL/fracture positives and three Baker
+positives. It is not a clinical score or evidence of parity with the external
+competition result. Exact per-target support and scored receipts are linked in
+current state.
 
 The new N3 model fully trains a 73M-parameter CoAtNet. It is not the historical
 frozen-encoder/small-head recipe. It already uses dense public soft fitting labels,
@@ -22,7 +27,8 @@ Their combined score gap does not identify any one causal ingredient.
 Current N3 triples are consecutive **selected slots**, not guaranteed consecutive
 source slices. The source-neighbor challenger preserves original centers and all
 other registered settings. Its full fit and a separate positive-weight full fit
-are submitted after actual H100 recovery, but still queued at the current check.
+were submitted after actual H100 recovery. Neighbor932957 is now actually training;
+weighted933001 remains pending.
 Neither has demonstrated an accuracy gain. Public one-study gradient accumulation
 also means mixed-study BatchNorm is not a known missing ingredient.
 
@@ -53,7 +59,8 @@ current correspondence-filtered capacities are 2,592 fitting / 3,887 train /
 
 ## Active experiments and decision rules
 
-Keep the original N3 run and predeclared E4/E8/E12/E16 submission curve intact.
+The original fixed N3 fit and predeclared E4/E8/E12/E16 submission curve are complete;
+follow the remaining exact hidden outcome without repeating a submission.
 Compare source-neighbor and positive-weight fits separately against the same
 2,247/1,156 baseline, fixed seed and 4,496-update schedule. Require per-target
 results, paired whole-component uncertainty, runtime and failure accounting.
@@ -82,3 +89,23 @@ appropriate use are established; upstream task scores are not competition gains.
 
 Historical findings are preserved, not erased. Dated statements such as “pending,”
 “no score” or “not implemented” in that history do not describe the current state.
+
+The registered equal learned-parameter average ofE12/E14/E16 is now constructed
+and privately fully verified, with all savedE16buffers retained. Actual CPU MRI
+serving acceptance passed; GPU/accuracy acceptance remains. The first worker's
+nonpersistent-buffer check failed before output; corrected verification leaves
+selection and numerical averaging unchanged. No derived gain is claimed.
+
+The fixed average and E16 are being evaluated together on the same raw-serving
+outer MRI windows in Kaggle, with clinical labels retained on the cluster. This
+separates an averaging gain from a changed serving reference; neither is assumed.
+A metadata-only replay already rules out Selection_Tier alone changing the held-out
+series selection (zero changes/1,156 studies), but other metadata/rendering and
+BF16-versus-FP16 differences remain. The preregistered comparison and negatives
+are in [the original audit](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
+
+A fitting-only CPU profile now measures a concrete feeding optimization: materialize
+only the already-selected 12 windows. Selected tensors and global RNG stayed exact;
+window materialization summed 2.1092→0.9034 seconds over 16 studies, with another
+5.3107 seconds spent loading. It is a substep saving, not a training speed/accuracy
+gain; no live trainer was changed. [Original measurement](../initiative/audits/compact-selected-window-cost-20261016-v1/README.md).

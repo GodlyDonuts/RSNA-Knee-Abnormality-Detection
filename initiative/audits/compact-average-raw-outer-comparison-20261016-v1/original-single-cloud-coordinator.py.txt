@@ -1,0 +1,68 @@
+"""Canonical one-shot private research deployment, no competition submit action."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('create','verify','push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-average-paired-outer-20261016-v2');D=R/'dataset';E=R/'cloud';C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('average_pair_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication')
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+prepared=json.loads((R/'prepared.json').read_text());assert prepared==v['prepared'];manifest=json.loads((D/'component-manifest.json').read_text());assert manifest['kind']=='compact_fixed_average_paired_outer_component_v1' and p.digest(D/'component-manifest.json')==prepared['component_manifest_sha256']
+files=dict(manifest['files']);files['component-manifest.json']={'bytes':(D/'component-manifest.json').stat().st_size,'sha256':prepared['component_manifest_sha256']}
+for n,row in files.items():
+ path=D/p.confined(n);assert not path.is_symlink() and path.resolve().is_relative_to(D.resolve()) and path.stat().st_size==row['bytes'] and p.digest(path)==row['sha256']
+assert {x.name for x in D.iterdir()}==set(files)|{'dataset-metadata.json'}
+slug=v['notebook']['kernel_slug'];dataset=prepared['dataset_slug'];entry=v['entry'];source_sha=hashlib.sha256(entry.encode()).hexdigest();assert source_sha==v['notebook']['source_sha256']
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':entry,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset,v['epoch']['dataset_slug'],'godlydonuts/rsna-compact-t4-probe-bcc8d6223af8','godlydonuts/rsna-wheels-cp312-e326c50a4a6a'],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':21600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700)
+try:
+ p.exclusive_json(claim/'owner.json',{'job_id':os.environ['SLURM_JOB_ID'],'operation':'fixed_average_E16_private_outer_research','phase':phase,'competition_submission':False})
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),r.username) as db:
+  w.verify_account(db,r)
+  def event(kind):
+   db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),source_sha,json.dumps({'kind':kind,'kernel_slug':slug,'version':1,'competition_submission':False})));db.commit()
+  if phase=='create':
+   assert not E.exists() and shutil.disk_usage('/tmp').free>581021415363+2*2**20+2*2**30
+   E.mkdir(mode=0o700);U=E/'upload';U.mkdir(mode=0o700);p.build_zip(D,files,U/'bundle.zip');event('fixed_average_outer_Dataset_create_intent')
+   response=p.create_once(r,v['token'],dataset,files,U,E/'dataset-create',{'archive_sha256':p.digest(U/'bundle.zip'),'component_manifest_sha256':prepared['component_manifest_sha256'],'clinical_values_exported':False,'competition_submission':False})
+   out={'status':'private_paired_outer_Dataset_created_once','response':response,'competition_submission':False}
+  elif phase=='verify':
+   proofs=E/'download-proofs';proofs.mkdir(exist_ok=True)
+   def stream(remote,slug,name,expected):
+    path=proofs/(expected['sha256']+'.json')
+    if path.exists():assert json.loads(path.read_text())==expected;return expected
+    value=p.stream_file(remote,slug,name,expected);p.exclusive_json(path,value);return value
+   out=p.reconcile(r,dataset,files,stream=stream,manifest_name='component-manifest.json')
+   if not (E/'dataset-verified.json').exists():p.exclusive_json(E/'dataset-verified.json',out)
+   else:assert json.loads((E/'dataset-verified.json').read_text())==out
+  else:
+   verified=json.loads((E/'dataset-verified.json').read_text());assert verified['status']=='all_payload_bytes_verified' and p.metadata(r,dataset)=={k:verified[k] for k in ('id','version','slug','private')}
+   assert p.metadata(r,v['epoch']['dataset_slug'])['version']==1
+   if phase=='push':
+    assert not (E/'kernel-create-intent.json').exists()
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'));available=min(seconds(quota['totalTimeAllowed']),seconds(quota['minimumTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved']);assert available>=21600
+    nodes={line.split('|')[0] for line in subprocess.check_output(['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b'],text=True).splitlines() if 'gpu' in line.split('|')[-1]};assert len(nodes)<=1
+    absent=r.require_absent_kernel(slug)
+    state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip()
+    if state=='PENDING':
+     old=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True);assert 'Reason=JobHeldUser' not in old
+     p.exclusive_json(E/'patch-hold-intent.json',{'job_id':'929938','reason':'bounded paired actual-model target validation and held-out research'});subprocess.run(['scontrol','hold','929938'],check=True);p.exclusive_json(E/'patch-held.json',{'job_id':'929938','held':True})
+    p.exclusive_json(E/'kernel-create-intent.json',{'source_sha256':source_sha,'request_sha256':w.object_hash(request),'absence':absent,'competition_submission':False,'automatic_retry':False});event('fixed_average_outer_kernel_push_intent')
+    response=r.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(E/'kernel-create-response.json',response)
+    assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    event('fixed_average_outer_kernel_pushed_once');out={'status':'private_fixed_average_E16_outer_pushed_once','kernel_slug':slug,'kernel_id':response.get('kernelId'),'version':1,'source_sha256':source_sha,'competition_submission':False}
+   else:
+    original=r.kernel('GetKernel',slug,1);assert original.get('blob',{}).get('source','')==entry;meta=original['metadata']
+    for k in ('isPrivate','enableInternet','machineShape','dockerImage'):assert meta.get(k)==request[k],k
+    for k in ('datasetDataSources','competitionDataSources'):assert sorted(meta.get(k,[]))==sorted(request[k]),k
+    status=r.kernel('GetKernelSessionStatus',slug,1).get('status')
+    if status in ('COMPLETE','ERROR','CANCELLED') and (E/'patch-held.json').exists() and not (E/'patch-release-intent.json').exists():
+     p.exclusive_json(E/'patch-release-intent.json',{'job_id':'929938','actual_terminal':status});subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(E/'patch-released.json',{'job_id':'929938','released':True})
+    out={'status':status,'kernel_slug':slug,'version':1,'exact_source_private_offline_twoT4_verified':True,'competition_submission':False}
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+print(json.dumps(out),flush=True)
