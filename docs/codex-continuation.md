@@ -145,9 +145,11 @@ the private Kaggle paired evaluation. Dense probe is terminal. Credentials stay 
 source/weight/license/environment/fold proofs remain bound to each immutable model.
 
 Prior distinct verified small milestones HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8
-and HFa9834992604061fa15e305142e22fa899cc340b7 must not be repeated. Latest new
-fixed-final/average/serving/transport and0.890score docs/receipts need the distinct
-next small Git/HF milestone; do not copy private images/references/identity manifests.
+and HFa9834992604061fa15e305142e22fa899cc340b7 must not be repeated. Source92c558979d4dee6a59ca4e431af8724d7ce2e1ec (fixed-final/average/serving/
+transport/0.890score/paired execution/CPU profile) is now privately mirrored at
+HF1ab4b530bbe7c70b3c29db64da384e04f0294332. All63smallobjects/204935bytes fully
+re-downloaded/size/SHA verified under canonical lock byCPU934459. Never repeat
+this prefix or earlier mirrors; read hf-E12-paired-research-20261016-v1 proof.
 
 Prioritize actual results from current mechanisms. A useful next efficiency test
 is sampling the same12training windows before materializing all84: current native

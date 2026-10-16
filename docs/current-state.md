@@ -133,3 +133,7 @@ Use [research brief](research-brief.md) for conclusions and limitations and
 negative results and originals; never interpret dated historical “pending” or
 “unsubmitted” snapshots as live state. Keep healthy training running and judge
 isolated mechanisms by fixed-final held-out evidence and actual Kaggle outcomes.
+
+Source `92c558979d4dee6a59ca4e431af8724d7ce2e1ec` and 63 distinct small objects
+are privately fully download/size/SHA verified at HF
+`1ab4b530bbe7c70b3c29db64da384e04f0294332`. [Exact preservation receipt](../initiative/audits/hf-E12-paired-research-20261016-v1/verified.json).
