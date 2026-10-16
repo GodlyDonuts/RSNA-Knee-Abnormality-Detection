@@ -1,3 +1,27 @@
+# Actual additional345 preservation completed
+
+Corrected932898 successfully preserved ALL7 shards/42 objects, each fully re-downloaded/size/SHA verified. Original17.2GB archives and cache trees retained; no labels/expanded fit admitted yet. Read additional345-cache-terminal-20261016-v1/all7-private-verified.json. Never repeat original failed932730, corrected932898 or any private shard publication. Frozen control and two distinct full16 contrast jobs remain as described below; no new accuracy result.
+
+# Latest October16: both matched contrasts submitted after real H100 acceptance
+
+Source-neighbor fixed16 job932957 and positive-weight fixed16 job933001 submitted ONCE, both last PENDING on evc33. Each has its OWN actual H100 full/stop1/resume acceptance with complete model/BN/AdamW/OneCycle/allRNG/history and byte-identical MRI predictions, matching original encoder/initial head. Actual recoveries931961(6b823768...) and932859(cd6e53d6...) COMPLETED0:0. These are engineering acceptance, NOT accuracy gains. Read compact-source-neighbor-full-fit-20261016-v1 and compact-positive-weight-full-fit-20261016-v1. Same2247/1156/fixed16/4496/seed/labels/budget; only donor channels OR positive-term loss weights differ. Never combine them or duplicate jobs.
+
+Each distinct full output has its own pinned private epoch publisher/coordinator and armed finite watcher: neighbor93110, weighted24451. No full challenger optimizer progress or epoch exists yet. Full production/preservation funded16GiB per contrast; fresh source-stage CPU932947 and weighted-stage CPU932999 retain all old obligations/20GiB reserve, >110GB remaining after bounds. Preserve original cache/source/runtime/masks/folds, no deletion credit.
+
+Original continuation932869 actually RUNNING and verified3035/4496finiteupdates in epoch11, empty stderr, same source/model/optimizer/RNG/fixed schedule from2983 boundary. Original epochs1–10 privately fully verified ONCE; E10 HFac9e8046b43f09ce2865ddf0c77efda9c33c2de1. Publication handoff89728 and frozen E12/E16 Kaggle controller45020 remain active; E8 hidden still unreported at latest08:12UTC check. E4.821 and attributed external.949 remain actual scores, not equivalent training claims.
+
+Additional345 corrected first preservation932898 RUNNING after authoritative absence reconciliation of preupload dependency failure932730. Four of seven shards fully private verified at latest read; session12356 collects full result. Never repeat either driver. Actual cache remains345studies/1769series/54562slices, no new training/label admission. Source4c26270a plus actual scores/CPU source/sanitized cache milestone already privately verified24objects at HFfe345c7533df649f043615fcece458881522e0b1; never repeat. New actual contrast dispatches postdate that mirror.
+
+Focused whole compact/HF/cache family136tests passed, Ruff/scoped HF mypy passed. Source-level tests and GPU recovery are engineering evidence, not a measured improvement. Keep fixed-final comparisons and useful original Kaggle curve moving; next data expansion is345 fitting-only candidates after distinct label/roster/cache admission. Protected gold/confirmation remain unused.
+
+# Latest October16: continuation and two actual scientific contrasts
+
+Original930744 stopped at its planned complete optimizer boundary after2983/4496updates, SlurmFAILED75:0 is its explicit graceful-stop return, not a numerical failure. Same source/model/BN/AdamW/OneCycle/allRNG checkpoint was independently verified and ONE continuation932869 submitted, preserving the original fixed16 schedule. Epochs1–10 privately fully eight-object verified; E10 HFac9e8046b43f09ce2865ddf0c77efda9c33c2de1. Never repeat.
+
+Source-neighbor recovery931961 is actually RUNNING on evc33. Weighted-loss separate actual GPU recovery932859 is submitted once/PENDING after actual CPU932857 source/funding stage; read compact-weighted-recovery-dispatch-20261016-v1.16GiB new obligations funded115.4GB remaining after all bounds; no weighted fullfit or clinical result yet. Read-only observers16820/28128 collect their exact originals; no retry authority.
+
+New source4c26270a including scientificf5af and actual scores/E8/345-cache sanitized milestone privately fully verified24objects at HFfe345c7533df649f043615fcece458881522e0b1. Never repeat. Extra345 preservation932730 FAILED before mutation due missing requests in existing Hub runtime; original local publication directory and cloud paths require read-only absence reconciliation before a distinct corrected first publication. No data loss/rebuild. New tested httpx adapter uses the runtime's existing dependency; original scientific cache/publisher validation stays unchanged.
+
 # October16 actual competitive anchor and separate training contrasts
 
 **Attributed released baseline57258866 scored0.949 on Kaggle**, COMPLETE/no error, canonically reconciled07:29UTC. This is the external author-trained model reproduced unchanged, NOT an own-training gain or independent internal validation. Exact audit: released0949-baseline-20261016-v1/actual-scored-canonical.json. Our prior own DINO best remains0.872 pending original CoAtNet outcomes.
