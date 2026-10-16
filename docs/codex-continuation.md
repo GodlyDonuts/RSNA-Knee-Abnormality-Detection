@@ -262,3 +262,9 @@ Own E16 actual score receipt is compact-production-e016-kaggle-20261016-v1;
 read-only reconciliation does not submit/push. Neighbor epochs4/5 privately fully
 verified revisions21dca400a011cfa19e167a57ba9bbe881ffe4ced and
 df24982649195e4851cbb10c80a33e241f2edbdb, all8objects each. Do not repeat1–5.
+
+Source32e52e3d and24distinct small objects/121965bytes are now privately fully
+re-downloaded/size/SHA verified at HF7b6632ee82456ae9d76f073fcc59ed07b7fc0294
+byCPU934786 under the canonical lock. Never repeat; see
+[verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
+No private clinical/identity/image/weight bytes in this milestone.

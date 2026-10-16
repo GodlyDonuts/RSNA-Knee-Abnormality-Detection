@@ -155,3 +155,9 @@ yet; no Dataset or weight upload was repeated. [Protocol](../initiative/experime
 The earlier window-materialization profile is correctly scoped: baseline N3
 already selects 12 windows before materialization. The measured counterfactual
 saving is not a new N3 speedup. Neighbor donor loading remains eager and unchanged.
+
+Source32e52e3d and24distinct small objects/121965bytes are now privately fully
+re-downloaded/size/SHA verified at HF7b6632ee82456ae9d76f073fcc59ed07b7fc0294
+byCPU934786 under the canonical lock. Never repeat; see
+[verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
+No private clinical/identity/image/weight bytes in this milestone.
