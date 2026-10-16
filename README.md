@@ -8,9 +8,8 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the October 16, 08:47 UTC check: reproduced **external author-trained 0.949**;
-prior best **own-trained 0.872**; new own CoAtNet **epoch 4 scored 0.821**, epoch 8
-submitted/unreported. Original fixed-16 training is running; separate source-neighbor
+At the October 16, 09:26 UTC check: reproduced **external author-trained 0.949**;
+prior best **own-trained 0.872**; new own CoAtNet **epoch 4 scored 0.821**, epoch8 **0.869**, epoch12 submitted/unreported. Original fixed-16 training is running; separate source-neighbor
 and positive-weight fits are queued. These are different evidence categories.
 
 **Start with [the initiative archive](initiative/README.md) and

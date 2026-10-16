@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 08:57 UTC
+# Execution handoff — October 16, 2026, 09:26 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 This handoff contains execution bindings. The previous chronological handoff is
@@ -41,9 +41,9 @@ Local private root: `artifacts/compact-native-n3-launch-20261016-v1`.
 | Neighbor immutable epoch preservation | 93110 | `neighbor-publication-watcher-*`, `neighbor-publication/` |
 | Weighted immutable epoch preservation | 24451 | `weighted-publication-watcher-*`, `weighted-publication/` |
 
-These are existing handles, not commands to start again. At 08:47 UTC original
-1–12 were fully privately verified and curve E12 public execution was RUNNING.
-E12 has since been submitted once as57262392 at08:54UTC; curve now waitsE16.
+These are existing handles, not commands to start again. At09:26UTC original
+1–14 were fully privately verified. E12 was submitted once as57262392 at08:54UTC;
+curve now waitsE16. E8 observer16036 is TERMINAL with actual .869, not live/pending.
 Read exact intent/result and live process first. Uncertainty is read-only
 reconciliation, not permission to repeat uploads, pushes or submissions.
 
@@ -104,5 +104,14 @@ No newer documentation/expanded-input source mirror is claimed yet. Credentials
 stay in ignored 0600 `.env`, RAM/stdin; raw clinical assets stay private.
 
 Root owns dense coverage and source research directly; Devin is unavailable.
-Do not depend on issue96 execution. New CPU dense30 input probe is prepared
-in `scripts/newton/probe_compact_dense_inputs.py`, not yet dispatched.
+Do not depend on issue96 execution. New CPU dense30 probe `scripts/newton/probe_compact_dense_inputs.py`
+actually passed as933517. Never repeat that original gate.
+
+E8 actual0.869/no error/382143bytes canonically reconciled; see ownE8 scored audit.
+E12 pending hidden outcome, fresh09:26UTC fourtoday/oneslotreservedE16. Original
+epochs1–14 fully privately verified; do not repeat publications. Root-owned dense30
+CPU gate933517 COMPLETED0:0 on evc33, source243eca52, local session59074terminal.
+Actual receiptSHA2b3186baab40f8f8e535891dd3930be94ecf0efb59d1cfef5290acfc6cb97ff6.
+32MRI/2345original-window tensors bit-equal,4188dense windows; no encoder run.
+No Devin dependency. Late-average CPU construction wrapper prepared; no derived
+checkpoint/evaluation exists yet.

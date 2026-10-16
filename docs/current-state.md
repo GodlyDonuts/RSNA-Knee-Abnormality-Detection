@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 08:57 UTC.** This is the canonical research entry point.
+**Checked October 16, 2026, 09:26 UTC.** This is the canonical research entry point.
 Job states and unscored submissions are observations at that time, not promises
 about their present state. Exact original receipts and authenticated live state
 resolve uncertainty. Earlier observations are in the [history](current-state.history-20261016.md).
@@ -12,15 +12,17 @@ resolve uncertainty. Earlier observations are in the [history](current-state.his
 | Released author-trained CoAtNet, reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not an improvement from our own training |
 | Prior own DINO model | 57182737 / 57182547 | **0.872** | Best previously verified own-trained score; not the current CoAtNet result |
 | Own N3 CoAtNet, epoch 4 | 57256756 | **0.821** | Successful hidden execution, below our prior own best |
-| Own N3 CoAtNet, epoch 8 | 57259376 | **Unreported** | Submitted once; latest authenticated observation 08:47 UTC has no status/score |
+| Own N3 CoAtNet, epoch 8 | 57259376 | **0.869** | Actual COMPLETE/no error; up .048 from epoch4, below prior own .872 |
+| Own N3 CoAtNet, epoch12 | 57262392 | **Unreported** | Submitted once; authenticated09:26UTC, no hidden score yet |
 
 The own DINO [epoch-5](../initiative/audits/daily-kaggle-comparison-queue-20261014-v1/epoch-005-hidden-scored-reconciled.json)
 and [epoch-6](../initiative/audits/daily-kaggle-comparison-queue-20261014-v1/epoch-006-hidden-scored-reconciled.json) receipts establish the .872 tie.
 The external result is [canonically reconciled](../initiative/audits/released0949-baseline-20261016-v1/actual-scored-canonical.json).
+The own epoch-8 result is [canonically reconciled](../initiative/audits/compact-production-e008-kaggle-20261016-v1/actual-scored-canonical.json).
 The own epoch-4 result is [canonically reconciled](../initiative/audits/compact-production-e004-kaggle-20261016-v1/actual-scored-canonical.json).
 Zero bytes on an unreported submission do not establish failure. Public three-study
 execution and submission acceptance do not establish a hidden score.
-The latest recorded account allowance was three submissions used/two available;
+The09:26UTC account allowance was four submissions used/one available, reserved forE16;
 query authoritative live allowance before any additional submission.
 
 ## What is actually training
@@ -40,9 +42,9 @@ and [weighted receipts](../initiative/audits/compact-positive-weight-full-fit-20
 
 Original N3 stopped gracefully at 2,983/4,496 updates under its explicit boundary
 return code 75; continuation preserves the same state and fixed schedule. Do not
-count it as a new fit or numerical failure. Original epochs **1–12** have private
+count it as a new fit or numerical failure. Original epochs **1–14** have private
 full download/size/SHA verification in the publication handoff receipt observed
-08:47 UTC. Do not republish them.
+09:26 UTC. Do not republish them.
 
 ## Exact current model and observations
 
@@ -134,7 +136,11 @@ epoch16 BatchNorm/all other buffers retained exactly. Separate engine identity;
 Root implements [dense30 source coverage](../initiative/experiments/competitive-v1/compact-dense30-v1/README.md)
 directly; Devin is unavailable and is not a critical-path dependency. Every original
 window is preserved; additional geometry-valid centers cap at180windows/study.
-Local tests pass; actual MRI and target-device acceptance are still required.
+Local tests pass; actual zero-GPU MRI admission **933517 passed** on evc33:
+32MRI studies preserve2345original windows exactly while exposing4188dense windows.
+Full held-out window census rises84333→158073 (about1.88x).
+[Actual MRI proof](../initiative/audits/compact-dense30-inputs-20261016-v1/README.md).
+Target-device throughput and accuracy acceptance remain required.
 
 A fitting-only source audit replayed existing issue92: original2247 have14all-target
 uniform rows; added345 have59 (37at.25,18at.025,4at.015). These are source distributions,

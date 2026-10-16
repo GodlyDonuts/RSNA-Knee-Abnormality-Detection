@@ -8,8 +8,8 @@ status. This brief records conclusions; it is not another execution log.
 
 We reproduced an attributed author-trained model at **0.949** on Kaggle. Our
 best previously verified own-trained model scored **0.872**; the new full-trunk
-CoAtNet epoch 4 scored **0.821**. Epoch 8 is submitted but unreported at the latest
-observation. Reproducing .949 establishes a working competitive reference, not
+CoAtNet epoch 4 scored **0.821**. Epoch8 actually scored **0.869** (+.048 from epoch4); epoch12 is submitted
+but unreported at the latest observation. Reproducing .949 establishes a working competitive reference, not
 that our training has matched it. Exact scored receipts are linked in current state.
 
 The new N3 model fully trains a 73M-parameter CoAtNet. It is not the historical
