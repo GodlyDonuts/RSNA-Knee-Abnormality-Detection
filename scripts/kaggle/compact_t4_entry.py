@@ -19,24 +19,36 @@ def sha(path):
     return h.hexdigest()
 
 
-def run(expected_manifest_sha256):
-    if platform.python_version_tuple()[:2] != ("3", "12"):
-        raise ValueError("Original pinned Python3.12 image required")
+def discover_bundle(inputs, expected_manifest_sha256):
     found = []
-    for directory, children, files in os.walk("/kaggle/input"):
+    seen = 0
+    for directory, children, files in os.walk(inputs, followlinks=False):
         path = Path(directory)
-        if len(path.parts) > 9:
+        seen += 1
+        if seen > 2048:
+            raise ValueError("Bounded attached-payload discovery exceeded")
+        if path.name == "rsna-knee-abnormality-detection" or {"train_series", "test_series"} & set(
+            children
+        ):
             children[:] = []
-        if len(found) > 4:
-            raise ValueError("Ambiguous payload discovery")
+            continue
+        if len(path.relative_to(inputs).parts) >= 8:
+            children[:] = []
         if "bundle-manifest.json" in files:
             p = path / "bundle-manifest.json"
             if sha(p) == expected_manifest_sha256:
                 found.append(p)
     if len(found) != 1:
         raise ValueError("One exact private diagnostic payload required")
-    bundle = found[0].parent
-    manifest = json.loads(found[0].read_text())
+    return found[0]
+
+
+def prepare_runtime(expected_manifest_sha256):
+    if platform.python_version_tuple()[:2] != ("3", "12"):
+        raise ValueError("Original pinned Python3.12 image required")
+    manifest_path = discover_bundle(Path("/kaggle/input"), expected_manifest_sha256)
+    bundle = manifest_path.parent
+    manifest = json.loads(manifest_path.read_text())
     if (
         manifest.get("diagnostic_only") is not True
         or manifest.get("competition_eligible") is not False
@@ -126,6 +138,11 @@ def run(expected_manifest_sha256):
     subprocess.run([str(python), "-m", "pip", "check"], check=True)
     env = os.environ.copy()
     env["PYTHONPATH"] = str(bundle / "code")
+    return bundle, python, env
+
+
+def run(expected_manifest_sha256):
+    bundle, python, env = prepare_runtime(expected_manifest_sha256)
     command = [
         str(python),
         "-B",

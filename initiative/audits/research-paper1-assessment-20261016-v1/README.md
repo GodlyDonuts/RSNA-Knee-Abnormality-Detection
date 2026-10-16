@@ -28,3 +28,7 @@ Fitting-only soft positive-mass weights are recorded as candidate descriptive qu
 Current own best solo Kaggle result is 0.872; the earlier owner-submitted 0.936/0.942 systems are different public ensembles. No current CoAtNet clinical/Kaggle result exists. More data, more parameters and a successful engineering benchmark are opportunities, not measured accuracy gains.
 
 See the two aggregate JSON audits here for the reproducible counts. No protected label values or MRI records are included.
+
+## Actual additional-input metadata result
+
+The pinned corrected original inventory contains all356 additional fitting studies:1,849 accepted series/56,825 slices/37,933,598,808 DICOM bytes, no missing study or series. This is metadata completeness, not a new acquisition or decoded cache. No MRI bytes moved, no GPU used and no protected label values read. Actual extra cache construction and resource admission remain required before expanded fitting.

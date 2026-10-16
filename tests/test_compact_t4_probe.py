@@ -29,3 +29,19 @@ def test_diagnostic_fixture_contains_no_labels_or_original_identifier():
     f["windows"][0, 0, 0, 0] = 2
     with pytest.raises(ValueError, match="normalized"):
         validate_fixture(f)
+
+
+def test_payload_discovery_prunes_competition_tree(tmp_path):
+    import hashlib
+
+    from scripts.kaggle.compact_t4_entry import discover_bundle
+
+    payload = tmp_path / "datasets" / "private"
+    payload.mkdir(parents=True)
+    expected = payload / "bundle-manifest.json"
+    expected.write_text("{}")
+    # A matching file in the MRI tree must never be discovered or counted.
+    hidden = tmp_path / "competitions" / "rsna-knee-abnormality-detection" / "test_series" / "study"
+    hidden.mkdir(parents=True)
+    (hidden / "bundle-manifest.json").write_text("{}")
+    assert discover_bundle(tmp_path, hashlib.sha256(b"{}").hexdigest()) == expected

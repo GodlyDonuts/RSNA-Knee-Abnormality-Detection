@@ -1,3 +1,9 @@
+# October16: native compact Kaggle endpoint actually running; expanded inputs located
+
+Distinct private offline two-T4 kernel138966459/v1 `godlydonuts/rsna-compact-native-endpoint-bcc8d6223af8` pushed ONCE, actual RUNNING. Reuses original verified Dataset12622515/v1; no competition submission/new weight transfer. Exact sourcee0a25e57, native DICOM-to-CSV/twoCPU-prefetch/twoGPU-persistent full FP16 diagnostic, outputcompact-diagnostic.csv only. Finite observer exec68712 verifies actual terminal/source/receipt and releases original pending929938 once; never repeat/restart. Healthy original930744 reached498finiteupdates/epoch2; original epoch publisher watcher remains live. No compact accuracy result yet.
+
+Research memo1 actual metadata audit located all356 additional fold-preserving fitting cases in corrected original source inventory:1849series/56825slices/37,933,598,808DICOMbytes. No pixel transfer/cache rebuild yet. Expanded target2603fit preserves all1301fold0groups/current1156observed endpoint. Current N3 already has dense public fitting supervision; obsolete sparse-positive counts do not describe it. Read research-paper1-assessment-20261016-v1 and compact-native-endpoint-20261016-v1. Existing healthy N3recipe unchanged.
+
 Latest sanitized compact milestone source11d536aa is privately mirrored ONCE at HF7fb0b54af4e835fde69b8a4b790e95a237b3faf3, all47objects/247055B force-download/size/SHA verified under canonical lock. Never repeat. No MRI/labels/identifiers/weights mirrored. Prepared compact_runtime.py has70focused compact tests/Ruff/scoped mypy passing; actual native raw-input/T4 endpoint remains next.
 
 # October16: T4 precision accepted; first compact epoch privately preserved
