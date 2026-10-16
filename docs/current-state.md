@@ -1,3 +1,11 @@
+# October16: actual E10 score and compact challenger
+
+Research dossier **cf3819cb** is on main and adopted. Authenticated E8 **57221755=.863** and E10 **57245976=.864** are scored and reconciled once into Newton's canonical ledger; no cloud mutations. Best trajectory remains E5/E6 **.872**. Portable controllers are terminal; never restart or resubmit these entries. Historical pending/public-run descriptions below are superseded.
+
+Next priority is **Native-CoAtNet-Bag12 N3**, fully fine-tuned compact whole recipe from the dossier. Official pinned ImageNet initialization and timm1.0.30 are verified/staged on evc40; strict CPU load passed (72,856,264 trainable trunk parameters,1024 features,25 BN modules,all16 hidden dropouts disabled). No compact GPU fit yet. Executable trainer/sampler/inference assigned to Devin issue91; root owns actual input/GPU/recovery/throughput and dispatch.
+
+Original patch-focus919305 control failed in Triton C compilation: missing Python.h. Matching signed private headers now actually compile that driver; no global install. Distinct unchanged-science recovery **929938 PENDING Priority/zero runtime** at last live check. Do not duplicate. See [actual milestone](../initiative/audits/compact-native-n3-start-20261016-v1/README.md).
+
 # Exact epoch10 public run started
 
 Dataset12613343/v1 now all68objects fully download/size/SHAverified. Exact private/offline2T4 notebook138929766 godlydonuts/rsna-alldev-offline-e010-0f0ab3f260e9 v1 pushedONCE and actuallyRUNNING its public example; NOT a competitionentry/score yet. Original recovered E10 payload/source/metadata match the existing Newton prepared hashes exactly. Active finite PID40110/exec28734 will verify exact MRI/CSV/RSS receipt then max1code submission with fresh allowance; portable localledger/phaseintents govern and must later reconcile withNewton. Never repeatDataset/push or restartoldcoordinators. Github issue90 assigned toDevin to remove repeated1.2GBbaseuploads for futurecandidate efficiency.
