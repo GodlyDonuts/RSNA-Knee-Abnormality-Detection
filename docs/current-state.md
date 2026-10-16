@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 08:47 UTC.** This is the canonical research entry point.
+**Checked October 16, 2026, 08:57 UTC.** This is the canonical research entry point.
 Job states and unscored submissions are observations at that time, not promises
 about their present state. Exact original receipts and authenticated live state
 resolve uncertainty. Earlier observations are in the [history](current-state.history-20261016.md).
@@ -76,8 +76,10 @@ still being cached. [Original proof](../initiative/audits/additional345-cache-te
 
 Source `b009a4a991be508cbe7af2f9b349b1bbef114106` prepares a 2,592-study fitting
 population, unchanged 1,156-study outer endpoint and byte-preserving metadata union.
-Its local tests passed; the new CPU input gate and expanded training are **not yet
-dispatched**. Existing source rows are reused; original 2,247 overlay cells must
+The actual zero-GPU CPU input gate **933324 passed**: metadata union covers
+3,748 studies/20,675 series; original image/label/mask engineering tensors remain
+bit-equal. [Exact CPU proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
+Expanded training is **not yet dispatched**. Existing source rows are reused; original 2,247 overlay cells must
 remain exact. No clinical label perfection is claimed.
 
 After correspondence exclusions, capacities are **2,592 development fitting,
@@ -88,9 +90,9 @@ not counts already used in the live run. Sixteen expanded passes would mean
 ## Deployment and immediate decisions
 
 The existing finite curve controller has completed epoch-8 submission and is
-observed in **epoch-12 exact public execution, RUNNING**. It later handles epoch
-16. Do not restart it, duplicate notebooks/Datasets, or submit public example CSVs.
-Epochs 12/16 have no hidden score at this observation.
+**submitted epoch12 once as57262392 at08:54UTC** after exact public acceptance.
+It now waits for epoch16. [Canonical receipt](../initiative/audits/compact-scheduled-curve-dispatch-20261016-v1/epoch012-canonical-submitted.json). Do not restart it, duplicate notebooks/Datasets, or submit public example CSVs.
+Epoch12 has no hidden score and epoch16 is unsubmitted at this observation.
 
 The 64-study two-T4 raw-MRI benchmark completed in 318.497 seconds with zero
 unusable fallbacks and approximately 11.61 GB process RAM. This is measured
@@ -116,3 +118,10 @@ and privately mirrored at HF `4a3c3a848ecb3fa67afcc491f0a31c1e874aa408`.
 All 17 small objects / 1,056,289 bytes were fully re-downloaded, size-checked
 and SHA-verified under the canonical lock. [Verification receipt](../initiative/audits/documentation-reconciliation-20261016-v1/private-mirror-verified.json).
 No training job or Kaggle submission was changed by this correction.
+
+## New fixed Paper 3 experiment
+
+[Late-parameter average](../initiative/experiments/competitive-v1/compact-late-average-v1/README.md)
+is preregistered: original epochs12/14/16, learned parameters averaged equally,
+epoch16 BatchNorm/all other buffers retained exactly. Separate engine identity;
+13 synthetic tests passed, no derived checkpoint/GPU result yet.

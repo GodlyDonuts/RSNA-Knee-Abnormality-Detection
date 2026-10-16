@@ -27,8 +27,8 @@ Neither has demonstrated an accuracy gain. Public one-study gradient accumulatio
 also means mixed-study BatchNorm is not a known missing ingredient.
 
 Additional 345 fitting-only caches and private preservation are complete.
-Expanded 2,592-study inputs are implemented and locally tested, not yet CPU-admitted
-or trained. The old 3,904/441 release counts describe a historical release;
+Expanded 2,592-study inputs passed actual zero-GPU admission933324 with original
+image/label/mask tensor parity; no expanded model is trained yet. The old 3,904/441 release counts describe a historical release;
 current correspondence-filtered capacities are 2,592 fitting / 3,887 train /
 4,327 potential frozen-final. Do not equate these with the active 2,247-study fit.
 

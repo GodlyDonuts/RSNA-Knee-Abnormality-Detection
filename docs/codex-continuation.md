@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 08:47 UTC
+# Execution handoff — October 16, 2026, 08:57 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 This handoff contains execution bindings. The previous chronological handoff is
@@ -43,6 +43,7 @@ Local private root: `artifacts/compact-native-n3-launch-20261016-v1`.
 
 These are existing handles, not commands to start again. At 08:47 UTC original
 1–12 were fully privately verified and curve E12 public execution was RUNNING.
+E12 has since been submitted once as57262392 at08:54UTC; curve now waitsE16.
 Read exact intent/result and live process first. Uncertainty is read-only
 reconciliation, not permission to repeat uploads, pushes or submissions.
 
@@ -66,13 +67,20 @@ All seven additional345 shards/42 private objects are verified once. Do not
 rebuild/retransfer/re-upload. Original cache root:
 `/tmp/rsna-additional345-native-cache-20261016-v1`.
 Source `b009a4a9` contains expanded population, metadata-only union and a zero-GPU
-CPU probe. **No expanded CPU gate or GPU fit has been dispatched** at this check.
+CPU probe. **Actual expanded CPU gate933324 passed**; receiptSHA
+235538195accbac10369779324f10c3fbd7eea42981c95a7164144a17591c3de.
+Private metadata union/index and overlay are under
+`/tmp/rsna-compact-expanded2592-inputs-20261016-v1/inputs`.
+No expanded GPU fit has been dispatched. Separate expanded-engine H100 recovery
+wrapper is prepared; require actual complete recovery before full fitting.
 The original public-label CSV already exists privately locally; no new acquisition
 or repeated credential request is needed. Do not commit individual rows/indices.
 
 Retained conservative obligations total **559,510,927,299 bytes** before new
 expanded metadata work; includes both 16GiB contrasts and the existing reserve.
-A new expanded CPU gate requires explicit additional 1GiB node-local funding.
+Expanded CPU gate funded an additional 1GiB node-local source/metadata/output;
+retain that obligation. New expanded GPU recovery/production requires separate
+checkpoint/runtime funding; CPU gate does not fund it.
 Do not silently retire old liabilities or count deletion credit. Latest weighted
 stage retained 110,620,133,437 bytes beyond all existing bounds; use fresh quota.
 At most two concurrent GPU nodes; preserve healthy original jobs.

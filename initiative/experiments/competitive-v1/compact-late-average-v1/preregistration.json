@@ -1,0 +1,27 @@
+{
+  "policy": {
+    "version": "N3_equal_parameters_E12_E14_E16_final_buffers_v1",
+    "epochs": [
+      12,
+      14,
+      16
+    ],
+    "parameter_weights": [
+      0.3333333333333333,
+      0.3333333333333333,
+      0.3333333333333333
+    ],
+    "accumulation": "CPU_float64_then_cast_once_to_original_float32",
+    "all_buffers": "retain_exact_epoch16_including_BN_running_statistics_and_counters",
+    "selection": "fixed_before_observing_derived_model_or_final_epoch_scores"
+  },
+  "baseline": "original N3 fixed-final epoch16",
+  "endpoint": "unchanged1156 weak-label development; all12 targets and paired leakage-component bootstrap",
+  "derived_model_score_observed": false,
+  "actual_GPU_evaluation": false,
+  "no_training_or_source_mutation": true,
+  "fitting_positive_weights_or_neighbor_combination": false,
+  "selection_not_based_on_Kaggle_scores": true,
+  "new_inference_parameter_count": 0,
+  "actual_checkpoint_average_created": false
+}
