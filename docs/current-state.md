@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 17:23 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 17:31 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -39,11 +39,11 @@ Our external0.949/own0.894 results are distinct and below that reference.
 | Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **15 completed epochs**, empty stderr; epochs 1–15
+Neighbor 932957 has **16 completed epochs**, empty stderr; epochs 1–16
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–9 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–10 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -202,3 +202,11 @@ A full3887coherent feature route is now locally prepared and checked, reusing32
 and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
 required. This is not a regional training or accuracy result.
 [Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+
+Full-regional dispatch17:31UTC: exact privateoffline139068442/v1 pushedonce with
+fresh quota/source/boundary and605.67GBall-liability reserve accepted. Finiteowner
+48632 observes and collects original new3855records once; accepted32are reused.
+No regional head fitting/accuracy/competition submission yet. Neighbor16/weighted10
+immutableepochs are now fully private download/size/SHAverified; both original
+trainers remain running, no fixed-final challenger result yet.
+[Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).

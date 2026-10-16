@@ -1,4 +1,19 @@
-# Latest execution update — October16 17:10UTC
+# Latest execution update — October16 17:31UTC
+
+NEW original fullregional **139068442/v1 pushedONCE**, source16527682e6f216ca7189096c4d0d914c8811929869288e9d20910a9f232d29c4,
+slug godlydonuts/rsna-regional-full-16527682e6f2. CPU936693actualsafe3887boundary/
+accepted32/source/funding checked;CPU936702pushquota/absence accepted. Livefinite
+**exec48632** artifacts/regional-feature-full-20261016-v1/finish_when_ready_once.py
+observesactualoriginal, then one owning-node3855archivecollection/NPYverification;
+reuses32, neverre-pushes/fits/submits. Readfinishintent/progress/result beforeaction.
+New requiredfree605669242819bytes=old590032877507+14GiBnewarchive+512MiBfuturehead/
+recovery+64MiBcontrols; stageactual651972640768leaves46303397949afterall. Preserve
+alloriginal/scientific/priorreserves; frozen51853mustnotbeedited/restarted.
+Regionalhead is NOT implemented/fitted yet. Future same-forward8192input plus
+real full/stop/resume/export/actualT4acceptance remain required;512MiBheadboundfunded.
+Neighborall16epochs/weighted1–10privateverified; originalneighborstillRUNNINGinto
+outerpredictionat17:25UTC, no finalneighbor/weightedaccuracyresultclaimed.
+
 
 Actual corrected32regional **139066640/v1 COMPLETE**,54.176seconds/bothT4s,
 bit-equal observer features/logits, CPU/GPUregions1.526e-5/FP16storage4.879e-4,
@@ -430,3 +445,11 @@ A full3887coherent feature route is now locally prepared and checked, reusing32
 and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
 required. This is not a regional training or accuracy result.
 [Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+
+Full-regional dispatch17:31UTC: exact privateoffline139068442/v1 pushedonce with
+fresh quota/source/boundary and605.67GBall-liability reserve accepted. Finiteowner
+48632 observes and collects original new3855records once; accepted32are reused.
+No regional head fitting/accuracy/competition submission yet. Neighbor16/weighted10
+immutableepochs are now fully private download/size/SHAverified; both original
+trainers remain running, no fixed-final challenger result yet.
+[Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).

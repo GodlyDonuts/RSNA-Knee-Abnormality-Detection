@@ -157,3 +157,11 @@ A full3887coherent feature route is now locally prepared and checked, reusing32
 and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
 required. This is not a regional training or accuracy result.
 [Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+
+Full-regional dispatch17:31UTC: exact privateoffline139068442/v1 pushedonce with
+fresh quota/source/boundary and605.67GBall-liability reserve accepted. Finiteowner
+48632 observes and collects original new3855records once; accepted32are reused.
+No regional head fitting/accuracy/competition submission yet. Neighbor16/weighted10
+immutableepochs are now fully private download/size/SHAverified; both original
+trainers remain running, no fixed-final challenger result yet.
+[Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
