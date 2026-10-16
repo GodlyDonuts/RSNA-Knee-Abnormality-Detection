@@ -1,0 +1,73 @@
+import hashlib,importlib.util,json,math,os,shutil,subprocess,sys,tempfile,time
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ.get('SLURM_CPUS_PER_TASK')=='1'
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+R=Path('/tmp/rsna-source-ranking-context-20261016-v1');old=Path('/tmp/rsna-released-context-head-fit-20261016-v1');assert not R.exists();prior=607095306179;new=288*2**20;free=shutil.disk_usage('/tmp').free;assert free>prior+new
+assert sha(old/'full-inputs.private.json')=='a4c5b4910dc818293cdfb6ed59ba92bfa16faa5e0cb2c39c7a5e5b41df877ab0';base=json.loads((old/'full-inputs.private.json').read_text());assert sha(base['index'])=='5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113';assert base['uids_sha256']=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+assert all(sha(p)==h for p,h in base['source_files'].items());assert json.loads((old/'production/terminal.json').read_text())['status']=='fixed_final_complete'
+R.mkdir(mode=0o700);S=R/'code'
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+source_files={str(S/n):hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()};assert source_files[str(S/'rsna/competitive/released_context_train.py')]=='5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f';assert source_files[str(S/'rsna/competitive/released_context.py')]=='4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9'
+(R/'control-program.py.txt').write_text(v['program']);(R/'source.json').write_text(json.dumps({'source_git':v['source_git'],'source_files':source_files,'control_program_sha256':sha(R/'control-program.py.txt')},sort_keys=True,indent=2))
+sys.path.insert(0,str(S));import numpy as np,torch
+from dataclasses import asdict
+from rsna.competitive.ranking_context_train import Recipe,Trainer,VERSION
+from rsna.competitive.released_context_train import learning_rate
+from scripts.newton.run_released_context_fit import load_data
+from scripts.newton.probe_ranking_context_recovery import same
+from rsna.schema import TARGETS
+torch.set_num_threads(1);torch.set_num_interop_threads(1)
+records=json.loads(Path(base['index']).read_text())['records'];ids=[x['study_uid'] for x in records];assert len(ids)==3887 and len(set(ids))==3887
+import pyarrow.dataset as ds
+release=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet');assert sha(release)==base['binding']['eligible_release_sha256'];eligible=ds.dataset(release,format='parquet').to_table(columns=['study_uid'],filter=(ds.field('split')=='train')&(ds.field('report_supervision_allowed')==True)).column('study_uid').to_pylist();assert set(ids)==set(eligible)
+source=Path('/tmp/rsna-compact-expanded2592-inputs-20261016-v1/source.csv');assert sha(source)==base['binding']['label_source_sha256']=='eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4'
+# Use the previously admitted exact labels/masks unchanged. No numeric read of
+# excluded report rows and no protected clinical read occurs in this experiment.
+y=np.asarray(base['labels'],dtype=np.float32);mask=np.asarray(base['masks'],dtype=bool);assert y.shape==mask.shape==(3887,12) and mask.all() and np.isfinite(y).all() and ((y>=0)&(y<=1)).all()
+statistics={'per_target':{t:{'observed':3887,'distinct_source_values':int(len(np.unique(y[:,i])))} for i,t in enumerate(TARGETS)},'all_observed_cells':int(mask.sum()),'rank_fraction':.5,'source_weight':.25,'teacher_contribution_unchanged':True,'ranking_score':'stable_logit_mean_two_sigmoid_views','pair_weight':'max(y_i-y_j,0)','clinical_accuracy_claim':False}
+(R/'source-ranking-aggregate.json').write_text(json.dumps(statistics,sort_keys=True,indent=2)+'\n')
+inputs={};engineering={};recipes={}
+for role in ('uniform','source_rank'):
+ m=json.loads(json.dumps(base));m['source_files']=source_files;m['binding'].update(ranking_engine=VERSION,objective=role,ranking_source_git=v['source_git'],original_full_input_manifest_sha256=sha(old/'full-inputs.private.json'));p=R/(role+'-full-inputs.private.json');p.write_text(json.dumps(m,sort_keys=True));p.chmod(0o600);inputs[role]=p
+ m['take']=32;m['labels']=m['labels'][:32];m['masks']=m['masks'][:32];m['uids_sha256']=hashlib.sha256(json.dumps(ids[:32],separators=(',',':')).encode()).hexdigest();m['binding']['engineering_only']=True;p=R/(role+'-engineering-inputs.private.json');p.write_text(json.dumps(m,sort_keys=True));p.chmod(0o600);engineering[role]=p
+ recipes[role]=R/(role+'-recipe.json');recipes[role].write_text(json.dumps(asdict(Recipe(objective=role)),sort_keys=True))
+funding={'all_prior_required_free_bytes':prior,'new_checkpoint_recovery_publication_cap_bytes':256*2**20,'new_controls_cap_bytes':32*2**20,'actual_free_bytes':free,'free_after_all_liabilities_bytes':free-prior-new,'new_shared_bytes_files':0,'deletion_credit':0};(R/'funding.json').write_text(json.dumps(funding,sort_keys=True,indent=2)+'\n')
+env={**os.environ,'PYTHONPATH':str(S),'OMP_NUM_THREADS':'1','MKL_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','PYTHONNOUSERSITE':'1','PYTHONDONTWRITEBYTECODE':'1','CUDA_VISIBLE_DEVICES':''};py=sys.executable
+with (R/'recovery.private.log').open('x') as log:
+ x=subprocess.run([py,'-B',str(S/'scripts/newton/probe_ranking_context_recovery.py'),'--uniform-inputs',str(engineering['uniform']),'--ranking-inputs',str(engineering['source_rank']),'--output',str(R/'recovery')],env=env,stdout=log,stderr=subprocess.STDOUT)
+assert x.returncode==0,'Actual CPU recovery failed; inspect original private log; never automatically retry'
+recovery=json.loads((R/'recovery/accepted.json').read_text());assert recovery['status']=='actual32_source_rank_engine_recovery_and_uniform_parity_accepted';assert sum(p.stat().st_size for p in (R/'recovery').rglob('*.pt'))+22*6*2**20+6*2**20+6*2**20<=256*2**20
+admission={'status':'actual32_recovery_accepted_full3887_ranking_contrast_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':source_files,'actual_recovery_sha256':sha(R/'recovery/accepted.json'),'recovery':recovery,'funding':funding,'source_ranking_statistics':statistics,'full_studies':3887,'per_role_epochs':10,'per_role_updates':2430,'same_original_global_features_labels_masks_unchanged':True,'same_graph_recipe_seed_update_budget':True,'no_independent_internal_validation':True,'no_clinical_accuracy_claim':True};(R/'admitted.json').write_text(json.dumps(admission,sort_keys=True,indent=2)+'\n');print(json.dumps(admission),flush=True)
+# The original full uniform control is reused unchanged. Only the new ranking
+# candidate is fitted after actual32 recovery and uniform numerical parity.
+for role in ('source_rank',):
+ O=R/role/'fit';O.parent.mkdir(mode=0o700);start=time.monotonic()
+ with (R/(role+'.private.log')).open('x') as log:
+  x=subprocess.run([py,'-B',str(S/'scripts/newton/run_ranking_context_fit.py'),'--inputs',str(inputs[role]),'--inputs-sha256',sha(inputs[role]),'--recipe',str(recipes[role]),'--output',str(O)],env=env,stdout=log,stderr=subprocess.STDOUT)
+ assert x.returncode==0,'Original full '+role+' failed; no retry'
+ terminal=json.loads((O/'terminal.json').read_text());assert terminal['status']=='fixed_final_complete' and terminal['completed_updates']==2430 and terminal['epochs']==10 and terminal['studies']==3887 and terminal['trainable_parameters']==402956
+ state=torch.load(O/'checkpoint.pt',map_location='cpu',weights_only=False)
+ expected_binding=json.loads(inputs[role].read_text())['binding'];files={};epochs={};J=R/role/'publication';J.mkdir(mode=0o700)
+ for epoch in range(1,11):
+  p=O/'epochs'/f'epoch-{epoch:03d}.pt';assert p.stat().st_size<=6*2**20;value=torch.load(p,map_location='cpu',weights_only=False);steps=243*epoch;assert value['version']==VERSION and value['recipe']==asdict(Recipe(objective=role)) and value['binding']==expected_binding and value['population']==3887 and value['completed']==steps and value['epoch']==epoch and value['cursor']==0 and value['order'] is None and len(value['history'])==steps
+  for i,row in enumerate(value['history']):
+   e,b=divmod(i,243);assert row['update']==i+1 and row['epoch']==e+1 and row['batch']==b+1 and row['studies']==(15 if b==242 else 16) and row['lr']==learning_rate(Recipe(objective=role),i,243) and np.isfinite([row['loss'],row['gradient_norm'],row['max_abs_correction']]).all() and 0<=row['max_abs_correction']<=.5
+  for t in value['model'].values():assert t.dtype==torch.float32 and torch.isfinite(t).all()
+  assert value['model']['output'].count_nonzero();row={'objective':role,'epoch':epoch,'updates':steps,'source_git':v['source_git'],'checkpoint_sha256':sha(p),'checkpoint_bytes':p.stat().st_size,'fixed_final_no_best_epoch_selection':True,'accuracy_claim':False};side=J/f'epoch-{epoch:03d}.json';side.write_text(json.dumps(row,sort_keys=True,indent=2)+'\n');files[f'epoch-{epoch:03d}/checkpoint.pt']=p;files[f'epoch-{epoch:03d}/epoch.json']=side;epochs[str(epoch)]=row
+ same(value,state);assert sha(O/'checkpoint.pt')==terminal['checkpoint_sha256'];files['final/checkpoint.pt']=O/'checkpoint.pt';files['final/terminal.json']=O/'terminal.json';files['common/recipe.json']=recipes[role];files['common/source.json']=R/'source.json';files['common/actual-recovery.json']=R/'recovery/accepted.json';files['common/source-ranking-aggregate.json']=R/'source-ranking-aggregate.json'
+ permission=Path('/tmp/rsna-regional-context-production-20261016-v1/permission.txt');assert permission.is_file();files['common/source-permission.txt']=permission
+ card={'engine':VERSION,'objective':role,'fitting_studies':3887,'epochs':10,'optimizer_updates':2430,'source_git':v['source_git'],'parent_weights_sha256':base['binding']['parent_weights_sha256'],'parent_source_sha256':base['binding']['parent_source_sha256'],'target_order':list(TARGETS),'label_source_sha256':base['binding']['label_source_sha256'],'exact_original_features_labels_masks_unchanged':True,'source_weight':.25,'ranking_fraction':.5,'ranking_score':'logit(mean(two_view_sigmoid_probabilities))','pair_weight':'max(y_i-y_j,0)','normalization':'per-target positive gap mass, equal target mean; no pairs retain original BCE; teacher contribution unchanged','independent_internal_validation':False,'clinical_or_Kaggle_accuracy_claim':False};p=J/'model-card.json';p.write_text(json.dumps(card,sort_keys=True,indent=2)+'\n');files['common/model-card.json']=p
+ p=J/'environment.json';p.write_text(json.dumps({'python':sys.version,'numpy':np.__version__,'torch':str(torch.__version__),'device':'cpu','threads':1,'dtype':'float32','node':'evc33'},sort_keys=True,indent=2)+'\n');files['common/environment.json']=p
+ for name in source_files:files['common/source/'+str(Path(name).relative_to(S))]=Path(name)
+ raw=sum(p.stat().st_size for p in R.rglob('*.pt'));assert raw+6*2**20+6*2**20<=256*2**20
+ os.environ.update(HF_HUB_DISABLE_XET='1',HF_HOME=str(R/'hf-home-private'),HF_XET_CACHE=str(R/'hf-xet-private'))
+ from huggingface_hub import HfApi,CommitOperationAdd
+ core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert sha(core)=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde';spec=importlib.util.spec_from_file_location('pubcore',core);common=importlib.util.module_from_spec(spec);spec.loader.exec_module(common)
+ with common.shared_publication_lock():
+  api=HfApi(token=v['hf_token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True;prefix='experiments/licensed-source-ranking/train3887-fixed10-'+v['source_git'][:12]+'-v1/'+role;table={name:{'bytes':p.stat().st_size,'sha256':sha(p)} for name,p in files.items()};assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in files],repo_type='dataset'));common.atomic_new(J/'intent.json',{'prefix':prefix,'parent':info.sha,'source_git':v['source_git'],'files':table,'epochs':epochs,'no_clinical_case_data':True});result=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve all10 immutable '+role+' source-ranking experiment epochs with exact provenance',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in files.items()]);common.atomic_new(J/'commit.json',{'revision':result.oid})
+  for name,row in table.items():
+   with tempfile.TemporaryDirectory(prefix='rsna-ranking-verify-',dir='/tmp') as tmp:
+    p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+name,repo_type='dataset',revision=result.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and sha(p)==row['sha256']
+  receipt={'status':'all10_source_rank_role_epochs_private_full_download_size_SHA_verified','objective':role,'revision':result.oid,'prefix':prefix,'epochs':epochs,'objects':len(files),'bytes':sum(x['bytes'] for x in table.values()),'no_MRI_labels_indices_UIDs_features_or_predictions':True};common.atomic_new(J/'verified.json',receipt);print(json.dumps({'fit':terminal,'publication':receipt,'elapsed_with_publication_seconds':time.monotonic()-start}),flush=True)
+print(json.dumps({'status':'one_full3887_ranking_candidate_completed_and_all10_epochs_privately_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'root':str(R),'raw_checkpoint_bytes':sum(p.stat().st_size for p in R.rglob('*.pt')),'no_accuracy_claim':True}),flush=True)
