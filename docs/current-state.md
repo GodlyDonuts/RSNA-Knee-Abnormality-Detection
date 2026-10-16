@@ -1,10 +1,10 @@
 # October16: compact production actually running
 
-**930744 RUNNING on evc33 H100**, original source dcfff319 / wrapper d24c1c98. Four finite optimizer updates verified in epoch1/4496; empty stderr. Fixed16 epochs,2247 fitting/1156 outer, effective8. Unique node-private `/tmp/rsna-compact-native-n3-production-evc33-20261016-v1`. Never duplicate/restart healthy original. Four-hour allocation supports verified terminal/checkpoint continuation of SAME schedule, not a shorter fit.
+**930744 RUNNING on evc33 H100**, original source dcfff319 / wrapper d24c1c98. 99 finite optimizer updates verified in epoch1/4496; empty stderr. Fixed16 epochs,2247 fitting/1156 outer, effective8. Unique node-private `/tmp/rsna-compact-native-n3-production-evc33-20261016-v1`. Never duplicate/restart healthy original. Four-hour allocation supports verified terminal/checkpoint continuation of SAME schedule, not a shorter fit.
 
 Actual real-MRI GPU recovery930638 COMPLETED0:0: model/BN/AdamW/OneCycle/allRNG/history and CSV equality. Native relay930252/930253 COMPLETE and target runtime repaired once with official torchvision, original torch unchanged; original finite failed controllers are terminal, never restart. Synthetic930089 cancelled while pending/zero runtime; patch-focus929938 remains pending. These actual observations supersede historical descriptions below.
 
-Deployment CPU930818 logits bit-equal to diagnostic reference; actual T4/FP16/runtime acceptance still absent. MC128 secondary inference comparison preregistered without extra encoder passes; no clinical result. Best own Kaggle remains0.872 E5/E6; E8.863/E10.864 scored/reconciled. See `initiative/audits/compact-native-n3-live-start-20261016-v1` and `compact-mc128-preregistration-20261016-v1`. No compact accuracy claim yet.
+Deployment CPU930818 logits bit-equal to diagnostic reference; actual T4/FP16/runtime acceptance still absent. MC128 secondary preregistered; actualCPU931077 passed70 MRI windows encoded once/six chunks,128 bags, unchanged RNG. Publisher actualCPU931125 staged/accepted on original node; no completed epoch/upload yet. Use scripts/hf/dispatch_compact_epoch.py only for new completed epochs; inspect all existing intents/journals first. No clinical result. Best own Kaggle remains0.872 E5/E6; E8.863/E10.864 scored/reconciled. See `initiative/audits/compact-native-n3-live-start-20261016-v1` and `compact-mc128-preregistration-20261016-v1`. No compact accuracy claim yet.
 
 # October16: executable compact engine and actual MRI acceptance
 

@@ -1,0 +1,45 @@
+"""Finite watcher for original930744 only; never starts/resumes training or retries upload."""
+import json,shlex,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+intent=L/'publication-watcher.intent.json'
+assert not intent.exists()
+with intent.open('x') as f:json.dump({'original_training_job':'930744','max_seconds':15000,'poll_seconds':120,'max_epochs':16,'automatic_retry':False},f)
+S='/tmp/rsna-research-20261001-stable.sock'
+def ssh(args,timeout=90):
+ r=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=timeout)
+ if r.returncode:raise RuntimeError('read-only remote observation failed; original training unchanged')
+ return r.stdout
+started=time.monotonic();verified=[]
+try:
+ while time.monotonic()-started<15000:
+  state=ssh(['sacct','-X','-j','930744','-n','--format=State']).split()
+  if not state:raise RuntimeError('original scheduler state missing')
+  if any(not x.startswith(('RUNNING','PENDING')) for x in state):
+   status={'status':'original_job_terminal_review_required','actual_states':state,'verified_epochs':verified};break
+  if any(x.startswith('RUNNING') for x in state):
+   code="import json;from pathlib import Path;print(json.dumps(sorted(int(p.stem.split('-')[1]) for p in Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/epoch-checkpoints').glob('epoch-*.json'))))"
+   epochs=json.loads(ssh(['srun','--jobid=930744','--overlap','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','/usr/bin/python3.12','-B','-c',code]))
+   for epoch in epochs:
+    pub=L/f'publication/epoch-{epoch:03d}-result.json'
+    prior=L/f'publication/epoch-{epoch:03d}-intent.json'
+    if pub.exists():
+     result=json.loads(pub.read_text())
+     if result['returncode']!=0 or json.loads(result['stdout'])['status']!='private_epoch_fully_verified':
+      raise RuntimeError('existing publication not verified; reconcile read-only')
+    elif prior.exists():raise RuntimeError('uncertain existing publication intent; reconcile read-only')
+    else:
+     r=subprocess.run([sys.executable,'scripts/hf/dispatch_compact_epoch.py',str(epoch),'--ssh-control',S],capture_output=True,text=True,timeout=2000)
+     with (L/f'publication-watcher-epoch-{epoch:03d}.json').open('x') as f:json.dump({'returncode':r.returncode,'stdout':r.stdout,'stderr':r.stderr},f,indent=2)
+     if r.returncode:raise RuntimeError('publication dispatcher failed; no automatic retry')
+     result=json.loads(pub.read_text())
+     if result['returncode']!=0 or json.loads(result['stdout'])['status']!='private_epoch_fully_verified':raise RuntimeError('publication verification absent')
+    if epoch not in verified:verified.append(epoch)
+   (L/'publication-watcher-progress.json').write_text(json.dumps({'verified_epochs':verified,'original_training_job':'930744','elapsed_seconds':time.monotonic()-started},indent=2)+'\n')
+   if len(verified)==16:
+    status={'status':'all16_private_epochs_verified','verified_epochs':verified};break
+  time.sleep(120)
+ else:status={'status':'finite_observation_deadline','verified_epochs':verified}
+except Exception as exc:
+ status={'status':'stopped_for_readonly_reconciliation','error_type':type(exc).__name__,'reason':str(exc),'verified_epochs':verified}
+(L/'publication-watcher-result.json').write_text(json.dumps(status,indent=2)+'\n');print(json.dumps(status),flush=True)
