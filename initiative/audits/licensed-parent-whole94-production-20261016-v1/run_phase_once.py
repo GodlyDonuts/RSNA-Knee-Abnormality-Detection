@@ -1,0 +1,14 @@
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];phase=sys.argv[1];segment=int(sys.argv[2]) if len(sys.argv)>2 else 1;assert phase in ('stage','prepare','push','status') and 1<=segment<=3;program=(L/'program.py.txt').read_text();compile(program,'original_full_whole94_phase','exec');commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True,cwd=ROOT).strip();payload={'phase':phase,'segment':segment,'program':program,'source_git':commit}
+if phase=='stage':
+ names=['rsna/competitive/licensed_parent_train.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/checkpoint.py','rsna/competitive/released_context.py','rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_pixel_bags.py','rsna/competitive/licensed_parent_population.py','scripts/kaggle/licensed_parent_production.py','scripts/kaggle/workflow.py','scripts/kaggle/components.py'];payload['files']={n:subprocess.check_output(['git','show',commit+':'+n],text=True,cwd=ROOT) for n in names};payload['files'].update({'rsna/__init__.py':'','rsna/competitive/__init__.py':'','scripts/__init__.py':'','scripts/kaggle/__init__.py':''})
+else:
+ payload['metadata']=json.loads((L/'staged.json').read_text());env=ROOT/'.env';assert env.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('"\'') for line in env.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep};payload['token']=values['KAGGLE_API_TOKEN']
+name=phase+'-'+str(segment)
+if phase in ('stage','push'):
+ with (L/(name+'.intent.json')).open('x') as f:json.dump({'source_git':commit,'phase':phase,'segment':segment,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'new_competition_entries':0,'automatic_retry':False},f,indent=2)
+bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"original_full_whole94_phase","exec"),{"__name__":"__main__","PACKAGE":v})';cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-parent-whole94-full-'+name,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',bootstrap];x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=950);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/(name+'-result-'+str(len(list(L.glob(name+'-result-*.json'))))+'.json')).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+if x.returncode:raise SystemExit(1)
+if phase=='stage':
+ with (L/'staged.json').open('x') as f:json.dump(json.loads(x.stdout),f,indent=2)
