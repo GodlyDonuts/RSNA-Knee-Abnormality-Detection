@@ -50,3 +50,13 @@ phase, batches all4status reads into one CPUallocation, waits boundedly for the
 canonical claim, and collects each actual completed original exactly once. Inspect
 collection-observer.* and observer-* receipts. Never restart either old owner or
 push new cache notebooks. Existing scientific/source/roster/pixel bytes unchanged.
+
+Original shard0 is actually COMPLETE:972studies/940new/32reused, zero empty/
+decode errors,9,455,759,360archive bytes, sourcea1e397b0, receipt1996.89seconds.
+Its first private collection CPU939489 lost the stream after4,444,913,664bytes.
+Read-only CPU939525 confirmed that retained prefix/index; no producer was
+restarted and no bytes were deleted. The new bounded suffix collector reuses
+that exact prefix, requires HTTP206/exactContent-Range and matching64KiBoverlap,
+appends only the missing suffix in256MiBrequests, then verifies the complete
+original SHA and every member/rendered input. Canonical claim remains free
+during bulk read/local replay. Other original sources are not repeated.

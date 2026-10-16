@@ -1,0 +1,131 @@
+import hashlib,importlib.util,json,os,shutil,sys,tarfile,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('stage','push','status','collect') and os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-parent-pixels-full-20261016-v1');S=R/'code';PRIOR=607078528963;NEW=77*2**30+128*2**20;REQUIRED=PRIOR+NEW
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+paid=0
+if R.exists():
+ for accepted in R.glob('shard-*/collected/verified.json'):
+  row=json.loads(accepted.read_text());D=accepted.parent
+  assert row['status']=='actual_full_pixel_shard_collected_verified' and (D/'pixels.tar').stat().st_size==row['archive_bytes'] and (D/'index.private.json').stat().st_size==row['index_bytes']
+  paid+=row['archive_bytes']+row['index_bytes']
+free=shutil.disk_usage('/tmp').free;assert free>REQUIRED-paid,'Fresh reserve after uncompleted liabilities required'
+if phase=='stage':
+ assert not R.exists();assert hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+ gate=v['accepted32'];assert gate['CPU_job']=='938918' and gate['all32_original_NPZ_volume_mask_bytes_and_rendered_two_view_hashes_exact'] is True and gate['source_receipt']['index_sha256']=='3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3'
+ assert Path('/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python').is_file();R.mkdir(mode=0o700)
+ for name,text in v['files'].items():
+  p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+ sys.path.insert(0,str(S));from scripts.kaggle.licensed_pixel_cache_full import build
+ shards=[]
+ for shard in range(4):
+  D=R/('shard-'+str(shard));D.mkdir(mode=0o700);source,binding=build(v['parent_source'],(S/'rsna/competitive/licensed_pixel_cache.py').read_text(),shard);p=D/'source.private.py';p.write_text(source);p.chmod(0o600);shards.append(binding)
+ meta={'status':'full_original_3887_pixel_cache_four_CPU_sources_staged_and_funded','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'shards':shards,'accepted32':gate,'funding':{'all_prior_required_free_bytes':PRIOR,'new_cache_cap_bytes':64*2**30,'new_future_trainer_recovery_epochs_publication_cap_bytes':12*2**30,'optional_parent_weight_cap_bytes':2**30,'new_controls_cap_bytes':128*2**20,'actual_free_bytes':free,'free_after_all_prior_and_new_liabilities_bytes':free-REQUIRED,'shared_growth_bytes_files':0,'deletion_credit':0,'original32_pixel_archive_no_new_copy':True,'GPU_trainer_not_admitted_by_funding':True},'no_new_parent_weight_acquisition':True};(R/'staged.json').write_text(json.dumps(meta,sort_keys=True,indent=2)+'\n');print(json.dumps(meta),flush=True)
+else:
+ meta=json.loads((R/'staged.json').read_text());assert meta==v['metadata'];assert all(sha(S/n)==h for n,h in meta['source_files'].items());shard=v['shard'];assert type(shard) is int and 0<=shard<4;D=R/('shard-'+str(shard));binding=meta['shards'][shard];source=(D/'source.private.py').read_text();source_sha=hashlib.sha256(source.encode()).hexdigest();assert source_sha==binding['source_sha256'];assert sha(S/'scripts/kaggle/workflow.py')=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+ assert sha(S/'scripts/kaggle/components.py')=='24e2571bfe8830907bb30a23cdf1bdcde90c4e78b93cb330ae8b8557c81c8d80';spec=importlib.util.spec_from_file_location('original_pixel_workflow',S/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+ import requests
+ r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+ slug='godlydonuts/rsna-parent-pixels-full-s'+str(shard)+'-'+source_sha[:12];key='licensed-parent-pixels-full:'+source_sha
+ request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':[],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':['godlydonuts/rsna-released-features-data800-6c6ed23f5e7d','godlydonuts/rsna-parent-exact-pixels32-09254e97913d'],'sessionTimeoutSeconds':21600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+ claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+180
+ while True:
+  try:claim.mkdir(mode=0o700);break
+  except FileExistsError:
+   assert time.monotonic()<deadline,'Original canonical coordinator claim remains busy';time.sleep(5)
+ w.new_json(claim/'owner.json',{'kind':'licensed_parent_full_CPU_pixel_cache','phase':phase,'shard':shard,'job':os.environ['SLURM_JOB_ID']});retain=False;claim_held=True
+ def release_claim():
+  global claim_held
+  assert claim_held and json.loads((claim/'owner.json').read_text())['job']==os.environ['SLURM_JOB_ID'];(claim/'owner.json').unlink();claim.rmdir();claim_held=False
+ def reacquire_claim():
+  global claim_held
+  assert not claim_held;deadline=time.monotonic()+180
+  while True:
+   try:claim.mkdir(mode=0o700);break
+   except FileExistsError:
+    assert time.monotonic()<deadline,'Canonical claim remained busy after independent pixel verification';time.sleep(5)
+  w.new_json(claim/'owner.json',{'kind':'licensed_parent_full_CPU_pixel_collection_final_receipt','phase':phase,'shard':shard,'job':os.environ['SLURM_JOB_ID']});claim_held=True
+ try:
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+   w.verify_account(db,r)
+   def save(row):
+    db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),source_sha,row['state']));db.commit()
+   if phase=='push':
+    assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None and not (D/'push-intent.json').exists()
+    for ref,expected_source in ((request['kernelDataSources'][0],'6c6ed23f5e7d32d824d22bf2bf282a319c4526efe7794589ce73127700c9e575'),(request['kernelDataSources'][1],'09254e97913d8dbab543825660df114242d9314315ebb8d4550ef7c7ceb388c9')):
+     dependency=r.kernel('GetKernel',ref,1);assert dependency['metadata']['isPrivate'] is True and hashlib.sha256(dependency['blob']['source'].encode()).hexdigest()==expected_source and r.kernel('GetKernelSessionStatus',ref,1)['status']=='COMPLETE'
+    old=r.output_json(request['kernelDataSources'][1],1,'licensed-pixels32-accepted.json');assert old==meta['accepted32']['source_receipt']
+    absence=r.require_absent_kernel(slug);record={'state':'full_CPU_pixel_cache_push_intent','source_git':meta['source_git'],'source_sha256':source_sha,'slug':slug,'version':1,'shard':shard,'binding':binding,'request_sha256':w.object_hash(request),'absence':absence,'automatic_retry':False};w.new_json(D/'push-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:record['state']='full_CPU_pixel_cache_push_uncertain';save(record);retain=True;raise
+    record.update(state='full_CPU_pixel_cache_pushed',kernel_id=response['kernelId']);save(record);out={'status':'one_exact_private_full_pixel_CPU_shard_pushed','shard':shard,'kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':source_sha,'GPU_requested':False,'competition_entry':False}
+   else:
+    record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['source_sha256']==source_sha and record['slug']==slug;actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata'];assert m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu',False) is False and m.get('machineShape') in (None,'','None','Cpu') and m.get('dockerImage')==request['dockerImage']
+    for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    status=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':status,'shard':shard,'slug':slug,'version':1,'source_sha256':source_sha,'kernel_id':record['kernel_id'],'GPU_requested':False,'competition_entry':False}
+    if phase=='status':
+     if status in ('ERROR','CANCELLED'):
+      if not (D/'terminal-error.json').exists():w.new_json(D/'terminal-error.json',out);record['state']='full_CPU_pixel_cache_failed';save(record)
+     if status=='COMPLETE':
+      receipt=r.output_json(slug,1,'licensed-pixels-full-shard-accepted.json');assert receipt['status']=='actual_licensed_parent_full_fitting_pixel_shard_complete' and receipt['shard']==shard and receipt['studies']==binding['fitting_studies'] and receipt['lo']==binding['lo'] and receipt['hi']==binding['hi'] and receipt['global_uid_sha256']==binding['global_uid_sha256'] and receipt['all_new_original_volume_mask_and_both_view_tensors_bit_equal_after_roundtrip'] is True and receipt['original32_reused_without_decode_reencode_or_new_archive_copy'] is True and receipt['codec_sha256']==binding['codec_sha256'] and receipt['parent_source_sha256']==binding['parent_source_sha256'] and receipt['original_full_index_sha256']==binding['full_original_index_sha256'] and receipt['original_probe_pixel_index_sha256']==binding['original_probe_pixel_index_sha256'] and receipt['reports_clinical_labels_protected_values_read'] is False and receipt['new_weight_download_or_encoder_optimization'] is False and receipt['archive_bytes']+receipt['index_bytes']<=14*2**30 and receipt['CPU_affinity']==4
+      out['receipt']=receipt
+      if not (D/'actual-Kaggle.json').exists():w.new_json(D/'actual-Kaggle.json',out);record.update(state='full_CPU_pixel_cache_actual_complete',receipt=receipt);save(record)
+    elif phase=='collect':
+     assert status=='COMPLETE' and record['state']=='full_CPU_pixel_cache_actual_complete';receipt=record['receipt'];assert r.output_json(slug,1,'licensed-pixels-full-shard-accepted.json')==receipt;C=D/'collected'
+     if C.exists():
+      assert shard==0 and not (C/'verified.json').exists() and (C/'pixels.tar').stat().st_size==4444913664;prior=json.loads((C/'intent.json').read_text());assert prior['source_sha256']==source_sha and prior['receipt']==receipt
+     else:C.mkdir(mode=0o700);w.new_json(C/'intent.json',{'source_sha256':source_sha,'receipt':receipt,'automatic_retry':False,'canonical_claim_released_during_readonly_download_and_local_verification':True})
+     w.new_json(C/'collection-v3.intent.json',{'original_source_sha256':source_sha,'bounded_suffix':True,'previous_download_job':'939489' if shard==0 else None,'source_and_original_prefix_preserved':True});release_claim()
+     range_code=R/'range-collector-code';range_code.mkdir(mode=0o700,exist_ok=True);range_path=range_code/'range_archive.py'
+     if not range_path.exists():range_path.write_text(v['range_source']);range_path.chmod(0o600)
+     assert hashlib.sha256(range_path.read_bytes()).hexdigest()==hashlib.sha256(v['range_source'].encode()).hexdigest();spec=importlib.util.spec_from_file_location('original_bounded_archive_ranges',range_path);ranges=importlib.util.module_from_spec(spec);spec.loader.exec_module(ranges)
+     from urllib.parse import urljoin,urlparse
+     def download(ref,name,path,size,expected):
+      if name.endswith('/pixels.tar'):
+       def request(first,last):
+        headers={'Range':'bytes='+str(first)+'-'+str(last)};r.session.cookies.clear();response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':ref.split('/')[1],'versionNumber':1,'filePath':name},headers=headers,timeout=(10,90),allow_redirects=False,stream=True)
+        for _ in range(6):
+         if response.status_code in (200,206):break
+         assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'));response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,headers=headers,timeout=(10,90),allow_redirects=False,stream=True)
+        return response
+       result=ranges.complete(path,size,expected,request,C/'range-bounded-v1');w.new_json(C/'range-bounded-verified.json',result);return
+      if path.exists():assert path.stat().st_size==size and sha(path)==expected;return
+      assert not path.exists();r.session.cookies.clear();response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':ref.split('/')[1],'versionNumber':1,'filePath':name},timeout=(10,90),allow_redirects=False,stream=True)
+      for _ in range(6):
+       if response.status_code==200:break
+       assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'));response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,timeout=(10,90),allow_redirects=False,stream=True)
+      assert response.status_code==200;h=hashlib.sha256();n=0
+      try:
+       with path.open('xb') as f:
+        os.fchmod(f.fileno(),0o600)
+        for block in response.iter_content(2**20):n+=len(block);assert n<=size;f.write(block);h.update(block)
+      except requests.RequestException:raise RuntimeError('Original stream failed; preserve prefix and reconcile without repeating source work') from None
+      finally:response.close()
+      assert n==size and h.hexdigest()==expected
+     download(slug,'licensed-parent-pixels-full/index.private.json',C/'index.private.json',receipt['index_bytes'],receipt['index_sha256']);download(slug,'licensed-parent-pixels-full/pixels.tar',C/'pixels.tar',receipt['archive_bytes'],receipt['archive_sha256'])
+     old_path=R/'probe32-index.private.json'
+     if not old_path.exists():download(request['kernelDataSources'][1],'licensed-parent-pixels32/index.private.json',old_path,21324,binding['original_probe_pixel_index_sha256'])
+     assert old_path.stat().st_size==21324 and sha(old_path)==binding['original_probe_pixel_index_sha256'];old={x['study_uid']:x for x in json.loads(old_path.read_text())['records']};assert len(old)==32
+     sys.path.insert(0,str(S));import numpy as np,torch
+     from rsna.competitive.licensed_pixel_cache import decode
+     torch.set_num_threads(1);torch.set_num_interop_threads(1);ns={'__name__':'node_original_full_pixel_renderer','__file__':str(D/'source.private.py')};exec(compile(source,'original_CPU_full_pixel_renderer','exec'),ns)
+     index=json.loads((C/'index.private.json').read_text());rows=index['records'];assert len(rows)==receipt['studies'] and len({x['study_uid'] for x in rows})==len(rows) and index['shard']==shard and index['lo']==binding['lo'] and index['hi']==binding['hi'] and index['codec_sha256']==binding['codec_sha256'] and index['parent_source_sha256']==binding['parent_source_sha256'] and index['global_uid_sha256']==binding['global_uid_sha256']
+     import pyarrow.dataset as ds
+     eligible=ds.dataset('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet',format='parquet').to_table(columns=['study_uid'],filter=(ds.field('split')=='train')&(ds.field('report_supervision_allowed')==True)).column('study_uid').to_pylist();assert set(x['study_uid'] for x in rows)<=set(eligible)
+     new=[x for x in rows if x['source_key']=='self'];reused=[x for x in rows if x['source_key']=='probe32'];assert len(new)==receipt['new_original_MRI_decodes'] and len(reused)==receipt['original32_reused'] and len(new)+len(reused)==len(rows)
+     for row in reused:
+      expected=dict(old[row['study_uid']]);expected.update(source_key='probe32',has_original_MRI_pixels=True);assert row==expected
+     with tarfile.open(C/'pixels.tar','r:') as archive:
+      members=archive.getmembers();mapped={x.name:x for x in members};assert len(mapped)==len(members)==len(new) and set(mapped)=={x['file'] for x in new} and all(x.isreg() and Path(x.name).name==x.name for x in members)
+      for row in new:
+       assert row['file']==hashlib.sha256(row['study_uid'].encode()).hexdigest()+'.npz' and row['bytes']==mapped[row['file']].size;handle=archive.extractfile(mapped[row['file']]);assert handle is not None;volume,mask=decode(handle.read(),row['sha256']);assert hashlib.sha256(volume.tobytes()).hexdigest()==row['volume_sha256'] and hashlib.sha256(mask.tobytes()).hexdigest()==row['mask_sha256'] and bool(mask.any())==row['has_original_MRI_pixels']
+       for mirror,name in ((False,'original_plain_input_sha256'),(True,'original_mirrored_input_sha256')):
+        x=ns['eval_windows'](volume,mask,94,320,norm=ns['NORM'],mirror=mirror);assert ns['_pixel_tensor_sha'](x)==row[name];del x
+     verified={'status':'actual_full_pixel_shard_collected_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':meta['source_git'],'source_sha256':source_sha,'shard':shard,'studies':len(rows),'new_cases':len(new),'reused_original32':len(reused),'archive_bytes':receipt['archive_bytes'],'index_bytes':receipt['index_bytes'],'archive_sha256':receipt['archive_sha256'],'index_sha256':receipt['index_sha256'],'empty_studies':receipt['empty_studies'],'decode_errors':receipt['decode_errors'],'global_uid_sha256':binding['global_uid_sha256'],'all_new_member_pixel_mask_and_both94_input_view_hashes_exact':True,'original32_retained_no_archive_transfer_or_reencoding':True,'all_fitting_membership_exact':True,'GPU_used':False,'GPU_fitting_admitted':False,'private_root':str(C),'original_Kaggle_receipt':receipt};reacquire_claim();assert json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0])==record;w.new_json(C/'verified.json',verified);record.update(state='full_CPU_pixel_cache_collected_verified',collected=verified);save(record);out=verified
+     if all((R/('shard-'+str(i))/'collected/verified.json').exists() for i in range(4)):
+      indices=[json.loads((R/('shard-'+str(i))/'collected/index.private.json').read_text()) for i in range(4)];records=[x for index in indices for x in index['records']];ids=[x['study_uid'] for x in records];assert len(ids)==3887 and ids==sorted(set(ids)) and hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest()==binding['global_uid_sha256'] and sum(x['source_key']=='probe32' for x in records)==32 and sum(x['source_key']=='self' for x in records)==3855
+      registry={'kind':'original_licensed_parent_complete_private_fitting_pixel_registry_v1','records':records,'global_fitting_studies':3887,'global_uid_sha256':binding['global_uid_sha256'],'original32_private_holder':'evc33:/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected','new_private_holder_node':'evc39','new_shards':[{k:x[k] for k in ('shard','lo','hi')} for x in indices],'GPU_fitting_admitted':False};p=R/'complete-registry.private.json';w.new_json(p,registry);proofs=[json.loads((R/('shard-'+str(i))/'collected/verified.json').read_text()) for i in range(4)];final={'status':'actual_all3887_original_MRI_pixel_inputs_preserved_and_collected_verified','studies':3887,'new_cases':3855,'original32_reused':32,'shards':4,'global_uid_sha256':binding['global_uid_sha256'],'registry_sha256':sha(p),'registry_bytes':p.stat().st_size,'new_archive_bytes':sum(x['archive_bytes'] for x in proofs),'empty_studies':sum(x['empty_studies'] for x in proofs),'decode_errors':sum(x['decode_errors'] for x in proofs),'all_new_inputs_and_original32_proofs_accepted':True,'GPU_fitting_admitted':False,'no_new_parent_weight_acquisition':True,'competition_entries':0,'GPU_used':False};w.new_json(R/'actual-all-verified.json',final);out['all3887']=final
+   print(json.dumps(out),flush=True)
+ finally:
+  if not retain and claim_held:release_claim()
