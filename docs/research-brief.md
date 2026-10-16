@@ -309,3 +309,8 @@ accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
 never reset the LR/optimizer schedule per segment.
 
+Latest exact-parent source and actual engineering/input receipts are privately
+fully verified at HFa879e194d2646971b0b9238ce588abce64c2d03f:71small objects,
+419747bytes, CPU939371/canonical shared lock/source9adce769. No MRI/UID/label/
+teacher arrays/prediction rows/parent source body/weights. Do not repeat this or
+prior verified prefixes. [Original proof](../initiative/audits/hf-licensed-parent-whole94-20261016-v1/verified.json).
