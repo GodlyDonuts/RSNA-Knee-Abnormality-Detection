@@ -1,0 +1,58 @@
+"""Stage immutable matched-center science and verify actual native inputs once."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert commit.startswith('3803b717')
+raw=subprocess.check_output(['git','archive','--format=tar',commit,'rsna']);digest=hashlib.sha256(raw).hexdigest();assert len(raw)<16*2**20
+program=r'''
+import argparse,hashlib,io,json,os,shutil,sys,tarfile,time
+from pathlib import Path
+assert os.uname().nodename=='evc33';R=Path('/tmp/rsna-compact-matched-neighbor-inputs-20261016-v1');assert not R.exists()
+# Original liabilities/reserves remain; separately reserve16GiB for the new
+# recovery+immutable production checkpoints,128MiB control,16MiB prior census.
+required=396100843459+(20+24+2+70+1+16)*2**30+144*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+raw=sys.stdin.buffer.read(16*2**20+1);assert len(raw)<=16*2**20 and hashlib.sha256(raw).hexdigest()==ARCHIVE_SHA
+R.mkdir(mode=0o700);S=R/'code';S.mkdir(mode=0o700)
+with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+ for member in archive:
+  p=Path(member.name);assert not p.is_absolute() and '..' not in p.parts and p.parts[0]=='rsna' and (member.isdir() or member.isfile());archive.extract(member,S,filter='data')
+sys.path[:0]=[str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay'];os.environ['HF_HUB_OFFLINE']='1'
+import numpy as np
+import torch
+torch.set_num_threads(1)
+from rsna.competitive.compact_train import admitted_datasets,input_census
+from rsna.competitive.compact_source_neighbors import POLICY,ENGINE,MatchedSourceNeighborDataset,channel_plan,select_window_tensor
+from rsna.competitive.compact_bag import candidate_windows,window_tensor
+from rsna.competitive.checkpoint import file_sha256
+from rsna.data import select_series
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');cache=Path('/tmp/rsna-compact-native-evc33-relocation-20261016-v1/cache');args=argparse.Namespace(studies=A/'initiative/releases/report-supervision-v1/studies.parquet',folds=A/'initiative/experiments/competitive-v1/folds',series=A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv',artifact_root=A,cache=cache,fitting_supervision=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json'),engineering=False)
+train,outer,binding=admitted_datasets(args);old=json.loads(Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/run.json').read_text())['binding']
+for key in ['fitting_uids_sha256','outer_uids_sha256','release','supervision','initialization_sha256','initialization_revision','native_input','folds_file_sha256']:assert binding[key]==old[key],key
+binding['input_policy']=dict(POLICY);binding['source_sha256']={str(p.relative_to(S)):file_sha256(p) for p in sorted((S/'rsna').rglob('*.py'))}
+wrapped=[MatchedSourceNeighborDataset(d) for d in [train,outer]];census={};plans=hashlib.sha256();fallbacks={}
+for role,base in [('fitting',train),('outer',outer)]:
+ fallback=0;count=0
+ for uid in base.studies.study_uid:
+  for entry in select_series(base.series[uid],6,False):
+   sid=entry['SeriesInstanceUID'];meta=base._metadata[(uid,sid)][1];triples,back=channel_plan(meta);selected=np.linspace(0,meta['n_slices']-1,min(16,meta['n_slices'])).round().astype(np.int64)
+   assert len(triples)==max(0,len(selected)-2) and np.array_equal(triples[:,1],selected[1:-1]);count+=len(triples);fallback+=int(back.sum());plans.update(json.dumps([role,uid,sid,triples.tolist(),back.tolist()],separators=(',',':')).encode())
+ census[role]=input_census(base);fallbacks[role]={'candidate_windows':count,'legacy_edge_fallback_windows':fallback}
+#32 actualMRI engineering tensors; existing labels/masks read ONLY for equality.
+tensors=hashlib.sha256();changed=0;total=0;fallback32=0;started=time.monotonic()
+for base,view in zip([train,outer],wrapped,strict=True):
+ for index in range(16):
+  a=base[index];b=view[index];windows=candidate_windows(a['series_mask'],a['slice_mask']);assert windows==candidate_windows(b['series_mask'],b['slice_mask'])
+  first=window_tensor(a['images'],windows);second=select_window_tensor(b,windows);assert torch.equal(first[:,1],second[:,1])
+  for key in ['labels','label_mask','series_mask','slice_mask']:assert torch.equal(a[key],b[key]),key
+  changed+=int((first!=second).reshape(len(windows),-1).any(dim=1).sum());total+=len(windows);fallback32+=b['legacy_edge_fallback_windows'];tensors.update(second.contiguous().numpy().tobytes());tensors.update(b['source_window_plan_sha256'].encode())
+  for key in ['labels','label_mask','series_mask','slice_mask']:tensors.update(b[key].contiguous().numpy().tobytes())
+proof={'status':'matched_source_neighbor_native_input_gate_passed','binding':binding,'fitting_count':len(train),'outer_count':len(outer),'all_study_window_census':census,'all_center_plans_sha256':plans.hexdigest(),'all_metadata_fallbacks':fallbacks,'engineering32_tensors_sha256':tensors.hexdigest(),'engineering32_center_channel_bit_equal':True,'engineering32_original_labels_masks_and_window_identities_equal':True,'engineering32_changed_donor_windows':changed,'engineering32_total_windows':total,'engineering32_legacy_fallback_windows':fallback32,'model_loaded':False,'GPU_used':False,'clinical_accuracy_claim':False,'actual_tensor_seconds':time.monotonic()-started}
+(R/'inputs').mkdir();(R/'inputs/inputs.json').write_text(json.dumps(proof,indent=2)+'\n')
+receipt={'status':'matched_source_neighbor_inputs_admitted','source_git':SOURCE_GIT,'source':str(S),'cache':str(cache),'node':'evc33','job_id':os.environ['SLURM_JOB_ID'],'archive_sha256':ARCHIVE_SHA,'input_receipt_sha256':file_sha256(R/'inputs/inputs.json'),'input_policy':POLICY,'engine':ENGINE,'fitting_count':2247,'outer_count':1156,'original_fitting_outer_release_masks_unchanged':True,'center_channel_bit_equal':True,'donor_windows_changed':changed,'engineering32_total_windows':total,'all_metadata_fallbacks':fallbacks,'engineering32_tensors_sha256':tensors.hexdigest(),'all_center_plans_sha256':plans.hexdigest(),'new_source_recovery_production_cap_bytes':16*2**30,'new_control_cap_bytes':128*2**20,'free_after_all_liabilities':free-required,'new_shared_bytes_files':0,'GPU_used':False,'clinical_accuracy_claim':False,'root':str(R)}
+(R/'accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps({**receipt,'accepted_sha256':file_sha256(R/'accepted.json')}),flush=True)
+'''.replace('ARCHIVE_SHA',repr(digest)).replace('SOURCE_GIT',repr(commit))
+compile(program,'matched_neighbor_CPU_admission','exec');(L/'matched-neighbor-inputs-program.py.txt').write_text(program)
+with (L/'matched-neighbor-inputs.intent.json').open('x') as f:json.dump({'source_git':commit,'archive_sha256':digest,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPU':1,'GPU':0,'new_node_recovery_production_reservation_bytes':16*2**30,'new_control_cap_bytes':128*2**20,'automatic_retry':False},f)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:30:00','--job-name=rsna-compact-matched-inputs','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=raw,capture_output=True,timeout=1850);out={'returncode':x.returncode,'stdout':x.stdout.decode(),'stderr':x.stderr.decode()};(L/'matched-neighbor-inputs.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+if x.returncode:raise SystemExit(1)

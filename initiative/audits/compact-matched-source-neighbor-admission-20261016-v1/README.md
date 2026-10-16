@@ -1,0 +1,11 @@
+# Actual matched-center MRI admission; new H100 recovery next
+
+Scientific source3803b717b69db6c5e89e11724c4daee15490cbe2 is staged separately at /tmp/rsna-compact-matched-neighbor-inputs-20261016-v1/code on evc33. CPU931927 COMPLETED0:0; no encoder/GPU/accuracy computation. Original N3 source/output/job remains untouched.
+
+Full2247/1156 release/overlay/mask/fold rosters bind exactly to the live original. Every candidate center/count is unchanged.32real engineering MRIs/2345windows: center channels bit-identical, labels/masks/window identities bit-identical;2022 donor windows changed. All fitting162651windows have357explicit legacy-edge fallbacks(.2195%); outer84333 have222fallbacks(.2632%). No study or target was dropped/relabelled. Detailed images/IDs remain node-private; receipts retain only aggregate/hash bindings. No new pixel copy/cache build.
+
+Actual input receipt7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352 binds original32tensors1bfba8f26ef0c7afe272f9f67b6fe17fc191085292ef0e0ad3ac99784fdfae8e. A separate16GiB recovery+immutable production storage reservation and128MiB control are funded, retaining159,691,978,813bytes after all current liabilities/reserves, sharedgrowth0. No deletion credit. Actual fresh quota remains required at dispatch.
+
+New run_compact_neighbor_recovery.py calls the actual new CLI in fresh full/stop1/resume processes with16training/16engineering outer cases/twoepochs/fourupdates, separate policy binding. It reuses the original complete decoded-state/25BN-counter/exactCSV comparator and additionally requires original N3 initial learned-head and official encoder identity.12focused recovery/input tests/Ruff/scoped mypy passed; full compact family87tests passed before this wrapper addition. This is prepared wrapper code, NOT actual GPU acceptance or a new full fit.
+
+Agent decision: CPU admission permits ONE separately bound one-H100/two-CPU real numerical recovery, after exact source/device/funding review; no full challenger production until actual recovery acceptance. evc33 currently has both H100s allocated (one original930744, one another user); scheduling is controlled by Slurm. No borrowed device/third GPU node/healthy-job interruption. The unchanged original fixed16 continuation has priority over launching the new full challenger.
