@@ -1,0 +1,61 @@
+
+import hashlib,importlib.util,io,json,os,re,shutil,subprocess,sys,tarfile,time
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import numpy as np
+import requests
+v=PACKAGE;assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+assert subprocess.check_output(['sacct','-X','-j','937837','-n','-P','--format=State,ExitCode'],text=True).strip()=='FAILED|1:0'
+R=Path('/tmp/rsna-regional-feature-full-20261016-v1');D=R/'collected';original=json.loads((R/'terminal.json').read_text());receipt=original['receipt'];assert original['status']=='COMPLETE' and receipt==v['receipt'] and receipt['studies']==3887 and receipt['new_CNN_studies']==3855 and not (D/'verified.json').exists();assert shutil.disk_usage('/tmp').free>605669242819
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');s=importlib.util.spec_from_file_location('wf',p);w=importlib.util.module_from_spec(s);s.loader.exec_module(w);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';slug=original['slug'];assert r.kernel('GetKernelSessionStatus',slug,1)['status']=='COMPLETE' and hashlib.sha256(r.kernel('GetKernel',slug,1)['blob']['source'].encode()).hexdigest()==v['source_sha256'] and r.output_json(slug,1,'regional-full-features-accepted.json')==receipt
+assert subprocess.check_output(['sacct','-X','-j','937877','-n','-P','--format=State,ExitCode'],text=True).strip()=='FAILED|1:0'
+archive=D/'features.tar';assert archive.is_file() and not archive.is_symlink();n=archive.stat().st_size;assert 0<n<receipt['archive_bytes'];J=D/'range-bounded-v2';assert not J.exists();J.mkdir(mode=0o700);h=hashlib.sha256()
+with archive.open('rb') as handle:
+ for block in iter(lambda:handle.read(4*2**20),b''):h.update(block)
+prefix_sha=h.hexdigest();original_n=n;started=time.monotonic();chunks=[]
+for number in range(32):
+ if n==receipt['archive_bytes']:break
+ overlap=min(n,65536);end=min(n+256*2**20,receipt['archive_bytes'])-1
+ with archive.open('rb') as handle:handle.seek(n-overlap);boundary=handle.read(overlap)
+ headers={'Range':'bytes='+str(n-overlap)+'-'+str(end)}
+ intent={'old_bytes':n,'request_first':n-overlap,'request_last':end,'expected_total':receipt['archive_bytes'],'overlap_bytes':overlap,'no_retry':True}
+ (J/f'chunk-{number:02d}.intent.json').write_text(json.dumps(intent,sort_keys=True,indent=2))
+ response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':'released-regional-features-full/features.tar'},headers=headers,timeout=(10,60),allow_redirects=False,stream=True)
+ for _ in range(6):
+  if response.status_code in (200,206):break
+  assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();parsed=urlparse(url);assert parsed.scheme=='https' and (parsed.hostname in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or parsed.hostname.endswith('.googleusercontent.com'));response=(r.session if parsed.hostname=='api.kaggle.com' else requests).get(url,headers=headers,timeout=(10,60),allow_redirects=False,stream=True)
+ status=response.status_code;content_range=response.headers.get('Content-Range','');(J/f'chunk-{number:02d}.response.json').write_text(json.dumps({'status':status,'content_range':content_range,'content_length':response.headers.get('Content-Length')},sort_keys=True))
+ assert status==206 and content_range=='bytes '+str(n-overlap)+'-'+str(end)+'/'+str(receipt['archive_bytes']) and response.headers.get('Content-Encoding','identity')=='identity','Server did not honor bounded suffix; original bytes unchanged'
+ first=bytearray();new_bytes=0
+ with archive.open('ab') as handle:
+  os.fchmod(handle.fileno(),0o600)
+  try:
+   for block in response.iter_content(2**20):
+    if len(first)<overlap:
+     need=overlap-len(first);first.extend(block[:need]);block=block[need:]
+     if len(first)==overlap:assert bytes(first)==boundary,'Exact existing boundary differs'
+    if block:
+     new_bytes+=len(block);assert n+new_bytes<=end+1;handle.write(block);h.update(block)
+  finally:handle.flush();os.fsync(handle.fileno())
+ response.close();assert len(first)==overlap and n+new_bytes==archive.stat().st_size==end+1
+ chunks.append({'chunk':number,'old_bytes':n,'new_suffix_bytes':new_bytes,'end_bytes':end+1,'overlap_bytes':overlap});(J/f'chunk-{number:02d}.verified.json').write_text(json.dumps(chunks[-1],sort_keys=True));n=end+1
+assert n==archive.stat().st_size==receipt['archive_bytes'] and h.hexdigest()==receipt['archive_sha256']
+resume={'status':'original_completed_regional_archive_bounded_suffix_whole_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'original_retained_prefix_bytes':original_n,'original_retained_prefix_sha256':prefix_sha,'new_suffix_bytes':n-original_n,'bounded_chunks':len(chunks),'whole_archive_bytes':n,'whole_archive_sha256':h.hexdigest(),'elapsed_seconds':time.monotonic()-started,'new_CNN_jobs_datasets_pushes_or_submissions':0};(J/'verified.json').write_text(json.dumps(resume,sort_keys=True,indent=2)+'\n')
+index_path=D/'index.private.json';assert index_path.stat().st_size==receipt['index_bytes'] and hashlib.sha256(index_path.read_bytes()).hexdigest()==receipt['index_sha256'];index=json.loads(index_path.read_text());rows=index['records'];assert len(rows)==3887 and index['representation']=='same_forward_global_regional_v1'
+oldroot=Path('/tmp/rsna-regional-feature-probe-20261016-v2/collected');assert json.loads((oldroot/'verified.json').read_text())['all32_members_size_SHA_NPY_dtype_shape_finite'];old=json.loads((oldroot/'index.private.json').read_text());assert hashlib.sha256((oldroot/'index.private.json').read_bytes()).hexdigest()=='280b3d04e4506a1fc0771280a16a6c1a9fe6ae3455ffdac8fbbc048f2a343481' and [r['study_uid'] for r in rows[:32]]==[r['study_uid'] for r in old['records']]
+assert hashlib.sha256(json.dumps([r['study_uid'] for r in rows],separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+for before,after in zip(old['records'],rows[:32]):
+ assert after['source_key']=='regional32' and all(before[k]==after[k] for k in ('file','bytes','sha256','study_uid'))
+archive=D/'features.tar';by_name={r['file']:r for r in rows if r['source_key']=='self'};assert len(by_name)==3855;seen=set();max_error=0.;total=0
+with tarfile.open(archive,'r:') as tar:
+ for member in tar:
+  assert member.isfile() and member.name in by_name and member.name not in seen;row=by_name[member.name];assert member.size==row['bytes'] and member.size<4*2**20;raw=tar.extractfile(member).read();assert hashlib.sha256(raw).hexdigest()==row['sha256'];seen.add(member.name);total+=len(raw)
+  with np.load(io.BytesIO(raw),allow_pickle=False) as arrays:
+   assert set(arrays.files)=={'features','parent_logits','regional','centers','slots','depth','present'}
+   assert arrays['features'].shape==(2,94,1024) and arrays['features'].dtype==np.float32 and np.isfinite(arrays['features']).all()
+   assert arrays['regional'].shape==(2,94,7,1024) and arrays['regional'].dtype==np.float16 and np.isfinite(arrays['regional']).all()
+   assert arrays['parent_logits'].shape==(2,12) and arrays['parent_logits'].dtype==np.float32 and np.isfinite(arrays['parent_logits']).all()
+   cs=arrays['centers'];slots=arrays['slots'];depth=arrays['depth'];present=arrays['present'];assert cs.shape==(94,) and cs.dtype==np.int64 and ((cs>=1)&(cs<=94)).all() and slots.shape==(94,) and slots.dtype==np.int64 and present.shape==(94,) and present.dtype==np.bool_ and present.any() and depth.shape==(2,94) and depth.dtype==np.float32 and np.isfinite(depth).all()
+   expected_slots=np.searchsorted(np.asarray([26,48,66,78]),cs,side='right');assert np.array_equal(slots,expected_slots);starts=np.asarray([0,26,48,66,78]);lengths=np.asarray([26,22,18,12,18]);base=(cs-starts[slots]).astype(np.float32)/(lengths[slots]-1).astype(np.float32);mirrored=np.where(slots<2,1-base,base);assert np.allclose(depth,np.stack([base,mirrored]),rtol=0,atol=1e-7)
+assert seen==set(by_name) and total==receipt['new_NPZ_payload_bytes'];retained=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert retained<14*2**30
+out={'status':'actual3887_coherent_global_regional_cache_fully_byte_and_NPY_verified','CPU_job':os.environ['SLURM_JOB_ID'],'studies':3887,'reused32_members_without_download':True,'new_CNN_studies':3855,'same_forward_global_regional_parent_logits':True,'new_archive_bytes':receipt['archive_bytes'],'archive_sha256':receipt['archive_sha256'],'index_sha256':receipt['index_sha256'],'all3887_fitting_only_roster_exact':True,'all3855_expected_window_metadata':True,'all3855_new_members_size_SHA_NPY_dtype_shape_finite':True,'new_full_control_and_collected_archive_bytes':retained,'new_full_archive_bound_bytes':14*2**30,'repeated_original_feature_or_weight_download':False,'source_sha256':v['source_sha256'],'clinical_labels_reports_or_protected_values_read':False,'training_or_accuracy':False,'new_shared_bytes_files':0};(D/'verified.json').write_text(json.dumps(out,sort_keys=True,indent=2)+'\n');print(json.dumps(out),flush=True)

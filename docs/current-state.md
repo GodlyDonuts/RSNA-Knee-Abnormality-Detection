@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 18:51 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 19:02 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -186,7 +186,7 @@ Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6
 
 Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).
 
-## Spatial context: full feature pass complete; collection recovering
+## Spatial context: matched full fits actually training
 
 The corrected probe **139066640/v1 completed all 32 MRI studies on both T4s** in
 54.176 seconds. The observer left original features/logits bit-equal; CPU/GPU
@@ -202,11 +202,10 @@ Full private offline two-T4 pass **139068442/v1 COMPLETED all3,887studies**
 in4,382.071seconds, reusing32 and encoding3,855new cases. BothT4peak3.185GB;
 original pixels/observer outputs passed exact checks. Coherent global/regional/
 parent outputs come from one forward; no model fitting occurred. Its13.378GB
-archive transfer was interrupted twice. Original collector937837 and first suffix
-937877 are terminal failures; all received prefix bytes remain. A distinct bounded
-256MiB-range collector now fetches only missing bytes, checks exact206boundaries,
-whole SHA and everyNPZ before full fitting. No GPU/kernel/push is repeated.
-**No regional full fit, accuracy result or competition entry exists yet.**
+archive transfer was interrupted twice; received prefixes were preserved. Distinct
+bounded-suffix CPU937898 recovered only missing bytes and verified whole SHA,
+every3,855new member and exact3,887membership. No GPU/kernel/push was repeated.
+**Full cache collection is accepted; no spatial accuracy result exists yet.**
 [Full source, funding and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
 
 Neighbor932957 is COMPLETED and independently verified:0.91519773internal macro,
@@ -240,10 +239,13 @@ The original pre-update verifier refusal is preserved; same-batch CPU oracle
 corrected shape-dependent5.96e-8rounding without changing numerical training.
 [Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).
 
-Full10epoch/2430update controls are prepared, pending complete cache acceptance;
-each uses oneCPU/zeroGPU and preserves all10immutable epochs privately once.
+CPU937917 admitted all3,887typed inputs and fresh storage. Full10epoch/2430update
+jobs **global_repeat937942** and **regional937975** are actually RUNNING on evc33,
+oneCPU/zeroGPU each. Read-onlyCPU938007 saw175finite updates/empty stderr for both.
+Finiteowner34894 preserves all10immutable epochs per successful role privately once.
 The accepted source46f5014d and unchanged5addea82numerical loop are frozen.
 512MiBtotal head/recovery cap and all prior resource liabilities are retained.
-A new typed final exporter and actualT4serving remain separate work. No independent
+The separate typed final exporter/FP32readout now passes33focused tests/Ruff/Mypy;
+actual final export and T4spatial serving remain separate work. No independent
 internalOOF is claimed for the externally trained parent.
 [Prospective full controls](../initiative/audits/regional-context-production-20261016-v1/README.md).

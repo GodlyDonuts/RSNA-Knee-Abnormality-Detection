@@ -32,3 +32,10 @@ Original collector937837 and first suffix937877 stopped on incomplete HTTP strea
 the archive prefix is preserved. New256MiBbounded-range collection is active,
 whole SHA/NPYacceptance not yet claimed. No repeated GPU pass or original prefix
 transfer. See collection-failures.json and actual subsequent acceptance receipts.
+
+Actual bounded suffix CPU937898 COMPLETED with all original13,378,150,400archive
+bytes SHA68caf6a12b94780971e66747dde5721b60ad52b57b8e9357296f326ddfc50bc1.
+Every3,855new member's bytes/SHA/shape/dtype/finites/window metadata passed, all32
+original records reused, ordered3887membership exact. Retained13,379,794,855bytes
+under14GiB. No GPU pass, weight retrieval or received prefix was repeated.
+See actual-collected-verified.json. Full cache collection is now accepted.

@@ -157,9 +157,9 @@ observer features/logits bit-equal. Cross-run global-feature differences caused
 the first probe's refusal, despite small parent probability drift; root numerical
 cause remains unproven. The corrected representation caches global, regional and
 parent outputs from one forward, never mixes old/new embeddings. The full3,887-study feature pass139068442/v1 COMPLETED in4,382seconds, reusing32
-accepted originals. Whole archive collection is recovering interrupted HTTP
-streams using only missing suffixes. No regional full fit or accuracy result exists;
-complete cache acceptance and fixed-final comparisons remain necessary.
+accepted originals. CPU937898 recovered the interrupted archive using only missing suffixes and
+accepted every member/whole SHA/complete cohort. The two full fixed10fits are
+now RUNNING, same graph and initialization, no spatial accuracy result yet.
 [Original failure](../initiative/audits/regional-feature-probe-20261016-v1/README.md),
 [actual32acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md),
 [full experiment](../initiative/audits/regional-feature-full-20261016-v1/README.md).
@@ -184,7 +184,13 @@ not only38local tests: each arm full/stop1/resume, complete numerical state and
 32x12prediction bytes exact, both with nonzero learning. Same1,334,796parameter/
 8192-input graph and initial values isolate feature content:8coherent global
 copies versus global+7regional summaries. It reuses unchanged5addea82FP32training.
-This is engineering acceptance, not disease accuracy. Full3887fixed10fits remain
-pending complete archive collection. The original pre-update CPU rounding verifier
+This is engineering acceptance, not disease accuracy. Full3887fixed10fits937942/937975are RUNNING with175finite updates each; no
+clinical or competition improvement is yet established. The original pre-update CPU rounding verifier
 failure and corrected exact same-batch check are preserved.
 [Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).
+
+The separate typed fixed-final spatial exporter/readout passes33focused tests
+with old serving rejection preserved. It retains exact role/feature representation,
+registered immutable source/cache/recovery/permission and strips private training
+payload. Actual final export and T4serving have not yet occurred. Software
+acceptance is not evidence of accuracy.
