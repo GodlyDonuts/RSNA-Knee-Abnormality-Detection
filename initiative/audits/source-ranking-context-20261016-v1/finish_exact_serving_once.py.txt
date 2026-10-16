@@ -1,0 +1,39 @@
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+actual=json.loads((L/'actual-prepared.json').read_text())
+assert actual['status']=='actual_ranking_final_export_CPU_math_and_private_preservation_accepted'
+files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('cloud.py.txt','run_phase_once.py')}
+start=time.monotonic();limit=24*3600
+with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_seconds':limit,'immutable_files':files,'maximum_Datasets':1,'maximum_notebook_pushes':2,'competition_entries':0,'future_original_full_parent_VM_funding_preserved':True,'automatic_mutation_retry':False,'component_sha256':actual['prepared']['component']['component_sha256']},f,indent=2)
+def progress(phase,**extra):(L/'finish.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds):
+ until=min(time.monotonic()+seconds,start+limit)
+ while time.monotonic()<until:time.sleep(min(60,max(.01,until-time.monotonic())))
+ assert time.monotonic()<start+limit,'Finite original serving observation expired; reconcile exact remote state'
+def run(phase):
+ for name,sha in files.items():assert hashlib.sha256((L/name).read_bytes()).hexdigest()==sha
+ progress(phase);x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),phase],env={**os.environ,'PYTHONPATH':str(Path.cwd())},capture_output=True,text=True,timeout=700)
+ with (L/('child-'+str(len(list(L.glob('child-*.json'))))+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original operation failed; no retry; inspect original intent/result'
+ outer=json.loads(x.stdout);assert outer['returncode']==0;return json.loads(outer['stdout'])
+try:
+ dataset=run('dataset');assert dataset['status']=='private_context_head_Dataset_all_objects_full_download_size_SHA_verified'
+ (L/'actual-dataset.json').write_text(json.dumps(dataset,indent=2)+'\n')
+ for role in ('qualification','competition'):
+  while True:
+   pushed=run(role+'-push')
+   if pushed['status']=='one_exact_context_'+role+'_pushed':break
+   assert pushed['status']=='waiting_authoritative_VM_allowance_preserving_original_full_fit' and pushed['mutation_intent_created'] is False
+   progress('waiting_VM_allowance_preserving_original_full_fit',actual=pushed);wait(300)
+  (L/(role+'-actual-pushed.json')).write_text(json.dumps(pushed,indent=2)+'\n');progress('one_exact_ranking_'+role+'_pushed',actual=pushed);wait(90)
+  while True:
+   observed=run(role+'-status');assert observed['status'] not in ('ERROR','CANCELLED'),'Actual notebook failed; do not repush or proceed'
+   if observed['status']=='COMPLETE':assert 'receipt' in observed;break
+   progress('observed_exact_ranking_'+role,actual=observed);wait(120)
+  (L/(role+'-actual-accepted.json')).write_text(json.dumps(observed,indent=2)+'\n');progress('actual_ranking_'+role+'_accepted',actual=observed)
+ result={'status':'actual_fixed_final_ranking_head_private_Dataset_T4_and_public_MRI_accepted','dataset':dataset,'public':observed,'competition_entries':0,'score_inferred':False}
+ (L/'finish.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+except BaseException as e:
+ result={'status':'stopped_original_ranking_serving_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False}
+ (L/'finish.result.json').write_text(json.dumps(result,indent=2)+'\n');raise
