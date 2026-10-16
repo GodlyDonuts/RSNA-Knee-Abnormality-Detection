@@ -1,3 +1,6 @@
+Current owner instruction: Devin is unavailable. Implement and verify work directly;
+do not create issues, wait for Devin or make progress depend on Devin.
+
 Current documentation contract: `docs/current-state.md` is the timestamped current
 state, `docs/research-brief.md` the research synthesis, and `docs/codex-continuation.md`
 the execution handoff. Update these in place after material changes. Dated narratives

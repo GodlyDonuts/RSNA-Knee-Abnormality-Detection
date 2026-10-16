@@ -209,3 +209,9 @@ Neighbor932957 has all 16 immutable epochs privately verified; weighted933001 ha
 verified fixed-final held-out result yet. Original expanded recovery933382 remains
 PENDING; its existing conditional owner51853 and context-entry owner33015 stay
 alive. Root implements this work directly; Devin is unavailable.
+
+Verified private preservation: sourcee2fd3911/all51smallobjects235,995bytes at
+HF9d593e484d0fde760381e12a7c606e2f84fb32a4, fully re-downloaded/size/SHAverified
+once under the canonical lock byCPU936730. No private arrays/images/identities/
+weights in the small mirror. [Exact receipt](../initiative/audits/hf-regional-expanded-20261016-v1/verified.json).
+Do not repeat this prefix or earlier verified milestones.

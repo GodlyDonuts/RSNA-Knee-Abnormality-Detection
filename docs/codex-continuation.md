@@ -453,3 +453,9 @@ No regional head fitting/accuracy/competition submission yet. Neighbor16/weighte
 immutableepochs are now fully private download/size/SHAverified; both original
 trainers remain running, no fixed-final challenger result yet.
 [Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+
+Verified private preservation: sourcee2fd3911/all51smallobjects235,995bytes at
+HF9d593e484d0fde760381e12a7c606e2f84fb32a4, fully re-downloaded/size/SHAverified
+once under the canonical lock byCPU936730. No private arrays/images/identities/
+weights in the small mirror. [Exact receipt](../initiative/audits/hf-regional-expanded-20261016-v1/verified.json).
+Do not repeat this prefix or earlier verified milestones.
