@@ -52,3 +52,7 @@ without rerunning the stage, before its first actual GPU push. Original result,
 control and [reconciliation](local-status-assertion-reconciled.json) remain.
 Finite observer6991 owns the one original run; never repeat prepare/push/feature
 inference. Inspect actual terminal/partial outputs on failure; never infer success.
+
+## Actual original terminal
+
+Original139034277/v1 is **ERROR**,970.3s; Kaggle explicitly reports system-memory exhaustion. Read-onlyCPU935391 recovered the private partial index:832records,0recorded study failures. This is not a complete or admitted cache. The original unbounded Pool result buffer can grow while the GPU consumer is slower; the exact allocation trace is unavailable. Preserve original outputs, use bounded pending tasks, and verify saved members before a distinct suffix-only recovery. Do not restart the old finite coordinator or repeat all3887MRI encodings. [Actual read-only receipt](actual-memory-failure-readonly.json), [visible platform error](visible-memory-error.json).

@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 13:48 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 14:35 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -36,15 +36,14 @@ Our external0.949/own0.894 results are distinct and below that reference.
 |---|---|---|---|
 | N3 selected-slot triples | 930744 → 932869 | **COMPLETED 0:0**, evc33 | Original fixed 16 epochs / 4,496 updates |
 | Source-neighbor challenger | **932957** | **RUNNING**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
-| Positive-weight challenger | **933001** | **PENDING**, evc33 | Fitting-derived positive BCE term weights |
+| Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
 Neighbor 932957 has **seven completed epochs**, empty stderr; epochs 1–7
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit
-has not started. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is now RUNNING (live14:19UTC); no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -174,7 +173,7 @@ exact initial parent logits; no accuracy gain is established. Twenty-one local
 tests pass. Actual zero-GPU CPU934887 staged one private label-free32-study
 feature/cache-identity probe, now COMPLETED as private139031253/v1:32studies
 in60.166s, bothT4s exact, FP32features, peakGPU3.19GB. The separately admitted
-full feature pass139034277/v1 is actually RUNNING on3,887safe training studies,
+full feature pass139034277/v1 reported ERROR from system-memory exhaustion after832saved records on3,887safe training studies,
 reusing those32 and encoding only3,855new cases. All25numerical function/class
 ASTs are unchanged; streaming archive I/O also passed an actual CPU test. No
 context fitting has started. [Full feature pass](../initiative/audits/released-context-full-cache-20261016-v1/README.md). The parent has seen our internal cohort, so no
@@ -187,3 +186,9 @@ admitted by actual account quota/server acceptance; healthy original jobs and
 Slurm holds were untouched. Free-quota accounting uses the lower of total and
 minimum allowance; no paid upgrade was requested. Numerical sources and daily
 competition limits remain intact.
+
+## October16 actual feature memory failure and next engine
+
+Original full feature139034277/v1 is ERROR970.3s, platform memory exhaustion; private partial832records/0recorded study failures remain reusable after byte checks. Its old finite controller is terminal and must never restart. Bounded pending CPU results are now implemented; a distinct suffix-only recovery remains to be admitted. New FP32context fitting engine implements fixed recipe, exact member checks, all RNG/order/AdamW/LR/update state and recovery; synthetic tests pass, but actual32-tensor engine recovery and full fitting are not yet run. No new accuracy is claimed.
+
+Sourcea2558281 and53smallobjects/462927B privately verified at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8 viaCPU935355; never repeat. [Receipt](../initiative/audits/hf-context-features-paired-20261016-v1/verified.json).

@@ -151,3 +151,7 @@ frozen feature pass is RUNNING once, reusing the original32. It creates no new
 weights or accuracy result; the full head training engine is the next task.
 The actual cache enables repeated context-head experiments without repeating
 expensive CNN inference. Raw/index/features remain private.
+
+## October16 feature-cache memory negative
+
+The label-free32-MRI feature pipeline passed, but the scaled3887pass139034277/v1 hit actual system-memory exhaustion at970.3s. Partial832records have0recorded per-study failures; they are not a complete accepted cache. Bound producer submissions as well as the consumer queue, then verify/reuse existing private feature bytes. This engineering failure is not a disease-classification result. The complete FP32context head engine is now implemented for actual recovery acceptance before fitting.

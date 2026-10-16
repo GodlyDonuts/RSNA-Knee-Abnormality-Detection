@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 13:48 UTC
+# Execution handoff — October 16, 2026, 14:35 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -45,7 +45,7 @@ actual recoverySHA6b823768418eae1af4921497e1ff8d99733e541262f463178e020129e82b61
 Output `/tmp/rsna-compact-neighbor-production-20261016-v1`. Existing publication
 watcher93110 and pinned coordinator preserve every completed immutable epoch once.
 
-Positive-weight full933001 remains PENDING on evc33; sourcef5af4f238929652f9f482c3741ee09d799fa9cc2,
+Positive-weight full933001 is now RUNNING (live14:19UTC) on evc33; sourcef5af4f238929652f9f482c3741ee09d799fa9cc2,
 output `/tmp/rsna-compact-positive-weight-production-20261016-v1`. Actual H100 recovery
 already passed. Existing publisher watcher24451 remains authority; do not duplicate.
 
@@ -376,3 +376,9 @@ on cached tensors, exact source/label/roster binding, final checkpoint andT4
 nonzero-head serving acceptance before competition deployment.
 
 Neighbor7 privately verified once HF90d7ac7924bc119b1bc40ef9c27196a1455f42d1; no repeat1–7.
+
+## October16 actual feature memory failure and next engine
+
+Original full feature139034277/v1 is ERROR970.3s, platform memory exhaustion; private partial832records/0recorded study failures remain reusable after byte checks. Its old finite controller is terminal and must never restart. Bounded pending CPU results are now implemented; a distinct suffix-only recovery remains to be admitted. New FP32context fitting engine implements fixed recipe, exact member checks, all RNG/order/AdamW/LR/update state and recovery; synthetic tests pass, but actual32-tensor engine recovery and full fitting are not yet run. No new accuracy is claimed.
+
+Sourcea2558281 and53smallobjects/462927B privately verified at HFaf4bf28765f81aaf5819cb8ca4b8f3726b66d7c8 viaCPU935355; never repeat. [Receipt](../initiative/audits/hf-context-features-paired-20261016-v1/verified.json).
