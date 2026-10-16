@@ -165,7 +165,7 @@ byCPU934786 under the canonical lock. Never repeat; see
 [verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
 No private clinical/identity/image/weight bytes in this milestone.
 
-## Sequence-context experiment: full features accepted, head fitting
+## Sequence context: completed fitting and serving acceptance
 
 The exact bounded two-T4 feature pass139044146/v1 **COMPLETED all3,887studies** in3,519.157seconds. It reused832verified originals and encoded only3,055newcases, with3.90GBparentRSS and3.19GBpeakGPU/device. CPU936070 collected the new2.37GBarchive once, verified every member and admitted the full fitting-only source boundary. Original arrays/UID/index stay private. [Full cache proof](../initiative/audits/released-context-full-feature-accepted-20261016-v1/README.md).
 
@@ -183,30 +183,29 @@ Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6
 
 Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).
 
-Regional-feature research update17:10UTC: original32probe139062311/v1 ERROR;
-distinct diagnostic139064546/v1 COMPLETE but no32acceptance. Observer features/
-logits were bit-exact; cross-run old-cache feature mismatch caused the two observed
-refusals despite <=0.000139parent probability drift. Corrected local compiler saves
-coherent global+regional+parent-logit same-forward records, preserves all remaining
-numerical bounds, adds sanitized failure observations; no full cache/trainer/score.
-[Original evidence and explicit decision](../initiative/audits/regional-feature-probe-20261016-v1/README.md).
-Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
-1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
-Root implements directly; Devin remains unavailable.
+## Spatial context: full feature pass running
 
-Actual regional32acceptance17:23UTC: corrected139066640/v1 COMPLETE/bothT4s;
-54.176seconds, bit-equal original model observer forward, no clinical labels or
-fitting. CPU936644 fully collected/verifiedall32coherent records once (111.05MB).
-[Accepted engineering result](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
-A full3887coherent feature route is now locally prepared and checked, reusing32
-and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
-required. This is not a regional training or accuracy result.
-[Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+The corrected probe **139066640/v1 completed all 32 MRI studies on both T4s** in
+54.176 seconds. The observer left original features/logits bit-equal; CPU/GPU
+regional reduction error was 1.526e-5 and FP16 storage error 4.879e-4. CPU936644
+collected the 111.05 MB archive once and verified every member, shape, dtype,
+finite value and original window metadata. Earlier cache mismatches and the failed
+first probe remain in the [failure audit](../initiative/audits/regional-feature-probe-20261016-v1/README.md).
+The corrected input stores global features, spatial summaries and parent logits
+from the **same forward pass**. It does not combine old embeddings with new regions.
+[Actual acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
 
-Full-regional dispatch17:31UTC: exact privateoffline139068442/v1 pushedonce with
-fresh quota/source/boundary and605.67GBall-liability reserve accepted. Finiteowner
-48632 observes and collects original new3855records once; accepted32are reused.
-No regional head fitting/accuracy/competition submission yet. Neighbor16/weighted10
-immutableepochs are now fully private download/size/SHAverified; both original
-trainers remain running, no fixed-final challenger result yet.
-[Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+Full private offline two-T4 pass **139068442/v1 is RUNNING**. It reuses the accepted
+32 records and encodes only 3,855 new cases for the exact 3,887-study fitting
+population. Seven summaries retain all 1,024 channels before global pooling;
+useful anatomical information and an accuracy gain remain unproven. Actual source,
+release membership, license, quota and fresh storage reserve passed before its
+single push. Finite owner48632 observes that exact original and collects its new
+archive once on completion. **No regional head has been trained or submitted.**
+[Full source, funding and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+
+Neighbor932957 has all 16 immutable epochs privately verified; weighted933001 has
+10. Both original jobs are still RUNNING at the latest check, so neither has a
+verified fixed-final held-out result yet. Original expanded recovery933382 remains
+PENDING; its existing conditional owner51853 and context-entry owner33015 stay
+alive. Root implements this work directly; Devin is unavailable.

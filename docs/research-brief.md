@@ -35,7 +35,7 @@ Current N3 triples are consecutive **selected slots**, not guaranteed consecutiv
 source slices. The source-neighbor challenger preserves original centers and all
 other registered settings. Its full fit and a separate positive-weight full fit
 were submitted after actual H100 recovery. Neighbor932957 is now actually training;
-weighted933001 is RUNNING; epochs1–6 privately verified. Neighbor epochs1–13 are privately verified.
+weighted933001 is RUNNING with10epochs privately verified; all16neighbor epochs are privately verified.
 Neither has demonstrated an accuracy gain. Public one-study gradient accumulation
 also means mixed-study BatchNorm is not a known missing ingredient.
 
@@ -138,30 +138,22 @@ The registered averaging result remains null: raw-servingE16 0.92068844 versus f
 
 A post-fit label-free check found the context adaptation changes0.935%–3.829%of strict study-pair orders (3,887fitting cases), rather than only shifting class calibration. This establishes behavior, not correctness or a clinical gain. The larger2,592study route now has actual CPUstaged production/preservation controls and one finite conditional owner; it still requires original real-H100 recovery933382 before any full GPU dispatch. No queued/staged process is counted as completed training.
 
-Regional-feature research update17:10UTC: original32probe139062311/v1 ERROR;
-distinct diagnostic139064546/v1 COMPLETE but no32acceptance. Observer features/
-logits were bit-exact; cross-run old-cache feature mismatch caused the two observed
-refusals despite <=0.000139parent probability drift. Corrected local compiler saves
-coherent global+regional+parent-logit same-forward records, preserves all remaining
-numerical bounds, adds sanitized failure observations; no full cache/trainer/score.
-[Original evidence and explicit decision](../initiative/audits/regional-feature-probe-20261016-v1/README.md).
-Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
-1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
-Root implements directly; Devin remains unavailable.
+## Spatial information hypothesis
 
-Actual regional32acceptance17:23UTC: corrected139066640/v1 COMPLETE/bothT4s;
-54.176seconds, bit-equal original model observer forward, no clinical labels or
-fitting. CPU936644 fully collected/verifiedall32coherent records once (111.05MB).
-[Accepted engineering result](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
-A full3887coherent feature route is now locally prepared and checked, reusing32
-and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
-required. This is not a regional training or accuracy result.
-[Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+The original frozen architecture reduces each1,024×10×10map to a global vector.
+Distinct synthetic focal/uniform maps can have the same global mean. This motivates
+retaining seven fixed spatial summaries, all1,024channels each, alongside the
+original global features. It does not establish disease localization, novelty or
+a causal explanation of the score gap.
 
-Full-regional dispatch17:31UTC: exact privateoffline139068442/v1 pushedonce with
-fresh quota/source/boundary and605.67GBall-liability reserve accepted. Finiteowner
-48632 observes and collects original new3855records once; accepted32are reused.
-No regional head fitting/accuracy/competition submission yet. Neighbor16/weighted10
-immutableepochs are now fully private download/size/SHAverified; both original
-trainers remain running, no fixed-final challenger result yet.
-[Actual dispatch and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
+Actual32MRI/both-T4engineering acceptance139066640/v1 passed, with original
+observer features/logits bit-equal. Cross-run global-feature differences caused
+the first probe's refusal, despite small parent probability drift; root numerical
+cause remains unproven. The corrected representation caches global, regional and
+parent outputs from one forward, never mixes old/new embeddings. An exact full
+3,887-study feature pass139068442/v1 is now RUNNING, reusing32accepted originals.
+No regional head training or accuracy result exists. Future real recovery,
+fixed-final comparisons and deployment acceptance remain necessary.
+[Original failure](../initiative/audits/regional-feature-probe-20261016-v1/README.md),
+[actual32acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md),
+[full experiment](../initiative/audits/regional-feature-full-20261016-v1/README.md).
