@@ -106,8 +106,9 @@ spatial export/T4serving yet.** Next: actual fixed-final/publication receipt per
 role, then strict final export plus anonymous32prediction CPUreference on already
 retained regional32cache. Reference arrays are only32×12, not copied features;
 reuse original private139066640v1 kernel output for T4feature qualification.
-Future slim components+refs share existing16MiB cap. Implement distinct typed
-spatial notebook/realT4precision/publicMRI acceptance before useful hidden entries.
+Future slim components+refs share existing16MiB cap. The distinct typed spatial compiler is now implemented,42focused tests/Ruff/Mypy
+passed and actual licensed parent compiles in both roles/modes. Actual CPUfinal
+export/realT4precision/publicMRI acceptance still precede useful hidden entries.
 Never submit engineering/Stanford/KneeCoT diagnostic or old uncertain versions.
 
 ## Preservation, resource and access

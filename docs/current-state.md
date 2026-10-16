@@ -246,7 +246,8 @@ Finiteowner34894 preserves all10immutable epochs per successful role privately o
 The accepted source46f5014d and unchanged5addea82numerical loop are frozen.
 512MiBtotal head/recovery cap and all prior resource liabilities are retained.
 The separate typed final exporter/FP32readout now passes33focused tests/Ruff/Mypy;
-actual final export and T4spatial serving remain separate work. No independent
+the separate compiler now passes42focused tests and compiles the actual licensed
+parent for both roles/modes. Actual final export and T4spatial execution remain. No independent
 internalOOF is claimed for the externally trained parent.
 [Prospective full controls](../initiative/audits/regional-context-production-20261016-v1/README.md).
 
