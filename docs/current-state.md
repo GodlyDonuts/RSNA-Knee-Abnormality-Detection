@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 21:35 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 21:39 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -367,3 +367,29 @@ Own expanded938284 and entry PIDs54576/69887/72998/watcher69208 remain untouched
 Four next-window candidates are still accepted/unsubmitted; no new hidden score
 or current-entry allowance is inferred from the CPU cache jobs. Root implements
 directly; Devin remains unavailable.
+
+
+Actual next-stage GPU139104577v1 is now RUNNING: private/offline twoT4 real32MRI
+trainer recovery, source10baa6a1/427f3be6d494. No competition entry or production
+fit. Sole observer exec95390/PID75626, continue-after-preintent-claim.* receipts.
+CPU939134 accepted all exact32pixel/fitting-label/source joins; CPU939135 was a
+pre-mutation busy-claim refusal. Distinct continuation verified absent original
+remote push intent/ledger row, waited for the canonical lock and pushed ONCE via
+CPU939147. Fresh conservative83362.257GPU seconds before1hmaxrequest. No score.
+[Exact original GPU state/receipts](../initiative/audits/licensed-parent-trainer-recovery-20261016-v1/README.md).
+
+A stronger whole-study path is separately prepared: nonreentrant checkpointed
+8-window encoder chunks let MIL attend over ALL94original windows per update,
+with every encoder/head parameter training and unchanged evaluation path.
+Synthetic exact forward/all-gradient/BN-buffer/RNG parity passed against the
+same full94graph without checkpointing. This trades extra computation for
+bounded memory; real T4 recovery/memory/timing is still required. Prefer this
+complete evidence exposure over12sampled windows if its engineering acceptance
+passes, without using tiny diagnostic accuracy to select it. No whole94 GPU has
+yet been dispatched. [Mechanism and limitations](../initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
+
+Current focused cache/engine/whole-bag/compiler QA:40tests passed;Ruff/mypy clean.
+The original12-window live GPU source and four CPU cache producers stay untouched.
+No additional clinical/competition score has been observed. Full Kaggle fitting
+must use measured timing and checkpoint-continuous fixed-schedule segments when
+needed; never assume3epochs fit one9h session or reset the LR schedule per segment.

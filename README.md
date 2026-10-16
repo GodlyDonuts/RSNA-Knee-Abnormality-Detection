@@ -8,7 +8,7 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the **October 16, 20:35 UTC** check, our own CoAtNet epoch 16 scored
+At the **October 16, 21:39 UTC** check, our own CoAtNet epoch 16 scored
 **0.894**, following epochs 4/8/12 at 0.821/0.869/0.890. The reproduced external
 author-trained model scored **0.949**; that is an attributed baseline, not our
 training improvement. Both matched CNN challengers completed. Positive weighting
@@ -33,6 +33,15 @@ three-study public MRI acceptance and has a spaced fourth entry owner. No new co
 The current label blend has only 28 of 46,644 cells exactly 0.5, so those cells
 alone cannot explain the gap. Fractional confidence changes the supervision more
 broadly. [Actual contrast and source-semantics finding](initiative/audits/source-confidence-context-20261016-v1/README.md).
+
+The next full-encoder direction starts from the licensed MRI-trained0.949
+foundation. Actual32MRI input preservation passed with identical original pixels
+and both94-window model inputs. Four full3887-study CPU cache shards are now
+running on Kaggle; a separate exact-parent twoT4 training-recovery probe is also
+running. Neither is a scored improvement. A whole-study checkpointed encoder
+path passed synthetic exact forward/gradient/RNG tests and could train on all94
+windows without retaining every activation. It still needs actual T4 acceptance.
+[Current full-encoder program](initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
 
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
 on 3,887 fitting studies. This is evidence about training exposure, **not disease

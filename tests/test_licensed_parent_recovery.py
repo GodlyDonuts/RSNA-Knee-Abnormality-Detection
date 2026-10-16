@@ -59,3 +59,27 @@ def test_incomplete_or_unadmitted_private_payload_is_rejected(monkeypatch, bad):
         targets["eligible_fitting_only"] = False
     with pytest.raises(ValueError):
         recovery.build(parent, "synthetic", files, targets)
+
+
+def test_whole94_extension_keeps_original_encoder_inference_and_all_initial_weights(monkeypatch):
+    parent, files, targets = sources(monkeypatch)
+    files[recovery.WHOLE_MODULE] = "# Synthetic mixin compilation fixture\n"
+    source, binding = recovery.build(parent, "synthetic", files, targets, whole_study=True)
+    compile(source, "synthetic-whole94-compiler-only", "exec")
+    assert binding["whole94_checkpointed_training"] is True
+    import ast
+    import base64
+
+    assignments = {
+        n.targets[0].id: ast.literal_eval(n.value)
+        for n in ast.parse(source).body
+        if isinstance(n, ast.Assign)
+        and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id in ("WORKER",)
+    }
+    worker = base64.b64decode(assignments["WORKER"]).decode()
+    assert "Recipe(epochs=2,windows=94)" in worker
+    assert "WholeStudyRaptor(CheckpointedEncode,RaptorClassifier)" in worker
+    assert "value.load_state_dict(base.state_dict(),strict=True)" in worker
+    assert "all94_original_windows_checkpointed8" in worker

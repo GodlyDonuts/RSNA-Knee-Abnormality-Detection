@@ -22,10 +22,18 @@ MODULES = (
 )
 
 
-def build(parent, codec, files, private_targets):
+WHOLE_MODULE = "rsna/competitive/licensed_full_bag.py"
+
+
+def build(parent, codec, files, private_targets, *, whole_study=False):
     if hashlib.sha256(parent.encode()).hexdigest() != PARENT_SOURCE_SHA256:
         raise ValueError("Exact scored licensed model source required")
-    if set(files) != set(MODULES) or not isinstance(private_targets, dict):
+    expected_modules = set(MODULES) | ({WHOLE_MODULE} if whole_study else set())
+    if (
+        type(whole_study) is not bool
+        or set(files) != expected_modules
+        or not isinstance(private_targets, dict)
+    ):
         raise ValueError("Complete own numerical module closure and private32 targets required")
     ids = private_targets.get("uids", [])
     if len(ids) != 32 or len(set(ids)) != 32 or not private_targets.get("eligible_fitting_only"):
@@ -109,6 +117,30 @@ def main():
 if __name__=='__main__':main()
 """
     )
+    if whole_study:
+        helper = """
+from rsna.competitive.licensed_full_bag import CheckpointedEncode
+class WholeStudyRaptor(CheckpointedEncode,RaptorClassifier):pass
+def _whole_model(base):
+    value=WholeStudyRaptor(base.backbone,F_dim=base.backbone.num_features)
+    value.to(next(base.parameters()).device)
+    value.load_state_dict(base.state_dict(),strict=True)
+    assert value.state_dict().keys()==base.state_dict().keys() and all(torch.equal(x,base.state_dict()[n]) for n,x in value.state_dict().items())
+    return value.eval()
+"""
+        worker = worker.replace(
+            "import argparse,random,sys", helper + "\nimport argparse,random,sys"
+        )
+        assert worker.count("model,res=load_model(") == worker.count("Recipe(epochs=2)") == 1
+        worker = worker.replace("model,res=load_model(", "base,res=load_model(")
+        worker = worker.replace(
+            ";assert res==320", ";model=_whole_model(base);del base;assert res==320"
+        )
+        worker = worker.replace("Recipe(epochs=2)", "Recipe(epochs=2,windows=94)")
+        worker = worker.replace(
+            "'diagnostic_only':True",
+            "'training_bag':'all94_original_windows_checkpointed8','diagnostic_only':True",
+        )
     compile(worker, "private_original_MRI_twoT4_worker", "exec")
     bootstrap = r"""
 import os,sys,json,base64,subprocess,time,hashlib,shutil
@@ -158,4 +190,5 @@ receipt={'status':'actual_original_MRI_parent_twoT4_full_stop1_resume_complete_s
         "disjoint_engineering_studies": 16,
         "GPU_world_size": 2,
         "competition_entry": False,
+        "whole94_checkpointed_training": whole_study,
     }

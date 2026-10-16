@@ -38,3 +38,20 @@ contains no independent accuracy metric. Private UIDs/targets/source bodies and
 weights are injected only on authorized storage; no clinical rows enter Git.
 Actual source/GPU quota/funding and single coordinator dispatch are still
 required. Do not treat a prepared wrapper or CPU tests as real GPU acceptance.
+
+Actual GPU recovery139104577v1 was pushed ONCE from frozen source10baa6a1,
+godlydonuts/rsna-parent-real-recovery-427f3be6d494, exact source427f3be6d494.
+Actual latest state is RUNNING, not accepted. CPU939134 admitted original32
+pixel/source/label joins and new16MiBcontrols after607078528963prior bytes.
+CPU939135 stopped on a busy canonical claim BEFORE a push intent/API mutation;
+the exact source was reused by a DISTINCT continuation that requires absent
+remote intent/ledger row and waits up to120seconds for the canonical claim.
+CPU939147 returned the sole SaveKernel receipt; no duplicate notebook/entry.
+Fresh conservative GPU allowance before push83362.257seconds; requestmax3600s.
+
+Sole finite original observer exec95390/PID75626, artifacts/licensed-parent-
+trainer-recovery-20261016-v1/continue_after_preintent_claim_busy_once.py, observes
+actual terminal once and has no production/competition phase. Original75484 is
+terminal pre-push failure and must not restart. Exact stage/first failure/current
+control sources are preserved here. The12-window probe source is frozen even
+while a distinct whole94checkpointed extension is developed.
