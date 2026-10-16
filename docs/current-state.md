@@ -276,4 +276,3 @@ privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
 under the canonical lock byCPU938041; no private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
-
