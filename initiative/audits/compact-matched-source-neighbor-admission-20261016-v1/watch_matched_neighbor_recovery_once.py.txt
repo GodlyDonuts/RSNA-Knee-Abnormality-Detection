@@ -1,0 +1,22 @@
+"""Finite exact-original recovery observer; never dispatches another GPU job."""
+import json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+with (L/'matched-neighbor-recovery-observer.intent.json').open('x') as f:json.dump({'original_job':'931961','maximum_seconds':14400,'new_GPU_jobs':0,'automatic_retry':False},f)
+started=time.monotonic()
+try:
+ while time.monotonic()-started<14400:
+  x=subprocess.run(ssh+['sacct -X -j 931961 -n -P --format=State,ExitCode'],capture_output=True,text=True,timeout=40)
+  if x.returncode:raise RuntimeError('Observation lost; original job is not inferred terminal')
+  rows=[s for s in x.stdout.splitlines() if s.strip()];assert len(rows)==1;state,code=rows[0].split('|')[:2]
+  (L/'matched-neighbor-recovery-observer-progress.json').write_text(json.dumps({'original_job':'931961','state':state,'exit':code,'elapsed_seconds':time.monotonic()-started},indent=2)+'\n')
+  if state in ['PENDING','RUNNING','COMPLETING','CONFIGURING']:time.sleep(120);continue
+  if state!='COMPLETED' or code!='0:0':result={'status':'original_recovery_terminal_not_accepted','state':state,'exit':code,'new_GPU_jobs':0};break
+  program="import hashlib,json;from pathlib import Path;p=Path('/tmp/rsna-compact-matched-neighbor-inputs-20261016-v1/recovery-v1/accepted.json');v=json.loads(p.read_text());assert v['job_id']=='931961' and v['status']=='actual_matched_source_neighbor_H100_recovery_accepted';print(json.dumps({'receipt':v,'accepted_sha256':hashlib.sha256(p.read_bytes()).hexdigest()}))"
+  cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:02:00','--job-name=rsna-compact-neighbor-readout','/usr/bin/python3.12','-B','-c',program]
+  with (L/'matched-neighbor-recovery-terminal-CPU.intent.json').open('x') as f:json.dump({'original_job':'931961','CPU':1,'GPU':0,'terminal':state,'exit':code},f)
+  x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=180);v={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'matched-neighbor-recovery-terminal-CPU.result.json').write_text(json.dumps(v,indent=2)+'\n');assert x.returncode==0
+  result={'status':'actual_original_H100_recovery_receipt_collected','original_job':'931961','actual':json.loads(x.stdout),'new_GPU_jobs':0};break
+ else:result={'status':'finite_observation_deadline','original_job':'931961','new_GPU_jobs':0}
+except Exception as exc:result={'status':'observation_interrupted_exact_original_review_required','error_type':type(exc).__name__,'reason':str(exc),'new_GPU_jobs':0}
+(L/'matched-neighbor-recovery-observer-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
