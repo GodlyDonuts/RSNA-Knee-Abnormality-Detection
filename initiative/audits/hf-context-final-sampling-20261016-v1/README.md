@@ -1,0 +1,5 @@
+# Context final / sampling milestone privately verified
+
+GitHub source4428247bee7ef752d4c57690839e90c073af472c is privately mirrored ONCE at HF**e9d200fbbc9d6fcc9d12838279ceaf28bd75a35a**, prefixinitiative-milestones/20261016-context-final-sampling-4428247bee7e. CPU936214 verified all64smallobjects/269,278bytes by complete re-download/size/SHA under the canonical shared publication lock. No MRI/clinical labels/weight arrays/identifiers/reference predictions were included. Never repeat this prefix or prior verified mirrors. This receipt is the following Git record, not a claim that it recursively includes itself.
+
+It preserves new serving/importance source and tests, actual3,887-feature acceptance, the fixed-final head fitting/preservation/actualtwoT4/publicMRI receipts, next-allowance single-entry owner and newly completed original challenger epoch receipts. Production head weights were separately verified at HF81d542359d3c06435367c173a2b9a2947f561b1f/34objects57,003,961bytes; those are not copied into this small milestone.
