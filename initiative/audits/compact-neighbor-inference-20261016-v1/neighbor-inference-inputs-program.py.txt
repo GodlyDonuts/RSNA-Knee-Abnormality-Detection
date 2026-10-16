@@ -1,0 +1,37 @@
+
+import argparse,hashlib,json,os,shutil,sys,types
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-compact-neighbor-inference-20261016-v1');assert not R.exists()
+required=396100843459+(20+24+2+70+4+16)*2**30+144*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+assert hashlib.sha256(v['source'].encode()).hexdigest()==v['source_sha256'] and len(v['source'].encode())<64*2**10
+control=Path('/tmp/rsna-compact-matched-neighbor-inputs-20261016-v1');admit=control/'accepted.json';assert hashlib.sha256(admit.read_bytes()).hexdigest()=='7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352'
+accepted=json.loads(admit.read_text());S=Path(accepted['source']);sys.path[:0]=[str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+os.environ['HF_HUB_OFFLINE']='1'
+import torch
+from rsna.competitive.compact_train import admitted_datasets
+from rsna.competitive.compact_source_neighbors import MatchedSourceNeighborDataset,POLICY,ENGINE,select_window_tensor
+from rsna.competitive.compact_bag import candidate_windows
+from rsna.competitive.checkpoint import file_sha256
+proof_path=control/'inputs/inputs.json';assert file_sha256(proof_path)==accepted['input_receipt_sha256'];proof=json.loads(proof_path.read_text())
+for name,expected in proof['binding']['source_sha256'].items():assert file_sha256(S/name)==expected,name
+module=types.ModuleType('rsna.competitive.compact_neighbor_infer');sys.modules[module.__name__]=module;exec(compile(v['source'],'compact_neighbor_infer','exec'),module.__dict__)
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');cache=Path(accepted['cache']);args=argparse.Namespace(studies=A/'initiative/releases/report-supervision-v1/studies.parquet',folds=A/'initiative/experiments/competitive-v1/folds',series=A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv',artifact_root=A,cache=cache,fitting_supervision=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json'),engineering=False)
+base,outer,binding=admitted_datasets(args);assert binding['fitting_uids_sha256']==proof['binding']['fitting_uids_sha256'] and len(base)==2247 and len(outer)==1156
+# Membership is the original accepted fitting roster; no outer sample is decoded.
+ids=base.studies.study_uid.iloc[:16].tolist();original=MatchedSourceNeighborDataset(base)
+import pandas as pd
+series=pd.read_csv(args.series);series=series.loc[series.StudyInstanceUID.isin(ids)].copy()
+image_only=module.inference_dataset(ids,series,cache,raw_split='train_series');assert image_only.input_policy==POLICY
+assert image_only.studies[[t+'__mask' for t in module.TARGETS]].eq(0).all().all()
+torch.set_num_threads(1);digest=hashlib.sha256();windows_total=0;fallbacks=0
+for i,uid in enumerate(ids):
+ a=original[i];b=image_only[i];assert a['study_uid']==b['study_uid']==uid
+ for key in ['series_mask','slice_mask']:assert torch.equal(a[key],b[key])
+ assert b['source_window_plan_sha256']==a['source_window_plan_sha256'] and b['legacy_edge_fallback_windows']==a['legacy_edge_fallback_windows']
+ windows=candidate_windows(a['series_mask'],a['slice_mask']);x=select_window_tensor(a,windows);y=select_window_tensor(b,windows);assert torch.equal(x,y)
+ assert b['labels'].eq(0).all() and b['label_mask'].eq(0).all()
+ digest.update(y.contiguous().numpy().tobytes());digest.update(b['source_window_plan_sha256'].encode());windows_total+=len(windows);fallbacks+=b['legacy_edge_fallback_windows']
+R.mkdir(mode=0o700);(R/'compact_neighbor_infer.py').write_text(v['source'])
+receipt={'status':'label_free_neighbor_inference_tensors_equal_to_frozen_trainer','job_id':os.environ['SLURM_JOB_ID'],'node':'evc33','training_source_git':accepted['source_git'],'inference_source_sha256':v['source_sha256'],'original_CPU_admission_sha256':file_sha256(admit),'input_policy':POLICY,'engine':ENGINE,'fitting_engineering_studies':len(ids),'windows':windows_total,'legacy_edge_fallback_windows':fallbacks,'training_vs_inference_windows_masks_and_plan_hashes_bit_equal':True,'inference_all_targets_masks_unobserved_zero':True,'tensors_and_plans_sha256':digest.hexdigest(),'outer_studies_decoded':0,'encoder_optimizer_or_GPU_run':False,'clinical_accuracy_claim':False,'new_shared_bytes_files':0,'new_control_within_prior128MiB':True,'free_after_all_liabilities':free-required}
+(R/'accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps({**receipt,'accepted_sha256':file_sha256(R/'accepted.json')}),flush=True)
