@@ -1,0 +1,29 @@
+"""Read actual remote result into the sole ledger; never submit or push."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+program=r'''
+import hashlib,importlib.util,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');p=C/'workflow.py';assert p.read_text()==v['workflow']
+spec=importlib.util.spec_from_file_location('released_score_workflow',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700)
+try:
+ (claim/'owner.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'operation':'actual_compact_epoch016_score_reconciliation'}))
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),r.username) as db:
+  value=w.reconcile_submission(r,db,'5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5');assert value['submission_id']==57265916 and value['remote_outcome']=='scored' and value['public_score']=='0.894'
+  print(json.dumps({'status':'actual_compact_epoch016_score_canonically_reconciled','entry':value,'account':r.account(),'new_submission':False}),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+'''
+with (L/'epoch016-score-reconcile.intent.json').open('x') as f:json.dump({'submission_id':57265916,'new_Kaggle_mutation':False,'program_sha256':hashlib.sha256(program.encode()).hexdigest()},f)
+values={}
+for line in Path('.env').read_text().splitlines():
+ k,sep,value=line.partition('=')
+ if sep:values[k.strip()]=value.strip().strip('\"\'')
+payload={'workflow':Path('scripts/kaggle/workflow.py').read_text(),'token':values['KAGGLE_API_TOKEN']}
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-released-score-reconcile','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=350);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'epoch016-score-reconcile.result.json').write_text(json.dumps(out,indent=2)+'\n');assert x.returncode==0;v=json.loads(x.stdout);print(json.dumps({'status':v['status'],'submission_id':v['entry']['submission_id'],'public_score':v['entry']['public_score'],'actual_outcome':v['entry']['remote_outcome'],'remaining_slots':v['account']['num_allowed_now']}),flush=True)

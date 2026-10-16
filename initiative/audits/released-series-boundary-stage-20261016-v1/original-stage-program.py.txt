@@ -1,0 +1,95 @@
+"""One canonical code-variant coordinator, preserving the scored weight entry."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,types
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('prepare','push','status','finalize','submit','outcome')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-released-series-boundary-20261016-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+if phase=='prepare':
+ assert not R.exists() and shutil.disk_usage('/tmp').free>581021415363+2*2**30+2*2**20+16*2**20;R.mkdir(mode=0o700)
+else:assert R.is_dir()
+for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('boundary_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication');variants=types.ModuleType('boundary_variants');exec(compile(v['variant_helper'],'inference_variants','exec'),variants.__dict__)
+csv=types.ModuleType('boundary_csv');exec(compile(v['csv_helper'],'output_csv','exec'),csv.__dict__)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';parent='godlydonuts/rsna-released0949-offline-7e5315dad125';source_parent=r.kernel('GetKernel',parent,1);assert hashlib.sha256(source_parent['blob']['source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+dataset='nartaa/rsna-knee-publication-swa-weights-20261007';d=r.dataset(dataset);assert d['id']==12431568 and d['currentVersionNumber']==1 and not d.get('isPrivate',False)
+assert hashlib.sha256(d['description'].encode()).hexdigest()==v['permission_description_sha256'] and v['decision']['external_model_competition_admitted'] is True and v['decision']['protected_internal_evaluation_permitted'] is False
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);p.exclusive_json(claim/'owner.json',{'job_id':os.environ['SLURM_JOB_ID'],'kind':'licensed_series_boundary_inference','phase':phase,'uncertainty_requires_read_only_reconciliation':True});retain_claim=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),r.username) as db:
+  w.verify_account(db,r);parent_record=w.read_entry(db,weight);parent_hash=w.object_hash(parent_record);assert parent_record['submission_id']==57258866 and parent_record['remote_outcome']=='scored' and parent_record['public_score']=='0.949'
+  if phase=='prepare':
+   for policy,item in v['candidates'].items():
+    prepared=item['prepared'];entry=item['entry'];assert prepared['policy']==policy and prepared['checkpoint_sha256']==weight and hashlib.sha256(entry.encode()).hexdigest()==prepared['source_sha256'];compile(entry,'boundary_notebook','exec')
+    D=R/policy;D.mkdir(mode=0o700);(D/'notebook.py').write_text(entry);p.exclusive_json(D/'prepared.json',prepared)
+    record={'schema_version':1,'kind':variants.KIND,'weights_sha256':weight,'source_sha256':prepared['source_sha256'],'parent_source_sha256':prepared['parent_source_sha256'],'policy':policy,'variant_sha256':variants.identity(weight,prepared['source_sha256'],policy),'kernel_slug':prepared['kernel_slug'],'own_training':False,'independent_internal_validation':False,'state':'prepared','created_at':w.utcnow(),'agent_admission':v['decision']}
+    variants.save(db,record,previous_state=None,at=w.utcnow());p.exclusive_json(D/'canonical-prepared.json',record)
+   receipt={'status':'two_distinct_licensed_boundary_candidates_CPU_staged','CPU_job':os.environ['SLURM_JOB_ID'],'policies':list(v['candidates']),'new_weight_or_Dataset_bytes':0,'new_node_controls_cap_bytes':16*2**20,'free_after_all_liabilities':shutil.disk_usage('/tmp').free-(581021415363+2*2**30+2*2**20+16*2**20),'canonical_scored_parent_entry_unchanged':w.object_hash(w.read_entry(db,weight))==parent_hash,'new_competition_submissions':0,'GPU_used':False}
+   p.exclusive_json(R/'prepared.json',receipt);out=receipt
+  elif phase=='finalize':
+   for policy,item in v['candidates'].items():
+    record=variants.read(db,variants.identity(weight,item['prepared']['source_sha256'],policy))
+    if record['state'] in ('pushed','push_intent','push_uncertain'):raise ValueError('Original variant is nonterminal/uncertain; keep owned GPU hold')
+   if (R/'patch-held.json').exists() and not (R/'patch-release-intent.json').exists():
+    p.exclusive_json(R/'patch-release-intent.json',{'job_id':'929938','actual_original_variants_terminal':True});subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(R/'patch-released.json',{'job_id':'929938','released':True})
+   out={'status':'original_boundary_public_queue_finalized','competition_submission':False}
+  else:
+   policy=v['policy'];prepared=v['candidates'][policy]['prepared'];entry=v['candidates'][policy]['entry'];D=R/policy;assert (D/'notebook.py').read_text()==entry and json.loads((D/'prepared.json').read_text())==prepared
+   key=variants.identity(weight,prepared['source_sha256'],policy);record=variants.read(db,key);slug=prepared['kernel_slug']
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':entry,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   if phase=='push':
+    assert record['state']=='prepared' and not (D/'push-intent.json').exists()
+    nodes={line.split('|')[0] for line in subprocess.check_output(['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b'],text=True).splitlines() if 'gpu' in line.split('|')[-1]};assert len(nodes)<=1
+    q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));assert seconds(q['timeReserved'])==0 and min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])>=64800
+    absence=r.require_absent_kernel(slug)
+    state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip()
+    if state=='PENDING':
+     job=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True)
+     if (R/'patch-held.json').exists():assert 'Reason=JobHeldUser' in job
+     else:
+      assert 'Reason=JobHeldUser' not in job;p.exclusive_json(R/'patch-hold-intent.json',{'job_id':'929938','reason':'two short serialized licensed boundary public runs'});subprocess.run(['scontrol','hold','929938'],check=True);p.exclusive_json(R/'patch-held.json',{'job_id':'929938','held':True})
+    p.exclusive_json(D/'push-intent.json',{'source_sha256':prepared['source_sha256'],'weights_sha256':weight,'variant_sha256':key,'request_sha256':w.object_hash(request),'absence':absence,'automatic_retry':False});record.update(state='push_intent',push_at=w.utcnow());variants.save(db,record,previous_state='prepared',at=w.utcnow())
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);p.exclusive_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except Exception:
+     record['state']='push_uncertain';variants.save(db,record,previous_state='push_intent',at=w.utcnow());retain_claim=True;raise
+    record.update(state='pushed',kernel_version=1,kernel_id=response['kernelId']);variants.save(db,record,previous_state='push_intent',at=w.utcnow());out={'status':'one_exact_boundary_variant_pushed','policy':policy,'kernel_slug':slug,'kernel_id':response['kernelId'],'version':1,'variant_sha256':key,'source_sha256':prepared['source_sha256'],'checkpoint_sha256':weight,'competition_submission':False}
+   else:
+    current=r.kernel('GetKernel',slug,1);assert current['blob']['source']==entry;m=current['metadata']
+    for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+    for name in ('datasetDataSources','competitionDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'policy':policy,'kernel_slug':slug,'version':1,'competition_submission':False}
+    if phase=='status' and status in ('ERROR','CANCELLED'):
+     assert record['state']=='pushed';record.update(state='public_failed',public_status=status);variants.save(db,record,previous_state='pushed',at=w.utcnow())
+    if phase in ('status','submit') and status=='COMPLETE':
+     actual=r.output_json(slug,1,'series-boundary-accepted.json');assert actual['status']=='released_model_series_boundary_MRI_CSV_complete' and actual['policy']==policy and actual['checkpoint_sha256']==weight and actual['parent_source_sha256']==prepared['parent_source_sha256'] and actual['helper_sha256']==prepared['helper_sha256'] and actual['own_training'] is False and actual['independent_internal_validation'] is False and actual['source_models_unchanged'] is True and actual['studies']==3 and actual['prediction_counts']=={'started':6,'completed':6,'failed':0} and len(actual['devices'])==2 and all(x['actual_CPU_GPU_pixels_bit_equal'] and 'T4' in x['name'] for x in actual['devices'])
+     checked=csv.verify_csv(csv.download_csv(r,slug,1),v['columns'],v['expected_roster_sha256']);assert checked['CSV_sha256']==actual['CSV_sha256'] and checked['studies']==3
+     out.update(receipt=actual,CSV_verified=checked)
+     if not (D/'public-accepted.json').exists():
+      assert record['state']=='pushed';p.exclusive_json(D/'public-accepted.json',out);record.update(state='public_accepted',public_acceptance=actual,CSV_verified=checked);variants.save(db,record,previous_state='pushed',at=w.utcnow())
+     else:assert record['state'] in ('public_accepted','submitted','scored','failed')
+    if phase=='submit':
+     assert status=='COMPLETE' and record['state']=='public_accepted' and not (D/'submit-intent.json').exists()
+     account=r.account();slots=w.allowance(db,account);assert slots>0
+     unresolved=db.execute("SELECT COUNT(*) FROM inference_variants WHERE json_extract(record,'$.state') IN ('push_intent','push_uncertain','submit_intent','submit_uncertain')").fetchone()[0];assert unresolved==0
+     description='rsna-series-boundary-v1:'+key;assert not [x for x in r.submissions() if x.get('description')==description]
+     p.exclusive_json(D/'submit-intent.json',{'variant_sha256':key,'kernel_slug':slug,'version':1,'description':description,'account':account,'fresh_allowance':slots});record.update(state='submit_intent',attempted_at=w.utcnow(),description=description,quota_before=account);variants.save(db,record,previous_state='public_accepted',at=w.utcnow())
+     try:
+      owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});p.exclusive_json(D/'submit-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     except Exception:
+      record['state']='submit_uncertain';variants.save(db,record,previous_state='submit_intent',at=w.utcnow());retain_claim=True;raise
+     record.update(state='submitted',submission_id=response['ref'],submitted_at=w.utcnow());variants.save(db,record,previous_state='submit_intent',at=w.utcnow());out={'status':'one_boundary_code_submission_accepted','entry':record,'competition_submission':True}
+    if phase=='outcome':
+     assert record['state']=='submitted';matches=[x for x in r.submissions() if x['ref']==record['submission_id']];assert len(matches)==1;found=matches[0];out['submission']={k:found.get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')}
+     if found.get('status')=='COMPLETE' and found.get('publicScore') is not None:
+      assert not found.get('errorDescription');record.update(state='scored',public_score=found['publicScore'],observed_at=w.utcnow());variants.save(db,record,previous_state='submitted',at=w.utcnow())
+     elif found.get('status')=='COMPLETE' and found.get('errorDescription'):
+      record.update(state='failed',error=found['errorDescription'],observed_at=w.utcnow());variants.save(db,record,previous_state='submitted',at=w.utcnow())
+  assert w.object_hash(w.read_entry(db,weight))==parent_hash,'The scored parent checkpoint entry must remain exact'
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain_claim:(claim/'owner.json').unlink();claim.rmdir()

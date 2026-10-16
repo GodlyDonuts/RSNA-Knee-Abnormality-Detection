@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 11:40 UTC
+# Execution handoff — October 16, 2026, 12:40 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -23,9 +23,9 @@ Original publication handoff89728 and curve45020 are TERMINAL successful; never
 restart. The curve submitted E8/E12/E16 once each. E16 submission57265916 at10:35UTC
 uses exact private offline notebook `godlydonuts/rsna-compact-offline-e016-5bec97796423`v1.
 E12 is57262392, now COMPLETE/public0.890/no error/381602bytes and canonically
-reconciled byCPU934310. This is the new own-trained best. E16 was still unreported
-at11:40UTC. E8 actual.869; E4 actual.821; external57258866 actual.949.
-Fresh authoritative account at11:22: five today/zero slots. Never upload public
+reconciled byCPU934310. E16 is now COMPLETE/public0.894/no error/382473bytes and
+canonically reconciled byCPU934756 at12:36UTC, our new own-trained best. Never repeat it. E8 actual.869; E4 actual.821; external57258866 actual.949.
+Fresh authoritative account at12:36: five today/zero slots. Never upload public
 three-row CSVs or resubmit original versions.
 
 Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`; claim
@@ -36,7 +36,7 @@ read-only. All local controls are in `artifacts/compact-native-n3-launch-2026101
 ## Current training
 
 Source-neighbor full932957 is actually RUNNING on evc33, allocated H100 checks
-passed,740finite updates/epoch3 and empty stderr at11:30UTC. Epochs1–3 now
+passed, five completed epochs observed. Epochs1–5 now
 privately fully8-object download/size/SHA verified once. Latest epoch2 HF
 37aa0d19308ae5a8bdf10f7a75dd1f2ade12ea1a; never repeat them. Do not stop,
 relocate, restart or change it. Source3803b717b69db6c5e89e11724c4daee15490cbe2;
@@ -136,7 +136,7 @@ action; observation loss is not job terminal/restart authority.
 
 Retain original conservative obligations plus expanded metadata/fit, average and
 dense/source controls: threshold581021415363bytes plus2MiB small milestone reserve, now additionally
-2GiB for paired-average component/ZIP. ActualCPU934300 had81.51GB remaining after
+2GiB for paired-average component/ZIP, and16MiB for boundary controls. ActualCPU934300 had81.51GB remaining after
 all these obligations. No shared growth.
 No deletion credit. evc39 independently funded160GiBnative+20GiBruntime+16GiBfit/
 recovery+128MiBcontrols+20GiBuntouched reserve. Fresh actual quota governs action.
@@ -151,12 +151,11 @@ HF1ab4b530bbe7c70b3c29db64da384e04f0294332. All63smallobjects/204935bytes fully
 re-downloaded/size/SHA verified under canonical lock byCPU934459. Never repeat
 this prefix or earlier mirrors; read hf-E12-paired-research-20261016-v1 proof.
 
-Prioritize actual results from current mechanisms. A useful next efficiency test
-is sampling the same12training windows before materializing all84: current native
-neighbor loading expands every donor window, then validates/selects a small subset.
-Measure CPU/read/render cost and prove selected tensor/global-RNG equality before
-any new registered fast path; do not alter a healthy frozen run. Faster feeding is
-not an accuracy claim. Protected gold/confirmation remain unused.
+Prioritize actual results. Code inspection confirms baseline N3 already calls
+sample_windows BEFORE model_windows; do not implement a duplicate preselection
+fast path. The CPU934424 counterfactual used arbitrary fixed12 subsets, not actual
+production balanced bags. Neighbor dataset eager donor construction is a separate
+future optimization; never modify healthy932957. Read corrected CPU-profile scope.
 
 ## Next high-value use of Kaggle
 
@@ -225,5 +224,41 @@ versus full-then-select bit-equal/globalCPU RNG unchanged. Window materializatio
 2.1092→.9034seconds summed medians; loading5.3107seconds. Existing128MiBsmall
 controls only/zero shared growth. No trainer, optimizer or GPU ran/changed;
 no end-to-end speed or accuracy claim. Read compact-selected-window-cost-20261016-v1.
-This gives a measured fast-path proposal for the next separately accepted fit,
-not permission to modify healthy neighbor932957 or original queued contrasts.
+This is a counterfactual materialization profile. Baseline N3 already uses selected
+window construction; no new N3 speedup exists. Only eager neighbor donor loading
+remains an unimplemented possible optimization. No healthy/queued source changes.
+
+## Actual licensed series-boundary stage and live finite queue
+
+Sourcec125200a introduces indexed edge-repeat/within-series hypotheses over the
+licensed external0.949 parent, not newly trained weights. Zero-GPU CPU934627
+COMPLETED0:0 staged both once, parent canonical entry unchanged, remaining
+80610887741bytes after all liabilities. No new Dataset/weight transfer.
+Read released-series-boundary-stage-20261016-v1 and protocol. Parent private
+sourceSHA493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde;
+checkpoint7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef.
+
+- Primary edge-repeat exactslug godlydonuts/rsna-series-edge-repeat-c70bf4c4fe2a;
+  sourcec70bf4c4fe2a4e173b0fb50786651081b867f38c4fa5131c87b9151693412d26.
+- Secondary godlydonuts/rsna-series-within-series-44e565f44f33;
+  source44e565f44f338ba7688da699a53b786ff1256c2d88c40066225fe9fc1d15eab8.
+- Controlroot /tmp/rsna-released-series-boundary-20261016-v1; local
+  artifacts/compact-native-n3-launch-20261016-v1/series-boundary.
+
+Finite public queue20793 is LIVE waiting exact paired139017805 terminal and
+original96998 terminal receipt, then fresh actual capacity. It pushes each
+private offline2T4 variant at most once and validates real public MRI/CPU-GPU
+uint8 construction/roster/CSV. NO competition submit in this queue; all5todayused.
+Do not restart or duplicate push/stage. Existing intent/result plus canonical
+inference_variants table govern source/policy identities; parent weight entry
+is never overwritten. Uncertain mutation retains global claim for readonly review.
+Original staged parent admission is historical; current push labels separate
+parent_model_admission/variant_admission. Prepared source/weight bytes unchanged.
+Only future actual public acceptance and fresh slots admit one code submission
+per policy through run_series_boundary_phase.py submit/outcome. Public3rowCSV
+never uploaded. Parent used our holdout/Gold58; no internal clinical tuning/OOF.
+
+Own E16 actual score receipt is compact-production-e016-kaggle-20261016-v1;
+read-only reconciliation does not submit/push. Neighbor epochs4/5 privately fully
+verified revisions21dca400a011cfa19e167a57ba9bbe881ffe4ced and
+df24982649195e4851cbb10c80a33e241f2edbdb, all8objects each. Do not repeat1–5.

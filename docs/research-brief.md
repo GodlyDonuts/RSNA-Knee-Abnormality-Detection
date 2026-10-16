@@ -7,8 +7,9 @@ status. This brief records conclusions; it is not another execution log.
 ## What the evidence supports
 
 The attributed author-trained model scored **0.949** on Kaggle. Our own CoAtNet
-epoch 12 now scored **0.890**, up from epochs 4/8 at **0.821/0.869** and prior own
-DINO best **0.872**. Epoch 16 is submitted but unreported. These competition
+epoch 16 scored **0.894**, following epochs 4/8/12 at **0.821/0.869/0.890** and
+prior own DINO best **0.872**. The final increment is +0.004, compared with
++0.048 and +0.021 earlier; continued improvement is not guaranteed. These competition
 results remain distinct from the completed fixed-16 internal macro AUC of
 **0.920925**, independently replayed on 1,156 weak-label holdout studies.
 
@@ -60,7 +61,7 @@ current correspondence-filtered capacities are 2,592 fitting / 3,887 train /
 ## Active experiments and decision rules
 
 The original fixed N3 fit and predeclared E4/E8/E12/E16 submission curve are complete;
-follow the remaining exact hidden outcome without repeating a submission.
+all four exact hidden outcomes are scored; never repeat those submissions.
 Compare source-neighbor and positive-weight fits separately against the same
 2,247/1,156 baseline, fixed seed and 4,496-update schedule. Require per-target
 results, paired whole-component uncertainty, runtime and failure accounting.
@@ -104,8 +105,17 @@ series selection (zero changes/1,156 studies), but other metadata/rendering and
 BF16-versus-FP16 differences remain. The preregistered comparison and negatives
 are in [the original audit](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
 
-A fitting-only CPU profile now measures a concrete feeding optimization: materialize
-only the already-selected 12 windows. Selected tensors and global RNG stayed exact;
+A fitting-only CPU profile compares materializing all windows versus only a fixed
+12-window subset. Code inspection confirms that **production N3 already selects
+before materialization**, so this is not a new N3 optimization. Selected tensors and global RNG stayed exact;
 window materialization summed 2.1092→0.9034 seconds over 16 studies, with another
-5.3107 seconds spent loading. It is a substep saving, not a training speed/accuracy
-gain; no live trainer was changed. [Original measurement](../initiative/audits/compact-selected-window-cost-20261016-v1/README.md).
+5.3107 seconds spent loading. It is a counterfactual substep saving, not a new training speed/accuracy
+gain; no live trainer was changed. The neighbor dataset still eagerly constructs
+all donor windows, a separate future optimization. [Original measurement](../initiative/audits/compact-selected-window-cost-20261016-v1/README.md).
+
+A new licensed inference experiment targets eight cross-series triples in the
+attributed 0.949 model. Primary edge-repeat retains all centers; secondary
+within-series removes the mixed windows. Both exact candidates are CPU-staged
+and queued for public validation without changing learned weights. This is an
+unproven mechanism and external adaptation, not an own-training improvement or
+independent internal validation. [Protocol and interpretation](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md).

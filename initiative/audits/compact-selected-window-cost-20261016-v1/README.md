@@ -16,3 +16,14 @@ already-funded small node controls and zero shared growth.
 A future fast path must preserve the exact original selected-index order, sampler
 and all RNG states and pass real full/stop/resume optimizer equality before a
 new fit. Never modify the healthy frozen neighbor or queued scientific sources.
+
+## Scope correction after inspecting the actual trainer
+
+The production N3 `fit` already calls `sample_windows` before `model_windows`
+(`compact_train.py`); there is no missing N3 preselection fast path to add. This
+profile compares counterfactual materialization orders on arbitrary fixed 12-window
+subsets, not the production sampler's balanced per-series choices. It validates
+the mechanical value identity and existing design advantage, and cannot establish
+new production speedup. The source-neighbor dataset separately constructs all donor
+windows in `__getitem__`; a future loader optimization would need a new selected-
+donor implementation and actual numerical acceptance. Do not confuse these paths.

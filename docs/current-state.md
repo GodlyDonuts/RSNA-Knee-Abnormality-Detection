@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 11:40 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 12:40 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -12,14 +12,16 @@ and authenticated Kaggle resolve later changes. Historical observations are in
 | Released author-trained CoAtNet, reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not our training improvement |
 | Own N3 CoAtNet, epoch 4 | 57256756 | **0.821** | Successful hidden execution |
 | Own N3 CoAtNet, epoch 8 | 57259376 | **0.869** | Up .048 from epoch 4 |
-| Own N3 CoAtNet, epoch 12 | 57262392 | **0.890** | New verified own-trained best; up .021 from epoch 8 |
-| Own N3 CoAtNet, epoch 16 | 57265916 | **Unreported** | Submitted once; no score/error at the 11:40 UTC check |
+| Own N3 CoAtNet, epoch 12 | 57262392 | **0.890** | Up .021 from epoch 8 |
+| Own N3 CoAtNet, epoch 16 | 57265916 | **0.894** | New verified own-trained best; up .004 from epoch 12 |
 | Prior own DINO best | 57182737 / 57182547 | **0.872** | Historical own-trained reference, now exceeded |
 
 Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 [Original scored receipt](../initiative/audits/compact-production-e012-kaggle-20261016-v1/actual-scored-canonical.json).
-The .890 does not establish parity with the external .949 or a hidden-private score.
-The authoritative 11:22 UTC allowance is **five submissions used, zero available**.
+Epoch 16 is also COMPLETE, no error, 382,473 bytes and canonically reconciled at
+12:36 UTC. [Scored E16 receipt](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json).
+The .894 does not establish parity with the external .949 or a hidden-private score.
+The authoritative 12:36 UTC allowance is **five submissions used, zero available**.
 The original curve controller finished all three scheduled E8/E12/E16 submissions;
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
@@ -33,7 +35,7 @@ A null score/zero bytes on an unreported submission does not establish failure.
 | Positive-weight challenger | **933001** | **PENDING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **740 finite updates, epoch 3**, empty stderr; epochs 1–3
+Neighbor 932957 has **five completed epochs**, empty stderr; epochs 1–5
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
@@ -137,3 +139,19 @@ isolated mechanisms by fixed-final held-out evidence and actual Kaggle outcomes.
 Source `92c558979d4dee6a59ca4e431af8724d7ce2e1ec` and 63 distinct small objects
 are privately fully download/size/SHA verified at HF
 `1ab4b530bbe7c70b3c29db64da384e04f0294332`. [Exact preservation receipt](../initiative/audits/hf-E12-paired-research-20261016-v1/verified.json).
+
+## New licensed inference comparison
+
+Two actual CPU-staged candidates use the attributed 0.949 reference, with unchanged
+weights. Its 96-slice concatenation has eight cross-series triples: primary
+edge-repeat repairs their donor indices while retaining all 94 centers; secondary
+within-series retains 86 windows. This is an unproven input-context hypothesis.
+No independent internal validation is claimed for an externally trained parent
+that used our holdout/Gold58. Both public validations are queued after the running
+paired experiment, within actual GPU capacity. Neither has been pushed or scored
+yet; no Dataset or weight upload was repeated. [Protocol](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md),
+[actual CPU stage and finite queue](../initiative/audits/released-series-boundary-stage-20261016-v1/README.md).
+
+The earlier window-materialization profile is correctly scoped: baseline N3
+already selects 12 windows before materialization. The measured counterfactual
+saving is not a new N3 speedup. Neighbor donor loading remains eager and unchanged.
