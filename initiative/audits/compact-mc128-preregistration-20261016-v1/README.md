@@ -1,0 +1,7 @@
+# Fixed MC128 inference comparison before compact final results
+
+Hypothesis: the12-window training sampler and55–84-window full-bag evaluator can induce different attention denominators and series contributions. Average probabilities over training-shaped bags to test that mismatch without more encoder passes. This may improve or harm performance; no gain is assumed.
+
+Frozen primary remains original native N3 raw epoch16/all-window prediction. Secondary is exactly128 bags, existing sample_windows sampler, runseed20260922 and view epochs10000–10127, each containing at most12 windows. No tuning over bag count, seed, target, checkpoint or endpoint. Use identical checkpoint, candidates, encoder features and precision. Capture features during the ordinary evaluation forward exactly once; recompute only the attention/head. Mean sigmoid probabilities over bags, no max selection. For at most12 candidates both predictions equal exactly. No labels enter prediction.
+
+Preregistered before any compact production epoch or final held-out outcome was available; production930744 had four finite updates at declaration. Evaluate paired on all1156 original weak-label outer studies, all12 findings and original leakage components, retaining undefined uncertainty draws. No protected gold/confirmation or per-target mixture selection. Software agreement does not imply an accuracy benefit. Actual MRI/target-device qualification remains to be done. No change to live training source, schedule or allocation.

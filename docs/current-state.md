@@ -1,3 +1,11 @@
+# October16: compact production actually running
+
+**930744 RUNNING on evc33 H100**, original source dcfff319 / wrapper d24c1c98. Four finite optimizer updates verified in epoch1/4496; empty stderr. Fixed16 epochs,2247 fitting/1156 outer, effective8. Unique node-private `/tmp/rsna-compact-native-n3-production-evc33-20261016-v1`. Never duplicate/restart healthy original. Four-hour allocation supports verified terminal/checkpoint continuation of SAME schedule, not a shorter fit.
+
+Actual real-MRI GPU recovery930638 COMPLETED0:0: model/BN/AdamW/OneCycle/allRNG/history and CSV equality. Native relay930252/930253 COMPLETE and target runtime repaired once with official torchvision, original torch unchanged; original finite failed controllers are terminal, never restart. Synthetic930089 cancelled while pending/zero runtime; patch-focus929938 remains pending. These actual observations supersede historical descriptions below.
+
+Deployment CPU930818 logits bit-equal to diagnostic reference; actual T4/FP16/runtime acceptance still absent. MC128 secondary inference comparison preregistered without extra encoder passes; no clinical result. Best own Kaggle remains0.872 E5/E6; E8.863/E10.864 scored/reconciled. See `initiative/audits/compact-native-n3-live-start-20261016-v1` and `compact-mc128-preregistration-20261016-v1`. No compact accuracy claim yet.
+
 # October16: executable compact engine and actual MRI acceptance
 
 Compact N3 engine **dcfff319** is implemented, not awaiting another agent: fixed16 epochs,4496 updates, full-trunk training, exact optimizer-boundary resume and final-only outer prediction. Thirty model/engine/recovery-wrapper tests/Ruff/scoped mypy passed. Actual corrected CPU**930223** passed2247fit/1156outer/full native cache admission and32 decoded input tensors, digest183097af0095317c7a85069e73c8b2c654e39cfc12cdbc7104ff3139a30bfe9b. Initial930185 pointed at wrong public-triplet cache and failed before model computation; original native cache is `/tmp/rsna-final-public-source-fit-evc40-20261013-v1/cache`, not merged-cache.
