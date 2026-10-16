@@ -50,3 +50,22 @@ MRI benefit. This proposed coarse representation is not either paper's exact
 architecture. The practical decision is whether actual numerical/size/runtime
 acceptance supports a separately funded regional-head experiment; no clinical
 promotion follows from a feature probe.
+
+## Proposed matched head control (not implemented or fitted)
+
+A spatial head would consume global1024plus7×1024summaries:8192inputs/window.
+That also increases projection parameters, so comparing it only to the old1024
+head cannot isolate spatial information. Prefer an identical8192-input graph and
+initial state whose control input repeats the same global vector8times; the
+candidate substitutes the7regional summaries. Same allowed3,887rows, labels,
+parent outputs, view/window metadata, batch/steps/seed/loss and fixed final epoch.
+Both use coherent same-forward cached globals/logits. This isolates the proposed
+input information under the same graph/parameter count; it is not a claim that
+repeated channels have equivalent optimization to the historical smaller head.
+
+Before full fitting require complete actual32CPUfull/stop/resume model/AdamW/LR/
+order/counters/allRNG/history/prediction equality for each role and actual retained
+bytes under the already funded512MiBhead/recovery cap. A wider/repeated global
+control or regional head has not been admitted or trained by the cache probe.
+New strict exporter and actualT4serving acceptance remain separate. The old
+component loader must keep rejecting incompatible dimensions/engine/provenance.

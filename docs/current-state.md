@@ -219,3 +219,12 @@ HF9d593e484d0fde760381e12a7c606e2f84fb32a4, fully re-downloaded/size/SHAverified
 once under the canonical lock byCPU936730. No private arrays/images/identities/
 weights in the small mirror. [Exact receipt](../initiative/audits/hf-regional-expanded-20261016-v1/verified.json).
 Do not repeat this prefix or earlier verified milestones.
+
+CPU936870 verified the actual final context head on old/new globals from32MRIcases:
+max mean-TTA probability drift0.0001293 (parent0.0001238), within the existing
+0.003precision bound. No newCNN/GPU/labels/fitting; cause of cross-run feature drift
+and full-population bound remain unproven. Scheduled accepted context entry is
+unchanged. [Actual targeted check](../initiative/audits/context-cross-cache-numerics-20261016-v1/README.md).
+Neighbor fixed-final sourcea44f476a and10smallobjects are private-HF fully verified
+ONCE at fd2b776e0bc977cdac4dc7730d2e894d1bfbfb32 (CPU936842).
+[Verified preservation](../initiative/audits/hf-neighbor-fixed-final-20261016-v1/verified.json).

@@ -1,0 +1,19 @@
+import hashlib,io,json,os,sys,tarfile
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+S=Path('/tmp/rsna-released-context-serving-20261016-v1');accepted=json.loads((S/'accepted.json').read_text())
+for name,h in accepted['source_files'].items():assert hashlib.sha256((S/'code'/name).read_bytes()).hexdigest()==h
+sys.path.insert(0,str(S/'code'))
+import numpy as np,torch
+from rsna.competitive.released_context_infer import load_component,predict_context_pair
+R=Path('/tmp/rsna-context-cache-numerics-20261016-v1');assert not R.exists();R.mkdir(mode=0o700);torch.set_num_threads(1);model,_=load_component(S/'full-component-v1/component.pt','59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316')
+N=Path('/tmp/rsna-regional-feature-probe-20261016-v2/collected');proof=json.loads((N/'verified.json').read_text());assert proof['all32_members_size_SHA_NPY_dtype_shape_finite'];index=json.loads((N/'index.private.json').read_text());assert hashlib.sha256((N/'index.private.json').read_bytes()).hexdigest()=='280b3d04e4506a1fc0771280a16a6c1a9fe6ae3455ffdac8fbbc048f2a343481';oldroot=Path('/tmp/rsna-released-context-head-fit-20261016-v1/features32');old=json.loads((oldroot/'index.private.json').read_text());assert [r['study_uid'] for r in index['records']]==[r['study_uid'] for r in old['records']];oldmap={r['file']:r for r in old['records']};newmap={r['file']:r for r in index['records']};gaps=[];parent_gaps=[]
+def calc(a):
+ x=[torch.from_numpy(a[k].copy()) for k in ('features','parent_logits','centers','present')];p,c=predict_context_pair(model,*x);return p.numpy(),torch.sigmoid(x[1]).mean(0).numpy()
+with torch.no_grad(),tarfile.open(N/'features.tar','r:') as handle:
+ for member in handle:
+  assert member.name in newmap;row=newmap[member.name];raw=handle.extractfile(member).read();assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256'];before=oldmap[member.name];oldraw=(oldroot/member.name).read_bytes();assert hashlib.sha256(oldraw).hexdigest()==before['sha256']
+  with np.load(io.BytesIO(raw),allow_pickle=False) as newer,np.load(io.BytesIO(oldraw),allow_pickle=False) as earlier:
+   for k in ('centers','present'):assert np.array_equal(newer[k],earlier[k])
+   new_p,new_parent=calc(newer);old_p,old_parent=calc(earlier);gaps.append(np.abs(new_p-old_p));parent_gaps.append(np.abs(new_parent-old_parent))
+assert len(gaps)==32;gaps=np.stack(gaps);parent_gaps=np.stack(parent_gaps);out={'status':'actual32_final_context_cross_cache_numerics_measured','CPU_job':os.environ['SLURM_JOB_ID'],'studies':32,'fixed_final_component_sha256':'59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316','maximum_adjusted_mean_TTA_probability_gap':float(gaps.max()),'mean_absolute_adjusted_probability_gap':float(gaps.mean()),'maximum_parent_mean_TTA_probability_gap':float(parent_gaps.max()),'predeclared_existing_T4_probability_tolerance':0.003,'within_existing_T4_probability_tolerance':bool(gaps.max()<=.003),'source_of_CNN_feature_cross_run_drift_proven':False,'new_CNN_GPU_or_fitting':False,'clinical_labels_reports_protected_values_read':False,'independent_accuracy_or_full_population_drift_guarantee':False};(R/'result.json').write_text(json.dumps(out,sort_keys=True,indent=2)+'\n');print(json.dumps(out),flush=True)
