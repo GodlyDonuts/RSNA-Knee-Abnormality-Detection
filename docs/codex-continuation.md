@@ -531,3 +531,9 @@ Raw retained checkpoints138,599,668bytes stay private. No deletion credit or
 shared growth. Both existing main training and all prior entry owners remain
 unchanged; choose future exact ranking entries only after actual acceptance and
 relevant outcomes/fresh daily allowance.
+
+
+Latest ranking/full-pixel/source milestone4952238a is privately fully re-downloaded/
+size/SHA verified at HFa9e666390b030b2b2c42c93f024115ed8395c73e:48objects302252bytes,
+CPU940064/canonical shared lock. No MRI/UIDs/labels/features/weights/prediction rows;
+never repeat prior prefixes. [Exact verification](../initiative/audits/hf-ranking-full-fit-T4-pixels-20261016-v1/verified.json).
