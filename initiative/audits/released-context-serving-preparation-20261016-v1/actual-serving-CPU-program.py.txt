@@ -1,0 +1,27 @@
+
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-released-context-serving-20261016-v1');assert not R.exists();threshold=581021415363+2*2**30+(2+16+64+32+256+32)*2**20+4*2**30+2*2**30;assert shutil.disk_usage('/tmp').free>threshold
+R.mkdir(mode=0o700);S=R/'code';source_files={}
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600);source_files[name]=hashlib.sha256(text.encode()).hexdigest()
+old=Path('/tmp/rsna-released-context-head-fit-20261016-v1');accepted=json.loads((old/'accepted.json').read_text());assert accepted['source_git']=='2ee0cffeae9dd023fef7ff98403e0508d4d22554' and accepted['all_head_AdamW_LR_counters_order_all_RNG_history_exact']
+assert source_files['rsna/competitive/released_context.py']=='4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9' and source_files['rsna/competitive/released_context_train.py']=='5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f'
+sys.path.insert(0,str(S));torch.set_num_threads(1);torch.set_num_interop_threads(1)
+from scripts.newton.run_released_context_fit import load_data
+from rsna.competitive.released_context_train import Trainer,Recipe,digest
+from rsna.competitive.released_context_infer import export_component,predict_context_pair
+M=old/'engineering-inputs.private.json';data,manifest=load_data(M,accepted['input_manifest_sha256']);trainer=Trainer(data,Recipe(epochs=2));trainer.load(old/'full/checkpoint.pt');registered=trainer.predictions();assert np.array_equal(registered,np.load(old/'full/predictions.private.npy',allow_pickle=False))
+trainer.model.eval();outputs=[];largest=0.0
+for i in range(len(data)):
+ x=data[i];prob,correction=predict_context_pair(trainer.model,x[0],x[1],torch.from_numpy(np.load(old/'features32'/data.records[i]['file'],allow_pickle=False)['centers']),x[4][0]);outputs.append(prob.numpy());largest=max(largest,float(correction.abs().max()))
+error=float(np.max(np.abs(np.stack(outputs)-registered)));assert error<=1e-6 and largest>1e-8
+rejected=False
+try:export_component(old/'full/checkpoint.pt',old/'full/terminal.json',old/'accepted.json',R/'must-not-export-diagnostic.pt')
+except ValueError:rejected=True
+assert rejected and not (R/'must-not-export-diagnostic.pt').exists()
+result={'status':'actual32_nonzero_context_serving_CPU_math_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':source_files,'unchanged_fitting_engine_git':'2ee0cffeae9dd023fef7ff98403e0508d4d22554','original_MRI_feature_studies':32,'registered_prediction_bytes_replayed_exact':True,'max_new_per_study_vs_registered_batch_probability_error':error,'max_abs_nonzero_context_correction':largest,'actual_four_update_checkpoint_export_rejected':True,'new_model_fitting_or_CNN_encoding':False,'actual_final_model_or_T4_acceptance':False,'clinical_accuracy':False,'new_shared_bytes_files':0}
+(R/'source.json').write_text(json.dumps({'source_git':v['source_git'],'files':source_files},sort_keys=True,indent=2)+'\n');(R/'accepted.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)

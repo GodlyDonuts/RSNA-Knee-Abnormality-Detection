@@ -7,3 +7,7 @@ The compiler has separate qualification and competition modes. Qualification tes
 Actual CPU source checks compile both roles against the exact licensed493c7b0d parent. All18original model/renderer functions retain identical ASTs; main changes only producer scheduling and fallback logging, with new explicit wrappers. Generated sources used placeholder hashes and remain ignored/unsubmitted. [Compile proof](actual-source-compile.json). The active boundary generator gained only a None source-span guard; both actual boundary output strings remain byte-identical.
 
 73focused CPU tests pass; active Ruff and new-file Mypy pass. They verify export schema/privacy, diagnostic rejection, exact source embedding/decorators, registered metadata and mean-probability math. They are not final-model or actualT4 acceptance. Original head fitting source2ee0cffe and the live feature source6c6ed23f remain unchanged.
+
+## Actual owning-node CPU readout gate
+
+CPU935892 passed on the original32real-MRI features and actual four-update nonzero head. Registered prediction bytes replayed exactly; new per-study serving versus registered batch probabilities differ by at most5.960464477539063e-08. The real diagnostic checkpoint was rejected by final-component export, and no file was emitted. This accepts only CPU serving math, not a final model, T4 precision or clinical gain. [Actual gate](actual32-serving-CPU-accepted.json).

@@ -1,0 +1,22 @@
+"""Read-only extraction of the licensed parent MIL readout, with no MRI input."""
+import hashlib,json,os
+from pathlib import Path
+import torch
+PARENT='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef'
+FILE='raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt'
+assert torch.cuda.device_count()==0
+paths=list(Path('/kaggle/input').rglob(FILE));assert len(paths)==1
+with paths[0].open('rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()==PARENT
+state=torch.load(paths[0],map_location='cpu',weights_only=False)['model']
+shapes={'norm.weight':(1024,),'norm.bias':(1024,),'att.0.weight':(256,1024),'att.0.bias':(256,),'att.3.weight':(12,256),'att.3.bias':(12,),'clsW':(12,1024),'clsb':(12,)}
+head={}
+for key,shape in shapes.items():
+ x=state[key];assert isinstance(x,torch.Tensor) and tuple(x.shape)==shape and x.dtype==torch.float32 and torch.isfinite(x).all();head[key]=x.detach().cpu().contiguous().clone()
+assert sum(x.numel() for x in head.values())==279832
+payload={'format':'licensed_parent_MIL_readout_v1','parent_checkpoint_sha256':PARENT,'source_notebook_sha256':'493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde','feature_dimension':1024,'targets':12,'model':head,'source_owner':'nartaa','license':'Original public model competition/adaptation/noncommercial permission; retain original attribution and OAI exposure disclosure','own_trained_model':False}
+out=Path('/kaggle/working/parent-MIL-readout.pt')
+with out.open('xb') as f:os.fchmod(f.fileno(),0o600);torch.save(payload,f)
+with out.open('rb') as f:sha=hashlib.file_digest(f,'sha256').hexdigest()
+assert out.stat().st_size<2*2**20
+receipt={'status':'licensed_parent_MIL_readout_extracted_from_exact_checkpoint','parent_checkpoint_sha256':PARENT,'component_sha256':sha,'component_bytes':out.stat().st_size,'FP32_parameters':279832,'MRI_or_reports_or_clinical_labels_read':False,'GPU_devices':0,'competition_submissions':0,'new_training':False}
+Path('/kaggle/working/mil-readout-accepted.json').write_text(json.dumps(receipt,sort_keys=True,indent=2));print(json.dumps(receipt),flush=True)
