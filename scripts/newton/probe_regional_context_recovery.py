@@ -228,6 +228,9 @@ def main():
         "roles": results,
         "fresh_training_processes": 6,
         "engineering_checkpoint_bytes": retained,
+        "two_production_roles_peak_bound_bytes": retained + (22 * 17 + 17 + 16) * 2**20,
+        "two_production_roles_within_existing512MiB": retained + (22 * 17 + 17 + 16) * 2**20
+        <= 512 * 2**20,
         "no_engineering_epoch_copies_created": True,
         "fitting_source_probabilities_used": True,
         "clinical_or_Kaggle_accuracy": False,

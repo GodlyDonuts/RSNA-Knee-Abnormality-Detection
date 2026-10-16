@@ -132,6 +132,10 @@ def main():
         trainer.load(args.resume)
 
     def progress(record):
+        if trainer.cursor == 0 and inputs["population_stage"] == "full3887":
+            snapshot = args.output / "epochs" / f"epoch-{trainer.epoch:03d}.pt"
+            if snapshot.stat().st_size > 17 * 2**20:
+                raise ValueError("Original raw head snapshot exceeds the admitted17MiB bound")
         if record["update"] % 25 == 0 or trainer.cursor == 0:
             print(json.dumps({"role": args.role, "regional_optimizer": record}), flush=True)
 
@@ -143,6 +147,8 @@ def main():
         progress=progress,
     )
     trainer.save(args.output / "checkpoint.pt")
+    if (args.output / "checkpoint.pt").stat().st_size > 17 * 2**20:
+        raise ValueError("Original raw head checkpoint exceeds the admitted17MiB bound")
     prediction = args.output / "predictions.private.npy"
     with prediction.open("xb") as handle:
         os.fchmod(handle.fileno(), 0o600)
