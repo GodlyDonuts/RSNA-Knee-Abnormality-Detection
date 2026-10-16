@@ -1,0 +1,27 @@
+
+import hashlib,json,os,shutil,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+from scipy.stats import rankdata
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-context-rank-displacement-20261016-v1');assert not R.exists()
+threshold=581021415363+2*2**30+(2+16+64+32+256+32)*2**20+4*2**30+2*2**30;assert shutil.disk_usage('/tmp').free>threshold;R.mkdir(mode=0o700)
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');S=Path('/tmp/rsna-released-context-serving-20261016-v1');sys.path.insert(0,str(S/'code'));torch.set_num_threads(1)
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.schema import TARGETS
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();term=json.loads((F/'production/terminal.json').read_text());assert term['status']=='fixed_final_complete' and term['checkpoint_sha256']=='c5d53af3d60eace275670c0953cb53df273db4b8daf219355d959718d777e634'
+prepared=json.loads((S/'full-component-v1/prepared.json').read_text());assert prepared['component']['component_sha256']=='59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316'
+index=F/'full-features/index.private.json';assert sha(index)==term['binding']['feature_index_sha256'];rows=json.loads(index.read_text())['records'];assert len(rows)==3887
+path=F/'production/predictions.private.npy';assert sha(path)==term['prediction_sha256'];new=np.load(path,allow_pickle=False);assert new.shape==(3887,12) and new.dtype==np.float32 and np.isfinite(new).all() and ((new>0)&(new<1)).all()
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+data=FrozenFeatures(rows,roots,np.zeros_like(new),np.zeros_like(new,dtype=bool),{'scope':'label_free_ranking_displacement_only'});old=np.stack([data[i][1].sigmoid().mean(0).numpy() for i in range(3887)])
+# No source fitting manifest/CSV/report/labels or clinical endpoint is opened.
+result={};pairs=3887*3886//2;started=time.monotonic()
+for t,name in enumerate(TARGETS):
+ before,after=old[:,t],new[:,t];diff=after-before;left=rankdata(before,method='average');right=rankdata(after,method='average');discord=defined=before_ties=after_ties=0
+ for i in range(3886):
+  a=np.sign(before[i+1:]-before[i]);b=np.sign(after[i+1:]-after[i]);valid=(a!=0)&(b!=0);defined+=int(valid.sum());discord+=int(((a!=b)&valid).sum());before_ties+=int((a==0).sum());after_ties+=int((b==0).sum())
+ result[name]={'mean_probability_shift':float(diff.mean()),'SD_probability_shift':float(diff.std()),'min_probability_shift':float(diff.min()),'max_probability_shift':float(diff.max()),'Spearman_parent_context_rank_correlation':float(np.corrcoef(left,right)[0,1]),'strict_pairwise_order_discordances':discord,'pairs_defined_in_both':defined,'strict_pairwise_discordance_fraction':discord/defined,'parent_ties':before_ties,'context_ties':after_ties,'mean_abs_rank_shift':float(np.abs(left-right).mean()),'max_abs_rank_shift':float(np.abs(left-right).max())}
+value={'status':'actual_fixed_final_context_label_free_rank_displacement_completed','CPU_job':os.environ['SLURM_JOB_ID'],'studies':3887,'targets':result,'pairs_per_target':pairs,'parent_source':'original_cached_two_view_FP16_parent_logits_FP32_sigmoid_mean','context_source':'original_fixed_final_FP32_private_prediction_array','final_context_checkpoint_sha256':term['checkpoint_sha256'],'prediction_sha256':term['prediction_sha256'],'feature_index_sha256':term['binding']['feature_index_sha256'],'constant_monotone_calibration_only':all(x['strict_pairwise_order_discordances']==0 for x in result.values()),'clinical_labels_reports_Gold_confirmation_read':False,'clinical_accuracy_or_generalization_evaluated':False,'new_model_fitting_or_CNN_or_GPU_or_transfers':False,'independent_validation':False,'new_shared_bytes_files':0,'detailed_arrays_exported':False,'pairwise_loop_seconds':time.monotonic()-started}
+(R/'result.json').write_text(json.dumps(value,sort_keys=True,indent=2)+'\n');print(json.dumps(value),flush=True)
