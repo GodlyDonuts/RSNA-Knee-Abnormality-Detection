@@ -1,0 +1,26 @@
+"""One actual, separately admitted H100 recovery; no scientific production fit."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+x=json.loads((L/'matched-neighbor-inputs.result.json').read_text());assert x['returncode']==0;admitted=json.loads(x['stdout']);assert admitted['accepted_sha256']=='7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352'
+files={name:Path('scripts/newton/'+name).read_text() for name in ['run_compact_neighbor_recovery.py','run_compact_bag_recovery.py']};hashes={n:hashlib.sha256(t.encode()).hexdigest() for n,t in files.items()}
+for name in files:assert not subprocess.check_output(['git','status','--porcelain','--','scripts/newton/'+name],text=True).strip()
+program=r'''
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33';R=Path('/tmp/rsna-compact-matched-neighbor-inputs-20261016-v1');C=R/'recovery-control';assert not C.exists();assert hashlib.sha256((R/'accepted.json').read_bytes()).hexdigest()==v['admission_sha256']
+assert shutil.disk_usage('/tmp').free>396100843459+(20+24+2+70+1+16)*2**30+144*2**20
+C.mkdir(mode=0o700)
+for n,text in v['files'].items():
+ assert Path(n).name==n and hashlib.sha256(text.encode()).hexdigest()==v['hashes'][n];(C/n).write_text(text)
+print(json.dumps({'status':'matched_source_neighbor_GPU_wrapper_staged','node':'evc33','CPU':1,'GPU':0,'hashes':v['hashes'],'root':str(C)}),flush=True)
+'''
+with (L/'matched-neighbor-recovery-stage.intent.json').open('x') as f:json.dump({'files':hashes,'actual_admission_sha256':admitted['accepted_sha256'],'CPU':1,'GPU':0,'automatic_retry':False},f)
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton'];cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:02:00','--job-name=rsna-compact-neighbor-stage','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(ssh+[shlex.join(cmd)],input=json.dumps({'admission_sha256':admitted['accepted_sha256'],'files':files,'hashes':hashes}),capture_output=True,text=True,timeout=180);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'matched-neighbor-recovery-stage.result.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0
+R=admitted['root'];C=R+'/recovery-control';args=['--source',admitted['source'],'--artifact-root','/home/sa305415/rsna-knee/code-stopfix-1f486765','--cache',admitted['cache'],'--overlay','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--weights','/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors','--input-admission',R+'/accepted.json','--expected-admission-sha256',admitted['accepted_sha256'],'--output',R+'/recovery-v1']
+bootstrap="import hashlib,sys;from pathlib import Path;r=Path("+repr(C)+");expected="+repr(hashes)+";assert all(hashlib.sha256((r/n).read_bytes()).hexdigest()==s for n,s in expected.items());p=r/'run_compact_neighbor_recovery.py';sys.path.insert(0,str(r));sys.argv=[str(p)]+"+repr(args)+";exec(compile(p.read_text(),str(p),'exec'),{'__name__':'__main__','__file__':str(p)})"
+with (L/'matched-neighbor-recovery-GPU.intent.json').open('x') as f:json.dump({'source_git':admitted['source_git'],'wrapper_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'node':'evc33','CPU':2,'GPU':1,'maximum_minutes':20,'admission_sha256':admitted['accepted_sha256'],'wrapper_hashes':hashes,'output':R+'/recovery-v1','automatic_retry':False,'diagnostic_only':True},f)
+run=['env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUBLAS_WORKSPACE_CONFIG=:4096:8','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',bootstrap]
+cmd=['sbatch','--parsable','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=00:20:00','--no-requeue','--job-name=rsna-compact-neighbor-recovery','--output='+C+'/slurm.stdout','--error='+C+'/slurm.stderr','--wrap','exec '+shlex.join(run)]
+x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=40);result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'matched-neighbor-recovery-GPU.dispatch.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0 and x.stdout.strip().isdigit(),'Uncertain dispatch: reconcile read-only only';result={'status':'matched_source_neighbor_real_H100_recovery_submitted_once','job_id':x.stdout.strip(),'node':'evc33','source_git':admitted['source_git'],'actual_CPU_admission_sha256':admitted['accepted_sha256'],'clinical_accuracy_claim':False,'full_training_dispatched':False};(L/'matched-neighbor-recovery-GPU.submitted.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

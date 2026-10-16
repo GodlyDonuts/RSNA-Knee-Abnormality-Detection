@@ -29,3 +29,52 @@ def test_admission_is_specific_to_real_matched_center_input_evidence():
     ]:
         with pytest.raises(ValueError, match="admission"):
             validate_admission({**admitted(), key: value})
+
+
+def test_full_fit_refuses_old_or_incomplete_recovery():
+    from scripts.newton.run_compact_neighbor_production import verify_acceptance
+
+    a = admitted()
+    from rsna.competitive.compact_source_neighbors import ENGINE, POLICY
+
+    a["input_policy"] = dict(POLICY)
+    r = {
+        "status": "actual_matched_source_neighbor_H100_recovery_accepted",
+        "source_git": a["source_git"],
+        "node": "evc33",
+        "GPU": "NVIDIA H100 PCIe",
+        "input_policy": a["input_policy"],
+        "engine": ENGINE,
+        "initial_head_and_official_encoder_match_original_N3": True,
+        "diagnostic_only": True,
+        "comparison": {
+            "complete_model_BN_AdamW_OneCycle_counters_sampler_allRNG_history_equal": True,
+            "exact_final16x12_CSV_equal": True,
+            "actual_optimizer_steps": 4,
+            "BN_counters_checked": 25,
+            "fitting_bag_forwards": 32,
+            "clinical_accuracy_claim": False,
+        },
+        "phases": [
+            {"phase": n, "returncode": code}
+            for n, code in [("full", 0), ("stop1", 75), ("resume", 0)]
+        ],
+    }
+    verify_acceptance(a, r)
+    import copy
+
+    for key, value in [
+        ("status", "old_N3_recovery"),
+        ("initial_head_and_official_encoder_match_original_N3", False),
+        ("GPU", "NVIDIA Tesla T4"),
+    ]:
+        with pytest.raises(ValueError):
+            verify_acceptance(a, {**r, key: value})
+    for field in [
+        "exact_final16x12_CSV_equal",
+        "complete_model_BN_AdamW_OneCycle_counters_sampler_allRNG_history_equal",
+    ]:
+        bad = copy.deepcopy(r)
+        bad["comparison"][field] = False
+        with pytest.raises(ValueError):
+            verify_acceptance(a, bad)
