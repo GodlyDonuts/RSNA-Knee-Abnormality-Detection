@@ -249,3 +249,9 @@ The separate typed final exporter/FP32readout now passes33focused tests/Ruff/Myp
 actual final export and T4spatial serving remain separate work. No independent
 internalOOF is claimed for the externally trained parent.
 [Prospective full controls](../initiative/audits/regional-context-production-20261016-v1/README.md).
+
+Verified latest small preservation: source6c06674d/all49objects236002bytes,
+privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
+under the canonical lock byCPU938041; no private arrays/images/identities/weights.
+[Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
+Never repeat this prefix or preceding verified mirrors.

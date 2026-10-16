@@ -132,8 +132,8 @@ Prior latest small mirrors: source0ee5c2e8 HFbb7adcaa72cbedb5cfb499a306f89fc39b9
 sourcea44f476a HFfd2b776e0bc977cdac4dc7730d2e894d1bfbfb32,
 sourcee2fd3911 HF9d593e484d0fde760381e12a7c606e2f84fb32a4,
 source4428247b HFe9d200fbbc9d6fcc9d12838279ceaf28bd75a35a: all fully verified,
-never repeat. This latest new engine/cache/full-dispatch/export-source milestone
-is on GitHub and still needs a DISTINCT private small mirror under canonical
-shared lock, never reupload old prefixes. Original core publisher4e327e27 at
+never repeat. New engine/cache/full-dispatch/export-source source6c06674d is now fully private
+verifiedONCE at HFc6e848a5e21090b2cf3b462680bf8166a064aee0/all49smallobjects
+236002bytes, CPU938041/canonical shared lock. Never repeat this or old prefixes. Original core publisher4e327e27 at
 /home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py.
 Shared lock /home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock.

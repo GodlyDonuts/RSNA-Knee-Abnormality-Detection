@@ -194,3 +194,9 @@ with old serving rejection preserved. It retains exact role/feature representati
 registered immutable source/cache/recovery/permission and strips private training
 payload. Actual final export and T4serving have not yet occurred. Software
 acceptance is not evidence of accuracy.
+
+Verified latest small preservation: source6c06674d/all49objects236002bytes,
+privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
+under the canonical lock byCPU938041; no private arrays/images/identities/weights.
+[Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
+Never repeat this prefix or preceding verified mirrors.
