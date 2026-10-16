@@ -21,7 +21,7 @@ def test_tcp_acknowledgements_disable_nagle():
         assert connection.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY)
 
 
-def transfer(source, target, record):
+def transfer(source, target, record, **options):
     a, b = socket.socketpair()
 
     def sender():
@@ -31,7 +31,7 @@ def transfer(source, target, record):
     with ThreadPoolExecutor(1) as pool:
         future = pool.submit(sender)
         with b, b.makefile("rb") as r, b.makefile("wb") as w:
-            result = receive_file(r, w, target, record)
+            result = receive_file(r, w, target, record, **options)
         future.result(timeout=3)
     return result
 
@@ -89,3 +89,29 @@ def test_empty_runtime_file_is_created_exclusively(tmp_path):
     target = tmp_path / "target"
     result = transfer(source, target, {"bytes": 0, "sha256": hashlib.sha256(b"").hexdigest()})
     assert target.is_file() and result == {"copied_bytes": 0, "reused_bytes": 0}
+
+
+def test_prior_complete_receipt_reuses_only_unchanged_verified_file(tmp_path, monkeypatch):
+    from scripts.newton import direct_compact_transport as module
+
+    raw = b"known immutable bytes"
+    source = tmp_path / "source"
+    source.write_bytes(raw)
+    target = tmp_path / "target"
+    target.write_bytes(raw)
+    s = target.stat()
+    record = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    proof = {**record, "signature": [s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns]}
+
+    def forbidden(*args):
+        raise AssertionError("Complete receipt must avoid duplicate hashing")
+
+    monkeypatch.setattr(module, "digest_prefix", forbidden)
+    assert transfer(source, target, record, verified_complete=proof) == {
+        "copied_bytes": 0,
+        "reused_bytes": len(raw),
+    }
+    bad = {**proof, "signature": [0] * 5}
+    with pytest.raises(ValueError):
+        transfer(source, target, record, verified_complete=bad)
+    assert target.read_bytes() == raw

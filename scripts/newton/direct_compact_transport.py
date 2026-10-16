@@ -114,7 +114,7 @@ def serve_file(reader, writer, source: Path, record):
         raise ValueError("Target did not accept original file")
 
 
-def receive_file(reader, writer, target: Path, record):
+def receive_file(reader, writer, target: Path, record, *, verified_complete=None):
     size = record["bytes"]
     if type(size) is not int or size < 0:
         raise ValueError("Nonnegative bounded file size required")
@@ -122,14 +122,32 @@ def receive_file(reader, writer, target: Path, record):
     offset = target.stat().st_size if target.exists() else 0
     if offset > size:
         raise ValueError("Existing target exceeds original size")
-    h = digest_prefix(target, offset) if offset else hashlib.sha256()
-    send_json(writer, {"offset": offset, "prefix_sha256": h.hexdigest()})
+
+    def signature():
+        s = target.stat()
+        return [s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns]
+
+    if verified_complete is not None:
+        if (
+            offset != size
+            or verified_complete.get("bytes") != size
+            or verified_complete.get("sha256") != record["sha256"]
+            or verified_complete.get("signature") != signature()
+        ):
+            raise ValueError("Previously whole-byte-verified complete file changed")
+        h = None
+        prefix_sha = record["sha256"]
+    else:
+        h = digest_prefix(target, offset) if offset else hashlib.sha256()
+        prefix_sha = h.hexdigest()
+    send_json(writer, {"offset": offset, "prefix_sha256": prefix_sha})
     if read_exact(reader, 1) != b"1":
         raise ValueError("Source refused existing target prefix")
     if size == 0 and not target.exists():
         with target.open("xb"):
             os.chmod(target, 0o600 | record.get("executable", 0))
     if offset < size:
+        assert h is not None
         mode = "ab" if offset else "xb"
         if offset and target.stat().st_size != offset:
             raise ValueError("Existing prefix changed")
@@ -143,7 +161,11 @@ def receive_file(reader, writer, target: Path, record):
                 remaining -= len(block)
             f.flush()
             os.fsync(f.fileno())
-    if target.stat().st_size != size or h.hexdigest() != record["sha256"]:
+    if (
+        target.stat().st_size != size
+        or (verified_complete is None and (h is None or h.hexdigest() != record["sha256"]))
+        or (verified_complete is not None and signature() != verified_complete["signature"])
+    ):
         raise ValueError("Exact original whole-file SHA/size differs")
     writer.write(b"1")
     writer.flush()

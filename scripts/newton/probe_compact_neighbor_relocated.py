@@ -122,7 +122,8 @@ def main():
     if census != old["all_study_window_census"]:
         raise ValueError("Complete original window census differs")
     started = time.monotonic()
-    tensors, changed, total, fallbacks = hashlib.sha256(), 0, 0, 0
+    tensors, legacy = hashlib.sha256(), hashlib.sha256()
+    changed, total, fallbacks = 0, 0, 0
     for base in (fitting, outer):
         view = MatchedSourceNeighborDataset(base)
         for index in range(16):
@@ -133,10 +134,12 @@ def main():
                 raise ValueError("Original grayscale centers differ")
             tensors.update(second.contiguous().numpy().tobytes())
             tensors.update(b["source_window_plan_sha256"].encode())
+            legacy.update(first.contiguous().numpy().tobytes())
             for key in ("labels", "label_mask", "series_mask", "slice_mask"):
                 if not torch.equal(a[key], b[key]):
                     raise ValueError("Original masks/labels/window membership differ")
                 tensors.update(b[key].contiguous().numpy().tobytes())
+                legacy.update(a[key].contiguous().numpy().tobytes())
             changed += int((first != second).reshape(len(windows), -1).any(dim=1).sum())
             total += len(windows)
             fallbacks += b["legacy_edge_fallback_windows"]
@@ -146,6 +149,8 @@ def main():
         or fallbacks != old["engineering32_legacy_fallback_windows"]
     ):
         raise ValueError("Actual original32 MRI tensors differ after relocation")
+    if legacy.hexdigest() != "183097af0095317c7a85069e73c8b2c654e39cfc12cdbc7104ff3139a30bfe9b":
+        raise ValueError("Actual original32 N3 window tensors differ after relocation")
     weights = Path(
         "/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors"
     )
@@ -174,6 +179,7 @@ def main():
         job_id=os.environ["SLURM_JOB_ID"],
         input_receipt_sha256=file_sha256(args.output / "inputs/inputs.json"),
         actual_original32_tensor_replay_bit_equal=True,
+        original_N3_engineering32_window_tensor_sha256=legacy.hexdigest(),
         actual_original_initial_head_equal=True,
         original_evc33_admission_sha256="7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352",
         runtime_manifest_sha256=runtime["manifest_sha256"],
