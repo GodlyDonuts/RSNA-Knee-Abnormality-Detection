@@ -40,7 +40,10 @@ def _instrument(parent: str, helper: str, policy: str) -> str:
             and isinstance(node.value.value, str)
         ):
             continue
-        parts.append(ast.get_source_segment(helper, node))
+        text = ast.get_source_segment(helper, node)
+        if text is None:
+            raise ValueError("Complete original helper source span required")
+        parts.append(text)
     helper_body = "\n\n".join(parts)
     source = parent[: parent.index(GUARD)]
     source = source.replace(GPU_INDEX, "vol[_boundary_source_indices(cs, D)]")
