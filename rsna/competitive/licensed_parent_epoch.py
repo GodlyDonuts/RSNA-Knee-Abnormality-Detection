@@ -1,0 +1,119 @@
+"""Independently check a completed full-parent epoch before private preservation."""
+
+from __future__ import annotations
+
+import math
+
+import torch
+
+
+def verify(state, snapshot, receipt, *, expected_parameters=73136096):
+    segment = receipt["segment"]
+    completed = segment * 486
+    binding = state["binding"]
+    if (
+        receipt["status"] != "actual_whole94_full_parent_epoch_session_complete"
+        or not 1 <= segment <= 3
+        or receipt["completed"] != completed
+        or state["completed"] != completed
+        or state["epoch"] != segment
+        or state["cursor"] != 0
+        or state["optimizer_boundary"] is not True
+        or snapshot["binding"] != binding
+        or snapshot["epoch"] != segment
+        or snapshot["completed"] != completed
+        or not all(binding.get(k) == v for k, v in receipt["binding"].items())
+        or binding["population"] != 3887
+        or binding["world_size"] != 2
+        or binding["total_steps"] != 1458
+        or binding["recipe"]["epochs"] != 3
+        or binding["recipe"]["windows"] != 94
+        or state["schedule"] != {"completed": completed, "total": 1458, "kind": "warmup_cosine"}
+        or len(state["rng_by_rank"]) != 2
+        or len(state["scaler_by_rank"]) != 2
+        or state["scaler_by_rank"][0] != state["scaler_by_rank"][1]
+    ):
+        raise ValueError("Complete original full-population optimizer-boundary epoch required")
+    for rng in state["rng_by_rank"]:
+        if (
+            set(rng) != {"torch", "cuda", "python", "numpy"}
+            or any(
+                not isinstance(rng[k], torch.Tensor)
+                or rng[k].dtype != torch.uint8
+                or rng[k].ndim != 1
+                or not rng[k].numel()
+                for k in ("torch", "cuda")
+            )
+            or not isinstance(rng["python"], tuple)
+            or len(rng["python"]) != 3
+            or not isinstance(rng["numpy"], list)
+            or len(rng["numpy"]) != 5
+        ):
+            raise ValueError("Complete actual Python/NumPy/CPU and device RNG records required")
+    if (
+        not {"scale", "growth_factor", "backoff_factor", "growth_interval", "_growth_tracker"}
+        <= state["scaler_by_rank"][0].keys()
+    ):
+        raise ValueError("Complete real GPU mixed-precision scaler required")
+    history = state["history"]
+    if len(history) != completed or [r["update"] for r in history] != list(range(1, completed + 1)):
+        raise ValueError("Every original contiguous finite update required")
+    for i, row in enumerate(history):
+        if (
+            row["epoch"] != i // 486 + 1
+            or row["batch"] != i % 486 + 1
+            or row["studies"] != (7 if row["batch"] == 486 else 8)
+            or any(
+                not math.isfinite(row[k]) or row[k] < 0
+                for k in ("loss", "gradient_norm", "encoder_lr", "head_lr", "scale")
+            )
+            or row["encoder_lr"] <= 0
+            or row["head_lr"] <= 0
+            or row["scale"] <= 0
+        ):
+            raise ValueError("Exact complete original numerical update history required")
+    model, other = state["model"], snapshot["model"]
+    if not model or model.keys() != other.keys():
+        raise ValueError("Complete learned encoder and MIL graph required")
+    for name, tensor in model.items():
+        if (
+            not isinstance(tensor, torch.Tensor)
+            or not isinstance(other[name], torch.Tensor)
+            or tensor.dtype != other[name].dtype
+            or tensor.shape != other[name].shape
+            or not torch.equal(tensor, other[name])
+            or not torch.isfinite(tensor).all()
+        ):
+            raise ValueError("Immutable epoch and full optimizer checkpoint model graph differ")
+    optimizer = state["optimizer"]
+    groups = optimizer["param_groups"]
+    if len(groups) != 2 or not all(g["params"] for g in groups):
+        raise ValueError("Complete distinct encoder and head optimizer groups required")
+    ids = [i for g in groups for i in g["params"]]
+    if len(set(ids)) != len(ids) or set(ids) != set(optimizer["state"]):
+        raise ValueError("Every actual trainable parameter needs complete AdamW state")
+    parameters = 0
+    for item in optimizer["state"].values():
+        if (
+            not {"step", "exp_avg", "exp_avg_sq"} <= item.keys()
+            or item["step"].item() != completed
+            or item["exp_avg"].shape != item["exp_avg_sq"].shape
+            or not torch.isfinite(item["exp_avg"]).all()
+            or not torch.isfinite(item["exp_avg_sq"]).all()
+        ):
+            raise ValueError("Complete finite AdamW moments and exact update step required")
+        parameters += item["exp_avg"].numel()
+    if (
+        parameters != expected_parameters
+        or groups[0]["lr"] != history[-1]["encoder_lr"]
+        or groups[1]["lr"] != history[-1]["head_lr"]
+    ):
+        raise ValueError("Every accepted encoder/head parameter and final LR must be preserved")
+    return {
+        "completed": completed,
+        "epoch": segment,
+        "full_learned_graph_exact": True,
+        "finite_contiguous_updates": completed,
+        "actual_AdamW_parameters": parameters,
+        "all_two_rank_RNG_and_scaler_records_present": True,
+    }

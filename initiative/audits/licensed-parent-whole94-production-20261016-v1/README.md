@@ -1,6 +1,8 @@
 # Full3887 whole94 MRI-parent adaptation
 
-Production code is prepared, not yet dispatched. It retains all six exact
+Control staging CPU939476 actually passed on evc33, sourcec68d8752. The finite
+production owner80039 is LIVE and waiting for all original producer outputs;
+no full GPU notebook has yet been pushed. It retains all six exact
 accepted numerical/CPU-loader modules, the original actual139105348/v1 private
 worker definitions and attributed model body. Only the worker entry point and
 full input population wrapper change. The actual32loader acceptance is CPU939362.
@@ -46,3 +48,13 @@ shared pixel/model copies. All remaining7hour sessions plus1hour reserve must
 fit the authoritative accelerator VM allowance before each dispatch. Every
 uncertain mutation requires read-only reconciliation; never restart an owner
 or repeat a SaveKernel because a poll expired.
+
+Private preservation is separately prepared: oneCPU/zeroGPU on evc39 streams
+each newly completed original model/optimizer/run/license exactly once, compares
+the complete model snapshot to its full optimizer checkpoint, checks every finite
+update, all73136096AdamW parameters and both ranks’ complete RNG/scaler records,
+then privately publishes the model/own-source/license/provenance with full
+re-download/size/SHA under the canonical shared lock. The optimizer checkpoint
+stays on the owning private node. No external parent body or patient arrays go
+into the small source mirror. Eleven negative/positive epoch-verifier tests pass.
+No production epoch or publication exists yet.
