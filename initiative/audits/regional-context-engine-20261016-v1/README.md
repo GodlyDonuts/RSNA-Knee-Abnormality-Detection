@@ -18,10 +18,17 @@ control checkpoint cannot resume as a regional fit. The new CLI enforces8192/
 128/12/two-layer graph, actual imported source admission and exact full recipe.
 The original1024serving/exporter stays unchanged and rejects incompatible recipes.
 
-Local targeted37tests/Ruff/three-fileMypy cover exact representations, initial
+Local targeted38tests/Ruff/three-fileMypy cover exact representations, initial
 parameter identity, missing labels, full/stop1/resume complete state and identical
 predictions, uneven batches, altered bytes/schema/metadata/roles and deep-state
-verification failures. Actual32MRIengineering recovery is NOT yet dispatched.
+verification failures. Original CPU937207 stopped at the initial verification, before any optimizer
+phase/checkpoint. Read-only937257 proved the zero-start logits were bit-equal to
+the parent with zero correction; the unbatched sigmoid oracle differed5.96e-8
+from the actual batched predictor. The matched-batch oracle is bit-exact. This
+was a verifier shape-dependent CPUrounding failure, not a model/data failure.
+Original code, input admission and failure are preserved; no training was repeated.
+The distinct corrected admission keeps exact equality and all numerical/data/
+model policies unchanged. It is not yet dispatched.
 Before full fitting, run six fresh processes: full/stop1/resume for each arm,
 32actual cached fitting studies/twoepochs/fourupdates. Require exact complete
 model/AdamW/LR/counter/order/allRNG/history and32x12NPYbytes, actual stop1,
@@ -34,3 +41,8 @@ epoch copies. Every actual production epoch still gets an immutable snapshot;
 full roles need actual checkpoint-size/retained-liability review before dispatch.
 Actual complete3887coherent feature collection, production admission/preservation,
 new typed final exporter and realT4serving are separate remaining work.
+
+Read-only CPU937278 additionally checked every original3887cached presence vector:
+zero studies lack a present center; minimum60of94. Thus the active full feature
+pass's center-presence precondition holds on the previously verified cohort.
+No new image inference, transfer, labels or metrics were used for this check.

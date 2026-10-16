@@ -15,6 +15,7 @@ from rsna.competitive.regional_context_train import (
 )
 from rsna.competitive.released_context import ContextResidual, window_metadata
 from rsna.competitive.released_context_train import PARENT_SHA, Recipe, Trainer
+from scripts.newton.probe_regional_context_recovery import zero_start_teacher
 
 
 def equal(a, b):
@@ -183,3 +184,21 @@ def test_feature_vector_requires_exact_role_and_storage_precision():
         feature_vector(f, r, "ambiguous")
     with pytest.raises(ValueError):
         feature_vector(f, r.float(), "regional")
+
+
+def test_zero_start_oracle_uses_the_exact_prediction_batch_and_tail_shape(tmp_path, monkeypatch):
+    import scripts.newton.probe_regional_context_recovery as probe
+
+    data = dataset(tmp_path / "data", "regional")
+    recipe = Recipe(epochs=2, batch_size=2, embedding_dim=64, targets=3, width=8)
+    shapes = []
+    original = probe.tta_probabilities
+
+    def observed(logits):
+        shapes.append(tuple(logits.shape))
+        return original(logits)
+
+    monkeypatch.setattr(probe, "tta_probabilities", observed)
+    teacher = zero_start_teacher(data, recipe)
+    assert shapes == [(2, 2, 3), (2, 2, 3), (1, 2, 3)]
+    assert np.array_equal(Trainer(data, recipe).predictions(), teacher)

@@ -15,7 +15,8 @@ import numpy as np
 import torch
 
 from rsna.competitive.regional_context_train import ENGINE, ROLES
-from rsna.competitive.released_context_train import Recipe, Trainer, digest
+from rsna.competitive.released_context import tta_probabilities
+from rsna.competitive.released_context_train import Recipe, Trainer, batch, digest
 from scripts.newton.run_regional_context_fit import load_data
 
 
@@ -49,6 +50,21 @@ def model_hash(state):
         h.update(json.dumps([name, str(tensor.dtype), list(tensor.shape)]).encode())
         h.update(tensor.detach().contiguous().numpy().tobytes())
     return h.hexdigest()
+
+
+def zero_start_teacher(data, recipe):
+    """Use the prediction path's exact batch shape, view layout and reduction.
+
+    Scalar-versus-vector CPU sigmoid kernels can differ by one ULP. Rebatching
+    the oracle removes that verification artifact without relaxing equality or
+    altering the model, teacher values, fitting loop or precision policy.
+    """
+    result = []
+    for start in range(0, len(data), recipe.batch_size):
+        indices = list(range(start, min(start + recipe.batch_size, len(data))))
+        x, _, _ = batch(data, indices)
+        result.append(tta_probabilities(x[1].view(-1, 2, recipe.targets)).numpy())
+    return np.concatenate(result)
 
 
 def main():
@@ -93,7 +109,7 @@ def main():
         if sum(p.numel() for p in trainer.model.parameters()) != 1334796:
             raise ValueError("Same original matched parameter graph required")
         initial[role] = model_hash(trainer.model.state_dict())
-        teacher = np.stack([data[role][i][1].sigmoid().mean(0).numpy() for i in range(32)])
+        teacher = zero_start_teacher(data[role], recipe)
         if not np.array_equal(trainer.predictions(), teacher):
             raise ValueError("Zero-start must preserve the actual parent exactly")
         state = copy.deepcopy(trainer.state())
