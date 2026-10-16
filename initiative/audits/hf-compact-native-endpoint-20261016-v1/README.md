@@ -1,0 +1,1 @@
+Source d17e2881 small endpoint/source-availability milestone privately mirrored once under the canonical shared atomic lock. All12 objects/49,808 bytes fully re-downloaded/size/SHA verified at HF5d662f900597192a4d5dceecf36fb2f4ccbeb34e. No MRI/labels/original identifiers/weights mirrored. Do not repeat. Subsequent supervision-quality audit is newer and not part of this mirror.

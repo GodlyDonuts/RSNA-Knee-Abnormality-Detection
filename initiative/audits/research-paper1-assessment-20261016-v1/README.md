@@ -32,3 +32,9 @@ See the two aggregate JSON audits here for the reproducible counts. No protected
 ## Actual additional-input metadata result
 
 The pinned corrected original inventory contains all356 additional fitting studies:1,849 accepted series/56,825 slices/37,933,598,808 DICOM bytes, no missing study or series. This is metadata completeness, not a new acquisition or decoded cache. No MRI bytes moved, no GPU used and no protected label values read. Actual extra cache construction and resource admission remain required before expanded fitting.
+
+## Subsequent fitting-only quality audit: expansion is conditional
+
+Public probabilities for all356 additional fitting rows are finite and in[0,1], but original eligibility metadata excludes11 from report-supervised fitting:10 unresolved bilateral correspondence and1 confirmed two-knee aggregate report. Preserve these exclusions. Thus the immediate expanded fitting candidate is **2,592 =2,247+345**, not automatic2,603 admission. This supersedes the unconstrained metadata capacity above. Across all training rows17 are correspondence-excluded, giving3,887 report-eligible train cases. Weak validation has440 eligible/one excluded; an explicitly scoped final fit could potentially reach4,327 eligible cases, not blindly4,345.
+
+A further59/356 source-label rows have identical values across all12 targets:37 at0.25,18 at0.025 and4 at0.015, compared with14/2,247 current fitting rows all at0.025. Uniform values are not proof of bad labels (normal examinations can have consistently low probabilities), but the37 at0.25 warrant checking source fallback/uncertainty semantics. None are silently deleted or promoted. No all-zero or all-0.5 extra rows exist. No clinical truth or accuracy improvement established; the admitted release/live N3 remain unchanged.
