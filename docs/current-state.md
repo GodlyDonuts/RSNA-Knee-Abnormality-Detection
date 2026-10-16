@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 22:07 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 22:33 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -359,14 +359,20 @@ Prospective full recipe:3epochs/3887eligible fitting studies/1458updates,
 effective8, low encoder/headLR3e-6/3e-5,AdamW/10%warmup-cosine/clip1,
 .25original source+.75view-specific full-parent teacher, frozen parent BN buffers.
 Protected Gold/confirmation remain unused. No independent localOOF is possible
-for this exposed parent. Full GPU production is NOT yet dispatched.
+for this exposed parent. CPU939476 has actually staged the full production
+control from sourcec68d8752. Live finiteowner80039/exec6555 waits for all original
+producer receipts, then launches up to3checkpoint-continuous seven-hour twoT4
+sessions at486/972/1458steps, preserving one complete LR/optimizer/RNG schedule.
+No full GPU production notebook has yet been pushed.
 
-The required original pixel population is projected~39.70GB. Four private CPU
-cache originals139103622/139103665/139103730/139103781 v1 remain RUNNING,
+The required original pixel population is projected~39.70GB. Of the four original private CPU
+cache notebooks139103622/139103665/139103730/139103781 v1, shard0 is COMPLETE
+(972studies,zero decode errors/empty cases,9.456GBarchive,1996.89seconds); the
+other three remained RUNNING at the latest read,
 covering3887ordered fitting studies exactly; reuse32original members and encode
 only3855new cases. No competition slots/GPU used. Each output is bounded14GiB;
 training will mount them read-only instead of creating a second40GBworking tree.
-Full-cache terminal/collection is still pending. [Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
+The remaining original producer outcomes and private backup collection are pending. [Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
 
 CPU939271 compacted all3887original labels/masks and both teacher-logit views
 bit-exactly into483656bytes. CPU939291 created ONE private training Dataset
@@ -381,7 +387,7 @@ The new loader also passed actualCPU939362: all32original MRI cases/64views,
 all94window inputs, source labels/masks and both teacher views matched bit-exactly
 in37.01seconds, reading directly inside the original tar without a second pixel
 tree. This engineering acceptance does not admit the still-running full cache.
-Production must bind all4actual cache proofs, exact original weight/source/labels,
+Production must bind all4actual original Kaggle producer proofs, exact weight/source/labels,
 accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
 fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
 never reset the LR/optimizer schedule per segment.
@@ -391,3 +397,19 @@ fully verified at HFa879e194d2646971b0b9238ce588abce64c2d03f:71small objects,
 419747bytes, CPU939371/canonical shared lock/source9adce769. No MRI/UID/label/
 teacher arrays/prediction rows/parent source body/weights. Do not repeat this or
 prior verified prefixes. [Original proof](../initiative/audits/hf-licensed-parent-whole94-20261016-v1/verified.json).
+
+Original-byte readiness and Newton backup are now separate: the full original
+Kaggle receipts cover every newly encoded case and both94-window tensor hashes,
+complete roster, zero decoding errors/empty cases, original source and whole-byte
+hashes. The production wrapper joins all3887indices to the exact target bundle
+before any GPU push; its loader also checks every accessed immutable member and
+rendered view. This is not a claim that the Newton replica has already passed.
+That independent backup continues in parallel and cannot hold the submission lock.
+
+Production preservation watcher80311/exec52344 is LIVE: each actual completed
+session triggers oneCPU/zeroGPU collection, independent full snapshot/model/
+AdamW/history/two-rank RNG/scaler checks and private HF publication with complete
+re-download/size/SHA/license/provenance. No production epoch exists yet. The new
+full-population/session/epoch/range paths pass48focused checks plus7existing
+loader checks, Ruff/mypy. These are engineering checks, not an accuracy gain.
+[Exact full-production source, stage and ownership](../initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
