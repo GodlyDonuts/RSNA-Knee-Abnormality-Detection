@@ -1,8 +1,14 @@
 # Full3887 whole94 MRI-parent adaptation
 
 Control staging CPU939476 actually passed on evc33, sourcec68d8752. The finite
-production owner80039 is LIVE and waiting for all original producer outputs;
-no full GPU notebook has yet been pushed. It retains all six exact
+production owner80039 is LIVE. All four original producers actually completed
+with zero decode errors/empty studies; CPU939655 joined all3887ordered fitting
+UIDs exactly to the accepted target bundle. It pushed ONE full epoch1 notebook
+139111324v1,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138. Fresh accelerator
+VM quota82709.635seconds funded all three7hour sessions plus the reserve.
+Authenticated status939730 is RUNNING. Live website logs then confirmed BOTH
+actual T4s/3887cases/73136096trainable parameters and14finite optimizer updates.
+No full epoch or accuracy result exists yet. It retains all six exact
 accepted numerical/CPU-loader modules, the original actual139105348/v1 private
 worker definitions and attributed model body. Only the worker entry point and
 full input population wrapper change. The actual32loader acceptance is CPU939362.
@@ -58,3 +64,10 @@ re-download/size/SHA under the canonical shared lock. The optimizer checkpoint
 stays on the owning private node. No external parent body or patient arrays go
 into the small source mirror. Eleven negative/positive epoch-verifier tests pass.
 No production epoch or publication exists yet.
+
+Read-only observation note: both official-client-style SSE stream endpoints
+timed out before response headers from this cluster session. That was observation
+loss, not notebook failure. The authenticated Kaggle Logs UI subsequently exposed
+real per-rank preflight and optimizer records; only aggregate/header data is
+retained in actual-live-training-UI-14.json. No restart or repeatSaveKernel. The
+primary client protocol reference is [official Kaggle CLI](https://github.com/Kaggle/kaggle-cli/blob/main/src/kaggle/api/kaggle_api_extended.py).

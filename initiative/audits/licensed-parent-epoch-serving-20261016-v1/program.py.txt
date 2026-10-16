@@ -1,0 +1,60 @@
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];epoch=v.get('epoch',1);role=v.get('role','qualification');assert phase in ('stage','prepare','push','status') and 1<=epoch<=3 and role in ('qualification','competition') and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1');S=R/'code';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert shutil.disk_usage('/tmp').free>607095306179;roots=[Path('/tmp/rsna-licensed-parent-trainer-recovery-20261016-v1'),Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1'),Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1'),Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1'),Path('/tmp/rsna-licensed-parent-whole94-small-milestone-20261016-v1'),Path('/tmp/rsna-licensed-parent-full-production-small-milestone-20261016-v1'),R];used=sum(p.stat().st_size for root in roots if root.exists() for p in root.rglob('*') if p.is_file());assert used+3*2**20<16*2**20
+if phase=='stage':
+ assert not R.exists() and hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde';R.mkdir(mode=0o700);(R/'original-parent.private.py').write_text(v['parent_source']);(R/'original-parent.private.py').chmod(0o600)
+ for name,text in v['files'].items():
+  p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+ meta={'status':'full_parent_epoch_serving_control_staged_without_weights_or_GPU','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in v['files'].items()},'parent_source_sha256':'493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde','controls_cap_bytes':16*2**20,'new_weight_Dataset_or_weight_copy':False,'new_Kaggle_mutations':0,'new_shared_bytes_files':0,'columns':v['columns'],'expected_public_roster_sha256':v['expected_public_roster_sha256']};(R/'staged.json').write_text(json.dumps(meta,sort_keys=True,indent=2)+'\n');print(json.dumps(meta),flush=True)
+else:
+ meta=json.loads((R/'staged.json').read_text());assert meta==v['metadata'] and all(sha(S/n)==h for n,h in meta['source_files'].items()) and sha(R/'original-parent.private.py')==meta['parent_source_sha256'];sys.path.insert(0,str(S));from scripts.kaggle.licensed_parent_serving import build
+ from rsna.competitive.licensed_parent_serving import provenance
+ spec=importlib.util.spec_from_file_location('full_parent_epoch_serving_workflow',S/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+ import requests
+ r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+ while True:
+  try:claim.mkdir(mode=0o700);break
+  except FileExistsError:
+   assert time.monotonic()<deadline,'Canonical coordinator claim is busy; retain original serving state';time.sleep(5)
+ w.new_json(claim/'owner.json',{'kind':'licensed_full_parent_epoch_serving','phase':phase,'role':role,'epoch':epoch,'job':os.environ['SLURM_JOB_ID']});retain=False
+ try:
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+   w.verify_account(db,r);D=R/('epoch-'+str(epoch));
+   def save(key,record):
+    db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['model_sha256'],record['state']));db.commit()
+   if phase=='prepare':
+    actual,pub=v['actual'],v['publication'];model_sha=actual['receipt']['epoch']['sha256'];assert provenance(actual,pub,model_sha)==epoch;trained=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-parent-whole94-full-fit:'+actual['source_sha256'],)).fetchone()[0]);assert trained['state']=='whole94_full_fit_actual_complete' and trained['receipt']==actual['receipt'] and trained['kernel_id']==actual['kernel_id'] and trained['slug']==actual['slug'];assert hashlib.sha256(r.kernel('GetKernel',actual['slug'],1)['blob']['source'].encode()).hexdigest()==actual['source_sha256'] and r.kernel('GetKernelSessionStatus',actual['slug'],1)['status']=='COMPLETE';key='licensed-parent-full-epoch-serving:'+model_sha;assert not D.exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None;helpers=[(S/n).read_text() for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_parent_serving.py','rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py')];prepared={};sources={}
+    for mode in ('qualification','competition'):sources[mode],prepared[mode]=build((R/'original-parent.private.py').read_text(),*helpers,actual,pub,mode=mode)
+    D.mkdir(mode=0o700)
+    for mode,source in sources.items():(D/(mode+'.private.py')).write_text(source);(D/(mode+'.private.py')).chmod(0o600)
+    record={'state':'full_parent_epoch_serving_prepared','source_git':meta['source_git'],'model_sha256':model_sha,'epoch':epoch,'training':actual,'publication':pub,'prepared':prepared,'new_weight_Dataset_or_copy':False};w.new_json(D/'prepared.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit();out={'status':'one_actual_full_parent_epoch_serving_prepared','CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'model_sha256':model_sha,'prepared':prepared,'new_weight_Dataset_or_copy':False}
+   else:
+    base=json.loads((D/'prepared.json').read_text());model_sha=base['model_sha256'];key='licensed-parent-full-epoch-serving:'+model_sha;record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);binding=base['prepared'][role];source=(D/(role+'.private.py')).read_text();source_sha=hashlib.sha256(source.encode()).hexdigest();assert source_sha==binding['source_sha256'];slug='godlydonuts/rsna-parent-adapted-e'+str(epoch)+'-'+('qual' if role=='qualification' else 'offline')+'-'+source_sha[:12];dependencies=[base['training']['slug']]+(['godlydonuts/rsna-parent-exact-pixels32-09254e97913d'] if role=='qualification' else []);request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[],'competitionDataSources':[] if role=='qualification' else ['rsna-knee-abnormality-detection'],'kernelDataSources':dependencies,'sessionTimeoutSeconds':1800 if role=='qualification' else 32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+    if phase=='push':
+     assert role not in record and not (D/(role+'-push-intent.json')).exists()
+     if role=='competition':assert record['state']=='full_parent_epoch_qualification_accepted'
+     for ref in dependencies:assert r.kernel('GetKernelSessionStatus',ref,1)['status']=='COMPLETE'
+     quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda s:float(s.removesuffix('s'));remaining=min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved'])
+     if remaining<request['sessionTimeoutSeconds']+300:out={'status':'waiting_authoritative_GPU_VM_allowance_without_mutation','epoch':epoch,'role':role,'remaining_VM_seconds':remaining,'required_VM_seconds':request['sessionTimeoutSeconds']+300,'mutation_intent_created':False}
+     else:
+      absence=r.require_absent_kernel(slug);intent={'source_sha256':source_sha,'slug':slug,'version':1,'role':role,'epoch':epoch,'model_sha256':model_sha,'request_sha256':w.object_hash(request),'absence':absence,'quota':quota,'automatic_retry':False};w.new_json(D/(role+'-push-intent.json'),intent);record.update(state='full_parent_epoch_'+role+'_push_intent',**{role:intent});save(key,record)
+      try:
+       response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/(role+'-push-response.json'),response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+      except BaseException:record['state']='full_parent_epoch_'+role+'_push_uncertain';save(key,record);retain=True;raise
+      record[role]['kernel_id']=response['kernelId'];record['state']='full_parent_epoch_'+role+'_pushed';save(key,record);out={'status':'one_full_parent_epoch_'+role+'_pushed','kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':source_sha,'epoch':epoch,'model_sha256':model_sha,'new_weight_Dataset_or_copy':False,'competition_entry':False}
+    else:
+     ref=record[role];assert ref['source_sha256']==source_sha;actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu') is True and m.get('machineShape')=='NvidiaTeslaT4' and m.get('dockerImage')==request['dockerImage']
+     for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+     status=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':status,'role':role,'epoch':epoch,'model_sha256':model_sha,'slug':slug,'version':1,'kernel_id':ref['kernel_id'],'source_sha256':source_sha,'competition_entry':False}
+     if status=='COMPLETE':
+      name='licensed-parent-epoch-qualification-accepted.json' if role=='qualification' else 'licensed-parent-epoch-public-accepted.json';receipt=r.output_json(slug,1,name);assert receipt['model_sha256']==model_sha and receipt['epoch']==epoch and receipt['training_source_sha256']==base['training']['source_sha256']
+      if role=='qualification':assert receipt['status']=='actual_full_parent_epoch_bothT4_original32_MRI_and_training_graph_qualified' and receipt['qualified_studies']==32 and len(receipt['devices'])==2 and all(d['both_original94_input_views_bit_equal'] is True and d['complete_learned_graph_tensor_values_equal'] is True and d['maximum_original_class_vs_training_graph_probability_error']<=1e-6 for d in receipt['devices'])
+      else:
+       assert receipt['status']=='actual_full_parent_epoch_MRI_test_roster_CSV_complete' and receipt['studies']==3 and receipt['columns']==13 and receipt['prediction_counts']=={'started':6,'completed':6,'failed':0,'decode_errors':0,'empty_views':0};spec=importlib.util.spec_from_file_location('strict_private_public_csv',S/'scripts/kaggle/output_csv.py');csv=importlib.util.module_from_spec(spec);spec.loader.exec_module(csv);checked=csv.verify_csv(csv.download_csv(r,slug,1),meta['columns'],meta['expected_public_roster_sha256']);assert checked['CSV_sha256']==receipt['CSV_sha256'] and checked['bytes']==receipt['CSV_bytes'];out['CSV_verified_in_RAM']=checked
+      out['receipt']=receipt
+      if not(D/(role+'-actual-accepted.json')).exists():w.new_json(D/(role+'-actual-accepted.json'),out);record[role]['receipt']=receipt;record['state']='full_parent_epoch_'+role+'_accepted';save(key,record)
+     elif status in ('ERROR','CANCELLED'):
+      if not(D/(role+'-actual-failed.json')).exists():w.new_json(D/(role+'-actual-failed.json'),out);record['state']='full_parent_epoch_'+role+'_failed';save(key,record)
+   print(json.dumps(out),flush=True)
+ finally:
+  if not retain:(claim/'owner.json').unlink();claim.rmdir()
