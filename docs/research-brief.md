@@ -34,10 +34,16 @@ Their combined score gap does not identify any one causal ingredient.
 Current N3 triples are consecutive **selected slots**, not guaranteed consecutive
 source slices. The source-neighbor challenger preserves original centers and all
 other registered settings. Its full fit and a separate positive-weight full fit
-were submitted after actual H100 recovery. Neighbor932957 is now actually training;
-weighted933001 is RUNNING with10epochs privately verified; all16neighbor epochs are privately verified.
-Neither has demonstrated an accuracy gain. Public one-study gradient accumulation
-also means mixed-study BatchNorm is not a known missing ingredient.
+were submitted after actual H100 recovery. Neighbor932957 is now COMPLETED;
+all16epochs are privately verified. Actual paired fixed-final macro0.91519773versus
+original0.92092535, delta-0.00572762, conditional95%[-0.02522802,+0.01337630],
+2,836defined/1,164undefined whole-component draws. No established primary gain;
+keep original N3. Lateral-meniscus/contusion secondary improvements need matched
+replication and do not justify post-hoc target splicing. Narrower adjacency versus
+wider anatomical context is a plausible tradeoff, not a proved explanation.
+Weighted933001 is RUNNING with10privateverified epochs; no final result yet.
+Public one-study gradient accumulation also means mixed-study BatchNorm is not a
+known missing ingredient. [Full paired evidence](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
 Additional 345 fitting-only caches and private preservation are complete.
 Expanded 2,592-study inputs passed actual zero-GPU admission933324 with original

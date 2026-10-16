@@ -1,0 +1,36 @@
+
+import argparse,hashlib,io,json,os,subprocess,sys
+from pathlib import Path
+v=PACKAGE;assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+slurm=subprocess.check_output(['sacct','-X','-j','932957','-n','-P','--format=State,ExitCode,Elapsed'],text=True).strip();assert slurm.startswith('COMPLETED|0:0|')
+I=Path('/tmp/rsna-compact-matched-neighbor-inputs-20261016-v1');admitted=json.loads((I/'accepted.json').read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();assert sha(I/'accepted.json')=='7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352' and sha(I/'recovery-v1/accepted.json')=='6b823768418eae1af4921497e1ff8d99733e541262f463178e020129e82b619f'
+S=Path(admitted['source']);R=Path('/tmp/rsna-compact-neighbor-final-20261016-v1');assert not R.exists();R.mkdir(mode=0o700);C=R/'code'
+for name,text in v['analysis_source'].items():
+ p=C/name;p.parent.mkdir(parents=True,exist_ok=True,mode=0o700);p.write_text(text)
+sys.path[:0]=[str(C),str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import numpy as np,pandas as pd,torch
+from rsna.competitive.compact_train import admitted_datasets
+from rsna.schema import TARGETS
+from scripts.research.compare_smooth_witness import paired_metrics
+torch.set_num_threads(1);O=Path('/tmp/rsna-compact-neighbor-production-20261016-v1/production');B=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production');result=json.loads((O/'result.json').read_text());run=json.loads((O/'run.json').read_text());b=run['binding'];baseline=json.loads((B/'run.json').read_text())['binding'];proof=v['original_verified'];assert proof['model_state_equals_immutable_privately_verified_E16'] and proof['source_git']=='dcfff319cb7bd7bbae679a20da2b1b9268e8d680'
+assert result['status']=='fixed_final_fit_complete' and result['optimizer_steps']==result['total_steps']==4496 and result['diagnostic_only'] is False
+for n,h in b['source_sha256'].items():assert sha(S/n)==h
+assert set(b)==set(baseline)|{'input_policy'}
+for k in set(baseline)-{'source_sha256','engine'}:assert b[k]==baseline[k],k
+assert b['engine']=='native_coatnet_bag12_matched_source_neighbors_v1' and b['settings']['epochs']==16 and b['fitting_count']==2247
+raw=(O/'checkpoint.pt').read_bytes();assert hashlib.sha256(raw).hexdigest()==result['checkpoint_sha256'];state=torch.load(io.BytesIO(raw),map_location='cpu',weights_only=True);del raw
+side=json.loads((O/'epoch-checkpoints/epoch-016.json').read_text());published=json.loads((O.parent/'publication/epoch-016/verified.json').read_text());assert published['checkpoint_sha256']==side['checkpoint_sha256']==v['epoch16']['checkpoint_sha256'] and published['files_verified_by_download']==8
+raw=(O/'epoch-checkpoints/epoch-016.pt').read_bytes();assert hashlib.sha256(raw).hexdigest()==side['checkpoint_sha256'];snapshot=torch.load(io.BytesIO(raw),map_location='cpu',weights_only=True);del raw
+assert state['binding']==snapshot['binding']==b and state['optimizer_boundary'] and state['epoch']==16 and state['cursor']==0 and state['optimizer_steps']==4496 and len(state['history'])==4496
+assert set(state['model'])==set(snapshot['model']) and all(torch.equal(value,snapshot['model'][name]) for name,value in state['model'].items())
+for index,h in enumerate(state['history']):assert h['step']==index+1 and np.isfinite([h['loss'],h['gradient_norm'],h['active_cells'],*h['learning_rates']]).all()
+del state,snapshot
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');args=argparse.Namespace(studies=A/'initiative/releases/report-supervision-v1/studies.parquet',folds=A/'initiative/experiments/competitive-v1/folds',series=A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv',artifact_root=A,cache=Path('/tmp/rsna-compact-native-evc33-relocation-20261016-v1/cache'),fitting_supervision=Path('/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json'),engineering=False,input_policy='matched-source-neighbors')
+fit,outer,binding=admitted_datasets(args);assert len(fit)==2247 and len(outer)==1156
+for key,value in binding.items():assert b[key]==value,key
+models={}
+for role,path,expected in [('control',B/'outer_predictions.csv',proof['outer_predictions_sha256']),('candidate',O/'outer_predictions.csv',result['predictions_sha256'])]:
+ assert sha(path)==expected;p=pd.read_csv(path,dtype={'study_uid':str});assert list(p.columns)==['study_uid',*TARGETS] and len(p)==1156 and not p.study_uid.duplicated().any() and set(p.study_uid)==set(outer.studies.study_uid) and not set(p.study_uid)&set(fit.studies.study_uid);models[role]=p.set_index('study_uid')
+labels=outer.studies.set_index('study_uid').loc[sorted(models['control'].index)];analysis=paired_metrics(labels,models,draws=4000,seed=20261001);analysis.pop('primary_meniscus');assert abs(analysis['macro_auc']['candidate']-result['metrics']['macro_auc'])<1e-12 and abs(analysis['macro_auc']['control']-proof['macro_auc'])<1e-12
+for row in analysis['targets']:assert abs(row['auc']['candidate']-result['metrics']['per_target_auc'][row['target']])<1e-12
+receipt={'status':'actual_neighbor_fixed16_complete_state_roster_and_paired_outer_verified','CPU_job':os.environ['SLURM_JOB_ID'],'Slurm':slurm,'training_job':'932957','scientific_source_git':'3803b717b69db6c5e89e11724c4daee15490cbe2','sole_scientific_change':'two_source_neighbor_donor_channels_at_unchanged_original_centers','fitting_studies':2247,'outer_studies':1156,'epochs':16,'optimizer_steps':4496,'complete4496_finite_history':True,'complete_final_model_equals_immutable_E16':True,'settings_runtime_supervision_masks_release_folds_base_sampler_same_as_original_N3':True,'source_and_admitted_roster_bindings_exact':True,'checkpoint_sha256':result['checkpoint_sha256'],'immutable_E16_sha256':side['checkpoint_sha256'],'private_E16_revision':published['revision'],'result_sha256':sha(O/'result.json'),'predictions_sha256':result['predictions_sha256'],'primary_endpoint':'fixed_final_full12_macro_candidate_minus_original_N3_same_1156weak_outer','analysis':analysis,'independent_accuracy_or_Kaggle_score':False,'gold_confirmation_used':False,'new_MRI_inference_or_GPU_or_model_fitting':False,'private_clinical_case_rows_exported':False};(R/'verified.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n');print(json.dumps(receipt),flush=True)

@@ -1,4 +1,21 @@
-# Latest execution update — October16 17:31UTC
+# Latest execution update — October16 17:41UTC
+
+Originalneighbor932957 ACTUAL **COMPLETED0:0/7:07:47**. CPU936773 independently
+verified full4496-finite-history/final-model==privateimmutableE16/source/base/runtime/
+settings/supervision/rosters/masks and fixed1156outer CSV plus paired4000whole-group
+draws. Internalmacro0.9151977302629701vsN3control0.9209253491221031;
+delta-.005727618859133, conditional95%[-.025228017886509,.013376299998358],
+2836defined1164undefined/1106components. No established primary gain; keepN3.
+ExploratoryLM/contusionCIpositiveamong12, notmultiplicity-adjusted/replicated;
+no post-hocsplicing/promotion. PrivateE16d2062681152ee5dc885f343649ebd2c599a6f65c8fe99ca954b730dcb6655e94
+HF1b972254954abf48192beb3796323d62bba8fc95 alreadyfullyverified; neverrepeatpublication.
+Finalresumecheckpoint431b3b94557577bffbf224f926e68bdb99af38e256afeb112e32baacc6d6907f;
+privateCSV e68112536003dfadadecba90475e7122ddf7e7b3f772e22f592ddc33c8583bb7.
+Originalresult+audit/tmp/rsna-compact-neighbor-final-20261016-v1/verified.json;
+localartifacts/compact-neighbor-final-20261016-v1/result.json. Do notrerun.
+Weighted933001healthy;933382stillPENDINGPriority. Regionalfull139068442/v1RUNNING/
+finite48632alive. Currentrequired605669242819; oldfrozenfinisher51853untouched.
+
 
 NEW original fullregional **139068442/v1 pushedONCE**, source16527682e6f216ca7189096c4d0d914c8811929869288e9d20910a9f232d29c4,
 slug godlydonuts/rsna-regional-full-16527682e6f2. CPU936693actualsafe3887boundary/

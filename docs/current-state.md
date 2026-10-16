@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 17:31 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 17:41 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -35,15 +35,18 @@ Our external0.949/own0.894 results are distinct and below that reference.
 | Experiment | Original/current Slurm | Observed state | Isolated change |
 |---|---|---|---|
 | N3 selected-slot triples | 930744 → 932869 | **COMPLETED 0:0**, evc33 | Original fixed 16 epochs / 4,496 updates |
-| Source-neighbor challenger | **932957** | **RUNNING**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
+| Source-neighbor challenger | **932957** | **COMPLETED 0:0**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
 | Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **16 completed epochs**, empty stderr; epochs 1–16
-are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
-verified. Leave it healthy and unchanged. Both challengers passed actual H100
+Neighbor932957 completed16epochs/4,496updates; all16epochs are privately fully
+8-objectdownload/size/SHAverified. CPU936773 verified the complete fixed-final
+model/source/roster/predictions. Internal macro0.91519773versus original0.92092535,
+delta-0.00572762, whole-component conditional95%[-0.02522802,+0.01337630],
+2,836defined/1,164undefined draws. No established primary gain; keep originalN3.
+[Fixed-final result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md). Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–10 are privately verified; no challenger final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–10 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -204,11 +207,12 @@ single push. Finite owner48632 observes that exact original and collects its new
 archive once on completion. **No regional head has been trained or submitted.**
 [Full source, funding and owner](../initiative/audits/regional-feature-full-20261016-v1/README.md).
 
-Neighbor932957 has all 16 immutable epochs privately verified; weighted933001 has
-10. Both original jobs are still RUNNING at the latest check, so neither has a
-verified fixed-final held-out result yet. Original expanded recovery933382 remains
-PENDING; its existing conditional owner51853 and context-entry owner33015 stay
-alive. Root implements this work directly; Devin is unavailable.
+Neighbor932957 is COMPLETED and independently verified:0.91519773internal macro,
+originalN3control0.92092535; no established primary gain (interval includes zero).
+Weighted933001 has10privately verified epochs and remains RUNNING, no final result.
+Original expanded recovery933382 remains PENDING; conditional owner51853 and
+context-entry owner33015 stay alive. Root implements directly; Devin is unavailable.
+[Neighbor full paired result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
 Verified private preservation: sourcee2fd3911/all51smallobjects235,995bytes at
 HF9d593e484d0fde760381e12a7c606e2f84fb32a4, fully re-downloaded/size/SHAverified
