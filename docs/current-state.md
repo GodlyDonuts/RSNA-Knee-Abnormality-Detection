@@ -1,3 +1,11 @@
+# October16: T4 precision accepted; first compact epoch privately preserved
+
+Original T4 notebook138964322/v1 COMPLETE: both actualT4s passed original CPU FP32/FP16 full/MC128 comparisons. MaxFP32error8.35e-7/maxFP16error.001519323;84-window FP16 medians1.29247/1.34524s, peak2.564GB/device. This is diagnostic encoder throughput, NOT full hidden pipeline/runtime or accuracy. Original929938 released after terminal; never repeat original push/Dataset. Finite T4observer exec50077 terminal success.
+
+Healthy compact930744 reached352finiteupdates/epoch2. Epoch1 original e9a53b0e... privately published once/all8objects re-downloaded/size/SHA verified at HFa26b06ee7ec74f051f707a96f0875eb834c07807, CPU931228. Never repeat E1. Publisher watcher exec47365 remains active; preserve later distinct epochs once. No compact accuracy result yet.
+
+New compact_runtime.py native DICOM-to-CSV twoCPU-prefetch/twoGPU-persistent path is PREPARED, not actually raw-MRI/T4-qualified. Next: same private engineering checkpoint/Dataset and source-bound new raw-input endpoint diagnostic, then fullscale pipeline timing; no extra weights transfer/new Dataset needed. Actual live recipe fixed16/4496 remains unchanged. Best solo Kaggle0.872.
+
 # October16: actual private compact T4 diagnostic running
 
 Private offline notebook138964322/v1 `godlydonuts/rsna-compact-t4-precision-bcc8d6223af8` RUNNING, exact SourceSHAeb406c27.../image/twoT4/private/version verified. Dataset12622515/v1 created once, all18objects fully downloaded/hash verified. Diagnostic4-update weights only,70 unlabeled native windows/synthetic identity/no original case IDs. No submission.csv/competition entry. Finite observer exec50077 `artifacts/compact-native-n3-launch-20261016-v1/finish_t4_probe_once.py` active; inspect actual process/phase receipts, never restart it or duplicate any mutation. Original pending patch929938 held once during this bounded GPU test; terminal observer releases same job. Actual precision/throughput result still pending; hidden end-to-end runtime NOT qualified by this probe.

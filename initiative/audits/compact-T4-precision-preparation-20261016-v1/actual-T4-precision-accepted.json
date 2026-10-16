@@ -1,0 +1,62 @@
+{
+  "status": "actual_two_T4_compact_precision_and_encoder_timing_accepted",
+  "diagnostic_only": true,
+  "competition_eligible": false,
+  "accuracy_claim": false,
+  "hidden_scale_end_to_end_runtime_qualified": false,
+  "fixture_windows": 70,
+  "checkpoint_sha256": "bcc8d6223af82cdd5ad17c2e4eb940132aa5cadaefa22919ca41c5fdab5e8826",
+  "fixture_sha256": "8d65d871705f712321ccdc548253bc6519dd46014791256a8c5110e1a08f9c52",
+  "torch": "2.14.0+cu130",
+  "cuda": "13.0",
+  "devices": [
+    {
+      "index": 0,
+      "name": "Tesla T4",
+      "precision_checks": {
+        "float32": {
+          "full_max_error_vs_original_CPU": 6.854534149169922e-07,
+          "MC128_max_error_vs_original_CPU": 8.344650268554688e-07,
+          "elapsed_seconds": 3.0672093800000084
+        },
+        "float16": {
+          "full_max_error_vs_original_CPU": 0.001519322395324707,
+          "MC128_max_error_vs_original_CPU": 0.0014935135841369629,
+          "elapsed_seconds": 2.274328743999945
+        }
+      },
+      "FP16_84_window_seconds": [
+        1.2913909779999813,
+        1.2935481119999395,
+        1.2888141810000207,
+        1.2957657719999816
+      ],
+      "FP16_84_window_median_seconds": 1.2924695449999604,
+      "peak_allocated_bytes": 2564041216
+    },
+    {
+      "index": 1,
+      "name": "Tesla T4",
+      "precision_checks": {
+        "float32": {
+          "full_max_error_vs_original_CPU": 6.854534149169922e-07,
+          "MC128_max_error_vs_original_CPU": 8.344650268554688e-07,
+          "elapsed_seconds": 2.9483698559999993
+        },
+        "float16": {
+          "full_max_error_vs_original_CPU": 0.001519322395324707,
+          "MC128_max_error_vs_original_CPU": 0.0014935135841369629,
+          "elapsed_seconds": 1.7737010670000473
+        }
+      },
+      "FP16_84_window_seconds": [
+        1.343665723000072,
+        1.340734991999966,
+        1.3468204019999348,
+        1.348131444000046
+      ],
+      "FP16_84_window_median_seconds": 1.3452430625000034,
+      "peak_allocated_bytes": 2564041216
+    }
+  ]
+}
