@@ -1,4 +1,4 @@
-# Execution handoff — October16, 2026, 19:49UTC
+# Execution handoff — October16, 2026, 20:23UTC
 
 Root implements directly. **Devin is unavailable.** Read current-state.md and
 research-brief.md; current original receipts/live Slurm/Kaggle resolve changes.
@@ -149,13 +149,9 @@ for separately justified accepted experiments/backups after actual outcomes.
 No spatial clinical/Kaggle improvement yet. Never submit diagnostics/source-derived
 Stanford/KneeCoT weights, old uncertain versions or a public3rowCSV.
 
-Next independent research candidate: source-confidence weighting2*abs(p−0.5),
-distinct from completed positive-class weighting. Original source documents0.5
-as unaddressed. Current masks/labels/protected cohorts stay immutable. Test a
-matched confidence-vs-uniform source/teacher anchoring objective using retained
-features/identical graph/initialization/compute, with explicit normalization and
-actual complete-state recovery; do not alter any current frozen recipe/owner.
-This is an untested proposal, not new labels, training or an accuracy gain.
+Source-confidence is now an actual completed matched experiment, not an untested
+proposal. Read the newest exact confidence update below for actual source,
+recovery, full-control equality, private epochs and deployment ownership.
 
 ## Preservation, resource and access
 
@@ -192,3 +188,60 @@ previous6c06674d/HFc6e848a5etc. Model76raw objects and Dataset12639590already
 have their own original full verified proofs; no double publication. No new hidden
 score yet. Current source-level next research proposal remains source-confidence
 anchoring; keep exact accepted current models/owners immutable.
+
+## October16 20:23 actual confidence update — supersedes prepared proposal
+
+OriginalCPU938522/owner57193 is TERMINALsuccess: both3887fixed10/2430fits,
+all20epochs privately full40object-per-role downloaded/hash verified. Uniform
+HF775e9f5db25f9063f1c4662d2d4f1c3df8b903cc, confidence
+HFf326b093db6b9733a51f04d16319ffe5fbce1f5b. Never rerun either fit/publication.
+Root/tmp/rsna-source-confidence-context-20261016-v1; scientific75bac344741e243264cbba645138a285d2630eda.
+Complete full uniform numerical model/AdamW/LR/order/counters/allRNG/history and
+all prediction bytes equal original global context; **never submit new uniform
+weights again**. New confidence final91f8e0f332ec3956abf69e9220c4c2e522310c9ad1f96f273eed2075973a052f.
+Actual32recoverySHA30726ae55bd2a32ce5bc269e1a1b3ce94d2b8f59510519c07ae20075384d8a35.
+AggregateCPU938676collected only sanitized endpoints/provenance/stats:28/46644
+exacthalf source cells; confidence mean.78049; no clinical/competition score.
+
+NEW sole finite **exec47360/PID72016**,
+artifacts/source-confidence-deployment-20261016-v1/finish_after_original_full_once.py,
+original final export/CPU math completed successfully asCPU938675. The
+original controller stopped before its first Dataset phase because the local
+child lacked PYTHONPATH; no phase intent/token read/remote call occurred.
+Distinct continuation **exec14084/PID72652** fixes only the child environment and
+performs the FIRST Dataset/qualification/publicMRI phases. Original47360 is
+TERMINALfailure; never restart it or repeat the export/publication. Inspect
+continue-preintent-import.intent/progress/result and all original phase receipts. **No competition entry by this controller.**
+Never restart it or duplicate phase intents; inspect original export/child/phase
+intent/results first. New source files/typed exporter committed e8e71743.
+Node serving/tmp/rsna-source-confidence-serving-20261016-v1, deployment
+/tmp/rsna-source-confidence-deployment-20261016-v1; canonical meta prefix
+licensed-confidence-context-serving:<componentSHA>. Actual component/IDs not
+yet observed in this snapshot. Existing33015/PID54576 and49213/PID69887 next-window
+entry controllers stay unchanged, today last5used/0slots. Expanded938284 remains
+originalPENDINGPriority; existingpreservationwatcher untouched.
+
+New256MiBhead/recovery/publication+32MiBcontrols are independently funded.
+Conservative all-prior+new requiredfree **605971232707bytes**; admission633423273984
+free left27452041277after all obligations. Actual193936925retained checkpoint bytes;
+future6MiBserving components/one2MiBZIP and single6MiBverification fit the new256
+cap, no deletion/retirement credit. Existing original owners' budgets unchanged.
+
+Next larger source initialization direction: read licensed-parent-end-to-end-v1.
+Implement bounded private32fitting CPU-only Kaggle pixel-cache gate preserving
+exact scored parent96x384uint8/140mm/LUT/center320/94two-view tensors. Source
+body supplied privately, never vendored; no reports/clinical/protected images.
+Measure compression/time/RAM before fullcache funding, then reconcile one
+necessary private exact parent checkpoint and admit actual GPU recovery before
+a short low-LR adaptation. No cache/weight copy/GPU dispatch has occurred. This
+protocol does not fund it, choose new scientific settings or inherit.949.
+
+Actual typed final CPU938675 export: component
+d215637cb2e46d169761ed15c1be96ec97b2181c878f317fa0df518b2fcea671,
+1626295bytes, anonymous32reference
+45d7863f11ebe07db86a52992d81a12a2aa908b34e96b7ebbac8dc299ef33e91.
+Full learned-graph probability error0.0; nonzero max correction.3593553.
+New serving19objects1723336bytes privately full downloaded/hash verified at
+HF28f294803c2a43ec3e749b0fe2b7010ea696b18d; raw20epochs NOT uploaded again.
+Never repeat export/serving publication. Actual T4/public outcome still pending
+in this snapshot; consult the continuation original before any action.

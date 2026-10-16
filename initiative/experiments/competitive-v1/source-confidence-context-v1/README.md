@@ -40,5 +40,7 @@ until its own actual Kaggle result; software recovery or training loss cannot
 promote it. Existing next-window entry owners are unchanged. No diagnostic model
 or public three-row CSV may be submitted.
 
-Status: implemented and locally tested; actual CPU admission/recovery/full fitting
-have not yet run. Original receipt audits supersede this dated preparation note.
+Status update20:23UTC: actual CPU938522 completed both full10-epoch fits and
+all20immutable epochs are privately full-download/hash verified. Full uniform
+numerical state/predictions equal the original control. No new score.
+[Actual results and negative source-semantics finding](../../../audits/source-confidence-context-20261016-v1/README.md).

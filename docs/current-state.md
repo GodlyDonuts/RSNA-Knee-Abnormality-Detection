@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 19:49 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 20:26 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -283,12 +283,29 @@ under the canonical lock byCPU938456. No private arrays/images/identities/weight
 [Exact receipt](../initiative/audits/hf-spatial-T4-weighted-final-20261016-v1/verified.json).
 Never repeat this or earlier verified prefixes.
 
-## New supervision contrast — prepared20:06UTC
+## Source-confidence contrast — actual completed20:23UTC
 
-A distinct source-confidence objective is implemented: uncertain report targets
-return unused influence to the detached MRI teacher, with the same all-cell BCE
-mean, stored labels/masks and original402,956parameter global-context graph.
-Thirty focused tests passed; actual32-MRI recovery and full3887fits have not yet
-run. This differs from positive-class weighting and has no accuracy claim.
-[Prospective protocol](../initiative/experiments/competitive-v1/source-confidence-context-v1/README.md).
-Existing accepted candidates and next-window entry owners remain unchanged.
+OriginalCPU938522completed both3887-study/10-epoch/2430-update global-context
+fits in444seconds per role. Same402,956parameters/data/seed/initialization/
+teacher/compute, only source influence changes. Seven actual fresh32-MRI
+processes passed recovery. The complete full uniform state/history/prediction
+bytes match the original control exactly, so there will be no duplicate uniform
+competition entry. All20epochs/finals privately fully verified: uniform
+HF775e9f5db25f9063f1c4662d2d4f1c3df8b903cc; confidence
+HFf326b093db6b9733a51f04d16319ffe5fbce1f5b.
+
+Measured current source semantics correct a tempting explanation: only28/46644
+cells are exactly.5, not the historical source-v1's25.4%. Mean source influence
+changes.25→.19512, Synovitis→.13581. Fitting pair-order changes.633%–2.472%
+are behavior, not accuracy. **No confidence Kaggle/clinical improvement exists.**
+[Full actual receipts, negative finding and limits](../initiative/audits/source-confidence-context-20261016-v1/README.md).
+
+Actual final export/CPU math passed with zero probability error; serving
+componentd215637cb2e4is privately full verifiedHF28f29480. Original finite47360
+stopped on a local missing-PYTHONPATH import before its first Dataset phase;
+no remote mutation occurred. Distinct continuation14084/PID72652 fixes only
+that environment and created privateDataset12640289v1 once/all6objects verified.
+Exact T4qualification139097480v1 was pushed once; actual terminal/publicMRI
+acceptance pending. No competition entry. [Original export/failure/deployment](../initiative/audits/source-confidence-deployment-20261016-v1/README.md). Existing next-window entry owners remain
+unchanged. [Next larger initialization/input-cache direction](../initiative/experiments/competitive-v1/licensed-parent-end-to-end-v1/README.md)
+is prepared only; no new cache/weight transfer/end-to-end GPU fit was dispatched.

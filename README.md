@@ -8,7 +8,7 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the **October 16, 19:49 UTC** check, our own CoAtNet epoch 16 scored
+At the **October 16, 20:25 UTC** check, our own CoAtNet epoch 16 scored
 **0.894**, following epochs 4/8/12 at 0.821/0.869/0.890. The reproduced external
 author-trained model scored **0.949**; that is an attributed baseline, not our
 training improvement. Both matched CNN challengers completed. Positive weighting
@@ -24,7 +24,15 @@ with zero fallback or empty studies. The two spatial variants took about 26–28
 seconds for those **public examples**, not the hidden test. They have no competition
 score yet. All five of today's slots are used; outcome-aware entry owners will
 use fresh allowance and spaced next-window comparisons. A separate full CNN fit
-on 2,592 studies is queued after successful actual H100 recovery.
+on 2,592 studies is queued after successful actual H100 recovery. A new matched
+source-confidence contrast also completed both full ten-epoch fits and preserved
+all 20 checkpoints. Its complete uniform control reproduces the original model
+and predictions exactly; only the distinct confidence candidate is moving through
+T4/public acceptance. No new competition gain is claimed.
+
+The current label blend has only 28 of 46,644 cells exactly 0.5, so those cells
+alone cannot explain the gap. Fractional confidence changes the supervision more
+broadly. [Actual contrast and source-semantics finding](initiative/audits/source-confidence-context-20261016-v1/README.md).
 
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
 on 3,887 fitting studies. This is evidence about training exposure, **not disease

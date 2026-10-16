@@ -230,3 +230,19 @@ privateHF56671edc96e98252a5183f6cfaefcb955916017a, fully re-downloaded/size/SHA
 under the canonical lock byCPU938456. No private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-spatial-T4-weighted-final-20261016-v1/verified.json).
 Never repeat this or earlier verified prefixes.
+
+## Current source-confidence test: actual endpoint
+
+The completed matched3887-study contrast isolates source influence while keeping
+model/data/compute fixed. Actual seven-process recovery and full original-uniform
+state/prediction-byte equality passed. Both10-epoch finals/all20epochs are privately
+verified. Only28/46644current cells are exactly.5; this rules out that subset alone
+as a broad explanation of the gap. Source-recommended fractional confidence changes
+mean influence.25→.19512 and Synovitis→.13581. Strict fitting pair-order changes
+.633%–2.472%prove a distinct predictor, not a gain. No independent localOOF is
+claimed; actual Kaggle evidence is still required. [Original receipts](../initiative/audits/source-confidence-context-20261016-v1/README.md).
+
+The next larger direction starts from the licensed MRI-trained.949 parent and
+first proves its exact compressed pixel/input path. This can test task-specific
+initialization without accidentally changing rendering. It is a prepared protocol,
+not a new cache/GPU fit or inherited score. [Protocol](../initiative/experiments/competitive-v1/licensed-parent-end-to-end-v1/README.md).
