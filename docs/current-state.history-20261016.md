@@ -1,0 +1,236 @@
+> Historical snapshot archived October 16, 2026. This file preserves dated observations,
+> including superseded running/pending states. Start with [current state](current-state.md).
+
+Latest small milestone: Git8047e6ea fully privately verified ONCE at HF7c1f812352df8e0e06b356b5c781c7e341202e75/all40 objects838961bytes. Read hf-actual-H100-contrasts-345-20261016-v1; no clinical records/weights mirrored, never repeat. All345 cache artifacts are independently already fully privately preserved42objects.
+
+# Actual additional345 preservation completed
+
+Corrected932898 successfully preserved ALL7 shards/42 objects, each fully re-downloaded/size/SHA verified. Original17.2GB archives and cache trees retained; no labels/expanded fit admitted yet. Read additional345-cache-terminal-20261016-v1/all7-private-verified.json. Never repeat original failed932730, corrected932898 or any private shard publication. Frozen control and two distinct full16 contrast jobs remain as described below; no new accuracy result.
+
+# Latest October16: both matched contrasts submitted after real H100 acceptance
+
+Source-neighbor fixed16 job932957 and positive-weight fixed16 job933001 submitted ONCE, both last PENDING on evc33. Each has its OWN actual H100 full/stop1/resume acceptance with complete model/BN/AdamW/OneCycle/allRNG/history and byte-identical MRI predictions, matching original encoder/initial head. Actual recoveries931961(6b823768...) and932859(cd6e53d6...) COMPLETED0:0. These are engineering acceptance, NOT accuracy gains. Read compact-source-neighbor-full-fit-20261016-v1 and compact-positive-weight-full-fit-20261016-v1. Same2247/1156/fixed16/4496/seed/labels/budget; only donor channels OR positive-term loss weights differ. Never combine them or duplicate jobs.
+
+Each distinct full output has its own pinned private epoch publisher/coordinator and armed finite watcher: neighbor93110, weighted24451. No full challenger optimizer progress or epoch exists yet. Full production/preservation funded16GiB per contrast; fresh source-stage CPU932947 and weighted-stage CPU932999 retain all old obligations/20GiB reserve, >110GB remaining after bounds. Preserve original cache/source/runtime/masks/folds, no deletion credit.
+
+Original continuation932869 actually RUNNING and verified3035/4496finiteupdates in epoch11, empty stderr, same source/model/optimizer/RNG/fixed schedule from2983 boundary. Original epochs1–10 privately fully verified ONCE; E10 HFac9e8046b43f09ce2865ddf0c77efda9c33c2de1. Publication handoff89728 and frozen E12/E16 Kaggle controller45020 remain active; E8 hidden still unreported at latest08:12UTC check. E4.821 and attributed external.949 remain actual scores, not equivalent training claims.
+
+Additional345 corrected first preservation932898 RUNNING after authoritative absence reconciliation of preupload dependency failure932730. Four of seven shards fully private verified at latest read; session12356 collects full result. Never repeat either driver. Actual cache remains345studies/1769series/54562slices, no new training/label admission. Source4c26270a plus actual scores/CPU source/sanitized cache milestone already privately verified24objects at HFfe345c7533df649f043615fcece458881522e0b1; never repeat. New actual contrast dispatches postdate that mirror.
+
+Focused whole compact/HF/cache family136tests passed, Ruff/scoped HF mypy passed. Source-level tests and GPU recovery are engineering evidence, not a measured improvement. Keep fixed-final comparisons and useful original Kaggle curve moving; next data expansion is345 fitting-only candidates after distinct label/roster/cache admission. Protected gold/confirmation remain unused.
+
+# Latest October16: continuation and two actual scientific contrasts
+
+Original930744 stopped at its planned complete optimizer boundary after2983/4496updates, SlurmFAILED75:0 is its explicit graceful-stop return, not a numerical failure. Same source/model/BN/AdamW/OneCycle/allRNG checkpoint was independently verified and ONE continuation932869 submitted, preserving the original fixed16 schedule. Epochs1–10 privately fully eight-object verified; E10 HFac9e8046b43f09ce2865ddf0c77efda9c33c2de1. Never repeat.
+
+Source-neighbor recovery931961 is actually RUNNING on evc33. Weighted-loss separate actual GPU recovery932859 is submitted once/PENDING after actual CPU932857 source/funding stage; read compact-weighted-recovery-dispatch-20261016-v1.16GiB new obligations funded115.4GB remaining after all bounds; no weighted fullfit or clinical result yet. Read-only observers16820/28128 collect their exact originals; no retry authority.
+
+New source4c26270a including scientificf5af and actual scores/E8/345-cache sanitized milestone privately fully verified24objects at HFfe345c7533df649f043615fcece458881522e0b1. Never repeat. Extra345 preservation932730 FAILED before mutation due missing requests in existing Hub runtime; original local publication directory and cloud paths require read-only absence reconciliation before a distinct corrected first publication. No data loss/rebuild. New tested httpx adapter uses the runtime's existing dependency; original scientific cache/publisher validation stays unchanged.
+
+# October16 actual competitive anchor and separate training contrasts
+
+**Attributed released baseline57258866 scored0.949 on Kaggle**, COMPLETE/no error, canonically reconciled07:29UTC. This is the external author-trained model reproduced unchanged, NOT an own-training gain or independent internal validation. Exact audit: released0949-baseline-20261016-v1/actual-scored-canonical.json. Our prior own DINO best remains0.872 pending original CoAtNet outcomes.
+
+**Own N3E8 submitted57259376 once**, exact offline notebookv1, actual twoT4 precision and public MRI-to-CSV passed; hidden score unreported at last check. E4 submission57256756 actually scored0.821, COMPLETE/no error, canonically reconciled07:45UTC; not a deployment failure. Original curve controller45020 waits E12/E16; three submissions today/two available at latest authoritative check. Never restart or repeat either submission.
+
+Separate optional weighted loss sourcef5af4f2 has actual full2247 fitting-only CPU policy admission932603, unchanged default replay and weighted full-state recovery tests. No weighted GPU/clinical result yet. Source-neighbor recovery931961 remains original pending. Read compact-positive-weight-CPU-20261016-v1. Original930744 training remains unchanged; continuation23253 and publication handoff89728 are already armed.
+
+Original additional345 paired256/384 cache931411 COMPLETED0:0:345studies/1769series/54562slices. Private preservation932730 submitted once and pending at latest check; no new training/label admission. Never repeat cache build or publication intent. Short read-only telemetry of original930744 measured22.4% mean utilization over31seconds; cause not isolated, live training untouched. Read compact-training-utilization-20261016-v1.
+
+## Historical observations (dated; superseded above)
+
+Original N3epoch8 now privatelyfully8-objectdownload-size-SHAverifiedONCE HFrevision1c9f822c70c1d6396f7d21e9486c5498cdd04f3a; neverrepeat1–8. Training930744 actualepoch9/2266of4496finiteupdates(50.4%), healthy. Curvecontroller45020 advanced E8toCPU_reference automatically; notsubmittedE8yet. Additional345cache931411 actual6/7shards and1645/1769pairedseries complete; no newlabel/trainingadmission.
+
+Source4db299a9 incl9a8d824b neighbor deployment/actualCPU932245 plus attributedbaseline57258866 and exactrecipe corrections fullyprivateverifiedONCE HF8e8820e5dbdd63ff0951c0eeef80f02ba7f25d13/all24objects121971B. Neverrepeat. No rawMRI/labels/IDs/weights/externalimplementation mirrored. NewE8receipt postdates smallmirror; its checkpoint already independentlyprivateverified. Baseline hidden score remainsnull at06:58UTC; current parentpublished.949 is not ourfork score or owntraining gain.
+
+ACTUAL attributed external baseline submission57258866 acceptedONCE: exact author code493c7b0d/privateoffline2T4 godlydonuts/rsna-released0949-offline-7e5315dad125v1/kernel138981420, Dataset12431568v1/checkpoint7e5315dad125. Actual COMPLETE and470byte/3row/13col CSV fullyverified inRAM/hashfaa20e95; no individualrecords exported. Author published.949, OUR fork hiddenscore stillunreported; NOT own-training gain. Explicit current-rule/public-model+author-adaptation admission and upstreamOAI acknowledgement recorded; no controlledOAIaccess/internalholdout evaluation. Read released0949-baseline-20261016-v1. Failed private receipt-append version preserved/unsubmitted; newbody unmodified.2today/3live slots remain for N3E8/12/16. Hiddenwatch80239 live, no resubmit.
+
+New original publication handoff89728 LIVE: waits actual oldpublisher OSexit and exact continuationreceipt before publishing ONLY new immutable original N3epochs using existing pinned coordinator; no newGPUjobs. Original930744 healthy/epoch8inprogress; epochs1–7 privateverifiedONCE. MatchedH100recovery931961 stillPENDING. Neighbor deployment source9a8d824b and actualCPU932245 tensor proof are onmain, not yet privatelymirrored.
+
+Matched-neighbor explicit inference/own raw-MRI endpoint prepared; actualCPU932245 verified16fittingMRI/1175windows exactlyequal to frozen3803 trainer, zeroobservedinference labels/outerdecoded/modelrun. ReceiptSHAae1ae33d3839b792483cef7c7813573b16faed1b1485e7337676d1c58f1b8f3f.105compacttests/Ruff/scopedmypy pass. No actualT4/newfit/accuracyclaim; oldN3curve unchanged. Read compact-neighbor-inference-20261016-v1.
+
+Scheduled-curve source61c9cc9e privatelyverifiedONCE HF42065c88b251dc0e3c7bd0e04fc39129ab00d235/all9smallobjects74343B; noMRI/labels/weights/IDs. Neverrepeat. Controller45020 livewaitingE8; noE8cloudmutation/newscore. OriginalGPU930744 healthy; matched931961PENDING.
+
+Original N3E8/12/16 finite deployment controller45020 is LIVE, waiting E8 actual private preservation. New factory generates byte-identical acceptedE4 source/projection; same frozen dcfff science/fullbagFP16/test.csv, distinct notebook/Dataset names, ownCPU/T4/publicMRI checks, original phase intents/canonical ledger/freshallowance. No E8/12/16 cloud mutation yet. Future3GiB component caps admitted under all old+matched liabilities;542280726467B total bound/148312614973B remaining at fresh node read. Read compact-scheduled-curve-dispatch-20261016-v1; never restart controller or retry intents.24focusedtests/Ruff passed. E4 submission57256756 still unreported at06:17UTC;4live slots, no score inference.
+
+Original930744 healthy epoch7/1728finite updates; completedepochs1–6 fullyprivateverifiedONCE. NewE6HF7829a3df929d0b412bd8910cb73124aeff22ba7b/all8objects. Original publisher47365/continuation23253/hiddenwatch53347 continue; matched-recovery931961 stillPENDING/no new fullchallengerfit. Additional345cache931411 healthyRUNNING.
+
+Matched-neighbor source/actualMRIadmission/queuedGPUrecovery/originalN3epoch5 milestone source7a4b77e8 fullyprivateverifiedONCE HF8ce6e294204340e30fd94aeb83951865698f7799/all16smallobjects127071bytes. Neverrepeat.89focusedcompacttests/Ruff/scopedmypy passed. Recovery931961 actualPENDING Resources; finiteoriginalobserver16820 LIVE collectsactual0:0receipt once, noGPUmutation. Original930744/source dcfff stillhealthy; originalepochs1–5 privatelyverifiedONCE. Originalcontinuation23253 andE4hiddenwatch53347 remainactive; no newKagglescore. Fullmatchedproductionwrapper preparedonly, no fullchallengerjob/epoch/publicationyet.
+
+Matched-center CoAtNet source-neighbor challenger is EXECUTABLE scientific3803b717b69db6c5e89e11724c4daee15490cbe2, separately staged on evc33. ActualCPU931927 COMPLETED0:0: same2247/1156/source/masks/folds/centerchannels/window identities;2022/2345engineeringwindowdonorschanged;357/162651fitting(.22%) and222/84333outer legacy-edge fallbacks. Exact acceptedSHA7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352, new16GiBrecovery+production/128MiBcontrolfunded159.69GBafterallliabilities. No newpixelcopy. Readcompact-matched-source-neighbor-admission-20261016-v1 andexperimentguide.
+
+Actual one-H100/twoCPU recovery931961 submittedONCE/PENDING Resources on evc33; no optimizer/GPUacceptance/full challengerfit yet. Exact source/wrappers staged; neverduplicate/reuseN3recovery. New fullproductionwrapper prepared/tested, notstaged/dispatched: requires actual new recovery/initial learnedstate+base identity/complete model-BN-AdamW-OneCycle-allRNG-history/CSV equality and freshquota; samefixed16/4496 and explicitnewpolicy, ownpublicationprefix. Preserve original930744 and same-fit continuation23253. Both data-owning nodes evc33/40 GPUsallocated; other healthy normal H100salso allocated. IdleH200evc105 notpermittedbyactualskattelassociation (short allowsarcc); no account/reservationoverride.
+
+ActualE4 submission/production/source-recovery milestone source34ec623b privatelymirroredONCE HF56f085b17a53fc9c9699147a4a3af3d1c7335a6a/all19smallobjects85734bytes fullydownload-size-SHAverified. Neverrepeat. Original930744 actualhealthyepoch5/1293updates; finitecontinuation23253 andreadonlyhiddenwatch53347 handlesconfirmedLIVE. Submitted57256756 hiddenoutcomestillunreported; noKagglegainclaim.
+
+ACTUAL N3E4 code submission57256756 acceptedONCE2026-10-16T05:39:49UTC in canonicalNewtonledger. Exactprivate/offline2T4 notebook godlydonuts/rsna-compact-offline-e004-c0695bf73e92 v1 ID138972408/script358900133; Dataset12623916/v1 all5objectsfullyverified. ActualproductionCPU/T4FP32error4.17e-7/FP16.000202 passedBOTH; public3MRI/15series/13columns fullbagCSV40.18786s/~8.806GBmaxsummedRSS/no fallbacks; totalsession261.4s. No hidden score/status at05:40UTC;4freshlive slots remain. Earlyzerooutputbytes is notterminalfailure. Finite readonlyhiddenobserver53347 LIVE; never resubmitE4 or restartterminalcontrollers1086/18090/96100/3850. Originalpending929938 releasedONCEafterpublicterminal. Exactreceipts incompact-production-e004-kaggle-20261016-v1.
+
+Healthy930744 continuesfixed16; E1–4 privatelyverifiedONCE. Same-fit continuationcontroller23253 LIVE, no newGPUdispatched; requireactualoriginal75/boundaryCPUproof beforeone4h--resume preservingmodel/BN/AdamW/OneCycle/counters/RNG/4496steps/source/output. Publisherwatcher47365/OS60161 coversoriginal930744only; onactualcontinuation inspectnewjob/epochs then distinctwatcherwithoutrepeatingoldpublicationintents. Additional345cache931411 remainsoriginalRUNNING. No CoAtNetclinical/Kagglescore yet.
+
+Actual E4 production private Dataset12623916/v1 CREATEDONCE/all5objects fullydownload-size-SHAverified. Source/CPU/weights in compact-production-e004-kaggle-20261016-v1. Originalsame-name notebook SaveKernel409 preserved/unretried after exhaustive ownedabsence; distinct rsna-compact-offline-e004-c0695bf73e92 v1 ID138972408 pushedONCE/actualRUNNING, identicalsourceb0ef2019f4cbf2c7597d7ac9c9b89f32d704ea25846e008f67cfc96b3db77d54. Active finitecontroller1086 handles exact public precision/MRI/CSV acceptance thenONEcanonical code submission with freshquota. Original controllers96100/18090 TERMINAL; never restart/repeat Dataset/push/uncertainty. No competitionentry/productionT4acceptance/score yet. Originalpending929938 remainsheld duringactualpublicGPUrun, inherited originalhold; releaseonlyactualterminal via distinctcoordinator.
+
+N3original930744 healthyepoch5/1133updates at lastread; E1–4 privatelyverifiedONCE. Finite same-fit continuation23253 LIVE, no newGPUdispatched: waitsactual930744 FAILED75:0/completeoriginalcheckpointCPUproof/freshquota before at mostONEsame-node4h--resume preserving4496steps/alloptimizer-RNG/source/output. No freshfit/restarthealthyjob. Its exactsource/intent in compactlaunch artifacts and productionE4audit. On actualcontinuation reviewpublicationwatcher coverage; oldwatcher onlyoriginal930744.
+
+Source35614593/Paper2/64caseT4/componentdeployment smallmilestone privatelymirroredONCE HFc7bd19b373ab8bc14ca5421ff596b6faecf37252/all18objects96475bytes fullydownload-size-SHAverified; noMRI/weights/labels/IDs. Neverrepeat.
+
+First scheduled N3E4 Kaggle finite deployment nowactuallylive exec96100, waiting original CPU component preparer3850. Exact factory/coordinator/source/funding admission in compact-production-e004-kaggle-20261016-v1. At most one checkpoint-only private Dataset, one offline2T4 notebookv1 and one code submission AFTER actual production CPU/T4precision and public MRI/CSV acceptance, fresh authoritative allowance and canonical ledger/claim. Existing diagnostic Dataset supplies only pinned deps/license/unlabelled fixture, diagnostic weights neverloaded. No outer read. Never restart either controller/retry any phase intent; inspect actual handles and originals. Latest actual N3healthy1059updates/epoch4; E4notyetcomplete. Fresh read-only Kaggle0today/5available at05:22UTC, not mutation authority later.
+
+Paper2 assessed against original evidence; read research-paper2-assessment-20261016-v1 and its handoff message. Source-adjacent CoAtNet is a falsifiable hypothesis, not a proven root cause or necessarily exact public94-window reproduction. Matched separate implementation assigned Devin issue94; exact public indexing traced in issue93. Eligible capacity2592/3887/4327 supersedes paper stale2603/3904/4345. Preserve original N3 science and protected evaluation.
+
+Actual64-study private offline2T4 raw MRI benchmark138968653/v1 COMPLETE:318.49731105s/11,608,285,184B maxsummedlifetimeRSS,16chunks/13columns/zero unusable fallbacks, one model load/device. Original pending929938 releasedONCE after terminal. Diagnostic checkpoint only/no competition entry/hidden-scale guarantee. Original930744 healthy965updates/epoch4 at latest read-only check; E1–3 privately verifiedONCE, E3HFdfbfaa63fd5502d7ce0a189d67d3d6ebcd7f6946. Additional345 original931411 healthy/decoding; no duplicate.
+
+New compact_component.py separate production-component byte/binding admission and actual twoT4 precision entrypoint prepared,19focusedtests/Ruff passed; actual production T4 acceptance absent. Finite CPU controller exec3850 waits original completedE4 then prepares one checkpoint-only component/CPU fullbag reference, separately funded1GiB node cap; no cloud push/submission/outer reads by this preparer. Inspect epoch4-component-controller/CPU intents/results in ignored compact launch root before action; never repeat. Predeclared E4/8/12/16 competition comparisons remain next once actual production precision/public execution accepted.
+
+Healthy original N3 now epoch4/update856. Secondary Kaggle checkpoint curve predeclared4/8/12/16/full-bagFP16, before any CoAtNet accuracy/outer-checkpoint result; fixed16primaryouter unchanged. Exact production common-component/CPU-T4precision coordinator is next while64-case rawbenchmark runs. A fixed14/15/16 mean is conditional on explicit artifact/BN/integer-buffer implementation and qualification, not currently eligible/submitted. Read compact-kaggle-checkpoint-curve-20261016-v1. Additional345 worker931411 actually completed141original series with paired256reference/native384 proofs in shard0 at latest check; whole shard/cohort stillinprogress, no accuracy/trainingadmission. Main4264d037 actualT4/cache/code milestone privately verifiedONCE HF3c1edaf090282d1e53bca5e5244595ba24f386fc/all22smallobjects; neverrepeat.
+
+Actual private/offline2T4 scale64138968653/v1 pushedONCE/source7886958c:64hash-selected fitting-onlyMRI/16chunks/no targets or reports/same diagnostic weights/Dataset. RUNNING; finite observer23081 handles exact terminal/release929938. No scale result/submission/clinical claim. New primary nartaa marker0.25 claim conflicts with earlier upstream Steven original0.5 convention and undisclosed blend branches; issue92 investigates without blind masking. Exact file lineage already established, no repeated source target download. Issue93 audits released public0.949CoAtNet source/contracts; no GPU/source-derived competition promotion.
+
+# October16: actual compact native T4 MRI-to-CSV acceptance
+
+Corrected138967256/v1 COMPLETE; exact source/private/offline2T4/receipt verified. All3 publicMRIstudies/15series/13columns, zero unusable-MRI fallbacks; native pipeline46.27686s/maxsummedlifetimeRSS8,812,535,808B; session254s including bootstrap/rendering. No clinical result/hidden-scale claim. Original929938 releasedONCE, confirmedobserver52346 terminalsuccess. Do not repeat this notebook/Dataset. Current runtime adds per-chunk CPU-wait/inference-wait/worker-window/VRAM/CSV-roster hashes for next64 fitting-only unlabelled MRI benchmark; prepared source only, not yet pushed.
+
+# October16: additional345 original-image cache actually building
+
+CPU931411 RUNNING on evc33/oneCPU/zeroGPU, distinct original new345-only paired256/384 cache plan from a7a53304.345 correspondence-eligible additional fitting cases/1769series/54562slices/36,349,800,124 originalDICOMbytes; all1301fold0cases excluded. Current labels/release/folds/N3 training unchanged. Fresh70GiB envelope leaves192,716,445,757bytes after all retained/new liabilities; sharedgrowth0. Seven whole-study shards verify corrected original source bytes, accepted256reference and native384geometry/loader/archive bytes, retain privately on node. Initial shard in progress; no completed new cache/training/accuracy claim. Finite controller exec25543, output /tmp/rsna-additional345-native-cache-20261016-v1 on evc33. Inspect original logs/terminal before action, never duplicate/retry uncertainty.
+
+Corrected Kaggle native endpoint138967256/v1 is still actualRUNNING under observer52346, no outcome yet. Healthy original930744 continues; original publisher47365 preserves distinct completed epochs once.
+
+# October16: compact epoch2 preserved; raw-endpoint bootstrap correction actually launched
+
+Healthy original930744 is in epoch3/596finiteupdates. Completed epochs1/2 each privately published/download-size-SHA verified ONCE; newE2HF42107885cca9d4198512431995df498d55188611/all8objects/CPU931365. Original finite publication watcher exec47365 remains live; never repeat epochs.
+
+Original native endpoint138966459/v1 ERROR196.1s before inference: generated code called nonexistent run_bounded. Correct actual pinned API bounded_process(command,*,env,timeout) is independently owning-node AST verified and regression-tested. Distinct corrected private/offline2T4 endpoint138967256/v1 rsna-compact-native-endpoint2-bcc8d6223af8 pushedONCE source07de19d8, actualRUNNING. Same verified Dataset12622515/v1/diagnostic weights; no new Dataset or competition submission. Confirmed-push finite observer exec52346 handles exact terminal/release929938; earlier pre-push observer terminal403 made no mutation. Never restart/repush. Eight focused tests/Ruff passed. No raw-endpoint acceptance or CoAtNet accuracy result yet.
+
+Expanded-supervision quality milestone sourcec796040c privately verified ONCE HF4d175f22a5ece1c03d9ffcb2a43dbe2d1f46aaec/all3smallobjects. New Devin issue92 investigates37uniform0.25 source rows and provenance; no automatic label exclusion/inclusion. Preserve original correspondence exclusions.
+
+Fitting-only expanded-label audit now qualifies the earlier356-case opportunity:11 original report-correspondence exclusions must remain excluded, leaving345 additional/2592total fitting candidates. Of356,37 source rows are0.25 for every target (fallback semantics unverified),22 uniformlylow; source coverage is not label quality. Existing release/live N3 unchanged. Full report-eligible capacity3887train; separately scope-frozen final could reach4327 including440weakvalidation. Read research-paper1-assessment-20261016-v1 latest qualification. Source d17e2881 native-endpoint/availability milestone is privately verified ONCE HF5d662f900597192a4d5dceecf36fb2f4ccbeb34e/all12smallobjects. Never repeat.
+
+# October16: native compact Kaggle endpoint actually running; expanded inputs located
+
+Distinct private offline two-T4 kernel138966459/v1 `godlydonuts/rsna-compact-native-endpoint-bcc8d6223af8` pushed ONCE, actual RUNNING. Reuses original verified Dataset12622515/v1; no competition submission/new weight transfer. Exact sourcee0a25e57, native DICOM-to-CSV/twoCPU-prefetch/twoGPU-persistent full FP16 diagnostic, outputcompact-diagnostic.csv only. Finite observer exec68712 verifies actual terminal/source/receipt and releases original pending929938 once; never repeat/restart. Healthy original930744 reached498finiteupdates/epoch2; original epoch publisher watcher remains live. No compact accuracy result yet.
+
+Research memo1 actual metadata audit located all356 additional fold-preserving fitting cases in corrected original source inventory:1849series/56825slices/37,933,598,808DICOMbytes. No pixel transfer/cache rebuild yet. Expanded target2603fit preserves all1301fold0groups/current1156observed endpoint. Current N3 already has dense public fitting supervision; obsolete sparse-positive counts do not describe it. Read research-paper1-assessment-20261016-v1 and compact-native-endpoint-20261016-v1. Existing healthy N3recipe unchanged.
+
+Latest sanitized compact milestone source11d536aa is privately mirrored ONCE at HF7fb0b54af4e835fde69b8a4b790e95a237b3faf3, all47objects/247055B force-download/size/SHA verified under canonical lock. Never repeat. No MRI/labels/identifiers/weights mirrored. Prepared compact_runtime.py has70focused compact tests/Ruff/scoped mypy passing; actual native raw-input/T4 endpoint remains next.
+
+# October16: T4 precision accepted; first compact epoch privately preserved
+
+Original T4 notebook138964322/v1 COMPLETE: both actualT4s passed original CPU FP32/FP16 full/MC128 comparisons. MaxFP32error8.35e-7/maxFP16error.001519323;84-window FP16 medians1.29247/1.34524s, peak2.564GB/device. This is diagnostic encoder throughput, NOT full hidden pipeline/runtime or accuracy. Original929938 released after terminal; never repeat original push/Dataset. Finite T4observer exec50077 terminal success.
+
+Healthy compact930744 reached352finiteupdates/epoch2. Epoch1 original e9a53b0e... privately published once/all8objects re-downloaded/size/SHA verified at HFa26b06ee7ec74f051f707a96f0875eb834c07807, CPU931228. Never repeat E1. Publisher watcher exec47365 remains active; preserve later distinct epochs once. No compact accuracy result yet.
+
+New compact_runtime.py native DICOM-to-CSV twoCPU-prefetch/twoGPU-persistent path is PREPARED, not actually raw-MRI/T4-qualified. Next: same private engineering checkpoint/Dataset and source-bound new raw-input endpoint diagnostic, then fullscale pipeline timing; no extra weights transfer/new Dataset needed. Actual live recipe fixed16/4496 remains unchanged. Best solo Kaggle0.872.
+
+# October16: actual private compact T4 diagnostic running
+
+Private offline notebook138964322/v1 `godlydonuts/rsna-compact-t4-precision-bcc8d6223af8` RUNNING, exact SourceSHAeb406c27.../image/twoT4/private/version verified. Dataset12622515/v1 created once, all18objects fully downloaded/hash verified. Diagnostic4-update weights only,70 unlabeled native windows/synthetic identity/no original case IDs. No submission.csv/competition entry. Finite observer exec50077 `artifacts/compact-native-n3-launch-20261016-v1/finish_t4_probe_once.py` active; inspect actual process/phase receipts, never restart it or duplicate any mutation. Original pending patch929938 held once during this bounded GPU test; terminal observer releases same job. Actual precision/throughput result still pending; hidden end-to-end runtime NOT qualified by this probe.
+
+Healthy original compact930744 reached246finiteupdates/epoch1; publisher watcher exec47365 is active, no completed epochs at latest observation. Keep training unchanged. See compact-T4-precision-preparation-20261016-v1. All66focused compact tests passed. Current goal remains active, no new accuracy score.
+
+# October16: compact production actually running
+
+**930744 RUNNING on evc33 H100**, original source dcfff319 / wrapper d24c1c98. 99 finite optimizer updates verified in epoch1/4496; empty stderr. Fixed16 epochs,2247 fitting/1156 outer, effective8. Unique node-private `/tmp/rsna-compact-native-n3-production-evc33-20261016-v1`. Never duplicate/restart healthy original. Four-hour allocation supports verified terminal/checkpoint continuation of SAME schedule, not a shorter fit.
+
+Actual real-MRI GPU recovery930638 COMPLETED0:0: model/BN/AdamW/OneCycle/allRNG/history and CSV equality. Native relay930252/930253 COMPLETE and target runtime repaired once with official torchvision, original torch unchanged; original finite failed controllers are terminal, never restart. Synthetic930089 cancelled while pending/zero runtime; patch-focus929938 remains pending. These actual observations supersede historical descriptions below.
+
+Deployment CPU930818 logits bit-equal to diagnostic reference; actual T4/FP16/runtime acceptance still absent. MC128 secondary preregistered; actualCPU931077 passed70 MRI windows encoded once/six chunks,128 bags, unchanged RNG. Publisher actualCPU931125 staged/accepted on original node; no completed epoch/upload yet. Use scripts/hf/dispatch_compact_epoch.py only for new completed epochs; inspect all existing intents/journals first. No clinical result. Best own Kaggle remains0.872 E5/E6; E8.863/E10.864 scored/reconciled. See `initiative/audits/compact-native-n3-live-start-20261016-v1` and `compact-mc128-preregistration-20261016-v1`. No compact accuracy claim yet.
+
+# October16: executable compact engine and actual MRI acceptance
+
+Compact N3 engine **dcfff319** is implemented, not awaiting another agent: fixed16 epochs,4496 updates, full-trunk training, exact optimizer-boundary resume and final-only outer prediction. Thirty model/engine/recovery-wrapper tests/Ruff/scoped mypy passed. Actual corrected CPU**930223** passed2247fit/1156outer/full native cache admission and32 decoded input tensors, digest183097af0095317c7a85069e73c8b2c654e39cfc12cdbc7104ff3139a30bfe9b. Initial930185 pointed at wrong public-triplet cache and failed before model computation; original native cache is `/tmp/rsna-final-public-source-fit-evc40-20261013-v1/cache`, not merged-cache.
+
+To avoid the busy evc40 GPUs, original native relay**930252/930253 RUNNING** to evc33, local exec**63139**; never repeat. Runtime copy failed at unused devel symlink; all81614 required existing files now source/target SHA-verified plus only74 small missing files completed, metadata67494970…; no bulk repeat. Target node free872.3GB at admission.
+
+Finite CPU continuation `artifacts/compact-native-n3-launch-20261016-v1/finish_target_input_admission_v2.py`, exec**41395**, waits original transfer proofs then ONE endpoint CPU replay. Original first CPU controller is terminal/refused failed archive; do not restart. Finite one-GPU continuation `submit_real_recovery_when_admitted.py` is active as exec**75498** and may submit only after actual positive target CPU result. Inspect its controller/GPU intent/result before action; never duplicate. No compact GPU recovery/full fit yet. Old929938/930089 remain pending on evc40. See [engine/input milestone](../initiative/audits/compact-native-n3-engine-20261016-v1/README.md). Best public Kaggle remains E5/E6=.872; E8=.863/E10=.864 are scored and reconciled.
+
+# October16: actual E10 score and compact challenger
+
+Research dossier **cf3819cb** is on main and adopted. Authenticated E8 **57221755=.863** and E10 **57245976=.864** are scored and reconciled once into Newton's canonical ledger; no cloud mutations. Best trajectory remains E5/E6 **.872**. Portable controllers are terminal; never restart or resubmit these entries. Historical pending/public-run descriptions below are superseded.
+
+Next priority is **Native-CoAtNet-Bag12 N3**, fully fine-tuned compact whole recipe from the dossier. Official pinned ImageNet initialization and timm1.0.30 are verified/staged on evc40; strict CPU load passed (72,856,264 trainable trunk parameters,1024 features,25 BN modules,all16 hidden dropouts disabled). No compact GPU fit yet. Root has implemented compact_bag.py model/sampler with80 focused/adjacent tests, Ruff and scoped mypy passed. Actual new-module strict ImageNet load passed (73,136,096 total trainable parameters). Trainer/inference integration remains assigned to Devin issue91. Synthetic capacity930089 is submitted ONCE/PENDING Priority; no compact clinical GPU recovery/full fit yet. Both evc40 GPUs currently belong to unrelated jobs; do not duplicate pending diagnostics.
+
+Original patch-focus919305 control failed in Triton C compilation: missing Python.h. Matching signed private headers now actually compile that driver; no global install. Distinct unchanged-science recovery **929938 PENDING Priority/zero runtime** at last live check. Do not duplicate. See [actual milestone](../initiative/audits/compact-native-n3-start-20261016-v1/README.md).
+
+# Exact epoch10 public run started
+
+Dataset12613343/v1 now all68objects fully download/size/SHAverified. Exact private/offline2T4 notebook138929766 godlydonuts/rsna-alldev-offline-e010-0f0ab3f260e9 v1 pushedONCE and actuallyRUNNING its public example; NOT a competitionentry/score yet. Original recovered E10 payload/source/metadata match the existing Newton prepared hashes exactly. Active finite PID40110/exec28734 will verify exact MRI/CSV/RSS receipt then max1code submission with fresh allowance; portable localledger/phaseintents govern and must later reconcile withNewton. Never repeatDataset/push or restartoldcoordinators. Github issue90 assigned toDevin to remove repeated1.2GBbaseuploads for futurecandidate efficiency.
+
+# Portable epoch10 interruption reconciliation
+
+Explicit prior-turn interruption left firstcontinuation missing after14/68 fileproofs; no notebookpush/localledger/submission existed. Distinct continue_after_interruption.py PID40110/exec28734 re-admitted exact Dataset12613343/v1 and authenticated notebook/submission absence; resumes remaining read-only verification using original14 proofs, then at most one push/submit. NeverrepeatDatasetcreate or restartoldworkers. Inspect current original artifacts beforeany action.
+
+# Actual portable epoch10 preparation: October15 follow-up
+
+Owner authorization removed Newton-only infrastructure blockers. E10 originalprepared manifest/source/allmetadata hashes exactly reconstructed using verified E8 commonbytes + originalHF E10 checkpoint/snapshot, private ignored Macstorage/noMRI. Private Dataset12613343/v1 createdONCE, READY/68files; every-file re-download verification in progress. No E10notebook/competitionentry yet at this observation. OriginaldeployPID35392 terminal after create-return/read-only status403, neverrestart. Distinct continuation artifacts/kaggle-epoch10-portable-20261015-v1/continue_after_create.py is finite and active (exec61955); inspects SAME DatasetID, caches each successful fileproof, then exact offlinepublic acceptance and max1code submission if freshquota. Existingintents forbid duplicatecreate/push/submission. Localportable ledger authorized pending eventualNewton reconciliation. Read kaggle-epoch10-portable-20261015-v1.
+
+# Actual epoch8 result: October15 11:39UTC
+
+Submission57221755 COMPLETE,248792bytes, public0.863, exactE8v1. AuthenticatedAPI + refreshedUI agree. Fourlive slots. Same trajectoryE5/E6 .872; E8 .009lower, no monotonic late-epoch gain. E10prepared/unpublished remains finalcomparison; no newcloudpush or fit. Read kaggle-epoch8-direct-submit-20261015-v1/scored.json and analysis.md. NEVERresubmitE8; canonical reconciliation pendingaccess.
+
+# Latest owner priority and actual submission: October15 07:46UTC
+
+Owner explicitly removed prior workflow restrictions and authorized direct Kaggle action despite unreachable Newton. Exact existing E8v1 code notebook was submitted ONCE via authenticated browser at07:45:56UTC, scriptVersionId358433328, submission.csv selected, unique description rsna-epoch-v1:d84ced2a4d9a02e85803b8be586c9a37277e7af3ec743c70f4ccfbe30ab52ced. Actual hidden state Notebook Running/no score. Numeric submissionID not exposed yet. See kaggle-epoch8-direct-submit-20261015-v1 and local exclusive intent/result. NEVER resubmitE8/restartoldcontroller; canonicalledger reconciliation awaits access. New owner authorization supersedes infrastructure-only blockers below.
+
+# Access priority: October15 00:54UTC
+
+UCF VPN is actually Disconnected/Newton unreachable. Owner reconnect/sign-in/MFA requested once. E8slot controller14936 is now terminal transportfailure/missing; no submit intent, authenticatedKaggle0today/5available/noE8submission. After reconnect reconcile canonicalledger then one distinct exactE8v1submission; neverrestart oldcontroller or repeatDataset/push. Recovery919305lastRUNNING is unobserved, not terminal authority. Read access-loss-20261015-0052-v1.
+
+# Current RSNA work
+
+Updated October 15, 2026, 00:54 UTC. This is the current index; exact original receipts, live processes and canonical ledgers govern action. The prior long state is preserved in `initiative/audits/current-state-compaction-20261014-v1/previous-current-state.md`. Historical descriptions there do not override the live state below.
+
+## Confirmed model evidence
+
+Best solo DINOv3 public Kaggle **0.872**. October14's five original code submissions all COMPLETE with nonzero CSV output: epoch1/57178747=.752, epoch3/57180081=.856, epoch4/57180588=.865, epoch5/57182737=.872, epoch6/57182547=.872. All five outcomes are reconciled in the sole Newton ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Never repeat them or upload public example CSVs. See `daily-kaggle-comparison-queue-20261014-v1/all-five-result-analysis.md`.
+
+These are public scores, not private scores or significance. Older fold0 epoch10=.854/internal1156-study AUC=.8997840648 differs in fitting scope/checkpoint age. Source-faithful336-triplet rank32 fixed-final internal=.8782870962 did not improve the native reference; all ten source-slot epochs privately verified. No patch-focus/focal-window/dense gain is established.
+
+## Healthy all-development training and preservation
+
+Original **908454 COMPLETED0:0 evc40**, one H100/two CPUs, source **1bcd6c0e2e2a47d6894d5c545d6950e0c6f0d5b9**. All3403development fitting studies, zero outer holdout, effective8,426updates/epoch, fixed10/4260updates. Actual4260finite updates/alltenepochs complete in23:47:31. Never repeat the completed fit.
+
+Node-private root `/tmp/rsna-final-public-source-fit-evc40-20261013-v1`; runtime `/tmp/rsna-environment-907632-7sr9a7i6/environment`. **Epochs1–10 privately published exactly once**, allfiveobjects each force-re-downloaded/size/SHA verified. E9 checkpointf00817598c47267d64356ddbb523a72ee8764fc1b6274ca266df19c130af33a4,125556557B,3834updates, HFba1ae09a3ad2a802b17e99e30c8ffd383c6eef4a/CPU917618. E9 observer85330/exec40402 is terminal success; never restart.
+
+All E10 publication work is terminal verified; never repeat. Historical coordinator reference: `artifacts/final-public-source-fit-evc40-20261013-v1/publication_coordinator.py`, pinned publisher0f929dc1131c61f471c2e28c6a99367ecdc9fe31c45b52a413710643a054c7da. Review snapshot/journal/privatepath first. Existing intent requires read-only reconciliation. See `final-public-source-epoch9-20261014-v1`.
+
+## Next Kaggle candidate: epoch8 prevalidation
+
+Latest authenticated October15 allowance:0today/5remaining/37total; no matchingE8submission. Queue `daily-kaggle-later-epoch8-20261014-v1/queue.json` binds actual E8checkpointd4aed5e3…/3408updates/HF92a7b333… to unchanged offline FP32twoT4 engine. Node-private prepared bundle1340298526B/184files within separate5GiB cap; never prepare again.
+
+Original prevalidation **PID94105 missing after interruption**, `artifacts/daily-kaggle-later-epoch8-20261014-v1/prevalidation/finish_once.py`, maxcompetition submissions0. Private Dataset12589606/v1 createdONCE and all68objects fully downloaded/size/SHA verified. Notebook138720577/v1 pushedONCE and exactpublicthree-study/13column/CSV/RSS acceptance passed via distinctread-only standaloneCPU reconciliation. No hiddensubmission/score. Slugs `godlydonuts/rsna-alldev-e008-d4aed5e3ae15` and `godlydonuts/rsna-alldev-offline-e008-d4aed5e3ae15`. Inspect original per-phase intents/results and actual process before any action; never repeat uncertain creation/push.
+
+Reviewed queue now permits Dataset/notebook prevalidation atzero competition slots, retaining fresh account/ledger checks before each cloud mutation. Actual submit still requires fresh positive authoritative allowance/max5daily/exact public acceptance/single coordinator.189adjacent tests passed. New1MiB/foursharedfile metadata reservation retains20GiB/5000files; storage is tight and must be freshly checked at each mutation. See `kaggle-zero-slot-prevalidation-20261014-v1`.
+
+## Patch-focus: accepted inputs, recovery queued
+
+Disease-specific zero-start patch queries12288params; frozen scientific source **bf46b70eea1216673aafb1b5d34e513247b4ef1c**, matched control/candidate source336triplets/rank32/all120projections,2247fitting/1156outer/effective8/fixed10×281. Source40 CPU916922 accepted MRI/input/base/model/RNG/gradient evidence; receipt70d9c672… . Backward-only cloned mask negative control never changes production masks.
+
+Distinct evc40→26 runtime/cache/source copies are complete and preserved. Cache3404files/27668082285B fully target-size/SHA/count/EOF verified; never repeat copies. Actual relocated CPU917440 accepted exact original tensors/model/RNG/gradients, receipt6482a781… . Source40 proof remains source lineage, not relabeled target admission.
+
+Original917001 CANCELLED only PENDING/zero runtime/no allocation. Evc26 replacement917477 FAILED1:0/2seconds before GPU-start/model/optimizer. Device-only917508 saw zero torch/NVML devices despite assignedGPU0; underlying driver/cgroup/hardware cause unproven. No isolation override or automatic retry. See `patch-focus-evc26-actual-device-failure-20261014-v1`.
+
+Distinct **917543 FAILED1:0/4:58** on evc40, afterany:908454, oneH100/twoCPU/32GiB/onehour/no-requeue. It uses original unused source40 recovery12GiB+32MiB reservation once, exact accepted source40 inputs/runtime and unchanged full/stop1/resume wrapper. Working H100 admitted and referencefourfinite updates observed, but recoverywrapper rejected childreturn despite invocationexit0; causeunproven, no complete-recovery acceptance/production. Do not repeat. See `patch-focus-evc40-followup-20261014-v1`.
+
+Devin#87 relocation work is superseded by actual root receipts; #88 prepares separately funded matched production/publisher, not dispatch authority. At most two GPU nodes; never displace healthy training or reserve GPUs without prerequisites.
+
+## Other current research
+
+Dense899766.705 was cancelled when parent899766 completed; not resumable exit75. Dense source0ece unchanged, last905updates/threeepochs, terminal model state and public-label-repeat final outcome unobserved. Evc31 maintenance/reservation/PAM blocks access. Ordinary CPU916813 remains pending; owner access request exists. Never bypass isolation, fabricate75, duplicate the run or infer accuracy. See `training-preservation-cancellation-20261014-v1`; Devin#82 handles explicit cancellation recovery.
+
+PR38 standalone focal-window module/design integrated e4f288d6;127focused tests passed. It separates anatomical window disagreement from teacher uncertainty and bounds disease-specific pooling. No trainer wiring, realGPU acceptance or accuracy gain; complete fitting-only evidence/unknown teacher roster and independently matched controls remain required. PR38 closed after integration. See `focal-window-PR38-root-review-20261014-v1`.
+
+## Provenance, limits and latest private mirror
+
+Accepted labels/masks/folds/pinned official DINOv3-L remain unchanged; protected gold/confirmation unused. Credentials ignored0600.env/RAM/stdin only. No raw pixels, reports, case lists, private signatures or weights toMac/Git. Competition eligibility never follows from engineering acceptance.
+
+Shared quota at18:39UTC1026228612/1048576000kB,994338/1000000files. After retained obligations/E8metadata21475648583B/5005files remain; preserve20GiB/5000file floors, no deletion credit. Existing node-local caps remain separately binding. Any new allocation/transfer/publication needs fresh exact review; do not double-count paid objects or silently retire future obligations.
+
+Latest private sanitized milestone source48a4c87e mirrored **HF71b6358aa23cad7b1bd833d37622a88c612fbe4d**, all23objects full force-download/size/SHA verified once under canonical shared atomic lock. Never repeat. Later E9/focal-window/zero-slot/prevalidation milestones are not part of that mirror. See `hf-patch-focus-device-followup-20261014-v1`. Canonical shared lock `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock`, runner3575a18e… . No bypass.
+
+Expired SSH master was re-authenticated once with ignored.env/ASKPASS; `/tmp/rsna-research-20261001-stable.sock` works again. Observation loss is not terminal or restart authority. Prior broad QA3703passed/6skipped; current changes have scoped checks recorded in their audits. Targeted daily_queue mypy has three independently confirmed preexisting errors, not a type-clean module. User priority: improve the solo MRI model and run useful daily Kaggle comparisons; report actual scores/progress, never promise a win.
+
+ActualE10publication HF764dbd60faa7c23284c72c06c596feab61d4121f/CPU918476 verifiedallfiveobjects once. See final-public-source-fixed10-20261014-v1 and patch-focus-followup-actual-failure-20261014-v1. Devin#89 prepares gauge-correct rank32 late-checkpoint soup over exactE5–10; no actualmerge/accuracyclaim yet.
+
+October14 22:58UTC:919249pure-evaluation diagnostic COMPLETED0:0/actualchild0/zero newupdates/same original16x12CSV. Original917543failure remainsunresolved, notaccepted. Distinct919305instrumented recovery actualRUNNING oneH100/twoCPU, unchangedbf46source and trustedexecutor; recordsrawchildcode without convertingit. E10privateofflinebundlepreparedONCE/nodeonly/noCloud. E8slot-finisherPID14936/exec7348 is actualalive, max1submission,180s authoritative allowance polling/deadline10800s; lastzero/no submission/reset assumption. Review original journals before action.
+
+October15 03:06UTC: CiscoDisconnected/NewtonDNSfailure/StokesTCPtimeout persists; prior owner request pending, no repeated request. No new cluster terminal/submission authority. Offline root implemented effective-BA averaging/small-core rank-preserving SVD helper;46focused tests/lint/format/type pass. No real checkpoint merge or MRI/accuracy result; see late-checkpoint-adapter-soup-v1.

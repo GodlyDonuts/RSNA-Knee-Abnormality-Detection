@@ -3,12 +3,15 @@
 Reproducible report annotation, DICOM auditing, study-level training, and offline
 Kaggle inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Deep research starts here: [complete research brief](docs/research-brief.md).**
-It consolidates the actual model/data pipeline, every main measured comparison,
-negative findings, supervision gaps, Stanford results, deployment failures and
-next mechanism tests, with links to the original evidence.
+**Start with [current state](docs/current-state.md)** for timestamped actual scores,
+training jobs, model/data recipe and what is still untested. The
+[research brief](docs/research-brief.md) explains findings and limitations;
+[execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-**Current corrective run: [Codex continuation](docs/codex-continuation.md).**
+At the October 16, 08:47 UTC check: reproduced **external author-trained 0.949**;
+prior best **own-trained 0.872**; new own CoAtNet **epoch 4 scored 0.821**, epoch 8
+submitted/unreported. Original fixed-16 training is running; separate source-neighbor
+and positive-weight fits are queued. These are different evidence categories.
 
 **Start with [the initiative archive](initiative/README.md) and
 [the continuation guide](docs/continuation.md).** GitHub contains source reports,
@@ -24,7 +27,12 @@ review coverage. Run `python -m rsna.archive` to verify preserved file identitie
 and `python -m rsna.review_progress` with the v2 paths in the continuation guide
 to check the current review run.
 
-## Status
+## Historical report-supervision release
+
+The counts below describe the original accepted release, **not the active fitting
+population or latest supervision**. Current N3 uses 2,247 fitting studies and dense
+public soft labels. Correspondence-filtered expansion capacities and all current
+score claims are in [current state](docs/current-state.md).
 
 The published [report-supervision release](docs/data-readiness-report.md) passed
 full export verification and actual training/resume/inference acceptance. It contains

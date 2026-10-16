@@ -1,3 +1,8 @@
+> **Current-state notice — October 16, 2026.** Start with
+> [current state](current-state.md) and [research brief](research-brief.md).
+> The dated observations below are historical; pending/running/no-score statements
+> are not live status. Exact current receipts override them.
+
 ACTUAL Kaggle56923572 COMPLETE/scored0.783/noerror/263047bytes at2026-10-08T02:41:20.311973+00:00. Internal0.8786706 reference didnotbeat bestsolo0.804; differentfit scopes preventcausalcomparison. Exactsubmittedmodel/source/version unchanged, neverresubmit. Read scored-hidden-outcome.json. Read-onlyauthenticatedlocalcheckbecauseNewtonDNSunavailable/StokesTCP22timeout/CiscoCLIactuallyDisconnected. Canonicalledgerterminalreconciliation andprivateHFsmallmirror await restoredaccess/sharedlock; no newmutation/duplicate/restart. Trainingobservationloss isNOT terminaljob evidence.
 
 Submission56923572/exactsource/Datasetbyteproof/publicMRI/observeridentityrecovery smallmilestone sourcecdd991f7 privatelymirroredONCE HF3fbdc4ebef3bf1ba21239511998524a2c168affb/all25objects fullre-download/size/SHA canonicalsharedlock. Neverrepeat. No rawMRI/weights/protectedgold exported; latesthiddenstatus/score null/pending_or_unknown, 4live slots.

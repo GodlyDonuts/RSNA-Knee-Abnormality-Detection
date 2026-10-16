@@ -1,3 +1,8 @@
+> **Current-state notice — October 16, 2026.** Start with
+> [current state](current-state.md) and [research brief](research-brief.md).
+> The dated observations below are historical; pending/running/no-score statements
+> are not live status. Exact current receipts override them.
+
 Original875858 control epoch2 completed562updates and privately preserved ONCE
 at HF6199675139bb4121653d506437593510431566b4; all5 objects fully re-downloaded/
 size/SHA verified byCPU877022. Do not repeat control1/2. Actual565finite updates/

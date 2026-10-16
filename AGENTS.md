@@ -1,3 +1,9 @@
+Current documentation contract: `docs/current-state.md` is the timestamped current
+state, `docs/research-brief.md` the research synthesis, and `docs/codex-continuation.md`
+the execution handoff. Update these in place after material changes. Dated narratives
+below are historical observations, not current job or submission status. Preserve
+original receipts, and do not infer terminal state from an old handoff.
+
 Current compact state: read `docs/current-state.md` first. Original audits and live
 processes/journals remain authoritative; the historical entries below are retained.
 
