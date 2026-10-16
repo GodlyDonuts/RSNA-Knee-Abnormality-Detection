@@ -1,0 +1,38 @@
+"""Finite single-candidate entry owner, actual quota/outcome, no mutation retry."""
+import json,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'submit-when-allowed.intent.json').exists() and not (L/'submit.intent.json').exists()
+accepted=json.loads((L/'finite-public-result.json').read_text());assert accepted['status']=='actual_final_context_T4_precision_and_public_MRI_CSV_accepted'
+assert accepted['competition']['slug']=='godlydonuts/rsna-context-e10-59ca63ca875e' and accepted['competition']['version']==1
+with (L/'submit-when-allowed.intent.json').open('x') as out:json.dump({'candidate':'godlydonuts/rsna-context-e10-59ca63ca875e','version':1,'maximum_code_submissions':1,'maximum_seconds':72000,'poll_sleep_seconds_at_most':60,'read_only_quota_cadence_seconds':600,'next_quota_inspection_at':'2026-10-17T00:03:00+00:00','reset_time_claim':False,'automatic_mutation_retry':False},out,indent=2)
+started=time.monotonic();next_read=datetime.fromisoformat('2026-10-17T00:03:00+00:00').timestamp()
+def run(name,argument=None):
+ argv=[sys.executable,str(L/name)]
+ if argument:argv.append(argument)
+ x=subprocess.run(argv,capture_output=True,text=True,timeout=720);assert x.returncode==0,'Original '+name+' '+str(argument)+' stopped; preserve intent/result and reconcile read-only'
+ courier=json.loads(x.stdout);assert courier['returncode']==0;return json.loads(courier['stdout'])
+def progress(value):
+ temp=L/'submit-when-allowed-progress.tmp';temp.write_text(json.dumps({**value,'checked_at':datetime.now(timezone.utc).isoformat(),'elapsed_seconds':time.monotonic()-started},indent=2)+'\n');temp.replace(L/'submit-when-allowed-progress.json')
+try:
+ progress({'status':'public_accepted_waiting_until_next_quota_inspection','competition_submission':False,'next_inspection_at':datetime.fromtimestamp(next_read,timezone.utc).isoformat()})
+ while time.monotonic()-started<72000:
+  if time.time()<next_read:time.sleep(min(60,max(1,next_read-time.time())));continue
+  allowance=run('read_fresh_allowance_once.py');assert allowance['exact_context_state']=='context_competition_accepted'
+  if allowance['canonical_effective_allowance']>0:
+   assert not (L/'submit.intent.json').exists();submitted=run('run_phase_once.py','submit');assert submitted['status']=='one_fixed_final_context_code_submission_accepted' and submitted['submission_id']>0
+   (L/'actual-submitted.json').write_text(json.dumps(submitted,sort_keys=True,indent=2)+'\n');progress({'status':'one_exact_code_submission_accepted_waiting_actual_hidden_outcome','submission':submitted});break
+  next_read=time.time()+600;progress({'status':'waiting_authoritative_live_allowance','account':allowance['account'],'canonical_effective_allowance':0,'next_inspection_at':datetime.fromtimestamp(next_read,timezone.utc).isoformat(),'competition_submission':False})
+ else:raise TimeoutError('Finite allowance observation expired; no repeated mutation')
+ next_read=time.time()+180
+ while time.monotonic()-started<72000:
+  if time.time()<next_read:time.sleep(min(60,max(1,next_read-time.time())));continue
+  value=run('run_phase_once.py','outcome');actual=value['actual_submission'];progress({'status':'actual_hidden_outcome_observed','submission':actual})
+  if actual.get('status')=='COMPLETE' and (actual.get('publicScore') is not None or actual.get('errorDescription')):
+   result={'status':'single_context_submission_actual_hidden_terminal','actual_submission':actual,'competition_submissions':1,'automatic_retry':False};break
+  next_read=time.time()+300
+ else:result={'status':'finite_hidden_outcome_observation_expired_pending_or_unknown','competition_submissions':1,'submission':submitted,'automatic_retry':False}
+except BaseException as exc:result={'status':'stopped_for_original_context_submission_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_retry':False}
+(L/'submit-when-allowed-result.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n');print(json.dumps(result),flush=True)
+if result['status'].startswith('stopped'):raise SystemExit(1)

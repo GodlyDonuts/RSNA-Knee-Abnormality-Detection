@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 16:06 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 16:12 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -21,7 +21,7 @@ Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 Epoch 16 is also COMPLETE, no error, 382,473 bytes and canonically reconciled at
 12:36 UTC. [Scored E16 receipt](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json).
 The .894 does not establish parity with the external .949 or a hidden-private score.
-The authoritative 12:36 UTC allowance is **five submissions used, zero available**.
+The authoritative 16:10 UTC allowance is **five submissions used, zero available**.
 The original curve controller finished all three scheduled E8/E12/E16 submissions;
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
@@ -171,7 +171,7 @@ The exact bounded two-T4 feature pass139044146/v1 **COMPLETED all3,887studies** 
 
 The exact full engine2ee0cffe **COMPLETED as CPU936070**: all10epochs/2,430updates on3,887studies in430.943seconds,402,956FP32context parameters, batch16studies/two views. It preserves the licensed0.949parent and learns a bounded±0.5logit sequence correction;25%source/75%detached-parent anchoring. This is completed training, not a new accuracy result. The attributed parent was developed using our internal cohort/Gold58, so no independent internal OOF is claimed. Protected clinical values remain unused by us. [Exact engine/admission](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
 
-The strict final exporter/serving compiler is implemented. CPU935892 passed actual32MRI nonzero-head serving math (maximum probability difference5.96e-8) and correctly rejected the diagnostic checkpoint as a deployablefinal. Actual final export/CPUreference passed. All10epochs+final+slimcomponent/license/source/runtime are now privately fully download/hash verified at HF81d542359d3c06435367c173a2b9a2947f561b1f (34objects/57.00MB). A pre-intent publication path-type error was corrected without repeating the fit; the original courier misleading success is preserved. Private final-head Dataset12636011v1 is fully6-object verified. Exact privateoffline qualification139054096/v1 is pushed once; originalfinite62742 advances it then publicMRI/CSV acceptance. Separate actual two-T4/public MRI acceptance is pending; no new context competition entry/score exists. [Fixed-final proof](../initiative/audits/released-context-fixed-final-20261016-v1/README.md). [Serving gate](../initiative/audits/released-context-serving-preparation-20261016-v1/README.md).
+The strict final exporter/serving compiler is implemented. CPU935892 passed actual32MRI nonzero-head serving math (maximum probability difference5.96e-8) and correctly rejected the diagnostic checkpoint as a deployablefinal. Actual final export/CPUreference passed. All10epochs+final+slimcomponent/license/source/runtime are now privately fully download/hash verified at HF81d542359d3c06435367c173a2b9a2947f561b1f (34objects/57.00MB). A pre-intent publication path-type error was corrected without repeating the fit; the original courier misleading success is preserved. Private final-head Dataset12636011v1 is fully6-object verified. Exact privateoffline qualification139054096/v1 **COMPLETED on bothT4s**, maximumCPU/GPU difference1.192e-7. FullMRI/CSV notebook139054287/v1 **COMPLETED in22.319seconds**,3pairs/zerohead fallbacks/zeroempty studies;13columns/470CSVbytes fully verified. Existingfinite62742 is terminalsuccess. One new finiteowner33015 waits for the next authoritative allowance inspection atOctober17 00:03UTC, then submits the exact acceptedversion ONCE and observes its actual hidden outcome. It occupies no waiting cluster/GPU resource and retries no mutation. No context entry/score exists at16:12UTC. [Actual deployment/nextentry](../initiative/audits/released-context-deployment-20261016-v1/README.md). [Fixed-final proof](../initiative/audits/released-context-fixed-final-20261016-v1/README.md). [Serving gate](../initiative/audits/released-context-serving-preparation-20261016-v1/README.md).
 
 ## New measured sampling mechanism
 

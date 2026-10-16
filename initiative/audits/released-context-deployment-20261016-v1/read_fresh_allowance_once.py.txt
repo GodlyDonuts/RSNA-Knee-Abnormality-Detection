@@ -1,0 +1,15 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+program=r'''
+import importlib.util,json,os,sqlite3,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');s=importlib.util.spec_from_file_location('wf',p);w=importlib.util.module_from_spec(s);s.loader.exec_module(w);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ w.verify_account(db,r);account=r.account();allowance=w.allowance(db,account);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-context-serving:59ca63ca875e61d7566c8ea87135720c4adb65246cd84c818f9df29f1c480316',)).fetchone()[0]);assert record['state']=='context_competition_accepted'
+print(json.dumps({'status':'authoritative_live_allowance_and_ready_context_readonly','CPU_job':os.environ['SLURM_JOB_ID'],'account':account,'canonical_effective_allowance':allowance,'exact_context_state':record['state'],'context_slug':record['competition']['slug'],'exact_version':1,'context_submission_id':record.get('submission_id'),'new_Kaggle_mutations':0}),flush=True)
+'''
+E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('\"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-context-allowance-readonly','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=230);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'fresh-allowance-readonly.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

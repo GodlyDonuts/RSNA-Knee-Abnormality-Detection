@@ -8,13 +8,21 @@ training jobs, model/data recipe and what is still untested. The
 [research brief](docs/research-brief.md) explains findings and limitations;
 [execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
 
-At the October 16, 11:22 UTC check, our own CoAtNet epoch 12 scored **0.890**,
-up from epoch 8's 0.869 and prior own DINO best 0.872. The reproduced external
-author-trained model scored **0.949**. Epoch 16 is submitted but unreported.
-The fixed-16 internal weak-label AUC is **0.920925**, not a Kaggle score.
-Source-neighbor training is running; all five daily submission slots are used.
-The fixed checkpoint average is privately verified and CPU-serving accepted;
-its paired raw-MRI held-out comparison is being deployed to Kaggle.
+At the October 16, 16:12 UTC check, our own CoAtNet epoch 16 scored **0.894**,
+following epochs 4/8/12 at0.821/0.869/0.890. The reproduced external author-trained
+model scored **0.949**; these are distinct results. Own fixed-16 internal weak-label
+AUC is **0.920925**, not a Kaggle score. Source-neighbor and positive-weight full
+fits are healthy; all five daily competition slots were used. The registered late
+checkpoint average has no established paired held-out gain, so retain E16.
+
+A new sequence-context head on the licensed strong parent completed **3,887studies,
+10epochs and2,430updates**; all10checkpoints/finalcomponent are privately fully
+re-download/hash verified. It passed actual final-head precision on both KaggleT4s
+(maximum CPU/GPU probability difference1.2e-7); full MRI/CSV serving also passed in22.3seconds without head/empty fallbacks. No new context competition score or independent internalOOF
+is claimed. A separate fixed importance-sampling experiment reduced frozen-teacher
+approximation MSE45.6%across3,887fitting studies, all12targets improved. This is a
+measured training-exposure hypothesis, **not disease accuracy**. Detailed evidence
+and limitations are in the current guides. Root implements directly; Devin is unavailable.
 
 **Start with [the initiative archive](initiative/README.md) and
 [the continuation guide](docs/continuation.md).** GitHub contains source reports,
