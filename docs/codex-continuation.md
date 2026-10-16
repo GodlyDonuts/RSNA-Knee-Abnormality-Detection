@@ -476,3 +476,27 @@ Actual full-model training and learned-epoch inference/entry milestone source
 canonical shared lock. No MRI/identifiers/labels/teachers/prediction rows/parent
 body/weights mirrored. Never repeat this or earlier prefixes.
 [Verified preservation](../initiative/audits/hf-licensed-parent-live-training-serving-20261016-v1/verified.json).
+
+
+## New study-pair objective: actual CPU fitting
+
+Separate source27434ede changes only the loss on the existing licensed-parent
+context graph/features: replace half of25%source BCE with per-target weighted
+study-pair logistic risk, ranking the actual mean-of-two-view probabilities.
+The75%teacher contribution stays unchanged. Same3887studies/402956parameters/
+10epochs2430updates/seed/order; reuse the already completed full uniform control.
+No new CNN encoding/GPU is required. ActualCPU939891 is RUNNING on evc33,
+oneCPU/zeroGPU/preemptable/4GiB/20minutes; actual32feature full/stop1/resume and
+uniform frozen-engine equality passed,200finite full-fit updates observed.
+Twenty-nine focused math/recovery/export/compiler checks passed,Ruff/mypy6sources.
+This is a ranking-surrogate hypothesis, not independent validation or accuracy.
+[Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
+[actual acceptance/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
+
+The full CoAtNet139111324v1 independently remains healthy on bothT4s;78finite
+updates were observed in its original unchanged epoch1. Do not restart either
+source, duplicate the completed uniform model or submit diagnostics. New ranking
+final export/private preservation and later exact inference acceptance remain
+required before any competition comparison. Prior607095306179required bytes plus
+new256MiBcheckpoint/publication+32MiBcontrols were actually funded with25.494GB
+remaining after all liabilities; no deletion credit or shared growth.

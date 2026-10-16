@@ -1,0 +1,48 @@
+import hashlib,importlib.util,json,os,shutil,sys,tempfile
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-source-ranking-context-20261016-v1');D=Path('/tmp/rsna-source-ranking-serving-20261016-v1');assert not D.exists();sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert all(json.loads((R/role/'publication/verified.json').read_text())['status']=='all10_source_rank_role_epochs_private_full_download_size_SHA_verified' for role in ('source_rank',))
+raw=sum(p.stat().st_size for p in R.rglob('*.pt'));assert raw+6*2**20+6*2**20<=256*2**20 and shutil.disk_usage('/tmp').free>607397296067
+D.mkdir(mode=0o700);S=D/'code'
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+source_files={n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()};sys.path.insert(0,str(S));import numpy as np,torch
+torch.set_num_threads(1);torch.set_num_interop_threads(1)
+from rsna.competitive.ranking_context_infer import export_component,load_component,predict_context_pair
+from rsna.competitive.released_context import ContextResidual
+from rsna.competitive.released_context_train import batch
+from scripts.newton.run_released_context_fit import load_data
+from scripts.kaggle.ranking_context_notebook import build
+P=R/'source_rank/fit';component=export_component(P/'checkpoint.pt',P/'terminal.json',R/'recovery/accepted.json',Path('/tmp/rsna-released-context-head-fit-20261016-v1/production/terminal.json'),D/'component.pt');name='context-head-e10-'+component['component_sha256'][:12]+'.pt';os.link(D/'component.pt',D/name);model,provenance=load_component(D/name,component['component_sha256']);raw_state=torch.load(P/'checkpoint.pt',map_location='cpu',weights_only=False);original=ContextResidual().float().cpu().eval();original.load_state_dict(raw_state['model'],strict=True)
+old=Path('/tmp/rsna-released-context-head-fit-20261016-v1');M=old/'engineering-inputs.private.json';data,manifest=load_data(M,sha(M));assert len(data)==32;rows=data.records;reference=[];maximum=0.0;error=0.0
+for i,row in enumerate(rows):
+ x,_,_=batch(data,[i]);p=data.roots[row['source_kernel']]/row['file']
+ with np.load(p,allow_pickle=False) as a:
+  with torch.no_grad():
+   prob,correction=predict_context_pair(model,torch.from_numpy(a['features']),torch.from_numpy(a['parent_logits']),torch.from_numpy(a['centers']),torch.from_numpy(a['present']));expected=original(*x)[0].sigmoid().mean(0)
+ reference.append(prob.numpy());maximum=max(maximum,float(correction.abs().max()));error=max(error,float((prob-expected).abs().max()))
+assert maximum>1e-8 and error<=1e-6
+with (D/'reference.private.npy').open('xb') as f:os.fchmod(f.fileno(),0o600);np.save(f,np.stack(reference).astype(np.float32),allow_pickle=False)
+ref=sha(D/'reference.private.npy');refname='context-cpu-reference-'+ref[:12]+'.npy';os.link(D/'reference.private.npy',D/refname);assert hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+parts=[(S/n).read_text() for n in ['rsna/competitive/released_context.py','rsna/competitive/released_context_train.py','rsna/competitive/released_context_infer.py','rsna/competitive/bounded_preparation.py','rsna/competitive/ranking_context_infer.py']];bindings={}
+for mode in ('qualification','competition'):
+ text,b=build(v['parent_source'],*parts,component['component_sha256'],mode=mode,reference_sha=ref if mode=='qualification' else None);(D/(mode+'.private.py')).write_text(text);(D/(mode+'.private.py')).chmod(0o600);bindings[mode]=b
+(D/'component.json').write_text(json.dumps(component,sort_keys=True,indent=2)+'\n');permission=Path('/tmp/rsna-regional-context-production-20261016-v1/permission.txt').read_text();(D/'source-permission.txt').write_text(permission)
+prepared={'status':'actual_fixed_final_context_component_CPU_prepared','objective':'source_rank','component':component,'reference_sha256':ref,'reference_bytes':(D/refname).stat().st_size,'max_abs_actual_context_correction_on32':maximum,'maximum_full_trained_graph_probability_error':error,'source_git':v['source_git'],'source_files':source_files,'notebook_bindings':bindings,'actual_T4_acceptance':False,'clinical_or_competition_accuracy':False,'original_full_control_reused_and_uniform32_numerical_parity':True};(D/'prepared.json').write_text(json.dumps(prepared,sort_keys=True,indent=2)+'\n')
+# Serving files+one ZIP still fit the separately funded future6MiB. Verification
+# remains a separate6MiB maximum single object, without deletion credit.
+assert sum((D/n).stat().st_size for n in ['component.pt',name,'reference.private.npy',refname])+2*2**20<6*2**20
+J=D/'publication';J.mkdir(mode=0o700);source_meta=J/'source.json';source_meta.write_text(json.dumps({'serving_source_git':v['source_git'],'source_files':source_files,'component':component,'raw_epoch_publication':json.loads((R/'source_rank/publication/verified.json').read_text())},sort_keys=True,indent=2)+'\n');files={'serving/'+name:D/name,'common/component.json':D/'component.json','common/source.json':source_meta,'common/source-permission.txt':D/'source-permission.txt'}
+for n in source_files:files['common/source/'+n]=S/n
+os.environ.update(HF_HUB_DISABLE_XET='1',HF_HOME=str(J/'hf-home-private'),HF_XET_CACHE=str(J/'hf-xet-private'))
+from huggingface_hub import HfApi,CommitOperationAdd
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert sha(core)=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde';spec=importlib.util.spec_from_file_location('pubcore',core);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+with m.shared_publication_lock():
+ api=HfApi(token=v['hf_token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True;prefix='experiments/licensed-source-ranking/serving-'+component['component_sha256'][:12]+'-v1';table={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in files.items()};assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in files],repo_type='dataset'));m.atomic_new(J/'intent.json',{'prefix':prefix,'parent':info.sha,'files':table,'component_sha256':component['component_sha256'],'no_MRI_labels_features_UIDs_or_predictions':True});commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve exact typed fixed-final source-ranking serving head and provenance',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in files.items()]);m.atomic_new(J/'commit.json',{'revision':commit.oid})
+ for n,row in table.items():
+  with tempfile.TemporaryDirectory(prefix='rsna-ranking-serving-verify-',dir='/tmp') as tmp:
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+n,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and sha(p)==row['sha256']
+ # Compatibility label here denotes the full preceding epoch proof plus this
+ # exact serving proof; raw epochs were NOT uploaded again.
+ verified={'status':'all10_context_epochs_and_final_component_privately_full_download_size_SHA_verified','objective':'source_rank','revision':commit.oid,'prefix':prefix,'objects':len(files),'bytes':sum(x['bytes'] for x in table.values()),'raw_epoch_publication':json.loads((R/'source_rank/publication/verified.json').read_text()),'no_MRI_labels_features_UIDs_or_predictions':True};m.atomic_new(J/'verified.json',verified)
+print(json.dumps({'status':'actual_ranking_final_export_CPU_math_and_private_preservation_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'prepared':prepared,'private_preservation':verified}),flush=True)
