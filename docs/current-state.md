@@ -46,7 +46,7 @@ delta-0.00572762, whole-component conditional95%[-0.02522802,+0.01337630],
 2,836defined/1,164undefined draws. No established primary gain; keep originalN3.
 [Fixed-final result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md). Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–14 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–16 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -210,7 +210,7 @@ every3,855new member and exact3,887membership. No GPU/kernel/push was repeated.
 
 Neighbor932957 is COMPLETED and independently verified:0.91519773internal macro,
 originalN3control0.92092535; no established primary gain (interval includes zero).
-Weighted933001 has14privately verified epochs and remains RUNNING, no final result.
+Weighted933001 has16privately verified epochs and remains RUNNING, no final result.
 Original expanded recovery933382 remains PENDING; conditional owner51853 and
 context-entry owner33015 stay alive. Root implements directly; Devin is unavailable.
 [Neighbor full paired result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
@@ -256,3 +256,13 @@ privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
 under the canonical lock byCPU938041; no private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
+
+Actual spatial-readout CPU938126 passed both original32MRIfeature roles against
+original learned engineering predictions (max1.192e-7/5.96e-8); diagnostic export
+correctly refused. New finite owner92853 waits for original full-fit/private20epoch
+completion before actual final export, combined Dataset and exact T4/publicMRI
+qualification. No waitingGPU, public push or hidden entry is implied.
+[Original conditional route](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
+Weighted933001 has all16privately verified epochs; one independent fixed-final
+comparison observer waits for its actual terminal result, not a checkpoint-only
+score. [Original protocol](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md).

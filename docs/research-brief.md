@@ -41,7 +41,7 @@ original0.92092535, delta-0.00572762, conditional95%[-0.02522802,+0.01337630],
 keep original N3. Lateral-meniscus/contusion secondary improvements need matched
 replication and do not justify post-hoc target splicing. Narrower adjacency versus
 wider anatomical context is a plausible tradeoff, not a proved explanation.
-Weighted933001 is RUNNING with14privateverified epochs; no final result yet.
+Weighted933001 is RUNNING with16privateverified epochs; no final result yet.
 Public one-study gradient accumulation also means mixed-study BatchNorm is not a
 known missing ingredient. [Full paired evidence](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
@@ -200,3 +200,13 @@ privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
 under the canonical lock byCPU938041; no private arrays/images/identities/weights.
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
+
+Actual spatial-readout CPU938126 passed both original32MRIfeature roles against
+original learned engineering predictions (max1.192e-7/5.96e-8); diagnostic export
+correctly refused. New finite owner92853 waits for original full-fit/private20epoch
+completion before actual final export, combined Dataset and exact T4/publicMRI
+qualification. No waitingGPU, public push or hidden entry is implied.
+[Original conditional route](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
+Weighted933001 has all16privately verified epochs; one independent fixed-final
+comparison observer waits for its actual terminal result, not a checkpoint-only
+score. [Original protocol](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md).

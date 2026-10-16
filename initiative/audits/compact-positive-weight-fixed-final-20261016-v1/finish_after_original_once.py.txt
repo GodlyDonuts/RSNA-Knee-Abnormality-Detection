@@ -1,0 +1,14 @@
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;deadline=time.monotonic()+6*3600
+with (L/'finish.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'verifier_sha256':hashlib.sha256((L/'program.py.txt').read_bytes()).hexdigest(),'coordinator_sha256':hashlib.sha256((L/'run_once.py').read_bytes()).hexdigest(),'original_job':'933001','automatic_retry_or_restart':False,'new_GPU_jobs':0,'maximum_seconds':6*3600},f,indent=2)
+try:
+ while time.monotonic()<deadline:
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton','sacct -X -j 933001 -n -P --format=State,ExitCode'],capture_output=True,text=True,timeout=30);assert x.returncode==0;state=x.stdout.strip();(L/'finish.progress.json').write_text(json.dumps({'original_job':'933001','actual_Slurm':state,'no_mutation':True},indent=2)+'\n')
+  if state=='COMPLETED|0:0':
+   x=subprocess.run([sys.executable,str(L/'run_once.py')],capture_output=True,text=True,timeout=600);assert x.returncode==0,'Actual final verification failed; inspect originals, no retry';out=json.loads(x.stdout);receipt=json.loads(out['stdout']);assert receipt['status']=='actual_positive_weight_fixed16_complete_state_roster_and_paired_outer_verified';(L/'finish.result.json').write_text(json.dumps({'status':'original_positive_weight_fixed_final_independently_verified','macro_auc':receipt['analysis']['macro_auc'],'private_result':str(L/'result.json')},indent=2)+'\n');print('Original weighted final endpoint independently verified.',flush=True);break
+  if state.split('|')[0] in ('FAILED','CANCELLED','TIMEOUT','OUT_OF_MEMORY','NODE_FAIL','PREEMPTED'):raise RuntimeError('Actual original weighted terminal '+state)
+  time.sleep(90)
+ else:raise RuntimeError('Finite actual original observation deadline')
+except Exception as exc:
+ (L/'finish.result.json').write_text(json.dumps({'status':'original_weighted_requires_readonly_inspection','error':str(exc),'automatic_retry':False},indent=2)+'\n');raise

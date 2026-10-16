@@ -34,9 +34,12 @@ It is historical observation, not mutation authority. Keep goal active.
   Two-hour scheduling limit was changed ONLY while original jobs pending, using
   actual engineering timings; original4hour scripts/receipts preserved. No source/
   numerical/data/output/job change. Current full fits are not completed results.
-- Original weighted **933001 RUNNING evc33**; epochs1–14 privately fully8-object
-  download/size/SHAverified once. Existing sole watcher24451 handles future15/16;
-  never duplicate. No fixed-final weighted result yet. Source/output unchanged.
+- Original weighted **933001 RUNNING evc33**; epochs1–16 privately fully8-object
+  download/size/SHAverified once. Original sole watcher24451 completed all16private publications;
+  never repeat them. No fixed-final weighted result yet. Source/output unchanged. New finite
+  artifacts/compact-weighted-final-20261016-v1/finish_after_original_once.py waits
+  actual original9330010:0 then independently verifies full final/paired endpoint;
+  inspect its intent/progress/result, do not duplicate.
 - Original expanded2592 real-H100 recovery **933382 PENDING Priority**. Existing
   finite conditional owner **exec51853/PID56286** remains alive; frozen prepared
   production/publisher source0d1adeaa. No full expanded fit is dispatched. Do not
@@ -107,8 +110,17 @@ role, then strict final export plus anonymous32prediction CPUreference on alread
 retained regional32cache. Reference arrays are only32×12, not copied features;
 reuse original private139066640v1 kernel output for T4feature qualification.
 Future slim components+refs share existing16MiB cap. The distinct typed spatial compiler is now implemented,42focused tests/Ruff/Mypy
-passed and actual licensed parent compiles in both roles/modes. Actual CPUfinal
-export/realT4precision/publicMRI acceptance still precede useful hidden entries.
+passed and actual licensed parent compiles in both roles/modes. Actual CPU938126 readout on original32MRIfeatures passed max1.192e-7/5.96e-8
+against original engineering trainer predictions; both diagnostic exports refused.
+NEW sole public-acceptance owner exec92853/PID68421 is LIVE at
+artifacts/regional-context-deployment-20261016-v1/finish_public_acceptance_once.py,
+8hfinite/no waiting Slurm allocation/no entries. It waits original full fitting/
+private20epoch owner34894 to complete, then exports actual final components and
+32x12references once, creates one small combined private Dataset after exact paid
+byte funding, and runs regional then control actual T4precision/publicMRI scripts.
+Inspect all original phase intents/results; never duplicate/restart either owner.
+GPUquota/canonicalledger/claim/weight/source/version/CSV checks are binding.
+No actual Dataset/push/hidden result exists yet. Final acceptance precedes entries.
 Never submit engineering/Stanford/KneeCoT diagnostic or old uncertain versions.
 
 ## Preservation, resource and access

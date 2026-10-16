@@ -31,3 +31,9 @@ by that controller. Direct submission/outcome phases exist for later fresh allow
 and canonical exact-code entry after actual acceptance; unreported status is not a
 score. The separate old context00:03UTCowner remains sole owner of that candidate.
 Current controls are prepared, not proof of Dataset, GPU push or hidden submission.
+
+The single finite controller is now LIVE: exec92853/PID68421. It waits only for
+original fit/preservation owner34894/PID66597, then runs the original full-export,
+Dataset and sequential regional/control T4/public phases. Inspect its exact
+finish.intent/progress/result and all per-phase intents first. No Dataset/push or
+competition entry exists at this observation. It occupies no waiting SlurmGPU.
