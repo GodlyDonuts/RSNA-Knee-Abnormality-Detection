@@ -103,8 +103,14 @@ def verify_original_metadata(info, objects: dict) -> None:
             raise ValueError("private_original_object_binding_changed")
 
 
-def load_plan(root: Path, manifest_path: Path, number: int) -> tuple[dict, pd.DataFrame]:
-    if manifest_path.is_symlink() or digest(manifest_path) != MANIFEST_SHA:
+def load_plan(
+    root: Path, manifest_path: Path, number: int, expected_manifest_sha256: str = MANIFEST_SHA
+) -> tuple[dict, pd.DataFrame]:
+    if (
+        not re.fullmatch(r"[0-9a-f]{64}", expected_manifest_sha256)
+        or manifest_path.is_symlink()
+        or digest(manifest_path) != expected_manifest_sha256
+    ):
         raise ValueError("full_cohort_manifest_binding_changed")
     manifest = json.loads(manifest_path.read_text())
     name = f"shard-{number:03d}.json"
@@ -372,16 +378,25 @@ def check_loaders(shard: dict, roots: dict[int, Path]) -> dict:
         for i in range(len(dataset)):
             item = dataset[i]
             image = item["images"]
+            label_mask = item["label_mask"]
+            slice_mask = item["slice_mask"]
+            if not all(
+                isinstance(value, torch.Tensor) for value in (image, label_mask, slice_mask)
+            ):
+                raise ValueError("MRI loader must return tensor inputs and masks")
+            assert isinstance(image, torch.Tensor)
+            assert isinstance(label_mask, torch.Tensor)
+            assert isinstance(slice_mask, torch.Tensor)
             if (
                 item["study_uid"] != studies.iloc[i].study_uid
                 or tuple(image.shape) != (6, 16, 1, input_side, input_side)
                 or not torch.isfinite(image).all()
                 or image.min() < 0
                 or image.max() > 1
-                or item["label_mask"].any()
+                or label_mask.any()
             ):
                 raise ValueError("unmodified_mri_loader_acceptance_failed")
-            valid += int(item["slice_mask"].sum())
+            valid += int(slice_mask.sum())
         report[str(cache_side)] = {
             "studies": len(dataset),
             "valid_sampled_slices": valid,
@@ -573,6 +588,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--plan-manifest", type=Path, required=True)
+    parser.add_argument("--plan-manifest-sha256", default=MANIFEST_SHA)
     parser.add_argument("--shard", type=int, required=True)
     parser.add_argument("--reference-archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -598,7 +614,7 @@ def main() -> None:
     if not set(loaded).issubset(science["files"]):
         raise ValueError("complete_scientific_module_binding_required")
     for name, module in loaded.items():
-        if Path(module.__file__).resolve() != (code / name).resolve():
+        if not module.__file__ or Path(module.__file__).resolve() != (code / name).resolve():
             raise ValueError("worker_imported_unbound_scientific_module")
     if (
         subprocess.check_output(["git", "-C", str(code), "rev-parse", "HEAD"], text=True).strip()
@@ -619,7 +635,9 @@ def main() -> None:
         or args.output.parent.stat().st_dev == Path("/home/sa305415/rsna-knee").stat().st_dev
     ):
         raise ValueError("fresh_owned_node_local_output_required")
-    shard, inventory = load_plan(args.root, args.plan_manifest, args.shard)
+    shard, inventory = load_plan(
+        args.root, args.plan_manifest, args.shard, args.plan_manifest_sha256
+    )
     if (
         shutil.disk_usage(args.output.parent).free
         < shard["owned_cache_archive_scratch_bound_bytes"] + 20 * GIB
@@ -667,7 +685,7 @@ def main() -> None:
                 "gpus": 0,
                 "worker_sha256": digest(Path(__file__)),
                 "science_binding_sha256": digest(args.science_binding),
-                "plan_manifest_sha256": MANIFEST_SHA,
+                "plan_manifest_sha256": args.plan_manifest_sha256,
                 "shard_file_sha256": digest(
                     args.plan_manifest.parent / f"shard-{args.shard:03d}.json"
                 ),

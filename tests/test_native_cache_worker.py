@@ -284,3 +284,16 @@ def test_original_metadata_accepts_pinned_git_and_lfs_and_still_checks_full_byte
     wrong_storage["b.dcm"]["storage"] = "anything"
     with pytest.raises(ValueError, match="private_original_object_binding_changed"):
         worker.verify_original_metadata(info, wrong_storage)
+
+
+def test_explicit_new_plan_binding_does_not_change_original_default(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}")
+    with pytest.raises(ValueError, match="binding_changed"):
+        worker.load_plan(tmp_path, manifest, 0)
+    with pytest.raises(ValueError, match="binding_changed"):
+        worker.load_plan(tmp_path, manifest, 0, "not-a-hash")
+    # An exact caller-admitted hash passes the byte guard, then must still
+    # satisfy the full original plan/schema/science/inventory admission.
+    with pytest.raises(KeyError, match="shards"):
+        worker.load_plan(tmp_path, manifest, 0, worker.digest(manifest))
