@@ -1,3 +1,15 @@
+# October16 actual competitive anchor and separate training contrasts
+
+**Attributed released baseline57258866 scored0.949 on Kaggle**, COMPLETE/no error, canonically reconciled07:29UTC. This is the external author-trained model reproduced unchanged, NOT an own-training gain or independent internal validation. Exact audit: released0949-baseline-20261016-v1/actual-scored-canonical.json. Our prior own DINO best remains0.872 pending original CoAtNet outcomes.
+
+**Own N3E8 submitted57259376 once**, exact offline notebookv1, actual twoT4 precision and public MRI-to-CSV passed; hidden score unreported at last check. E4 submission57256756 actually scored0.821, COMPLETE/no error, canonically reconciled07:45UTC; not a deployment failure. Original curve controller45020 waits E12/E16; three submissions today/two available at latest authoritative check. Never restart or repeat either submission.
+
+Separate optional weighted loss sourcef5af4f2 has actual full2247 fitting-only CPU policy admission932603, unchanged default replay and weighted full-state recovery tests. No weighted GPU/clinical result yet. Source-neighbor recovery931961 remains original pending. Read compact-positive-weight-CPU-20261016-v1. Original930744 training remains unchanged; continuation23253 and publication handoff89728 are already armed.
+
+Original additional345 paired256/384 cache931411 COMPLETED0:0:345studies/1769series/54562slices. Private preservation932730 submitted once and pending at latest check; no new training/label admission. Never repeat cache build or publication intent. Short read-only telemetry of original930744 measured22.4% mean utilization over31seconds; cause not isolated, live training untouched. Read compact-training-utilization-20261016-v1.
+
+## Historical observations (dated; superseded above)
+
 Original N3epoch8 now privatelyfully8-objectdownload-size-SHAverifiedONCE HFrevision1c9f822c70c1d6396f7d21e9486c5498cdd04f3a; neverrepeat1–8. Training930744 actualepoch9/2266of4496finiteupdates(50.4%), healthy. Curvecontroller45020 advanced E8toCPU_reference automatically; notsubmittedE8yet. Additional345cache931411 actual6/7shards and1645/1769pairedseries complete; no newlabel/trainingadmission.
 
 Source4db299a9 incl9a8d824b neighbor deployment/actualCPU932245 plus attributedbaseline57258866 and exactrecipe corrections fullyprivateverifiedONCE HF8e8820e5dbdd63ff0951c0eeef80f02ba7f25d13/all24objects121971B. Neverrepeat. No rawMRI/labels/IDs/weights/externalimplementation mirrored. NewE8receipt postdates smallmirror; its checkpoint already independentlyprivateverified. Baseline hidden score remainsnull at06:58UTC; current parentpublished.949 is not ourfork score or owntraining gain.

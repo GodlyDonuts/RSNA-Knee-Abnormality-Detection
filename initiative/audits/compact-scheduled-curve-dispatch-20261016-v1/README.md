@@ -1,3 +1,5 @@
+**Epoch8 actually submitted once:**57259376 at2026-10-16 07:08UTC, exact notebook godlydonuts/rsna-compact-offline-e008-e6b38178d868 v1. Both T4s passed production precision (max FP16 probability error0.00012055); complete public3-study MRI-to-CSV40.9078seconds/13columns/zero fallbacks. Public completion is not a hidden score. E12/E16 remain armed in the original finite controller; never restart it.
+
 # Original CoAtNet E8/12/16 deployment is armed
 
 The predeclared secondary checkpoint curve now has one finite controller, running locally as exec45020. It waits for each original completed epoch's full private download/hash verification, then prepares that checkpoint's CPU full-bag reference, creates one private checkpoint Dataset, waits for that original Dataset's ingestion, verifies every payload byte, pushes one distinct private offline two-T4 notebook, verifies its actual precision and public MRI-to-CSV output, then submits its code version once under fresh authoritative allowance and the canonical Newton ledger. No public example CSV is uploaded. This does not change original N3 training or the fixed-final primary outer endpoint.

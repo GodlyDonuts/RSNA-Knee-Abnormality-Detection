@@ -1,3 +1,7 @@
+**Actual scored result:** authenticated Kaggle and the canonical ledger now record submission57258866 COMPLETE, public AUC **0.949**, no error,247103 output bytes (2026-10-16 07:29UTC reconciliation). This reproduces the attributed external baseline; it is NOT our own-training improvement. Three submissions today/two slots remained at that check, reserved for original N3E12/E16. No resubmission. See actual-scored-canonical.json.
+
+## Historical entry receipt
+
 # Actual attributed released CoAtNet baseline entry
 
 Submission57258866 accepted ONCE through the canonical Newton ledger. Exact private/offline two-T4 notebook godlydonuts/rsna-released0949-offline-7e5315dad125 v1, kernel138981420; its source493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde is the original author's executable code without an added runtime verification cell. Public Dataset12431568/v1, selected full checkpoint7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef, pinned original Docker2757e0c7. The author published0.949 for its original notebook; this is NOT a score of our fork or an own-training improvement. Read the actual hidden observation and canonical entry for current status. At this entry two account submissions today/three live slots remained, reserved for our separately predeclared N3E8/12/16 curve.

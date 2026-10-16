@@ -1,0 +1,5 @@
+# Original trainer utilization: bounded read-only observation
+
+Actual assigned GPU/trainer PID inside original930744,30 one-second samples over31.17seconds: mean utilization22.4%, median0%, peak96%,7 optimizer updates, roughly64.5MB/s trainer read characters. This short sample indicates bursty GPU activity and motivates an input/CPU profiler. It does NOT isolate decoding, host-to-device copies, serial launch overhead, filesystem or other stalls. Physical writes averaged4096bytes/update over this interval, so checkpoint writing is not established as the bottleneck.
+
+The observer read NVML and process I/O only, loaded no model/CUDA context, modified no source/training and profiled no other job. Original v1 observer failed due an absent step environment variable before telemetry; v2 uses the actual assigned-step GPU variable. No scientific run failed or restarted. Future prefetching must preserve sample order, model RNG, input tensors and exact resume; no such optimization has been deployed.

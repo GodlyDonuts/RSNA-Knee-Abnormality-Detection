@@ -1,0 +1,5 @@
+# Additional345 original MRI cache completed
+
+Original CPU931411 COMPLETED0:0/02:13:06. All345 studies,1769series and54562slices built from original private MRI into paired256/384 caches across seven shards. Sanitized terminal binds source/worker/plan/report/archive hashes and counts; raw per-case paths/members remain private. Actual owned34.405GB stays within original70GiB cap. Maximum256-reference uint16 difference1; its cause is not proven and no bit-identical old256 claim is made.
+
+Actual private preservation932730 submitted once, PENDING at latest observation, reuses the original native shard publisher under the canonical shared lock. Seven unique new-selection prefixes, one commit per shard and full six-object re-download/size/SHA checks; original intents/journals prohibit retrying an uncertain upload. No checkpoint/model/label admission or expanded training yet. All1301 fold0 rows remain excluded from this fitting-only acquisition, as do correspondence exclusions. No repeat cache acquisition, rebuild or transfer.

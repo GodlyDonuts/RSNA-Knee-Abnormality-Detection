@@ -1,3 +1,5 @@
+**Actual hidden outcome:**57256756 COMPLETE, public AUC0.821,382354 output bytes/no error, authenticated07:31UTC and canonically reconciled07:45UTC. This is our own N3epoch4 checkpoint, below prior DINO0.872. Original fixed16 training and predeclared E8/E12/E16 curve continue; do not infer their scores or select the outer epoch.
+
 # First scheduled compact competition candidate
 
 This is the predeclared rawN3epoch4/fullbagFP16 comparison. Original930744 remains healthy and unchanged. CPU component preparer3850 and finite deploy controller96100 are actually live; no completed E4 checkpoint/component/cloud push/competition entry existed at controller admission. Never restart either controller or repeat a mutation with an existing phase intent. Read actual original handles, intents/results and canonical ledger before action.

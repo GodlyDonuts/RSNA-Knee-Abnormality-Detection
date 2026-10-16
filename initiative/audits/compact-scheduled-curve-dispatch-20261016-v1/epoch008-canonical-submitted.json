@@ -1,0 +1,102 @@
+{
+  "checkpoint_sha256": "e6b38178d8680c7615ec26439a445e2d6554d93293849d085405d5f2382204d8",
+  "epoch": 8,
+  "kernel_version": 1,
+  "operation": {
+    "checkpoint_sha256": "e6b38178d8680c7615ec26439a445e2d6554d93293849d085405d5f2382204d8",
+    "dataset_slug": "godlydonuts/rsna-compact-n3-e008-e6b38178d868",
+    "kernel_slug": "godlydonuts/rsna-compact-offline-e008-e6b38178d868",
+    "kind": "compact_N3_component_v1",
+    "manifest_sha256": "605bd740c122221f6cc8e666382d6163141b22bd453117b3dc6d6ef324992ec4",
+    "source_sha256": "7b84918cc20c75b143291ffec34bd4e290692e4cd2e0e107ba5d058f83467b88"
+  },
+  "queued_at": "2026-10-16T07:00:14.020358+00:00",
+  "state": "submitted",
+  "attempted_at": "2026-10-16T07:08:19.411886+00:00",
+  "description": "rsna-epoch-v1:f278f4bacbd9e0d44ae27cf8b6327b617cc07a277caa726997ea9a3f88854a54",
+  "quota_before": {
+    "checked_at": "2026-10-16T07:08:19.334390+00:00",
+    "account": "godlydonuts",
+    "competition": "rsna-knee-abnormality-detection",
+    "entered": true,
+    "competition_id": 154281,
+    "num_today": 2,
+    "num_total": 41,
+    "num_allowed_now": 3,
+    "limited_by_total": false,
+    "reset_at": null,
+    "reset_verified": false,
+    "quota_source": "https://api.kaggle.com/v1/competitions.CompetitionApiService/GetSubmissionLimits"
+  },
+  "inference_receipt": {
+    "status": "scheduled_compact_MRI_CSV_accepted",
+    "studies": 3,
+    "columns": 13,
+    "checkpoint_sha256": "e6b38178d8680c7615ec26439a445e2d6554d93293849d085405d5f2382204d8",
+    "aggregation": "full",
+    "precision": "float16",
+    "diagnostic_only": false,
+    "elapsed_seconds": 40.907805870000004,
+    "maximum_summed_lifetime_RSS_bytes": 8799162368,
+    "chunks": [
+      {
+        "studies": 3,
+        "unusable_MRI_studies": 0,
+        "selected_series": 15,
+        "preparation_wait_seconds": 30.529100465000056,
+        "inference_wait_seconds": 10.359583111999996,
+        "total_chunk_seconds": 40.890518445000055,
+        "workers": [
+          {
+            "device_index": 0,
+            "model_load_count": 1,
+            "encoded_windows": 140,
+            "insufficient_window_studies": 0,
+            "peak_GPU_bytes": 1516514304
+          },
+          {
+            "device_index": 1,
+            "model_load_count": 1,
+            "encoded_windows": 70,
+            "insufficient_window_studies": 0,
+            "peak_GPU_bytes": 1516513792
+          }
+        ]
+      }
+    ],
+    "hidden_scale_runtime_qualified": false,
+    "CSV_sha256": "1e5f1b00f1536c20e77b2178611ddf9b8503586564466588126c0287c0315211",
+    "test_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+    "epoch": 8,
+    "component_manifest_sha256": "605bd740c122221f6cc8e666382d6163141b22bd453117b3dc6d6ef324992ec4",
+    "source_projection_sha256": "77c038d84562e1b756f373625f627af44f4af22733c6bfda54d0c07d1a476958",
+    "production_precision_sha256": "733669ed63fa52c997ac73a73f18170f51f98bd6648b8d8dc6702272376b690b",
+    "submission_bytes": 1025,
+    "clinical_accuracy_claim": false
+  },
+  "precision_receipt": {
+    "status": "scheduled_compact_two_T4_precision_accepted",
+    "epoch": 8,
+    "checkpoint_sha256": "e6b38178d8680c7615ec26439a445e2d6554d93293849d085405d5f2382204d8",
+    "fixture_windows": 70,
+    "devices": [
+      {
+        "index": 0,
+        "maximum_probability_errors": {
+          "float32": 3.2782554626464844e-07,
+          "float16": 0.00012055039405822754
+        }
+      },
+      {
+        "index": 1,
+        "maximum_probability_errors": {
+          "float32": 3.2782554626464844e-07,
+          "float16": 0.00012055039405822754
+        }
+      }
+    ],
+    "clinical_accuracy_claim": false
+  },
+  "submission_id": 57259376,
+  "submitted_at": "2026-10-16T07:08:20.863171+00:00"
+}

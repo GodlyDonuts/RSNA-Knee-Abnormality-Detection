@@ -1,3 +1,7 @@
+## Latest actual progress (October16)
+
+The attributed released baseline actually scored0.949; our own original N3E4 actually scored0.821, with E8 submitted/unreported and E12/E16 armed. No claim that our training has reached0.949. Source-neighbor challenger is implemented with actual CPU tensor admission and original queued GPU recovery; positive-weighted loss has full-fitting CPU policy admission but no GPU/clinical result. Additional345 paired caches completed. The updated message-for-research-agent.md includes these facts and the full-data-parent/independent-OOF caveat. The assessment below retains its earlier dated context.
+
 # Research synthesis 2: adoption, corrections, immediate work
 
 The memo is useful, especially its emphasis on MRI representation, full fine-tuning, bounded class weighting and avoiding public-board blend overfitting. It is a research synthesis, not evidence that one mechanism explains the score gap. Preserve the healthy original N3 control.

@@ -4,6 +4,7 @@ These are engineering tests only; they are not real-MRI CPU admission or GPU acc
 """
 
 import copy
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -26,6 +27,17 @@ GIB = 2**30
 
 def current_code():
     return {str(p.relative_to(ROOT / "rsna")): gate.sha(p) for p in (ROOT / "rsna").rglob("*.py")}
+
+
+def admitted_code():
+    """Use the actual frozen admission, never silently admit evolving main."""
+    path = ROOT / "initiative/audits/patch-focus-target-CPU-accepted-20261014-v1/CPU-accepted.json"
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == (
+        "70d9c6722c6d6e4c9eb0be6653df0fccc0d159e7db2d33e6abb4de1e545509d5"
+    )
+    receipt = json.loads(path.read_text())
+    assert receipt["source_git"] == "bf46b70eea1216673aafb1b5d34e513247b4ef1c"
+    return dict(receipt["code_sha256"])
 
 
 def funding(**changes):
@@ -120,7 +132,7 @@ def test_encoder_spec_must_be_the_pinned_mounted_official_spec():
 
 
 def test_code_delta_is_exact_and_includes_patch_focus():
-    delta = admit.code_delta(ORIGINAL["code_sha256"], current_code())
+    delta = admit.code_delta(ORIGINAL["code_sha256"], admitted_code())
     assert delta["input_label_code_changed"] == ["competitive/train.py", "release_cache.py"]
     assert (delta["changed_files"], delta["added_files"], delta["removed_files"]) == (3, 4, 0)
     for edit in (
@@ -129,10 +141,15 @@ def test_code_delta_is_exact_and_includes_patch_focus():
         lambda c: c.update({"competitive/public_input.py": "0" * 64}),
         lambda c: c.pop("labels.py"),
     ):
-        code = current_code()
+        code = admitted_code()
         edit(code)
         with pytest.raises(ValueError, match="reviewed delta"):
             admit.code_delta(ORIGINAL["code_sha256"], code)
+
+
+def test_evolving_main_is_not_silently_admitted_into_the_frozen_patch_run():
+    with pytest.raises(ValueError, match="reviewed delta"):
+        admit.code_delta(ORIGINAL["code_sha256"], current_code())
 
 
 def test_funding_is_patch_focus_cpu_only():

@@ -1,3 +1,13 @@
+# Latest October16 handoff
+
+Read docs/current-state.md first. Attributed external baseline57258866 actually scored0.949; ownN3E4 57256756 scored0.821, both canonically reconciled. OwnE8 57259376 submitted/unscored, readonly observer16036 armed once. Original E12/E16 controller45020 remains active; two slots reserved, fresh live quota required internally. Original930744 healthy nearing4h boundary; same-fit continuation23253 and publication handoff89728 already armed, never restart. Epochs1–9 privately verified; original E10 publisher932786 pending. Additional345 cache completed; private preservation932730 pending once, no label/expanded-fit admission yet.
+
+Separate weightedloss sourcef5af4f2 has CPU932603 policy admission, not GPU/checkpoint funding/accuracy. Source-neighbor931961 recovery pending original. Exact source/input/engine separation remains. Short actual GPU telemetry mean22.4% utilization motivates profiling, does not diagnose checkpoint I/O. Current audit/code docs contain source proofs; live scientific sources unchanged.
+
+Full QA run3967passed/6skipped/one historical patch-admission test failure: that test incorrectly compared evolving main with a frozen older run. Corrected test now uses SHA-pinned actual original CPU admission and explicitly rejects evolving main;35focused tests passed. Admission implementation, original run and allowed numerical delta unchanged. Do not claim a fresh full-suite green until rerun actually completes.
+
+## Historical handoff entries
+
 Current compact index: [current-state.md](current-state.md). Original live state and
 audit receipts supersede dated historical snapshots below.
 
