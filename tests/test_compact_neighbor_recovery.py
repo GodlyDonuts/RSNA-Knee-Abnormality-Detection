@@ -89,3 +89,20 @@ def test_relocated_endpoint_requires_explicit_matching_node():
         validate_admission(admitted(), "evc39")
     with pytest.raises(ValueError):
         validate_admission({**admitted(), "node": "evc40"}, "evc40")
+
+
+def test_relocated_cache_binding_preserves_all_scientific_fields(tmp_path):
+    from scripts.newton.probe_compact_neighbor_relocated import validate_relocated_binding
+
+    original = {
+        "cache": "/old/cache",
+        "source_sha256": {"module": "pinned"},
+        "roster": "fixed",
+        "policy": "exact",
+    }
+    relocated = {**original, "cache": str(tmp_path.resolve())}
+    validate_relocated_binding(relocated, original, tmp_path)
+    with pytest.raises(ValueError):
+        validate_relocated_binding({**relocated, "roster": "different"}, original, tmp_path)
+    with pytest.raises(ValueError):
+        validate_relocated_binding({**relocated, "cache": "/wrong/cache"}, original, tmp_path)

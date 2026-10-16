@@ -12,6 +12,19 @@ import time
 from pathlib import Path
 
 
+def validate_relocated_binding(binding, original, cache):
+    """Only the physical cache location changes; scientific bindings stay exact."""
+    if (
+        binding.get("cache") != str(cache.resolve())
+        or {
+            **binding,
+            "cache": original.get("cache"),
+        }
+        != original
+    ):
+        raise ValueError("Relocation changed more than the exact physical cache location")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--runtime-manifest-sha256", required=True)
@@ -102,7 +115,8 @@ def main():
     )
     fitting, outer, binding = admitted_datasets(data_args)
     binding.update(input_policy=dict(POLICY), source_sha256=expected)
-    if binding != old["binding"] or (len(fitting), len(outer)) != (2247, 1156):
+    validate_relocated_binding(binding, old["binding"], cache)
+    if (len(fitting), len(outer)) != (2247, 1156):
         raise ValueError("Original labels/masks/population/folds/source/policy differ")
     census = {role: input_census(data) for role, data in [("fitting", fitting), ("outer", outer)]}
     if census != old["all_study_window_census"]:
@@ -151,7 +165,7 @@ def main():
     if free < 581021415363 + 2 * 2**20:
         raise ValueError("Conservative preexisting obligations and new fit must remain funded")
     args.output.mkdir(mode=0o700)
-    atomic_json(args.output / "inputs/inputs.json", old)
+    atomic_json(args.output / "inputs/inputs.json", {**old, "binding": binding})
     receipt = dict(
         old_admission,
         node="evc39",
