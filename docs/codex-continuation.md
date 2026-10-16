@@ -1,3 +1,5 @@
+Latest small milestone: Git8047e6ea fully privately verified ONCE at HF7c1f812352df8e0e06b356b5c781c7e341202e75/all40 objects838961bytes. Read hf-actual-H100-contrasts-345-20261016-v1; no clinical records/weights mirrored, never repeat. All345 cache artifacts are independently already fully privately preserved42objects.
+
 # Actual additional345 preservation completed
 
 Corrected932898 successfully preserved ALL7 shards/42 objects, each fully re-downloaded/size/SHA verified. Original17.2GB archives and cache trees retained; no labels/expanded fit admitted yet. Read additional345-cache-terminal-20261016-v1/all7-private-verified.json. Never repeat original failed932730, corrected932898 or any private shard publication. Frozen control and two distinct full16 contrast jobs remain as described below; no new accuracy result.
