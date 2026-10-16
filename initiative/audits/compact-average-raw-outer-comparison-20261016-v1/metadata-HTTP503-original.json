@@ -1,0 +1,5 @@
+{
+  "returncode": 1,
+  "stdout": "",
+  "stderr": "srun: job 935001 queued and waiting for resources\nsrun: job 935001 has been allocated resources\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"paired_average_cloud\", line 43, in <module>\n  File \"/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/publication.py\", line 173, in metadata\n    value = remote.dataset(slug)\n            ^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py\", line 303, in dataset\n    return self.call(\n           ^^^^^^^^^^\n  File \"/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py\", line 120, in call\n    raise RemoteError(f\"Kaggle {method} HTTP {response.status_code}\")\naverage_pair_workflow.RemoteError: Kaggle GetDataset HTTP 503\nsrun: error: evc33: task 0: Exited with exit code 1\n"
+}

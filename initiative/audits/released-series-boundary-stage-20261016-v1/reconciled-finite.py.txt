@@ -1,0 +1,54 @@
+"""Two serialized actual public validations; no competition submit action."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent;D=L/'series-boundary';r=Remote();started=time.monotonic()
+paths=[L/'series_boundary_cloud-reconciled-v2.py.txt',L/'run_series_boundary_reconciled_phase.py',Path('scripts/kaggle/inference_variants.py')];hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+with (D/'public-queue-reconciled-v2.intent.json').open('x') as f:json.dump({'maximum_seconds':43200,'policies':['edge-repeat','within-series'],'maximum_new_Kaggle_pushes':2,'competition_submissions':0,'new_Datasets':0,'exact_controls_sha256':hashes,'automatic_mutation_retry':False},f,indent=2)
+
+def progress(phase,**fields):(D/'public-queue-reconciled-v2-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started,**fields},indent=2)+'\n')
+def pause():
+ if time.monotonic()-started>43200:raise TimeoutError('Finite original public queue expired; no state inferred or mutation retry')
+ time.sleep(60)
+def controls():
+ for name,h in hashes.items():assert hashlib.sha256(Path(name).read_bytes()).hexdigest()==h
+
+def phase(name,policy=None):
+ controls();progress(name,policy=policy);cmd=[sys.executable,str(L/'run_series_boundary_reconciled_phase.py'),name]+([policy] if policy else [])
+ x=subprocess.run(cmd,capture_output=True,text=True,timeout=700)
+ root=D/policy if policy else D;path=root/(name+'-reconciled-courier-result.json');assert not path.exists();path.write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+ if x.returncode:raise RuntimeError(name+' stopped; inspect exact original intent/result read-only')
+ courier=json.loads(x.stdout);assert courier['returncode']==0;return json.loads(courier['stdout'])
+
+def capacity(policy):
+ while True:
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',"squeue -h -u sa305415 -t RUNNING -o '%N|%b'"],capture_output=True,text=True,timeout=40);assert x.returncode==0
+  nodes={line.split('|')[0] for line in x.stdout.splitlines() if 'gpu' in line.split('|')[-1]}
+  q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));available=min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])
+  if seconds(q['timeReserved'])==0 and available>=64800:return
+  progress('waiting_actual_GPU_capacity',policy=policy,active_cluster_nodes=len(nodes),reserved_Kaggle_seconds=seconds(q['timeReserved']),available_Kaggle_seconds=available);pause()
+
+attempted=[]
+try:
+ prepared=json.loads((D/'prepare-result-0.json').read_text());assert prepared['returncode']==0 and json.loads(prepared['stdout'])['status']=='two_distinct_licensed_boundary_candidates_CPU_staged'
+ parent=json.loads((L/'average-pair/notebook-prepared.json').read_text())['kernel_slug']
+ while True:
+  status=r.kernel('GetKernelSessionStatus',parent,1).get('status')
+  parent_result=L/'average-pair-after-create-result.json'
+  if status in ('COMPLETE','ERROR','CANCELLED') and parent_result.exists():break
+  progress('waiting_actual_original_paired_terminal',kernel=parent,status=status,original_controller_terminal_receipt=parent_result.exists());pause()
+ for policy in ('edge-repeat','within-series'):
+  capacity(policy);pushed=phase('push',policy);assert pushed['status']=='one_exact_boundary_variant_pushed';attempted.append(policy);slug=pushed['kernel_slug'];public_started=time.monotonic()
+  while time.monotonic()-public_started<3600:
+   state=r.kernel('GetKernelSessionStatus',slug,1).get('status');progress('actual_original_boundary_public_run',policy=policy,kernel=slug,status=state)
+   if state in ('COMPLETE','ERROR','CANCELLED'):
+    terminal=phase('status',policy);(D/policy/'actual-terminal.json').write_text(json.dumps(terminal,indent=2)+'\n')
+    if state!='COMPLETE':
+     phase('finalize');raise RuntimeError('Actual boundary public run failed; original source/weights preserved')
+    assert terminal['receipt']['policy']==policy and terminal['receipt']['studies']==3 and terminal['receipt']['prediction_counts']['failed']==0
+    (D/policy/'actual-public-accepted.json').write_text(json.dumps(terminal,indent=2)+'\n');break
+   pause()
+  else:raise TimeoutError('Original boundary kernel still nonterminal; preserve hold and reconcile read-only')
+ phase('finalize');result={'status':'both_original_boundary_variants_actual_public_accepted','policies':attempted,'competition_submissions':0,'new_Datasets':0,'actual_hidden_scores':None}
+except Exception as e:result={'status':'stopped_for_original_boundary_review','error_type':type(e).__name__,'reason':str(e),'policies_pushed':attempted,'competition_submissions':0,'automatic_retry':False}
+(D/'public-queue-reconciled-v2-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

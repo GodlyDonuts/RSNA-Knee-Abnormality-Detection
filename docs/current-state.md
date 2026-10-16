@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 12:40 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 13:48 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -26,6 +26,10 @@ The original curve controller finished all three scheduled E8/E12/E16 submission
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
 
+Fresh authenticated public leaderboard reference on October16 is **0.968**.
+Our external0.949/own0.894 results are distinct and below that reference.
+[Recorded public-only snapshot](../initiative/audits/released-context-feature-stage-20261016-v1/public-leaderboard-reference.json).
+
 ## What is actually training
 
 | Experiment | Original/current Slurm | Observed state | Isolated change |
@@ -35,7 +39,7 @@ A null score/zero bytes on an unreported submission does not establish failure.
 | Positive-weight challenger | **933001** | **PENDING**, evc33 | Fitting-derived positive BCE term weights |
 | Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
 
-Neighbor 932957 has **five completed epochs**, empty stderr; epochs 1–5
+Neighbor 932957 has **seven completed epochs**, empty stderr; epochs 1–7
 are privately preserved, all eight objects per epoch fully re-downloaded/size/SHA
 verified. Leave it healthy and unchanged. Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
@@ -78,19 +82,19 @@ all saved E16 buffers retained. Original CPU 933573 failed before output because
 nonpersistent cache was treated as a saved buffer; distinct corrected CPU 933892
 passed. Private HF `4791c7e74af82220d521d0ecc1097172253aeea5` has all nine objects
 fully re-downloaded/size/SHA verified. CPU 933958 accepted the strict complete-model
-serving loader and anonymous 70-window reference. No averaged-model accuracy or
-competition score exists. [Evidence](../initiative/audits/compact-late-average-v2-20261016-v1/README.md).
+serving loader and anonymous 70-window reference. No averaged-model competition
+score exists; its actual paired weak-label endpoint is now available below. [Evidence](../initiative/audits/compact-late-average-v2-20261016-v1/README.md).
 
-The next experiment compares **that fixed average versus unchanged E16 on the
-same 1,156 raw-MRI outer studies in Kaggle**. One decode supplies identical windows
-to both models; both T4s must first match the original CPU references. Clinical
-labels stay on the cluster; only private image identities and models go to Kaggle.
-Original CPU 934300 bound the complete outer roster, and private Dataset **12630620
-version 1** was created once. All ten objects are fully re-downloaded/size/SHA verified. Exact private offline
-two-T4 notebook `godlydonuts/rsna-fixedavg-e16-outer-5cc0e5bffb05` v1 was pushed
-once (kernel 139017805); it is actually RUNNING, no evaluation result yet. A transient GetDatasetStatus 403 was reconciled through the
-exact authenticated private Dataset metadata; no duplicate upload was made.
-[Registered comparison](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
+The actual paired run139017805 COMPLETED all1,156 raw-MRI outer studies once
+in6,000.47seconds, with zero unusable studies and12.22GB processRSS. E16 raw
+macroAUC **0.92068844**, fixed average **0.92100408**, delta+0.00031564;
+whole-component conditional95%[-0.00214034,+0.00293081], 2,836defined/1,164undefined
+draws. **No established averaging gain; keep unchangedE16 as default.**
+Secondary cached/BF16E16 versus raw/FP16E16 changed aggregateAUC by-0.00023691,
+also with interval crossing zero. This does not prove exact pixel parity or rule
+out offsetting per-target effects. Clinical labels/CSV rows stayed on the cluster.
+Read-only HTTP503 and a collector CSV-schema assumption were recovered without
+new inference or duplicate downloads. [Actual aggregate and failures](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
 
 A metadata-only counterfactual found **zero selected-series changes on all 1,156
 outer studies** when dropping Selection_Tier. Thus this field alone cannot explain
@@ -147,9 +151,9 @@ weights. Its 96-slice concatenation has eight cross-series triples: primary
 edge-repeat repairs their donor indices while retaining all 94 centers; secondary
 within-series retains 86 windows. This is an unproven input-context hypothesis.
 No independent internal validation is claimed for an externally trained parent
-that used our holdout/Gold58. Both public validations are queued after the running
-paired experiment, within actual GPU capacity. Neither has been pushed or scored
-yet; no Dataset or weight upload was repeated. [Protocol](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md),
+that used our holdout/Gold58. Both exact private v1 notebooks were pushed once and COMPLETED public MRI/CSV
+acceptance, including both-T4 pixel checks. Neither has a hidden score or competition
+submission. No Dataset/weight upload was repeated. [Protocol](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md),
 [actual CPU stage and finite queue](../initiative/audits/released-series-boundary-stage-20261016-v1/README.md).
 
 The earlier window-materialization profile is correctly scoped: baseline N3
@@ -161,3 +165,25 @@ re-downloaded/size/SHA verified at HF7b6632ee82456ae9d76f073fcc59ed07b7fc0294
 byCPU934786 under the canonical lock. Never repeat; see
 [verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
 No private clinical/identity/image/weight bytes in this milestone.
+
+## New sequence-context mechanism
+
+A bounded zero-start contextual readout is implemented over the licensed0.949
+model's frozen encoder/head. It adds slice/series relationships while preserving
+exact initial parent logits; no accuracy gain is established. Twenty-one local
+tests pass. Actual zero-GPU CPU934887 staged one private label-free32-study
+feature/cache-identity probe, now COMPLETED as private139031253/v1:32studies
+in60.166s, bothT4s exact, FP32features, peakGPU3.19GB. The separately admitted
+full feature pass139034277/v1 is actually RUNNING on3,887safe training studies,
+reusing those32 and encoding only3,855new cases. All25numerical function/class
+ASTs are unchanged; streaming archive I/O also passed an actual CPU test. No
+context fitting has started. [Full feature pass](../initiative/audits/released-context-full-cache-20261016-v1/README.md). The parent has seen our internal cohort, so no
+independent internal validation is claimed. [Protocol](../initiative/experiments/competitive-v1/released-context-v1/README.md),
+[actual stage](../initiative/audits/released-context-feature-stage-20261016-v1/README.md).
+
+Independent Kaggle experiments may run concurrently under the owner's later
+removal of the old research resource cap. The one added feature session was
+admitted by actual account quota/server acceptance; healthy original jobs and
+Slurm holds were untouched. Free-quota accounting uses the lower of total and
+minimum allowance; no paid upgrade was requested. Numerical sources and daily
+competition limits remain intact.

@@ -31,3 +31,18 @@ Thirty new targeted tests passed: index boundaries, uint8 donor replacement,
 center/evidence preservation, invalid inputs, unique surgical instrumentation and
 canonical parent-preserving variant identities/transitions. They do not measure
 MRI accuracy or substitute for actual two-T4/public/hidden execution.
+
+## Actual public acceptance
+
+Both exact private v1 variants were subsequently pushed once and COMPLETED
+all three public MRI studies, exact test roster/13columns, finite values and
+CPU/GPU uint8-constructor equality on both T4s. Edge-repeat retained94windows;
+within-series retained86 on full-slot synthetic fixtures. No hidden score or
+competition submission exists; five daily slots remain used at last allowance.
+Original finite20793 stopped before its FIRST cloud intent at the foreign-hold
+guard while paired terminal verification was stopped onHTTP503. The paired
+owner then released its own hold through exact read-only terminal recovery.
+Separate v2 operational controls preserved both prepared model/source bytes,
+used canonical prepared-state/remote absence guards and performed each FIRST
+push once, without touching another Slurm hold. Finite27639 is now successfully
+terminal; never restart either observer or resubmit the code versions blindly.

@@ -6,6 +6,12 @@ status. This brief records conclusions; it is not another execution log.
 
 ## What the evidence supports
 
+Fresh authenticated [public leaderboard](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/leaderboard)
+reference on October16 is **0.968** at first place. Our licensed0.949 baseline
+is still0.019 below that public reference; own0.894 is0.074 below. Neither is
+a winning result or a private-leaderboard guarantee. The new context path aims
+to improve the strong foundation; its engineering pass is not an accuracy gain.
+
 The attributed author-trained model scored **0.949** on Kaggle. Our own CoAtNet
 epoch 16 scored **0.894**, following epochs 4/8/12 at **0.821/0.869/0.890** and
 prior own DINO best **0.872**. The final increment is +0.004, compared with
@@ -93,11 +99,12 @@ Historical findings are preserved, not erased. Dated statements such as “pendi
 
 The registered equal learned-parameter average ofE12/E14/E16 is now constructed
 and privately fully verified, with all savedE16buffers retained. Actual CPU MRI
-serving acceptance passed; GPU/accuracy acceptance remains. The first worker's
+serving acceptance and the actual paired two-T4 evaluation passed; its point
+gain is small and not established by the uncertainty analysis. The first worker's
 nonpersistent-buffer check failed before output; corrected verification leaves
 selection and numerical averaging unchanged. No derived gain is claimed.
 
-The fixed average and E16 are being evaluated together on the same raw-serving
+The fixed average and E16 were evaluated together on the same raw-serving
 outer MRI windows in Kaggle, with clinical labels retained on the cluster. This
 separates an averaging gain from a changed serving reference; neither is assumed.
 A metadata-only replay already rules out Selection_Tier alone changing the held-out
@@ -115,7 +122,32 @@ all donor windows, a separate future optimization. [Original measurement](../ini
 
 A new licensed inference experiment targets eight cross-series triples in the
 attributed 0.949 model. Primary edge-repeat retains all centers; secondary
-within-series removes the mixed windows. Both exact candidates are CPU-staged
-and queued for public validation without changing learned weights. This is an
+within-series removes the mixed windows. Both exact private v1 candidates
+completed public MRI/CSV acceptance without changing learned weights; neither
+has a competition submission/hidden score yet. This is an
 unproven mechanism and external adaptation, not an own-training improvement or
 independent internal validation. [Protocol and interpretation](../initiative/experiments/competitive-v1/released-series-boundary-v1/README.md).
+
+The next learned mechanism preserves the licensed strong encoder and adds a small
+zero-start, bounded contextual head over its per-window features. It tests whether
+relations across slices/series help beyond independent window MIL, while avoiding
+retraining a73M CNN every head epoch. It is implemented; the exact
+label-free32-MRI feature probe COMPLETED successfully. The distinct full3,887
+feature pass is RUNNING, with no trained-head accuracy result. Parent exposure
+precludes independent internal OOF. A production head engine/fit remains unadmitted.
+[Mechanism, literature, fixed proposal and rejection criteria](../initiative/experiments/competitive-v1/released-context-v1/README.md).
+
+The registered averaging experiment is now complete: raw-servingE16 0.92068844
+versus fixed average0.92100408 internal macroAUC, delta+.00031564 with paired
+whole-component conditional95%[-.00214034,.00293081]. No established gain; retain
+E16 as own-model default. Raw/cachedE16 aggregate difference-.00023691 also has
+interval crossing zero; no large aggregate serving collapse was observed, but
+this is not proof of pixel parity or an isolated decoder/precision experiment.
+
+The context feature probe ACTUALLY passed32 MRI studies in60.166s on both T4s,
+with exact original pixels/cache-head probabilities/zero-start logits. Features
+are FP32, so no quantization is assumed. A separately funded full3,887-study
+frozen feature pass is RUNNING once, reusing the original32. It creates no new
+weights or accuracy result; the full head training engine is the next task.
+The actual cache enables repeated context-head experiments without repeating
+expensive CNN inference. Raw/index/features remain private.

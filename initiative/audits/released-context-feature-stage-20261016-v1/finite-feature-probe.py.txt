@@ -1,0 +1,47 @@
+"""Finite one-probe queue after original paired/boundary GPU work; no submissions."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent;old=Path('artifacts/compact-native-n3-launch-20261016-v1');started=time.monotonic();r=Remote();prepared=json.loads((L/'prepared.json').read_text())
+control=[L/'cloud-program.py.txt',L/'run_phase_once.py',Path('rsna/competitive/released_context.py'),Path('scripts/kaggle/released_context_probe.py'),Path('scripts/kaggle/series_boundary_notebook.py')];hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in control}
+with (L/'finite-queue.intent.json').open('x') as f:json.dump({'maximum_seconds':43200,'original_prepared_source_sha256':prepared['binding']['source_sha256'],'controls_sha256':hashes,'maximum_new_GPU_pushes':1,'competition_submissions':0,'new_Datasets':0,'automatic_retry':False},f,indent=2)
+
+def progress(phase,**fields):(L/'finite-queue-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started,**fields},indent=2)+'\n')
+def pause():
+ if time.monotonic()-started>43200:raise TimeoutError('Finite original queue expired; no mutation retry or job state inferred')
+ time.sleep(60)
+def phase(name):
+ for n,h in hashes.items():assert hashlib.sha256(Path(n).read_bytes()).hexdigest()==h
+ x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),name],capture_output=True,text=True,timeout=700)
+ with (L/(name+'-courier-result.json')).open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original mutation stopped; reconcile exact intent/result read-only'
+ courier=json.loads(x.stdout);assert courier['returncode']==0;return json.loads(courier['stdout'])
+
+try:
+ while not (old/'series-boundary/public-queue-result.json').exists():
+  live={}
+  for policy in ('edge-repeat','within-series'):
+   p=old/'series-boundary'/policy/'push-result-0.json'
+   if p.exists() and json.loads(p.read_text())['returncode']==0:
+    slug=json.loads((old/'series-boundary'/policy/'prepared.json').read_text())['kernel_slug'];live[slug]=r.kernel('GetKernelSessionStatus',slug,1).get('status')
+  if not live:
+   slug=json.loads((old/'average-pair/notebook-prepared.json').read_text())['kernel_slug'];live[slug]=r.kernel('GetKernelSessionStatus',slug,1).get('status')
+  progress('waiting_original_paired_and_boundary_GPU_queue',actual_original_kernel_states=live);pause()
+ original=json.loads((old/'series-boundary/public-queue-result.json').read_text());assert original['competition_submissions']==0
+ while True:
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',"squeue -h -u sa305415 -t RUNNING -o '%N|%b'"],capture_output=True,text=True,timeout=40);assert x.returncode==0
+  nodes={line.split('|')[0] for line in x.stdout.splitlines() if 'gpu' in line.split('|')[-1]}
+  q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));available=min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])
+  if len(nodes)<=1 and seconds(q['timeReserved'])==0 and available>=64800:break
+  progress('waiting_fresh_actual_GPU_capacity',active_cluster_nodes=len(nodes),reserved_Kaggle_seconds=seconds(q['timeReserved']),available_Kaggle_seconds=available);pause()
+ progress('one_prepared_private_probe_push');pushed=phase('push');assert pushed['status']=='one_private_context_feature_probe_pushed';slug=pushed['kernel_slug'];public_started=time.monotonic()
+ while time.monotonic()-public_started<4500:
+  status=r.kernel('GetKernelSessionStatus',slug,1).get('status');progress('actual_original_context_feature_probe',kernel=slug,status=status)
+  if status in ('COMPLETE','ERROR','CANCELLED'):
+   actual=phase('status');(L/'actual-terminal.json').write_text(json.dumps(actual,indent=2)+'\n')
+   assert status=='COMPLETE' and actual['receipt']['studies']==32
+   result={'status':'actual_context_feature_probe_complete','kernel_slug':slug,'version':1,'actual':actual,'competition_submissions':0,'fitting_or_optimizer':False};break
+  pause()
+ else:raise TimeoutError('Original probe nonterminal; preserve hold and inspect exact actual state')
+except Exception as e:result={'status':'stopped_for_original_context_probe_review','error_type':type(e).__name__,'reason':str(e),'competition_submissions':0,'automatic_retry':False}
+(L/'finite-queue-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

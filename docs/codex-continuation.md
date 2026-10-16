@@ -1,4 +1,4 @@
-# Execution handoff — October 16, 2026, 12:40 UTC
+# Execution handoff — October 16, 2026, 13:48 UTC
 
 Start with [current state](current-state.md) and [research brief](research-brief.md).
 Original receipts, live Slurm and authenticated Kaggle resolve uncertainty. Goal
@@ -36,7 +36,7 @@ read-only. All local controls are in `artifacts/compact-native-n3-launch-2026101
 ## Current training
 
 Source-neighbor full932957 is actually RUNNING on evc33, allocated H100 checks
-passed, five completed epochs observed. Epochs1–5 now
+passed, seven completed epochs observed. Epochs1–7 now
 privately fully8-object download/size/SHA verified once. Latest epoch2 HF
 37aa0d19308ae5a8bdf10f7a75dd1f2ade12ea1a; never repeat them. Do not stop,
 relocate, restart or change it. Source3803b717b69db6c5e89e11724c4daee15490cbe2;
@@ -136,12 +136,14 @@ action; observation loss is not job terminal/restart authority.
 
 Retain original conservative obligations plus expanded metadata/fit, average and
 dense/source controls: threshold581021415363bytes plus2MiB small milestone reserve, now additionally
-2GiB for paired-average component/ZIP, and16MiB for boundary controls. ActualCPU934300 had81.51GB remaining after
+2GiB for paired-average component/ZIP,16MiB boundary,64MiBprobe, plus4GiBfull
+feature cache and32MiBfull controls. See actualCPU935131 budget below. ActualCPU934300 had81.51GB remaining after
 all these obligations. No shared growth.
 No deletion credit. evc39 independently funded160GiBnative+20GiBruntime+16GiBfit/
 recovery+128MiBcontrols+20GiBuntouched reserve. Fresh actual quota governs action.
-At most two GPU nodes; minimum CPUs. Current own GPU use is neighbor on evc33 plus
-the private Kaggle paired evaluation. Dense probe is terminal. Credentials stay ignored0600.env/RAM/stdin. All private
+The owner's later removal of prior resource limits supersedes the old
+two-node research cap; use actual account/Slurm limits and minimum CPUs. Current GPU work is neighbor on evc33 plus the private full frozen-feature pass
+in Kaggle; the paired evaluation and32-MRI probe are terminal. Dense probe is terminal. Credentials stay ignored0600.env/RAM/stdin. All private
 source/weight/license/environment/fold proofs remain bound to each immutable model.
 
 Prior distinct verified small milestones HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8
@@ -186,8 +188,9 @@ Private Dataset12630620v1 all10objects fully re-downloaded/size/SHA verified.
 Manifestde668368957cb329ede39452f7f738ed6690697ab5c9d597a273bcfd8d260762.
 Original controller47519 stopped AFTER successful create due read-only
 GetDatasetStatus403. Never restart or recreate. Authenticated GetDataset confirmed
-private ID/version; distinct finite after-create continuation96998 is LIVE and
-handles original exact push/status/hold release. Inspect
+private ID/version. Distinct finite after-create continuation96998 completed
+the one push, then stopped on read-only metadata503 at terminal. Its recovered
+exact status and hold release are complete; never restart96998. Inspect
 `average-pair-after-create-progress.json`, result, and every original per-phase
 intent/result. A push intent exists; NEVER push it again.
 
@@ -195,15 +198,12 @@ It owns only its own929938hold; release only on actual paired terminal via origi
 status phase. Readonly source/metadata/activeGPU checks were actual atpush. GPU
 session cap21600/inference20700seconds. Original internal0.920925 usescached/BF16;
 paired E16 rawFP16 reference exposes a serving difference without attributing a
-change to averaging. Labels stay cluster; collect both private prediction CSVs
-directly to owning cluster, compare all12with4000paired whole-component draws
-(seed20261001), keep undefined counts/rare supports. No accuracy result yet.
-Finite collector83697 is LIVE, waits for exact after-create successful terminal
-then dispatches at most one zero-GPU CPU analysis. It downloads original CSVs
-directly into private evc33 analysis-v1, verifies every byte and uses original
-paired_metrics plus cached E16 secondary comparison. No raw predictions/labels
-pass through Mac. Exact source is archived in the paired audit; never restart
-its existing observer/dispatch intent. Inspect actual result before any follow-up.
+change to averaging. Labels stay cluster. Both private CSVs were collected directly
+to owning evc33 and fully hash-verified. Original83697 stopped before dispatch;
+first CPU935075 schema check failed after download. Corrected v3 reused all
+original bytes and verified source/roster/full-model evidence. Actual paired
+aggregate/CI and preserved failures are below; no accuracy gain was established.
+All analysis observers39748/83697/17569 are TERMINAL; no new inference/download.
 
 Metadata-only tier counterfactual complete: removingSelection_Tier changes0/1156
 outer selections and1/2247fitting. It cannot alone explain held-out serving gap;
@@ -245,16 +245,16 @@ checkpoint7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef.
 - Controlroot /tmp/rsna-released-series-boundary-20261016-v1; local
   artifacts/compact-native-n3-launch-20261016-v1/series-boundary.
 
-Finite public queue20793 is LIVE waiting exact paired139017805 terminal and
-original96998 terminal receipt, then fresh actual capacity. It pushes each
-private offline2T4 variant at most once and validates real public MRI/CPU-GPU
-uint8 construction/roster/CSV. NO competition submit in this queue; all5todayused.
+Original public queue20793 stopped before cloud push at a foreign-hold guard.
+Reconciled v2 finite27639 then made each FIRST exact push once; both private
+v1 variants completed public MRI/CPU-GPU uint8/roster/CSV acceptance. All those
+observers are now TERMINAL; do not restart them. NO competition submit in this queue; all5todayused.
 Do not restart or duplicate push/stage. Existing intent/result plus canonical
 inference_variants table govern source/policy identities; parent weight entry
 is never overwritten. Uncertain mutation retains global claim for readonly review.
 Original staged parent admission is historical; current push labels separate
 parent_model_admission/variant_admission. Prepared source/weight bytes unchanged.
-Only future actual public acceptance and fresh slots admit one code submission
+Actual public acceptances exist. Only fresh slots admit one code submission
 per policy through run_series_boundary_phase.py submit/outcome. Public3rowCSV
 never uploaded. Parent used our holdout/Gold58; no internal clinical tuning/OOF.
 
@@ -268,3 +268,111 @@ re-downloaded/size/SHA verified at HF7b6632ee82456ae9d76f073fcc59ed07b7fc0294
 byCPU934786 under the canonical lock. Never repeat; see
 [verified E16/boundary preservation](../initiative/audits/hf-E16-boundary-stage-20261016-v1/verified.json).
 No private clinical/identity/image/weight bytes in this milestone.
+
+## Licensed context feature/zero-start probe: actual32-MRI acceptance
+
+Frozen learned-head/probe source9af5d42cc9ca4cb08c38eb312f6856e805675fab,
+21new targeted tests passed. Original CPU934887 COMPLETED0:0 prepared source
+d077e354611d8bd17c72d0fa11eefd67454938e2ce46f8e983e13617c4ea5872,
+helper4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9.
+Exactslug godlydonuts/rsna-released-context-probe-d077e354611d v1 was pushed
+ONCE byCPU935000, kernel139031253, actualCOMPLETE32MRI/60.166s. Never push it again.
+Control /tmp/rsna-released-context-features-20261016-v1; local
+artifacts/released-context-features-20261016-v1. Canonical meta/events use an
+explicit source identity, preserving the already-scored parent weight record.
+No new Dataset/weight upload, no clinical labels/reports, no protected evaluation.
+
+Actual accepted metadata population3887safe train rows, UIDhash
+0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42.
+Probe chooses32lexical UIDs privately, rosterhash6ca592004ae972a93a8bb96dc7024b46c7ad86525388c02542dca844a6b1605f.
+No case list enters Git/HF/Mac. New64MiBnode obligation covers controls plus
+future private32MiBfeature collection; fresh remaining79956633661bytes AFTER
+all retained liabilities. Full3887cache/fit is NOT funded/admitted by this gate.
+
+Original queue90551/PID36900 was intentionally terminated143 WHILE WAITING,
+with canonicalprepared/serverabsence/no local or remote pushintent proved.
+No actual GPU job was cancelled. Separate parallel-admission-readonly.json and
+original-observer-superseded-before-push.json preserve the scheduling decision.
+The owner removed prior resource caps; finite41924 is TERMINALsuccessful after
+one actual independent GPU push139031253 and terminal, never modifying929938
+or any other original Slurm hold. Account safe minimum/total remaining exceeded
+7200s for a3600s two-T4 cap; no paid upgrade. Original paired/collector/boundary histories are preserved; their exact
+terminal and recovery states are recorded below. Inspect parallel-finite.intent/progress/result and
+per-phase originals; NEVER restart old90551 or repeat the original prepare/push.
+V2program/courier/finite source is archived; original numerical9af5/source d077
+and helper remain unchanged. No submission phase. Uncertain mutation retains
+canonicalclaim for read-only reconciliation. Parent exactsource493c7b0d/weight7e5315dad125 unchanged.
+
+Module tests include complete syntheticCPUAdamW state/prediction continuation;
+not actual full production trainer recovery. After actual feature acceptance,
+implement/freeze the full head numerical engine and verify it before any fullfit.
+Actual feature/index output remains PRIVATE in Kaggle/owning cluster. Only
+sanitized aggregate/hash receipts may be collected. Protocol has initial fixed
+recipe, anchoring/positional/TTA rules and external-parent exposure limitations.
+
+Neighbor immutable epoch6 privately fully verified once at HF2209881dbcd50a6d109da3b86bdc5520785027ec;
+checkpointSHA1cf46840ff1b4aab81219d4e14fae7754631f168ef69a9ead18978f0fd53825c. Never repeat1–6.
+
+## October16 actual paired result, probe pass and full cache RUNNING
+
+Original paired139017805 completed1156raw-MRI studies/6000.47s/zero unusable
+MRI/12.22GBRSS. Finite96998 stopped on read-only GetDataset503 in CPU935001
+before terminal hold release; exact same source terminal was then recovered
+read-only (no newGPU/Dataset/push). Original collector83697 stopped before
+CPU dispatch. Distinct first CPU935075 downloaded both exact CSVs but failed
+on nonexistent cachedCSV fold/seed columns. V3 analysis reused those same files
+and independent originalN3model/roster/CSV proof; no repeated download/inference.
+Actual aggregate is compact-average-raw-outer-comparison-20261016-v1:
+E16raw0.9206884391543326 vs avg0.9210040798139386, delta+.00031564066,
+conditional95%[-.00214033531,.00293081327],2836defined/1164undefined of4000.
+No established gain; retain E16. Cached0.9209253491 vs rawE160.9206884392,
+delta-.00023690997 CI[-.00111728628,.00077064107], combined contrast only.
+Analysis collector39748 is TERMINALsuccessful; never restart old83697/17569.
+
+Boundary first CPU935011 stopped at foreign-hold guard BEFOREremote cloud
+intent; no kernel was pushed by that attempt. Paired owner released its own
+hold via actual terminal recovery. Separate reconciled-v2 controls preserved
+prepared scientific bytes, no original Slurm holds modified; finite27639 now
+TERMINALsuccess after both exact v1 public MRI/CSV acceptances. No competition
+submissions/hidden scores. Do not restart old20793 or repeat either first push.
+Original within/edge exact prepared/notebook/source receipts remain canonical.
+
+Private context probe139031253/v1 ACTUALLY COMPLETE32studies/60.166092306s,
+402956contextparams, FP32features24767936bytes, bothT4pixel/cache-head/zero-logit
+identity accepted; peak3.19GB. Actual indexhasha1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100,
+8574bytes. Finite41924 TERMINALsuccessful, never repeat it. This is not trained
+head or optimizer acceptance. No private index/feature files sent toMac/Git/HF.
+
+NEXT: original full feature cache139034277/v1 RUNNING once. Exactslug
+godlydonuts/rsna-released-full-features-5ab9b091c0f1; source
+5ab9b091c0f13ba540df1f68117d97f22cf9b6f91f7a1ba1cfbaa578bc203ff6.
+CPU935131 prepared successfully; courier had stale status-literal assertion
+AFTERsaving successful remote result. Reconciled locally without stage rerun.
+CPU935140 then made its FIRSTpush once. Controlroot
+/tmp/rsna-released-context-full-cache-20261016-v1; local
+artifacts/released-context-full-cache-20261016-v1. Finite6991 LIVE handles this
+original run only, max6.5h observation/6hGPU session/5hpreprocessing target.
+It reuses original32privateNPZs via kernelDataSources and encodes3855new MRI
+for3887safe train rows (originalUIDhash0485d1b1...). Actual25numericalASTs
+unchanged from accepted probe. CPU935175 executed the exact new archive-write
+block with syntheticFP32arrays and verified whole bytes/streaming safe0600tar
+members/dtypes. Full run uses only private frozen features, no labels/optimizer,
+no new Dataset/weights/competition slot. StatusRUNNING is not terminal success.
+
+Full outputs: released-context-features-full/features.tar (new3855NPZmembers),
+index.private.json (all3887, original32point to prior probe), partial-index for
+failure review, context-full-features-accepted.json aggregate. Preserve every
+case/index/vector on owning node/Kaggle only. Later download the archive once
+directly to private node and verify SHA/length; random-access tar fitting avoids
+duplicate extraction and4GiB footprint. Original32source files remain in probe.
+Do not repeat any feature inference or original large artifacts.
+
+New4GiBfuturecache/privatecollection+32MiBcontrols are explicitly funded AFTER
+all prior obligations including64MiBprobe,16MiBboundary,2GiBpaired,2MiBsmall.
+CPU935131 remaining75333531709bytes; no new shared data. Do not count this
+cache admission as funding/head-engine acceptance. NEXT implement/freeze full
+FP32 head training engine (fixed proposal in protocol), actual full/stop/resume
+on cached tensors, exact source/label/roster binding, final checkpoint andT4
+nonzero-head serving acceptance before competition deployment.
+
+Neighbor7 privately verified once HF90d7ac7924bc119b1bc40ef9c27196a1455f42d1; no repeat1–7.

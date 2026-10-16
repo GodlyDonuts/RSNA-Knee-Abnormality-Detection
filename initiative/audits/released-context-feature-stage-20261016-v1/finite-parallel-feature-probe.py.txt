@@ -1,0 +1,25 @@
+"""One newly admitted independent GPU probe; no old wait/push is repeated."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent;r=Remote();started=time.monotonic();prepared=json.loads((L/'prepared.json').read_text())
+assert (L/'original-observer-superseded-before-push.json').is_file() and not (L/'push.intent.json').exists()
+controls=[L/'cloud-program-parallel-v2.py.txt',L/'run_parallel_phase_once.py',Path('rsna/competitive/released_context.py'),Path('scripts/kaggle/released_context_probe.py')];hashes={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in controls}
+with (L/'parallel-finite.intent.json').open('x') as f:json.dump({'maximum_seconds':4500,'original_prepared_source_sha256':prepared['binding']['source_sha256'],'controls_sha256':hashes,'maximum_new_GPU_pushes':1,'competition_submissions':0,'new_Datasets':0,'automatic_retry':False,'original_training_or_Kaggle_runs_cancelled':False,'original_Slurm_holds_changed':False},f,indent=2)
+def phase(name):
+ for n,h in hashes.items():assert hashlib.sha256(Path(n).read_bytes()).hexdigest()==h
+ x=subprocess.run([sys.executable,str(L/'run_parallel_phase_once.py'),name],capture_output=True,text=True,timeout=700)
+ with (L/('parallel-'+name+'-courier-result.json')).open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original push/status stopped; inspect exact original intent/result read-only'
+ out=json.loads(x.stdout);assert out['returncode']==0;return json.loads(out['stdout'])
+try:
+ pushed=phase('push');assert pushed['status']=='one_private_context_feature_probe_pushed';slug=pushed['kernel_slug']
+ while time.monotonic()-started<4500:
+  status=r.kernel('GetKernelSessionStatus',slug,1).get('status');(L/'parallel-finite-progress.json').write_text(json.dumps({'phase':'actual_independent_context_feature_probe','kernel':slug,'status':status,'elapsed_seconds':time.monotonic()-started},indent=2)+'\n')
+  if status in ('COMPLETE','ERROR','CANCELLED'):
+   actual=phase('status');(L/'actual-terminal.json').write_text(json.dumps(actual,indent=2)+'\n');assert status=='COMPLETE' and actual['receipt']['studies']==32
+   result={'status':'actual_context_feature_probe_complete','kernel_slug':slug,'version':1,'actual':actual,'competition_submissions':0,'fitting_or_optimizer':False};break
+  time.sleep(60)
+ else:raise TimeoutError('Original probe still nonterminal; no repeat or state inference')
+except Exception as e:result={'status':'stopped_for_original_context_probe_review','error_type':type(e).__name__,'reason':str(e),'competition_submissions':0,'automatic_retry':False}
+(L/'parallel-finite-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

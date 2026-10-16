@@ -1,0 +1,18 @@
+"""Recover original terminal after confirmed read-only metadata HTTP503; no cloud mutation."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+from scripts.kaggle.workflow import Remote,utcnow
+L=Path(__file__).resolve().parent;d=L/'average-pair';old=json.loads((d/'status-result-0.json').read_text());assert old['returncode']==1 and 'GetDataset HTTP 503' in old['stderr'] and not (d/'actual-accepted.json').exists()
+program=(L/'average_pair_cloud.py.txt').read_text();prepared=json.loads((d/'prepared.json').read_text());epoch=json.loads((L/'scheduled-e016/prepared.json').read_text());notebook=json.loads((d/'notebook-prepared.json').read_text());entry=(d/'notebook.py').read_text();assert hashlib.sha256(entry.encode()).hexdigest()==notebook['source_sha256']
+with (L/'average-pair-readonly-terminal-recovery.intent.json').open('x') as f:json.dump({'original_kernel':notebook['kernel_slug'],'version':1,'original_failure':'read-only GetDataset HTTP503 before terminal verification/hold release','new_pushes':0,'new_Datasets':0,'new_GPU_runs':0},f,indent=2)
+env=Path('.env');assert env.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('\"\'') for line in env.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+payload={'phase':'status','program':program,'prepared':prepared,'epoch':epoch,'notebook':notebook,'entry':entry,'helpers':{n:Path('scripts/kaggle',n).read_text() for n in ('workflow.py','publication.py','components.py')},'token':values['KAGGLE_API_TOKEN']}
+bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"paired_average_cloud","exec"),{"__name__":"__main__","PACKAGE":v})'
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:05:00','--job-name=rsna-average-pair-status-readonly','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',bootstrap]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=350);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+with (d/'status-readonly-reconciled-result.json').open('x') as f:json.dump(out,f,indent=2)
+assert x.returncode==0;status=json.loads(x.stdout);assert status['status']=='COMPLETE';r=Remote();actual=r.output_json(notebook['kernel_slug'],1,'paired-outer-accepted.json');assert actual['status']=='paired_late_average_E16_raw_MRI_complete' and actual['studies']==1156 and actual['source_projection_sha256']==notebook['source_projection_sha256'] and actual['checkpoint_sha256']==prepared['checkpoint_sha256'] and actual['test_roster_sha256']==prepared['roster_order_sha256']
+with (d/'actual-accepted.json').open('x') as f:json.dump(actual,f,indent=2)
+result={'status':'actual_paired_outer_raw_MRI_execution_complete','kernel_slug':notebook['kernel_slug'],'version':1,'checked_at':utcnow(),'original_HTTP503_receipt_preserved':True,'private_prediction_collection_pending':True,'new_GPU_run':False,'competition_submission':False}
+with (L/'average-pair-after-create-readonly-reconciled-result.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result),flush=True)

@@ -1,0 +1,21 @@
+import json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+program=r'''
+import ast,hashlib,io,json,os,tarfile,textwrap,threading
+from pathlib import Path
+import numpy as np
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-released-context-full-cache-20261016-v1');s=(R/'notebook.py').read_text();prepared=json.loads((R/'prepared.json').read_text());assert hashlib.sha256(s.encode()).hexdigest()==prepared['binding']['source_sha256']
+lines=s.splitlines();a=[i for i,x in enumerate(lines) if x.strip()=='buffer = io.BytesIO()'];assert len(a)==1;b=[i for i,x in enumerate(lines) if i>a[0] and x.strip().startswith("qualified[device]=")];assert len(b)==1;block=textwrap.dedent('\n'.join(lines[a[0]:b[0]]));compile(block,'actual_generated_tar_write','exec')
+arrays={'features':np.arange(2*94*1024,dtype=np.float32).reshape(2,94,1024),'parent_logits':np.zeros((2,12),np.float32),'centers':np.arange(1,95,dtype=np.int64),'slots':np.zeros(94,np.int64),'depth':np.zeros((2,94),np.float32),'present':np.ones(94,bool)}
+stream=io.BytesIO();archive=tarfile.open(fileobj=stream,mode='w');rows=[];name=hashlib.sha256(b'synthetic-engineering-only').hexdigest()+'.npz';scope={'io':io,'np':np,'hashlib':hashlib,'lock':threading.Lock(),'tarfile':tarfile,'arrays':arrays,'filename':name,'sid':'synthetic-engineering-only','archive':archive,'records':rows};exec(compile(block,'actual_generated_tar_write','exec'),scope);archive.close();assert len(rows)==1 and rows[0]['file']==name and rows[0]['source_kernel']=='self'
+with tarfile.open(fileobj=io.BytesIO(stream.getvalue()),mode='r|') as reader:
+ member=next(iter(reader));assert member.isfile() and member.mode==0o600 and member.name==name and '/' not in member.name;payload=reader.extractfile(member).read();assert len(payload)==rows[0]['bytes'] and hashlib.sha256(payload).hexdigest()==rows[0]['sha256']
+ with np.load(io.BytesIO(payload),allow_pickle=False) as got:
+  assert set(got.files)==set(arrays) and all(np.array_equal(got[k],v) and got[k].dtype==v.dtype for k,v in arrays.items())
+value={'status':'actual_generated_full_cache_archive_I_O_synthetic_CPU_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_sha256':prepared['binding']['source_sha256'],'same_numerical_functions':len(prepared['binding']['protected_numerical_functions_identical']),'exact_FP32_NPZ_bytes_in_streaming_tar':True,'all_arrays_and_dtypes_exact':True,'safe_relative_regular_0600_member':True,'original_MRI_or_labels_read':False,'GPU_used':False};(R/'archive-I-O-CPU-verified.json').write_text(json.dumps(value,indent=2)+'\n');print(json.dumps(value),flush=True)
+'''
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-context-archive-CPU','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+with (L/'archive-I-O-verify.intent.json').open('x') as f:json.dump({'synthetic_only':True,'GPU':0,'original_generated_source_block':True},f)
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=220);v={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'archive-I-O-verify.result.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v),flush=True)

@@ -330,3 +330,21 @@ Meta approval subsequently arrived during the same session. Authenticated offici
 config and license retrieval passed at the pinned revision; a new source manifest
 records their actual hashes. The earlier pending-access receipts are preserved as
 historical facts. Full weights, GPU runtime and score checks remain separate gates.
+
+## October16: apply the owner's expanded compute authority
+
+The owner's later “REMOVE ALL PRIOR RESTRICTIONS” and full-authority instructions
+supersede the old user-imposed two-GPU-node research cap. That obsolete cap was
+serializing a small label-free feature probe behind unrelated evaluation. Admit
+one independent bounded Kaggle GPU session under actual account allowance,
+normal platform admission and existing storage obligations. This changes scheduling
+only: never cancel healthy original work, repeat uncertain mutations, weaken data
+privacy/source rights, alter frozen numerical recipes, or exceed actual daily
+competition limits. Use the lower of minimum/total quota; no paid upgrade requested.
+
+Read-only canonical prepared-state/server absence was verified before terminating
+only the old waiting local observer. The original prepared source then had its
+FIRST GPU push accepted once as139031253/v1, while139017805 remained RUNNING.
+No old Slurm hold changed, no Dataset/weight transfer or competition submission.
+The exact proof and original/v2 controls are in
+[the context feature stage](../initiative/audits/released-context-feature-stage-20261016-v1/README.md).

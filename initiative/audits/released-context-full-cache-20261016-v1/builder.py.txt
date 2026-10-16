@@ -1,0 +1,75 @@
+"""Scale the actually accepted probe's I/O, preserving every numerical function."""
+import ast,hashlib,json
+PROBE_SHA='d077e354611d8bd17c72d0fa11eefd67454938e2ce46f8e983e13617c4ea5872'
+INDEX_SHA='a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100'
+PROBE='godlydonuts/rsna-released-context-probe-d077e354611d'
+
+def change(source,old,new):
+ assert source.count(old)==1,old[:100]
+ return source.replace(old,new)
+
+def build(original,ids,old_ids):
+ assert hashlib.sha256(original.encode()).hexdigest()==PROBE_SHA and len(ids)==len(set(ids))==3887 and ids==sorted(ids) and len(old_ids)==32 and ids[:32]==old_ids
+ tree=ast.parse(original);protected={n.name:ast.dump(n,include_attributes=False) for n in tree.body if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name!='_context_probe_main'}
+ roster=[n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='_CONTEXT_ROSTER' for t in n.targets)];assert len(roster)==1 and ast.literal_eval(roster[0].value)==old_ids
+ s=change(original,ast.get_source_segment(original,roster[0]),'_CONTEXT_ROSTER = '+repr(ids))
+ s=change(s,"out = Path('/kaggle/working/released-context-features')","out = Path('/kaggle/working/released-context-features-full')\n    import io,tarfile,shutil\n    assert shutil.disk_usage('/kaggle/working').free>6*2**30")
+ s=change(s,'records, failures, qualified = [], [], {}',"records = _reuse_original_context_records()\n    reused_ids = {row['study_uid'] for row in records}\n    failures, qualified = [], {}\n    archive = tarfile.open(out/'features.tar',mode='w')")
+ s=change(s,'emitted = [0]',"emitted = [sum(r['bytes'] for r in records)]")
+ s=change(s,'<= 32*2**20','<= 4*2**30')
+ old="""                    target = out/filename
+                    with target.open('xb') as handle:
+                        np.savez(handle,**arrays)
+                    os.chmod(target,0o600)
+                    with target.open('rb') as handle:
+                        file_sha = hashlib.file_digest(handle,'sha256').hexdigest()
+                    with lock:
+                        records.append({'study_uid':sid,'file':filename,'sha256':file_sha,'bytes':target.stat().st_size})"""
+ new="""                    buffer = io.BytesIO()
+                    np.savez(buffer,**arrays)
+                    payload = buffer.getvalue()
+                    file_sha = hashlib.sha256(payload).hexdigest()
+                    with lock:
+                        member = tarfile.TarInfo(filename)
+                        member.size = len(payload)
+                        member.mode = 0o600
+                        archive.addfile(member,io.BytesIO(payload))
+                        records.append({'study_uid':sid,'file':filename,'sha256':file_sha,'bytes':len(payload),'source_kernel':'self','archive':'features.tar'})"""
+ s=change(s,old,new)
+ s=change(s,"if len(records)%8==0:print(json.dumps({'context_feature_studies_complete':len(records),'total':32}),flush=True)","if len(records)%64==0:\n                            archive.fileobj.flush()\n                            (out/'partial-index.private.json').write_text(json.dumps({'records':records,'status':'partial_not_admitted','failed_studies':len(failures)},sort_keys=True))\n                            print(json.dumps({'context_feature_studies_complete':len(records),'total':3887,'original_reused':32}),flush=True)")
+ s=change(s,"pool.imap_unordered(_context_private_pre_one,_CONTEXT_ROSTER,chunksize=1)","pool.imap_unordered(_context_private_pre_one,[sid for sid in _CONTEXT_ROSTER if sid not in reused_ids],chunksize=1)")
+ s=change(s,'time.monotonic()-started<2700','time.monotonic()-started<18000')
+ s=change(s,'assert not failures and len(records)==32 and len(qualified)==2','archive.close()\n    os.chmod(out/\'features.tar\',0o600)')
+ s=change(s,"os.chmod(index,0o600)","os.chmod(index,0o600)\n    assert not failures and len(records)==3887 and len(qualified)==2\n    with (out/'features.tar').open('rb') as stream: archive_sha=hashlib.file_digest(stream,'sha256').hexdigest()\n    assert (out/'features.tar').stat().st_size<4*2**30")
+ s=change(s,"'status':'actual_released_context_features_and_zero_start_accepted','studies':32", "'status':'actual_released_context_full_feature_cache_complete','studies':3887,'original_reused_studies':32,'newly_encoded_studies':3855,'original_probe_index_sha256':"+repr(INDEX_SHA)+",'roster_sha256':hashlib.sha256(json.dumps(_CONTEXT_ROSTER,separators=(',',':')).encode()).hexdigest(),'archive_sha256':archive_sha,'archive_bytes':(out/'features.tar').stat().st_size")
+ s=change(s,"'/kaggle/working/context-features-accepted.json'","'/kaggle/working/context-full-features-accepted.json'")
+ reuse=r'''
+def _reuse_original_context_records():
+    # Strict bounded mount discovery; never walk the competition DICOM tree.
+    candidates = [Path('/kaggle/input/rsna-released-context-probe-d077e354611d/released-context-features/index.private.json'),Path('/kaggle/input/notebooks/godlydonuts/rsna-released-context-probe-d077e354611d/released-context-features/index.private.json')]
+    for directory in Path('/kaggle/input').iterdir():
+        if not directory.is_dir() or 'competition' in directory.name or 'abnormality-detection' in directory.name:continue
+        if any((directory/n).exists() for n in ('train.csv','test.csv','train_series','train_images')):continue
+        for root,dirs,files in os.walk(directory):
+            depth=len(Path(root).relative_to(directory).parts)
+            if depth>=5:dirs[:]=[]
+            if 'index.private.json' in files:candidates.append(Path(root)/'index.private.json')
+    paths=[p for p in dict.fromkeys(candidates) if p.is_file() and p.stat().st_size==8574 and hashlib.sha256(p.read_bytes()).hexdigest()==REUSE_INDEX_SHA]
+    assert paths,'Exact private original feature index required'
+    index=paths[0];value=json.loads(index.read_text())
+    assert value['parent_source_sha256']==_CONTEXT_PARENT_SHA and value['helper_sha256']==_CONTEXT_HELPER_SHA and value['weights_sha256']=='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef'
+    rows=value['records'];assert len(rows)==32 and [r['study_uid'] for r in rows]==_CONTEXT_ROSTER[:32]
+    result=[]
+    for row in rows:
+        assert row['file']==hashlib.sha256(row['study_uid'].encode()).hexdigest()+'.npz'
+        p=index.parent/row['file'];assert p.is_file() and p.stat().st_size==row['bytes']
+        with p.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==row['sha256']
+        with np.load(p,allow_pickle=False) as saved:
+            assert saved['features'].shape==(2,94,1024) and saved['features'].dtype==np.float32 and saved['parent_logits'].shape==(2,12)
+        result.append({**row,'source_kernel':REUSE_KERNEL,'source_version':1})
+    return result
+'''.replace('REUSE_INDEX_SHA',repr(INDEX_SHA)).replace('REUSE_KERNEL',repr(PROBE))
+ marker="if __name__ == '__main__':\n    _context_probe_main()";s=change(s,marker,reuse+'\n'+marker)
+ now=ast.parse(s);same={n.name:ast.dump(n,include_attributes=False) for n in now.body if isinstance(n,(ast.ClassDef,ast.FunctionDef)) and n.name in protected};assert same==protected
+ assert s.count('model.encode(x[None])')==1 and s.count('np.savez(buffer,**arrays)')==1 and s.count('optimizer.step')==0
+ return s,{'source_sha256':hashlib.sha256(s.encode()).hexdigest(),'source_bytes':len(s.encode()),'original_probe_source_sha256':PROBE_SHA,'original_probe_index_sha256':INDEX_SHA,'roster_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),'studies':3887,'reused_original_studies':32,'newly_encoded_studies':3855,'protected_numerical_functions_identical':sorted(protected),'clinical_labels_reports':False,'competition_submission':False}

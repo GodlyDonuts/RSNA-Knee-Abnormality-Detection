@@ -1,0 +1,64 @@
+"""Canonical once-only licensed feature probe; never a competition submission."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('prepare','push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-released-context-features-20261016-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+p=C/'workflow.py';assert p.read_text()==v['workflow']
+spec=importlib.util.spec_from_file_location('context_probe_workflow',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';parent='godlydonuts/rsna-released0949-offline-7e5315dad125'
+actual_parent=r.kernel('GetKernel',parent,1);assert hashlib.sha256(actual_parent['blob']['source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+dataset='nartaa/rsna-knee-publication-swa-weights-20261007';d=r.dataset(dataset);assert d['id']==12431568 and d['currentVersionNumber']==1 and not d.get('isPrivate',False)
+assert hashlib.sha256(d['description'].encode()).hexdigest()==v['permission_description_sha256'] and v['parent_admission']['external_model_competition_admitted'] is True
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'licensed_context_feature_probe','job_id':os.environ['SLURM_JOB_ID'],'phase':phase});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),r.username) as db:
+  w.verify_account(db,r);old=w.read_entry(db,weight);old_hash=w.object_hash(old);assert old['public_score']=='0.949' and old['remote_outcome']=='scored'
+  if phase=='prepare':
+   assert not R.exists();funded=581021415363+2*2**30+2*2**20+16*2**20+64*2**20;assert shutil.disk_usage('/tmp').free>funded
+   R.mkdir(mode=0o700);code=R/'code'
+   for name,text in v['sources'].items():
+    dest=code/name;assert dest.resolve().is_relative_to(code.resolve());dest.parent.mkdir(parents=True,mode=0o700,exist_ok=True);dest.write_text(text)
+   sys.path.insert(0,str(code));from scripts.kaggle.released_context_probe import build
+   import pyarrow.dataset as ds
+   A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');release=A/'initiative/releases/report-supervision-v1/studies.parquet'
+   table=ds.dataset(release,format='parquet').to_table(columns=['study_uid'],filter=(ds.field('split')=='train')&(ds.field('report_supervision_allowed')==True))
+   ids=sorted(table.column('study_uid').to_pylist());assert len(ids)==len(set(ids))==3887
+   selected=ids[:32];source,binding=build(actual_parent['blob']['source'],v['helper'],selected);source_sha=binding['source_sha256'];slug='godlydonuts/rsna-released-context-probe-'+source_sha[:12]
+   record={'kind':'licensed_context_feature_probe_v1','state':'prepared','source_git':v['source_git'],'kernel_slug':slug,'binding':binding,'weights_sha256':weight,'parent_model_admission':v['parent_admission'],'admitted_safe_train_population':3887,'safe_population_uid_sha256':hashlib.sha256(json.dumps(ids,separators=(',',':')).encode()).hexdigest(),'source_files':{n:{'sha256':hashlib.sha256(t.encode()).hexdigest(),'bytes':len(t.encode())} for n,t in v['sources'].items()},'clinical_labels_reports_read':False,'protected_evaluation_used':False,'competition_submissions':0,'new_node_controls_and_future_private_feature_cap_bytes':64*2**20,'free_after_all_liabilities':shutil.disk_usage('/tmp').free-funded,'new_shared_bytes_files':0}
+   (R/'notebook.py').write_text(source);w.new_json(R/'roster.private.json',selected);w.new_json(R/'prepared.json',record)
+   key='licensed-context-probe:'+source_sha;assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None;db.execute('INSERT INTO meta(key,value) VALUES (?,?)',(key,json.dumps(record,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),source_sha,'licensed_context_feature_probe_CPU_prepared'));db.commit()
+   out={'status':'licensed_context_feature_probe_CPU_prepared','CPU_job':os.environ['SLURM_JOB_ID'],'prepared':record,'GPU_used':False,'new_weight_or_Dataset_bytes':0}
+  else:
+   prepared=json.loads((R/'prepared.json').read_text());assert prepared==v['prepared'];source=(R/'notebook.py').read_text();source_sha=prepared['binding']['source_sha256'];assert hashlib.sha256(source.encode()).hexdigest()==source_sha;key='licensed-context-probe:'+source_sha;record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);slug=record['kernel_slug']
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':3600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   if phase=='push':
+    assert record['state']=='prepared' and not (R/'push-intent.json').exists()
+    nodes={line.split('|')[0] for line in subprocess.check_output(['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b'],text=True).splitlines() if 'gpu' in line.split('|')[-1]}
+    q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));assert min(seconds(q['totalTimeAllowed']),seconds(q['minimumTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])>=7200
+    absence=r.require_absent_kernel(slug)
+    assert not (R/'patch-held.json').exists(),'This independent probe must not own or change the paired-run hold'
+    record['resource_admission']={'owner_removed_prior_resource_cap':True,'additional_Kaggle_sessions':1,'session_seconds_cap':3600,'conservative_required_available_GPU_seconds':7200,'original_training_and_paired_run_unchanged':True,'original_Slurm_holds_unchanged':True}
+    w.new_json(R/'push-intent.json',{'source_sha256':source_sha,'request_sha256':w.object_hash(request),'absence':absence,'automatic_retry':False});record.update(state='push_intent',at=w.utcnow());db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(R/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except Exception:
+     record['state']='push_uncertain';db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit();retain=True;raise
+    record.update(state='pushed',kernel_id=response['kernelId'],version=1);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),source_sha,'licensed_context_feature_probe_pushed'));db.commit();out={'status':'one_private_context_feature_probe_pushed','kernel_slug':slug,'kernel_id':response['kernelId'],'source_sha256':source_sha,'version':1,'competition_submission':False}
+   else:
+    current=r.kernel('GetKernel',slug,1);assert current['blob']['source']==source;m=current['metadata']
+    for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+    for name in ('datasetDataSources','competitionDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':state,'kernel_slug':slug,'version':1,'competition_submission':False}
+    if state in ('COMPLETE','ERROR','CANCELLED'):
+     if state=='COMPLETE':
+      actual=r.output_json(slug,1,'context-features-accepted.json');assert actual['status']=='actual_released_context_features_and_zero_start_accepted' and actual['studies']==32 and actual['parent_source_sha256']==prepared['binding']['parent_source_sha256'] and actual['helper_sha256']==prepared['binding']['helper_sha256'] and actual['checkpoint_sha256']==weight and len(actual['devices'])==2 and all(x['actual_CPU_GPU_original_pixels_exact'] and x['cached_head_exact_parent_probability'] and x['zero_start_exact_parent_logits'] for x in actual['devices']) and actual['clinical_labels_reports_read'] is False and actual['fitting_or_optimizer'] is False and actual['independent_internal_validation'] is False and actual['feature_bytes']<32*2**20
+      out['receipt']=actual
+     if not (R/'terminal.json').exists():
+      w.new_json(R/'terminal.json',out);record.update(state='feature_probe_accepted' if state=='COMPLETE' else 'feature_probe_failed',terminal=out);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit()
+  assert w.object_hash(w.read_entry(db,weight))==old_hash
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()
