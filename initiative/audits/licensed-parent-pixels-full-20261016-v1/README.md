@@ -1,6 +1,6 @@
 # Full fitting input-cache production: four CPU shards
 
-Prepared after the actual32CPU Kaggle/node gate passed. Frozen source parent
+Actually dispatched after the actual32CPU Kaggle/node gate passed. Frozen source parent
 493c7b0d, codec7bdaf41a; no rendering/quantization/resolution change. All3887
 admitted fitting UIDs come from original1,261,832byte index5a1a4c77 and
 UIDhash0485d1b1. Four disjoint fixed ranges0:972/972:1944/1944:2916/2916:3887
@@ -14,7 +14,7 @@ At most14GiBoutput/shard plus2GiBscratch reserve, no GPU or competition entry.
 The future trainer mounts immutable shard outputs read-only. Large originals
 remain on authorized private cluster/Kaggle storage; no MRI/index toMac/Git/HF.
 
-Before production, independently fund on evc39 after all607078528963prior
+Actual CPU939047 admitted the following funding on evc39 after all607078528963prior
 required bytes:64GiBnewcache,12GiBfuture recovery/epoch/publication envelope,
 1GiBoptional parent-weight envelope and128MiBcontrols, zero shared growth or
 deletion credit. These envelopes do not accept a numerical trainer or authorize
@@ -22,5 +22,23 @@ a duplicate parent copy. Exact actual checkpoint size/source and GPU recovery
 remain required. Reuse the existing original32 on evc33 and new complete shards
 on evc39; no second transfer of the original32pixel archive is needed.
 
-Eighteen focused codec/extraction/sharding tests passed, Ruff/mypy3clean. Full
-production has NOT yet been staged/dispatched at this preparation snapshot.
+All four exact private CPU notebooks were each pushed ONCE and authenticated
+RUNNING:139103622/139103665/139103730/139103781, all v1. Canonical ledger and
+source/metadata/input bindings verified. Original stage80605bc0 and all four
+scientific source bytes are unchanged. Finite owner exec16427/PID75016 collects
+only newly completed output exactly once; it has no competition-entry/GPU phase.
+Full3887 completion is still unobserved.
+
+Original CPU939048 stopped before any Kaggle call due to an omitted management
+components.py dependency. CPU939061 verified absence of all remote push intents,
+ledger rows and response files, added the exact committed dependency, imported
+the complete management module and admitted a DISTINCT continuation. Original
+failed owner is never restarted; no notebook was duplicated or overwritten.
+
+Funding required689890867139bytes including all607078528963prior liabilities;
+actual fresh node39 free is in actual-staged-funding.json. Re-downloads deduct
+only actual fully verified paid cache bytes from future liabilities, avoiding
+double charging. No deletion credit, shared growth or new parent-weight copy.
+Eighteen focused cache tests passed. The new end-to-end engine/compiler adds
+18 more engineering tests (36 combined), including fresh two-rank CPU recovery;
+none establishes MRI accuracy or accepts a GPU trainer.

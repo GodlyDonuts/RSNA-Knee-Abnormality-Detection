@@ -296,3 +296,48 @@ Exact terminal snapshot in source-confidence-context-20261016-v1/original-termin
 No new hidden score; next useful independent work is implementing/executing the
 private32CPU pixel-cache gate, not rerunning completed head fits or waiting idle
 for next-day allowance. Root implements directly without Devin.
+
+
+## October16 exact-parent input and end-to-end update
+
+Actual CPU Kaggle139099964v1 completed32original fitting MRI cases in149.16s,
+326.80MBarchive,1.90GBRSS/fourcores. Every original96x384uint8volume/mask and
+both94-window FP32 input tensors remained bit-identical. Independent owning-node
+CPU938918 verified original archive/members/rendered hashes/fitting membership,
+reusing the original downloaded bytes. Two secondary slow-reader cases also had
+zero differing pixels. No CNN optimization or accuracy metric ran in this gate.
+[Actual32proof](../initiative/audits/licensed-parent-pixels32-20261016-v1/README.md).
+
+Measured projected full3887pixels~39.70GB exceeds one20.94GBKaggle scratch. Four
+bounded14GiBprivate CPU producers are actually RUNNING, each originalv1 once:
+139103622/139103665/139103730/139103781. No competition slots/GPU used. Reuse the
+original32archive without redecoding/reencoding/transferring it again; new3855
+members will be retained on evc39 and mounted read-only for Kaggle training.
+Actual fresh evc39 funding admits64GiBcache+12GiBfuture trainer/recovery/epoch
+storage+1GiBoptional exact parent+128MiBcontrols, after all prior607078528963bytes;
+required689890867139bytes, no deletion credit/shared growth. No parent weight was
+copied; Kaggle already holds the exact original Dataset. Full-cache completion
+and its independent collection are still pending.
+
+Sole finite cache owner exec16427/PID75016:
+artifacts/licensed-parent-pixels-full-20261016-v1/continue_after_management_closure_once.py,
+10hbound, read-only5min polls, one collection per exact shard. Original53176/PID74802
+stopped on missing management components.py BEFORE any Kaggle call; distinct
+CPU939061 proved all4push intents/ledger rows absent and accepted the exact
+management closure. The four original scientific sources were reused unchanged;
+no duplicate kernel or GPU fit. Inspect original continuation/phase receipts
+before action. [Full source/funding/dispatch/failure](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
+
+New licensed_parent_train numerical engine and private MRI recovery compiler are
+PREPARED, not GPU-dispatched. Fixed short3epoch full-encoder/MIL adaptation from
+the licensed.949 foundation, effective8, original12 sampled of94windows, low
+encoder/headLR3e-6/3e-5, frozen parent BN buffers, .25source+.75full-parent teacher,
+FP16/FP32/scaler/twoT4DDP. Complete actual CPU two-rank full/stop1/resume equality
+passed, including7-case final batch and changed encoder+head;36focused tests,
+Ruff/mypy clean. This is engineering only. Real32MRI twoT4 recovery/timing is
+still required before full adaptation. [Exact prospective recipe](../initiative/audits/licensed-parent-trainer-recovery-20261016-v1/README.md).
+
+Own expanded938284 and entry PIDs54576/69887/72998/watcher69208 remain untouched.
+Four next-window candidates are still accepted/unsubmitted; no new hidden score
+or current-entry allowance is inferred from the CPU cache jobs. Root implements
+directly; Devin remains unavailable.
