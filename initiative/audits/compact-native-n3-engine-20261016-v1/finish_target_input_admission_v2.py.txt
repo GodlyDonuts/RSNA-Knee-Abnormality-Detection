@@ -1,0 +1,44 @@
+"""Finite continuation: verify completed original transfers, then one CPU admission."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'target-admission-v2-controller.intent.json').exists()
+(L/'target-admission-v2-controller.intent.json').write_text(json.dumps({'native_original_source_target_jobs':['930252','930253'],'runtime_original_source_target_jobs':['930271','930272'],'maximum_seconds':4800,'GPU_mutations':False,'automatic_retry':False},indent=2)+'\n')
+deadline=time.monotonic()+3600
+while True:
+ a=L/'native-evc33-relay.result.json';b=L/'runtime-prefix-reconciliation-v2.verified.json';c=L/'runtime-prefix-reconciliation-v2.result.json'
+ if a.exists() and json.loads(a.read_text())['returncode']!=0:raise RuntimeError('Original native transfer failed; reconcile, never retry')
+ if c.exists() and json.loads(c.read_text())['returncode']!=0:raise RuntimeError('Original runtime transfer failed; reconcile, never retry')
+ if a.exists() and b.exists():break
+ if time.monotonic()>deadline:raise TimeoutError('Original transfers not accepted by finite deadline; do not duplicate')
+ time.sleep(20)
+native=json.loads(json.loads(a.read_text())['stdout']);runtime=json.loads(b.read_text());assert native['all_original_member_size_SHA_verified_during_transfer'] and runtime['source']['metadata_sha256']==runtime['target']['metadata_sha256']
+original=json.loads(json.loads((L/'native-input-gate-v2.result.json').read_text())['stdout']);expected_tensor=original['engineering32_tensors_sha256']
+program=r'''
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+R=Path('/tmp/rsna-compact-target-admission-evc33-20261016-v2');N=Path('/tmp/rsna-compact-native-evc33-relocation-20261016-v1');V=Path('/tmp/rsna-compact-runtime-evc33-20261016-v1');S=Path('/tmp/rsna-compact-native-n3-inputs-20261016-v1/code')
+assert os.uname().nodename=='evc33' and not R.exists()
+assert shutil.disk_usage('/tmp').free>396100843459+20*2**30+24*2**30+128*2**20
+n=json.loads((N/'native-cache-verified.json').read_text());assert n['members']==37812 and n['bytes']==140626483351 and n['all_original_member_size_SHA_verified_during_transfer']
+v=json.loads((V/'prefix-reconciled-v2.json').read_text());assert v['metadata_sha256']==RUNTIME_SHA
+R.mkdir(mode=0o700);(R/'intent.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'GPU':0,'original_source':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','source32_tensor_sha256':TENSOR_SHA,'automatic_retry':False}))
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');env=dict(os.environ,PYTHONPATH=str(S)+':/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay',PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+cmd=[sys.executable,'-B','-m','rsna.competitive.compact_train','--studies',str(A/'initiative/releases/report-supervision-v1/studies.parquet'),'--series',str(A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),'--folds',str(A/'initiative/experiments/competitive-v1/folds'),'--artifact-root',str(A),'--cache',str(N/'cache'),'--fitting-supervision','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--weights','/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors','--output',str(R/'inputs'),'--inputs-only']
+with(R/'stdout').open('x') as out,(R/'stderr').open('x') as err:x=subprocess.run(cmd,stdout=out,stderr=err,env=env,cwd=S,timeout=1100)
+assert x.returncode==0,'Original target input replay failed; inspect retained stderr'
+r=json.loads((R/'inputs/inputs.json').read_text());assert r['engineering32_tensors_sha256']==TENSOR_SHA and r['fitting_count']==2247 and r['outer_count']==1156
+sys.path[:0]=env['PYTHONPATH'].split(':')
+import torch
+from rsna.competitive.compact_bag import load_encoder,CompactBagClassifier
+torch.manual_seed(20260922);model=CompactBagClassifier(load_encoder(Path('/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors')));assert sum(p.numel() for p in model.parameters())==73136096 and all(p.requires_grad for p in model.parameters())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+out={'status':'original_native_inputs_and_runtime_admitted_on_distinct_evc33','job_id':os.environ['SLURM_JOB_ID'],'node':'evc33','source_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','native_original_members':37812,'native_original_bytes':140626483351,'registry_sha256':n['registry_sha256'],'runtime_required_files_metadata_sha256':RUNTIME_SHA,'runtime_bulk_prefix_reconciled':True,'input_receipt_sha256':sha(R/'inputs/inputs.json'),'same_original32_input_tensor_sha256':TENSOR_SHA,'fitting_count':2247,'outer_count':1156,'strict_actual_original_model_load':True,'all73136096_parameters_trainable':True,'GPU_used':False,'clinical_accuracy_claim':False,'GPU_recovery_accepted':False,'new_shared_bytes_files':0,'cache':str(N/'cache'),'source':str(S)}
+(R/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+'''.replace('RUNTIME_SHA',repr(runtime['source']['metadata_sha256'])).replace('TENSOR_SHA',repr(expected_tensor))
+compile(program,'target_admission','exec');(L/'target-input-admission-v2-program.py.txt').write_text(program)
+assert not (L/'target-input-admission-v2.intent.json').exists()
+(L/'target-input-admission-v2.intent.json').write_text(json.dumps({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'node':'evc33','CPU':1,'GPU':0,'actual_original_transfer_proofs_complete':True,'automatic_retry':False},indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--mem=8G','--time=00:20:00','--job-name=rsna-compact-target-inputs','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=1250)
+v={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'target-input-admission-v2.result.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v))

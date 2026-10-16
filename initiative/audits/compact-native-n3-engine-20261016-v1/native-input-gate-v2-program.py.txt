@@ -1,0 +1,24 @@
+
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+R=Path('/tmp/rsna-compact-native-n3-inputs-20261016-v2');S=Path('/tmp/rsna-compact-native-n3-inputs-20261016-v1/code');C=Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1')
+assert os.uname().nodename=='evc40' and not R.exists()
+assert shutil.disk_usage('/tmp').free>396100843459+20*2**30+24*2**30+128*2**20
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert sha(S/'rsna/competitive/compact_train.py')=='f88ed73a1aaeb92be6bde0d52cc3f6bf1ccd8e0eba65192edcbd4f1d76e18560'
+prior=json.loads((C/'complete-input-admitted.json').read_text());assert prior['cache_members']==37812 and prior['cache_bytes']==140626483351
+assert sha(C/'full-cache-transfer-verified.json')==prior['cache_transfer_receipt_sha256'] and sha(C/'complete-cache-signatures.json')==prior['cache_signatures_sha256']
+signatures=json.loads((C/'complete-cache-signatures.json').read_text())
+for n,expected in signatures.items():
+ p=C/n;s=p.stat();assert not p.is_symlink() and [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]==expected
+R.mkdir(mode=0o700);A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')
+cmd=[sys.executable,'-B','-m','rsna.competitive.compact_train','--studies',str(A/'initiative/releases/report-supervision-v1/studies.parquet'),'--series',str(A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'),'--folds',str(A/'initiative/experiments/competitive-v1/folds'),'--artifact-root',str(A),'--cache',str(C/'cache'),'--fitting-supervision','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--weights','/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors','--output',str(R/'inputs'),'--inputs-only']
+env=dict(os.environ,PYTHONPATH=str(S),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
+with(R/'stdout').open('x') as out,(R/'stderr').open('x') as err:x=subprocess.run(cmd,stdout=out,stderr=err,env=env,cwd=S,timeout=1100)
+v={'status':'correct_original_native_input_gate_passed' if x.returncode==0 else 'correct_original_native_input_gate_failed','returncode':x.returncode,'job_id':os.environ['SLURM_JOB_ID'],'node':'evc40','source_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','cache_original_members':37812,'cache_original_bytes':140626483351,'cache_admission_sha256':sha(C/'complete-input-admitted.json'),'cache_signatures_reused_and_exact':True,'previous_failure':'930185 pointed at public-source triplet cache, not original native volume cache; no encoder ran','source_or_recipe_changed':False,'GPU_used':False,'root':str(R),'new_shared_bytes_files':0}
+for n in ('stdout','stderr'):
+ p=R/n;v[n]={'bytes':p.stat().st_size,'sha256':sha(p)}
+p=R/'inputs/inputs.json'
+if p.exists():
+ value=json.loads(p.read_text());v['input_receipt_sha256']=sha(p);v['census']=value['all_study_window_census'];v['engineering32_tensors_sha256']=value['engineering32_tensors_sha256'];v['fitting_count']=value['fitting_count'];v['outer_count']=value['outer_count']
+(R/'terminal.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v),flush=True);sys.exit(x.returncode)

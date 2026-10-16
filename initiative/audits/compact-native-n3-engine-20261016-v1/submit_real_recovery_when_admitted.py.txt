@@ -1,0 +1,30 @@
+"""Finite one-dispatch GPU continuation, contingent on actual target CPU acceptance."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'real-recovery-controller.intent.json').exists()
+(L/'real-recovery-controller.intent.json').write_text(json.dumps({'actual_CPU_controller':'finish_target_input_admission_v2.py','maximum_wait_seconds':5400,'maximum_GPU_jobs':1,'automatic_retry':False},indent=2)+'\n')
+deadline=time.monotonic()+5400
+p=L/'target-input-admission-v2.result.json'
+while not p.exists():
+ if time.monotonic()>deadline:raise TimeoutError('Actual target CPU admission not ready; no GPU dispatch')
+ time.sleep(20)
+v=json.loads(p.read_text());assert v['returncode']==0,'Target CPU gate failed; no GPU dispatch'
+admitted=json.loads(v['stdout']);assert admitted['status']=='original_native_inputs_and_runtime_admitted_on_distinct_evc33'
+wrapper=Path('scripts/newton/run_compact_bag_recovery.py')
+assert not subprocess.check_output(['git','status','--porcelain','--',str(wrapper)],text=True).strip(),'GPU wrapper must be committed'
+subprocess.check_call(['git','ls-files','--error-unmatch',str(wrapper)],stdout=subprocess.DEVNULL)
+text=wrapper.read_text();wrapper_sha=hashlib.sha256(text.encode()).hexdigest()
+admission_sha=hashlib.sha256((json.dumps(admitted,indent=2)+'\n').encode()).hexdigest()
+control='/tmp/rsna-compact-target-admission-evc33-20261016-v2'
+args=['--source',admitted['source'],'--artifact-root','/home/sa305415/rsna-knee/code-stopfix-1f486765','--cache',admitted['cache'],'--overlay','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--weights','/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors','--input-admission',control+'/accepted.json','--expected-admission-sha256',admission_sha,'--output','/tmp/rsna-compact-real-recovery-evc33-20261016-v1','--remaining-seconds','4800']
+program="import hashlib,sys;from pathlib import Path;p=Path("+repr(control+'/real-recovery-wrapper.py')+");assert not p.exists();text="+repr(text)+";assert hashlib.sha256(text.encode()).hexdigest()=="+repr(wrapper_sha)+";p.write_text(text);sys.argv=[str(p)]+"+repr(args)+";exec(compile(text,str(p),'exec'),{'__name__':'__main__','__file__':str(p)})"
+compile(program,'compact_actual_recovery_dispatch','exec')
+assert not (L/'real-recovery-GPU.intent.json').exists()
+intent={'node':'evc33','GPU':1,'CPU':2,'source_git':admitted['source_git'],'wrapper_sha256':wrapper_sha,'actual_target_admission_sha256':admission_sha,'diagnostic_only':True,'maximum_jobs':1,'automatic_retry':False}
+(L/'real-recovery-GPU.intent.json').write_text(json.dumps(intent,indent=2)+'\n');(L/'real-recovery-GPU-program.py.txt').write_text(program)
+run=['env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','PYTHONPATH='+admitted['source']+':/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay','CUBLAS_WORKSPACE_CONFIG=:4096:8','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+cmd=['sbatch','--parsable','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=01:30:00','--no-requeue','--job-name=rsna-compact-real-recovery','--output='+control+'/recovery.slurm.stdout','--error='+control+'/recovery.slurm.stderr','--wrap',shlex.join(run)]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=40)
+result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'real-recovery-GPU.dispatch.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0,'Uncertain dispatch: read-only reconciliation only'
+job=x.stdout.strip();assert job.isdigit();(L/'real-recovery-GPU.submitted.json').write_text(json.dumps({**intent,'job_id':job},indent=2)+'\n');print(json.dumps({'status':'actual_compact_trainer_recovery_submitted_once','job_id':job,'node':'evc33','diagnostic_only':True}))

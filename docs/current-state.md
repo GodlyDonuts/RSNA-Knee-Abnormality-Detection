@@ -1,3 +1,11 @@
+# October16: executable compact engine and actual MRI acceptance
+
+Compact N3 engine **dcfff319** is implemented, not awaiting another agent: fixed16 epochs,4496 updates, full-trunk training, exact optimizer-boundary resume and final-only outer prediction. Thirty model/engine/recovery-wrapper tests/Ruff/scoped mypy passed. Actual corrected CPU**930223** passed2247fit/1156outer/full native cache admission and32 decoded input tensors, digest183097af0095317c7a85069e73c8b2c654e39cfc12cdbc7104ff3139a30bfe9b. Initial930185 pointed at wrong public-triplet cache and failed before model computation; original native cache is `/tmp/rsna-final-public-source-fit-evc40-20261013-v1/cache`, not merged-cache.
+
+To avoid the busy evc40 GPUs, original native relay**930252/930253 RUNNING** to evc33, local exec**63139**; never repeat. Runtime copy failed at unused devel symlink; all81614 required existing files now source/target SHA-verified plus only74 small missing files completed, metadata67494970…; no bulk repeat. Target node free872.3GB at admission.
+
+Finite CPU continuation `artifacts/compact-native-n3-launch-20261016-v1/finish_target_input_admission_v2.py`, exec**41395**, waits original transfer proofs then ONE endpoint CPU replay. Original first CPU controller is terminal/refused failed archive; do not restart. Prepared one-GPU continuation `submit_real_recovery_when_admitted.py` may submit only after actual positive target CPU result. Inspect its controller/GPU intent/result before action; never duplicate. No compact GPU recovery/full fit yet. Old929938/930089 remain pending on evc40. See [engine/input milestone](../initiative/audits/compact-native-n3-engine-20261016-v1/README.md). Best public Kaggle remains E5/E6=.872; E8=.863/E10=.864 are scored and reconciled.
+
 # October16: actual E10 score and compact challenger
 
 Research dossier **cf3819cb** is on main and adopted. Authenticated E8 **57221755=.863** and E10 **57245976=.864** are scored and reconciled once into Newton's canonical ledger; no cloud mutations. Best trajectory remains E5/E6 **.872**. Portable controllers are terminal; never restart or resubmit these entries. Historical pending/public-run descriptions below are superseded.
