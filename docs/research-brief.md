@@ -41,13 +41,17 @@ original0.92092535, delta-0.00572762, conditional95%[-0.02522802,+0.01337630],
 keep original N3. Lateral-meniscus/contusion secondary improvements need matched
 replication and do not justify post-hoc target splicing. Narrower adjacency versus
 wider anatomical context is a plausible tradeoff, not a proved explanation.
-Weighted933001 is RUNNING with16privateverified epochs; no final result yet.
+Weighted933001COMPLETED, all16privateverified. Actual independent fixed-final
+macro0.92391334vs0.92092535, delta+.00298799, conditional95%[-.00999470,+.01656811].
+No established primary gain; retainN3E16. MCLpoint improvement has only2positives,
+with exploratory LM/OA regressions. No posthoc target splicing or weighted Kaggle score.
 Public one-study gradient accumulation also means mixed-study BatchNorm is not a
 known missing ingredient. [Full paired evidence](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
 Additional 345 fitting-only caches and private preservation are complete.
 Expanded 2,592-study inputs passed actual zero-GPU admission933324 with original
-image/label/mask tensor parity; no expanded model is trained yet. The old 3,904/441 release counts describe a historical release;
+image/label/mask tensor parity; full production938284was dispatched once after actual H100recovery933382 and is
+PENDINGPriority; no expanded full-fit result yet. The old 3,904/441 release counts describe a historical release;
 current correspondence-filtered capacities are 2,592 fitting / 3,887 train /
 4,327 potential frozen-final. Do not equate these with the active 2,247-study fit.
 
@@ -142,7 +146,7 @@ This is evidence of better teacher fidelity per16-windowbag, not better disease 
 
 The registered averaging result remains null: raw-servingE16 0.92068844 versus fixedaverage0.92100408, delta+.00031564 with whole-component conditional95%[-.00214034,.00293081]. Keep E16 as own-model default; no independent evidence supports an averaging improvement.
 
-A post-fit label-free check found the context adaptation changes0.935%–3.829%of strict study-pair orders (3,887fitting cases), rather than only shifting class calibration. This establishes behavior, not correctness or a clinical gain. The larger2,592study route now has actual CPUstaged production/preservation controls and one finite conditional owner; it still requires original real-H100 recovery933382 before any full GPU dispatch. No queued/staged process is counted as completed training.
+A post-fit label-free check found the context adaptation changes0.935%–3.829%of strict study-pair orders (3,887fitting cases), rather than only shifting class calibration. This establishes behavior, not correctness or a clinical gain. The expanded2,592study route now has actual H100recovery933382accepted and one original full-fit938284dispatched/PENDINGPriority. Source/data/scientific recipe are unchanged; this is not completed training or a data-only causal result.
 
 ## Spatial information hypothesis
 
@@ -158,8 +162,8 @@ the first probe's refusal, despite small parent probability drift; root numerica
 cause remains unproven. The corrected representation caches global, regional and
 parent outputs from one forward, never mixes old/new embeddings. The full3,887-study feature pass139068442/v1 COMPLETED in4,382seconds, reusing32
 accepted originals. CPU937898 recovered the interrupted archive using only missing suffixes and
-accepted every member/whole SHA/complete cohort. The two full fixed10fits are
-now RUNNING, same graph and initialization, no spatial accuracy result yet.
+accepted every member/whole SHA/complete cohort. Both fixed10fits COMPLETED31:41/31:55, same graph/init and2,430updates. All20
+immutable epochs are privately fully verified; no spatial accuracy result yet.
 [Original failure](../initiative/audits/regional-feature-probe-20261016-v1/README.md),
 [actual32acceptance](../initiative/audits/regional-feature-probe-20261016-v2/README.md),
 [full experiment](../initiative/audits/regional-feature-full-20261016-v1/README.md).
@@ -184,16 +188,17 @@ not only38local tests: each arm full/stop1/resume, complete numerical state and
 32x12prediction bytes exact, both with nonzero learning. Same1,334,796parameter/
 8192-input graph and initial values isolate feature content:8coherent global
 copies versus global+7regional summaries. It reuses unchanged5addea82FP32training.
-This is engineering acceptance, not disease accuracy. Full3887fixed10fits937942/937975are RUNNING with175finite updates each; no
-clinical or competition improvement is yet established. The original pre-update CPU rounding verifier
+This is engineering acceptance, not disease accuracy. Full3887fixed10fits937942/937975are COMPLETE/all20epochs privately verified;
+no clinical or competition improvement is yet established. The original pre-update CPU rounding verifier
 failure and corrected exact same-batch check are preserved.
 [Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).
 
 The separate typed fixed-final spatial exporter/readout passes33focused tests
 with old serving rejection preserved. It retains exact role/feature representation,
 registered immutable source/cache/recovery/permission and strips private training
-payload. Actual final export and T4serving have not yet occurred. Software
-acceptance is not evidence of accuracy.
+payload. Actual final exports and twoT4/publicMRI acceptance have now passed
+for both roles; neither has a hidden score. Software/runtime acceptance is not
+evidence of accuracy.
 
 Verified latest small preservation: source6c06674d/all49objects236002bytes,
 privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
@@ -201,12 +206,21 @@ under the canonical lock byCPU938041; no private arrays/images/identities/weight
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
 
-Actual spatial-readout CPU938126 passed both original32MRIfeature roles against
-original learned engineering predictions (max1.192e-7/5.96e-8); diagnostic export
-correctly refused. New finite owner92853 waits for original full-fit/private20epoch
-completion before actual final export, combined Dataset and exact T4/publicMRI
-qualification. No waitingGPU, public push or hidden entry is implied.
-[Original conditional route](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
-Weighted933001 has all16privately verified epochs; one independent fixed-final
-comparison observer waits for its actual terminal result, not a checkpoint-only
-score. [Original protocol](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md).
+
+Both actual final spatial components have now passed twoT4precision against32MRI
+feature references (max1.192e-7) and exact3study public MRI/CSV execution in26–28s,
+with zero fallback/empty studies. Private combined Dataset12639590v1 is fully
+verified. No hidden entry/score exists yet; today5slots are alreadyused. The original
+context owner plus new outcome-aware spaced entry queue test the exact accepted
+versions after fresh live allowance, preserving failures and negative scores.
+[Actual deployment](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
+
+A distinct next supervision hypothesis remains untested: the provided source
+documents0.5as unaddressed and recommends confidence2*abs(p−0.5). Current positive-
+class weighting is a different intervention and did not establish a primary gain.
+A matched source-confidence/teacher-anchoring contrast could test whether report
+uncertainty should reduce source influence while retaining the same original
+labels/masks/teacher/graph/compute. Preserve fixed current recipes and expose any
+normalization/gradient-scale change; this observation does not justify label repair, protected-cohort tuning or
+a claim of improved accuracy. See the original
+[source-lineage dossier](research-watch/dossier/rsna-single-model-evidence-2026-10-14.md).

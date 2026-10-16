@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 19:02 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 19:49 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -21,7 +21,7 @@ Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 Epoch 16 is also COMPLETE, no error, 382,473 bytes and canonically reconciled at
 12:36 UTC. [Scored E16 receipt](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json).
 The .894 does not establish parity with the external .949 or a hidden-private score.
-The authoritative 16:10 UTC allowance is **five submissions used, zero available**.
+The authoritative 19:45 UTC allowance is **five submissions used, zero available**.
 The original curve controller finished all three scheduled E8/E12/E16 submissions;
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
@@ -36,8 +36,10 @@ Our external0.949/own0.894 results are distinct and below that reference.
 |---|---|---|---|
 | N3 selected-slot triples | 930744 → 932869 | **COMPLETED 0:0**, evc33 | Original fixed 16 epochs / 4,496 updates |
 | Source-neighbor challenger | **932957** | **COMPLETED 0:0**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
-| Positive-weight challenger | **933001** | **RUNNING**, evc33 | Fitting-derived positive BCE term weights |
-| Expanded 2,592-study recovery | **933382** | **PENDING**, evc33 | Engineering diagnostic, not the expanded full fit |
+| Positive-weight challenger | **933001** | **COMPLETED 0:0**, evc33 | Same16epochs/4,496updates; positive BCE weights |
+| Expanded 2,592-study full fit | **938284** | **PENDING Priority**, evc33 | +345fitting cases,16epochs/5,184updates |
+| Spatial global-repeat control | **937942** | **COMPLETED 0:0**, evc33 | Same1.33Mhead,8global copies |
+| Spatial regional candidate | **937975** | **COMPLETED 0:0**, evc33 | Same1.33Mhead,global+7summaries |
 
 Neighbor932957 completed16epochs/4,496updates; all16epochs are privately fully
 8-objectdownload/size/SHAverified. CPU936773 verified the complete fixed-final
@@ -46,7 +48,12 @@ delta-0.00572762, whole-component conditional95%[-0.02522802,+0.01337630],
 2,836defined/1,164undefined draws. No established primary gain; keep originalN3.
 [Fixed-final result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md). Both challengers passed actual H100
 full/stop/resume checks of model, BatchNorm, optimizer, scheduler, RNG and predictions.
-Those are engineering results, not challenger accuracy gains. The weighted fit is RUNNING and epochs1–16 are privately verified; no weighted final result yet. [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
+Weighted933001completed5:32:28; all16epochs are privately verified. CPU938273
+replayed exact final/model/source/rosters/predictions and all12targets: internal
+macro0.92391334vs0.92092535, delta+.00298799, whole-component conditional95%
+[-.00999470,+.01656811],2,836defined/1,164undefined draws. **No established primary
+gain; keep ownN3E16.** MCLpoint gain has only2positives; several other targets
+regressed. No weighted Kaggle score. [Actual fixed-final result](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md). [Neighbor](../initiative/audits/compact-source-neighbor-full-fit-20261016-v1/README.md),
 [weighted](../initiative/audits/compact-positive-weight-full-fit-20261016-v1/README.md).
 
 ## Exact own N3 model and completed internal endpoint
@@ -115,7 +122,7 @@ weight qualification or hidden nine-hour end-to-end claim. Root implements direc
 Additional **345 fitting-only studies / 1,769 series / 54,562 slices** have complete
 paired 256/384 caches; all seven shards / 42 private objects are fully verified.
 The expanded 2,592-study CPU gate 933324 passed original tensor/label/mask parity.
-Its original H100 recovery933382 is queued. New source0d1adeaa production/preservation controls passed30targeted tests/Ruff/Mypy and actual CPU936315 staging/funding review. Finiteowner51853 waits for the exact original actual acceptance, then dispatches one full fit/preserves all16epochs; it reserves no waiting GPU. Full expanded training is not yet dispatched. [Conditional route](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
+Original H100recovery933382 COMPLETED0:0/7:56 with complete real model/BN/optimizer/RNG/prediction recovery. Existing finiteowner51853 submitted full938284 ONCE after exact acceptance and fresh funding; it is PENDINGPriority. The same pending job now has an8h scheduler limit based on actual5:32:28same-graph runtime scaled for5,184updates; source/recipe/output unchanged. Its existing watcher preserves all16epochs. No full expanded updates or result yet. [Conditional route](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
 Sixteen expanded passes mean 5,184 updates, so a later result is not data-only.
 [Expansion proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
 Correspondence-filtered capacities are 2,592 development fitting / 3,887 train /
@@ -186,7 +193,7 @@ Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6
 
 Actual label-free post-fit comparison on3,887fitting studies confirms the context head reverses0.935%–3.829%of strict study-pair orders across targets. It is not only a monotone class calibration. These are behavioral changes, **not proof that they are correct or that accuracy improved**. [Actual displacement](../initiative/audits/context-rank-displacement-20261016-v1/README.md).
 
-## Spatial context: matched full fits actually training
+## Spatial context: full fits completed and actual T4/public paths accepted
 
 The corrected probe **139066640/v1 completed all 32 MRI studies on both T4s** in
 54.176 seconds. The observer left original features/logits bit-equal; CPU/GPU
@@ -210,9 +217,9 @@ every3,855new member and exact3,887membership. No GPU/kernel/push was repeated.
 
 Neighbor932957 is COMPLETED and independently verified:0.91519773internal macro,
 originalN3control0.92092535; no established primary gain (interval includes zero).
-Weighted933001 has16privately verified epochs and remains RUNNING, no final result.
-Original expanded recovery933382 remains PENDING; conditional owner51853 and
-context-entry owner33015 stay alive. Root implements directly; Devin is unavailable.
+Weighted933001has its verified fixed-final result above, no established primary
+gain. Expanded full938284is PENDINGafter actual933382acceptance; its original
+owner51853 and context-entry owner33015 remain alive. Root implements directly; Devin is unavailable.
 [Neighbor full paired result](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md).
 
 Verified private preservation: sourcee2fd3911/all51smallobjects235,995bytes at
@@ -239,17 +246,30 @@ The original pre-update verifier refusal is preserved; same-batch CPU oracle
 corrected shape-dependent5.96e-8rounding without changing numerical training.
 [Actual recovery](../initiative/audits/regional-context-engine-20261016-v2/README.md).
 
-CPU937917 admitted all3,887typed inputs and fresh storage. Full10epoch/2430update
-jobs **global_repeat937942** and **regional937975** are actually RUNNING on evc33,
-oneCPU/zeroGPU each. Read-onlyCPU938007 saw175finite updates/empty stderr for both.
-Finiteowner34894 preserves all10immutable epochs per successful role privately once.
-The accepted source46f5014d and unchanged5addea82numerical loop are frozen.
-512MiBtotal head/recovery cap and all prior resource liabilities are retained.
-The separate typed final exporter/FP32readout now passes33focused tests/Ruff/Mypy;
-the separate compiler now passes42focused tests and compiles the actual licensed
-parent for both roles/modes. Actual final export and T4spatial execution remain. No independent
-internalOOF is claimed for the externally trained parent.
-[Prospective full controls](../initiative/audits/regional-context-production-20261016-v1/README.md).
+CPU937917admitted all3,887typed inputs and fresh storage. Both fixed10epoch/
+2,430update jobs completed in31:41/31:55. **All20immutable epochs plus final/
+source/license/runtime are privately fully download/size/SHAverified**: control
+HFfc5424032b222c52304bdc91b83bee514bff6931 and regional
+HF133aa9f672ee5546265c8455fa7dc2d5a5feebb3,38objects per role. Original34894is
+terminalsuccess; do not rerun it. [Actual full receipts](../initiative/audits/regional-context-production-20261016-v1/README.md).
+
+Strict actual final CPUexports produced two5.354MBcomponents and tiny32x12
+references, each matching its complete batched learned graph within5.96e-8.
+One combined private Dataset **12639590v1** is fully9-object download/hashverified.
+Both final heads passed **actual twoT4 precision**, max probability error1.192e-7,
+then their exact private offlinev1 raw-MRI public-example notebooks completed:
+regional28.051s and global-repeat25.964s,3studies/zero fallback/zeroempty/13columns,
+CSV+test.csv roster/bytes/hash verified. This does not establish full hidden
+runtime or an accuracy improvement. **Both remain unsubmitted/unscored.**
+[Actual serving and receipts](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
+
+The separate entry owner49213/PID69887 is live: retain old context33015's exact
+next-allowance entry; require its actual scored hidden outcome, then regional no
+earlierOctober17 02:00UTC and global-repeat no earlier06:00UTC, each subject to
+fresh allowance and the prior actual score. Stop on actual hidden failure; max2
+new entries and no duplicate versions. These are spacing windows, not a claimed
+server reset. Remaining daily capacity is available for separately justified
+candidates. No waits occupy a Slurm/GPU allocation. Sources/policies stay frozen.
 
 Verified latest small preservation: source6c06674d/all49objects236002bytes,
 privateHFc6e848a5e21090b2cf3b462680bf8166a064aee0. Full re-download/size/SHA
@@ -257,12 +277,3 @@ under the canonical lock byCPU938041; no private arrays/images/identities/weight
 [Exact receipt](../initiative/audits/hf-regional-actual-full-head-20261016-v1/verified.json).
 Never repeat this prefix or preceding verified mirrors.
 
-Actual spatial-readout CPU938126 passed both original32MRIfeature roles against
-original learned engineering predictions (max1.192e-7/5.96e-8); diagnostic export
-correctly refused. New finite owner92853 waits for original full-fit/private20epoch
-completion before actual final export, combined Dataset and exact T4/publicMRI
-qualification. No waitingGPU, public push or hidden entry is implied.
-[Original conditional route](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
-Weighted933001 has all16privately verified epochs; one independent fixed-final
-comparison observer waits for its actual terminal result, not a checkpoint-only
-score. [Original protocol](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md).

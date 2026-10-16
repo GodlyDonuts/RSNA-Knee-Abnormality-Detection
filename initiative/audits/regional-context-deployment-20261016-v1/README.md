@@ -50,3 +50,13 @@ error stops for investigation before another slot. Dependencies' original live
 process handles are checked; no waiting Slurm/GPU. DeadlineOctober17 22:30UTC.
 The remaining daily capacity is available for separately justified candidates;
 no blind filling or repeated scored checkpoint is scheduled here.
+
+ACTUAL acceptance is now complete for BOTH full-role heads, not only preparation.
+Both realT4s matched each final32MRIfeature CPUreference within1.192e-7, nonzero
+corrections and41.998MBhead-only peak. Regional publicMRIv1 completed28.051s;
+global-repeat25.964s, each3public studies/zero fallback/zeroempty/13cols470B,
+CSV+test.csv roster fully verified. These are PUBLICexamples, not hidden results
+or full hidden-runtime guarantees. No competition entry has been made for either.
+Public-acceptance92853 is terminalsuccess; NEVERrestart/re-push either exactv1.
+The separate outcome-aware spaced entry owner is LIVE exec49213/PID69887, waiting
+for original context33015 actual hidden outcome before regional/control entries.

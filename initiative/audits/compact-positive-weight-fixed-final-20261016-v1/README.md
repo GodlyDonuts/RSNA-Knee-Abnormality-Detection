@@ -19,3 +19,14 @@ receipt is collected; no new MRI/model inference/training/publication is needed.
 The comparison is prepared/waiting, not a verified result. Never restart original
 fit, duplicate epochs/observer or retry a failed verifier without original read-only
 inspection. Existing ownN3.894 remains the actual own-training Kaggle best.
+
+ACTUAL independent CPU938273 accepted original933001COMPLETED0:0/5:32:28 and
+all4496finite updates/final model==private immutableE16/source/policy/recovery/
+rosters/masks/complete1156predictions and all12target metrics. Fixed-final macro
+0.923913343222804 vsN3control0.9209253491221031, delta+.002987994100701,
+conditional95%[-.009994698599205,+.016568106896873],2836defined/1164undefined
+of4000whole1106-component draws. No established primary gain; keep ownN3E16.
+Exploratory class tradeoffs include MCL+.06977 with ONLY2positives, contusion+.01904,
+lateral-meniscus-.02191/medialOA-.00636/PFOA-.05961. These are not multiplicity-
+adjusted/replicated promotion or a reason for posthoc target splicing. No Kaggle
+score exists for this model. Original observer91289 is terminalsuccess; no rerun.

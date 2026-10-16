@@ -35,3 +35,11 @@ Full fitting weights are not yet exported. Original source packaging first stopp
 locally before any intent because empty generated scripts package markers are
 not Git files; their exact original empty SHA was preserved in the corrected
 package. No remote job or numerical run was repeated.
+
+Actual final CPUexports now passed after all20private epoch proofs. Both slim
+components are5353719bytes: global-repeat b7574ff2c00a9393874a6a78a8c8529263c57b6c6cedc3effc5332d84ae8482d,
+regional4f96f85505d83a05827c6dec61d68a8b72ee3f1b4b874e052ed5a8b3b494bb0d.
+Each anonymous32x12CPUreference passed versus its actual original complete learned
+batched graph within5.96e-8. Exact final private sources for both role/mode pairs
+were built; no placeholder or diagnostic component was pushed. See actual-final
+receipts for exact source/ref/epoch/parent bindings. Clinical gain still unproved.

@@ -5,3 +5,13 @@ Scientific sourcea1ca238526dad75b2a5cea46edba44fd95c71938 and its original pendi
 Original16GiB expanded recovery/production/preservation envelope is retained. Current comprehensive minimum free590,032,877,507bytes includes every prior cache/run/head/ZIP obligation and untouched reserve; actual stagefree653,551,091,712bytes. No deletion credit/new shared data. The preserved operational code checks exact original933382terminal0:0, actual recovery/input receiptSHA, complete model/BN/AdamW/LR/counters/sampler/RNG/history/prediction equality, source and current free space before one fixed16/5184-update/2592-fit/1156-unchanged-outer production job. It uses oneH100/twoCPUs/32GiB,12h and complete optimizer-boundary signal handling. All16distinct epochs have a separately bound private9-object download/hash publisher. No healthy existing job is displaced.
 
 Finiteowner51853 is live with frozen original dispatch/watcher code. It polls actual933382 without waiting cluster resources, then calls the single admission/dispatch once only after its original actual acceptance receipt exists and preserves actual epochs. No full job has been submitted at16:34UTC; exact intents/results and Slurm supersede this observation. Never restart the finiteowner or duplicate933382 on observation loss. At fixedfinal, independently verify actual endpoint and paired whole-component uncertainty before promotion. Equal16passes use more updates than N3, so no data-only/compute-matched gain claim. [Predeclared protocol](../../experiments/competitive-v1/compact-expanded2592-v1/README.md).
+
+Original H100recovery933382 ACTUALLY COMPLETED0:0/7:56; original receiptSHA
+eab6d1cc64b8cc8316d2c50ee804b80bf7800110bd58533a1c909b6e03dcaa18. Existing
+sole owner56286 then dispatched full **938284 ONCE** (sourcea1ca2385),2592fit/
+1156unchangedouter/16epochs5184updates/oneH100twoCPUs. Currently PENDINGPriority,
+not training yet. Original12hreservation was reduced ONLY while pending0runtime
+to8h, using actual complete weighted5:32:28/4496updates and conservative5184step
+scaled6:23estimate; same original job/output/source/scripts/owners/scientific recipe.
+No duplicate job or restart. Actual evc33/evc39both had2/2GPUs assigned to other
+jobs when checked, not free hardware. Existing owner retains epoch preservation.

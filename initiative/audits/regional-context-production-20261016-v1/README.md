@@ -43,3 +43,11 @@ model and exact source/cache/permission provenance, keeps FP16regional storage
 and both view-depth conventions, and requires the actual six-process recovery
 receipt. No actual final export, T4spatial serving or competition score yet.
 Frozen training numerical sources are unchanged.
+
+ACTUAL fixed-final: global-repeat937942 COMPLETED0:0/31:41 and regional937975
+COMPLETED0:0/31:55. Each full3887/2430updates, same source/graph/recipe/initial
+values. All10immutable epochs+complete final/source/permission/runtime per role
+were fully privately re-downloaded/size/SHAverified:38objects178416680bytes at
+HFfc5424032b222c52304bdc91b83bee514bff6931 (control),38objects178416551bytes at
+HF133aa9f672ee5546265c8455fa7dc2d5a5feebb3 (regional). Do not repeat either.
+Original finite34894 is terminalsuccess. No spatial clinical/Kaggle score yet.
