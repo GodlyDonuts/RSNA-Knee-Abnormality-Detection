@@ -1,5 +1,21 @@
 # Latest execution update — October16 17:10UTC
 
+Actual corrected32regional **139066640/v1 COMPLETE**,54.176seconds/bothT4s,
+bit-equal observer features/logits, CPU/GPUregions1.526e-5/FP16storage4.879e-4,
+3.185GBpeakGPU. Original1.51–3.42%cross-run old feature mismatch remainsdiagnostic,
+not mixed into newinputs; parent probabilitymax0.0003766. New111052800bytearchive
+SHA cc2f06ec819a707bc72c55c0a16778493d428a450130b3f8abb0bc6eee0aedee/index
+280b3d04e4506a1fc0771280a16a6c1a9fe6ae3455ffdac8fbbc048f2a343481 fully
+collected ONCE byCPU936644 to /tmp/rsna-regional-feature-probe-20261016-v2/collected;
+all32NPZ/source/metadata verified. Allregionaloriginal/failed/debug/control/collected
+bytes111523570<128MiB. Do not repeatnewarchivecollection oroldfailedpushes.
+Newfullcoherentcompiler is prepared (13targetedtests/Ruff/Mypy), notstaged/pushed:
+artifacts/regional-feature-full-20261016-v1/run_phase_once.py phasesprepare/push/status.
+It reuses32 andencodesonly3855; requiresfreshfunding+all3887releaseboundary+source/
+license+quota andcanonicalintents. No fullfeature/headfit/accuracyexistsyet.
+Readregional-feature-full-20261016-v1 andregional-feature-probe-20261016-v2.
+
+
 New regional correction is local-only: failed32kernel139062311/v1 and distinct
 COMPLETE two-study diagnostic139064546/v1 are preserved. Read
 regional-feature-probe-20261016-v1/README.md and same-forward-engineering-decision.json.
@@ -405,3 +421,12 @@ numerical bounds, adds sanitized failure observations; no full cache/trainer/sco
 Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
 1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
 Root implements directly; Devin remains unavailable.
+
+Actual regional32acceptance17:23UTC: corrected139066640/v1 COMPLETE/bothT4s;
+54.176seconds, bit-equal original model observer forward, no clinical labels or
+fitting. CPU936644 fully collected/verifiedall32coherent records once (111.05MB).
+[Accepted engineering result](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
+A full3887coherent feature route is now locally prepared and checked, reusing32
+and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
+required. This is not a regional training or accuracy result.
+[Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).

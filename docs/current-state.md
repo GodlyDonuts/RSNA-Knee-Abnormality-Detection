@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 17:10 UTC.** This is the current research entry point.
+**Checked October 16, 2026, 17:23 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -193,3 +193,12 @@ numerical bounds, adds sanitized failure observations; no full cache/trainer/sco
 Live17:08UTCneighbor932957/weighted933001healthyRUNNING; privately verified epochs
 1–15/1–9respectively. Recovery933382PENDING Resources; finiteowners51853/33015alive.
 Root implements directly; Devin remains unavailable.
+
+Actual regional32acceptance17:23UTC: corrected139066640/v1 COMPLETE/bothT4s;
+54.176seconds, bit-equal original model observer forward, no clinical labels or
+fitting. CPU936644 fully collected/verifiedall32coherent records once (111.05MB).
+[Accepted engineering result](../initiative/audits/regional-feature-probe-20261016-v2/README.md).
+A full3887coherent feature route is now locally prepared and checked, reusing32
+and computingonly3855; actualfreshquota/funding/source/boundary staging/push remain
+required. This is not a regional training or accuracy result.
+[Full route](../initiative/audits/regional-feature-full-20261016-v1/README.md).
