@@ -130,3 +130,9 @@ It consumes no competition slot; no GPU/accuracy acceptance yet. Exact receipts:
 Never restart existing controller/intents. Private root
 `/tmp/rsna-compact-neighbor-dense-T4-20261016-v1`; new2GiB component/ZIP cap retains
 all previous obligations. No new rawMRI or reference vectors copied intoGit/HF/Mac.
+
+Direct denseT4 source/CPU receipts b6fd3030 privately preserved once at
+HFa9834992604061fa15e305142e22fa899cc340b7:10smallobjects53993bytes fully
+re-downloaded/size/SHA verified under canonical shared lock. No fixture/weights/
+reference vectors mirrored. Private diagnostic Dataset create returnedOk once
+viaCPU933680; original finite controller37475 waits ingestion, never recreate.
