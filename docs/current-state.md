@@ -381,7 +381,7 @@ download/size/SHAverified. No encoder or optimizer ran in that preparation. The
 private UID/label/logit arrays stay on cluster/Kaggle, not Git/smallHF mirrors.
 [Full input bridge](../initiative/audits/licensed-parent-production-inputs-20261016-v1/README.md).
 
-Current focused engineering checks:52passed,Ruff/mypy clean, including fresh
+Original numerical/input engineering checks:52passed,Ruff/mypy clean, including fresh
 2rank CPU recovery, exact whole94gradient/RNG parity and input/target roundtrips.
 The new loader also passed actualCPU939362: all32original MRI cases/64views,
 all94window inputs, source labels/masks and both teacher views matched bit-exactly
@@ -413,3 +413,9 @@ re-download/size/SHA/license/provenance. No production epoch exists yet. The new
 full-population/session/epoch/range paths pass48focused checks plus7existing
 loader checks, Ruff/mypy. These are engineering checks, not an accuracy gain.
 [Exact full-production source, stage and ownership](../initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
+
+Latest full-production control/source milestone: sourcebe105c27, privateHF
+b08293736906370bfc050aef5509c721a457e703,35objects/247805bytes fully re-downloaded/
+size/SHAverified under the shared lock byCPU939577. No MRI/identities/labels/
+teachers/prediction rows/parent body/weights mirrored. Never repeat this or old
+prefixes. [Original preservation receipt](../initiative/audits/hf-licensed-parent-full-production-20261016-v1/verified.json).
