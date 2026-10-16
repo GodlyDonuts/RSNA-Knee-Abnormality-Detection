@@ -468,3 +468,11 @@ then observes its actual hidden outcome. Maximum one entry; no three-row CSV
 upload, diagnostic model or uncertain-mutation retry. The existing spaced head
 comparisons remain unchanged. Inspect each original intent/result before action.
 [Actual stage, owners and source](../initiative/audits/licensed-parent-epoch-serving-20261016-v1/README.md).
+
+
+Actual full-model training and learned-epoch inference/entry milestone source
+63952698 is privately fully re-downloaded/size/SHA verified at HF
+5c7d47eb24b32ff07d342622733c303fadf06634:30objects/217900bytes,CPU939848,
+canonical shared lock. No MRI/identifiers/labels/teachers/prediction rows/parent
+body/weights mirrored. Never repeat this or earlier prefixes.
+[Verified preservation](../initiative/audits/hf-licensed-parent-live-training-serving-20261016-v1/verified.json).
