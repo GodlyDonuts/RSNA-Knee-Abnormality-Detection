@@ -1,0 +1,104 @@
+"""Build exact frozen-N3 production entry using checkpoint-only component."""
+
+import ast
+import base64
+import gzip
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+
+def build(prepared, destination):
+    epoch = prepared["epoch"]
+    assert type(epoch) is int and epoch in (4, 8, 12, 16)
+    assert (
+        len(prepared["checkpoint_sha256"]) == 64
+        and len(prepared["component_manifest_sha256"]) == 64
+    )
+    ref = "dcfff319cb7bd7bbae679a20da2b1b9268e8d680"
+    names = subprocess.check_output(
+        ["git", "ls-tree", "-r", "--name-only", ref, "rsna"], text=True
+    ).splitlines()
+    files = {
+        n: subprocess.check_output(["git", "show", ref + ":" + n]).decode()
+        for n in names
+        if n.endswith(".py")
+    }
+    for n in [
+        "rsna/competitive/compact_infer.py",
+        "rsna/competitive/compact_mc.py",
+        "scripts/kaggle/compact_component.py",
+        "scripts/kaggle/compact_t4_probe.py",
+    ]:
+        files[n] = Path(n).read_text()
+    required = {"compact_runtime"}
+    pending = list(required)
+    while pending:
+        name = pending.pop()
+        p = Path("scripts/kaggle") / (name + ".py")
+        text = p.read_text()
+        files[str(p)] = text
+        for node in ast.walk(ast.parse(text)):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                dependency = node.module.split(".")[0]
+                if (
+                    Path("scripts/kaggle") / (dependency + ".py")
+                ).exists() and dependency not in required:
+                    required.add(dependency)
+                    pending.append(dependency)
+    raw = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
+    encoded = base64.b64encode(gzip.compress(raw, mtime=0)).decode()
+    digest = hashlib.sha256(raw).hexdigest()
+    entry = Path("scripts/kaggle/compact_t4_entry.py").read_text()
+    entry = entry[: entry.rfind("\nif __name__")]
+    body = (
+        r"""
+import base64,gzip
+# The diagnostic Dataset supplies dependency wheels and the unlabelled fixture.
+# Its four-update diagnostic weights are NEVER loaded by production inference.
+bundle,python,env=prepare_runtime('1e6345bd3d2906271ecfbe6ab0fce146f7f8f8e0e5f2ca0ba7249a559c011075')
+raw=gzip.decompress(base64.b64decode(SOURCE_BASE64));assert len(raw)<8*2**20 and hashlib.sha256(raw).hexdigest()==SOURCE_SHA
+source=Path('/kaggle/working/compact-production-source');assert not source.exists();source.mkdir(mode=0o700)
+for name,text in json.loads(raw).items():
+ path=source/name;assert path.resolve().is_relative_to(source.resolve()) and path.suffix=='.py';path.parent.mkdir(mode=0o700,parents=True,exist_ok=True);path.write_text(text)
+env['PYTHONPATH']=str(source)
+found=[];seen=0
+for directory,children,names in os.walk('/kaggle/input',followlinks=False):
+ p=Path(directory);seen+=1;assert seen<=2048
+ if p.name=='rsna-knee-abnormality-detection' or {'train_series','test_series'}&set(children):children[:]=[];continue
+ if len(p.relative_to('/kaggle/input').parts)>=8:children[:]=[]
+ if 'component-manifest.json' in names and sha(p/'component-manifest.json')==COMPONENT_SHA:found.append(p)
+assert len(found)==1;component=found[0]
+precision=Path('/kaggle/working/compact-production-precision.json')
+command=[str(python),'-B',str(source/'scripts/kaggle/compact_component.py'),'--component',str(component),'--manifest-sha256',COMPONENT_SHA,'--fixture-bundle',str(bundle),'--output',str(precision)]
+run_bounded_native(command,bundle,env,600)
+accept=json.loads(precision.read_text());assert accept['status']=='scheduled_compact_two_T4_precision_accepted' and accept['epoch']==EPOCH_VALUE and accept['checkpoint_sha256']==CHECKPOINT_SHA
+competition=Path('/kaggle/input/competitions/rsna-knee-abnormality-detection')
+if not competition.is_dir():competition=Path('/kaggle/input/rsna-knee-abnormality-detection')
+output=Path('/kaggle/working/submission.csv')
+command=[str(python),'-B',str(source/'scripts/kaggle/compact_runtime.py'),'--checkpoint',str(component/'checkpoint.pt'),'--checkpoint-sha256',CHECKPOINT_SHA,'--series',str(competition/'test_series.csv'),'--test-studies',str(competition/'test.csv'),'--dicom-root',str(competition),'--scratch','/kaggle/working/compact-native-scratch','--output',str(output),'--precision','float16','--aggregation','full','--max-seconds','28000']
+run_bounded_native(command,bundle,env,28500)
+result=json.loads(output.with_suffix('.metrics.json').read_text());assert result['status']=='compact_native_test_roster_complete' and result['diagnostic_only'] is False and result['columns']==13 and result['studies']>=1
+assert result['checkpoint_sha256']==CHECKPOINT_SHA and result['CSV_sha256']==sha(output) and output.stat().st_size>0
+result.update(status='scheduled_compact_MRI_CSV_accepted',epoch=EPOCH_VALUE,component_manifest_sha256=COMPONENT_SHA,source_projection_sha256=SOURCE_SHA,production_precision_sha256=sha(precision),submission_bytes=output.stat().st_size,clinical_accuracy_claim=False)
+Path('/kaggle/working/compact-production-accepted.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result),flush=True)
+""".replace("EPOCH_VALUE", repr(epoch))
+        .replace("SOURCE_BASE64", repr(encoded))
+        .replace("SOURCE_SHA", repr(digest))
+        .replace("COMPONENT_SHA", repr(prepared["component_manifest_sha256"]))
+        .replace("CHECKPOINT_SHA", repr(prepared["checkpoint_sha256"]))
+    )
+    text = entry + "\n" + body
+    compile(text, "compact_production_notebook", "exec")
+    destination.write_text(text)
+    return {
+        "source_sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "projection_sha256": digest,
+        "source_bytes": len(text.encode()),
+        "kernel_slug": f"godlydonuts/rsna-compact-offline-e{epoch:03d}-"
+        + prepared["checkpoint_sha256"][:12],
+        "epoch": epoch,
+        "checkpoint_sha256": prepared["checkpoint_sha256"],
+    }

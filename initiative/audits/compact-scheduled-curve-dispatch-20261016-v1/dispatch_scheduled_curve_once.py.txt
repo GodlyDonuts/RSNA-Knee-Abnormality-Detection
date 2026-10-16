@@ -1,0 +1,151 @@
+"""Finite original-N3 E8/12/16 deployment; exact one-shot mutations, no training."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from scripts.kaggle.compact_notebook import build
+from scripts.kaggle.workflow import Remote
+
+L = Path(__file__).resolve().parent
+S = '/tmp/rsna-research-20261001-stable.sock'
+PYTHON = '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python'
+MANAGEMENT = '/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python'
+component_program = (L / 'scheduled_curve_component.py.txt').read_text()
+cloud_program = (L / 'scheduled_curve_cloud.py').read_text()
+helpers = {n: Path('scripts/kaggle', n).read_text() for n in ['workflow.py', 'publication.py', 'components.py']}
+for name, program in [('component', component_program), ('cloud', cloud_program)]:
+    compile(program, name, 'exec')
+# Freeze current inference helper bytes and original training projection before waiting.
+probe = L / 'scheduled-curve-projection-check.py'
+assert not probe.exists()
+expected_projection = build({'epoch': 8, 'checkpoint_sha256': 'a'*64,
+    'component_manifest_sha256': 'b'*64}, probe)['projection_sha256']
+with (L/'scheduled-curve-controller.intent.json').open('x') as f:
+    json.dump({'epochs':[8,12,16], 'original_job':'930744', 'source_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680',
+        'component_program_sha256':hashlib.sha256(component_program.encode()).hexdigest(),
+        'cloud_program_sha256':hashlib.sha256(cloud_program.encode()).hexdigest(),
+        'inference_projection_sha256':expected_projection,
+        'maximum_seconds':36000, 'maximum_dataset_creates_per_epoch':1,
+        'maximum_notebook_pushes_per_epoch':1, 'maximum_code_submissions_per_epoch':1,
+        'future_component_caps_bytes':3*2**30, 'shared_storage_growth_bytes':0,
+        'all_prior_liabilities_preserved':True,'automatic_mutation_retry':False}, f, indent=2)
+started = time.monotonic()
+r = Remote()
+finished = []
+
+def progress(epoch, phase, **fields):
+    (L/'scheduled-curve-controller-progress.json').write_text(json.dumps({
+        'epoch':epoch,'phase':phase,'completed_epochs':finished,
+        'elapsed_seconds':time.monotonic()-started,**fields},indent=2)+'\n')
+
+def pause():
+    if time.monotonic()-started > 36000:
+        raise TimeoutError('Finite deployment deadline; inspect exact originals, no restart')
+    time.sleep(60)
+
+def remote_program(epoch, label, program, payload, *, python=MANAGEMENT, memory='4G', minutes=30):
+    d=L/f'scheduled-e{epoch:03d}';d.mkdir(exist_ok=True)
+    mutating = label not in ('verify','status')
+    if mutating:
+        with (d/f'{label}.intent.json').open('x') as f:
+            json.dump({'epoch':epoch,'phase':label,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),
+                       'automatic_retry':False}, f)
+    bootstrap='import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"scheduled_N3_control","exec"),{"__name__":"__main__","PACKAGE":v})'
+    package=dict(payload,program=program)
+    cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1',
+         '--cpus-per-task=1','--gres=none','--mem='+memory,f'--time=00:{minutes:02d}:00',
+         f'--job-name=rsna-compact-e{epoch}-{label}','env','PYTHONDONTWRITEBYTECODE=1',
+         'PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1',python,'-B','-c',bootstrap]
+    x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(cmd)],
+        input=json.dumps(package),capture_output=True,text=True,timeout=minutes*60+100)
+    number=len(list(d.glob(label+'-result-*.json')))
+    out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+    (d/f'{label}-result-{number}.json').write_text(json.dumps(out,indent=2)+'\n')
+    if x.returncode:
+        raise RuntimeError(f'Epoch{epoch} {label} stopped; inspect original intent/result, no mutation retry')
+    return json.loads(x.stdout)
+
+def credential():
+    path=Path('.env');assert path.stat().st_mode&0o077==0
+    values={}
+    for line in path.read_text().splitlines():
+        k,sep,value=line.partition('=')
+        if sep:values[k.strip()]=value.strip().strip('\"\'')
+    return values['KAGGLE_API_TOKEN']
+
+try:
+    for epoch in (8,12,16):
+        # A mere snapshot/intent is insufficient: require complete private-download proof.
+        pub=L/f'publication/epoch-{epoch:03d}-result.json'
+        while not pub.exists():
+            progress(epoch,'waiting_for_original_epoch_private_preservation');pause()
+        value=json.loads(pub.read_text());assert value['returncode']==0
+        private=json.loads(value['stdout']);assert private['status']=='private_epoch_fully_verified' and private['epoch']==epoch and private['files_verified_by_download']==8
+        assert len(private['checkpoint_sha256'])==64 and len(private['revision'])==40
+        progress(epoch,'CPU_reference')
+        prepared=remote_program(epoch,'component',component_program,{'epoch':epoch,'private_checkpoint_sha256':private['checkpoint_sha256']},python=PYTHON,memory='8G',minutes=15)
+        assert prepared['epoch']==epoch and prepared['checkpoint_sha256']==private['checkpoint_sha256']
+        d=L/f'scheduled-e{epoch:03d}'
+        (d/'prepared.json').write_text(json.dumps(prepared,indent=2)+'\n')
+        notebook=build(prepared,d/'notebook.py');assert notebook['projection_sha256']==expected_projection
+        (d/'notebook-prepared.json').write_text(json.dumps(notebook,indent=2)+'\n')
+        entry=(d/'notebook.py').read_text()
+        def phase(name):
+            progress(epoch,name)
+            return remote_program(epoch,name,cloud_program,{'phase':name,'prepared':prepared,
+                'notebook':notebook,'entry':entry,'helpers':helpers,'token':credential()})
+        # Every cloud mutation has its own exclusive local+canonical intent.
+        if r.account()['num_allowed_now']<1:
+            raise RuntimeError('No authoritative live daily allowance; candidate prepared, no upload')
+        phase('create')
+        slug=prepared['dataset_slug'];owner,name=slug.split('/')
+        ready=False
+        for attempt in range(30):
+            try:
+                state=r.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':owner,'datasetSlug':name}).get('status')
+            except Exception as exc:
+                # Immediate post-create read403 was observed for E4. This is a READ,
+                # never permission to repeat the create RPC.
+                state='read_unavailable:'+type(exc).__name__
+            progress(epoch,'waiting_original_Dataset_ingestion',dataset_status=state)
+            if state=='READY':ready=True;break
+            if state in ('ERROR','FAILED'):raise RuntimeError('Original Dataset ingestion failed')
+            pause()
+        assert ready,'Original Dataset not ready; reconcile its one create read-only'
+        phase('verify')
+        # Defer public allocation while two cluster GPU nodes are actually active.
+        while True:
+            cmd=['squeue','-h','-u','sa305415','-t','RUNNING','-o','%N|%b']
+            x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=40);assert x.returncode==0
+            nodes={line.split('|')[0] for line in x.stdout.splitlines() if 'gpu' in line.split('|')[-1]}
+            q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'))
+            available=min(seconds(q['minimumTimeAllowed']),seconds(q['totalTimeAllowed']))-seconds(q['timeUsed'])-seconds(q['timeReserved'])
+            if len(nodes)<=1 and available>=64800:break
+            progress(epoch,'waiting_actual_GPU_capacity',active_cluster_nodes=len(nodes),available_Kaggle_seconds=available);pause()
+        phase('push')
+        public_started=time.monotonic()
+        while time.monotonic()-public_started<10800:
+            status=r.kernel('GetKernelSessionStatus',notebook['kernel_slug'],1).get('status')
+            progress(epoch,'exact_public_execution',public_status=status)
+            if status in ('COMPLETE','ERROR','CANCELLED'):
+                phase('status')
+                assert status=='COMPLETE','Original public version did not pass; no submission'
+                accepted=r.output_json(notebook['kernel_slug'],1,'compact-production-accepted.json')
+                precision=r.output_json(notebook['kernel_slug'],1,'compact-production-precision.json')
+                (d/'public-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n')
+                (d/'production-precision.json').write_text(json.dumps(precision,indent=2)+'\n')
+                record=phase('submit');assert record['state']=='submitted'
+                (d/'canonical-submitted.json').write_text(json.dumps(record,indent=2)+'\n')
+                finished.append(epoch);break
+            pause()
+        else:raise TimeoutError('Original public version still nonterminal; retain pending hold for review')
+    result={'status':'all_three_scheduled_code_submissions_accepted','epochs':finished,'hidden_scores_not_inferred':True}
+except Exception as exc:
+    result={'status':'stopped_for_exact_original_review','error_type':type(exc).__name__,
+            'reason':str(exc),'completed_epochs':finished,'automatic_mutation_retry':False}
+(L/'scheduled-curve-controller-result.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result),flush=True)

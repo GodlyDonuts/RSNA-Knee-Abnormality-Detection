@@ -1,0 +1,36 @@
+
+import hashlib,json,os,shutil,sys,time
+from pathlib import Path
+epoch=PACKAGE['epoch'];assert epoch in (8,12,16);stamp=f'e{epoch:03d}';assert os.uname().nodename=='evc33'
+R=Path(f'/tmp/rsna-compact-production-{stamp}-component-20261016-v1');assert not R.exists()
+# All retained bounds plus reserve, original fit, diagnostic, new345 cache,
+# E4 and three future component/ZIP caps, matched-neighbor16GiB and controls.
+# No deleted or already-physical asset is claimed as credit.
+free=shutil.disk_usage('/tmp').free;required=396100843459+(20+24+2+70+4+16)*2**30+144*2**20;assert free>required
+S=Path('/tmp/rsna-compact-T4-probe-20261016-v1/dataset');sys.path.insert(0,str(S/'code'));sys.path.insert(1,'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay');os.environ['HF_HUB_OFFLINE']='1'
+import torch
+from rsna.competitive.compact_infer import load_model
+from rsna.competitive.checkpoint import file_sha256
+from rsna.competitive.compact_bag import window_tensor,candidate_windows
+from rsna.competitive.compact_mc import predict_both
+# Already verified original fixture; no new image read/transfer and no clinical labels.
+fixture=torch.load(S/'fixture.pt',map_location='cpu',weights_only=True)
+assert fixture['study_uid']=='engineering-fixture-v1'
+run=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production')
+p=run/f'epoch-checkpoints/epoch-{epoch:03d}.pt';side=json.loads(p.with_suffix('.json').read_text());assert side['epoch']==epoch and side['optimizer_steps']==epoch*281 and side['binding']['diagnostic_only'] is False and side['checkpoint_sha256']==PACKAGE['private_checkpoint_sha256']
+model,policy=load_model(p,side['checkpoint_sha256'],allow_diagnostic=False);assert policy['competition_eligible'] and policy['epoch']==epoch
+torch.set_num_threads(1);started=time.monotonic()
+with torch.inference_mode():values=model(fixture['windows'],chunk_size=12).sigmoid().tolist()
+R.mkdir(mode=0o700);D=R/'dataset';D.mkdir(mode=0o700)
+os.link(p,D/'checkpoint.pt');shutil.copyfile(p.with_suffix('.json'),D/'epoch.json')
+reference={'checkpoint_sha256':side['checkpoint_sha256'],'epoch':epoch,'fixture_sha256':file_sha256(S/'fixture.pt'),'full':values,'CPU_reference_seconds':time.monotonic()-started,'diagnostic_fixture_only':True,'clinical_accuracy_claim':False}
+(D/'reference.json').write_text(json.dumps(reference,indent=2)+'\n')
+provenance={'source_training_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','original_job':'930744','epoch':epoch,'original_binding':side['binding'],'runtime_components':'godlydonuts/rsna-compact-t4-probe-bcc8d6223af8 v1','runtime_component_role':'locked dependencies and unlabelled fixture ONLY; diagnostic weights not used','initialization_license':'Apache-2.0; original initialization-model-card.md and Apache-2.0-LICENSE.txt in runtime component','outer_labels_or_predictions_read':False,'no_ImageNet_base_upload':True}
+(D/'provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+files={p.name:{'bytes':p.stat().st_size,'sha256':file_sha256(p)} for p in D.iterdir()}
+m={'kind':'compact_N3_scheduled_epoch_component_v1','source_training_git':provenance['source_training_git'],'epoch':epoch,'optimizer_steps':epoch*281,'diagnostic_only':False,'competition_eligible':True,'files':files}
+(D/'component-manifest.json').write_text(json.dumps(m,indent=2)+'\n')
+slug=f'godlydonuts/rsna-compact-n3-{stamp}-'+side['checkpoint_sha256'][:12]
+(D/'dataset-metadata.json').write_text(json.dumps({'id':slug,'title':slug.split('/')[1].replace('-',' '),'licenses':[{'name':'other'}]},indent=2)+'\n')
+out={'status':'scheduled_production_component_CPU_reference_prepared','root':str(R),'epoch':epoch,'checkpoint_sha256':side['checkpoint_sha256'],'component_manifest_sha256':file_sha256(D/'component-manifest.json'),'dataset_slug':slug,'CPU_reference_seconds':reference['CPU_reference_seconds'],'new_node_cap_bytes':2**30,'all_three_future_component_caps_bytes':3*2**30,'matched_neighbor_cap_preserved_bytes':16*2**30,'free_after_existing_and_new_liabilities':free-required,'GPU':False,'cloud_mutation':False,'clinical_accuracy_claim':False}
+(R/'prepared.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
