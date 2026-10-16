@@ -1,0 +1,57 @@
+"""Finite CPU-only E4 preparer; no cloud push, submission, training or outer reads."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent; intent=L/'epoch4-component-controller.intent.json'
+with intent.open('x') as f:json.dump({'epoch':4,'maximum_CPU_dispatches':1,'GPU':0,'cloud_mutation':False,'automatic_retry':False,'maximum_wait_seconds':1800},f)
+program=r'''
+import hashlib,json,os,shutil,sys,time
+from pathlib import Path
+assert os.uname().nodename=='evc33'
+R=Path('/tmp/rsna-compact-production-e004-component-20261016-v1');assert not R.exists()
+# Retain original20GiB reserve,24GiB fitter,2GiB diagnostic,70GiB additional345;
+# separately admit1GiB for this CPU component+later ZIP, with no deletion credit.
+free=shutil.disk_usage('/tmp').free;required=396100843459+(20+24+2+70+1)*2**30;assert free>required
+S=Path('/tmp/rsna-compact-T4-probe-20261016-v1/dataset');sys.path.insert(0,str(S/'code'));sys.path.insert(1,'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay');os.environ['HF_HUB_OFFLINE']='1'
+import torch
+from rsna.competitive.compact_infer import load_model
+from rsna.competitive.checkpoint import file_sha256
+from rsna.competitive.compact_bag import window_tensor,candidate_windows
+from rsna.competitive.compact_mc import predict_both
+# Already verified original fixture; no new image read/transfer and no clinical labels.
+fixture=torch.load(S/'fixture.pt',map_location='cpu',weights_only=True)
+assert fixture['study_uid']=='engineering-fixture-v1'
+run=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production')
+p=run/'epoch-checkpoints/epoch-004.pt';side=json.loads(p.with_suffix('.json').read_text());assert side['epoch']==4 and side['optimizer_steps']==1124 and side['binding']['diagnostic_only'] is False
+model,policy=load_model(p,side['checkpoint_sha256'],allow_diagnostic=False);assert policy['competition_eligible'] and policy['epoch']==4
+torch.set_num_threads(1);started=time.monotonic()
+with torch.inference_mode():values=model(fixture['windows'],chunk_size=12).sigmoid().tolist()
+R.mkdir(mode=0o700);D=R/'dataset';D.mkdir(mode=0o700)
+os.link(p,D/'checkpoint.pt');shutil.copyfile(p.with_suffix('.json'),D/'epoch.json')
+reference={'checkpoint_sha256':side['checkpoint_sha256'],'epoch':4,'fixture_sha256':file_sha256(S/'fixture.pt'),'full':values,'CPU_reference_seconds':time.monotonic()-started,'diagnostic_fixture_only':True,'clinical_accuracy_claim':False}
+(D/'reference.json').write_text(json.dumps(reference,indent=2)+'\n')
+provenance={'source_training_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','original_job':'930744','epoch':4,'original_binding':side['binding'],'runtime_components':'godlydonuts/rsna-compact-t4-probe-bcc8d6223af8 v1','runtime_component_role':'locked dependencies and unlabelled fixture ONLY; diagnostic weights not used','initialization_license':'Apache-2.0; original initialization-model-card.md and Apache-2.0-LICENSE.txt in runtime component','outer_labels_or_predictions_read':False,'no_ImageNet_base_upload':True}
+(D/'provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
+files={p.name:{'bytes':p.stat().st_size,'sha256':file_sha256(p)} for p in D.iterdir()}
+m={'kind':'compact_N3_scheduled_epoch_component_v1','source_training_git':provenance['source_training_git'],'epoch':4,'optimizer_steps':1124,'diagnostic_only':False,'competition_eligible':True,'files':files}
+(D/'component-manifest.json').write_text(json.dumps(m,indent=2)+'\n')
+slug='godlydonuts/rsna-compact-n3-e004-'+side['checkpoint_sha256'][:12]
+(D/'dataset-metadata.json').write_text(json.dumps({'id':slug,'title':slug.split('/')[1].replace('-',' '),'licenses':[{'name':'other'}]},indent=2)+'\n')
+out={'status':'scheduled_production_component_CPU_reference_prepared','root':str(R),'epoch':4,'checkpoint_sha256':side['checkpoint_sha256'],'component_manifest_sha256':file_sha256(D/'component-manifest.json'),'dataset_slug':slug,'CPU_reference_seconds':reference['CPU_reference_seconds'],'new_node_cap_bytes':2**30,'free_after_existing_and_new_liabilities':free-required,'GPU':False,'cloud_mutation':False,'clinical_accuracy_claim':False}
+(R/'prepared.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+'''
+compile(program,'epoch4_component','exec');(L/'epoch4-component-program.py.txt').write_text(program)
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+started=time.monotonic()
+while time.monotonic()-started<1800:
+ check="from pathlib import Path;print(int(Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/epoch-checkpoints/epoch-004.json').exists()))"
+ cmd=['srun','--jobid=930744','--overlap','--ntasks=1','--cpus-per-task=1','--gres=none','/usr/bin/python3.12','-B','-c',check]
+ x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=45)
+ if x.returncode:raise RuntimeError('Original-node observation failed; no retry/dispatch')
+ if x.stdout.strip()=='1':break
+ assert x.stdout.strip()=='0';(L/'epoch4-component-controller-progress.json').write_text(json.dumps({'waiting_for_original_completed_epoch':4,'elapsed_seconds':time.monotonic()-started}));time.sleep(60)
+else:raise TimeoutError('Original epoch not ready within finite interval; no dispatch')
+with (L/'epoch4-component-CPU.intent.json').open('x') as f:json.dump({'epoch':4,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'CPU':1,'GPU':0,'cloud_mutation':False,'new_node_cap_bytes':2**30},f)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:15:00','--job-name=rsna-compact-e4-component','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=950)
+out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'epoch4-component-CPU.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+if x.returncode:raise SystemExit(1)

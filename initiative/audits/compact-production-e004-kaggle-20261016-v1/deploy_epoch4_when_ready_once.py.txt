@@ -1,0 +1,33 @@
+"""Finite production deployment; preserve all original phase intents/results."""
+import json,subprocess,sys,time
+from pathlib import Path
+from build_epoch4_notebook import build
+L=Path(__file__).resolve().parent
+with (L/'epoch4-deploy-controller.intent.json').open('x') as f:json.dump({'maximum_seconds':9000,'epoch':4,'maximum_dataset_creates':1,'maximum_kernel_pushes':1,'maximum_competition_submissions':1,'automatic_mutation_retry':False},f)
+started=time.monotonic()
+try:
+ while time.monotonic()-started<1800:
+  result=L/'epoch4-component-CPU.result.json'
+  if result.exists():break
+  (L/'epoch4-deploy-controller-progress.json').write_text(json.dumps({'phase':'waiting_original_epoch4_CPU_component','elapsed_seconds':time.monotonic()-started}));time.sleep(45)
+ else:raise TimeoutError('Original CPU component not observed within finite interval')
+ value=json.loads(result.read_text());assert value['returncode']==0;prepared=json.loads(value['stdout']);assert prepared['status']=='scheduled_production_component_CPU_reference_prepared'
+ notebook=build(prepared,L/'epoch4-notebook.py');(L/'epoch4-notebook-prepared.json').write_text(json.dumps(notebook,indent=2)+'\n')
+ for phase in ['create','verify','push']:
+  (L/'epoch4-deploy-controller-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started}));subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),phase],check=True)
+ from scripts.kaggle.workflow import Remote
+ remote=Remote();slug=notebook['kernel_slug']
+ while time.monotonic()-started<9000:
+  status=remote.kernel('GetKernelSessionStatus',slug,1).get('status');(L/'epoch4-deploy-controller-progress.json').write_text(json.dumps({'phase':'actual_public_execution','status':status,'elapsed_seconds':time.monotonic()-started}));print(json.dumps({'public_status':status,'kernel_slug':slug}),flush=True)
+  if status in ['COMPLETE','ERROR','CANCELLED']:
+   subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),'status'],check=True)
+   assert status=='COMPLETE','Public production acceptance failed; preserve original, no submission'
+   accepted=remote.output_json(slug,1,'compact-production-accepted.json');precision=remote.output_json(slug,1,'compact-production-precision.json')
+   (L/'epoch4-public-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n');(L/'epoch4-production-precision.json').write_text(json.dumps(precision,indent=2)+'\n')
+   subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),'submit'],check=True)
+   result={'status':'one_epoch4_compact_code_submission_accepted','checkpoint_sha256':prepared['checkpoint_sha256'],'kernel_slug':slug,'version':1,'hidden_score':None};break
+  time.sleep(60)
+ else:raise TimeoutError('Finite public observation ended; inspect same version read-only')
+except Exception as exc:
+ result={'status':'stopped_for_original_state_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_mutation_retry':False}
+(L/'epoch4-deploy-controller-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
