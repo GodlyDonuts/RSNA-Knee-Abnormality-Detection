@@ -14,7 +14,7 @@ from pathlib import Path
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--runtime-stream-sha256", required=True)
+    p.add_argument("--runtime-manifest-sha256", required=True)
     p.add_argument("--output", type=Path, required=True)
     args = p.parse_args()
     if os.uname().nodename != "evc39" or os.environ.get("SLURM_JOB_GPUS") or args.output.exists():
@@ -41,11 +41,14 @@ def main():
     from rsna.competitive.compact_train import admitted_datasets, input_census
 
     torch.set_num_threads(1)
-    runtime = json.loads(
-        Path("/tmp/rsna-compact-neighbor-runtime39-20261016-v1/received.json").read_text()
-    )
+    runtime = json.loads((root / "direct-suffix-v2/verified.json").read_text())
     native = json.loads((root / "native-cache-verified.json").read_text())
-    if runtime["sha256"] != args.runtime_stream_sha256 or (
+    if (
+        runtime["manifest_sha256"] != args.runtime_manifest_sha256
+        or runtime["status"] != "actual_original_cache_runtime_TLS_prefix_suffix_verified"
+        or runtime["private_TLS_and_RAM_token"] is not True
+        or runtime["runtime_files"] < 1000
+    ) or (
         native["status"] != "native_original_cache_evc39_whole_bytes_verified"
         or native["members"] != 37812
         or native["bytes"] != 140626483351
@@ -156,7 +159,7 @@ def main():
         actual_original32_tensor_replay_bit_equal=True,
         actual_original_initial_head_equal=True,
         original_evc33_admission_sha256="7e129302861de2a4b584f3df628163cbbfe6d537073c636a1f2b4e6c1589b352",
-        runtime_stream_sha256=runtime["sha256"],
+        runtime_manifest_sha256=runtime["manifest_sha256"],
         native_registry_sha256=native["registry_sha256"],
         relocation_CPU_seconds=time.monotonic() - started,
         free_after_conservative_all_liabilities=free - 581021415363 - 2 * 2**20,
