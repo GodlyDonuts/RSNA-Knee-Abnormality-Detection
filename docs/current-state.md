@@ -149,3 +149,8 @@ uniform rows; added345 have59 (37at.25,18at.025,4at.015). These are source distr
 not confirmed label errors. The .25 missingness interpretation remains disputed;
 no labels/masks are silently changed. Expansion remains an experiment, not a
 claim of345additional clinically correct labels.
+
+Latest new-research sourcea5f18d35 (expanded/dense actual MRI proofs, ownE8score,
+E12submission and fixed-average staging) is also privately fully verified once:
+HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8,41objects/146295bytes.
+[Receipt](../initiative/audits/hf-paper3-actual-progress-20261016-v1/verified.json).

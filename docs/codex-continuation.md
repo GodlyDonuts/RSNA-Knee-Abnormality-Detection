@@ -98,10 +98,11 @@ include UTC observation time, and distinguish prepared/CPU-admitted/GPU-admitted
 submitted/running/complete/scored. Archive older snapshots; do not stack conflicting
 “latest” blocks on entry pages. Source-level tests are not accuracy evidence.
 
-Latest verified documentation milestone: sourceec137184 at
-HF4a3c3a848ecb3fa67afcc491f0a31c1e874aa408,17objects fully verified once.
-New actual expanded/dense/score/late-average staging milestones await their
-distinct private mirror; never repeat older mirrors. Credentials
+Latest verified research milestone: sourcea5f18d35 at
+HFdd33861fa35ae6eec60f667168b62e1b2bcd49e8,41small objects/146295bytes fully
+re-downloaded/size/SHA verified once. Includes actual expanded/dense MRI admissions,
+ownE8 .869, new source, original epochs13–14 and CPUaverage staging.
+Do not repeat this or older sourceec137184/HF4a3c3a84 documentation mirror. Credentials
 stay in ignored 0600 `.env`, RAM/stdin; raw clinical assets stay private.
 
 Root owns dense coverage and source research directly; Devin is unavailable.
