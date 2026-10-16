@@ -25,3 +25,11 @@ Full3epoch adaptation preserves one fixed1458-update LR/optimizer/RNG schedule.
 Use bounded checkpoint-continuous segments under Kaggle's9hour maximum if actual
 whole94timing requires it; do not reset LR or change data per segment. The current
 GPU diagnostic time includes evaluation and cannot be treated as per-update cost.
+
+Actual CPU939271 prepared all3887rows bit-exactly,483656bytes, targetSHA48b4485f.
+CPU939291 created ONE privateDataset12641441v1,godlydonuts/rsna-parent-fit-targets-
+48b4485f03b6; all5objects fullydownload/size/SHAverified. No new GPU/competition
+entry/encoder inference. Canonical key licensed-parent-full-targets:<targetSHA>
+points to that verified exact version. Do not repeat preparation/create/download.
+Only aggregate/hash/source receipts are retained here; the NPZ stays PRIVATE.
+Full PixelBags CPU bridge is still separately required before production.

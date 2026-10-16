@@ -20,11 +20,9 @@ POPULATION_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f
 
 class PixelBags:
     def __init__(self, records, roots, targets, render, *, diagnostic_only=False):
-        self.records, self.roots, self.render = (
-            records,
-            {k: Path(p) for k, p in roots.items()},
-            render,
-        )
+        self.records = [dict(row) for row in records]
+        records = self.records
+        self.roots, self.render = {k: Path(p) for k, p in roots.items()}, render
         self.uids = [r["study_uid"] for r in records]
         if (
             not records

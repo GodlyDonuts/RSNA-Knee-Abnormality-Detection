@@ -297,73 +297,108 @@ No new hidden score; next useful independent work is implementing/executing the
 private32CPU pixel-cache gate, not rerunning completed head fits or waiting idle
 for next-day allowance. Root implements directly without Devin.
 
+## Current exact-parent whole-study adaptation
 
-## October16 exact-parent input and end-to-end update
+The stronger direction starts from the attributed MRI-trained parent that actually
+scored0.949; our own ImageNet-initialized N3 best remains0.894. No new leaderboard
+or clinical gain has yet been established by this adaptation.
 
-Actual CPU Kaggle139099964v1 completed32original fitting MRI cases in149.16s,
-326.80MBarchive,1.90GBRSS/fourcores. Every original96x384uint8volume/mask and
-both94-window FP32 input tensors remained bit-identical. Independent owning-node
-CPU938918 verified original archive/members/rendered hashes/fitting membership,
-reusing the original downloaded bytes. Two secondary slow-reader cases also had
-zero differing pixels. No CNN optimization or accuracy metric ran in this gate.
-[Actual32proof](../initiative/audits/licensed-parent-pixels32-20261016-v1/README.md).
+Actual32MRI input gate139099964v1/CPU938918 passed: exact original96x384uint8
+volumes/masks and both94-window FP32 tensors,326.80MBarchive,149.16seconds,
+1.90GBRSS. It preserves the scored model's inputs without additional quality loss;
+it does not preserve every raw DICOM slice. Two secondary slow-reader cases also
+matched exactly. [Original proof](../initiative/audits/licensed-parent-pixels32-20261016-v1/README.md).
 
-Measured projected full3887pixels~39.70GB exceeds one20.94GBKaggle scratch. Four
-bounded14GiBprivate CPU producers are actually RUNNING, each originalv1 once:
-139103622/139103665/139103730/139103781. No competition slots/GPU used. Reuse the
-original32archive without redecoding/reencoding/transferring it again; new3855
-members will be retained on evc39 and mounted read-only for Kaggle training.
-Actual fresh evc39 funding admits64GiBcache+12GiBfuture trainer/recovery/epoch
-storage+1GiBoptional exact parent+128MiBcontrols, after all prior607078528963bytes;
-required689890867139bytes, no deletion credit/shared growth. No parent weight was
-copied; Kaggle already holds the exact original Dataset. Full-cache completion
-and its independent collection are still pending.
+Both real twoT4 numerical recoveries are now COMPLETE:
 
-Sole finite cache owner exec16427/PID75016:
-artifacts/licensed-parent-pixels-full-20261016-v1/continue_after_management_closure_once.py,
-10hbound, read-only5min polls, one collection per exact shard. Original53176/PID74802
-stopped on missing management components.py BEFORE any Kaggle call; distinct
-CPU939061 proved all4push intents/ledger rows absent and accepted the exact
-management closure. The four original scientific sources were reused unchanged;
-no duplicate kernel or GPU fit. Inspect original continuation/phase receipts
-before action. [Full source/funding/dispatch/failure](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
+| Path | Exact notebook | Actual result | Peak allocated/GPU |
+|---|---:|---|---:|
+| Original12sampled-window training |139104577v1| Full/stop1/resume exact |7.604GB|
+| Whole94-window checkpointed training |139105348v1| Full/stop1/resume exact |5.973GB|
 
-New licensed_parent_train numerical engine and private MRI recovery compiler are
-PREPARED, not GPU-dispatched. Fixed short3epoch full-encoder/MIL adaptation from
-the licensed.949 foundation, effective8, original12 sampled of94windows, low
-encoder/headLR3e-6/3e-5, frozen parent BN buffers, .25source+.75full-parent teacher,
-FP16/FP32/scaler/twoT4DDP. Complete actual CPU two-rank full/stop1/resume equality
-passed, including7-case final batch and changed encoder+head;36focused tests,
-Ruff/mypy clean. This is engineering only. Real32MRI twoT4 recovery/timing is
-still required before full adaptation. [Exact prospective recipe](../initiative/audits/licensed-parent-trainer-recovery-20261016-v1/README.md).
+Both used16fitting+16disjoint engineering MRI cases,2epochs/4updates,
+all73,136,096parameters trainable, complete model/base/AdamW/LR/cursors/allrankRNG/
+GradScaler equality and identical16engineering two-view prediction bytes. Parent
+BN buffers stayed unchanged. These prove engineering behavior, not accuracy.
+The whole94path consumed416.87seconds for all three process flows; its full arm
+168.15seconds includes engineering evaluation and cannot be treated as pure
+training time. [12window receipt](../initiative/audits/licensed-parent-trainer-recovery-20261016-v1/actual-twoT4-accepted.json),
+[whole-study source/proofs](../initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
 
-Own expanded938284 and entry PIDs54576/69887/72998/watcher69208 remain untouched.
-Four next-window candidates are still accepted/unsubmitted; no new hidden score
-or current-entry allowance is inferred from the CPU cache jobs. Root implements
-directly; Devin remains unavailable.
+Whole-study MIL keeps all94original windows in each bag, checkpoint-recomputing
+8-window encoder chunks to bound activation memory. Every encoder/head parameter
+still trains. Inference uses the unchanged parent encoder and94two-view path.
+Prospective full recipe:3epochs/3887eligible fitting studies/1458updates,
+effective8, low encoder/headLR3e-6/3e-5,AdamW/10%warmup-cosine/clip1,
+.25original source+.75view-specific full-parent teacher, frozen parent BN buffers.
+Protected Gold/confirmation remain unused. No independent localOOF is possible
+for this exposed parent. Full GPU production is NOT yet dispatched.
 
+The required original pixel population is projected~39.70GB. Four private CPU
+cache originals139103622/139103665/139103730/139103781 v1 remain RUNNING,
+covering3887ordered fitting studies exactly; reuse32original members and encode
+only3855new cases. No competition slots/GPU used. Each output is bounded14GiB;
+training will mount them read-only instead of creating a second40GBworking tree.
+Full-cache terminal/collection is still pending. [Actual four sources/funding](../initiative/audits/licensed-parent-pixels-full-20261016-v1/README.md).
 
-Actual next-stage GPU139104577v1 is now RUNNING: private/offline twoT4 real32MRI
-trainer recovery, source10baa6a1/427f3be6d494. No competition entry or production
-fit. Sole observer exec95390/PID75626, continue-after-preintent-claim.* receipts.
-CPU939134 accepted all exact32pixel/fitting-label/source joins; CPU939135 was a
-pre-mutation busy-claim refusal. Distinct continuation verified absent original
-remote push intent/ledger row, waited for the canonical lock and pushed ONCE via
-CPU939147. Fresh conservative83362.257GPU seconds before1hmaxrequest. No score.
-[Exact original GPU state/receipts](../initiative/audits/licensed-parent-trainer-recovery-20261016-v1/README.md).
+CPU939271 compacted all3887original labels/masks and both teacher-logit views
+bit-exactly into483656bytes. CPU939291 created ONE private training Dataset
+**12641441v1**,godlydonuts/rsna-parent-fit-targets-48b4485f03b6, all5objects fully
+download/size/SHAverified. No encoder or optimizer ran in that preparation. The
+private UID/label/logit arrays stay on cluster/Kaggle, not Git/smallHF mirrors.
+[Full input bridge](../initiative/audits/licensed-parent-production-inputs-20261016-v1/README.md).
 
-A stronger whole-study path is separately prepared: nonreentrant checkpointed
-8-window encoder chunks let MIL attend over ALL94original windows per update,
-with every encoder/head parameter training and unchanged evaluation path.
-Synthetic exact forward/all-gradient/BN-buffer/RNG parity passed against the
-same full94graph without checkpointing. This trades extra computation for
-bounded memory; real T4 recovery/memory/timing is still required. Prefer this
-complete evidence exposure over12sampled windows if its engineering acceptance
-passes, without using tiny diagnostic accuracy to select it. No whole94 GPU has
-yet been dispatched. [Mechanism and limitations](../initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
+Current focused engineering checks:52passed,Ruff/mypy clean, including fresh
+2rank CPU recovery, exact whole94gradient/RNG parity and input/target roundtrips.
+The new full-population loader still needs its own actual32CPU bridge admission.
+Production must bind all4actual cache proofs, exact original weight/source/labels,
+accepted whole94GPU receipt and fresh resource state. Use checkpoint-continuous
+fixed-schedule segments if needed to stay below Kaggle's9hour/session limit;
+never reset the LR/optimizer schedule per segment.
 
-Current focused cache/engine/whole-bag/compiler QA:40tests passed;Ruff/mypy clean.
-The original12-window live GPU source and four CPU cache producers stay untouched.
-No additional clinical/competition score has been observed. Full Kaggle fitting
-must use measured timing and checkpoint-continuous fixed-schedule segments when
-needed; never assume3epochs fit one9h session or reset the LR schedule per segment.
+## Exact active owners and next action
+
+Actual32source gate/proof root on evc33:
+/tmp/rsna-licensed-parent-pixels32-20261016-v1; CPU938918verified original downloads.
+Its canonical meta may still say actual_accepted; reconcile using existing938918
+proof, never retransfer or repeat the old gate. Original source09254e97913d.
+
+All4cache sourceGit80605bc0, source hashes a1e397b02232/de046eb0aa17/
+230f83898475/4e7107a78606. Collection root evc39/tmp/rsna-licensed-parent-pixels-
+full-20261016-v1. Sole live finite observer **exec50099/PID76976**,
+artifacts/licensed-parent-pixels-full-20261016-v1/observe_and_collect_original_four_once.py.
+It has no push/stage phase, observes all4in oneCPUallocation with bounded claim
+waiting, and collects each actual terminal once. Original74802/75016terminated
+before push/on read-only busy claims respectively; never restart them or create
+new cache notebooks. Inspect collection-observer.* plus observer-*phase receipts.
+
+Original12GPU observer75626/exec95390 and whole94observer75947/exec70752 are
+TERMINALsuccess. Never restart either or submit its diagnostic weights. Exact
+12source10baa6a1/427f3be6d494; whole94source60eb779b/a45d2a00322d,
+worker9f87ffd3b4a3a090817a42fe0ee43161367efb582784db0a2176df2453606791.
+Whole numerical modules: enginecf238d91,mixin74a4e19e,checkpointera70ef871,
+loss4ed7cd19. New production PixelBags is a separate input wrapper and must have
+actual CPU bridge acceptance; it cannot inherit that merely from unit tests.
+
+Private compact target root evc33/tmp/rsna-licensed-parent-production-inputs-
+20261016-v1; targetSHA48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285.
+Its canonical Dataset key licensed-parent-full-targets:<targetSHA> is fullyverified.
+Never republish/re-download/rebuild that Dataset or expose its private payload.
+
+Fresh evc39 funding after all607078528963prior required bytes:64GiBcache+
+12GiBrecovery/epochs/publication+1GiBoptional exact-parent+128MiBcontrols,
+required689890867139bytes. Deduct only actual fullyverified paid cache bytes
+from future liabilities. Original32still on evc33; no second transfer for cache
+collection. Kaggle can mount the original32output directly. Separate evc33
+16MiBcontrols admission requiresfree>607095306179and bounds both GPU control
+roots plus compact target/publication roots; actual prior count1.20MBbefore
+smallDataset ZIP. No deletion credit/shared growth/new parent-weight acquisition.
+
+Own expanded938284 remains originalPENDINGPriority on evc33; watcher69208 stays
+live. Entry owners54576/69887/72998 keep next-window spaced comparisons. No new
+competition entry this input/recovery work. Last authoritative account20:31UTC
+was5today/44total/0allowed, resetunknown. Recheck live authority before any entry.
+Canonical ledger/claim and original exact private notebook versions remain binding.
+Root implements directly; Devin unavailable. Next priority is full input admission
+and bounded whole94full adaptation from the strong MRI parent, not another
+head-only re-fit or replay of completed diagnostic work.

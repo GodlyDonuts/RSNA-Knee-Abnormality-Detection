@@ -35,13 +35,13 @@ alone cannot explain the gap. Fractional confidence changes the supervision more
 broadly. [Actual contrast and source-semantics finding](initiative/audits/source-confidence-context-20261016-v1/README.md).
 
 The next full-encoder direction starts from the licensed MRI-trained0.949
-foundation. Actual32MRI input preservation passed with identical original pixels
-and both94-window model inputs. Four full3887-study CPU cache shards are now
-running on Kaggle; a separate exact-parent twoT4 training-recovery probe is also
-running. Neither is a scored improvement. A whole-study checkpointed encoder
-path passed synthetic exact forward/gradient/RNG tests and could train on all94
-windows without retaining every activation. It still needs actual T4 acceptance.
-[Current full-encoder program](initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
+foundation. Both actual two-T4 recovery paths passed, including complete state
+and prediction equality. The new whole-study path trains all94windows together
+with all73.1Mparameters trainable, using **5.97GBpeak/GPU**, versus7.60GBfor the
+sampled12-window path. This is an engineering result, not an accuracy gain.
+Four full3887-study CPU cache shards are still running; its compact private
+training-target/teacher Dataset is already fully verified. Full production has
+not started. [Current whole-study program](initiative/audits/licensed-parent-whole94-recovery-20261016-v1/README.md).
 
 The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
 on 3,887 fitting studies. This is evidence about training exposure, **not disease

@@ -59,7 +59,9 @@ def test_reads_original_archive_without_extracting_images_and_aligns_anatomical_
     assert torch.equal(mirror["parent_logits"], torch.ones(12) * 2)
     assert len(data.verified_inputs) == 2
     admitted[2]["labels"].zero_()
+    admitted[0][0]["file"] = "external_mutation_must_not_retarget_an_admitted_case"
     assert (data.labels == 0.5).all()
+    assert data.records[0]["file"].endswith(".npz")
 
 
 def test_engineering_fixture_cannot_claim_full_original_fitting_admission(admitted):

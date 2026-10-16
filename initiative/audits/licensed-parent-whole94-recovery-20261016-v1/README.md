@@ -46,3 +46,15 @@ At most one KaggleGPU VM plus the separately queued own H100job. Onehour max,
 no competition entry. Sole finite owner exec70752/PID75947 observes terminal,
 never auto-retries/pushes or starts a production fit. No actual whole94acceptance
 or accuracy is claimed until its exact terminal receipt.
+
+Actual whole94GPU terminal COMPLETE/accepted. Both T4s trained all94windows,
+all73,136,096parameters trainable,4finite updates, complete numerical recovery
+and identical16engineering two-view prediction bytes. Both measured peaks
+5,973,103,104bytes, versus7,603,887,104for the separate12-window probe: more
+windows with21.4%lower measured peak allocation. This is not an accuracy gain or
+an isolated compute comparison; graph/memory strategy/input count differ.
+Three fresh process flows416.87seconds; full arm168.15seconds includes engineering
+inference. Do not use that as a pure training-step measurement. Both original
+recovery owners are terminalsuccess; never repeat either or submit diagnostics.
+The whole94source is accepted for subsequent prospective full adaptation subject
+to actual full input/funding/runtime bindings; no full fit exists yet.
