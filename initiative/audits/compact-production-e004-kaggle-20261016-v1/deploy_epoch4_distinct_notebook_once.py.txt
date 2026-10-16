@@ -1,0 +1,29 @@
+"""One distinct notebook after actual original409 and exhaustive absence."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+old=json.loads((L/'epoch4-continue-after-ingestion-result.json').read_text());assert old['status']=='stopped_for_original_state_review'
+absence=json.loads((L/'epoch4-original-notebook-absence.json').read_text());assert absence['no_mutation']
+x=json.loads((L/'epoch4-component-CPU.result.json').read_text());assert x['returncode']==0;prepared=json.loads(x['stdout']);notebook=json.loads((L/'epoch4-recovery-notebook-prepared.json').read_text());assert hashlib.sha256((L/'epoch4-notebook.py').read_bytes()).hexdigest()==notebook['source_sha256']
+assert not (L/'epoch4-submit.intent.json').exists()
+with (L/'epoch4-distinct-controller.intent.json').open('x') as f:json.dump({'preserved_original409':True,'dataset_id':12623916,'new_notebook_slug':notebook['kernel_slug'],'original_source_unchanged':True,'maximum_new_dataset_creates':0,'maximum_distinct_notebook_pushes':1,'maximum_competition_submissions':1,'automatic_mutation_retry':False},f)
+started=time.monotonic()
+try:
+ for phase in ['push']:
+  (L/'epoch4-distinct-controller-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started}));subprocess.run([sys.executable,str(L/'run_epoch4_recovery_phase.py'),phase],check=True)
+ from scripts.kaggle.workflow import Remote
+ remote=Remote();slug=notebook['kernel_slug']
+ while time.monotonic()-started<7200:
+  status=remote.kernel('GetKernelSessionStatus',slug,1).get('status');(L/'epoch4-distinct-controller-progress.json').write_text(json.dumps({'phase':'actual_public_execution','status':status,'elapsed_seconds':time.monotonic()-started}));print(json.dumps({'public_status':status,'kernel_slug':slug}),flush=True)
+  if status in ['COMPLETE','ERROR','CANCELLED']:
+   subprocess.run([sys.executable,str(L/'run_epoch4_recovery_phase.py'),'status'],check=True)
+   assert status=='COMPLETE','Public production acceptance failed; preserve original, no submission'
+   accepted=remote.output_json(slug,1,'compact-production-accepted.json');precision=remote.output_json(slug,1,'compact-production-precision.json')
+   (L/'epoch4-public-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n');(L/'epoch4-production-precision.json').write_text(json.dumps(precision,indent=2)+'\n')
+   subprocess.run([sys.executable,str(L/'run_epoch4_recovery_phase.py'),'submit'],check=True)
+   result={'status':'one_epoch4_compact_code_submission_accepted','checkpoint_sha256':prepared['checkpoint_sha256'],'kernel_slug':slug,'version':1,'hidden_score':None};break
+  time.sleep(60)
+ else:raise TimeoutError('Finite public observation ended; inspect same version read-only')
+except Exception as exc:
+ result={'status':'stopped_for_original_state_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_mutation_retry':False}
+(L/'epoch4-distinct-controller-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

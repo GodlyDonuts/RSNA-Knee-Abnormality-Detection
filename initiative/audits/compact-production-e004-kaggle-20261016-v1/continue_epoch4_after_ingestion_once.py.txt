@@ -1,0 +1,32 @@
+"""Continue ONLY after original create succeeded and ingestion is actually READY."""
+import hashlib,json,subprocess,sys,time
+from pathlib import Path
+from scripts.kaggle.workflow import Remote
+L=Path(__file__).resolve().parent
+assert json.loads((L/'epoch4-deploy-controller-result.json').read_text())['status']=='stopped_for_original_state_review'
+create=json.loads((L/'epoch4-create-result-0.json').read_text());assert create['returncode']==0 and json.loads(create['stdout'])['response']['final_create_rpc_calls']==1
+assert not (L/'epoch4-push.intent.json').exists() and not (L/'epoch4-submit.intent.json').exists()
+x=json.loads((L/'epoch4-component-CPU.result.json').read_text());assert x['returncode']==0;prepared=json.loads(x['stdout']);notebook=json.loads((L/'epoch4-notebook-prepared.json').read_text());assert hashlib.sha256((L/'epoch4-notebook.py').read_bytes()).hexdigest()==notebook['source_sha256']
+r=Remote();slug=notebook['kernel_slug'];meta=r.dataset(slug);assert meta['id']==12623916 and meta['isPrivate'] is True and meta['currentVersionNumber']==1
+assert r.call('datasets.DatasetApiService','GetDatasetStatus',{'ownerSlug':'godlydonuts','datasetSlug':slug.split('/')[1]})['status']=='READY'
+with (L/'epoch4-continue-after-ingestion.intent.json').open('x') as f:json.dump({'original_create_preserved':True,'dataset_id':12623916,'dataset_version':1,'private':True,'ready':True,'maximum_seconds':7200,'maximum_new_dataset_creates':0,'maximum_kernel_pushes':1,'maximum_competition_submissions':1,'automatic_mutation_retry':False},f)
+started=time.monotonic()
+try:
+ for phase in ['verify','push']:
+  (L/'epoch4-continue-after-ingestion-progress.json').write_text(json.dumps({'phase':phase,'elapsed_seconds':time.monotonic()-started}));subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),phase],check=True)
+ from scripts.kaggle.workflow import Remote
+ remote=Remote();slug=notebook['kernel_slug']
+ while time.monotonic()-started<7200:
+  status=remote.kernel('GetKernelSessionStatus',slug,1).get('status');(L/'epoch4-continue-after-ingestion-progress.json').write_text(json.dumps({'phase':'actual_public_execution','status':status,'elapsed_seconds':time.monotonic()-started}));print(json.dumps({'public_status':status,'kernel_slug':slug}),flush=True)
+  if status in ['COMPLETE','ERROR','CANCELLED']:
+   subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),'status'],check=True)
+   assert status=='COMPLETE','Public production acceptance failed; preserve original, no submission'
+   accepted=remote.output_json(slug,1,'compact-production-accepted.json');precision=remote.output_json(slug,1,'compact-production-precision.json')
+   (L/'epoch4-public-accepted.json').write_text(json.dumps(accepted,indent=2)+'\n');(L/'epoch4-production-precision.json').write_text(json.dumps(precision,indent=2)+'\n')
+   subprocess.run([sys.executable,str(L/'run_epoch4_cloud_phase.py'),'submit'],check=True)
+   result={'status':'one_epoch4_compact_code_submission_accepted','checkpoint_sha256':prepared['checkpoint_sha256'],'kernel_slug':slug,'version':1,'hidden_score':None};break
+  time.sleep(60)
+ else:raise TimeoutError('Finite public observation ended; inspect same version read-only')
+except Exception as exc:
+ result={'status':'stopped_for_original_state_review','error_type':type(exc).__name__,'reason':str(exc),'automatic_mutation_retry':False}
+(L/'epoch4-continue-after-ingestion-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

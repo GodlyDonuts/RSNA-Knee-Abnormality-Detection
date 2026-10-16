@@ -1,0 +1,85 @@
+"""Single canonical coordinator for one scheduled production component/version."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ['push','status','submit']
+R=Path('/tmp/rsna-compact-production-e004-component-20261016-v1');D=R/'dataset';C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');OLD=R/'cloud';E=R/'cloud-distinct-notebook-v1'
+assert os.uname().nodename=='evc33' and os.environ.get('SLURM_CPUS_PER_TASK')=='1' and not os.environ.get('SLURM_JOB_GPUS')
+if phase=='push':assert not E.exists();E.mkdir(mode=0o700)
+else:assert E.is_dir()
+for name,text in v['helpers'].items():assert (C/name).read_text()==text
+
+def module(name):
+ spec=importlib.util.spec_from_file_location('compact_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication')
+import requests
+remote=w.Remote.__new__(w.Remote);remote.session=requests.Session();remote.session.headers['Authorization']='Bearer '+v['token'];identity=remote.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';remote.username='godlydonuts'
+prepared=json.loads((R/'prepared.json').read_text());assert prepared==v['prepared'];manifest=json.loads((D/'component-manifest.json').read_text());assert p.digest(D/'component-manifest.json')==prepared['component_manifest_sha256']
+sha=prepared['checkpoint_sha256'];dataset_slug=prepared['dataset_slug'];slug=v['notebook']['kernel_slug'];entry=v['entry'];assert slug!=dataset_slug;source_sha=hashlib.sha256(entry.encode()).hexdigest();assert source_sha==v['notebook']['source_sha256']
+files=dict(manifest['files']);files['component-manifest.json']={'bytes':(D/'component-manifest.json').stat().st_size,'sha256':p.digest(D/'component-manifest.json')}
+for name,item in files.items():
+ path=D/p.confined(name);assert not path.is_symlink() and path.resolve().is_relative_to(D.resolve()) and path.stat().st_size==item['bytes'] and p.digest(path)==item['sha256']
+assert {x.name for x in D.iterdir()}==set(files)|{'dataset-metadata.json'}
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':entry,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[dataset_slug,'godlydonuts/rsna-compact-t4-probe-bcc8d6223af8','godlydonuts/rsna-wheels-cp312-e326c50a4a6a'],'competitionDataSources':['rsna-knee-abnormality-detection'],'sessionTimeoutSeconds':32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);p.exclusive_json(claim/'owner.json',{'pid':os.getpid(),'slurm_job_id':os.environ['SLURM_JOB_ID'],'host':'evc33','recovery':'read-only original intent/Slurm reconciliation'})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),remote.username) as db:
+  w.verify_account(db,remote)
+  if phase=='create':
+   assert db.execute('SELECT record FROM entries WHERE sha=?',(sha,)).fetchone() is None
+   record={'checkpoint_sha256':sha,'epoch':4,'state':'compact_component_prepared','queued_at':w.utcnow(),'operation':{'kind':'compact_N3_component_v1','kernel_slug':slug,'manifest_sha256':prepared['component_manifest_sha256'],'checkpoint_sha256':sha,'source_sha256':source_sha,'dataset_slug':slug}}
+   w.save_entry(db,record,'queue scheduled N3 epoch4 with exact production component and source')
+   assert shutil.disk_usage('/tmp').free>396100843459+(20+24+2+70+1)*2**30
+   upload=E/'upload';upload.mkdir();p.build_zip(D,files,upload/'bundle.zip')
+   response=p.create_once(remote,v['token'],slug,files,upload,E/'dataset-create',{'archive_sha256':p.digest(upload/'bundle.zip'),'epoch':4,'checkpoint_sha256':sha,'diagnostic_only':False,'component_manifest_sha256':prepared['component_manifest_sha256']})
+   out={'phase':'create','response':response,'competition_submission':False}
+  elif phase=='verify':
+   proofs=E/'download-proofs';proofs.mkdir(exist_ok=True)
+   def stream(remote,slug,name,expected):
+    proof=proofs/(expected['sha256']+'.json')
+    if proof.exists():assert json.loads(proof.read_text())==expected;return expected
+    result=p.stream_file(remote,slug,name,expected);p.exclusive_json(proof,result);return result
+   result=p.reconcile(remote,slug,files,stream=stream,manifest_name='component-manifest.json')
+   if not (E/'dataset-verified.json').exists():p.exclusive_json(E/'dataset-verified.json',result)
+   else:assert json.loads((E/'dataset-verified.json').read_text())==result
+   out=result
+  else:
+   verified=json.loads((OLD/'dataset-verified.json').read_text());assert verified['status']=='all_payload_bytes_verified' and p.metadata(remote,dataset_slug)=={k:verified[k] for k in ['id','version','slug','private']}
+   record=w.read_entry(db,sha);assert record['operation']['source_sha256']==source_sha
+   if phase=='push':
+    assert record['state']=='compact_component_prepared' and not (E/'kernel-create-intent.json').exists()
+    quota=remote.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda s:float(s.removesuffix('s'));assert min(seconds(quota['totalTimeAllowed']),seconds(quota['minimumTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved'])>=64800
+    old_absence=remote.require_absent_kernel(dataset_slug);p.exclusive_json(E/'old-notebook-absence.json',old_absence);assert not (OLD/'kernel-create-response.json').exists() and not (OLD/'submit-intent.json').exists();assert json.loads((OLD/'kernel-create-intent.json').read_text())['source_sha256']==source_sha;absent=remote.require_absent_kernel(slug);state=subprocess.check_output(['squeue','-h','-j','929938','-o','%T'],text=True).strip();assert state=='PENDING','Review GPU concurrency before reserving Kaggle'
+    p.exclusive_json(E/'patch-hold-intent.json',{'job_id':'929938','state':state,'reason':'production Kaggle acceptance alongside original compact training'})
+    job=subprocess.check_output(['scontrol','show','job','929938','-o'],text=True);assert 'Reason=JobHeldUser' in job and (OLD/'patch-held.json').exists() and not (OLD/'patch-release-intent.json').exists();p.exclusive_json(E/'patch-held.json',{'job_id':'929938','held':True,'inherited_original_hold':str(OLD)})
+    p.exclusive_json(E/'kernel-create-intent.json',{'source_sha256':source_sha,'request_sha256':w.object_hash(request),'absence':absent,'checkpoint_sha256':sha,'automatic_retry':False})
+    record.setdefault('superseded_operations',[]).append({'operation':dict(record['operation']),'state':'push_uncertain','HTTP_status':409,'complete_owned_absence':old_absence,'no_retry':True});record['operation']=dict(record['operation'],kernel_slug=slug);record['state']='push_intent';w.save_entry(db,record,'distinct notebook identity after verified absent original409; preserve old operation');
+    try:
+     response=remote.call('kernels.KernelsApiService','SaveKernel',request)
+    except Exception:
+     record['state']='push_uncertain';w.save_entry(db,record,'distinct notebook push uncertain; no retry');raise
+    p.exclusive_json(E/'kernel-create-response.json',response);assert response.get('versionNumber')==1 and response.get('ref')=='/code/'+slug and not response.get('error')
+    record.update(state='compact_pushed',kernel_version=1);w.save_entry(db,record,'one exact compact production kernel version pushed')
+    out={'status':'compact_production_pushed_once','kernel_slug':slug,'version':1,'kernel_id':response.get('kernelId'),'source_sha256':source_sha,'competition_submission':False}
+   else:
+    original=remote.kernel('GetKernel',slug,1);assert original.get('blob',{}).get('source','')==entry;meta=original['metadata']
+    for k in ['isPrivate','enableInternet','machineShape','dockerImage']:assert meta.get(k)==request[k],k
+    for k in ['datasetDataSources','competitionDataSources']:assert sorted(meta.get(k,[]))==sorted(request[k]),k
+    status=remote.kernel('GetKernelSessionStatus',slug,1);out={'status':status.get('status'),'kernel_slug':slug,'version':1,'exact_source_private_offline_T4_verified':True,'competition_submission':False}
+    if status.get('status') in ['COMPLETE','ERROR','CANCELLED'] and (E/'patch-held.json').exists() and not (E/'patch-release-intent.json').exists():
+     p.exclusive_json(E/'patch-release-intent.json',{'job_id':'929938','actual_Kaggle_terminal':status.get('status')});subprocess.run(['scontrol','release','929938'],check=True);p.exclusive_json(E/'patch-released.json',{'job_id':'929938','released':True})
+    if phase=='submit':
+     assert status.get('status')=='COMPLETE' and record['state']=='compact_pushed' and not (E/'submit-intent.json').exists()
+     receipt=remote.output_json(slug,1,'compact-production-accepted.json');assert receipt['status']=='scheduled_compact_MRI_CSV_accepted' and receipt['epoch']==4 and receipt['checkpoint_sha256']==sha and receipt['component_manifest_sha256']==prepared['component_manifest_sha256'] and receipt['source_projection_sha256']==v['notebook']['projection_sha256'] and receipt['diagnostic_only'] is False and receipt['columns']==13 and receipt['studies']>=1 and receipt['submission_bytes']>0
+     precision=remote.output_json(slug,1,'compact-production-precision.json');assert precision['status']=='scheduled_compact_two_T4_precision_accepted' and precision['checkpoint_sha256']==sha and len(precision['devices'])==2
+     db.execute('BEGIN IMMEDIATE');account=remote.account();slots=w.allowance(db,account);assert slots>0,'No fresh live submission allowance'
+     description='rsna-epoch-v1:'+w.object_hash({'checkpoint_sha256':sha,'kernel':slug,'version':1});assert not [x for x in remote.submissions() if x.get('description')==description]
+     record.update(state='submit_intent',attempted_at=w.utcnow(),description=description,quota_before=account,inference_receipt=receipt,precision_receipt=precision);w.save_entry(db,record,'durable exact compact code submission intent')
+     p.exclusive_json(E/'submit-intent.json',{'checkpoint_sha256':sha,'kernel_slug':slug,'version':1,'description':description,'fresh_allowance':slots});db.execute('BEGIN IMMEDIATE')
+     try:
+      owner,name=slug.split('/');response=remote.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});p.exclusive_json(E/'submit-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+      record.update(state='submitted',submission_id=response['ref'],submitted_at=w.utcnow());w.save_entry(db,record,'exact compact epoch4 code submission accepted once');out=record
+     except Exception:
+      record['state']='submit_uncertain';w.save_entry(db,record,'submission uncertain; read-only reconciliation required');raise
+ print(json.dumps(out),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()

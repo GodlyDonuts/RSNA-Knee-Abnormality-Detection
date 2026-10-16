@@ -1,0 +1,49 @@
+"""Continue the SAME fixed16 fit only after actual original75/boundary review."""
+import hashlib,json,shlex,subprocess,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+with (L/'fixed16-boundary-continuation-controller.intent.json').open('x') as f:json.dump({'original_job':'930744','maximum_wait_seconds':18000,'maximum_new_GPU_allocations':1,'same_output_optimizer_schedule':True,'fresh_fit':False,'automatic_mutation_retry':False},f)
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton'];started=time.monotonic()
+try:
+ while time.monotonic()-started<18000:
+  x=subprocess.run(ssh+['sacct -X -j 930744 -n -P --format=State,ExitCode'],capture_output=True,text=True,timeout=40)
+  if x.returncode:raise RuntimeError('Observation failed; no job mutation')
+  lines=[s for s in x.stdout.splitlines() if s.strip()];assert len(lines)==1
+  state,code=lines[0].split('|')[:2]
+  (L/'fixed16-boundary-continuation-progress.json').write_text(json.dumps({'original_state':state,'exit':code,'elapsed_seconds':time.monotonic()-started}))
+  if state in ['RUNNING','PENDING','COMPLETING','CONFIGURING']:time.sleep(120);continue
+  if state=='COMPLETED' and code=='0:0':result={'status':'original_fixed16_completed_no_continuation_needed'};break
+  assert state=='FAILED' and code=='75:0','Unexpected original terminal requires exact recovery review'
+  # Real terminal exists. One CPU verifies the actual saved original checkpoint;
+  # no GPU is reserved until this proof is accepted.
+  preflight=r'''
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+assert os.uname().nodename=='evc33'
+S=Path('/tmp/rsna-compact-native-n3-inputs-20261016-v1/code');sys.path[:0]=[str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import torch
+from rsna.competitive.checkpoint import file_sha256
+R=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1');P=R/'production';terminal=json.loads((R/'invocations/930744/terminal.json').read_text());assert terminal['status']=='stopped_complete_optimizer_boundary' and terminal['actual_integer_child_returncode']==75
+assert json.loads((R/'active-job.json').read_text())['job_id']=='930744'
+checkpoint=P/'checkpoint.pt';value=torch.load(checkpoint,map_location='cpu',weights_only=True);step=value['optimizer_steps'];assert value['optimizer_boundary'] is True and 0<step<4496 and step==terminal['optimizer_steps'] and len(value['history'])==step
+assert value['binding']==json.loads((P/'run.json').read_text())['binding'] and value['binding']['total_steps']==4496 and value['binding']['diagnostic_only'] is False and value['binding']['settings']['epochs']==16
+assert value['scheduler']['last_epoch']==step and value['optimizer']['state'] and value['rng']
+wrapper=Path('/tmp/rsna-compact-target-admission-evc33-20261016-v3/full-production-wrapper.py');assert file_sha256(wrapper)=='98a64429a4f0fb72397d36ec19a0f34d96d14bdb8dbb887f75cfdf7b6affcfe5'
+required=396100843459+(20+24+2+70+1)*2**30;free=shutil.disk_usage('/tmp').free;assert free>required
+print(json.dumps({'status':'actual_original75_complete_checkpoint_accepted','checkpoint_sha256':file_sha256(checkpoint),'checkpoint_bytes':checkpoint.stat().st_size,'optimizer_steps':step,'fixed_total_steps':4496,'original_job':'930744','wrapper_sha256':file_sha256(wrapper),'free_after_all_liabilities':free-required}),flush=True)
+'''
+  cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:10:00','--job-name=rsna-compact-boundary-proof','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',preflight]
+  x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=650);proof={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'fixed16-boundary-CPU.result.json').write_text(json.dumps(proof,indent=2)+'\n');assert x.returncode==0;proof=json.loads(x.stdout)
+  args=['--source','/tmp/rsna-compact-native-n3-inputs-20261016-v1/code','--artifact-root','/home/sa305415/rsna-knee/code-stopfix-1f486765','--cache','/tmp/rsna-compact-native-evc33-relocation-20261016-v1/cache','--overlay','/tmp/rsna-public-label-repeat-inputs-20261012-v1/overlay.json','--weights','/tmp/rsna-compact-native-n3-assets-20261016-v1/initialization/model.safetensors','--input-admission','/tmp/rsna-compact-target-admission-evc33-20261016-v3/accepted.json','--input-admission-sha256','0482c3e43def44388c371348e2602650d251f9b4ba6f0d903c87520f3a3b4c88','--recovery','/tmp/rsna-compact-real-recovery-evc33-20261016-v1/accepted.json','--recovery-sha256','b6d0a90d8b50ee95f8ce13497b7103d2ca1f88be9a939f71303d5b0deb67c2d5','--output','/tmp/rsna-compact-native-n3-production-evc33-20261016-v1','--resume']
+  program="import hashlib,sys;from pathlib import Path;p=Path('/tmp/rsna-compact-target-admission-evc33-20261016-v3/full-production-wrapper.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=="+repr(proof['wrapper_sha256'])+";q=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/checkpoint.pt');assert hashlib.sha256(q.read_bytes()).hexdigest()=="+repr(proof['checkpoint_sha256'])+";sys.argv=[str(p)]+"+repr(args)+";exec(compile(p.read_text(),str(p),'exec'),{'__name__':'__main__','__file__':str(p)})"
+  # Check actual owned GPU-node count before submitting the same-node continuation.
+  x=subprocess.run(ssh+['squeue -u sa305415 -h -t RUNNING -o "%N|%b"'],capture_output=True,text=True,timeout=40);assert x.returncode==0;nodes={s.split('|')[0] for s in x.stdout.splitlines() if 'gpu' in s.split('|')[-1]};assert len(nodes)<=1
+  with (L/'fixed16-continuation-GPU.intent.json').open('x') as f:json.dump({'original_job':'930744','accepted_checkpoint':proof,'source_git':'dcfff319cb7bd7bbae679a20da2b1b9268e8d680','same_fixed16_schedule':True,'new_GPU_jobs':1,'automatic_retry':False},f)
+  (L/'fixed16-continuation-GPU-program.py.txt').write_text(program)
+  run=['env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUBLAS_WORKSPACE_CONFIG=:4096:8','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+  control='/tmp/rsna-compact-target-admission-evc33-20261016-v3';cmd=['sbatch','--parsable','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=04:00:00','--signal=B:USR1@300','--no-requeue','--job-name=rsna-compact-n3-fixed16-cont1','--output='+control+'/continuation1.slurm.stdout','--error='+control+'/continuation1.slurm.stderr','--wrap','exec '+shlex.join(run)]
+  x=subprocess.run(ssh+[shlex.join(cmd)],capture_output=True,text=True,timeout=40);dispatch={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'fixed16-continuation-GPU.dispatch.json').write_text(json.dumps(dispatch,indent=2)+'\n');assert x.returncode==0 and x.stdout.strip().isdigit(),'Uncertain dispatch: read-only reconciliation only'
+  result={'status':'same_fixed16_continuation_submitted_once','original_job':'930744','job_id':x.stdout.strip(),'resume_from_optimizer_steps':proof['optimizer_steps'],'fixed_total_steps':4496,'fresh_fit':False};break
+ else:raise TimeoutError('Original terminal not observed within finite interval')
+except Exception as e:result={'status':'stopped_for_exact_original_review','reason':str(e),'error_type':type(e).__name__,'automatic_retry':False}
+(L/'fixed16-boundary-continuation-result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
