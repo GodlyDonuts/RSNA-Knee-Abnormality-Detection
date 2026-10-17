@@ -7,12 +7,20 @@ import math
 import torch
 
 
-def verify(state, snapshot, receipt, *, expected_parameters=73136096):
+def verify(
+    state,
+    snapshot,
+    receipt,
+    *,
+    expected_parameters=73136096,
+    expected_windows=94,
+    expected_status="actual_whole94_full_parent_epoch_session_complete",
+):
     segment = receipt["segment"]
     completed = segment * 486
     binding = state["binding"]
     if (
-        receipt["status"] != "actual_whole94_full_parent_epoch_session_complete"
+        receipt["status"] != expected_status
         or not 1 <= segment <= 3
         or receipt["completed"] != completed
         or state["completed"] != completed
@@ -27,7 +35,7 @@ def verify(state, snapshot, receipt, *, expected_parameters=73136096):
         or binding["world_size"] != 2
         or binding["total_steps"] != 1458
         or binding["recipe"]["epochs"] != 3
-        or binding["recipe"]["windows"] != 94
+        or binding["recipe"]["windows"] != expected_windows
         or state["schedule"] != {"completed": completed, "total": 1458, "kind": "warmup_cosine"}
         or len(state["rng_by_rank"]) != 2
         or len(state["scaler_by_rank"]) != 2

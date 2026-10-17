@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 17, 2026, 00:54 UTC.** This is the current research entry point.
+**Checked October 17, 2026, 01:42 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -15,7 +15,7 @@ and authenticated Kaggle resolve later changes. Historical observations are in
 | Own N3 CoAtNet, epoch 12 | 57262392 | **0.890** | Up .021 from epoch 8 |
 | Own N3 CoAtNet, epoch 16 | 57265916 | **0.894** | New verified own-trained best; up .004 from epoch 12 |
 | Licensed-parent + our sequence-context E10 | 57287572 | **0.948** | Successful hidden run; below unchanged external0.949 |
-| Unchanged licensed parent, full384field | 57289392 | **Pending / unknown** | Exact v1 accepted once; no hidden score yet |
+| Unchanged licensed parent, full384field | 57289392 | **0.948** | COMPLETE/noerror; no gain over parent0.949 |
 | Prior own DINO best | 57182737 / 57182547 | **0.872** | Historical own-trained reference, now exceeded |
 
 The **0.949 used the author's released MRI-trained weights**. We reproduced
@@ -48,7 +48,7 @@ Our external0.949/own0.894 results are distinct and below that reference.
 | N3 selected-slot triples | 930744 → 932869 | **COMPLETED 0:0**, evc33 | Original fixed 16 epochs / 4,496 updates |
 | Source-neighbor challenger | **932957** | **COMPLETED 0:0**, evc33 | Geometry-valid source-neighbor donor channels, same centers |
 | Positive-weight challenger | **933001** | **COMPLETED 0:0**, evc33 | Same16epochs/4,496updates; positive BCE weights |
-| Expanded 2,592-study full fit | **938284** | **PENDING Priority**, evc33 | +345fitting cases,16epochs/5,184updates |
+| Expanded 2,592-study full fit | **938284** | **RUNNING**, evc33; allocated01:39UTC | +345fitting cases,16epochs/5,184updates |
 | Spatial global-repeat control | **937942** | **COMPLETED 0:0**, evc33 | Same1.33Mhead,8global copies |
 | Spatial regional candidate | **937975** | **COMPLETED 0:0**, evc33 | Same1.33Mhead,global+7summaries |
 
@@ -133,7 +133,7 @@ weight qualification or hidden nine-hour end-to-end claim. Root implements direc
 Additional **345 fitting-only studies / 1,769 series / 54,562 slices** have complete
 paired 256/384 caches; all seven shards / 42 private objects are fully verified.
 The expanded 2,592-study CPU gate 933324 passed original tensor/label/mask parity.
-Original H100recovery933382 COMPLETED0:0/7:56 with complete real model/BN/optimizer/RNG/prediction recovery. Existing finiteowner51853 submitted full938284 ONCE after exact acceptance and fresh funding; it is PENDINGPriority. The same pending job now has an8h scheduler limit based on actual5:32:28same-graph runtime scaled for5,184updates; source/recipe/output unchanged. Its existing watcher preserves all16epochs. No full expanded updates or result yet. [Conditional route](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
+Original H100recovery933382 COMPLETED0:0/7:56 with complete real model/BN/optimizer/RNG/prediction recovery. Existing finiteowner51853 submitted full938284 ONCE after exact acceptance and fresh funding; it is now RUNNING on its original evc33 allocation. Its8h scheduler limit based on actual5:32:28same-graph runtime scaled for5,184updates; source/recipe/output unchanged. Its existing watcher preserves all16epochs. No full expanded updates or result yet. [Conditional route](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
 Sixteen expanded passes mean 5,184 updates, so a later result is not data-only.
 [Expansion proof](../initiative/audits/compact-expanded2592-inputs-20261016-v1/README.md).
 Correspondence-filtered capacities are 2,592 development fitting / 3,887 train /
@@ -591,3 +591,10 @@ are identical across roles; all73.1M parameters trainable, peak5.87GB/T4. This
 accepts engineering behavior only. The fixed3 full3887-study uniform16/influence16
 comparison compiler is implemented; storage/input/Dataset/GPU-budget prerequisites
 remain before dispatch. [Actual evidence](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).
+
+Actual full-sampling CPU940795 preserves original MRI/target bytes for both roles.
+CPU940785 admitted12GiB model/publication+16MiB controls without deletion; private
+proposal Dataset12644218v1 has all5objects fully download/hash verified ONCE.
+Full comparison coordinator and private epoch publisher are prepared; no sampled
+production GPU push yet. The full384 unchanged-weight Kaggle result is now
+COMPLETE0.948, below unchanged parent0.949. [Full sampling readiness and negatives](../initiative/audits/licensed-importance-full-comparison-20261017-v1/README.md).

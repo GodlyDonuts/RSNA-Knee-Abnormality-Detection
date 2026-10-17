@@ -126,3 +126,40 @@ def test_partial_or_changed_epoch_cannot_be_published_as_complete(completed, cha
         state["optimizer"]["param_groups"][0]["lr"] = 0.1
     with pytest.raises(ValueError):
         verify(state, snapshot, receipt, expected_parameters=3)
+
+
+@pytest.mark.parametrize("role", ["uniform", "influence"])
+def test_matched_sampled_epoch_uses_the_same_complete_state_checks(completed, role):
+    from dataclasses import asdict
+
+    from rsna.competitive.licensed_importance import VERSION, Recipe
+    from rsna.competitive.licensed_importance_epoch import PROPOSAL_SHA
+    from rsna.competitive.licensed_importance_epoch import verify as verify_sampled
+    from rsna.competitive.licensed_pixel_bags import POPULATION_SHA
+
+    state, snapshot, receipt = completed
+    state["binding"].update(
+        role=role,
+        version=VERSION,
+        recipe=asdict(Recipe(epochs=3, role=role)),
+        population_sha256=POPULATION_SHA,
+        proposal={"proposal_table": {"bytes": 2923152, "sha256": PROPOSAL_SHA}},
+        teacher_proposal_sha256="a" * 64,
+        actual_recovery={"kernel_id": 139130771},
+    )
+    receipt.update(status="actual_matched_IID16_full_parent_epoch_session_complete", role=role)
+    result = verify_sampled(state, snapshot, receipt, expected_parameters=3)
+    assert result["role"] == role and result["actual_AdamW_parameters"] == 3
+    with pytest.raises(ValueError):
+        verify(state, snapshot, receipt, expected_parameters=3)
+    for target, key, value in (
+        (receipt, "role", "other"),
+        (state["binding"], "teacher_proposal_sha256", "bad"),
+        (state["binding"], "recipe", asdict(Recipe(epochs=2, role=role))),
+        (state["optimizer"]["state"][0], "step", torch.tensor(485.0)),
+    ):
+        old = target[key]
+        target[key] = value
+        with pytest.raises(ValueError):
+            verify_sampled(state, snapshot, receipt, expected_parameters=3)
+        target[key] = old

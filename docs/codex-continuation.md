@@ -622,3 +622,24 @@ original still-unpushed E2/E3 through the unchanged original coordinator. Read
 its reconnected-continuation intent/progress/result before action; never restart
 old80039 or repeat an existing segment. Old preservation watcher may stop on its
 old owner check; reconcile actual publications before a distinct preservation handoff.
+
+## Actual full-sampling readiness — October17 01:42UTC
+
+CPU940795 input bridge passed all32/two94views/both16-windowroles/180duplicates;
+CPU940785 admitted12GiB models/publication+16MiB controls onnode39. Dataset12644218v1
+private godlydonuts/rsna-parent-iid16-q-e812a9f90cd2 createdONCE/all5objects fully
+download/hash verified CPU940827. Initial CPU940783 wrong observer targetpath and
+CPU940809 pre-SDK version guard were reconciled without repeated data or creates.
+Read licensed-importance-full-comparison-20261017-v1 and local original intents.
+Scientific full sourcea420bd2e, full comparator/publisher prepared, no GPU push yet.
+
+Original full38457289392 actualCOMPLETE0.948/noerror/247103bytes, no gain over0.949.
+Expanded938284 original allocation RUNNING on evc33 at01:39UTC,1H100/2CPUs/32GiB.
+First reconnected observer92496 stopped at a pure read-only canonical-claim wait
+while the precreate failure was being reconciled; original training stayedRUNNING.
+A distinct finite original-session continuation now uses observation-recovered-v2
+intent/progress/result and retries only a known read-only busy-claim observation.
+Its paired preservation/serving/E1/E3 owners use observation-v2-* receipts and
+original exact coordinators; original old80039/80311/82392/82509/89000 and first
+reconnected owners are terminal, never restart. Verify current handles before
+action; do not repeat existing pushes, datasets, publications or entries.
