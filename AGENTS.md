@@ -169,3 +169,9 @@ Actual live Kaggle logs now also verify **258finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
 trainable on the3887study label-only E1. This is real optimization progress,
 not a completed epoch or an accuracy gain.
+
+Latest distinct source**86cfc7b6** is privately preserved at
+**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
+re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
+label-serving helper hashes now bind published main86cfc7b6; this supplies code
+provenance, not final-model or T4admission. [Exact preservation receipt](initiative/audits/hf-matched-final-serving-20261017-v1/README.md).

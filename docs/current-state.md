@@ -76,9 +76,13 @@ leaving **4,128,768 other future bytes** within the unchanged 32 MiB envelope.
 Preserve the unpaid part of that 4 MiB allocation as well as other liabilities;
 deduct paid bytes once. Original 20 GiB and 5,000-file reserves remain.
 
-Source `01bda353` is privately mirrored at
-**HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**, all 43 objects verified. Do not
-repeat it. [Preservation receipt](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
+Source **86cfc7b6** is privately mirrored at
+**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**, all **29 objects / 130,776 bytes**
+fully downloaded/size/SHA verified by CPU947235. It includes the actual scoring
+preparation and current research guides. Exact label-serving helper hashes now
+bind published main; final model/private proof and T4 qualification remain
+required. Do not repeat this or older verified mirrors.
+[Preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
 
 Read the [research brief](research-brief.md), [execution handoff](codex-continuation.md)
 and [research-agent handoff](research-agent-handoff.md). Accepted masks/folds and

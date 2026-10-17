@@ -302,3 +302,9 @@ privateparent and refused unfinished E1. Read its accepted source SHA in the
 linked scoring audit. CPU947214fresh funding includes paid controls once.
 Actual13:50account allowance remains5used/0available;13:51score replay still
 has57300990best0.950. No new inference, competition entry or score was created.
+
+Latest distinct source**86cfc7b6** is privately preserved at
+**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
+re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
+label-serving helper hashes now bind published main86cfc7b6; this supplies code
+provenance, not final-model or T4admission. [Exact preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).

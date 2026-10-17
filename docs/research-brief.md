@@ -116,3 +116,9 @@ check; public-label agreement alone cannot justify clinical truth.
 
 Original detailed mechanism/source/evidence discussion remains in
 [the preceding Git snapshot](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/ca90fa5e347310dbbb35765e5dcc5c1b07e04910/docs/research-brief.md).
+
+Latest distinct source**86cfc7b6** is privately preserved at
+**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
+re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
+label-serving helper hashes now bind published main86cfc7b6; this supplies code
+provenance, not final-model or T4admission. [Exact preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
