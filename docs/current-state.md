@@ -434,3 +434,13 @@ objects; never repeat it. New sourcef1540f77 reference/result/cohort milestone i
 now privately verified at HF6599eae559e004384bbf278ee948d15589b7a9b0,
 all70objects/491310bytes viaCPU945031. [Actual preservation](../initiative/audits/hf-public0958-actual0950-20261017-v1/README.md).
 No source weights, clinical rows or raw private assignment IDs are published.
+
+
+## New supervision/CPU milestone privately verified
+
+Source8214808adffbad5ffe9ea5d3fa2748251b61e477 is private-HF fully
+65object/385900byte download/size/SHA verified at
+7da4f4a98799419746f9d9d0c7c9c4ec6b3d6293 byCPU945498.
+[Original receipt](../initiative/audits/hf-S6-supervision-CPU32-20261017-v1/README.md).
+Never repeat this or earlier verified mirrors. No raw clinical/UID/model/label/
+prediction data were mirrored; new overlay remains private and untrained.
