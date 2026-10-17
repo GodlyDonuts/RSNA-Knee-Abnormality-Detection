@@ -1,0 +1,177 @@
+"""Label-only contrast around the unchanged whole-MRI reader and optimizer.
+
+Actual original pixel/source/weight/runtime/rights and funding are admitted by
+an outer private wrapper. This module does not acquire data or admit a GPU fit.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+
+import torch
+
+VERSION = "fixed_S6_source_label_only_overlay_v1"
+POPULATION_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+ORIGINAL_FILE_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+S6_FILE_SHA = "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9"
+S6_SOURCE_SHA = "8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6"
+ORIGINAL_SOURCE_ARRAYS_SHA = "688e2acb1e166a7a1aa100ae64b0b2fe03d82402902d21b297f9fdef7d5b7bfb"
+S6_LABEL_ARRAY_SHA = "5a4bcc95fc1e5c841834781243fc00a390da1f20d3feed055a64065b6b222fac"
+PARENT_ARRAY_SHA = "d9853c7745161807705087bef505f1ceb488f2138264dea3902388662fe37566"
+PARENT_SHA = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+
+
+def raw(tensor):
+    return tensor.detach().contiguous().numpy().tobytes()
+
+
+def sha(tensor):
+    return hashlib.sha256(raw(tensor)).hexdigest()
+
+
+def same(a, b):
+    return torch.equal(a, b) or bool(torch.all((a == b) | (torch.isnan(a) & torch.isnan(b))))
+
+
+class SourceLabels:
+    """Change exactly case['labels']; preserve the original mask and MRI/teacher view."""
+
+    def __init__(self, original, uids, labels, masks, teacher, binding, *, engineering_only=False):
+        if (
+            type(engineering_only) is not bool
+            or not isinstance(binding, dict)
+            or not hasattr(original, "labels")
+            or not hasattr(original, "mask")
+            or not hasattr(original, "teacher")
+            or not hasattr(original, "uids")
+            or list(uids) != list(original.uids)
+            or len(set(uids)) != len(original)
+            or not len(original)
+            or len(uids) != len(original)
+        ):
+            raise ValueError("Exact original unique ordered fitting identities required")
+        n = len(original)
+        population = hashlib.sha256(
+            json.dumps(list(uids), separators=(",", ":")).encode()
+        ).hexdigest()
+        role = binding.get("role")
+        if (
+            binding.get("version") != VERSION
+            or binding.get("population") != n
+            or binding.get("population_sha256") != population
+            or binding.get("diagnostic_only") is not engineering_only
+            or binding.get("parent_checkpoint_sha256") != PARENT_SHA
+            or binding.get("original_target_file_sha256") != ORIGINAL_FILE_SHA
+            or role not in ("original_source", "released_S6_source")
+            or not engineering_only
+            and (n != 3887 or population != POPULATION_SHA)
+        ):
+            raise ValueError(
+                "Explicit immutable role/source/population and engineering scope required"
+            )
+        for x in (original.labels, labels, original.teacher, teacher):
+            if (
+                not isinstance(x, torch.Tensor)
+                or x.dtype != torch.float32
+                or x.device.type != "cpu"
+                or x.requires_grad
+            ):
+                raise ValueError("Detached original CPU FP32 arrays required")
+        for x in (original.mask, masks):
+            if not isinstance(x, torch.Tensor) or x.dtype != torch.bool or x.device.type != "cpu":
+                raise ValueError("Original CPU bool masks required")
+        if (
+            any(x.shape != (n, 12) for x in (original.labels, labels, original.mask, masks))
+            or any(x.shape != (n, 2, 12) for x in (original.teacher, teacher))
+            or not torch.equal(original.mask, masks)
+            or not torch.equal(original.teacher, teacher)
+            or not torch.isfinite(teacher).all()
+            or any(
+                not torch.isfinite(x[masks]).all() or ((x[masks] < 0) | (x[masks] > 1)).any()
+                for x in (original.labels, labels)
+            )
+        ):
+            raise ValueError(
+                "Only source labels may change; masks/teachers and valid targets must match"
+            )
+        expected = {
+            "original_label_array_sha256": sha(original.labels),
+            "new_label_array_sha256": sha(labels),
+            "mask_array_sha256": sha(masks),
+            "parent_teacher_array_sha256": sha(teacher),
+        }
+        if any(binding.get(k) != v for k, v in expected.items()):
+            raise ValueError("All actual label/mask/teacher numerical hashes required")
+        if role == "original_source":
+            if (
+                not same(original.labels, labels)
+                or binding.get("target_file_sha256") != ORIGINAL_FILE_SHA
+                or binding.get("released_S6_raw_source_sha256") is not None
+            ):
+                raise ValueError("Original-source control must preserve every target value")
+        elif (
+            binding.get("target_file_sha256") != S6_FILE_SHA
+            or binding.get("released_S6_raw_source_sha256") != S6_SOURCE_SHA
+        ):
+            raise ValueError("Exact independently admitted released S6 fitting overlay required")
+        if not engineering_only:
+            if (
+                not masks.all()
+                or hashlib.sha256(raw(original.labels) + raw(masks)).hexdigest()
+                != ORIGINAL_SOURCE_ARRAYS_SHA
+                or sha(teacher) != PARENT_ARRAY_SHA
+                or role == "released_S6_source"
+                and sha(labels) != S6_LABEL_ARRAY_SHA
+            ):
+                raise ValueError(
+                    "Production needs the actual complete admitted3887 numerical bytes"
+                )
+        self.original, self.uids = original, list(uids)
+        self._labels = labels.clone()
+        self._old = original.labels.clone()
+        self._masks, self._teacher = masks.clone(), teacher.clone()
+        self._binding = json.loads(json.dumps(binding, sort_keys=True))
+
+    def __len__(self):
+        return len(self.uids)
+
+    @property
+    def binding(self):
+        return json.loads(json.dumps(self._binding, sort_keys=True))
+
+    def case(self, index, positions, mirror):
+        if (
+            type(index) is not int
+            or not 0 <= index < len(self)
+            or type(mirror) is not bool
+            or list(self.original.uids) != self.uids
+        ):
+            raise ValueError("Exact admitted fitting index/roster and anatomical view required")
+        row = self.original.case(index, positions, mirror)
+        if (
+            set(row) != {"images", "labels", "mask", "parent_logits"}
+            or not same(row["labels"], self._old[index])
+            or not torch.equal(row["mask"], self._masks[index])
+            or not torch.equal(row["parent_logits"], self._teacher[index, int(mirror)])
+        ):
+            raise ValueError("Original source/mask/teacher reader changed after admission")
+        return {**row, "labels": self._labels[index].clone()}
+
+
+def fit_with_source_labels(model, data, output, binding, recipe, **kwargs):
+    """Attach the actual label role to resume identity; delegate all updates unchanged."""
+    from rsna.competitive.licensed_parent_train import fit
+
+    if (
+        not isinstance(data, SourceLabels)
+        or not isinstance(binding, dict)
+        or "source_label_contrast" in binding
+        or binding.get("diagnostic_only", False) is not data.binding["diagnostic_only"]
+    ):
+        raise ValueError(
+            "Explicit data-derived source role and matching engineering scope required"
+        )
+    return fit(
+        model, data, output, {**binding, "source_label_contrast": data.binding}, recipe, **kwargs
+    )

@@ -3,90 +3,55 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 09:32 UTC:**
+**Verified October17,2026,10:55UTC. Target:0.97; best actual:0.950.**
 
-- [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
-- [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
-- [Research-agent handoff](docs/research-agent-handoff.md): evidence map, exact assets, open questions and prior work to avoid repeating.
-- [Execution handoff](docs/codex-continuation.md): original job/source/output bindings and live owners.
+- [Current state](docs/current-state.md): actual scores, training and unfinished work.
+- [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.
+- [Research-agent handoff](docs/research-agent-handoff.md): source assets/evidence and open questions.
+- [Execution handoff](docs/codex-continuation.md): original owners, exact controls and resources.
 
-Our **best independently MRI-trained model is N3 CoAtNet epoch 16, public AUC
-0.894**, following 0.821 / 0.869 / 0.890 at epochs 4 / 8 / 12. We also reproduced
-**0.949 using nartaa's released MRI-trained weights and unchanged inference**;
-we did not train that model from scratch. Our sequence-context head and full-384
-inference-field experiments, plus the regional spatial head, each scored 0.948
-without improving the external reference. These are public leaderboard scores, not final private or clinical results.
+Released S6 inference scored **0.950**, exact code entry57300990 COMPLETE/noerror.
+Released CoAtNet scored0.949. We reproduced those external weights/inference;
+our best independently MRI-trained N3E16 scored **0.894**. Context, regional and
+full-field variants scored0.948, without an established gain.
 
-The released S6 reproduction has now actually scored **0.950**, code entry
-**57300990 COMPLETE/noerror**. This is the current best project public result,
-not our from-scratch training. [Exact terminal](initiative/audits/s6-actual0950-result-20261017-v1/README.md).
+The stronger **public0.958 reference completed our exact8cell interactive two-T4
+qualification**: both CoAtNet resolutions, originalR6fourfold stack and the
+three-checkpoint2.5Dreader. Its final3×13CSV passed exact roster/finite-value/hash
+checks. The GPU VM is explicitly stopped. **This is not our0.958 hidden score**:
+the saved139199164v1 is source-only; a distinct committed offline version is
+still required. OriginalR6Datasetv1 must stay pinned because v2 contains different
+weights under identical names.
+[Actual qualification](initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
 
-The exact public0.958 source is now private source-only139199164v1. Its required
-R6 input is pinned to version1; currentversion2 contains different R7 weights.
-Eight code cells match the scored source. No MRI inference or competition entry
-has run for that copy; do not submit the Quick Save. The older unstarted0.956
-reference's reservation was reassigned, with healthy training left unchanged.
-[Actual source/input binding](initiative/audits/public0958-reference-20261017-v1/README.md).
+Our whole94 full-parent adaptation **completed all3epochs/1458updates** and all
+three immutable checkpoints are privately full-download/hash verified. FinalE3
+serving/entry remain owned and unscored; E1 scored0.949. Uniform16final is running,
+with influence16final still owned. Expanded ownN3 finished16epochs but did not
+establish a weak-held-out gain.
+[Final original terminal/preservation](initiative/audits/whole94-fixed3-final-20261017-v1/README.md).
 
-Whole-parent adaptation completed its first **486-update epoch**, privately fully
-verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
-Its code entry **57294905 completed at0.949**, matching the parent without a gain.
-Epoch2 now completed972updates/all5private objects; original final E3
-**139172537v1** is RUNNING. Expanded own N3 on2592studies completed0:0/all5184updates; all16epochs are
-privately verified. Fixed-final weak macro0.91743 versus0.92093 original has
-no established gain; no new expanded-model Kaggle result is claimed.
-Both matched uniform16E1 and influence16E1 completed486updates/all5private
-objects; uniformE2 and influenceE2 each completed972/all5private objects. Original uniformE3 is queued; the same numerical fit is preserved. No new scored learned-model gain is claimed.
-[Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
+A fitting-only audit found materially different S6 supervision, especially
+Fracture (source-label rankcorrelation0.51446). A new **label-only uniformIID16
+contrast** now has real3887-array admission, a fully verified private input
+Dataset, checkpoint storage funding and32meaningful CPU engineering checks.
+GPU recovery and treatment fitting have not run; this is a testable mechanism,
+not an accuracy claim. Original accepted masks/labels and healthy science remain.
+[Matched protocol](initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
 
-**The owner targets0.97; best verified is now0.950.** Actual CPU inference
-on eight fitting MRIs found large raw teacher confidence gaps but much closer
-rankings. A fixed equal-rank blend and a single-model ordinal distillation
-contrast are prepared; the latter has19target contracts plus17actual synthetic CPU training/recovery
-checks for its separate target data path, no full MRI fit or gain.
-The larger32-study scout has a sole finite owner and awaits actual admission.
-The fixed blend is staged/owned; its prior-S6-score gate now passes. Original S6 code
-entry57300990 completed at0.950/noerror. Every next entry
-refreshes authoritative allowance. [Exact staged blend](initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
-[Measured finding and limits](initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md),
-[matched mechanism](initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
+Fresh10:54UTC Kaggle allowance was5used/0available. We never upload a public
+three-row example as a competition result. Current guides distinguish completed
+fits, engineering tests, weak-label agreement and actual competition scores.
+The [full research archive](docs/research-watch/README.md) and
+[original initiative evidence](initiative/README.md) preserve negative results.
+Earlier long status narratives remain in Git; dated snapshots are not live
+instructions. Protected clinical values remain unused.
 
-The [owner deadline program](initiative/research/owner-deadline-program-20261017-v1/README.md)
-prioritizes the distinct S6 ConvNeXt parent. Its original source/checkpoint/anatomy,
-CPU MRI gate and **full CPU classifier reference on3studies/1586windows** pass.
-Original T4 qualification**139165932v1 actually completed in156.6seconds** on
-both T4s, three MRIs, finite13-column output and zero S6 fallback. The exact
-source was unchanged; our observer was repaired to account for its stale embedded
-build ID. The distinct offline139181157v1 also completed233seconds, and its exact code
-submission **57300990 actually completed at0.950/noerror**. It reproduces the
-released S6 model; this is a project public score, not our from-scratch training.
-[Actual T4 acceptance and owned continuation](initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
-[new original training progress](initiative/audits/research-progress-20261017-0550-v1/README.md).
-
-The [actual source/weight review of the published0.956 reference](initiative/audits/r7-public-reference-admission-20261017-v1/README.md)
-now pins four ConvNeXt folds, denser physical inputs, state/extent supervision and
-the exact equal-rank CoAtNet blend. All8 new weight/sidecar objects were privately
-byte/hash/header verified; no new R7 GPU or project score is claimed.
-[New S6 entry, uniformE2 and expandedE15 receipts](initiative/audits/research-progress-20261017-0735-v1/README.md).
-
-A fitting-only screen on3887existing bags found the parent already gives crossing
-series windows little attention; removing them changes study ordering less than
-count-matched interior removal. This **deprioritizes a boundary-only training arm**,
-without claiming disease accuracy. [Original aggregate result](initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
-
-The current guides distinguish completed training, weak-label evaluation,
-competition scores and preparation. They preserve failed and near-null experiments,
-including source-neighbor channels, positive weighting, late averaging, context
-and field changes. The full [research archive](docs/research-watch/README.md) and
-[initiative evidence](initiative/README.md) retain original dated findings; those
-old status snapshots are not live job or submission instructions.
-
-Source code, sanitized audit receipts and documentation are maintained on `main`.
-Large private assets and verified checkpoint publications are referenced through
-[GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data) and exact
-owning-node receipts. Private clinical records, credentials and temporary signed
-URLs must not be added to new research publications. Implement directly; Devin
-is unavailable. Update current guides in place after material changes.
+Verified small source/receipt milestones are synchronized to main and private
+[GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data),
+with exact original provenance and full byte verification. Large restricted
+assets and original private records stay on authorized private storage.
+Implement directly; Devin is unavailable.
 
 ## Historical report-supervision release
 

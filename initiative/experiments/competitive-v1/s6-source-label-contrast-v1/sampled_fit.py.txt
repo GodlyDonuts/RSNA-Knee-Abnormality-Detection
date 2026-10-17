@@ -1,0 +1,44 @@
+"""Use the admitted label-only data path with the unchanged faster IID16 engine."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib.machinery
+import importlib.util
+from pathlib import Path
+
+from rsna.competitive.licensed_importance import ProposalCases, Recipe
+from rsna.competitive.licensed_importance_train import fit as original_fit
+
+path = Path(__file__).with_name("source_overlay.py.txt")
+if (
+    hashlib.sha256(path.read_bytes()).hexdigest()
+    != "f6414308fd4506cf2719980e5657ec2c038e996a6bc5651710b48b002bca01f5"
+):
+    raise ValueError("Exact actually admitted label-only data path required")
+loader = importlib.machinery.SourceFileLoader("matched_S6_sampled_source_labels", str(path))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+source = importlib.util.module_from_spec(spec)
+loader.exec_module(source)
+
+
+def fit(model, data, output, binding, recipe, **kwargs):
+    """Preserve IID16 draws/proposals/images/loss; bind the actual source label role."""
+    if (
+        not isinstance(recipe, Recipe)
+        or recipe.role != "uniform"
+        or not isinstance(data, ProposalCases)
+        or not isinstance(data.original, source.SourceLabels)
+        or not isinstance(binding, dict)
+        or "source_label_contrast" in binding
+        or binding.get("diagnostic_only", False) is not data.original.binding["diagnostic_only"]
+    ):
+        raise ValueError("Actual label-only source data inside unchanged uniform16 reader required")
+    return original_fit(
+        model,
+        data,
+        output,
+        {**binding, "source_label_contrast": data.original.binding},
+        recipe,
+        **kwargs,
+    )

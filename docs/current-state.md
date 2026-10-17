@@ -1,446 +1,98 @@
 # Current project state
 
-**Observed through October 17, 2026, 10:15 UTC.** This is the live-state entry point.
-Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
-and [execution handoff](codex-continuation.md). Original receipts and fresh actual
-state override dated narratives. Historical evidence remains in Git and the
-[earlier snapshot](current-state.history-20261017-0146.md).
+**Verified October 17, 2026, 10:55 UTC.** The owner targets **0.97**. Best actual
+project public AUC remains **0.950**; the target has not been reached. Read the
+[research brief](research-brief.md), [execution handoff](codex-continuation.md)
+and [research-agent handoff](research-agent-handoff.md). Original receipts and
+fresh live state override dated progress narratives.
 
-## October17 10:15UTC: source supervision is demonstrably different
+## Actual scores
 
-The newly released S6 training code/targets are privately acquired and pinned
-at Dataset12589750v5. CPU945356 compared **all3887fitting studies only**:
-46,644dense cells in both sources, zero matching within1e-6. Fracture's
-source-target rank correlation is**0.51446**, versus0.84396–0.98761 for the
-other findings. Neither source is clinical truth; this establishes a recipe
-difference, not its causal score effect. CPU945389 prepared a distinct private
-label-only overlay, preserving all original UIDs/masks/parent logits. Existing
-training/labels are unchanged; no new GPU fit is admitted.
-[Source,12-target evidence and matched next contrast](../initiative/audits/s6-training-release-20261017-v1/README.md).
-
-Source correction: the author's86missing studies were **local disk deletions**,
-not host removal or a quality filter. S6 used4263fit,16epochs,64training windows,
-plain dense soft BCE, fixed-final E16/noEMA/SWA. Our current parent adaptation
-uses3epochs and25%source/75%parent anchoring. These jointly different recipes
-must not be called reproductions of the same training.
-
-**New actual CPU-only scout139205901v2 is RUNNING**; sole finite owner40709.
-It tests32fixed original-MRI fitting studies, FP32/source/input parity, throughput
-and boundedRAM while both Kaggle GPU lanes train. The first version failed its cross-Python AST guard before classification;
-the distinct v2 uses a full-field stable serializer, with identical classifier
-source/four CPU substitutions. No GPU/entry slot used or accuracy result. [Exact push,30checks and owner](../initiative/audits/s6-fitting32-cpu-scout-20261017-v2/README.md).
-
-Fresh10:04UTC canonical admission: whole94E3 and uniform16E3 bothRUNNING,
-5entries used/0available. Public0.958139199164v1 remains source-only; current
-98,525VMseconds cannot fund107,400seconds of all retained liabilities. No new
-GPU run/entry was attempted. [Actual binding](../initiative/audits/public0958-reference-20261017-v1/actual-capacity-funding-1004.json).
-The best actual score remains**0.950**;0.97is still a target.
-
-## Actual competition results
-
-| Candidate | Submission | Public AUC | What it establishes |
+| Candidate | Submission | Public AUC | Meaning |
 |---|---:|---:|---|
-| Released S6, exact offline inference | **57300990** | **0.950** | Actual COMPLETE/noerror; reproduced external weights/inference |
-| Author-trained nartaa CoAtNet, unchanged inference | 57258866 | **0.949** | Reproduced external weights/inference, not our training |
-| Our independently MRI-trained N3, E4 / E8 / E12 / E16 | 57256756 / 57259376 / 57262392 / 57265916 | 0.821 / 0.869 / 0.890 / **0.894** | Own MRI training improved with epochs |
-| Licensed parent + our sequence-context E10 head | 57287572 | 0.948 | No gain over unchanged parent |
-| Unchanged licensed parent, full384 field | 57289392 | 0.948 | More inference field alone did not help |
-| Licensed parent + regional spatial E10 head | 57291182 | 0.948 | No demonstrated gain |
-| Our learned whole94 parent, E1 | **57294905** | **0.949** | Actual hidden completion; same public score as parent, no demonstrated gain |
-| Earlier own DINO | 57182737 / 57182547 | 0.872 | Historical own-model reference |
+| Released S6, exact offline inference | **57300990** | **0.950** | COMPLETE/noerror; reproduced external weights and inference |
+| Released nartaa CoAtNet | 57258866 | 0.949 | Reproduced external weights; not our source training |
+| Our whole94 parent adaptation, epoch1 | 57294905 | 0.949 | No gain over unchanged parent established |
+| Our independent N3, epochs4/8/12/16 | 57256756/57259376/57262392/57265916 | 0.821/0.869/0.890/**0.894** | Own MRI training from general ImageNet initialization |
+| Context / full-field / regional additions | 57287572/57289392/57291182 | 0.948 each | No demonstrated gain over0.949 |
+| Earlier own DINO | 57182737/57182547 | 0.872 | Historical own-model reference |
 
-These are public leaderboard AUCs, not clinical accuracy or private-final scores.
-**We did not train the 0.949 model from scratch.** Our N3 started from general
-ImageNet pretraining; learned-parent adaptation is a distinct third category.
-The latest saved official Public leaderboard is **0.969 first**, leaving a
-0.019 gap to our latest0.950. Public0.958 blends are catch-up targets, not the frontier;
-the leader's method/private score is unknown.
-[Leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json).
+Public leaderboard scores are not private-final or clinical accuracy. Last saved
+leaderboard first place was0.969; no current leading method is inferred.
+[Score proofs](../initiative/audits/s6-actual0950-result-20261017-v1/README.md),
+[leaderboard proof](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json).
 
-New E1 entry57294905 is exact private offline139154038v1,
-`godlydonuts/rsna-parent-adapted-e1-offline-b29b8a1d08f6-g2`, modelSHAa8ed4a84.
-Its public MRI run passed three studies/13columns/zero failures on both T4s.
-The public3row CSV was **not uploaded**. It matches the original parent's three
-rank rows, which neither proves identical learned weights nor predicts AUC.
-Original owner97560 observed its actual hidden terminal: **COMPLETE/0.949/noerror**,
-247103outputbytes. This matches the parent without establishing a gain. Never repeat this entry
-or the quarantined unsuffixed capacity-rejected slug.
-[Actual public acceptance, entry and hidden scored terminal](../initiative/audits/research-progress-20261017-0448-v1/README.md).
-Authenticated GetSubmissionLimits at06:50UTC reported four used/one available.
-The subsequent S6 exact code entry57300990 was accepted once; its hidden result
-is now COMPLETE/0.950/noerror. That dated allowance is not an available-slot guarantee. Obtain fresh allowance before every
-entry, maximum five/day. Original final E3 is owned; a guarded next-allowance
-standby cannot act while its first owner is live or repeat an entry.
-[Exact allowance and staged comparison](../initiative/audits/s6-equalrank-deployment-20261017-v1/actual-staged.json).
+## New actual progress
 
-Original scored receipts: [external baseline](../initiative/audits/released0949-baseline-20261016-v1/actual-scored-canonical.json),
-[own N3E16](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json),
-[context](../initiative/audits/released-context-deployment-20261016-v1/actual-scored-recovered.json),
-[field](../initiative/audits/licensed-native-field-20261017-v1/actual-scored-result.json).
-Do not resubmit those exact versions.
+**The exact public0.958 reference completed one interactive two-T4 MRI run.**
+Both CoAtNet stages, original four-foldR6v1 and the three-checkpoint2.5D reader
+executed. R6 scored3/3 with zero fallback and both worker exits0. Final830-byte
+CSV passes3rows/13columns, exact publictest UID order and finite[0,1] values;
+SHA5e9ba665f3e30642e18dbb555eb7cbd16ab8a659ffb5f7226c72aaac44c9df1b.
+The session was explicitly stopped at about17minutes. CPU945812 reconciled all
+8unchanged saved source cells and actual success under the canonical claim.
+**No committed offline version or competition entry exists for this copy.**
+Our139199164v1 remains source-only; never submit it. Keep R6Datasetv1 pinned:
+its v2 contains different R7 weights under the same names. This is public
+qualification, not our0.958 score or hidden-runtime proof.
+[Exact qualification and controls](../initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
 
-## Active fitting and actual completed epochs
+**Our whole94 adaptation completed all3epochs/1,458finite updates.** Original
+139172537v1 is terminal success; CPU945622 verified complete final state and
+privately preserved all5objects at HF1ea56fa5f9a263597df0a10cc87d98fe2dc1da7b.
+All three epochs are already verified; do not republish. Sole final-serving and
+entry owners17301/17317 remain live; no finalE3 score exists.
+[Original terminal and final preservation](../initiative/audits/whole94-fixed3-final-20261017-v1/README.md).
 
-| Work | Original identity | Latest verified state |
+**A matched source-label experiment is prepared and admitted on CPU.** S6v5's
+released labels differ from our Stevenv6 labels across all3,887fit studies;
+Fracture rank correlation is0.51446. CPU945573 verified the real full-array
+label-only path. CPU945599 created private Dataset12653444v1 once and fully
+re-downloaded/hash verified all5objects. CPU945706 funded4GiB checkpoints plus
+16MiB controls, preserving all old liabilities/reserves. Twenty-four whole94
+and8sampled CPU engineering checks pass. The fixed comparison uses the unchanged
+uniformIID16 recipe, changing only source labels. **No treatment GPU recovery,
+fit, VM reservation or score exists yet.**
+[Protocol](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md),
+[actual data/storage proofs](../initiative/audits/s6-source-label-admission-20261017-v1/README.md).
+
+The author's86missing studies were local disk deletions, not host removal or a
+quality filter. S6's own recipe uses4263fit/16epochs/64windows/denseBCE/fixedE16,
+noEMA/SWA and noOAI. Our3epoch25%source/75%parent adaptation is a different recipe.
+[Original released-source comparison](../initiative/audits/s6-training-release-20261017-v1/README.md).
+
+## Current owned work
+
+| Work | Original identity | Latest actual state |
 |---|---|---|
-| Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
-| Expanded own N3 | Slurm**938284**, evc33 | **COMPLETED0:0/6:20:49**, all16epochs privately verified; fixed-final weak macro**0.91743158**, no established gain |
-| Uniform16 full-encoder control | E3**139192503v1** | **E2 complete972/all5private objects verified**; original E3 is API RUNNING; no newly observed optimizer cursor |
-| Influence16 full-encoder contrast | E2**139181903v1** | **E2 complete972/all5private objects verified**, HFde388a6e4ee800a0835c1d82f13fea94e903653f |
-| Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
-| S6 unchanged-source reproduction | Offline**139181157v1**, code entry**57300990** | **Public run COMPLETE233s/twoT4/zero fallback**; exact hidden entry COMPLETE/0.950/noerror |
+| Whole94 adaptation and preservation | 139172537v1;96833/96866 | **Terminal success**, all1458updates/all3private epochs verified |
+| Final whole94 serving / entry | 17301/17317; standby28090 | Owned/waiting actual capacity, acceptance and allowance |
+| UniformIID16 full fit | 139192503v1; sole observer34538 | RUNNING; epochs1/2 privately verified |
+| InfluenceIID16 full fit | 139181903v1 | Epoch2 complete972/private verified; final role remains owned by34538 |
+| S6 T4 fitting32 scout | **139210569v1**, sole34237 | Pushed once; APIstatusnull/UIqueued at last observation, not terminal |
+| Independent scout analysis | 34308 | Waits original scout; no GPU/entry authority |
+| S6 CPU32 scout | **139205901v2**,40709 | RUNNING; no new MRI result yet |
+| Public0.958 reference | 139199164v1 | Interactive qualification complete/stopped; source-only saved version |
+| Old equal-rank blend | old27596 | **Deprioritized before any GPU push/entry**, source preserved |
+| Older R7 reference | old31309 | Deprioritized before push/entry; original assets preserved |
+| Expanded own N3 | Slurm938284 | COMPLETED0:0/5184updates; all16epochs privately verified |
+| S6 H100 pilot | original942047 | Last pending; never duplicate based on observation loss |
 
-[New original epoch/publication/push evidence](../initiative/audits/research-progress-20261017-0448-v1/README.md),
-[earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
-E2 now actually completed972updates and CPU942967 verified all5private objects
-at HF51d5efae30b4efe820723c6147054fc90ac094c0. Original E3 is RUNNING.
-Expanded original938284 now COMPLETED0:0 and all16epochs are privately
-9object verified. CPU944038 independently verified fixed-final0.91743158 on
-the same1,156 weak development studies, delta−0.00349377 versus original;
-conditional95%[−0.01331711,+0.00607252]. No established primary gain.
-[New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
-InfluenceE1 completed486 and all5objects are independently private verified;
-uniformE2 and influenceE2 completed972/all5private objects each. UniformE3
-139192503v1 is now RUNNING; sole recovered observer34538 preserves that same run.
-[New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
-The expanded GPU938284 and its watcher95408 are now terminal success; all16
-epochs are already privately verified. Preserve the still-running whole94 and
-matched-sampling originals. Never repeat completed publications.
+Fresh authenticated allowance at**10:54UTC:5used/0available**. No additional
+competition entry was made this turn. Actual two-batch-GPU-session capacity
+still governs batch work; Kaggle separately allocated our now-stopped interactive
+session. Do not infer capacity or hidden scores from a missing API status.
 
-Whole94 E1 was independently complete-state verified and privately preserved
-at HF**d436986137570a9a4259a4b59981d261cffd2f20**, all5objects full download/size/SHA.
-Learned-state qualification139136981v1 passed32originalMRIs on **both T4s**, exact
-input/model equality and maximum prediction difference0. Its original worker
-resumed E2 unchanged after a metadata-JSON key-order-only compiler repair.
-[Actual worker continuity](../initiative/audits/whole94-original-worker-continuation-20261017-v1/README.md).
+## Evidence and limits
 
-The full-parent recipe is **3887 fitting studies/all94windows**, all73,136,096
-parameters, effective8, **3epochs/1458updates**, encoder/headLR3e-6/3e-5,
-AdamW0.02,10%warmup/cosine-to1%,clip1,FP16/scaler/FP32loss. The objective is
-25%source supervision/75%detached-parent anchoring. BN running buffers stay
-fixed; affine parameters learn. [Exact recipe](../initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
-The E1 entry is a trajectory check, not best-epoch selection.
+Expanded N3 fixed-final weak macro is0.9174315801 versus0.9209253491 original,
+delta−0.00349377, conditional95%[−0.01331711,+0.00607252]: no established gain.
+Earlier neighbor/weighting/averaging/stratification and new context/field/regional
+results remain in the research brief. Protected clinical values remain unused.
+Released encoder exposure prevents independent whole-model OOF claims on its
+training cohort. Weak-label agreement and green engineering checks are not
+clinical truth or predicted Kaggle AUC.
 
-Expanded N3 adds345 fitting studies to **2592 fit/1156 disjoint outer**, keeping
-the original recipe and16epochs/**5184updates**. Data and update count both
-change, so it is not a controlled data-only contrast. Its fixed-final weak macro is0.9174315801 versus0.9209253491 original; no established gain.
-[Original recovery/production](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
-
-## Matched importance-guided observations
-
-The original uniform16 versus influence16 comparison matches initial full model,
-all-rank RNG, study order/views, targets, optimizer, draws and fixed1458updates.
-It uses16IID windows with replacement/common variates, inverse-proposal attention
-correction and **full94 inference**. The fixed influence proposal combines25%
-uniform coverage with75%teacher influence. On all3887 fitting cases, it reduced
-frozen-teacher readout approximation MSE **45.6%**, every target improving. That
-is teacher fidelity, not disease accuracy or a measured training speedup.
-
-Actual two-role GPU recovery139130771v1 passed complete model/AdamW/LR/counters/
-all-rank RNG/scaler/history and16×12 full94 CSV equality. CPU940795 matched32
-originalMRI inputs/both views/repeated draws; proposal Dataset12644218v1/all5
-objects was privately fully verified once. Both E1 roles are complete and privately preserved under the same original
-comparison owner; uniformE2 also completed972/private verified.
-The original influenceE1 now also completed486 and all5objects are private verified
-at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is RUNNING.
-Sampled-model serving remains synthetic preparation, with **no actual learned
-sampled-checkpoint serving T4/public acceptance or score**.
-[Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
-[GPU recovery](../initiative/audits/licensed-importance-encoder-20261017-v1/actual-terminal.json),
-[production](../initiative/audits/licensed-importance-full-comparison-20261017-v1/README.md),
-[serving preparation](../initiative/audits/licensed-importance-serving-preparation-20261017-v1/README.md).
-
-Kaggle actually permits **two batch GPU sessions**. Main continuity retains one
-lane; sampling and qualified inference share the other. Existing canonical
-capacity/VM admission preserves healthy work and all unfinished liabilities.
-No apparent spare competition slot creates a spare GPU lane.
-
-## New research results: useful negatives, not score gains
-
-CPU942278 screened the **existing** within-series policy on3887 fitting feature
-bags without labels/reports/pixels/new CNN/GPU/fitting. All cases had mean8.0003
-crossing windows of94. Across12targets these windows carry only **0.35–1.54%**
-mean attention; removing them reverses **0.074–0.494%** of49822 deterministic
-strict study pairs. Count-matched ordinary interior removal changes **0.321–1.511%**.
-This deprioritizes a new boundary-only training arm: the strong parent already
-suppresses these windows. It does **not** prove a clinical gain or rule out rare
-large effects. Existing within-series/edge-repeat public notebooks are already
-accepted but unscored; do not recreate them.
-[Protocol, all-target result and limits](../initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
-
-The earlier label-free teacher-view screen had mean probability gaps1.29–2.71
-points and strict-pair discordance2.75–7.41%, at most4.37%cases/target above10
-points. Its predeclared triage was **intermediate**; no new GPU arm or target
-change followed. Those teacher pairs are not clinical positive-negative AUC errors.
-[Actual screen](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
-
-## S6 second lineage: actual T4 public acceptance, no hidden score
-
-Exact author138285808v2/sourceSHA6e87350d, Dataset12589750v3/modelSHA0c7297d5,
-293-member source tree/anatomy and CPU classifier references remain pinned.
-Original qualification **139165932v1** actually COMPLETED on **both T4s in156.6s**,
-three public MRIs, strict50M graph, zero S6 fallback and a finite13-column CSV
-(626bytes/SHA00031c53). Both original CoAtNet and S6 paths executed. The public
-CSV was not uploaded, and this is not a hidden runtime or score.
-
-Our observer stopped because the unchanged author's baked build ID is stale.
-Independent execution of its build-ID function on the exact original source
-reproduced the mismatch. The repaired observer requires exact source SHA plus
-that exact baked/derived pair and all original device/model/CSV checks; no GPU
-rerun or numerical source change occurred. Canonical acceptance is reconciled.
-
-S6 admission also now counts the actual already-granted45h account allowance,
-not just its30h minimum. Used/reserved time, all future training, serving reserve
-and actual two-session limit still govern. No billing/account setting changed.
-Original offline-run owner **20978/44859 reached terminal success** after exact
-notebook139181157v1 completed233seconds/threeMRI/zero fallback. Sole entry owner
-**20994/20982 accepted exact code submission57300990 once** and finished its
-hidden observation. It actually completed at0.950 with no error/247475bytes. The
-public CSV was not uploaded. Original H100942047 remains pending; never duplicate
-S6 or infer its hidden score from either public run.
-[Exact acceptance, quota correction and owners](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
-
-CPU-only input139165316v1 completed5372original fitting windows, all compressed/
-decoded bytes privately verified once. **CPU942806 now COMPLETED0:0**, scoring
-all eight/5372windows in1197.87seconds, peak6.62GBRSS, finite logits/zero fallback.
-CPU942957 reused those outputs and existing parent arrays without labels/masks/
-reports/Gold/newCNN/GPU/fitting: raw gaps8.04–39.09points, rank correlations
-0.8095–0.9762 and1–5reversed strict pairs/28per target. No strong0.8/0.2 opposites.
-These are descriptive exposed-cohort cost quantiles, not clinical AUC or OOF.
-**Do not use raw probability gaps as a calibrated clinical uncertainty gate.**
-[Actual classifier and all12targets](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md).
-
-**Target0.97; verified best0.950.** The next fixed mechanism transports equal
-teacher ranks onto the parent score scale and shifts its two view logits together,
-then reuses the full-encoder source/teacher loss. The matched control keeps parent
-targets bit-identical. Nineteen target-builder contracts pass. The new explicit data overlay additionally
-passed17actual synthetic CPU checks using the unchanged real training engine,
-including both-role full/stop1/fresh-model/resume complete state and9x12CSV
-equality. Parent-only numerical state matches the original except explicit input
-binding metadata. No full MRI/GPU training or accuracy result exists.
-[Actual data path/recovery scope](../initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md). Full3887 S6 targets and a separately admitted complete-
-state recovery/funding are still required. The original target bundle stays
-immutable. [Matched protocol/source/tests](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
-
-CPU942920 staged a distinct32fitting-study B-only scout, source0573a2a1, in
-existing controls. Sole recovered finite PID34237/v5 waits fresh canonical
-capacity/budget after the actual original S6 offline acceptance; **no GPU push yet at this
-observation**, zero entries. It contains the original eight and checks actual
-T4/CPU parity, full preparation/inference time and diversity before any full
-teacher acquisition. Never restart its original owner or stager.
-[Exact source, ten contracts and five owner paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
-The original entry57300990 has since actually scored0.950/noerror; do not repeat it.
-A later CPU-only handoff26454/v4 repaired a post-entry state wait without
-changing the staged scientific source or repeating a push.
-[Actual no-mutation reconciliation and14checks](../initiative/audits/s6-scout-monotone-handoff-20261017-v1/README.md).
-
-## Fixed blend deployment and next-allowance readiness
-
-CPU943330 actually staged and registered the untuned equal-rank0.5/0.5 source
-46a96883, with only weights/build ID changed. Sole **27596/exec58044** waits the
-actual original S6 hidden score, then admits at most one9h private offline T4 run
-with fresh full future VM funding/capacity and one exact accepted code entry
-under live max5daily allowance. It stops on an original hidden failure or any
-uncertain mutation. No GPU push/entry occurred at this observation.
-[Exact source, allowance,17contracts/seven paths](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
-
-FinalE3 standby **28090/exec30473** waits only original17317's actual terminal
-zero-entry window expiry before using the unchanged original entry phase through
-the next allowance window. It exits if the original submits and never creates a
-GPU/Dataset/weight copy. [Exact ownership and seven tests](../initiative/audits/final-epoch3-next-allowance-20261017-v1/README.md).
-
-The complete public S6v3 package has seven files/200500299bytes and no cached
-fitting predictions; its extras manifest is source/runtime only. This rules out
-a shortcut **in that release**, not all external sources. No weights or pixels
-were acquired again. [Actual versioned complete listing](../initiative/audits/s6-public-teacher-cache-survey-20261017-v1/README.md).
-
-## Public0.956 catch-up reference: actual source and weights
-
-The exact Helios138222340v1 and extra224 variant138462884v1 both display0.956,
-not a measured0.97. The source review identifies four R7 ConvNeXt folds,384/352
-physical anatomical inputs,176training windows, state/extent and ordered-pair
-supervision, EMA, laterality and state/fluid stackers, blended with the existing
-CoAtNet. Seven embedded module SHAs match the exact manifest. CPU943797 acquired
-all8 model/sidecar objects886809309bytes once; CPU943811 reconciled an observer-only
-duplicated-reserve assertion using existing full-byte proofs, without repeating
-any download/hash/header read. Originals remain private. CPU943843 staged the original Notebook/asset binding in the canonical ledger;
-original finite owner31309 was subsequently retired before any push, after actual absence/
-canonical prepared-state review. Its source/assets remain intact. Its32,400-second
-reservation now prioritizes the exact public0.958 reference, preserving healthy work.
-[Actual pins, mechanisms and limits](../initiative/audits/r7-public-reference-admission-20261017-v1/README.md),
-[latest entry/training proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
-
-## Completed fixed-final own-model comparisons
-
-All original N3, neighbor and positive-weight checkpoints are privately fully
-verified. Same1156 weak-development studies:
-
-| Fixed-final comparison | Macro AUC | Delta | Conditional95% whole-component interval |
-|---|---:|---:|---|
-| Original own N3E16 | 0.92092535 | Reference | — |
-| Physical source-neighbor channels | 0.91519773 | -0.00572762 | [-0.02522802,+0.01337630] |
-| Positive BCE weighting | 0.92391334 | +0.00298799 | [-0.00999470,+0.01656811] |
-| E12/E14/E16 parameter average, raw serving | 0.92100408 | +0.00031564 vs raw E16 | [-0.00214034,+0.00293081] |
-
-No primary improvement established; keep original own N3E16. Averaging reference
-is raw E16**0.92068844**, not differently served0.92092535. These comparisons had
-2836defined/1164undefined draws; MCL/fracture have2positives each, Baker's3,
-effusion/lateralOA9each, synovitis5negatives. Internal metrics are weak-label
-agreement, not clinical validation or predicted Kaggle AUC.
-[Neighbor](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md),
-[weighting](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md),
-[averaging](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md).
-RemovingSelection_Tier changed zero series choices on all1156 outer cases;
-complete rendering parity remains separate. Context/regional/full-field0.948
-also fail to improve0.949. Confidence/ranking-head experiments are mapped in the
-[research-agent handoff](research-agent-handoff.md).
-
-## Provenance, exposure and operations
-
-Own N3 is fully fine-tuned CoAtNetRMLP2, not a frozen DINO head. Original2247fit,
-384pixels/up-to6series/16selected-slices,12training windows,16epochs4496updates,
-encoder/headLR3e-5/1e-3,AdamW0.02/OneCycle/clip3/no augmentation.
-Source**dcfff319cb7bd7bbae679a20da2b1b9268e8d680**.
-
-Released parent Dataset12431568v1/modelSHA7e5315da uses96slices in26/22/18/12/18
-slots,94triples,140mmcrop,384preparation/320execution,mirrorTTA/per-target ranks.
-Author reports4349RSNA/blended labels/2399OAIknees/selected averaging. We did not
-reproduce that full training or acquire controlled OAI. Permission/attribution
-remain bound. [Exact contract](research-watch/additional/rsna-public-training-contract-update-2026-10-16.md).
-Both released encoders exposed internal studies; head-only folds do not create
-independent whole-model OOF. Protected clinical values remain unused by us.
-Stanford/KneeCoT remain separate private research, not the eligible scored weights.
-
-All3887 original fitting pixel producers/lossless archives/node39 replica are
-already verified. Do not rebuild/transfer them. Preserve accepted masks/folds,
-original reports and provenance. Keep private rows/pixels/weights on authorized
-storage, credential stdin and20GiB/5000file reserves after liabilities.
-Final-serving17301 and final-entry17317 replaced only terminal observer dependencies;
-training/preservation and numerical source are unchanged. E2's unnecessary
-inference-only runs are omitted; E3 remains the final planned learned entry.
-[Exact recovery and evidence](../initiative/audits/research-progress-20261017-0448-v1/README.md).
-
-Original broad QA actually passed**4537tests/8skipped/2warnings/exit0** on numerical
-source that remains byte-identical. Full mypy108 passed. Known unchanged global
-Ruff1327/format57 debt is preserved; archive/currentv2 checks passed.
-[Original terminal](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
-These are engineering results, not accuracy. Current archive/index checks follow
-new receipts; [prior private sourceb9dabf26 mirror](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json)
-is fully verified at HF0917971d/all40objects268191bytes and must not be repeated.
-The newer milestone has its own verified receipt below; it is not that old mirror.
-
-
-Earlier distinct private preservation: source**5b55c961** is fully verified at
-HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
-CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
-actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
-sole final-serving owners. No private pixels/clinical arrays/features/weights.
-[Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
-Never repeat this or earlier prefixes; this receipt bookkeeping is later than
-that mirrored source.
-
-The fixed50/50 CoAtNet/S6 source passed its original arithmetic/fallback and
-AST checks. It is now **actually staged and owned**, with no derivative GPU
-execution/entry yet, as described in the new deployment section. No weights
-were selected from leaderboard feedback or exposed-encoder head folds.
-[Actual source and finite owner](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
-[Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
-
-Later05:55UTC input milestone: fitting8CPU139165316v1 completed and private
-collection942782 verified all5372windows/1,154,209,297bytes. Its CPU classifier
-was dispatched once (CPU942806/exec77108), with no terminal/score yet. Original input owner
-20144 is terminal success. [Exact later proof](../initiative/audits/s6-fitting8-uid-view-20261017-v1/actual-inputs-private-verified.json).
-
-Earlier verified private milestone: source**c1354577** at
-HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
-CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
-S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
-classifier dispatch, fixed blend preparation and new original epoch proofs.
-No private pixels/case IDs/clinical arrays/teacher predictions/weights.
-[One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
-Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
-mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
-
-Latest privately preserved source is **b9308003**, HF**9fcf3f30d3766e40e9c931adb7f03ea0162f6f02**,
-all48small objects/280632bytes fully re-downloaded/size/SHA verified by CPU944520
-under the canonical shared lock. This includes the actual influenceE2 receipt,
-queued uniformE3/scout metadata recoveries and independent fixed32 follow-through.
-Never repeat. Guide/receipt bookkeeping follows that source.
-[Exact receipt](../initiative/audits/hf-scout-sampling-recovery-20261017-v1/README.md).
-Earlier source2dd2d304/HFae38ecca and source9ef73d69/HF956d3087 mirrors remain verified and immutable.
-
-## Verified expanded final and original R7 execution,08:05UTC
-
-Expanded original938284 completed0:0/5,184updates and all16epochs are privately
-verified. CPU944038 independently replayed **0.9174315801 versus0.9209253491**,
-delta−0.0034937690, paired conditional95%[−0.0133171112,+0.0060725221],
-2,836defined/1,164undefined of4,000whole-component draws. This is no established
-weak-endpoint gain, not a new Kaggle score. Preserve the original independent
-N3 reference; no best-epoch selection or class splicing.
-[Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
-
-R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
-**Original finite owner31309 is now TERMINAL_DEPRIORITIZED before any push**,
-with actual no-intent/no-response/public-slug absence proof. Its reservation moves
-to the exact public0.958 reference; all source/assets and sibling obligations remain.
-No GPU job was cancelled. The numerical Notebook cells are unchanged;
-all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
-fallback and a strict three-MRI/13-column CSV are required.
-[Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).
-
-
-## Latest09:32UTC result, reference and research work
-
-**S6 code submission57300990 actually scored0.950**, COMPLETE/noerror,
-247475outputbytes. Its original observer20994 is terminal success; never repeat
-it. Best independent MRI-trained N3 remains0.894. Target0.97 remains unachieved.
-[Actual terminal](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
-
-The scored public Helios359117069v6 displays0.958. All8code cells now match our
-private source-only **139199164v1**, `godlydonuts/rsna-public0958-native-300b34417bc1`.
-Its original R6 dataset is **pinned to version1**, manifest6508ce69; version2
-silently replaces it with different R7 weights and fails the source bundle check.
-Internet is off/original October2 Docker retained/twoT4 configured/private. The
-Quick Save conversion completed, **not MRI inference**. Do not submit v1. Do not
-use SDK SaveKernel with unversioned datasets: it would lose the old R6 pin.
-Next one UI Save & Run All of the existing same draft requires fresh canonical
-intent, all-future VM funding and actual two-session admission, followed by exact
-actual public output acceptance before a code entry under fresh daily allowance.
-[Exact source/input proofs and next action](../initiative/audits/public0958-reference-20261017-v1/README.md).
-
-CPU944959 verified the older0.956 R7 owner31309 had no push/entry intent/response
-or public slug, then retired only that CPU observer. No GPU job was cancelled;
-all8original objects/source remain private. Its32,400-second future reservation
-moves to0.958 without changing healthy main/sampling or other liabilities.
-
-Original whole94E3 remains running; uniformE3 remains UI QUEUED/APIstatusnull.
-Recovered CPU observer34538 preserves the same run; original97530 is terminal.
-InfluenceE2 is complete972/all5objects privately download/size/SHA verified at
-HFde388a6e4ee800a0835c1d82f13fea94e903653f. Scout34237 waits actual capacity;
-independent CPU follow-through34308 waits its actual complete/preserved32study
-result. Do not duplicate any original or infer optimizer progress from queueing.
-
-New CPU944634 accepted the full3887study/21429series cost-balanced metadata
-partition plans, with21assembly/negative checks. Exact private112751byte plan
-SHAa4038380 stays on evc33. Every raw prediction group must complete before global
-ranking/transport; ranks within separate shards would change the scientific
-objective. No full teacher producer/GPU/funding/training has been admitted.
-Actual32study precision/cost acceptance comes first.
-[Exact full-cohort preparation and limits](../initiative/audits/s6-fullteacher-cohort-plan-20261017-v1/README.md).
-
-Earlier08:40 evidence remains in the original recovery audits. Exact original
-private preservation HF9fcf3f30d3766e40e9c931adb7f03ea0162f6f02 covers48small
-objects; never repeat it. New sourcef1540f77 reference/result/cohort milestone is
-now privately verified at HF6599eae559e004384bbf278ee948d15589b7a9b0,
-all70objects/491310bytes viaCPU945031. [Actual preservation](../initiative/audits/hf-public0958-actual0950-20261017-v1/README.md).
-No source weights, clinical rows or raw private assignment IDs are published.
-
-
-## New supervision/CPU milestone privately verified
-
-Source8214808adffbad5ffe9ea5d3fa2748251b61e477 is private-HF fully
-65object/385900byte download/size/SHA verified at
-7da4f4a98799419746f9d9d0c7c9c4ec6b3d6293 byCPU945498.
-[Original receipt](../initiative/audits/hf-S6-supervision-CPU32-20261017-v1/README.md).
-Never repeat this or earlier verified mirrors. No raw clinical/UID/model/label/
-prediction data were mirrored; new overlay remains private and untrained.
+The original detailed10:15UTC guide remains recoverable from
+[the preceding Git snapshot](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/ca90fa5e347310dbbb35765e5dcc5c1b07e04910/docs/current-state.md); original receipts
+and archived source contracts are never replaced with new narratives.

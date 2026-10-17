@@ -1,0 +1,23 @@
+
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np,torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1);assert not torch.cuda.is_available();D=Path('/tmp/rsna-S6-training-release-20261017-v1');R=D/'matched-fitting-overlay-v1';out_path=R/'actual-array-data-path-admitted.json';assert not out_path.exists() and sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+65536<16*2**20 and shutil.disk_usage('/tmp').free>611754508347
+assert hashlib.sha256(v['core'].encode()).hexdigest()==v['checked']['source_sha256'] and v['checked']['count']==24;namespace={};exec(compile(v['core'],'explicit_S6_source_only_data_path','exec'),namespace)
+base_path=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');new_path=R/'targets.private.npz';admitted=json.loads((R/'accepted.json').read_text());assert admitted['status']=='distinct_S6_v5_fitting_only_target_overlay_materialized_private_no_training' and admitted['protected_numeric_label_values_read'] is False
+assert hashlib.sha256(base_path.read_bytes()).hexdigest()==namespace['ORIGINAL_FILE_SHA'] and new_path.stat().st_size==admitted['overlay']['bytes']==613297 and hashlib.sha256(new_path.read_bytes()).hexdigest()==admitted['overlay']['sha256']==namespace['S6_FILE_SHA']
+with np.load(base_path,allow_pickle=False) as a:old={k:a[k].copy() for k in a.files}
+with np.load(new_path,allow_pickle=False) as a:new={k:a[k].copy() for k in a.files}
+assert set(old)==set(new)=={'uids','labels','masks','parent_logits'} and all(np.array_equal(old[k],new[k]) for k in ['uids','masks','parent_logits'])
+class ArraysOnly:
+ def __init__(self):self.uids=old['uids'].tolist();self.labels=torch.from_numpy(old['labels']);self.mask=torch.from_numpy(old['masks']);self.teacher=torch.from_numpy(old['parent_logits'])
+ def __len__(self):return len(self.uids)
+ def case(self,*a,**kw):raise RuntimeError('Array-only admission never reads images')
+base=ArraysOnly();uids=base.uids;assert len(uids)==3887 and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==namespace['POPULATION_SHA'];results={}
+for role,array,file_sha,raw_source in [('original_source',old['labels'],namespace['ORIGINAL_FILE_SHA'],None),('released_S6_source',new['labels'],namespace['S6_FILE_SHA'],namespace['S6_SOURCE_SHA'])]:
+ labels=torch.from_numpy(array);binding={'version':namespace['VERSION'],'role':role,'population':3887,'population_sha256':namespace['POPULATION_SHA'],'diagnostic_only':False,'parent_checkpoint_sha256':namespace['PARENT_SHA'],'original_target_file_sha256':namespace['ORIGINAL_FILE_SHA'],'target_file_sha256':file_sha,'released_S6_raw_source_sha256':raw_source,'original_label_array_sha256':namespace['sha'](base.labels),'new_label_array_sha256':namespace['sha'](labels),'mask_array_sha256':namespace['sha'](base.mask),'parent_teacher_array_sha256':namespace['sha'](base.teacher)}
+ obj=namespace['SourceLabels'](base,uids,labels,torch.from_numpy(new['masks']),torch.from_numpy(new['parent_logits']),binding);assert len(obj)==3887 and obj.binding==binding and torch.equal(obj._masks,base.mask) and torch.equal(obj._teacher,base.teacher);results[role]={'binding':binding,'known_cells':int(obj._masks.sum()),'labels_equal_original':bool(torch.equal(obj._labels,base.labels))}
+assert results['original_source']['labels_equal_original'] is True and results['released_S6_source']['labels_equal_original'] is False
+out={'status':'actual_full3887_S6_source_label_only_numerical_data_path_admitted_no_MRI_or_fit','CPU_job':os.environ['SLURM_JOB_ID'],'source_overlay_sha256':v['checked']['source_sha256'],'synthetic_engine_checks_used_for_code_binding':24,'actual_roles':results,'exact_existing_UIDs_masks_two_view_teacher_original_targets_preserved':True,'protected_numeric_values_read':False,'actual_new_MRI_input_render_encoder_optimizer_or_GPU_calls':0,'new_Dataset_competition_or_pixel_model_transfers':0,'existing16MiB_node_control_cap_preserved':True,'source_files_changed':False,'clinical_or_Kaggle_score_claim':False};data=(json.dumps(out,indent=2)+'\n').encode();assert len(data)<65536
+with out_path.open('xb') as f:os.fchmod(f.fileno(),0o600);f.write(data)
+print(json.dumps(out),flush=True)

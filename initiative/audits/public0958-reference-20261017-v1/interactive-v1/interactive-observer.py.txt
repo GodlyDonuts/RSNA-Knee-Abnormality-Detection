@@ -1,0 +1,34 @@
+import hashlib, json, time
+from pathlib import Path
+import pandas as pd
+import numpy as np
+q=json.loads(Path('/kaggle/working/submission_receipt.json').read_text())
+assert q['status']=='PASS' and q['rows']==q['scored']==3 and q['fallback_studies']==0
+assert q['bundle_id']=='fe055406fad6a12f' and q['gpus']==['Tesla T4','Tesla T4']
+assert list(q['worker_exit_codes'].values())==[0,0]
+assert len(q['workers'])==2
+expected_models=['E_lrprior_s0_f0.pt','E_lrprior_s0_f1.pt','E_lrprior_s0_f2.pt','E_lrprior_s0_f3.pt']
+for w in q['workers']:
+ assert w['status']=='PASS' and w['models']==expected_models and not w['timed_out'] and not w['fallback']
+test=pd.read_csv(Path(DATA)/'test.csv')
+s=pd.read_csv('/kaggle/working/submission.csv')
+assert list(s.columns)==['StudyInstanceUID']+['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+assert s.shape==(3,13) and s['StudyInstanceUID'].is_unique and s['StudyInstanceUID'].tolist()==test['StudyInstanceUID'].tolist()
+a=s[['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']].to_numpy(dtype=float)
+assert np.isfinite(a).all() and ((a>=0)&(a<=1)).all()
+small={}
+for name in ['submission.csv','submission_receipt.json','blend_receipt.json','_own.csv','_public_stack.csv','raptor_raw.csv','raptor224_raw.csv','raptor_sub.csv','raptor224_sub.csv','ours_sub.csv']:
+ p=Path('/kaggle/working')/name; assert p.is_file() and p.stat().st_size<1000000
+ small[name]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+ckpts=sorted(Path(p) for p in _o_ck)
+assert all(p.parent==Path('/kaggle/input/datasets/goodpjw2008/rsna-knee-2-5d-convnext-reader') for p in ckpts)
+assert len(ckpts)==3 and sum(p.stat().st_size for p in ckpts)<3*1024**3
+reader=[]
+for p in ckpts:
+ h=hashlib.sha256()
+ with p.open('rb') as f:
+  for b in iter(lambda:f.read(8*1024**2),b''):h.update(b)
+ reader.append({'name':p.name,'bytes':p.stat().st_size,'sha256':h.hexdigest()})
+out={'status':'actual_exact_public0958_interactive_MRI_qualification_pass','observed_UTC':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'source_only_saved_version':1,'all8code_cells_unchanged':True,'rows':3,'columns':13,'UID_order_equals_public_test':True,'finite_probability_bounds_pass':True,'R6_status':q['status'],'R6_bundle_id':q['bundle_id'],'R6_scored':q['scored'],'R6_fallback_studies':q['fallback_studies'],'R6_seconds':q['seconds'],'R6_devices':q['gpus'],'R6_worker_exit_codes':q['worker_exit_codes'],'R6_workers':[{'models':w['models'],'sha256':w['sha256'],'views':w['views'],'flip_tta':w['flip_tta'],'scored':w['scored'],'status':w['status'],'fluid_stacker':w['fluid_stacker'],'state_stacker':w['state_stacker']} for w in q['workers']],'small_output_proofs':small,'reader3_checkpoint_proofs':reader,'committed_offline_version_accepted':False,'competition_submission':False,'hidden_score':None}
+Path('/kaggle/working/interactive_qualification_observer.json').write_text(json.dumps(out,sort_keys=True,indent=2)+chr(10))
+print('QUAL0958_ACCEPTED '+json.dumps(out,sort_keys=True),flush=True)

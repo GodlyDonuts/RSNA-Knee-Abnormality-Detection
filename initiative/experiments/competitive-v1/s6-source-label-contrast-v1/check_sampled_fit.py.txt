@@ -1,0 +1,179 @@
+"""Exact original sampled optimizer/recovery, including a final singleton study."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import tempfile
+from dataclasses import replace
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.licensed_importance import ProposalCases, Recipe
+from rsna.competitive.licensed_importance_train import fit as original_fit
+
+L = Path(__file__).resolve().parent
+
+
+def load(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+h = load("exact_new_sampled_label_path", L / "sampled_fit.py.txt")
+o = h.source
+f = load("exact_existing_sampled_engine_fixture", Path("tests/test_licensed_importance.py"))
+torch.set_num_threads(1)
+base = f.OriginalCases(9)
+base.mask = torch.ones((9, 12), dtype=torch.bool)
+old_case = base.case
+
+
+def case(i, p, m):
+    row = old_case(i, p, m)
+    row["mask"] = base.mask[i]
+    base.last = row
+    return row
+
+
+base.case = case
+labels = base.labels.clone()
+labels[:, 11] = 1 - labels[:, 11]
+
+
+def data(role):
+    value = base.labels if role == "original_source" else labels
+    b = {
+        "version": o.VERSION,
+        "role": role,
+        "population": 9,
+        "population_sha256": hashlib.sha256(
+            json.dumps(base.uids, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "diagnostic_only": True,
+        "parent_checkpoint_sha256": o.PARENT_SHA,
+        "original_target_file_sha256": o.ORIGINAL_FILE_SHA,
+        "target_file_sha256": o.ORIGINAL_FILE_SHA if role == "original_source" else o.S6_FILE_SHA,
+        "released_S6_raw_source_sha256": None if role == "original_source" else o.S6_SOURCE_SHA,
+        "original_label_array_sha256": o.sha(base.labels),
+        "new_label_array_sha256": o.sha(value),
+        "mask_array_sha256": o.sha(base.mask),
+        "parent_teacher_array_sha256": o.sha(base.teacher),
+    }
+    return ProposalCases(
+        o.SourceLabels(base, base.uids, value, base.mask, base.teacher, b, engineering_only=True),
+        f.proposal().repeat(9, 1),
+    )
+
+
+c, t = data("original_source"), data("released_S6_source")
+bind = {"parent_checkpoint_sha256": o.PARENT_SHA, "diagnostic_only": True}
+recipe = Recipe(epochs=2, role="uniform")
+passed = []
+selected = [2, 5, 2, 5] * 4
+row = t.case(0, selected, True)
+assert (
+    torch.equal(row["images"], base.images[0, selected].flip(-1))
+    and torch.equal(row["labels"], labels[0])
+    and torch.equal(row["parent_logits"], base.teacher[0, 1])
+)
+passed.append(
+    "actual_original_IID_duplicates_order_mirror_mask_teacher_preserved_only_labels_change"
+)
+
+
+def run(d, p, engine=h.fit, *, stop=None, resume=False, seed=322, rec=recipe):
+    torch.manual_seed(seed)
+    model = f.Model()
+    engine(model, d, p, bind, rec, device=torch.device("cpu"), stop_after=stop, resume=resume)
+    return torch.load(p / "checkpoint.pt", weights_only=True)
+
+
+def predict(state):
+    model = f.Model()
+    model.load_state_dict(state["model"])
+    model.eval()
+    with torch.inference_mode():
+        return (
+            torch.stack(
+                [
+                    model(old_case(i, list(range(94)), m)["images"].unsqueeze(0)).sigmoid()
+                    for i in range(9)
+                    for m in (False, True)
+                ]
+            )
+            .numpy()
+            .tobytes()
+        )
+
+
+def refuse(call):
+    try:
+        call()
+    except ValueError:
+        return
+    raise AssertionError("Invalid sampled source role accepted")
+
+
+with tempfile.TemporaryDirectory(prefix="rsna-synthetic-source-IID16-") as temp:
+    R = Path(temp)
+    plain = run(ProposalCases(base, f.proposal().repeat(9, 1)), R / "plain", engine=original_fit)
+    fc = run(c, R / "control")
+    ft = run(t, R / "treatment")
+    for k in plain:
+        if k != "binding":
+            f.equal(plain[k], fc[k])
+    assert predict(plain) == predict(fc)
+    passed.append(
+        "control_complete_original_IID16_optimizer_model_LR_allRNG_scaler_history_and_full94_two_view_predictions_equal_except_source_binding"
+    )
+    for role, d, full in [("control", c, fc), ("treatment", t, ft)]:
+        run(d, R / (role + "-resume"), stop=1)
+        resumed = run(d, R / (role + "-resume"), resume=True, seed=777)
+        f.equal(full, resumed)
+        assert predict(full) == predict(resumed) and [x["studies"] for x in full["history"]] == [
+            8,
+            1,
+            8,
+            1,
+        ]
+        passed.append(
+            role
+            + "_actual_sampled_full_stop1_resume_complete_state_and_predictions_exact_including_singleton"
+        )
+    assert any(not torch.equal(fc["model"][k], ft["model"][k]) for k in fc["model"])
+    passed.append("source_label_change_reaches_actual_sampled_encoder_optimizer")
+    run(c, R / "cross-role", stop=1)
+    refuse(lambda: run(t, R / "cross-role", resume=True))
+    passed.append("source_role_change_cannot_resume_control")
+    refuse(lambda: run(t, R / "influence", rec=replace(recipe, role="influence")))
+    passed.append("influence_change_cannot_enter_uniform_label_only_contrast")
+    refuse(
+        lambda: h.fit(
+            f.Model(),
+            t,
+            R / "synthetic-prod",
+            {**bind, "diagnostic_only": False},
+            recipe,
+            device=torch.device("cpu"),
+        )
+    )
+    passed.append("engineering_scope_cannot_be_promoted_to_production")
+result = {
+    "status": "actual_unchanged_uniform16_CPU_engine_label_only_control_and_recovery_passed",
+    "source_overlay_sha256": hashlib.sha256((L / "source_overlay.py.txt").read_bytes()).hexdigest(),
+    "sampled_adapter_sha256": hashlib.sha256((L / "sampled_fit.py.txt").read_bytes()).hexdigest(),
+    "unchanged_sampled_trainer_sha256": hashlib.sha256(
+        Path("rsna/competitive/licensed_importance_train.py").read_bytes()
+    ).hexdigest(),
+    "checks": passed,
+    "count": len(passed),
+    "synthetic_only": True,
+    "actual_GPU_MRI_or_accuracy_admitted": False,
+}
+(L / "sampled-checked.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result))

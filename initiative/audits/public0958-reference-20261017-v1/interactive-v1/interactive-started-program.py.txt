@@ -1,0 +1,17 @@
+
+import hashlib,importlib.util,json,os,sys,shutil
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('unchanged_public0958_UI_reconcile',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+D=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1');key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';slug='godlydonuts/rsna-public0958-native-300b34417bc1'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'actual_exact0958_interactive_started_reconciliation','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['state']=='public0958_exact_interactive_qualification_intent' and record['interactive_qualification']['state']=='UI_attempt_intent';actual=r.kernel('GetKernel',slug,1);assert actual['metadata']['id']==139199164 and actual['metadata']['isPrivate'] is True and not actual['metadata'].get('enableInternet',False)
+  def cells(text):return [''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in json.loads(text)['cells'] if c['cell_type']=='code']
+  a=cells(actual['blob']['source']);assert len(a)==8 and a==cells((D/'scored-UI-v6.private.ipynb').read_text()) and hashlib.sha256(json.dumps(a,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()==record['code_cells_sha256'];o=v['observation'];assert o['actual_device_names']==['Tesla T4','Tesla T4'] and o['CUDA_CoAtNet384_scored_studies']==o['CUDA_CoAtNet224_scored_studies']==3 and o['actual_R6_worker_assignments']==[2,1]
+  out={'status':'actual_exact0958_interactive_two_T4_session_running_original_CoAtNet_stages_complete_R6_workers_started','CPU_job':os.environ['SLURM_JOB_ID'],'recorded_at_UTC':w.utcnow(),'kernel_id':139199164,'source_only_saved_version':1,'code_cells_sha256':record['code_cells_sha256'],'all8saved_code_cells_exact_again':True,'actual_UI_observation':o,'maximum_interactive_VM_seconds':2700,'source_only_v1_still_not_competition_eligible':True,'new_batch_push_Dataset_or_competition_mutations':0,'no_actual_hidden_score_claim':True};w.new_json(D/'interactive-actual-started.json',out);record['state']='public0958_exact_interactive_qualification_running';record['interactive_qualification'].update(state='actual_UI_two_T4_running',actual_started=out);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['code_cells_sha256'],out['status']));db.commit();print(json.dumps(out),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()

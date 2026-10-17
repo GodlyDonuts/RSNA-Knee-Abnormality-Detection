@@ -1,0 +1,20 @@
+
+import hashlib,importlib.util,json,os,sys,shutil
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('unchanged_public0958_UI_reconcile',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+D=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1');key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';slug='godlydonuts/rsna-public0958-native-300b34417bc1'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'actual_exact0958_interactive_completed_reconciliation','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['state']=='public0958_exact_interactive_qualification_running'
+  actual=r.kernel('GetKernel',slug,1);assert actual['metadata']['id']==139199164 and actual['metadata']['isPrivate'] is True and not actual['metadata'].get('enableInternet',False)
+  def cells(text):return [''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in json.loads(text)['cells'] if c['cell_type']=='code']
+  a=cells(actual['blob']['source']);assert len(a)==8 and a==cells((D/'scored-UI-v6.private.ipynb').read_text()) and hashlib.sha256(json.dumps(a,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()==record['code_cells_sha256']
+  p=v['proof'];assert p['actual_UI_session_stopped'] and p['R6_bundle_id']=='fe055406fad6a12f' and p['rows']==3 and p['columns']==13 and p['finite_probability_bounds_pass'] and p['R6_fallback_studies']==0 and not p['competition_submission'] and p['hidden_score'] is None
+  out={'status':'actual_exact0958_interactive_qualification_passed_and_session_stopped','CPU_job':os.environ['SLURM_JOB_ID'],'recorded_at_UTC':w.utcnow(),'kernel_id':139199164,'source_only_version':1,'all8saved_source_cells_exact_again':True,'code_cells_sha256':record['code_cells_sha256'],'actual_qualification':p,'fresh_account':r.account(),'future_batch_VM_seconds_retained':32400,'interactive_budget_maximum_seconds':2700,'no_batch_commit_Dataset_or_competition_entry_mutations':True,'source_only_v1_still_not_competition_eligible':True}
+  w.new_json(D/'interactive-qualification-terminal.json',out);record['interactive_qualification'].update(state='actual_passed_and_stopped',actual_terminal=out);record['state']='public0958_exact_UI_source_only_v1_prepared';db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['code_cells_sha256'],out['status']));db.commit();print(json.dumps(out),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()

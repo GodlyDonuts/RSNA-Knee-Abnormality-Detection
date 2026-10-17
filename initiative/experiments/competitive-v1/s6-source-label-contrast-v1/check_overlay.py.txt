@@ -1,0 +1,245 @@
+"""Run original whole94 fit/recovery on small synthetic label-only controls."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import tempfile
+from dataclasses import replace
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.licensed_parent_train import Recipe, fit
+
+L = Path(__file__).resolve().parent
+
+
+def load(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+o = load("exact_source_label_overlay", L / "source_overlay.py.txt")
+f = load("unchanged_tiny_whole94_fixture", Path("tests/test_licensed_parent_train.py"))
+torch.set_num_threads(1)
+base = f.Cases(9)
+base.mask = torch.ones((9, 12), dtype=torch.bool)
+original_case = base.case
+
+
+def tracked_case(i, p, m):
+    row = original_case(i, p, m)
+    row["mask"] = base.mask[i]
+    base.last = row
+    return row
+
+
+base.case = tracked_case
+changed = base.labels.clone()
+changed[:, 11] = 1 - changed[:, 11]
+passed = []
+
+
+def bind(role, labels):
+    return {
+        "version": o.VERSION,
+        "role": role,
+        "population": len(base),
+        "population_sha256": hashlib.sha256(
+            json.dumps(base.uids, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "diagnostic_only": True,
+        "parent_checkpoint_sha256": o.PARENT_SHA,
+        "original_target_file_sha256": o.ORIGINAL_FILE_SHA,
+        "target_file_sha256": o.ORIGINAL_FILE_SHA if role == "original_source" else o.S6_FILE_SHA,
+        "released_S6_raw_source_sha256": None if role == "original_source" else o.S6_SOURCE_SHA,
+        "original_label_array_sha256": o.sha(base.labels),
+        "new_label_array_sha256": o.sha(labels),
+        "mask_array_sha256": o.sha(base.mask),
+        "parent_teacher_array_sha256": o.sha(base.teacher),
+    }
+
+
+def make(role="released_S6_source", labels=changed, **kw):
+    return o.SourceLabels(
+        base,
+        kw.pop("uids", base.uids),
+        labels,
+        kw.pop("masks", base.mask),
+        kw.pop("teacher", base.teacher),
+        kw.pop("binding", bind(role, labels)),
+        **kw,
+    )
+
+
+control = make("original_source", base.labels, engineering_only=True)
+treatment = make(engineering_only=True)
+for mirror in (False, True):
+    row = treatment.case(2, [1, 5, 17], mirror)
+    assert all(row[k] is base.last[k] for k in ("images", "mask", "parent_logits"))
+    assert torch.equal(row["labels"], changed[2])
+    passed.append(
+        "only_labels_change_exact_original_pixels_mask_teacher_objects_preserved_" + str(mirror)
+    )
+row["labels"].zero_()
+assert torch.equal(treatment.case(2, [1], False)["labels"], changed[2])
+passed.append("returned_labels_cannot_poison_future_target")
+meta = treatment.binding
+meta["role"] = "original_source"
+assert treatment.binding["role"] == "released_S6_source"
+passed.append("external_binding_mutation_cannot_change_resume_role")
+
+
+def refuse(call):
+    try:
+        call()
+    except ValueError:
+        return
+    raise AssertionError("Invalid source contrast admitted")
+
+
+for label, call in [
+    ("wrong_order_refused", lambda: make(uids=list(reversed(base.uids)), engineering_only=True)),
+    ("synthetic_cannot_claim_production", lambda: make()),
+    (
+        "control_cannot_change_source",
+        lambda: make("original_source", changed, engineering_only=True),
+    ),
+    ("mask_change_refused", lambda: make(masks=~base.mask, engineering_only=True)),
+    ("teacher_change_refused", lambda: make(teacher=base.teacher + 1, engineering_only=True)),
+    ("FP64_source_refused", lambda: make(labels=changed.double(), engineering_only=True)),
+    (
+        "nan_source_refused",
+        lambda: make(labels=torch.full_like(changed, float("nan")), engineering_only=True),
+    ),
+    (
+        "source_outside_probability_range_refused",
+        lambda: make(labels=changed + 1, engineering_only=True),
+    ),
+    (
+        "unbound_source_bytes_refused",
+        lambda: make(
+            binding={**bind("released_S6_source", changed), "new_label_array_sha256": "0" * 64},
+            engineering_only=True,
+        ),
+    ),
+    (
+        "wrong_raw_source_refused",
+        lambda: make(
+            binding={
+                **bind("released_S6_source", changed),
+                "released_S6_raw_source_sha256": "0" * 64,
+            },
+            engineering_only=True,
+        ),
+    ),
+    (
+        "wrong_fitting_source_file_refused",
+        lambda: make(
+            binding={**bind("released_S6_source", changed), "target_file_sha256": "0" * 64},
+            engineering_only=True,
+        ),
+    ),
+]:
+    refuse(call)
+    passed.append(label)
+base.teacher[0, 0, 0] += 1
+refuse(lambda: treatment.case(0, [1], False))
+base.teacher[0, 0, 0] -= 1
+# Restore exact bytes, avoiding a reversible floating-point arithmetic assumption.
+base.teacher.copy_(treatment._teacher)
+passed.append("post_admission_teacher_mutation_refused")
+base.labels[0, 0] += 1
+refuse(lambda: treatment.case(0, [1], False))
+base.labels.copy_(treatment._old)
+passed.append("post_admission_original_label_mutation_refused")
+recipe = replace(Recipe(), epochs=2, windows=94)
+binding = {"parent_checkpoint_sha256": o.PARENT_SHA, "diagnostic_only": True}
+
+
+def run(data, path, stop=None, resume=False, seed=311):
+    torch.manual_seed(seed)
+    model = f.TinyMRI()
+    engine = o.fit_with_source_labels if isinstance(data, o.SourceLabels) else fit
+    engine(
+        model,
+        data,
+        path,
+        binding,
+        recipe,
+        device=torch.device("cpu"),
+        stop_after=stop,
+        resume=resume,
+    )
+    return torch.load(path / "checkpoint.pt", weights_only=True)
+
+
+def predictions(state):
+    model = f.TinyMRI()
+    model.load_state_dict(state["model"])
+    model.eval()
+    with torch.inference_mode():
+        return (
+            torch.stack(
+                [
+                    model(original_case(i, list(range(94)), False)["images"].unsqueeze(0))
+                    for i in range(len(base))
+                ]
+            )
+            .numpy()
+            .tobytes()
+        )
+
+
+with tempfile.TemporaryDirectory(prefix="rsna-source-only-engineering-") as tmp:
+    root = Path(tmp)
+    plain = run(base, root / "plain")
+    full_c = run(control, root / "control-full")
+    for k in plain:
+        if k != "binding":
+            f.equal(plain[k], full_c[k])
+    assert predictions(plain) == predictions(full_c)
+    passed.append(
+        "original_control_entire_model_AdamW_LR_counters_allRNG_history_and_full94_predictions_exact_except_explicit_binding"
+    )
+    full_t = run(treatment, root / "treatment-full")
+    assert any(not torch.equal(full_t["model"][k], full_c["model"][k]) for k in full_t["model"])
+    passed.append("actual_source_label_change_reaches_optimizer_not_a_noop")
+    for name, data, full in [("control", control, full_c), ("treatment", treatment, full_t)]:
+        run(data, root / (name + "-resume"), stop=1)
+        resumed = run(data, root / (name + "-resume"), resume=True, seed=777)
+        f.equal(full, resumed)
+        assert predictions(full) == predictions(resumed)
+        passed.append(
+            name
+            + "_actual_original_engine_full_stop1_resume_complete_state_and_full94_predictions_exact"
+        )
+    run(control, root / "cross-role-resume", stop=1)
+    refuse(lambda: run(treatment, root / "cross-role-resume", resume=True))
+    passed.append("cross_source_role_cannot_resume_original_control_checkpoint")
+    badbind = {**binding, "diagnostic_only": False}
+    refuse(
+        lambda: o.fit_with_source_labels(
+            f.TinyMRI(), treatment, root / "false-prod", badbind, recipe, device=torch.device("cpu")
+        )
+    )
+    passed.append("synthetic_data_cannot_acquire_production_fitting_authority")
+assert torch.equal(base.teacher, treatment._teacher) and torch.equal(base.labels, treatment._old)
+passed.append("original_source_and_teacher_inputs_unchanged_after_all_checks")
+result = {
+    "status": "source_label_only_overlay_actual_CPU_engine_control_and_recovery_checks_passed",
+    "source_sha256": hashlib.sha256((L / "source_overlay.py.txt").read_bytes()).hexdigest(),
+    "checks": passed,
+    "count": len(passed),
+    "synthetic_studies": 9,
+    "fixed_updates_per_fit": 4,
+    "model_is_small_synthetic_MIL_not_real_MRI": True,
+    "actual_GPU_or_full_MRI_fit_admitted": False,
+    "clinical_or_Kaggle_score_claim": False,
+}
+(L / "checked.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result))
