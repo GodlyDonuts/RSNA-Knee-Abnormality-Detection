@@ -497,12 +497,13 @@ Do not change or displace healthy original main/sampling/N3 jobs or duplicate
 S6 entry57300990. Public409.9s is only a three-study example, not hidden timing.
 [New actual S6 entry/uniformE2/expandedE15 proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
 
-Latest privately preserved source is **2dd2d304**, HF**ae38eccacf78fa224d455ee430c9929541e9a956**,
-all35small objects/249094bytes fully re-downloaded/size/SHA verified by CPU944294
-under the canonical shared lock. This includes the actual expanded fixed-final
-negative and original R7 controller admission. Never repeat. Guide/receipt
-bookkeeping follows that source. [Exact receipt](../initiative/audits/hf-r7-controller-expanded-final-20261017-v1/README.md).
-The earlier source9ef73d69/HF956d3087 mirror remains independently verified and immutable.
+Latest privately preserved source is **b9308003**, HF**9fcf3f30d3766e40e9c931adb7f03ea0162f6f02**,
+all48small objects/280632bytes fully re-downloaded/size/SHA verified by CPU944520
+under the canonical shared lock. This includes the actual influenceE2 receipt,
+queued uniformE3/scout metadata recoveries and independent fixed32 follow-through.
+Never repeat. Guide/receipt bookkeeping follows that source.
+[Exact receipt](../initiative/audits/hf-scout-sampling-recovery-20261017-v1/README.md).
+Earlier source2dd2d304/HFae38ecca and source9ef73d69/HF956d3087 mirrors remain verified and immutable.
 
 ## Verified expanded final and original R7 execution,08:05UTC
 
