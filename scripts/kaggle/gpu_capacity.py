@@ -22,7 +22,7 @@ def admission(db, remote, *, caller, now=None):
     if caller not in ("serving", "sampling"):
         raise ValueError("Known auxiliary campaign caller required")
     now = time.time() if now is None else now
-    refs = {}
+    refs: dict[tuple[str, int], dict] = {}
     final_main_complete = False
     priority = []
 
