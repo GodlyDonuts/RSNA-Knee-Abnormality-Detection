@@ -1,5 +1,11 @@
 # Complete initiative record
 
+Latest actual evidence: [S6 exact code entry57300990, uniformE2 and expandedE15](audits/research-progress-20261017-0735-v1/README.md),
+[public0.956 R7 source/manifest/private weights](audits/r7-public-reference-admission-20261017-v1/README.md),
+[fixed equal-rank deployment](audits/s6-equalrank-deployment-20261017-v1/README.md),
+and [ordinal-target data path](experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md).
+Target0.97 remains distinct from verified best0.949.
+
 The [October 17 owner program and critical assessment](research/owner-deadline-program-20261017-v1/README.md)
 and [actual S6 source-only admission](audits/s6-public-source-20261017-v1/README.md)
 are available for new research agents. The [original S6 checkpoint](audits/s6-checkpoint-admission-20261017-v1/README.md)
@@ -12,7 +18,7 @@ The reported S6 score has not yet been reproduced by this project.
 [research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
 As of October17 06:25UTC, actual best remains attributed0.949; own N3 is0.894.
 Whole94 E2 completed972/private verified and original E3 runs. Expanded original
-H100 has epochs1–13 privately verified. Both sampling E1 roles are preserved;
+H100 has epochs1–14 privately verified. Both sampling E1 roles are preserved;
 uniformE2 runs. [Actual new epochs](audits/research-progress-20261017-0625-v1/README.md).
 The [actual CPU8 teacher comparison](audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
 motivates an [ordinal transport contrast](experiments/competitive-v1/s6-rank-transport-v1/README.md),

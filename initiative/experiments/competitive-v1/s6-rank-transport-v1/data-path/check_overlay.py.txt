@@ -1,0 +1,254 @@
+"""Run the unchanged real training engine on a synthetic target overlay."""
+
+import copy
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import tempfile
+from dataclasses import asdict
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.licensed_importance import ProposalCases, Recipe
+from rsna.competitive.licensed_importance_train import fit
+from rsna.competitive.licensed_parent_train import PARENT_SHA
+
+L = Path(__file__).resolve().parent
+
+
+def load(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+overlay = load("private_teacher_overlay", L / "teacher_overlay.py.txt")
+rank = load(
+    "prepared_ordinal_target_builder",
+    Path("initiative/experiments/competitive-v1/s6-rank-transport-v1/rank_transport.py.txt"),
+)
+fixture = load("original_existing_synthetic_MIL_fixture", Path("tests/test_licensed_importance.py"))
+torch.set_num_threads(1)
+base = fixture.OriginalCases(9)
+base.labels[::2, ::3] = float("nan")
+original_case = base.case
+
+
+def masked_case(index, positions, mirror):
+    row = original_case(index, positions, mirror)
+    row["mask"] = torch.isfinite(base.labels[index])
+    base.last_case = row
+    return row
+
+
+base.case = masked_case
+a = base.teacher.numpy().copy()
+b = 1 - rank.sigmoid(a).mean(axis=1)
+transported, numeric = rank.build_targets(a, b, role="cross_lineage_equal_rank")
+
+
+def binding(role, targets):
+    return {
+        "version": overlay.VERSION,
+        "role": role,
+        "population": len(base),
+        "population_sha256": hashlib.sha256(
+            json.dumps(base.uids, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "diagnostic_only": True,
+        "original_target_bundle_sha256": overlay.ORIGINAL_TARGET_SHA,
+        "parent_checkpoint_sha256": PARENT_SHA,
+        "original_teacher_array_sha256": overlay.tensor_sha(base.teacher),
+        "new_teacher_array_sha256": overlay.tensor_sha(targets),
+        "S6_model_sha256": None if role == "parent_only" else overlay.S6_MODEL_SHA,
+    }
+
+
+control = base.teacher.clone()
+treatment = torch.from_numpy(transported)
+c = overlay.TeacherOverlay(
+    base, base.uids, control, binding("parent_only", control), engineering_only=True
+)
+t = overlay.TeacherOverlay(
+    base,
+    base.uids,
+    treatment,
+    binding("cross_lineage_equal_rank", treatment),
+    engineering_only=True,
+)
+passed = []
+for view in (False, True):
+    row = t.case(0, [1, 7, 11], view)
+    for key in ("images", "labels", "mask"):
+        assert row[key] is base.last_case[key]
+    assert torch.equal(row["parent_logits"], treatment[0, int(view)])
+    passed.append(
+        "only_teacher_key_changed_original_MRI_source_and_mask_objects_preserved_view_" + str(view)
+    )
+snapshot = treatment.clone()
+returned = t.case(0, [1], False)
+returned["parent_logits"].zero_()
+assert torch.equal(t.case(0, [1], False)["parent_logits"], snapshot[0, 0])
+passed.append("returned_target_cannot_mutate_admitted_teacher")
+external = t.binding
+external["role"] = "parent_only"
+assert t.binding["role"] == "cross_lineage_equal_rank"
+passed.append("external_metadata_cannot_mutate_admitted_target_binding")
+
+
+def refused(f):
+    try:
+        f()
+    except ValueError:
+        return
+    raise AssertionError("Invalid target overlay accepted")
+
+
+refused(
+    lambda: overlay.TeacherOverlay(
+        base,
+        list(reversed(base.uids)),
+        treatment,
+        binding("cross_lineage_equal_rank", treatment),
+        engineering_only=True,
+    )
+)
+passed.append("reordered_teacher_IDs_refused")
+refused(
+    lambda: overlay.TeacherOverlay(
+        base, base.uids, treatment, binding("cross_lineage_equal_rank", treatment)
+    )
+)
+passed.append("engineering_population_cannot_be_used_for_production")
+bad = binding("cross_lineage_equal_rank", treatment)
+bad["new_teacher_array_sha256"] = "0" * 64
+refused(lambda: overlay.TeacherOverlay(base, base.uids, treatment, bad, engineering_only=True))
+passed.append("changed_teacher_bytes_refused")
+bad = binding("parent_only", control)
+refused(lambda: overlay.TeacherOverlay(base, base.uids, treatment, bad, engineering_only=True))
+passed.append("control_cannot_silently_change_targets")
+original_snapshot = base.teacher.clone()
+labels_snapshot = base.labels.clone()
+masks = torch.isfinite(base.labels)
+recipe = Recipe(epochs=2, role="uniform")
+proposal = fixture.proposal().repeat(len(base), 1)
+
+
+def run(data, path, bind, *, stop_after=None, resume=False, seed=337):
+    torch.manual_seed(seed)
+    model = fixture.Model()
+    reader = ProposalCases(data, proposal)
+    engine = overlay.fit_with_teacher_targets if isinstance(data, overlay.TeacherOverlay) else fit
+    engine(
+        model,
+        reader,
+        path,
+        bind,
+        recipe,
+        device=torch.device("cpu"),
+        stop_after=stop_after,
+        resume=resume,
+    )
+    return torch.load(path / "checkpoint.pt", weights_only=True)
+
+
+def csv_bytes(state):
+    import csv
+    import io
+
+    model = fixture.Model()
+    model.load_state_dict(state["model"], strict=True)
+    model.eval()
+    rows = []
+    with torch.inference_mode():
+        for i in range(len(base)):
+            views = [
+                model(original_case(i, list(range(94)), v)["images"].unsqueeze(0)).sigmoid()
+                for v in (False, True)
+            ]
+            rows.append(torch.stack(views).mean(0)[0].tolist())
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["synthetic_id", *range(12)])
+    writer.writerows([[u, *z] for u, z in zip(base.uids, rows, strict=True)])
+    return out.getvalue().encode()
+
+
+with tempfile.TemporaryDirectory(prefix="rsna-synthetic-target-overlay-") as tmp:
+    root = Path(tmp)
+    plain_binding = {"parent_checkpoint_sha256": PARENT_SHA, "diagnostic_only": True}
+    plain = run(base, root / "original", plain_binding)
+    full_c = run(
+        c, root / "control", {"parent_checkpoint_sha256": PARENT_SHA, "diagnostic_only": True}
+    )
+    for key in plain:
+        if key != "binding":
+            fixture.equal(plain[key], full_c[key])
+    assert csv_bytes(plain) == csv_bytes(full_c)
+    passed.append(
+        "original_parent_only_full_training_model_AdamW_LR_RNG_history_and_full94_CSV_exact_except_explicit_new_binding"
+    )
+    for name, data, full in [("control", c, full_c), ("transport", t, None)]:
+        bind = {"parent_checkpoint_sha256": PARENT_SHA, "diagnostic_only": True}
+        if full is None:
+            full = run(data, root / (name + "-full"), bind)
+        run(data, root / (name + "-resume"), bind, stop_after=1)
+        resumed = run(data, root / (name + "-resume"), bind, resume=True, seed=772)
+        fixture.equal(full, resumed)
+        assert csv_bytes(full) == csv_bytes(resumed)
+        assert [row["studies"] for row in full["history"]] == [8, 1, 8, 1]
+        passed.append(
+            name
+            + "_full_stop1_fresh_model_resume_all_checkpoint_fields_and_9x12_full94_CSV_exact_final_singleton_batch"
+        )
+        wrong = copy.deepcopy(bind)
+        wrong["teacher_transport"] = {"new_teacher_array_sha256": "0" * 64}
+        refused(lambda: run(data, root / (name + "-resume"), wrong, resume=True))
+        passed.append(name + "_caller_cannot_override_actual_data_binding")
+        new_targets = treatment.clone() if name == "control" else treatment + 0.01
+        new_data = overlay.TeacherOverlay(
+            base,
+            base.uids,
+            new_targets,
+            binding("cross_lineage_equal_rank", new_targets),
+            engineering_only=True,
+        )
+        refused(lambda: run(new_data, root / (name + "-resume"), bind, resume=True))
+        passed.append(name + "_actual_changed_targets_cannot_resume_old_checkpoint")
+        if name == "transport":
+            full_t = full
+    assert any(not torch.equal(full_c["model"][k], full_t["model"][k]) for k in full_c["model"])
+    passed.append("transport_changes_actual_learned_parameters_in_identical_engine")
+assert (
+    torch.equal(original_snapshot, base.teacher)
+    and torch.equal(base.labels[masks], labels_snapshot[masks])
+    and torch.equal(torch.isnan(base.labels), torch.isnan(labels_snapshot))
+)
+passed.append("original_teacher_and_source_labels_masks_unchanged_after_all_fits")
+record = {
+    "status": "actual_unchanged_CPU_training_engine_synthetic_overlay_recovery_checked_not_MRI_GPU_or_accuracy",
+    "tests": len(passed),
+    "passed": passed,
+    "studies": 9,
+    "epochs": 2,
+    "optimizer_updates": 4,
+    "final_singleton_batch": True,
+    "recipe": asdict(recipe),
+    "overlay_sha256": hashlib.sha256((L / "teacher_overlay.py.txt").read_bytes()).hexdigest(),
+    "test_program_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    "unchanged_real_trainer_sha256": hashlib.sha256(
+        Path("rsna/competitive/licensed_importance_train.py").read_bytes()
+    ).hexdigest(),
+    "existing_synthetic_fixture_sha256": hashlib.sha256(
+        Path("tests/test_licensed_importance.py").read_bytes()
+    ).hexdigest(),
+    "numerical_transport": numeric,
+    "complete_full_fitting_S6_targets_or_GPU_recovery_or_accuracy_admitted": False,
+    "GPU_or_Kaggle_or_Dataset_or_competition_mutations": 0,
+}
+(L / "checked.json").write_text(json.dumps(record, indent=2) + "\n")
+print(json.dumps(record, indent=2))

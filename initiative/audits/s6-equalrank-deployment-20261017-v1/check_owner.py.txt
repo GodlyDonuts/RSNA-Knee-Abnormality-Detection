@@ -1,0 +1,26 @@
+"""Finite state-machine tests execute no remote or GPU operation."""
+import hashlib,importlib.util,json
+from pathlib import Path
+L=Path(__file__).resolve().parent;spec=importlib.util.spec_from_file_location('finite_equalrank_owner',L/'finish_once.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+P={'status':'one_exact_fixed_equalrank_offline_notebook_pushed'};A={'status':'COMPLETE','accepted':{'status':'actual_fixed_equalrank_two_T4_offline_public_MRI_and_CSV_accepted'}};E={'status':'fixed_equalrank_entry_eligibility_readonly','eligible':True};S={'status':'one_exact_fixed_equalrank_offline_code_submission_accepted'};O={'status':'actual_fixed_equalrank_hidden_outcome_readonly','outcome':'scored'}
+def trial(events):
+ q=list(events);clock=[0];calls=[]
+ def call(phase):
+  if not q:raise TimeoutError('synthetic uncertain or missing phase')
+  expected,event=q.pop(0);assert phase==expected,(phase,expected);calls.append(phase)
+  if isinstance(event,BaseException):raise event
+  return event
+ def sleep(seconds,deadline):clock[0]=min(clock[0]+seconds,deadline)
+ return lambda:m.run_transaction(call,lambda *x:None,lambda:clock[0],sleep,GPU_deadline=1000,entry_deadline=3000,outcome_deadline=5000),calls
+passed=[]
+f,c=trial([('push',{'status':'waiting_original_S6_actual_scored_hidden_outcome_without_GPU_reservation'}),('push',P),('status',A),('eligibility',{'status':E['status'],'eligible':False}),('eligibility',E),('submit',S),('outcome',O)]);r=f();assert r['competition_entries']==1 and c.count('submit')==1 and c.count('status')==1;passed.append('one_exact_push_and_entry_after_prior_outcome_and_live_allowance_wait')
+f,c=trial([('push',{'status':'original_S6_hidden_failed_no_equalrank_GPU_or_entry'})]);r=f();assert r['GPU_runs']==r['competition_entries']==0;passed.append('original_hidden_failure_blocks_new_blend_GPU')
+f,c=trial([('push',P),('status',{'status':'ERROR'})]);r=f();assert r['competition_entries']==0 and c.count('push')==1;passed.append('actual_public_failure_no_entry_or_repush')
+for label,events in [('uncertain_push',[('push',TimeoutError('uncertain'))]),('uncertain_entry',[('push',P),('status',A),('eligibility',E),('submit',TimeoutError('uncertain'))])]:
+ f,c=trial(events)
+ try:f()
+ except TimeoutError:assert c.count('push')==1 and c.count('submit')<=1;passed.append(label+'_stops_without_repeat')
+ else:raise AssertionError('Uncertainty retried')
+f,c=trial([('push',P),('status',A),('eligibility',E),('submit',{'status':E['status'],'eligible':False}),('eligibility',E),('submit',S),('outcome',{'status':O['status'],'outcome':'failed'})]);r=f();assert r['competition_entries']==1 and r['actual']['outcome']=='failed';passed.append('fresh_allowance_change_returns_to_readonly_then_terminal_failure_kept')
+f,c=trial([('push',{'status':'waiting_canonical_claim_without_mutation'})]*6);r=f();assert r['GPU_runs']==0;passed.append('finite_admission_expiry_without_reserved_GPU_or_entry')
+record={'status':'bounded_equalrank_owner_contract_checked_no_actual_GPU_or_entries','tests':len(passed),'passed':passed,'owner_sha256':hashlib.sha256((L/'finish_once.py').read_bytes()).hexdigest(),'actual_GPU_or_Dataset_or_entry_mutations_in_tests':0};(L/'owner-checked.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record,indent=2))

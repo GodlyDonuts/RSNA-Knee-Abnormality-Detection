@@ -85,3 +85,20 @@ our accumulated full-encoder training engine. These sources motivate a mechanism
 they provide no evidence for an MRI gain or0.97. We make no algorithmic-novelty
 claim. The value must come from the measured complementary MRI information and
 an actual controlled result.
+
+
+## Later actual data-path engineering
+
+The separate [teacher overlay](data-path/README.md) now passed17actual synthetic
+CPU tests with the unchanged full-encoder trainer, both-role complete-state
+recovery and exact full94 CSVs. It automatically binds the actual target arrays
+to checkpoints while preserving original pixel/label/mask objects and refusing
+silent target/role changes. This satisfies a CPU engineering step; no complete
+S6 teacher bundle, MRI/GPU recovery, production dispatch or gain is implied.
+The fixed inference blend also has an [actual staged sole owner](../../../audits/s6-equalrank-deployment-20261017-v1/README.md).
+
+Input visibility remains a limitation: a student cannot recover absent MRI
+evidence from better teacher targets alone. Larger S6 window counts do not
+establish that this occurs; measure physical/source-position evidence coverage
+if the matched target contrast fails. Do not treat teacher disagreement as a
+clinical error or block existing healthy experiments on this open question.

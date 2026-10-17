@@ -35,17 +35,27 @@ historical release/plan documents now link back to the current guides.
   in156.6seconds; its exact-source/model/three-MRI/13-column CSV checks pass.
   A stale author embedded build ID stopped only our observer; the exact-source
   repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
-  Sole reproduction20978 and entry20994 own the remaining offline run/one entry.
+  Original offline139181157v1 also completed233seconds with the same checks;
+  sole entry20994 accepted code submission57300990 once and observes its hidden result.
   H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
   are privately byte verified; CPU942806 now scored all eight/5372windows and
   CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
-  sole finite owner26454, staged but awaiting original offline acceptance and
-  fresh GPU admission. Never duplicate these originals. **0.950 remains external**;
-  there is no project S6 hidden score. Include both S6 and CoAtNet runtime.
+  sole finite owner26454, staged and awaiting fresh two-session GPU admission; original offline acceptance passed. Never duplicate these originals. **0.950 remains external**;
+  there is no project S6 hidden score at this observation. Include both S6 and CoAtNet runtime.
 - Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the
   eight cost quantiles. Do not equate raw gaps with clinical uncertainty. See
   `initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md` for the
-  fixed ordinal-transport matched comparison, numerically prepared but not fitted.
+  fixed ordinal-transport matched comparison. Its explicit data overlay now
+  passes17synthetic CPU/real-engine recovery checks, not full MRI/GPU fitting.
+- Fixed equal-rank deployment has sole owner27596; CPU943330 staged it once.
+  It waits actual S6 scoring, fresh GPU funding/capacity and fresh daily allowance.
+  FinalE3 follow-on28090 waits original17317 terminal zero-entry expiry only;
+  neither can duplicate the original submission. Current execution guide has pins.
+- Original public0.956 R7+CoAtNet source and all8 R7 weight/sidecar objects
+  are privately pinned/size/SHA/header verified. Fourfold R7 adds denser physical
+  inputs and state/extent supervision; no individual causal gain is established.
+  Read `initiative/audits/r7-public-reference-admission-20261017-v1/README.md`.
+  No R7 GPU/entry exists yet. Preserve the original S6 entry and healthy training.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.

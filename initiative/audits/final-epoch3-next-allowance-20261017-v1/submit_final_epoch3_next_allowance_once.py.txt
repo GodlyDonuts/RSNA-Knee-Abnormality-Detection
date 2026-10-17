@@ -1,0 +1,77 @@
+"""Continue the original final-model entry only after its earlier window expires.
+
+No phase runs while the original entry owner is active. Existing submitted or
+uncertain operations are never repeated. The exact original canonical phase,
+accepted notebook and actual live daily allowance remain authoritative.
+"""
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+
+def run_window(observe_old,ready,call,observe,now,sleep,*,entry_deadline,outcome_deadline):
+ while now()<entry_deadline:
+  old=observe_old();observe('original_entry_owner',old)
+  if old=='already_submitted':return {'status':'original_final_epoch3_already_submitted_no_duplicate','new_competition_entries':0}
+  if old=='terminal_verified_zero_entry_expiry':break
+  if old!='original_owner_live':raise RuntimeError('Original entry outcome uncertain; read-only reconciliation required')
+  sleep(60,entry_deadline)
+ else:return {'status':'next_allowance_window_expired_before_original_owner_released','new_competition_entries':0}
+ submitted=None
+ while now()<entry_deadline:
+  if not ready():sleep(60,entry_deadline);continue
+  value=call('eligibility');observe('fresh_actual_eligibility',value)
+  if value.get('status')=='waiting_canonical_claim_without_mutation':sleep(60,entry_deadline);continue
+  if value['eligible'] is not True:sleep(600,entry_deadline);continue
+  value=call('submit');observe('one_original_code_entry_phase',value)
+  if value.get('status')=='waiting_canonical_claim_without_mutation':sleep(60,entry_deadline);continue
+  if value['status']!='one_exact_whole94_full_parent_epoch3_code_submission_accepted':raise RuntimeError('Unexpected original entry result; no retry')
+  submitted=value;break
+ if submitted is None:return {'status':'next_allowance_final_epoch3_window_expired_without_entry','new_competition_entries':0}
+ sleep(180,outcome_deadline)
+ while now()<outcome_deadline:
+  value=call('outcome');observe('same_exact_hidden_outcome',value)
+  if value.get('status')=='waiting_canonical_claim_without_mutation':sleep(60,outcome_deadline);continue
+  if value['outcome'] in ('scored','failed'):return {'status':'one_next_allowance_final_epoch3_actual_hidden_terminal','actual':value,'new_competition_entries':1}
+  sleep(300,outcome_deadline)
+ return {'status':'next_allowance_epoch3_hidden_outcome_observation_expired','submission':submitted,'new_competition_entries':1,'automatic_retry':False}
+
+def main():
+ L=Path(__file__).resolve().parent;old_intent=json.loads((L/'final-epoch3-entry-v1-finish.intent.json').read_text());old_PID=old_intent['PID'];assert old_PID==17317
+ source_PID=json.loads((L/'final-epoch3-serving-v1.intent.json').read_text())['PID'];assert source_PID==17301
+ assert not (L/'next-allowance-epoch3.intent.json').exists();frozen={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('entry3-program.py.txt','run_entry3_after_reconnection_once.py')}
+ entry_deadline=datetime(2026,10,19,0,30,tzinfo=timezone.utc).timestamp();outcome_deadline=datetime(2026,10,19,10,30,tzinfo=timezone.utc).timestamp();start=time.monotonic()
+ with (L/'next-allowance-epoch3.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'original_entry_PID':old_PID,'original_serving_PID':source_PID,'maximum_new_code_entries':1,'maximum_GPU_jobs_Datasets_or_weight_copies':0,'prior_owner_terminal_verified_zero_entry_expiry_required':True,'exact_original_phase_files':frozen,'entry_deadline_UTC':datetime.fromtimestamp(entry_deadline,timezone.utc).isoformat(),'outcome_deadline_UTC':datetime.fromtimestamp(outcome_deadline,timezone.utc).isoformat(),'fresh_authoritative_allowance_not_assumed_reset':True,'automatic_retry':False},f,indent=2)
+ def old_state():
+  if (L/'epoch-3-actual-submitted.json').exists():return 'already_submitted'
+  result=L/'final-epoch3-entry-v1-finish.result.json'
+  if result.exists():
+   value=json.loads(result.read_text())
+   if value.get('competition_entries')==1:return 'already_submitted'
+   if value.get('status')!='finite_epoch3_entry_window_expired_without_submission' or value.get('competition_entries')!=0:return 'uncertain'
+   p=subprocess.run(['ps','-p',str(old_PID),'-o','state=,command='],capture_output=True,text=True)
+   if p.returncode==0 and not p.stdout.strip().startswith('Z') and 'submit_final_epoch3_single_owner_once.py' in p.stdout:return 'original_owner_live'
+   return 'terminal_verified_zero_entry_expiry'
+  p=subprocess.run(['ps','-p',str(old_PID),'-o','state=,command='],capture_output=True,text=True)
+  if p.returncode!=0 or p.stdout.strip().startswith(('Z','T')) or 'submit_final_epoch3_single_owner_once.py' not in p.stdout:return 'uncertain'
+  return 'original_owner_live'
+ def ready():
+  if (L/'epoch-3-competition-actual-accepted.json').exists():return True
+  if (L/'final-epoch3-serving-v1.result.json').exists():raise RuntimeError('Original serving stopped before exact final public acceptance')
+  os.kill(source_PID,0);assert 'qualify_final_epoch3_single_owner_once.py' in subprocess.check_output(['ps','-p',str(source_PID),'-o','command='],text=True);return False
+ def observe(phase,actual):
+  (L/'next-allowance-epoch3.progress.json').write_text(json.dumps({'PID':os.getpid(),'phase':phase,'elapsed_seconds':time.monotonic()-start,'actual':actual},indent=2)+'\n')
+  if isinstance(actual,dict) and actual.get('status')=='one_exact_whole94_full_parent_epoch3_code_submission_accepted':(L/'epoch-3-actual-submitted.json').write_text(json.dumps(actual,indent=2)+'\n')
+ def sleep(seconds,deadline):
+  end=min(time.time()+seconds,deadline)
+  while time.time()<end:time.sleep(min(30,max(.01,end-time.time())))
+ def call(phase):
+  assert old_state()=='terminal_verified_zero_entry_expiry' or phase=='outcome'
+  assert all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in frozen.items())
+  child=subprocess.run([sys.executable,str(L/'run_entry3_after_reconnection_once.py'),phase],capture_output=True,text=True,env={**os.environ,'PYTHONNOUSERSITE':'1','PYTHONPATH':str(L.parents[1])},timeout=1000)
+  with (L/('next-allowance-epoch3-child-'+str(time.monotonic_ns())+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':child.returncode,'stdout':child.stdout,'stderr':child.stderr},f,indent=2)
+  assert child.returncode==0,'Original canonical final-epoch phase stopped; never repeat uncertainty';outer=json.loads(child.stdout);assert outer['returncode']==0;return json.loads(outer['stdout'])
+ try:
+  result=run_window(old_state,ready,call,observe,time.time,sleep,entry_deadline=entry_deadline,outcome_deadline=outcome_deadline);(L/'next-allowance-epoch3.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+ except BaseException as e:
+  (L/'next-allowance-epoch3.result.json').write_text(json.dumps({'status':'stopped_next_allowance_final_epoch3_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise
+if __name__=='__main__':main()

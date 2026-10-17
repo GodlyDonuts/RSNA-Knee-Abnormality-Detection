@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 06:25 UTC:**
+**Current entry points — verified October 17, 2026, 07:41 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -22,16 +22,20 @@ verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
 Epoch2 now completed972updates/all5private objects; original final E3
 **139172537v1** is RUNNING. Expanded own N3 fitting on2592studies continues
-on its original Newton H100; **epochs1–13 privately verified**, at least4212/5184updates.
+on its original Newton H100; **epochs1–15 privately verified**, at least4860/5184updates.
 Both matched uniform16E1 and influence16E1 completed486updates/all5private
-objects; original uniformE2 is now RUNNING. No new scored learned-model gain is claimed.
+objects; original uniformE2 completed972/all5private objects; influenceE2 is RUNNING. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 **The owner targets0.97; best verified remains0.949.** Actual CPU inference
 on eight fitting MRIs found large raw teacher confidence gaps but much closer
 rankings. A fixed equal-rank blend and a single-model ordinal distillation
-contrast are prepared; the latter has19numerical contracts, no fitted result.
+contrast are prepared; the latter has19target contracts plus17actual synthetic CPU training/recovery
+checks for its separate target data path, no full MRI fit or gain.
 The larger32-study scout has a sole finite owner and awaits actual admission.
+The fixed blend is actually staged/owned and waits S6 scoring. Original S6 code
+entry57300990 was accepted once; its hidden score is pending. Every next entry
+refreshes authoritative allowance. [Exact staged blend](initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
 [Measured finding and limits](initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md),
 [matched mechanism](initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
 
@@ -41,10 +45,17 @@ CPU MRI gate and **full CPU classifier reference on3studies/1586windows** pass.
 Original T4 qualification**139165932v1 actually completed in156.6seconds** on
 both T4s, three MRIs, finite13-column output and zero S6 fallback. The exact
 source was unchanged; our observer was repaired to account for its stale embedded
-build ID. The separate offline run and one-entry owners now wait the auxiliary
-lane. Its author-reported0.950 is **not our project hidden score**.
+build ID. The distinct offline139181157v1 also completed233seconds, and its exact code
+submission **57300990 is accepted once, hidden score pending**. Its
+author-reported0.950 is **not our project hidden score**.
 [Actual T4 acceptance and owned continuation](initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
 [new original training progress](initiative/audits/research-progress-20261017-0550-v1/README.md).
+
+The [actual source/weight review of the published0.956 reference](initiative/audits/r7-public-reference-admission-20261017-v1/README.md)
+now pins four ConvNeXt folds, denser physical inputs, state/extent supervision and
+the exact equal-rank CoAtNet blend. All8 new weight/sidecar objects were privately
+byte/hash/header verified; no new R7 GPU or project score is claimed.
+[New S6 entry, uniformE2 and expandedE15 receipts](initiative/audits/research-progress-20261017-0735-v1/README.md).
 
 A fitting-only screen on3887existing bags found the parent already gives crossing
 series windows little attention; removing them changes study ordering less than

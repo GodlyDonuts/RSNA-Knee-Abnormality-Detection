@@ -1,0 +1,131 @@
+"""Separate target data path; original pixels, masks and trainer stay immutable.
+
+This wrapper verifies numerical population/target bindings. The outer admission
+must still verify actual source files, complete teacher receipts, private access,
+rights, GPU inputs and funding. A synthetic engineering instance cannot admit
+production or a competition model.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+
+import torch
+
+VERSION = "equal_rank_transport_target_overlay_v1"
+POPULATION_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+ORIGINAL_TARGET_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+PARENT_SHA = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+S6_MODEL_SHA = "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12"
+
+
+def tensor_sha(value):
+    return hashlib.sha256(value.detach().contiguous().numpy().tobytes()).hexdigest()
+
+
+class TeacherOverlay:
+    """Wrap the unique-window reader before the unchanged ProposalCases wrapper.
+
+    Only case['parent_logits'] changes. The original reader still verifies all
+    original pixel/renderer hashes and selects the anatomical view. Existing
+    ProposalCases still preserves IID duplicate order/proposal correction. The
+    fit_with_teacher_targets attaches the explicit target binding to the unchanged
+    trainer, so a changed bundle or role cannot silently resume another fit.
+    """
+
+    def __init__(self, original, uids, teacher_logits, binding, *, engineering_only=False):
+        if (
+            type(engineering_only) is not bool
+            or not hasattr(original, "teacher")
+            or not hasattr(original, "uids")
+            or list(uids) != list(original.uids)
+            or not len(original)
+            or len(set(uids)) != len(original)
+            or len(uids) != len(original)
+        ):
+            raise ValueError("Exact original ordered unique fitting identities required")
+        population_sha = hashlib.sha256(
+            json.dumps(list(uids), separators=(",", ":")).encode()
+        ).hexdigest()
+        if (
+            not isinstance(binding, dict)
+            or binding.get("version") != VERSION
+            or binding.get("population") != len(original)
+            or binding.get("population_sha256") != population_sha
+            or binding.get("diagnostic_only") is not engineering_only
+            or binding.get("original_target_bundle_sha256") != ORIGINAL_TARGET_SHA
+            or binding.get("parent_checkpoint_sha256") != PARENT_SHA
+            or binding.get("role") not in ("parent_only", "cross_lineage_equal_rank")
+            or not engineering_only
+            and (len(original) != 3887 or population_sha != POPULATION_SHA)
+        ):
+            raise ValueError(
+                "Explicit versioned source/role/population and engineering scope required"
+            )
+        baseline = original.teacher
+        if any(
+            not isinstance(x, torch.Tensor)
+            or x.dtype != torch.float32
+            or x.device.type != "cpu"
+            or x.requires_grad
+            or x.shape != (len(original), 2, 12)
+            or not torch.isfinite(x).all()
+            for x in (baseline, teacher_logits)
+        ):
+            raise ValueError(
+                "Complete detached finite CPU FP32 original and new two-view targets required"
+            )
+        if binding.get("original_teacher_array_sha256") != tensor_sha(baseline) or binding.get(
+            "new_teacher_array_sha256"
+        ) != tensor_sha(teacher_logits):
+            raise ValueError("Exact original and new numerical teacher array SHA required")
+        if binding["role"] == "parent_only":
+            if (
+                not torch.equal(baseline, teacher_logits)
+                or binding.get("S6_model_sha256") is not None
+            ):
+                raise ValueError(
+                    "Control must keep original target bytes and consume no second teacher"
+                )
+        elif binding.get("S6_model_sha256") != S6_MODEL_SHA:
+            raise ValueError("Exact admitted S6 lineage required for transported targets")
+        self.original = original
+        self.uids = list(uids)
+        self._binding = json.loads(json.dumps(binding, sort_keys=True))
+        self._baseline = baseline.clone()
+        self._teacher = teacher_logits.clone()
+
+    def __len__(self):
+        return len(self.uids)
+
+    @property
+    def binding(self):
+        return json.loads(json.dumps(self._binding, sort_keys=True))
+
+    def case(self, index, positions, mirror):
+        if type(index) is not int or not 0 <= index < len(self) or type(mirror) is not bool:
+            raise ValueError("Exact original study and anatomical view required")
+        if list(self.original.uids) != self.uids:
+            raise ValueError("Original ordered fitting roster changed after admission")
+        row = self.original.case(index, positions, mirror)
+        if set(row) != {"images", "labels", "mask", "parent_logits"} or not torch.equal(
+            row["parent_logits"], self._baseline[index, int(mirror)]
+        ):
+            raise ValueError("Original reader/teacher view changed after admission")
+        return {**row, "parent_logits": self._teacher[index, int(mirror)].clone()}
+
+
+def fit_with_teacher_targets(model, data, output, binding, recipe, **kwargs):
+    """Bind the admitted targets automatically; delegate every update unchanged."""
+    from rsna.competitive.licensed_importance import ProposalCases
+    from rsna.competitive.licensed_importance_train import fit
+
+    if not isinstance(data, ProposalCases) or not isinstance(data.original, TeacherOverlay):
+        raise ValueError("Explicit target overlay inside the unchanged sampled reader required")
+    if not isinstance(binding, dict) or "teacher_transport" in binding:
+        raise ValueError("Target binding is derived from the actual data, never caller-supplied")
+    actual = data.original.binding
+    if binding.get("diagnostic_only", False) is not actual["diagnostic_only"]:
+        raise ValueError("Synthetic engineering data cannot acquire production scope")
+    return fit(model, data, output, {**binding, "teacher_transport": actual}, recipe, **kwargs)

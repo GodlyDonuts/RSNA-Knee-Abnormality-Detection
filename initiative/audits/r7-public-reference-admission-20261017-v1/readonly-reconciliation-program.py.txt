@@ -1,0 +1,16 @@
+
+import datetime,hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-R7-checkpoint-admission-20261017-v1');assert R.is_dir() and not (R/'verified.json').exists()
+intent=json.loads((R/'intent.json').read_text());assert intent['CPU_job']=='943797' and intent['new_node_local_envelope_bytes']==2*2**30
+M=v['manifest'];sizes={x['name']:x['totalBytes'] for x in v['metadata']['files']};proofs={}
+for name,expected in M['sha256'].items():
+ p=R/name;f=R/(name+'.verified.json');x=json.loads(f.read_text());stat=p.stat();assert x['sha256']==expected and x['bytes']==sizes[name]==stat.st_size and stat.st_mode&0o077==0
+ assert (R/'intent.json').stat().st_mtime_ns<=stat.st_mtime_ns<=f.stat().st_mtime_ns
+ if name.endswith('.pt'):assert x['safe_weights_only_load'] and x['all_tensors_finite'] and x['tensor_count']>20
+ proofs[name]={**x,'original_stat_mtime_ns':stat.st_mtime_ns}
+paid=sum(x['bytes'] for x in proofs.values());free=shutil.disk_usage('/tmp').free;future=max(0,intent['new_node_local_envelope_bytes']-paid)
+assert free>intent['prior_required_free_bytes']+future
+out={**intent,'status':'actual_public_R7_all8_original_objects_verified_original_proofs_reconciled_readonly','checked_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'original_acquisition_CPU_job':'943797','readonly_reconciliation_CPU_job':os.environ['SLURM_JOB_ID'],'objects':len(proofs),'bytes':paid,'files':proofs,'actual_remaining_free_bytes':free,'carried_required_free_bytes_includes_existing_local20GiB_and_all_prior_liabilities':intent['prior_required_free_bytes'],'remaining_R7_envelope_after_actual_paid_bytes':future,'correct_required_remaining_free_bytes':intent['prior_required_free_bytes']+future,'observer_error':'Original terminal assertion added the20GiB reserve twice; all8 original byte/hash/safe-header proofs had already completed before that assertion','original_failed_program_sha256':v['original_program_sha256'],'original_failed_program_preserved':True,'source_original_manifest_sha256':v['metadata']['manifest_sha256'],'source_bundle_id':M['bundle_id'],'new_downloads_hashing_headers_GPU_or_entries':0,'clinical_or_Kaggle_result':False,'module_graph_or_MRI_or_GPU_inference_executed':False}
+(R/'verified.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

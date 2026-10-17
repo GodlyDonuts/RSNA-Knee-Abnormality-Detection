@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 06:25 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 07:41 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -16,21 +16,34 @@ None demonstrates an improvement over 0.949.
 
 The active questions are whether full-encoder adaptation improves a strong
 MRI-trained initialization, and whether better observations per update improve
-learning under a fixed compute budget. Whole-94 adaptation completed its first epoch
-on both T4s and the exact continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
+learning under a fixed compute budget. Whole-94 adaptation completed two epochs/972updates on both T4s;
+its exact final continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
 uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
 were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
-are private verified; uniformE2 139167076v1 is RUNNING**. Whole-parentE1 passed
+are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 runs**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
-139172537v1 is RUNNING. Expanded N3 has epochs1–13 privately fully verified,
-at least4212/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
+139172537v1 is RUNNING. Expanded N3 has epochs1–15 privately fully verified,
+at least4860/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
 there is no demonstrated new gain or fixed-final result yet.
 [Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 The fresh [official Public leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
 shows first place **0.969** versus our **0.949**. A publicly shared 0.956 blend is not the
 leaderboard ceiling; no leading method/private result is inferred.
+
+## New complete public reference to reproduce
+
+The newly pinned Helios138222340v1 actually displays0.956 and combines the
+existing CoAtNet with four R7 ConvNeXt-small folds. Its manifest describes384/352
+physical inputs,176training windows, state/extent supervision, ordered pairs,
+EMA and state/fluid stackers. These differ jointly from the single S6 all-data
+checkpoint; they do not establish a resolution-only, supervision-only or fold-only
+gain. All8 released R7 objects are privately size/SHA/safe-header verified once.
+The extra224 variant also displays0.956, so its title is not evidence of an
+additional score improvement. Reproduce the exact complete reference before
+claiming a new0.956 baseline; no R7 GPU/entry has been dispatched.
+[Actual source/manifest/weight proof and hypotheses](../initiative/audits/r7-public-reference-admission-20261017-v1/README.md).
 
 ## What the strong reference actually does
 
@@ -160,8 +173,8 @@ and device/report-only replacements,355.95s/zero fallback. This is a CPUFP32
 reference. Bounded H100 probe942047 remains queued. Original T4 qualification
 **139165932v1 actually COMPLETED156.6s**, bothT4s/threeMRI/finite13-column CSV/
 zero S6 fallback. The exact source was unchanged; a stale author embedded build ID
-required an observer-only repair, not a GPU rerun. Remaining offline owner20978
-and one-entry owner20994 wait capacity/actual acceptance. No project S6 score
+required an observer-only repair, not a GPU rerun. Original offline139181157v1 completed233seconds/zero fallback; sole owner20994
+accepted code entry57300990 once and observes its still-unreported hidden result. No project S6 score
 exists yet. A distinct eight-fitting-study CPU input bridge139165316v1 completed; CPU942782
 collected once and verified5372windows/1,154,209,297bytes. Its new CPU classifier
 dispatch actually completed942806/1197.87seconds/5372windows/finite/zero fallback;
@@ -197,11 +210,11 @@ Teacher agreement, cached-feature folds on exposed encoders and this label-free
 sensitivity screen are not independent clinical correctness. Preserve ongoing
 matched fits and actual scored outcomes before declaring improvement.
 
-A fixed50/50 CoAtNet/S6 per-target rank contrast is now **prepared only**. It
-changes only two AST assignments (weights/build metadata), passes eight CPU rank/
-fallback contracts, and preserves original inference. No GPU/entry/funding is
-claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
-acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
+The fixed50/50 CoAtNet/S6 source passed its original arithmetic/fallback and
+AST checks. It is now **actually staged and owned**, with no derivative GPU
+execution/entry yet, as described in the new deployment section. No weights
+were selected from leaderboard feedback or exposed-encoder head folds.
+[Actual source and finite owner](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
 [Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
 
 Latest verified private milestone: source**c1354577** at
@@ -228,8 +241,11 @@ uses fixed equal teacher ranks, then maps their consensus order onto CoAtNet's
 probability scale while preserving anatomical-view relative log-odds. It feeds
 the existing25%source/75%teacher objective in a fully trainable single CNN.
 Parent-only control preserves original target bytes; same input/order/compute,
-fixed3epochs, no Gold/per-target tuning. Nineteen synthetic numerical checks pass,
-including original loss/gradient identity; no actual GPU fitting or gain claimed.
+fixed3epochs, no Gold/per-target tuning. Nineteen target-builder checks pass. A separate target overlay now passes17actual
+synthetic CPU checks in the unchanged real full-encoder engine: parent-only
+numerical identity and both-role full/stop/resume complete checkpoint/CSV equality.
+No full MRI/GPU fitting or gain is claimed.
+[Explicit data-path evidence](../initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md).
 
 Sole scout26454/exec91663 owns a staged32study B-only throughput/CPU-parity check.
 It waits original S6 offline acceptance and fresh actual two-session/VM admission,
@@ -237,3 +253,25 @@ maxone1800second session/zeroentries. Complete3887 teacher acquisition and a new
 trainer require actual full input/state/funding acceptance. Fixed equal-rank
 inference is already prepared separately. Continue healthy training and the
 original S6 entry independently. **0.97 is the goal;0.949 remains the result.**
+
+## Untuned deployment and remaining evidence question
+
+The fixed CoAtNet/S6 equal-rank derivative is now actually staged by CPU943330
+and owned by27596/exec58044, not GPU-executed. It waits the original S6 scored
+hidden result and fresh full resource/daily admission, then makes at most one
+exact comparison entry. No fitted per-target weights or independent OOF claim.
+[Actual preparation and ownership](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
+
+The complete released S6v3 file list contains no fitting predictions, so those
+outputs still need bounded original inference. CPU fixture preparation includes
+compression/full-byte verification; CPU inference time and three-study startup
+time must not be blindly multiplied into a full T4/hidden runtime estimate.
+The32-study scout remains the actual throughput/parity observation.
+
+The student and S6 see different physical representations. Larger B window
+counts do not prove A misses clinical evidence, but rank distillation cannot
+create information absent from student inputs. If the matched transport does
+not help, examine source-position/evidence coverage and the already-running
+observation-sampling contrast before attributing failure to insufficient epochs
+or adding another generic backbone. This is an open mechanism, not a new gate
+that blocks the currently ready comparisons or healthy training.

@@ -1,0 +1,119 @@
+import ast,csv,hashlib,importlib.util,io,json,math,os,shutil,sqlite3,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+import requests
+
+v=EQUALRANK;phase=v['phase'];assert phase in ('stage','push','status','eligibility','submit','outcome')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+exec(compile(v['contract'],'fixed_equalrank_pure_contract','exec'),globals())
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'equalrank-v1';O=P/'original-offline-v1';D=R/'public-offline-v1'
+assert shutil.disk_usage('/tmp').free>610493834008
+sha=DERIVED;slug='godlydonuts/rsna-coatnet-s6-equalrank-'+sha[:12];key='licensed-parent-full-epoch-serving:S6-equalrank:'+sha
+original_key='licensed-parent-full-epoch-serving:S6-released-epoch16:'+ORIGINAL
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('fixed_equalrank_canonical',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>=deadline:print(json.dumps({'status':'waiting_canonical_claim_without_mutation'}),flush=True);raise SystemExit(0)
+  time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'fixed_equalrank_A_B_one_notebook_one_entry','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  def save(record):
+   db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  original=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(original_key,)).fetchone()[0])
+  if phase=='stage':
+   assert not R.exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   base=(O/'source.private.py').read_text();source=v['source'];binding=source_contract(base,source)
+   assert all(v['checks']['checks'].values()) and v['checks']['source_sha256']==sha
+   q=json.loads((O/'qualification/actual-accepted.json').read_text());assert q==original['qualification']['accepted'] and q['kernel_id']==139165932 and q['source_sha256']==ORIGINAL and q['model_sha256']==MODEL and q['anatomy_sha256']==ANATOMY and q['studies']==3 and q['columns']==13 and q['B_failed']==0 and q['env']['n_gpu']==2
+   paid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+   used=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(x) for x in paid) and p.suffix not in ('.pt','.whl'))
+   assert used+12*2**20+2*len(source.encode())+65536<16*2**20
+   account=r.account();slots=w.allowance(db,account);recent=sorted(r.submissions(),key=lambda z:z['ref'],reverse=True)[:10]
+   R.mkdir(mode=0o700);w.new_json(R/'stage-intent.json',{'source_sha256':sha,'original_source_sha256':ORIGINAL,'exact_original_T4_qualification':139165932,'source_only_no_GPU_or_entry':True,'automatic_retry':False})
+   (R/'source.private.py').write_text(source);(R/'source.private.py').chmod(0o600)
+   record={'state':'S6_equalrank_prepared','source_sha256':sha,'model_family':'fixed untuned equal-rank released CoAtNet and S6','weights':WEIGHTS,'model_sha256':MODEL,'anatomy_sha256':ANATOMY,'source_contract':binding,'original_actual_T4_qualification':139165932,'derived_notebook_GPU_accepted':False,'new_Dataset_or_weight_uploads':0,'maximum_GPU_runs':1,'maximum_competition_entries':1,'original_S6_actual_scored_hidden_outcome_required_before_GPU':True,'automatic_retry':False};save(record)
+   out={'status':'one_fixed_equalrank_source_staged_and_canonical_registered_without_GPU_or_entry','CPU_job':os.environ['SLURM_JOB_ID'],'source_contract':binding,'canonical_key':key,'root':str(R),'controls_used_bytes_before':used,'future_existing_classifier_summary_scout_bytes':12*2**20,'controls_cap_bytes':16*2**20,'new_source_bytes':len(source.encode()),'original_T4_qualification':139165932,'fresh_account':account,'fresh_effective_allowance':slots,'recent_actual_submissions':[{k:z.get(k) for k in ('ref','date','status','publicScore','errorDescription','totalBytes')} for z in recent],'no_new_GPU_Dataset_weight_transfer_or_entry':True};w.new_json(R/'staged.json',out)
+  else:
+   source=(R/'source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==sha
+   record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['source_sha256']==sha and record['weights']==WEIGHTS
+   def prior_scored():
+    if original['state']=='S6_original_reproduction_hidden_failed':return 'failed'
+    if original['state']!='S6_original_reproduction_scored':return 'pending_or_unknown'
+    ref=original['competition'];proof=json.loads((O/'competition/actual-accepted.json').read_text())
+    assert ref['accepted']==proof and ref['source_sha256']==ORIGINAL and ref['version']==1 and ref['session_timeout_seconds']==32400 and proof['model_sha256']==MODEL and proof['B_failed']==0
+    found=[z for z in r.submissions() if z['ref']==original['submission_id']];assert len(found)==1
+    return w.submission_outcome(found[0])
+   if phase=='push':
+    assert record['state']=='S6_equalrank_prepared' and not D.exists() and 'public' not in record
+    prior=prior_scored()
+    if prior!='scored':out={'status':'original_S6_hidden_failed_no_equalrank_GPU_or_entry' if prior=='failed' else 'waiting_original_S6_actual_scored_hidden_outcome_without_GPU_reservation','prior':prior,'new_GPU_or_entry_mutations':0}
+    else:
+     unfinished=0;known_reserved=0;main=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');sample=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison')
+     for e in (1,2,3):
+      E=main/('segment-'+str(e));assert not (E/'actual-failed.json').exists()
+      if not (E/'actual-accepted.json').exists():
+       unfinished+=25200
+       if (E/'push-response.json').exists():
+        p=json.loads((E/'push-intent.json').read_text());s=r.kernel('GetKernelSessionStatus',p['slug'],1).get('status');assert s not in ('ERROR','CANCELLED')
+        if s!='COMPLETE':known_reserved+=25200
+     sampled=sum(6000 for role in ('uniform','influence') for e in (1,2,3) if not (sample/(role+'-epoch-'+str(e))/'actual-accepted.json').exists())
+     scout_key='licensed-parent-full-epoch-serving:S6-source-fitting32:0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf';row=db.execute('SELECT value FROM meta WHERE key=?',(scout_key,)).fetchone();scout=None if row is None else json.loads(row[0]);scout_unfinished=scout is None or scout['state'] not in ('S6_fitting32_scout_actual_accepted','S6_fitting32_scout_collected_verified')
+     quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];budget=compute_budget(quota,unfinished_main=unfinished,unfinished_sampling=sampled,known_reserved_main=known_reserved,scout_unfinished=scout_unfinished)
+     C=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(C.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';sp=importlib.util.spec_from_file_location('unchanged_capacity_equalrank',C);c=importlib.util.module_from_spec(sp);sp.loader.exec_module(c);capacity=c.admission(db,r,caller='serving')
+     if not budget['allowed'] or not capacity['available']:out={'status':'waiting_fresh_all_future_funding_or_two_GPU_session_capacity_without_mutation','budget':budget,'capacity':capacity,'new_GPU_or_entry_mutations':0}
+     else:
+      request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':DATASETS,'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[],'sessionTimeoutSeconds':32400,'dockerImage':DOCKER,'dockerImagePinningType':'original'}
+      absence=r.require_absent_kernel(slug);D.mkdir(mode=0o700);intent={'pushed_not_before_UTC':w.utcnow(),'slug':slug,'version':1,'source_sha256':sha,'weights':WEIGHTS,'session_timeout_seconds':32400,'fresh_budget':budget,'absence':absence,'request_sha256':w.object_hash(request),'automatic_retry':False};w.new_json(D/'push-intent.json',intent);record.update(state='S6_equalrank_push_intent',public=intent);save(record)
+      try:
+       response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+      except BaseException:record['state']='S6_equalrank_push_uncertain';save(record);retain=True;raise
+      record['public']['kernel_id']=response['kernelId'];record['state']='S6_equalrank_pushed';save(record);out={'status':'one_exact_fixed_equalrank_offline_notebook_pushed','kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':sha,'weights':WEIGHTS,'competition_entries':0,'new_Dataset_or_weights':0}
+   elif phase=='status':
+    item=record['public'];assert item['slug']==slug and item['version']==1
+    actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu') is True and m.get('machineShape')=='NvidiaTeslaT4' and m.get('dockerImage')==DOCKER and sorted(m.get('datasetDataSources',[]))==sorted(DATASETS) and m.get('competitionDataSources')==['rsna-knee-abnormality-detection'] and not m.get('kernelDataSources',[])
+    state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':state,'kernel_id':item['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'weights':WEIGHTS,'competition_entries':0}
+    if state=='COMPLETE':
+     receipt=r.output_json(slug,1,'k1/k1_receipt.json');binding=record['source_contract'];assert receipt['self']['sha256']==sha and receipt['self']['derived_matches'] is True and receipt['self']['derived_build_id']==binding['build_id'] and receipt['build_id']==binding['build_id'] and receipt['mode']=='submit'
+     assert re.fullmatch('[0-9a-f]{32}',receipt['run']['nonce']) and datetime.fromisoformat(item['pushed_not_before_UTC']).timestamp()-5<=datetime.fromisoformat(receipt['run']['started_utc']).timestamp()<=datetime.now(timezone.utc).timestamp()+5
+     assert receipt['inputs']['n_test']==3 and receipt['inputs']['model']['sha256']==MODEL and receipt['blend']['weights']==WEIGHTS and receipt['blend']['rows']==3 and receipt['blend']['b_failed_rank_A_only']=={} and receipt['env']['n_gpu']==2 and all('T4' in x for x in receipt['env']['gpus']) and receipt['B_probe']['params']==50018284 and receipt['B_probe']['spatial'] is True and receipt['total_seconds']<32400 and all(x.get('ok',True) is True for x in receipt['stages'].values())
+     response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':'submission.csv'},timeout=(10,90),stream=True,allow_redirects=False)
+     from urllib.parse import urljoin,urlparse
+     for _ in range(6):
+      if response.status_code==200:break
+      assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();host=urlparse(url).hostname;assert urlparse(url).scheme=='https' and (host in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or host.endswith('.googleusercontent.com'));response=(r.session if host=='api.kaggle.com' else requests).get(url,timeout=(10,90),stream=True,allow_redirects=False)
+     assert response.status_code==200;raw=b''
+     try:
+      for block in response.iter_content(8192):raw+=block;assert len(raw)<=65536
+     finally:response.close()
+     assert hashlib.sha256(raw).hexdigest()==receipt['blend']['submission_sha256']
+     rows=list(csv.reader(io.StringIO(raw.decode())));tree=ast.parse(source);const={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('PUBLIC_TEST_IDS','LAB')};assert rows[0]==['StudyInstanceUID',*const['LAB']] and [x[0] for x in rows[1:]]==const['PUBLIC_TEST_IDS'] and all(len(x)==13 and all(math.isfinite(float(z)) and 0<=float(z)<=1 for z in x[1:]) for x in rows[1:])
+     accepted={'status':'actual_fixed_equalrank_two_T4_offline_public_MRI_and_CSV_accepted','kernel_id':item['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'model_sha256':MODEL,'anatomy_sha256':ANATOMY,'weights':WEIGHTS,'studies':3,'columns':13,'CSV_bytes':len(raw),'CSV_sha256':hashlib.sha256(raw).hexdigest(),'total_seconds':receipt['total_seconds'],'env':receipt['env'],'B_failed':0,'both_original_pipelines_executed':True,'hidden_runtime_or_score_claim':False}
+     if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',accepted);record['public']['accepted']=accepted;record['state']='S6_equalrank_public_accepted';save(record)
+     out['accepted']=accepted
+    elif state in ('ERROR','CANCELLED'):
+     if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);record['state']='S6_equalrank_public_failed';save(record)
+   elif phase in ('eligibility','submit'):
+    item=record['public'];accepted=item['accepted'];assert record['state']=='S6_equalrank_public_accepted' and accepted==json.loads((D/'actual-accepted.json').read_text()) and accepted['source_sha256']==sha and accepted['weights']==WEIGHTS and not record.get('submission_id') and not (D/'code-entry-intent.json').exists()
+    actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu') is True and m.get('machineShape')=='NvidiaTeslaT4' and sorted(m.get('datasetDataSources',[]))==sorted(DATASETS) and m.get('competitionDataSources')==['rsna-knee-abnormality-detection'] and not m.get('kernelDataSources',[]) and r.kernel('GetKernelSessionStatus',slug,1).get('status')=='COMPLETE'
+    account=r.account();slots=w.allowance(db,account);submissions=r.submissions();active=[z['ref'] for z in submissions if w.submission_outcome(z) in ('pending_or_unknown','complete_unscored')];prior=prior_scored();description='rsna-fixed-equalrank-A-B:'+sha;assert not any(z.get('description')==description for z in submissions),'Existing exact blend entry needs read-only reconciliation'
+    eligible=slots>0 and prior=='scored' and not active;out={'status':'fixed_equalrank_entry_eligibility_readonly','eligible':eligible,'source_sha256':sha,'account':account,'effective_allowance':slots,'active_unresolved_submission_ids':active,'original_S6_actual_outcome':prior,'new_entries':0}
+    if phase=='submit' and eligible:
+     intent={'source_sha256':sha,'weights':WEIGHTS,'kernel_id':item['kernel_id'],'slug':slug,'version':1,'fileName':'submission.csv','description':description,'fresh_account':account,'effective_allowance':slots,'original_actual_S6_submission':original['submission_id'],'public_CSV_uploaded':False,'automatic_retry':False};w.new_json(D/'code-entry-intent.json',intent);record.update(state='S6_equalrank_entry_intent',description=description);save(record)
+     try:
+      owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});w.new_json(D/'code-entry-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     except BaseException:record['state']='S6_equalrank_entry_uncertain';save(record);retain=True;raise
+     record.update(state='S6_equalrank_submitted',submission_id=response['ref']);save(record);out={'status':'one_exact_fixed_equalrank_offline_code_submission_accepted','submission_id':response['ref'],'kernel_id':item['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'weights':WEIGHTS,'competition_entries':1,'public_CSV_uploaded':False,'actual_score_known':False}
+   else:
+    assert record['state'] in ('S6_equalrank_submitted','S6_equalrank_scored','S6_equalrank_hidden_failed');rows=[z for z in r.submissions() if z['ref']==record['submission_id']];assert len(rows)==1;found=rows[0];out={'status':'actual_fixed_equalrank_hidden_outcome_readonly','actual_submission':{k:found.get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')},'outcome':w.submission_outcome(found),'new_entries':0}
+    if out['outcome']=='scored':record.update(state='S6_equalrank_scored',public_score=found['publicScore']);save(record)
+    elif out['outcome']=='failed':record.update(state='S6_equalrank_hidden_failed',hidden_error=found['errorDescription']);save(record)
+  print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

@@ -5,6 +5,14 @@ Received October 17, 2026. [Original](original.md) is preserved verbatim with
 are not repository evidence links. Proposed gains and wall times are planning
 assumptions; they are not measured results or a promise of first place.
 
+**Latest actual execution07:41UTC:** original S6 offline139181157v1 passed, code
+entry57300990 is accepted once/hidden score pending; uniformE2 completed972
+and expanded N3E15 is privately verified. The separate
+[exact public0.956 R7 reference](../../audits/r7-public-reference-admission-20261017-v1/README.md)
+now has original sources, all8 private byte-verified weight/sidecars and a
+canonical prepared Notebook, no GPU/entry. The dated decision/triage below is
+historical progression; current guides and original receipts govern execution.
+
 ## Decision
 
 Prioritize unchanged reproduction of the distinct public S6 ConvNeXt before

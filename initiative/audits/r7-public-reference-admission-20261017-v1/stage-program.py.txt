@@ -1,0 +1,44 @@
+
+import ast,hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-R7-checkpoint-admission-20261017-v1');D=R/'original-offline-v1';assert not D.exists()
+proof=json.loads((R/'verified.json').read_text());assert proof['objects']==8 and proof['source_bundle_id']=='8c7b666e27dc0e8f'
+source=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/public-R7-reference-review-v1/0-957-latest-dataset-score-in-one-click.source.private.txt').read_text()
+sha=hashlib.sha256(source.encode()).hexdigest();assert sha==v['pins']['raw_source_sha256']=='cb2a0f57962ca9b6668661e34461aad772ed9ed10d576d32772e7c2898f2e315'
+nb=json.loads(source);assert nb['nbformat']==4 and isinstance(nb['cells'],list)
+code='\n\n'.join('# cell '+str(i)+'\n'+(''.join(c['source']) if isinstance(c['source'],list) else c['source']) for i,c in enumerate(nb['cells']) if c.get('cell_type')=='code')
+assert hashlib.sha256(code.encode()).hexdigest()=='6563d167d7c27211f96156ac3e4b6da2ef2061cb1c3b4359e44c3600ed8ae311'
+tree=ast.parse('\n'.join('' if line.lstrip().startswith(('%','!')) else line for line in code.splitlines()))
+embedded=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='SOURCES' for x in n.targets))
+M=json.loads(Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/public-R7-reference-review-v1/metadata-review-v1/manifest.original.json').read_text())
+assert {k:hashlib.sha256(b.encode()).hexdigest() for k,b in embedded.items()}==M['src_sha256']
+for name,p in proof['files'].items():
+ stat=(R/name).stat();assert stat.st_size==p['bytes'] and stat.st_mtime_ns==p['original_stat_mtime_ns'] and p['sha256']==M['sha256'][name]
+future=proof['remaining_R7_envelope_after_actual_paid_bytes'];assert shutil.disk_usage('/tmp').free>proof['prior_required_free_bytes']+future
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+sp=importlib.util.spec_from_file_location('r7_original_staging_canonical',W);w=importlib.util.module_from_spec(sp);sp.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Existing canonical owner remains live; no stage mutation'
+  time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'original_public_R7_source_and_asset_staging_only','CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key='licensed-parent-full-epoch-serving:R7-public0956:'+sha
+  assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+  slug='godlydonuts/rsna-r7-public0956-offline-'+sha[:12];absence=r.require_absent_kernel(slug)
+  request={'slug':slug,'newTitle':'RSNA original R7 public reference offline '+sha[:12],'text':source,'language':'python','kernelType':'notebook','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':v['pins']['metadata']['datasetDataSources'],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[],'sessionTimeoutSeconds':32400,'dockerImage':v['pins']['metadata']['dockerImage'],'dockerImagePinningType':'original'}
+  assert v['pins']['metadata']['kernelType']=='notebook' and v['pins']['metadata']['enableInternet'] is False and v['pins']['metadata']['machineShape']=='NvidiaTeslaT4'
+  D.mkdir(mode=0o700);w.new_json(D/'stage-intent.json',{'source_sha256':sha,'private_original_source_copy':True,'maximum_stage_bytes':2*2**20,'new_GPU_Dataset_weight_transfer_or_entry':0,'automatic_retry':False});retain=True
+  (D/'source.private.ipynb').write_text(source);(D/'source.private.ipynb').chmod(0o600);w.new_json(D/'proposed-save-request.private.json',request)
+  record={'state':'R7_public0956_original_prepared','source_sha256':sha,'original_author_kernel_id':138222340,'original_author_version':1,'primary_author_score':0.956,'project_score':None,'R7_model_manifest_sha256':proof['source_original_manifest_sha256'],'R7_dataset_id':12520391,'R7_dataset_version':1,'asset_proof_CPU_job':'943797','asset_reconciliation_CPU_job':'943811','original_numerical_source_unchanged':True,'kernel_type':'notebook','slug':slug,'version':1,'maximum_future_GPU_runs':1,'maximum_future_entries':1,'fresh_future_VM_and_two_session_capacity_not_yet_admitted':True,'no_GPU_or_entry_intent':True,'automatic_retry':False}
+  db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  out={'status':'one_original_R7_reference_notebook_and_asset_binding_staged_canonical_without_GPU_or_entry','CPU_job':os.environ['SLURM_JOB_ID'],'root':str(D),'canonical_key':key,'source_sha256':sha,'code_cells_sha256':hashlib.sha256(code.encode()).hexdigest(),'original_author_kernel_id':138222340,'original_author_version':1,'slug':slug,'version':1,'kernel_type':'notebook','docker_image':request['dockerImage'],'original_three_public_inputs':request['datasetDataSources'],'source_and_code_cells_unchanged':True,'original_source_safe_notebook_parse':True,'all7_original_module_SHA_verified':True,'all8_weight_stat_and_original_proof_bindings':True,'actual_stage_bytes':sum(p.stat().st_size for p in D.rglob('*') if p.is_file()),'remaining_funded_node_envelope_before_stage':future,'new_GPU_Dataset_weight_transfer_or_competition_entries':0,'absence_proof':absence};assert out['actual_stage_bytes']<2*2**20;w.new_json(D/'staged.json',out);retain=False;print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

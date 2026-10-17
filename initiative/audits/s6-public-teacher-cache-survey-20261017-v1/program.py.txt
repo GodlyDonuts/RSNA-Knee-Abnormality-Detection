@@ -1,0 +1,14 @@
+import json,sys,requests,datetime
+v=json.load(sys.stdin);s=requests.Session();s.headers["Authorization"]="Bearer "+v["token"];base="https://api.kaggle.com/v1/"
+def call(service,method,body):
+ response=s.post(base+service+"/"+method,json=body,timeout=(10,60),allow_redirects=False);assert response.status_code==200,("Read-only metadata HTTP",response.status_code);return response.json()
+who=call("security.OAuthService","IntrospectToken",{"token":v["token"]});assert who.get("active") is True and who.get("username")=="godlydonuts"
+rows=[];token="";pages=[]
+for page in range(20):
+ request={"ownerSlug":"nartaa","datasetSlug":"rsna-knee-s6fall-weights","datasetVersionNumber":3,"pageSize":100}
+ if token:request["pageToken"]=token
+ value=call("datasets.DatasetApiService","ListDatasetFiles",request);assert not value.get("errorMessage") and isinstance(value.get("datasetFiles"),list);rows.extend(value["datasetFiles"]);pages.append({"keys":sorted(value),"files":len(value["datasetFiles"])});token=value.get("nextPageToken","")
+ if not token:break
+else:raise AssertionError("Metadata pagination exceeded bounded request")
+assert len(json.dumps(rows).encode())<2**20
+print(json.dumps({"status":"actual_public_S6_v3_complete_file_listing_readonly","checked_UTC":datetime.datetime.now(datetime.timezone.utc).isoformat(),"dataset":"nartaa/rsna-knee-s6fall-weights","version":3,"pages":pages,"next_page_token_exhausted":not token,"files":rows,"GPU_weight_pixel_or_competition_mutations":0}),flush=True)

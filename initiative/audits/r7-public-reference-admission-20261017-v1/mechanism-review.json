@@ -1,0 +1,99 @@
+{
+  "status": "actual_versioned_source_manifest_structural_review_not_accuracy_or_GPU_acceptance",
+  "target_public_AUC": 0.97,
+  "actual_project_best_public_AUC": 0.949,
+  "actual_independent_N3_best_public_AUC": 0.894,
+  "primary_reference_actual_public_score": 0.956,
+  "primary_score_version": 1,
+  "source_kernel_id": 138222340,
+  "raw_notebook_source_sha256": "cb2a0f57962ca9b6668661e34461aad772ed9ed10d576d32772e7c2898f2e315",
+  "private_code_cell_sha256": "6563d167d7c27211f96156ac3e4b6da2ef2061cb1c3b4359e44c3600ed8ae311",
+  "source_notebook_code_licence": "Apache2.0 per primary Kaggle page",
+  "weights_licence_card": "Other; no separate redistribution licence specified; keep private originals",
+  "manifest_bundle_id": "8c7b666e27dc0e8f",
+  "manifest_sha256": "c4bb0f7399ada9a020e0c15cae6252033cf0c4335e999961793a176063074ec6",
+  "embedded_module_SHA_matches_all7_original_manifest_members": true,
+  "compiled_embedded_source_modules": 7,
+  "R7_models": [
+    "E_lrprior_s0_f0.pt",
+    "E_lrprior_s0_f1.pt",
+    "E_lrprior_s0_f2.pt",
+    "E_lrprior_s0_f3.pt"
+  ],
+  "R7_backbone": "convnext_small",
+  "input": {
+    "size": 384,
+    "crop": 352,
+    "eval_stride": 1,
+    "slices": 3,
+    "phys_mm": 3.5,
+    "views": "v4"
+  },
+  "source_reported_training_recipe": {
+    "folds": 4,
+    "epochs": 16,
+    "batch": 2,
+    "train_windows": 176,
+    "ema": 0.999,
+    "lr": 0.0001,
+    "head_lr": 0.001,
+    "wd": 0.05,
+    "pair_rank": 0.5,
+    "pair_frac": 0.33,
+    "state_weight": 0.5,
+    "extent_weight": 0.2,
+    "syn_decomp": true,
+    "spatial_attn": true,
+    "extent": true,
+    "mirror": 0.5,
+    "fm_aux_weight": 0.3,
+    "fm_aux_windows": 96,
+    "pool_studies": 4344,
+    "gold_studies": 58
+  },
+  "source_reported_data_policy": "No KneeCoT inputs or derivatives; gold never trained",
+  "official_labels_read_by_trainer_source_declares": false,
+  "source_auxiliary_store_origin_independently_verified": false,
+  "source_reported_training_is_not_independently_reproduced_training": true,
+  "executed_optional_assets_declared": {
+    "side_model": "side_cls.pt",
+    "state_spec": "state_spec.json",
+    "fluid_stacker": "fluid_stacker.json",
+    "state_stacker": "state_stacker.json",
+    "compile": true,
+    "flip_tta": false,
+    "models2": null
+  },
+  "fixed_reference_blend": {
+    "CoAtNet384": 0.5,
+    "R7_fourfold_group": 0.5,
+    "per_target_equal_percentile_ranks": true,
+    "calibration_or_clinical_truth_claim": false
+  },
+  "Varshitha_difference": {
+    "same2_primary_lineages": true,
+    "additional_CoAtNet224_share_of_CoAtNet_half": 0.35,
+    "timeout_fallback_can_skip224": true,
+    "reported_public_AUC": 0.956,
+    "demonstrated_lift_over_R7_baseline_from_displayed_scores": false
+  },
+  "comparison_to_S6_all_data": {
+    "R7_crop": 352,
+    "S6_crop": 288,
+    "R7_train_windows": 176,
+    "S6_train_windows": 64,
+    "R7_fourfold_models": 4,
+    "S6_all_data_models": 1,
+    "multiple_joint_changes_not_a_causal_ablation": true
+  },
+  "next_action": "Use the canonically staged exact original Notebook in one distinctly owned offline reproduction after fresh all-future VM budget/two-session admission, then at most one exact accepted code entry under fresh daily allowance. No R7 GPU has been reserved or dispatched.",
+  "research_hypotheses": [
+    "More physical and within-window evidence may improve rare lesions; requires matched coverage/compute comparison.",
+    "State/extent/ordered-pair supervision may teach distinctions absent from12 weak marginals; requires independent held-out evidence.",
+    "A rank-diverse second teacher can change ordering without raw-probability confidence gating; full fitting outputs and matched target transport still required."
+  ],
+  "new_R7_GPU_or_competition_entry": false,
+  "no_model_gain_from_source_review_or_download_claim": true,
+  "actual_canonical_staging_CPU_job": "943843",
+  "actual_canonical_key": "licensed-parent-full-epoch-serving:R7-public0956:cb2a0f57962ca9b6668661e34461aad772ed9ed10d576d32772e7c2898f2e315"
+}

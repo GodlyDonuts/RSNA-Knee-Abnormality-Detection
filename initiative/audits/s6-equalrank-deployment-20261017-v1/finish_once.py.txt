@@ -1,0 +1,71 @@
+"""One fixed blend, bounded across the next live submission allowance window."""
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+
+PUSH_WAIT={'waiting_canonical_claim_without_mutation','waiting_original_S6_actual_scored_hidden_outcome_without_GPU_reservation','waiting_fresh_all_future_funding_or_two_GPU_session_capacity_without_mutation'}
+
+def run_transaction(call,observe,now,sleep,*,GPU_deadline,entry_deadline,outcome_deadline):
+ pushed=None
+ while now()<GPU_deadline:
+  event=call('push');observe('GPU_admission',event)
+  if event['status']=='one_exact_fixed_equalrank_offline_notebook_pushed':pushed=event;break
+  if event['status']=='original_S6_hidden_failed_no_equalrank_GPU_or_entry':return {'status':'original_S6_hidden_failed_blend_not_run','GPU_runs':0,'competition_entries':0,'actual':event}
+  if event['status'] not in PUSH_WAIT:raise RuntimeError('Unexpected exact blend admission; read-only reconciliation required')
+  sleep(180,GPU_deadline)
+ if pushed is None:return {'status':'finite_equalrank_GPU_admission_expired_without_push','GPU_runs':0,'competition_entries':0}
+ accepted=None
+ public_deadline=min(entry_deadline,GPU_deadline+32400)
+ while now()<public_deadline:
+  event=call('status');observe('same_exact_public_notebook',event)
+  if event['status']=='waiting_canonical_claim_without_mutation':sleep(60,public_deadline);continue
+  if event['status'] in ('ERROR','CANCELLED'):return {'status':'exact_equalrank_public_failure_no_entry_or_retry','GPU_runs':1,'competition_entries':0,'actual':event}
+  if event['status']=='COMPLETE':
+   if event['accepted']['status']!='actual_fixed_equalrank_two_T4_offline_public_MRI_and_CSV_accepted':raise RuntimeError('Wrong actual public acceptance')
+   accepted=event;break
+  sleep(60,public_deadline)
+ if accepted is None:return {'status':'finite_equalrank_public_observation_expired_without_entry','original_push':pushed,'GPU_runs':1,'competition_entries':0}
+ submitted=None
+ while now()<entry_deadline:
+  event=call('eligibility');observe('fresh_actual_entry_allowance',event)
+  if event['status']=='waiting_canonical_claim_without_mutation':sleep(60,entry_deadline);continue
+  if event['status']!='fixed_equalrank_entry_eligibility_readonly':raise RuntimeError('Unexpected blend eligibility; do not guess entry state')
+  if event['eligible'] is not True:sleep(600,entry_deadline);continue
+  event=call('submit');observe('single_code_entry_phase',event)
+  if event['status']=='waiting_canonical_claim_without_mutation':sleep(60,entry_deadline);continue
+  if event['status']=='fixed_equalrank_entry_eligibility_readonly' and event['eligible'] is False:sleep(180,entry_deadline);continue
+  if event['status']!='one_exact_fixed_equalrank_offline_code_submission_accepted':raise RuntimeError('Unexpected exact entry; reconcile before any retry')
+  submitted=event;break
+ if submitted is None:return {'status':'finite_equalrank_entry_window_expired_without_submission','actual_public_accepted':accepted,'GPU_runs':1,'competition_entries':0}
+ sleep(180,outcome_deadline)
+ while now()<outcome_deadline:
+  event=call('outcome');observe('same_exact_actual_hidden_outcome',event)
+  if event['status']=='waiting_canonical_claim_without_mutation':sleep(60,outcome_deadline);continue
+  if event['status']!='actual_fixed_equalrank_hidden_outcome_readonly':raise RuntimeError('Wrong exact hidden outcome observer')
+  if event['outcome'] in ('scored','failed'):return {'status':'one_exact_fixed_equalrank_actual_hidden_terminal','actual':event,'GPU_runs':1,'competition_entries':1}
+  sleep(300,outcome_deadline)
+ return {'status':'finite_equalrank_hidden_observation_expired_outcome_unresolved','submission':submitted,'GPU_runs':1,'competition_entries':1,'automatic_retry':False}
+
+def main():
+ L=Path(__file__).resolve().parent;assert not (L/'finish.intent.json').exists()
+ actual=json.loads((L/'actual-staged.json').read_text());assert actual['status']=='one_fixed_equalrank_source_staged_and_canonical_registered_without_GPU_or_entry'
+ frozen={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('run_phase_once.py','program.py.txt','contract.py.txt')}
+ GPU_deadline=datetime(2026,10,18,15,tzinfo=timezone.utc).timestamp();entry_deadline=datetime(2026,10,19,3,tzinfo=timezone.utc).timestamp();outcome_deadline=datetime(2026,10,19,13,tzinfo=timezone.utc).timestamp();start=time.monotonic()
+ with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'immutable_files':frozen,'maximum_GPU_runs':1,'maximum_offline_session_seconds':32400,'maximum_competition_entries':1,'source_sha256':'46a9688309973ca405fb37b854ac110f3ca29752d9ac5f3588e62d868a799bac','weights':{'A_0949':0.5,'B_s6f0':0.5},'GPU_deadline_UTC':datetime.fromtimestamp(GPU_deadline,timezone.utc).isoformat(),'public_observation_deadline_UTC':datetime.fromtimestamp(min(entry_deadline,GPU_deadline+32400),timezone.utc).isoformat(),'entry_deadline_UTC':datetime.fromtimestamp(entry_deadline,timezone.utc).isoformat(),'outcome_deadline_UTC':datetime.fromtimestamp(outcome_deadline,timezone.utc).isoformat(),'fresh_authoritative_allowance_required_no_claimed_reset_time':True,'original_S6_actual_scored_outcome_required':True,'no_new_Dataset_weights_or_public_CSV_upload':True,'automatic_retry':False},f,indent=2)
+ def observe(phase,actual):
+  (L/'finish.progress.json').write_text(json.dumps({'PID':os.getpid(),'phase':phase,'elapsed_seconds':time.monotonic()-start,'actual':actual},indent=2)+'\n')
+  for status,name in [('one_exact_fixed_equalrank_offline_notebook_pushed','actual-pushed.json'),('one_exact_fixed_equalrank_offline_code_submission_accepted','actual-submitted.json')]:
+   if actual['status']==status:(L/name).write_text(json.dumps(actual,indent=2)+'\n')
+  if actual['status']=='COMPLETE':(L/'actual-public-accepted.json').write_text(json.dumps(actual,indent=2)+'\n')
+ def sleep(seconds,deadline):
+  end=min(time.time()+seconds,deadline)
+  while time.time()<end:time.sleep(min(30,max(.01,end-time.time())))
+ def call(phase):
+  assert all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in frozen.items());child=subprocess.run([sys.executable,str(L/'run_phase_once.py'),phase],capture_output=True,text=True,timeout=700)
+  with (L/('child-'+str(time.monotonic_ns())+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':child.returncode,'stdout':child.stdout,'stderr':child.stderr},f,indent=2)
+  assert child.returncode==0,'Exact blend phase stopped; no retry until actual read-only reconciliation';return json.loads(child.stdout)
+ try:
+  result=run_transaction(call,observe,time.time,sleep,GPU_deadline=GPU_deadline,entry_deadline=entry_deadline,outcome_deadline=outcome_deadline);(L/'finish.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+ except BaseException as e:
+  (L/'finish.result.json').write_text(json.dumps({'status':'stopped_exact_equalrank_owner_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise
+if __name__=='__main__':main()

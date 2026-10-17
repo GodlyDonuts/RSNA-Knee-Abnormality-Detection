@@ -1,0 +1,38 @@
+"""Actual local source/funding/phase checks, no GPU or remote entry."""
+import ast
+import copy
+import hashlib
+import json
+from pathlib import Path
+
+L=Path(__file__).resolve().parent
+contract=(L/'contract.py.txt').read_text();ns={};exec(compile(contract,'pure_equalrank_contract','exec'),ns)
+original=(L.parent/'s6-public-source-20261017-v1/source.extracted.py').read_text()
+derived=(L.parent/'s6-equalrank-preparation-20261017-v1/source.private.py').read_text()
+binding=ns['source_contract'](original,derived);assert binding['weights']=={'A_0949':.5,'B_s6f0':.5}
+passed=['actual_prepared_source_exact_AST_build_ID_and_fixed_weights']
+def rejected(f):
+ try:f()
+ except (ValueError,KeyError):return
+ raise AssertionError('Invalid original source/funding contract accepted')
+for label,text in [('weights',derived.replace('W_A, W_B = 0.5, 0.5','W_A, W_B = 0.9, 0.1')),('added_code',derived+'\nraise RuntimeError()\n'),('timestamp',derived.replace('2026-10-17T06:00:00+00:00','2026-10-18T06:00:00+00:00'))]:
+ assert text!=derived;rejected(lambda:ns['source_contract'](original,text));passed.append('unaccepted_'+label+'_refused')
+q={'totalTimeAllowed':'162000s','minimumTimeAllowed':'108000s','timeUsed':'30000s','timeReserved':'25000s','isPayToScaleEnabled':True}
+args={'unfinished_main':25200,'unfinished_sampling':24000,'known_reserved_main':25200,'scout_unfinished':True}
+b=ns['compute_budget'](q,**args);assert b['funded_VM_seconds']==132000 and b['required_VM_seconds']==87000 and b['allowed'] is True;passed.append('real_active45hour_grant_and_all_four_obligations')
+q2={**q,'isPayToScaleEnabled':False};b2=ns['compute_budget'](q2,**args);assert b2['funded_VM_seconds']==78000 and b2['allowed'] is False;passed.append('inactive_grant_conservatively_uses30hour_minimum')
+b3=ns['compute_budget']({**q,'timeReserved':'100s'},**args);assert b3['funded_VM_seconds']==132000;passed.append('reserved_credit_never_exceeds_actual_reserved')
+b4=ns['compute_budget'](q,**{**args,'known_reserved_main':0,'scout_unfinished':False});assert b4['funded_VM_seconds']==107000 and b4['required_VM_seconds']==85200;passed.append('completed_scout_retired_once_unreserved_main_not_double_credited')
+for label,key,value in [('negative','timeUsed','-1s'),('nonfinite','timeReserved','nans'),('wrong_units','totalTimeAllowed','162000h'),('bad_total','totalTimeAllowed','1s')]:
+ bad={**q,key:value};rejected(lambda:ns['compute_budget'](bad,**args));passed.append(label+'_quota_refused')
+rejected(lambda:ns['compute_budget'](q,**{**args,'unfinished_sampling':-1}));passed.append('negative_scientific_obligation_refused')
+program=(L/'program.py.txt').read_text();tree=ast.parse(program);compile(program,'one_equalrank_remote_phase','exec');compile((L/'run_phase_once.py').read_text(),'equalrank_local_transport','exec')
+save_calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='call' and len(n.args)>=2 and isinstance(n.args[1],ast.Constant) and n.args[1].value=='SaveKernel'];assert len(save_calls)==1;passed.append('exactly_one_SaveKernel_call_site')
+entry_calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute) and n.func.attr=='competition' and n.args and isinstance(n.args[0],ast.Constant) and n.args[0].value=='CreateCodeSubmission'];assert len(entry_calls)==1;passed.append('exactly_one_code_entry_call_site_no_CSV_upload_API')
+stage=next(n for n in ast.walk(tree) if isinstance(n,ast.If) and isinstance(n.test,ast.Compare) and isinstance(n.test.left,ast.Name) and n.test.left.id=='phase' and isinstance(n.test.comparators[0],ast.Constant) and n.test.comparators[0].value=='stage')
+assert not any(isinstance(n,ast.Constant) and n.value in ('SaveKernel','CreateCodeSubmission') for s in stage.body for n in ast.walk(s));passed.append('actual_stage_branch_has_zero_GPU_or_competition_mutation_APIs')
+for guard in ["prior!='scored'","w.allowance(db,account)","not D.exists()","not (D/'code-entry-intent.json').exists()","public_CSV_uploaded","prior=prior_scored()"]:
+ assert guard in program
+passed.append('prior_actual_S6_outcome_fresh_allowance_absence_and_unique_entry_guards_present')
+record={'status':'fixed_equalrank_source_and_all_future_compute_contract_checked_not_GPU_acceptance','tests':len(passed),'passed':passed,'source_contract':binding,'contract_sha256':hashlib.sha256(contract.encode()).hexdigest(),'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'transport_sha256':hashlib.sha256((L/'run_phase_once.py').read_bytes()).hexdigest(),'test_program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'original_rank_arithmetic_and_fallback_checks':json.loads((L.parent/'s6-equalrank-preparation-20261017-v1/local-rank-contract-checked.json').read_text()),'actual_GPU_Dataset_or_competition_entries_in_tests':0}
+(L/'checked.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record,indent=2))

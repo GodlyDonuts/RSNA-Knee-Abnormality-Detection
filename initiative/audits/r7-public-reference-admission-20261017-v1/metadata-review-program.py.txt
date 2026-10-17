@@ -1,0 +1,38 @@
+
+import datetime,hashlib,json,os,re,shutil,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'public-R7-reference-review-v1';D=R/'metadata-review-v1'
+assert R.is_dir() and not D.exists() and shutil.disk_usage('/tmp').free>610493834008
+existing=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert existing+256*2**10<2*2**20
+s=requests.Session();s.headers['Authorization']='Bearer '+v['token']
+def read(response,limit):
+ assert response.status_code==200,('read-only HTTP status',response.status_code)
+ raw=bytearray()
+ try:
+  for b in response.iter_content(32768):raw.extend(b);assert len(raw)<=limit
+ finally:response.close()
+ return bytes(raw)
+def call(service,method,body):
+ return json.loads(read(s.post('https://api.kaggle.com/v1/'+service+'/'+method,json=body,stream=True,timeout=(10,90),allow_redirects=False),2**20))
+who=call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') and who.get('username')=='godlydonuts'
+slug='heliosli/rsna-knee-compact-r7cnxfsss'
+card=json.loads(read(requests.get('https://www.kaggle.com/api/v1/datasets/view/'+slug,stream=True,timeout=(10,90)),2**20))
+version=card['currentVersionNumber'];assert isinstance(version,int)
+rows=[];page=''
+for i in range(10):
+ request={'ownerSlug':'heliosli','datasetSlug':'rsna-knee-compact-r7cnxfsss','datasetVersionNumber':version,'pageSize':100}
+ if page:request['pageToken']=page
+ reply=call('datasets.DatasetApiService','ListDatasetFiles',request);assert not reply.get('errorMessage')
+ rows.extend(reply['datasetFiles']);page=reply.get('nextPageToken','')
+ if not page:break
+assert not page and len(rows)<100
+raw=read(requests.get('https://www.kaggle.com/api/v1/datasets/download/'+slug+'/manifest.json',params={'dataset_version_number':version},stream=True,timeout=(10,90)),128*2**10)
+manifest=json.loads(raw);assert manifest.get('bundle_id')=='8c7b666e27dc0e8f'
+assert not re.search(rb'1\.2\.826\.0\.|hf_[A-Za-z0-9]{20}|[?&](?:X-Goog-Signature|X-Amz-Signature|token)=',raw)
+D.mkdir(mode=0o700);(D/'manifest.original.json').write_bytes(raw);(D/'manifest.original.json').chmod(0o600)
+body={'status':'actual_public_R7_complete_file_card_and_small_manifest_review_readonly','CPU_job':os.environ['SLURM_JOB_ID'],'checked_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'dataset':slug,'dataset_id':card['id'],'version':version,'license':card.get('licenseName'),'public':not card.get('isPrivate',True),'total_bytes':card.get('totalBytes'),'file_listing_complete':True,'files':rows,'manifest_sha256':hashlib.sha256(raw).hexdigest(),'manifest_bytes':len(raw),'manifest':manifest,'description_for_private_review':card.get('description',''),'controls_used_before':existing,'new_retained_cap_bytes':256*2**10,'existing_R7_2MiB_envelope_unchanged':True,'new_weights_pixels_GPU_Dataset_or_competition_mutations':0}
+stored={k:x for k,x in body.items() if k not in ('description_for_private_review','manifest')};(D/'receipt.json').write_text(json.dumps(stored,indent=2)+'\n')
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<2*2**20
+print(json.dumps(body),flush=True)

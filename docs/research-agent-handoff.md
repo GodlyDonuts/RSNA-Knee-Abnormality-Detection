@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 06:25 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 07:41 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -17,7 +17,7 @@ proposing new work. [Current state](current-state.md) is the score/job authority
 - Full-parent adaptation is running on Kaggle; expanded own-model fitting is
   running on Newton. Neither has a final/new competition score. The matched
   importance-sampling production comparison has completed/private-verified uniformE1;
-  influenceE1 139154664v1 is also complete/private verified; uniformE2 runs.
+  influenceE1 139154664v1 is also complete/private verified; uniformE2 completed972/private verified; influenceE2 runs.
   Whole94 E2 completed972 and is private verified; original E3 139172537v1 runs.
 - The earlier **two-slot** observation preceded the actual learnedE1 entry
   **57294905** (COMPLETE/**0.949**, noerror); refresh authoritative allowance. Regional
@@ -91,7 +91,8 @@ privately downloaded once and SHA/header verified. Dependencies/source/anatomy,
 CPU MRI tensors and CPU classifier reference pass. Original qualification
 139165932v1 now actually COMPLETED156.6s on bothT4s with threeMRIs, zero S6
 fallback and a finite13-column CSV. This is public acceptance; a distinct
-offline run and S6 entry remain owned and unsubmitted at this observation. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Original numerical training continues unchanged; only terminal serving/entry3
+offline139181157v1 completed233seconds; S6 code entry57300990 is accepted once
+and its hidden score is still pending. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Original numerical training continues unchanged; only terminal serving/entry3
 observer dependencies were replaced. [Current originals and new sole owners](codex-continuation.md).
 
 The program's recommendation to obtain strict five-fold OOF by fitting heads on
@@ -207,8 +208,8 @@ Whole94 E2 last visible722/1458 remains an older detailed log observation.
 Uniform16 E1 actually completed486updates and all5objects are privately fully
 verified; influenceE1 also completed486 and all5objects were independently private
 verified at HFb09816181e2e79eb24563884af5c7ed0e1af40a5. UniformE2 139167076v1
-is RUNNING under resumed same owner97530. Expanded N3 original938284 is at
-at least4212/5184 completed updates, with epochs1–13 privately fully verified.
+completed972/all5private objects; influenceE2 139181903v1 runs under the same97530. Expanded N3 original938284 is at
+at least4860/5184 completed updates, with epochs1–15 privately fully verified.
 [Actual new original progress](../initiative/audits/research-progress-20261017-0550-v1/README.md). Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
@@ -224,8 +225,9 @@ Original T4 qualification139165932v1 completed in156.6s on bothT4s with exact
 source/model/CSV acceptance. The original author embedded build ID is stale; the
 source-bound observer repair preserved exact numerical bytes and did not rerun
 qualification. S6 admission now counts the actual active45h grant, retaining
-all obligations. Owner20978 owns remaining offline inference and20994 one entry;
-both wait actual capacity/acceptance, with zero S6 entries so far.
+all obligations. Owner20978 reached terminal success after original offline139181157v1 completed
+233seconds/zero fallback. Sole20994 accepted S6 code entry57300990 once; hidden
+status/score remain null at the latest observation. Do not duplicate it.
 [Exact T4/observer/quota evidence](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
 Distinct CPU fitting8 input139165316v1 now completed after a preserved earlier
 guard-contract failure; CPU942782 verified all5372windows/1,154,209,297bytes and
@@ -239,7 +241,7 @@ no numerical source changed. Do not mistake that for clinical improvement.
 Earlier distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
 all40objects/268191bytes; current receipt bookkeeping follows that source.
 [Exact private proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
-UniformE1 is now terminal/private verified at HFc19961db; influenceE1 is active.
+UniformE1 and influenceE1 are both terminal/private verified; uniformE2 completed972/private verified; influenceE2 runs.
 [Original results and sole final-serving/entry owners](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 
@@ -265,10 +267,11 @@ sole final-serving owners. No private pixels/clinical arrays/features/weights.
 Never repeat this or earlier prefixes; this receipt bookkeeping is later than
 that mirrored source.
 
-A fixed50/50 CoAtNet/S6 per-target rank contrast is now **prepared only**. It
+A fixed50/50 CoAtNet/S6 per-target rank contrast is now **staged/owned, no GPU
+execution yet**. CPU943330/owner27596/exec58044 gate on actual S6 scoring and
+fresh resource/entry admission. [Actual deployment readiness](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md). It
 changes only two AST assignments (weights/build metadata), passes eight CPU rank/
-fallback contracts, and preserves original inference. No GPU/entry/funding is
-claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
+fallback contracts, and preserves original inference. No actual derivative GPU acceptance/entry or score is claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
 acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
 [Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
 
@@ -294,7 +297,28 @@ has sole finite owner26454/exec91663, not a GPU result at this snapshot.
 [The new matched full-encoder mechanism](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md)
 transports equal teacher ranks onto the parent score scale and keeps the existing
 pointwise optimizer practical. It differs from the completed frozen-feature
-weak-label ranking head. Nineteen numerical checks pass; complete full3887 S6
-teacher outputs, distinct immutable data binding, real recovery and funded GPU
-fitting remain absent. Do not call its preparation a model or improvement.
+weak-label ranking head. Nineteen target checks pass; the explicit immutable target data path now
+passes17synthetic CPU/real-engine recovery checks. Complete full3887 S6 outputs,
+actual MRI/GPU recovery and funded new fitting remain absent.
+[Actual data path](../initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md). Do not call its preparation a model or improvement.
 Verified best0.949/own0.894 remain unchanged.
+
+Complete public S6v3 metadata lists exactly seven files/no cached fitting-output
+array; the empty GetDataset.files card was not an empty-data proof.
+[Original complete listing and narrow conclusion](../initiative/audits/s6-public-teacher-cache-survey-20261017-v1/README.md).
+Actual allowance06:50UTC was four entries today/one available. FinalE3 standby
+28090/exec30473 can act only after old17317 terminal zero-entry expiry, never
+duplicate it. [Next-window ownership](../initiative/audits/final-epoch3-next-allowance-20261017-v1/README.md).
+
+## Actual public0.956 reference admission,07:41UTC
+
+Read [the new exact source/manifest/weights audit](../initiative/audits/r7-public-reference-admission-20261017-v1/README.md).
+Helios138222340v1 and Varshitha138462884v1 both display0.956. The former is the
+cleaner initial reproduction: existing CoAtNet plus four R7 ConvNeXt folds,
+state/extent/ordered-pair supervision, denser physical views and released
+state/fluid stackers. The latter adds224 inference with timeout fallback, but
+the displayed scores do not establish a lift. All8 R7 objects are privately
+size/SHA/safe-header verified; exact original sources and all7 embedded module
+SHAs are pinned. No R7 GPU/entry exists. This is catch-up research, not a new
+project0.956 or proof of0.97. Keep original S6 entry57300990, healthy training
+and fixed blend owners unchanged. Full source-exposed features are not OOF.

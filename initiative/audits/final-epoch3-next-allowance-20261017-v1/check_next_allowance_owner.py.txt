@@ -1,0 +1,29 @@
+"""Pure finite-window ownership checks; no remote phase runs."""
+import hashlib,importlib.util,json
+from pathlib import Path
+L=Path(__file__).resolve().parent;source=L/'submit_final_epoch3_next_allowance_once.py';spec=importlib.util.spec_from_file_location('next_actual_allowance',source);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+passed=[]
+def trial(old,events=(),readies=()):
+ states=list(old);q=list(events);ready=list(readies);clock=[0];calls=[]
+ def previous():return states.pop(0) if len(states)>1 else states[0]
+ def prepared():return ready.pop(0) if len(ready)>1 else (ready[0] if ready else True)
+ def call(phase):
+  expected,event=q.pop(0);assert phase==expected;calls.append(phase)
+  if isinstance(event,BaseException):raise event
+  return event
+ def sleep(seconds,deadline):clock[0]=min(clock[0]+seconds,deadline)
+ return lambda:m.run_window(previous,prepared,call,lambda *x:None,lambda:clock[0],sleep,entry_deadline=1000,outcome_deadline=3000),calls
+f,c=trial(['original_owner_live','terminal_verified_zero_entry_expiry'],[('eligibility',{'eligible':False}),('eligibility',{'eligible':True}),('submit',{'status':'one_exact_whole94_full_parent_epoch3_code_submission_accepted'}),('outcome',{'outcome':'scored'})]);r=f();assert r['new_competition_entries']==1 and c.count('submit')==1;passed.append('one_entry_only_after_original_terminal_expiry_and_actual_new_allowance')
+f,c=trial(['already_submitted']);r=f();assert r['new_competition_entries']==0 and not c;passed.append('original_success_never_duplicated')
+f,c=trial(['uncertain'])
+try:f()
+except RuntimeError:assert not c;passed.append('missing_or_uncertain_original_owner_never_retried')
+else:raise AssertionError('Uncertain original operation reused')
+f,c=trial(['original_owner_live']);r=f();assert r['new_competition_entries']==0 and not c;passed.append('finite_wait_does_not_take_over_live_owner')
+f,c=trial(['terminal_verified_zero_entry_expiry'],readies=[False]);r=f();assert r['new_competition_entries']==0 and not c;passed.append('no_original_public_acceptance_no_entry_API')
+f,c=trial(['terminal_verified_zero_entry_expiry'],[('eligibility',{'eligible':True}),('submit',TimeoutError('uncertain'))])
+try:f()
+except TimeoutError:assert c.count('submit')==1;passed.append('uncertain_new_entry_stops_without_retry')
+else:raise AssertionError('Uncertain new entry repeated')
+f,c=trial(['terminal_verified_zero_entry_expiry'],[('eligibility',{'eligible':True}),('submit',{'status':'one_exact_whole94_full_parent_epoch3_code_submission_accepted'}),('outcome',{'outcome':'failed'})]);r=f();assert r['actual']['outcome']=='failed' and r['new_competition_entries']==1;passed.append('actual_hidden_failure_is_preserved_not_resubmitted')
+out={'status':'next_allowance_epoch3_finite_ownership_contract_checked','tests':len(passed),'passed':passed,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'test_program_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'new_GPU_Dataset_or_entry_mutations_in_tests':0};(L/'next-allowance-epoch3-checked.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out,indent=2))

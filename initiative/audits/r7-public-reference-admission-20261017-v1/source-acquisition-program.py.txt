@@ -1,0 +1,31 @@
+
+import ast,hashlib,json,os,re,shutil,sys,datetime
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'public-R7-reference-review-v1';assert not R.exists() and shutil.disk_usage('/tmp').free>610493834008
+paid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected'];used=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(x) for x in paid) and p.suffix not in ('.pt','.whl'));assert used+12*2**20+2*2**20<16*2**20
+session=requests.Session();session.headers['Authorization']='Bearer '+v['token']
+def call(service,method,body):
+ response=session.post('https://api.kaggle.com/v1/'+service+'/'+method,json=body,timeout=(10,90),stream=True,allow_redirects=False);assert response.status_code==200,('Read-only API HTTP',response.status_code);raw=bytearray()
+ try:
+  for block in response.iter_content(65536):raw.extend(block);assert len(raw)<=8*2**20
+ finally:response.close()
+ return json.loads(raw)
+who=call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+collected=[];retained={};size=0
+for slug,expected in [('heliosli/0-957-latest-dataset-score-in-one-click',1),('varshithakolupuri/rsna-knee-one-unused-checkpoint-lifts-the-0-956',1)]:
+ owner,name=slug.split('/');reply=call('kernels.KernelsApiService','GetKernel',{'userName':owner,'kernelSlug':name});m=reply['metadata'];source=reply['blob']['source'];assert isinstance(source,str) and len(source.encode())<2*2**20
+ try:
+  notebook=json.loads(source);assert isinstance(notebook,dict) and isinstance(notebook.get('cells'),list);cells=[(x.get('cell_type'),''.join(x.get('source',[])) if isinstance(x.get('source'),list) else x.get('source','')) for x in notebook['cells']];code='\n\n'.join('# cell '+str(i)+'\n'+text for i,(kind,text) in enumerate(cells) if kind=='code');kind='notebook'
+ except (ValueError,AssertionError):code=source;kind='script'
+ uid_literals=set(re.findall(r'1\.2\.826\.0\.1\.3680043\.8\.498\.[0-9]+',code));safe=uid_literals<=set(v['public_ids']) and 'data:image' not in code and 'image/png;base64' not in code
+ metadata={k:m.get(k) for k in ('id','slug','title','currentVersionNumber','language','kernelType','isPrivate','enableInternet','enableGpu','machineShape','dockerImage','datasetDataSources','competitionDataSources','kernelDataSources','licenseName')}
+ item={'slug':slug,'current_version':m.get('currentVersionNumber'),'primary_observed_score':0.956,'primary_score_version':expected,'same_version_as_primary_score':m.get('currentVersionNumber')==expected,'raw_source_sha256':hashlib.sha256(source.encode()).hexdigest(),'raw_source_bytes':len(source.encode()),'code_only_sha256':hashlib.sha256(code.encode()).hexdigest(),'code_only_bytes':len(code.encode()),'source_kind':kind,'code_can_be_returned_for_private_review_without_nonpublic_UIDs_or_image_data':safe,'metadata':metadata,'raw_source_remains_private_on_owning_node':True}
+ retained[name+'.source.private.txt']=source;size+=len(source.encode());assert size+32768<2*2**20
+ if safe:item['code_for_private_review']=code
+ collected.append(item)
+R.mkdir(mode=0o700)
+for name,source in retained.items():p=R/name;p.write_text(source);p.chmod(0o600)
+summary=[{k:v for k,v in x.items() if k!='code_for_private_review'} for x in collected];out={'status':'two_public0956_reference_sources_pinned_readonly_not_executed_or_project_scored','CPU_job':os.environ['SLURM_JOB_ID'],'checked_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'root':str(R),'controls_used_before':used,'new_retained_cap_bytes':2*2**20,'future_existing_controls_preserved_bytes':12*2**20,'files':summary,'new_weight_pixel_GPU_Dataset_or_entry_mutations':0};(R/'source-receipt.json').write_text(json.dumps(out,indent=2)+'\n');assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<2*2**20
+print(json.dumps({'receipt':out,'sources_for_private_review':collected}),flush=True)
