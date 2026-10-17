@@ -1,0 +1,57 @@
+"""Decompose existing own-model fixed predictions; no model fitting or new inference."""
+import hashlib,json,os,shutil,time
+from pathlib import Path
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+start=time.monotonic()
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1');R=P/'N3-fixed-source-domain-v1'
+paid=sum(p.stat().st_size for p in P.rglob('*') if p.is_file())
+assert not R.exists() and paid+2*2**20+16*2**20<256*2**20
+assert shutil.disk_usage('/tmp').free>612022943803+3*2**30
+O=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pred=O/'outer_predictions.csv';assert sha(pred)=='2ed6f4be7fdeeaf6ab264db50153acd83abe2407a589e05394b6ecdcc62a8463'
+result=O/'result.json';assert sha(result)=='7cd5c77f4685207be4a3feac5ed89bf27a735a12a0fa4c0d2402b8f2c65a5a5d'
+binding=json.loads((O/'run.json').read_text())['binding'];pf=pd.read_csv(pred,dtype={'study_uid':str});uids=sorted(pf.study_uid)
+assert len(uids)==len(set(uids))==1156 and hashlib.sha256(json.dumps(uids).encode()).hexdigest()==binding['outer_uids_sha256']
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');header=A/'initiative/audits/patient-header-audit/study_header_index.parquet'
+audit=json.loads((A/'initiative/audits/patient-header-audit/patient_header_audit.json').read_text());assert sha(header)==audit['study_header_index_sha256']
+hf=pd.read_parquet(header,columns=['study_uid','manufacturer','model'],filters=[('study_uid','in',uids)]).set_index('study_uid').loc[pf.study_uid]
+assert len(hf)==1156 and hf.index.is_unique
+T=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+yf=pd.read_parquet(A/'initiative/releases/report-supervision-v1/studies.parquet',columns=['study_uid','split',*T,*[t+'__mask' for t in T]],filters=[('study_uid','in',uids)]).set_index('study_uid').loc[pf.study_uid]
+assert len(yf)==1156 and yf.index.is_unique and yf['split'].eq('train').all()
+R.mkdir(mode=0o700)
+(R/'intent.json').write_text(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'source_program_sha256':sha(Path(__file__)),'fixed_original_predictions_sha256':sha(pred),'no_fitting_GPU_or_clinical_Gold_reads':True,'new_node_cap_bytes':2*2**20,'retained_other_controls_bytes':16*2**20})+'\n')
+outputs={}
+for kind,fields in [('manufacturer',['manufacturer']),('manufacturer_model',['manufacturer','model'])]:
+ domains=np.asarray([json.dumps([None if pd.isna(v) else str(v).strip() for v in row],separators=(',',':')) for row in hf[fields].itertuples(index=False,name=None)])
+ groups=np.unique(domains);rows=[]
+ for t in T:
+  observed=yf[t+'__mask'].to_numpy()>0;y=yf[t].to_numpy()[observed];score=pf[t].to_numpy()[observed];domain=domains[observed]
+  assert np.isfinite(score).all() and set(y).issubset({0,1})
+  positive=y==1;negative=y==0;total=int(positive.sum())*int(negative.sum());assert total>0
+  within_mass=0.;between_mass=0.;within_numerator=0.;between_numerator=0.;cells=[]
+  for g in groups:
+   ps=score[positive&(domain==g)]
+   if not len(ps):continue
+   for h in groups:
+    ns=np.sort(score[negative&(domain==h)])
+    if not len(ns):continue
+    credit=float((np.searchsorted(ns,ps,side='left')+np.searchsorted(ns,ps,side='right')).sum())/2
+    pairs=len(ps)*len(ns);weight=pairs/total;auc=credit/pairs
+    if g==h:within_mass+=weight;within_numerator+=weight*auc
+    else:between_mass+=weight;between_numerator+=weight*auc
+    cells.append({'positive_domain_SHA256':hashlib.sha256(g.encode()).hexdigest(),'negative_domain_SHA256':hashlib.sha256(h.encode()).hexdigest(),'positive_exams':len(ps),'negative_exams':len(ns),'pairs':pairs,'pair_mass':weight,'conditional_auc':auc})
+  actual=float(roc_auc_score(y,score));reconstructed=within_numerator+between_numerator
+  assert abs(actual-reconstructed)<1e-12 and abs(within_mass+between_mass-1)<1e-12
+  rows.append({'target':t,'positive_exams':int(positive.sum()),'negative_exams':int(negative.sum()),'original_auc':actual,'reconstructed_auc':reconstructed,'within_domain_pair_mass':within_mass,'between_domain_pair_mass':between_mass,'within_domain_conditional_auc':within_numerator/within_mass if within_mass else None,'between_domain_conditional_auc':between_numerator/between_mass if between_mass else None,'pair_matrix':cells})
+ outputs[kind]={'domains':len(groups),'one_header_per_study_not_per_series':True,'targets':rows}
+macro=float(np.mean([x['original_auc'] for x in outputs['manufacturer']['targets']]))
+assert abs(macro-.9209253491221031)<1e-12
+out={'status':'actual_fixed_N3_E16_source_domain_AUC_decomposition_verified','CPU_job':os.environ['SLURM_JOB_ID'],'elapsed_seconds':time.monotonic()-start,'outer_studies':1156,'macro_auc':macro,'predictions_sha256':sha(pred),'header_index_sha256':sha(header),'program_sha256':sha(Path(__file__)),'domains':outputs,'clinical_Gold_confirmation_or_model_inference_used':False,'new_independent_validation_or_causal_scanner_effect':False,'limitations':['These are weak report-label targets and repeatedly inspected development.','One header per study does not establish within-study scanner consistency or site identity.','Within and between conditional AUC use different case/label distributions. Neither proves anatomical learning.','Sparse positive exams are not made independent by their many pairs.','This is one fixed model decomposition, not a between-model improvement comparison.']}
+raw=json.dumps(out,indent=2)+'\n';assert len(raw.encode())<2*2**20
+(R/'actual.json').write_text(raw)
+print(raw,flush=True)

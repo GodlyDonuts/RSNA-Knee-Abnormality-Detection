@@ -1,0 +1,11 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path('initiative/audits/N3-fixed-source-domain-20261017-v1');L=Path('artifacts/frontier-spatial-evidence-20261017-v1');intent=L/'domain-v2-dispatch.intent.json';assert not intent.exists()
+source=(D/'analysis-v2.py.txt').read_text();compile(source,'fixed_domain_analysis','exec')
+# Source file is immutable once admitted; only aggregate results return.
+program="import os,sys,json,hashlib;from pathlib import Path;v=json.load(sys.stdin);assert os.uname().nodename=='evc33';p=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/N3-domain-analysis-v2.py');assert not p.exists();p.write_text(v['source']);p.chmod(0o600);os.execv(sys.executable,[sys.executable,'-B',str(p)])"
+with intent.open('x') as f:json.dump({'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'new_CPU_only_private_cap_bytes':1*2**20,'failed_original_unpaid_cap_retained':2*2**20,'automatic_retry':False},f,indent=2)
+args=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:05:00','--job-name=rsna-N3-source-domains','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps({'source':source}),capture_output=True,text=True,timeout=370)
+(L/'domain-v2-dispatch.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-2000:]
+v=json.loads(x.stdout);(D/'actual.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps({'status':v['status'],'CPU_job':v['CPU_job'],'macro_auc':v['macro_auc'],'domains':{k:x['domains'] for k,x in v['domains'].items()}}))

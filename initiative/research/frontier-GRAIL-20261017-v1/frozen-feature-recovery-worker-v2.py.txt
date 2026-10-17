@@ -1,0 +1,162 @@
+"""One original N3 forward per study; full spatial maps, no clinical labels.
+
+This is a 32-study scout only. No full cache or fitting mode is admitted.
+"""
+import hashlib
+import importlib.util
+import io
+import json
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+admitted = json.loads((R / 'admitted.json').read_text())
+assert os.uname().nodename == 'evc33' and torch.cuda.is_available()
+assert torch.cuda.device_count() == 1 and 'H100' in torch.cuda.get_device_name(0)
+recovery=json.loads((R/'recovery-v2-admitted.json').read_text());assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==recovery['worker_sha256'];assert recovery['source_git']==admitted['source_git'] and recovery['original_GPU_terminal']=='PREEMPTED';original_files=json.loads((R/'recovery-v2-files.private.json').read_text());tag='pilot-recovery-v2'
+for name, digest in admitted['source_files_sha256'].items():
+    assert hashlib.sha256((Path(admitted['original_source']) / name).read_bytes()).hexdigest() == digest
+torch.ones(1, device='cuda')
+torch.cuda.synchronize()
+phase = sys.argv[1]
+assert phase == 'pilot', 'Spatial storage/geometry must be measured before any full extraction'
+assert not (R / (tag + '-intent.json')).exists()
+torch.set_num_threads(2)
+torch.use_deterministic_algorithms(True)
+sys.path[:0] = [admitted['original_source'], '/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+from rsna.competitive.compact_bag import candidate_windows, window_tensor
+from rsna.competitive.compact_infer import load_model
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.data import select_series
+
+spec = importlib.util.spec_from_file_location('criterion_frozen_geometry', R / 'geometry.py')
+geometry = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = geometry
+spec.loader.exec_module(geometry)
+assert hashlib.sha256((R / 'geometry.py').read_bytes()).hexdigest() == admitted['geometry_sha256']
+cache = Path(admitted['native_cache'])
+series = pd.read_csv(admitted['series_path'])
+membership = json.loads((R / 'membership.private.json').read_text())
+assert set(membership) == {'fitting', 'outer'}
+assert len(membership['fitting']) == 2247 and len(membership['outer']) == 1156
+assert all(hashlib.sha256(json.dumps(ids).encode()).hexdigest() == admitted[role + '_uids_sha256'] for role, ids in membership.items())
+roles = {role: CompetitiveStudyDataset(pd.DataFrame({'study_uid': ids}), series, cache=cache, slices=16, side=384, max_series=6, augment=False, soft_targets=False) for role, ids in membership.items()}
+model, policy = load_model(Path(admitted['checkpoint']), admitted['checkpoint_sha256'], allow_diagnostic=False)
+assert policy['epoch'] == 16 and policy['competition_eligible'] is True
+model = model.cuda().eval()
+for p in model.parameters():
+    p.requires_grad_(False)
+records = []
+start = time.monotonic()
+maximum = 0.0
+map_shapes = set()
+spatial_uncompressed_bytes = 0
+paid = lambda: sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid())
+with (R / (tag + '-intent.json')).open('x') as f:
+    json.dump({'GPU_job': os.environ['SLURM_JOB_ID'], 'source_git': admitted['source_git'], 'phase': phase, 'automatic_retry': False, 'optimizer_or_clinical_target_execution': False}, f)
+features_root = R / 'features'
+features_root.mkdir(mode=0o700, exist_ok=True)
+captured = []
+spatial = []
+
+def capture_spatial(module, args):
+    assert len(args) == 1
+    value = args[0]
+    assert value.ndim == 4 and value.shape[1] == 1024 and value.dtype == torch.float32
+    assert torch.isfinite(value).all()
+    spatial.append(value.detach().cpu())
+    return None
+
+spatial_hook = model.encoder.head.global_pool.register_forward_pre_hook(capture_spatial)
+hook = model.encoder.register_forward_hook(lambda module, args, output: captured.append(output.detach().float().cpu()))
+def graphs_for(uid, dataset, windows):
+    graph_rows = []
+    for slot, entry in enumerate(select_series(dataset.series[uid], 6, False)):
+        sid = entry['SeriesInstanceUID']
+        meta = dataset._metadata[(uid, sid)][1]
+        selected = np.linspace(0, meta['n_slices'] - 1, min(16, meta['n_slices'])).round().astype(np.int64)
+        graph = geometry.within_series_relations(meta, selected)
+        assert [j for s, j in windows if s == slot] == list(range(len(graph.supports)))
+        graph_rows.append({'slot': slot, 'series_uid': sid, 'source_metadata_sha256': dataset._metadata[(uid, sid)][0], 'selected_source_indices': selected.tolist(), 'supports': graph.supports.tolist(), 'centers_mm': graph.centers_mm.tolist(), 'continuity_edges': graph.continuity_edges.tolist(), 'continuity_gaps_mm': graph.continuity_gaps_mm.tolist(), 'repeat_edges': graph.repeat_edges.tolist(), 'repeat_gaps_mm': graph.repeat_gaps_mm.tolist(), 'geometry_known': graph.geometry_known, 'native_original_shape': meta['original_shape'], 'native_resized_shape': meta['resized_shape'], 'native_cache_side': meta['side'], 'pixel_spacing': meta['pixel_spacing'], 'image_orientation_patient': meta['orientation'], 'selected_image_positions_patient': [meta['positions'][int(j)] for j in selected], 'full_frame_letterbox_align_corners_false': True, 'input_augmentation_or_mirror': False})
+    return graph_rows
+
+try:
+    with torch.inference_mode():
+        for role, dataset in roles.items():
+            count = 16
+            for index in range(count):
+                uid = membership[role][index]
+                filename = hashlib.sha256(uid.encode()).hexdigest() + '.npz'
+                destination = features_root / filename
+                if destination.exists():
+                    proof=original_files[filename]
+                    stat=destination.stat()
+                    assert stat.st_size==proof['bytes'] and stat.st_mtime_ns==proof['mtime_ns'] and stat.st_ino==proof['inode']
+                    with np.load(destination,allow_pickle=False) as arrays:
+                        features=torch.from_numpy(arrays['features'].copy())
+                        maps=torch.from_numpy(arrays['spatial_maps'].copy())
+                        logits=torch.from_numpy(arrays['base_logits'].copy())
+                        windows=[tuple(map(int,w)) for w in arrays['windows']]
+                    assert len(windows)==len(features)==len(maps) and features.shape[1]==1024
+                    assert features.dtype==maps.dtype==logits.dtype==torch.float32
+                    assert torch.isfinite(features).all() and torch.isfinite(maps).all() and torch.isfinite(logits).all()
+                    repooled=model.pool(features.cuda()).float().cpu()
+                    error=float(torch.max(torch.abs(logits-repooled)));assert error<=1e-6
+                    maximum=max(maximum,error);map_shapes.add(tuple(maps.shape[1:]));spatial_uncompressed_bytes+=maps.numel()*maps.element_size()
+                    row={'study_uid':uid,'role':role,'file':filename,'bytes':proof['bytes'],'sha256':proof['sha256'],'windows':len(windows),'actual_spatial_map_shape':list(maps.shape),'spatial_map_dtype':str(maps.dtype),'source_graphs':graphs_for(uid,dataset,windows),'actual_repool_logit_error':error,'original_949626_completed_forward_reused':True}
+                    records.append(row)
+                    (R/'records-private').mkdir(mode=0o700,exist_ok=True)
+                    record=R/'records-private'/(filename+'.json');assert not record.exists();record.write_text(json.dumps(row)+'\n')
+                    (R/(tag+'-progress.json')).write_text(json.dumps({'GPU_job':os.environ['SLURM_JOB_ID'],'completed_studies':len(records),'total_studies':32,'new_encoder_forwards':sum(not x.get('original_949626_completed_forward_reused',False) for x in records),'elapsed_seconds':time.monotonic()-start})+'\n')
+                    continue
+                assert not destination.exists()
+                sample = dataset[index]
+                assert not sample['label_mask'].any()
+                windows = candidate_windows(sample['series_mask'], sample['slice_mask'])
+                images = window_tensor(sample['images'], windows)
+                captured.clear()
+                spatial.clear()
+                logits = model(images.cuda(), chunk_size=12).float().cpu()
+                features = torch.cat(captured)
+                maps = torch.cat(spatial)
+                assert maps.shape[:2] == (len(windows), 1024)
+                map_shapes.add(tuple(maps.shape[1:]))
+                spatial_uncompressed_bytes += maps.numel() * maps.element_size()
+                assert features.shape == (len(windows), 1024) and torch.isfinite(features).all()
+                repooled = model.pool(features.cuda()).float().cpu()
+                error = float(torch.max(torch.abs(logits - repooled)))
+                maximum = max(maximum, error)
+                assert error <= 1e-6
+                graph_rows = graphs_for(uid, dataset, windows)
+                buffer = io.BytesIO()
+                np.savez_compressed(buffer, features=features.numpy(), base_logits=logits.numpy(), windows=np.asarray(windows, dtype=np.int64), spatial_maps=maps.numpy())
+                raw = buffer.getvalue()
+                assert len(raw) < 64 * 2**20
+                assert sum(p.stat().st_size for p in features_root.iterdir()) + len(raw) < 2 * 2**30
+                assert paid() + len(raw) + 512 * 2**20 < 3 * 2**30
+                assert shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid())
+                with destination.open('xb') as f:
+                    f.write(raw)
+                row = {'study_uid': uid, 'role': role, 'file': filename, 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(), 'windows': len(windows), 'actual_spatial_map_shape': list(maps.shape), 'spatial_map_dtype': str(maps.dtype), 'source_graphs': graph_rows, 'actual_repool_logit_error': error}
+                records.append(row)
+                (R/'records-private').mkdir(mode=0o700,exist_ok=True)
+                record=R/'records-private'/(filename+'.json');assert not record.exists();record.write_text(json.dumps(row)+'\n')
+                (R / (tag + '-progress.json')).write_text(json.dumps({'GPU_job': os.environ['SLURM_JOB_ID'], 'phase': phase, 'completed_studies': len(records), 'total_studies': 32 if phase == 'pilot' else 3403, 'elapsed_seconds': time.monotonic() - start, 'cached_windows': sum(x['windows'] for x in records)}) + '\n')
+finally:
+    hook.remove()
+    spatial_hook.remove()
+private = {'status': 'actual_original_N3_frozen_feature_' + phase + '_accepted', 'GPU_job': os.environ['SLURM_JOB_ID'], 'source_git': admitted['source_git'], 'studies': len(records), 'maximum_repool_logit_error': maximum, 'private_records': records}
+with (R / (tag + '-accepted.json')).open('x') as f:
+    json.dump(private, f, indent=2)
+out = {k: value for k, value in private.items() if k != 'private_records'}
+out.update(reused_original_949626_completed_studies=sum(x.get('original_949626_completed_forward_reused',False) for x in records),new_encoder_forwards=sum(not x.get('original_949626_completed_forward_reused',False) for x in records),recovery_control_source_git=recovery['recovery_control_source_git'],original_preemption_did_not_trigger_repeated_completed_forward=True,actual_spatial_map_shapes=[list(x) for x in sorted(map_shapes)], full_precision_spatial_bytes_before_compression=spatial_uncompressed_bytes, original_prepool_spatial_maps_retained=True, full_extraction_or_head_training_admitted=False, cross_acquisition_correspondence_qualified=False, elapsed_seconds=time.monotonic() - start, windows=sum(x['windows'] for x in records), actual_feature_bytes=sum(x['bytes'] for x in records), fixed_original_E16_checkpoint_sha256=admitted['checkpoint_sha256'], all_original_selected_slice_triples_and_base_logits_preserved=True, new_model_optimizer_clinical_target_or_competition_entry=False, retained_head_and_publication_reserve_bytes=512 * 2**20, private_index_sha256=hashlib.sha256((R / (tag + '-accepted.json')).read_bytes()).hexdigest(), actual_GPU=torch.cuda.get_device_name(0), torch_version=str(torch.__version__), CUDA_version=torch.version.cuda, peak_allocated_GPU_bytes=torch.cuda.max_memory_allocated(), actual_CUDA_VISIBLE_DEVICES=os.environ.get('CUDA_VISIBLE_DEVICES'))
+(R / (tag + '-sanitized.json')).write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out), flush=True)

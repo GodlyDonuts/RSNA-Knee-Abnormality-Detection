@@ -7,6 +7,21 @@ Devin. Preserve healthy work while pursuing concrete, falsifiable experiments.
 Software tests, parameter count, model downloads and training loss are not score
 improvements; report actual measured results without promising first place.
 
+## Compute authorization, October17
+
+The owner explicitly authorized using as many accessible Newton **H100** GPUs
+as useful, superseding the former two-node cap. **Physical4-GPU and8-GPU nodes
+are prohibited even when requesting only one GPU.** Admit only physical1/2-GPU
+H100 nodes; scheduler/account limits and storage/data requirements still apply.
+Parallelize distinct work, reuse completed shards and preserve healthy jobs.
+[Fresh inventory and exact scope](initiative/audits/h100-capacity-expansion-20261017-v1/actual-inventory-and-policy.json).
+The fresh inventory found one momentarily idle usable H100 on evc46;
+remaining non-reserved eligible H100s were allocated. Existing native inputs
+and runtime are owning-node assets on evc33; fresh remote staging is required
+before moving an inference/trainer to another node. The first
+spatial scout949626was actually PREEMPTED after91seconds, preserving26/32studies
+and1912windows. No full scout acceptance or new accuracy is claimed.
+
 ## Latest execution, October 17, 18:50 UTC
 
 Best measured public AUC remains **0.950**, reproduced S6 entry57300990;
@@ -59,6 +74,14 @@ actual dimensions, original letterbox/source geometry, base-logit fidelity and
 cost. No full spatial cache or fit is admitted. Cross-acquisition geometry is
 unqualified; cached frame/thickness fields are absent. Existing longitudinal
 GRAIL work remains separate and cannot stand in for the spatial experiment.
+
+**Actual CPU949671:** fixed original N3E16predictions on1156development
+studies decomposed exactly across12manufacturers/42manufacturer-model domains.
+Macro0.9209253491221031reconstructs to<1e-12. Within-model ACL.9540vs overall.9549
+and medial-meniscus.9458vs.9484show no broad collapse under this grouping;
+lateralOA.7981vs.8349and effusion.9042vs.9159each have only9positive exams.
+Only2.3–10%of target pairs are within manufacturer/model. This is descriptive,
+not a causal scanner diagnosis or new validation. [Original results/limits](initiative/audits/N3-fixed-source-domain-20261017-v1/README.md).
 
 **Original GPU942047 actually completed0:0** and passed the three-MRI S6 H100
 FP32/FP16 fixture:1586windows, maximum probability gap0.0003156333. This replaces
@@ -203,7 +226,7 @@ actual two-batch-GPU-session capacity. Use exact accepted offline versions and
 result. Preserve original finite owners and their intents instead of starting
 another actor for the same operation.
 
-Keep at most two concurrent Newton GPU nodes and minimum CPUs. Use actual
+Use the newly authorized accessible physical1/2-GPU H100 nodes and minimum useful CPUs. Use actual
 funding records in the execution handoff, retaining 20 GiB byte and 5,000 shared
 file reserves after liabilities. Do not delete originals for speculative space
 or double-count paid bytes. Reuse exact original asset/whole-byte proofs instead
