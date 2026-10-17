@@ -45,3 +45,9 @@ with4622passed/8skipped/2warnings in1545.4seconds, return0. Current v2 evidence
 coverage is89/89. Global existing Ruff1327 errors and57 format-debt files remain
 recorded; changed numerical files pass both. Historical v1 archive incompleteness
 is preserved. None of these engineering checks establishes disease accuracy.
+
+The first local Dataset source guard stopped before intent/remote execution: the
+actual original source archive uses four empty generated package initializers,
+while the guard declared only two. The corrected control declares all four and
+additionally pins both original published rsna initializers. Every numerical
+module remains unchanged; no model/MRI work or Kaggle mutation was repeated.

@@ -3,7 +3,11 @@ import hashlib,json,shlex,subprocess
 from pathlib import Path
 A=Path(__file__).resolve().parent;ROOT=A.parents[1];assert not(A/'dataset.intent.json').exists();source=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip();prepared=json.loads((A/'prepared.json').read_text());assert prepared['status']=='actual_four_fixed_final_head_original_source_compile_and32_cached_feature_CPU_graph_accepted';P='initiative/experiments/competitive-v1/cached-full-study-factorial-v1/'
 for n,h in prepared['new_unpublished_source_files_exact_sha256'].items():
- if n in ('scripts/__init__.py','scripts/kaggle/__init__.py'):assert h==hashlib.sha256(b'').hexdigest();continue
+ if n in ('rsna/__init__.py','rsna/competitive/__init__.py','scripts/__init__.py','scripts/kaggle/__init__.py'):
+  assert h==hashlib.sha256(b'').hexdigest()
+  if n.startswith('rsna/'):
+   original=subprocess.check_output(['git','show',source+':'+n],cwd=ROOT);assert hashlib.sha256(original).hexdigest()=={'rsna/__init__.py':'ecf9ff9807f088bffd497458b28d2163c74d8c8d0b3ce5a84948ade85067622e','rsna/competitive/__init__.py':'ff098e00adb13fdb1292452f77fe38dcf44d04ccd62bc9f8bfa6bb8a5b8f6cd1'}[n]
+  continue
  actual=subprocess.check_output(['git','show',source+':'+n],cwd=ROOT);assert hashlib.sha256(actual).hexdigest()==h
 program=(A/'dataset-program.py.txt').read_text();assert hashlib.sha256(subprocess.check_output(['git','show',source+':'+P+'dataset-program.py.txt'],cwd=ROOT)).hexdigest()==hashlib.sha256(program.encode()).hexdigest();compile(program,'original_four_final_head_Dataset','exec');env=ROOT/'.env';assert env.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('"\'') for line in env.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
 with(A/'dataset.intent.json').open('x') as f:json.dump({'serving_source_git':source,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'actual_CPU_preparation_job':prepared['CPU_job'],'maximum_new_private_Datasets':1,'Kaggle_GPU_pushes_or_entries':0,'automatic_uncertain_retry':False},f,indent=2)
