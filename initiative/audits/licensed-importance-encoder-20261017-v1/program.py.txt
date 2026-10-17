@@ -1,0 +1,56 @@
+"""Single canonical matched IID16 diagnostic; no competition submissions."""
+import ast,base64,hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('stage','push','status') and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');S=R/'code';C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');prior_required=607422461891;required=prior_required+32*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+if phase=='stage':
+ assert not R.exists();old=Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1');accepted=json.loads((old/'actual-accepted.json').read_text());assert accepted['source_sha256']=='a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39' and accepted['receipt']['full_learned_encoder_MIL_AdamW_LR_cursors_all_rank_RNG_and_GradScaler_exact'] is True
+ original=(old/'recovery.private.py').read_text();assert hashlib.sha256(original.encode()).hexdigest()==accepted['source_sha256'];literals={n.targets[0].id:ast.literal_eval(n.value) for n in ast.parse(original).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='TARGETS'};assert len(literals)==1;raw=base64.b64decode(literals['TARGETS'],validate=True);assert hashlib.sha256(raw).hexdigest()=='87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834';targets=json.loads(raw)
+ pixel=Path('/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected');proof=json.loads((pixel/'verified.json').read_text());assert proof['CPU_job']=='938918' and proof['all32_original_NPZ_volume_mask_bytes_and_rendered_two_view_hashes_exact'] is True and sha(pixel/'index.private.json')=='3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3';assert [r['study_uid'] for r in json.loads((pixel/'index.private.json').read_text())['records']]==targets['uids'];assert (pixel/'pixels.tar').stat().st_size==326799360
+ assert hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde';R.mkdir(mode=0o700)
+ for name,text in v['files'].items():
+  p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+ sys.path.insert(0,str(S));from scripts.kaggle.licensed_importance_recovery import build,MODULES,WHOLE_MODULE,EXTRA_MODULES
+ permission=Path('/tmp/rsna-source-ranking-serving-20261016-v1/source-permission.txt');assert permission.stat().st_size==4411 and sha(permission)=='34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79'
+ source,binding=build(v['parent_source'],(S/'rsna/competitive/licensed_pixel_cache.py').read_text(),{n:(S/n).read_text() for n in (*MODULES,WHOLE_MODULE,*EXTRA_MODULES)},targets,permission=permission.read_text());p=R/'recovery.private.py';p.write_text(source);p.chmod(0o600);os.link(permission,R/'source-permission.txt');assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20
+ meta={'status':'matched_uniform_influence_IID16_real_MRI_recovery_source_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'binding':binding,'existing_private32_input_admission_reused':True,'new_pixel_label_weight_transfers':0,'funding':{'all_prior_node33_required_bytes':prior_required,'new_controls_and_future_proposal_table_cap_bytes':32*2**20,'total_required_free_bytes':required,'actual_node33_free_bytes':free,'remaining_after_all_node33_liabilities_bytes':free-required,'new_shared_bytes_files':0,'GPU_diagnostic_local_checkpoint_cap_bytes':12*2**30,'full_production_checkpoints_not_yet_funded':True,'deletion_credit':0}};(R/'staged.json').write_text(json.dumps(meta,sort_keys=True,indent=2)+'\n');print(json.dumps(meta),flush=True)
+else:
+ meta=json.loads((R/'staged.json').read_text());assert meta==v['metadata'] and all(sha(S/n)==h for n,h in meta['source_files'].items());source=(R/'recovery.private.py').read_text();source_sha=hashlib.sha256(source.encode()).hexdigest();assert source_sha==meta['binding']['source_sha256'] and sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<32*2**20
+ assert sha(C/'workflow.py')=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('sampled_encoder_workflow',C/'workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+ import requests
+ r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+ while True:
+  try:claim.mkdir(mode=0o700);break
+  except FileExistsError:
+   assert time.monotonic()<deadline,'Existing canonical coordinator still owns its claim';time.sleep(5)
+ w.new_json(claim/'owner.json',{'kind':'matched_IID16_full_encoder_recovery','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+ try:
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+   w.verify_account(db,r);slug='godlydonuts/rsna-importance-recovery-'+source_sha[:12];key='licensed-importance-encoder-recovery:'+source_sha;row=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();record=json.loads(row[0]) if row else None;request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007'],'competitionDataSources':[],'kernelDataSources':['godlydonuts/rsna-released-context-probe-d077e354611d','godlydonuts/rsna-parent-exact-pixels32-09254e97913d'],'sessionTimeoutSeconds':1800,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'};assert len(request['newTitle'])<=50
+   def save():
+    db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),source_sha,record['state']));db.commit()
+   if phase=='push':
+    assert record is None and not (R/'push-intent.json').exists(),'Existing exact intent requires read-only reconciliation'
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));remaining=min(seconds(quota['totalTimeAllowed']),seconds(quota['minimumTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved']);F=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');assert F.is_dir() and not any((F/('segment-'+str(i))/'actual-failed.json').exists() for i in (1,2,3));future=sum(25200 for i in (1,2,3) if not (F/('segment-'+str(i))/'actual-accepted.json').exists())+3600;needed=future+1800+300
+    if remaining<needed:out={'status':'waiting_authoritative_GPU_budget_preserving_all_unfinished_original_epochs','remaining_seconds':remaining,'future_full_fit_and_reserve_seconds':future,'required_seconds':needed,'mutation_intent_created':False}
+    else:
+     for ref in request['kernelDataSources']:assert r.kernel('GetKernelSessionStatus',ref,1)['status']=='COMPLETE'
+     absence=r.require_absent_kernel(slug);record={'state':'importance_recovery_push_intent','source_git':meta['source_git'],'source_sha256':source_sha,'slug':slug,'version':1,'binding':meta['binding'],'request_sha256':w.object_hash(request),'absence':absence,'fresh_GPU_quota':quota,'future_full_fit_and_reserve_seconds':future,'required_GPU_seconds':needed,'competition_entries':0,'automatic_retry':False};w.new_json(R/'push-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+     try:
+      response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(R/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+     except BaseException:record['state']='importance_recovery_push_uncertain';save();retain=True;raise
+     record.update(state='importance_recovery_pushed',kernel_id=response['kernelId']);save();out={'status':'one_private_matched_IID16_real_MRI_recovery_pushed','kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':source_sha,'maximum_GPU_seconds':1800,'competition_entries':0,'full_production_fit':False}
+   else:
+    assert record and record['state'] in ('importance_recovery_pushed','importance_recovery_accepted','importance_recovery_failed');remote=r.kernel('GetKernel',slug,1);assert remote['blob']['source']==source;m=remote['metadata']
+    for name in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+    for name in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':state,'kernel_id':record['kernel_id'],'slug':slug,'version':1,'source_sha256':source_sha,'competition_entries':0,'full_production_fit':False}
+    if state=='COMPLETE':
+     receipt=r.output_json(slug,1,'licensed-importance-real-MRI-recovery-accepted.json');assert receipt['status']=='actual_matched_uniform_influence_full_encoder_twoT4_MRI_recovery_accepted' and receipt['source_module_sha256']==meta['binding']['own_module_sha256'] and receipt['worker_source_sha256']==meta['binding']['worker_sha256'] and receipt['private_target_sha256']==meta['binding']['private_target_sha256'] and receipt['same_initial_complete_model_and_allrank_RNG_between_roles'] is True and receipt['fit_studies']==receipt['disjoint_engineering_studies']==16 and receipt['updates_per_role']==4 and receipt['sampled_windows']==16 and receipt['full_inference_windows']==94 and set(receipt['roles'])=={'uniform','influence'};assert all(x['complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal'] is True and x['all16_full94_two_view_prediction_bytes_equal'] is True for x in receipt['roles'].values());out['receipt']=receipt
+     if not (R/'actual-accepted.json').exists():w.new_json(R/'actual-accepted.json',out);record.update(state='importance_recovery_accepted',receipt=receipt);save()
+    elif state in ('ERROR','CANCELLED'):
+     if not (R/'actual-failed.json').exists():w.new_json(R/'actual-failed.json',out);record['state']='importance_recovery_failed';save()
+   print(json.dumps(out),flush=True)
+ finally:
+  if not retain:(claim/'owner.json').unlink();claim.rmdir()
