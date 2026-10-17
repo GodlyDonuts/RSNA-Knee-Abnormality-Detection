@@ -1,5 +1,16 @@
 # Full-map spatial reader: exact engine accepted and two full H100 fits running
 
+## Actual first production epochs, October17 21:48UTC
+
+Both original GPU jobs completed epoch1/281 updates and continue into epoch2.
+Each immutable complete checkpoint is882941bytes and all4private objects were
+fully re-downloaded/size/SHA verified once: aligned HFe1c1592f3d3f1e968991340a8f43cadcaac2e6d8
+viaCPU951000; null HF9c02d4c9b120635924caf69c79443d666c8ea948 viaCPU951007.
+[Aligned original proof](actual-full-aligned-epoch-001-private-verified.json),
+[null original proof](actual-full-null-epoch-001-private-verified.json).
+Do not repeat these publications. Sourceee045885 and the fixed3epoch/843update
+recipe are unchanged. No held-out final or new Kaggle score exists yet.
+
 ## Actual current execution, October17 21:13UTC
 
 The complete unchanged real engine is accepted by **950540/CPU950582** after

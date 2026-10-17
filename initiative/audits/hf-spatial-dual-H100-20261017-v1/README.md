@@ -11,3 +11,8 @@ checks apply. No MRI pixels, study rows, features, weights or CSV data go into
 this milestone. An actual verified.json, not this prepared source, proves success.
 The benchmark was queued once, not measured; no speed, trainer or clinical gain
 is implied by a preservation proof.
+
+Actual CPU950985 fully privately preserved source7b764dfcbf27fbb266a5b44227eb5158bea907a3
+at HFa434cae3823baade2d2edbc69c1fdfe670c66e8c: all19objects/201307bytes fully
+re-downloaded/size/SHA verified, within the original cumulative8MiB source cap.
+[Original proof](verified.json). Never repeat. No benchmark speed has been measured.

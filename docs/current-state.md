@@ -31,15 +31,25 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 21:41UTC
+## Latest execution, October17 21:48UTC
 
 **Two full matched H100 runs are actually RUNNING:** aligned **950679** and
 randomized-link null **950680**, both on permitted physical2-H100 evc40, each
-1GPU/2CPUs. At21:39UTC aligned/null had267/267of843 finite updates. Full
+1GPU/2CPUs. At21:48UTC aligned/null had337/337of843 finite updates. Full
 source **ee045885**/manifest3909bf50… and receipt48d047fb… bind the unchanged
 2247 fitting/1156 development split, fixed3epochs/effective8/281updates per epoch.
 No new accuracy or leaderboard gain is claimed. Best measured remains **0.950**
 (external S6 reproduction); own independent N3E16 is **0.894**. Target0.97 is unmet.
+
+**Both epoch1 snapshots completed281 updates and are privately fully verified**:
+aligned CPU951000/HFe1c1592f3d3f1e968991340a8f43cadcaac2e6d8 and null
+CPU951007/HF9c02d4c9b120635924caf69c79443d666c8ea948, each4objects/882941-byte
+complete head/optimizer/RNG checkpoint plus provenance. Do not repeat either
+publication. Both original GPU jobs are continuing into epoch2. No fixed-final
+held-out evaluation or new score exists yet; preserve the original3epoch endpoint.
+Benchmark source7b764dfc/actual dispatch is separately all19-object privately
+fully download/size/SHA verified at HFa434cae3823baade2d2edbc69c1fdfe670c66e8c
+viaCPU950985, inside the cumulative8MiB source allowance. Do not repeat it.
 
 A separate bounded frozen-provider benchmark **950940 is PENDING(Resources)**
 on prepared physical2-H100 evc33; CPU950938 admitted all32 original cases/
@@ -99,8 +109,8 @@ CPU950645/950660 independently admitted the full rosters/labels/metadata on40/33
 CPU950671 submitted each full job once; never repeat dispatches or restart healthy
 jobs. Finite preservation owner **85548** is live for the six distinct immutable
 production epochs, using pinned CPU publisher91682e05…/shared privateHF lock,
-full re-download/size/SHA proofs and no uncertain automatic retry. No production
-epoch was complete at21:12UTC. Large inputs/checkpoints stay private.
+full re-download/size/SHA proofs and no uncertain automatic retry. The first two epoch1 publications are now verified; epochs2/3 remain in flight.
+Large inputs/checkpoints stay private.
 
 The expanded H100 authority supersedes the old two-node cap; physical4-/8-GPU
 nodes remain prohibited even requesting1GPU. Actual source-frozen QA is

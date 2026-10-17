@@ -2,7 +2,7 @@
 
 Current **October17 21:13UTC**: target0.97, actual best0.950. See the
 
-Latest: [two full spatial-reader H100 jobs running, with exact online engine accepted](audits/spatial-reader-engine-20261017-v1/README.md). Aligned950679/null950680 each have47/843 finite updates on permitted evc40. Both uniform and label models passed Kaggle public acceptance; finite scoring and six-epoch preservation owners are live. No new hidden score is claimed. Older snapshots below are dated history.
+Latest: [both spatial-reader models completed epoch1 with private full checkpoint verification and continue training](audits/spatial-reader-engine-20261017-v1/README.md). The independent final-analysis follower is live; one bounded two-H100 encoding benchmark is queued on evc33. Best measured score remains0.950; no new held-out result yet. Earlier snapshots below are dated history.
 [current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
 [research-agent handoff](../docs/research-agent-handoff.md) and
 [execution handoff](../docs/codex-continuation.md). Original receipts override dated

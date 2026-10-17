@@ -5,7 +5,7 @@ inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-kn
 
 **Verified October17,2026,21:13UTC. Target:0.97; best actual:0.950.**
 
-Latest: [two full spatial-reader H100 jobs running, with exact online engine accepted](initiative/audits/spatial-reader-engine-20261017-v1/README.md). Aligned950679/null950680 each have47/843 finite updates on permitted evc40. Both uniform and label models passed Kaggle public acceptance; finite scoring and six-epoch preservation owners are live. No new hidden score is claimed. Older snapshots below are dated history.
+Latest: [both spatial-reader models completed epoch1 with private full checkpoint verification and continue training](initiative/audits/spatial-reader-engine-20261017-v1/README.md). The independent final-analysis follower is live; one bounded two-H100 encoding benchmark is queued on evc33. Best measured score remains0.950; no new held-out result yet. Earlier snapshots below are dated history.
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.
