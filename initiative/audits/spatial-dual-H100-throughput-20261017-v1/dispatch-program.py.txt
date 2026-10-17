@@ -1,0 +1,29 @@
+
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');B=R/'dual-H100-throughput-v1';assert not B.exists()
+assert 'Gres=gpu:nvidia_h100_pcie:2(' in subprocess.check_output(['scontrol','show','node','evc33'],text=True)
+code=R/'reader-engine-recovery-v2/code';assert len(v['modules'])==118 and all(hashlib.sha256((code/n).read_bytes()).hexdigest()==h for n,h in v['modules'].items())
+assert hashlib.sha256((R/'pilot-recovery-v2-accepted.json').read_bytes()).hexdigest()=='f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+assert hashlib.sha256((R/'original-N3-unused8GiB-retirement-v1.json').read_bytes()).hexdigest()=='f7a39ef29040ff8e922c8325fe515ff2d6aa773e8a04dcd355ebd69aefcc9e4a'
+old=R/'reader-engine-recovery-v3';old_paid=sum(p.stat().st_size for p in old.rglob('*') if p.is_file());assert old_paid<104*2**20
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert paid<3*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);q=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(q[2])-int(q[1]))*1024>20*2**30 and int(q[6])-int(q[5])>5000
+sys.path[:0]=[str(code),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import pandas as pd
+import torch,torchvision,timm
+from rsna.competitive.data import CompetitiveStudyDataset
+assert str(torch.__version__)=='2.14.0+cu130' and str(torchvision.__version__)=='0.29.1+cu130'
+original=json.loads((R/'admitted.json').read_text());rows=json.loads((R/'pilot-recovery-v2-accepted.json').read_text())['private_records'];assert len(rows)==32 and len({x['study_uid'] for x in rows})==32
+assert Path(original['checkpoint']).is_file() and Path(original['checkpoint']).stat().st_size<512*2**20 and Path(original['native_cache']).is_dir()
+dataset=CompetitiveStudyDataset(pd.DataFrame({'study_uid':[x['study_uid'] for x in rows]}),pd.read_csv(original['series_path']),Path(original['native_cache']),side=384,slices=16,max_series=6,augment=False,soft_targets=False)
+graphs=0
+for row in rows:
+ p=R/'features'/row['file'];assert not p.is_symlink() and p.is_file() and p.stat().st_size==row['bytes']
+ for g in row['source_graphs']:
+  assert dataset._metadata[(row['study_uid'],g['series_uid'])][0]==g['source_metadata_sha256'];graphs+=1
+compile(v['worker'],'frozen_dual_H100_worker','exec');B.mkdir(mode=0o700);(B/'worker.py').write_text(v['worker']);(B/'run.sbatch').write_text(v['batch']);(B/'run.sbatch').chmod(0o700)
+out={'status':'original32_MRI_frozen_two_H100_provider_benchmark_admitted_and_submitted_once','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'source_files_sha256':v['modules'],'source_manifest_sha256':'3909bf501db49d0a1e921323866bbf77e848accfed7f012a143d8397992bef72','original32_source_index_sha256':'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f','original_source_metadata_entries_equal':graphs,'no_new_large_inputs_runtime_or_weight_transfers':True,'original_core118_modules_unchanged':True,'old_recovery_v3_paid_bytes':old_paid,'old_recovery_future_subcap_retained_bytes':104*2**20,'new_benchmark_subcap_bytes':16*2**20,'same_original120MiB_engineering512MiB_reader3GiB_root':True,'new_shared_bytes_files':0,'original_two_full_training_jobs_untouched':['950679','950680'],'no_optimizer_labels_reports_or_accuracy_evaluation':True,'normal_QOS_only_physical2_H100_evc33':True,'actual_GPU_benchmark_not_yet_run':True}
+(B/'admitted.json').write_text(json.dumps(out,indent=2)+'\n');(B/'dispatch-intent.json').write_text(json.dumps({'worker_sha256':out['worker_sha256'],'maximum_GPU_jobs':1,'automatic_retry':False})+'\n')
+a=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=4','--gres=gpu:2','--mem=32G','--time=00:15:00','--no-requeue','--job-name=rsna-frozen-dual-H100','--output='+str(B/'%j.stdout'),'--error='+str(B/'%j.stderr'),str(B/'run.sbatch')]
+x=subprocess.run(a,capture_output=True,text=True);assert x.returncode==0,x.stderr;job=x.stdout.strip().split(';')[0];assert job.isdigit();out['GPU_job']=job;(B/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:x for k,x in out.items() if k!='source_files_sha256'}),flush=True)

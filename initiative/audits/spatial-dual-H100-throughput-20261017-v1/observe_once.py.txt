@@ -1,0 +1,47 @@
+"""Finite observer of one exact benchmark; no job restart or further GPU work."""
+import hashlib,json,math,os,shlex,subprocess,time
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2];os.chdir(ROOT);D=ROOT/'initiative/audits/spatial-dual-H100-throughput-20261017-v1';L=ROOT/'artifacts/spatial-dual-H100-throughput-20261017-v1'
+proof=json.loads((D/'actual-dispatch.json').read_text());JOB=proof['GPU_job'];assert JOB=='950940'
+assert hashlib.sha256((D/'worker.py.txt').read_bytes()).hexdigest()==proof['worker_sha256']
+assert not (L/'observer.intent.json').exists();START=time.monotonic();MAXIMUM=24*3600;SOCKET='/tmp/rsna-research-20261001-stable.sock'
+def new(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
+def record(v,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-START,**v};p=L/('observer.result.json' if terminal else 'observer.progress.json');t=p.with_suffix('.tmp');t.write_text(json.dumps(out,indent=2)+'\n');t.replace(p);print(json.dumps(out),flush=True)
+new(L/'observer.intent.json',{'PID':os.getpid(),'GPU_job':JOB,'worker_sha256':proof['worker_sha256'],'maximum_wall_seconds':MAXIMUM,'GPU_mutation_authority':False,'automatic_retry':False})
+try:
+ while time.monotonic()-START<MAXIMUM:
+  try:
+   x=subprocess.run(['ssh','-S',SOCKET,'-o','BatchMode=yes','-o','ConnectTimeout=8','newton','sacct -j '+JOB+' -X -n -P -o JobIDRaw,State,ExitCode,ElapsedRaw,NodeList'],capture_output=True,text=True,timeout=25)
+   if x.returncode:record({'status':'observation_unavailable_same_original_job_preserved'});time.sleep(120);continue
+  except subprocess.TimeoutExpired:
+   record({'status':'observation_timeout_no_job_terminal_inference'});time.sleep(120);continue
+  rows=[r for line in x.stdout.splitlines() if len(r:=line.split('|'))>=5 and r[0]==JOB]
+  if not rows:record({'status':'original_job_state_unavailable_no_terminal_inference'});time.sleep(120);continue
+  assert len(rows)==1;row=rows[0]
+  if row[1] in {'PENDING','RUNNING','COMPLETING'}:
+   record({'status':'waiting_original_bounded_benchmark','GPU_job':JOB,'actual_state':row[1],'actual_node':row[4],'actual_elapsed_seconds':int(row[3])});time.sleep(120);continue
+  assert not (L/'collect.intent.json').exists();new(L/'collect.intent.json',{'original_actual_terminal':row,'GPU_job':JOB,'new_GPU_mutations':0,'automatic_retry':False})
+  program=r'''
+import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');B=Path('/tmp/rsna-criterion-N3-features-20261017-v1/dual-H100-throughput-v1');assert hashlib.sha256((B/'worker.py').read_bytes()).hexdigest()==v['worker_sha256'];submitted=json.loads((B/'submitted.json').read_text());assert submitted['GPU_job']==v['terminal'][0]
+out={'status':'actual_original_dual_H100_benchmark_terminal_collected','CPU_job':os.environ['SLURM_JOB_ID'],'original_GPU_terminal':v['terminal'],'GPU_job':submitted['GPU_job'],'worker_sha256':v['worker_sha256'],'run_started':(B/'run-started.json').exists(),'stdout_bytes':(B/(submitted['GPU_job']+'.stdout')).stat().st_size if (B/(submitted['GPU_job']+'.stdout')).exists() else None,'stderr_bytes':(B/(submitted['GPU_job']+'.stderr')).stat().st_size if (B/(submitted['GPU_job']+'.stderr')).exists() else None,'no_private_trace_arrays_or_records_exported':True}
+if v['terminal'][1:3]==['COMPLETED','0:0']:
+ out['result']=json.loads((B/'result.json').read_text());out['result_sha256']=hashlib.sha256((B/'result.json').read_bytes()).hexdigest()
+else:out['no_hardware_data_or_model_root_cause_inferred']=True
+print(json.dumps(out),flush=True)
+'''
+  args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+  x=subprocess.run(['ssh','-S',SOCKET,'-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps({'terminal':row,'worker_sha256':proof['worker_sha256']}),capture_output=True,text=True,timeout=170)
+  new(L/'collect.result.json',{'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr});assert x.returncode==0,'Original terminal known; collection unavailable, no restart or blind retry'
+  out=json.loads(x.stdout);assert out['GPU_job']==JOB and out['original_GPU_terminal']==row
+  if 'result' in out:
+   result=out['result'];assert result['status']=='actual_two_H100_frozen_online_provider_exact_and_paired_throughput_measured' and result['GPU_job']==JOB and result['worker_sha256']==proof['worker_sha256'] and result['source_manifest_sha256']==proof['source_manifest_sha256']
+   assert result['original32_maps_logits_all_masked_targets_and_geometry_exact'] and result['both_complete_parent_states_unchanged'] and result['no_optimizer_loss_label_reports_or_new_checkpoints'] and not result['real_training_recovery_or_accuracy_accepted']
+   assert [x['mode'] for x in result['timed_passes']]==['single','dual','dual','single'] and all(x['studies']==32 and x['all_original_maps_logits_masks_and_geometry_bit_equal'] and math.isfinite(x['seconds']) and x['seconds']>0 for x in result['timed_passes'])
+  new(D/'actual-terminal.json',out);record({'status':'original_bounded_dual_H100_benchmark_actual_terminal_collected','GPU_job':JOB,'actual_state':row[1],'exitcode':row[2],'result':out.get('result'),'new_accuracy_or_trainer_recovery_claim':False},True);break
+ else:record({'status':'finite_observer_expired_original_job_untouched','no_terminal_inference':True},True)
+except BaseException as e:
+ record({'status':'finite_benchmark_observer_stopped_preserve_originals','reason':str(e),'automatic_GPU_restart_or_uncertain_retry':False},True);raise

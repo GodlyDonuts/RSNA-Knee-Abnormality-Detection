@@ -31,15 +31,28 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 21:25UTC
+## Latest execution, October17 21:41UTC
 
 **Two full matched H100 runs are actually RUNNING:** aligned **950679** and
 randomized-link null **950680**, both on permitted physical2-H100 evc40, each
-1GPU/2CPUs. At21:24UTC aligned/null had143/143of843 finite updates. Full
+1GPU/2CPUs. At21:39UTC aligned/null had267/267of843 finite updates. Full
 source **ee045885**/manifest3909bf50… and receipt48d047fb… bind the unchanged
 2247 fitting/1156 development split, fixed3epochs/effective8/281updates per epoch.
 No new accuracy or leaderboard gain is claimed. Best measured remains **0.950**
 (external S6 reproduction); own independent N3E16 is **0.894**. Target0.97 is unmet.
+
+A separate bounded frozen-provider benchmark **950940 is PENDING(Resources)**
+on prepared physical2-H100 evc33; CPU950938 admitted all32 original cases/
+168source metadata entries and the same118numerical modules. One2H100/4CPU/
+32GiB/15minute normalQOS job compares single/dual/dual/single encoding, with
+complete original maps/logits/operators bit equal on every pass and both full
+parent fingerprints unchanged. All targets are masked; no labels/reports,
+optimizer, loss or checkpoint. Read-only observer **87933** is live. This is not
+a training or accuracy pass, and it cannot alter the healthy original fits.
+Node33 alone partitions its existing120MiB engineering cap into104MiB retained
+old control plus16MiB benchmark, preserving every original byte; node40 budget is
+unchanged. No large asset transfer or added512MiB/node3GiB funding.
+[Original bounded source/admission/dispatch](../initiative/audits/spatial-dual-H100-throughput-20261017-v1/README.md).
 
 The fixed-final readout is now separately admitted by **CPU950839**, and finite
 follower **86789** is live. It waits for both original0exit GPU terminals and

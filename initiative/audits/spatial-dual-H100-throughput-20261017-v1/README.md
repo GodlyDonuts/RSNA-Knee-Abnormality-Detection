@@ -29,3 +29,13 @@ budgets remain. Existing node33 retired8GiB floor is reused, never subtracted
 again; actual fresh reserve is checked on admission and GPU startup. No new
 shared bytes/files. [Exact protocol](protocol.json). An actual dispatch receipt,
 then actual terminal/result, are required before claiming execution or speed.
+
+Actual CPU950938 verified32original cases/168source metadata entries and the
+unchanged118-module source/runtime before submitting **950940 once** on evc33.
+It is PENDING Resources/zero runtime at21:39UTC. Existing full950679/950680 stay
+RUNNING on evc40; no dispatch, restart or source change affects them. Original
+node33 engineering control paid29847bytes;104MiB remains for it and16MiB funds
+this benchmark, inside its original120MiB. [Actual dispatch](actual-dispatch.json).
+Finite read-only observer87933 is live. [Original launch](actual-observer-started.json).
+GPU visibility is left to [Slurm GRES assignment](https://slurm.schedmd.com/gres.html);
+the worker requires both allocated H100 contexts and never overrides visibility.
