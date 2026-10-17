@@ -147,3 +147,8 @@ now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
 all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
+
+Actual live Kaggle logs now also verify **21finite optimizer updates**, both
+allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
+trainable on the3887study label-only E1. This is real optimization progress,
+not a completed epoch or an accuracy gain.
