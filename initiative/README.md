@@ -3,8 +3,10 @@
 The [October 17 owner program and critical assessment](research/owner-deadline-program-20261017-v1/README.md)
 and [actual S6 source-only admission](audits/s6-public-source-20261017-v1/README.md)
 are available for new research agents. The [original S6 checkpoint](audits/s6-checkpoint-admission-20261017-v1/README.md)
-is now privately downloaded once and SHA/header verified. The reported S6 score has not yet been
-reproduced by this project.
+is privately downloaded once and SHA/header verified. Original T4 qualification
+139165932v1 now actually completed156.6s on bothT4s/threeMRI/finite13-column CSV.
+[Actual T4 and observer recovery](audits/s6-original-t4-recovery-20261017-v1/README.md).
+The reported S6 score has not yet been reproduced by this project.
 
 **Current state is maintained in the [current-state guide](../docs/current-state.md),
 [research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**

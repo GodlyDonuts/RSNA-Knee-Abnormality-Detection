@@ -1,0 +1,59 @@
+{
+  "status": "stopped_only_original_S6_CPU_waiting_owner_for_granted_quota_admission_recovery",
+  "PID": 16380,
+  "no_child_process_in_flight": true,
+  "original_progress": {
+    "phase": "waiting_actual_capacity_and_all_original_future_funding_without_mutation",
+    "PID": 16380,
+    "elapsed_seconds": 2205.2920827500056,
+    "role": "qualification",
+    "actual": {
+      "status": "waiting_original_S6_GPU_capacity_or_VM_budget_without_mutation",
+      "role": "qualification",
+      "capacity": {
+        "available": false,
+        "maximum_batch_GPU_sessions": 2,
+        "actual_active_registered_sessions": [
+          {
+            "slug": "godlydonuts/rsna-parent-whole94-full-e2-7cbc68dad857",
+            "version": 1,
+            "kernel_id": 139137922,
+            "main": true,
+            "status": "RUNNING"
+          },
+          {
+            "slug": "godlydonuts/rsna-i16-full-e1-9f863df7849b",
+            "version": 1,
+            "kernel_id": 139154664,
+            "main": false,
+            "status": "RUNNING"
+          }
+        ],
+        "reserved_main_lanes": 1,
+        "effective_occupied_lanes": 2,
+        "serving_priority_waiters": [],
+        "new_GPU_mutations": 0
+      },
+      "funded_VM_seconds": 73870.6746603,
+      "required_VM_seconds": 85800,
+      "original_main_unfinished_seconds": 50400,
+      "original_sampling_unfinished_seconds": 30000,
+      "own_session_seconds": 1800,
+      "original_serving_reserve_seconds": 3600,
+      "fresh_GPU_quota": {
+        "timeUsed": "19261.633679400s",
+        "timeReserved": "40067.691660300s",
+        "totalTimeAllowed": "162000s",
+        "minimumTimeAllowed": "108000s",
+        "isPayToScaleEnabled": true,
+        "hasEverRun": true
+      },
+      "mutation_intent_created": false,
+      "GPU_reserved": false
+    }
+  },
+  "immutable_original_phase_sha256": "72a96414b47ac7e1671431969a54de4aee208d1920e19c108c343a19a6a0ede3",
+  "original_local_intents_preserved": true,
+  "no_training_GPU_job_or_source_changed": true,
+  "reason": "Actual account shows45GPUhours with existing ColabPro grant; old S6 budget incorrectly capped to minimum30hours"
+}

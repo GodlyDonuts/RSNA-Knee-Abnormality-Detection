@@ -30,13 +30,14 @@ historical release/plan documents now link back to the current guides.
 - Full-parent, sampled full-encoder and expanded N3 work is already owned and
   running. Inspect exact original owners before acting. A missing log/SSH link
   is observation loss, not terminal evidence or authority to restart a GPU.
-- New S6 checkpoint/source/anatomy are privately verified, and the unchanged
-  CPU stack loads strictly. Original CPU-only MRI gate139151928v1 completed;
-  its1586windows and full CPU classifier reference942136 pass. Original H100
-  probe942047 is pending; finite S6 T4 owner16380 waits capacity/funding without
-  a GPU push. Never duplicate those originals. Its
-  reported **0.950 is external**, not a project inference/score result. The
-  unchanged notebook runs both S6 and CoAtNet; include both in runtime estimates.
+- S6 original source qualification139165932v1 actually COMPLETED on both T4s
+  in156.6seconds; its exact-source/model/three-MRI/13-column CSV checks pass.
+  A stale author embedded build ID stopped only our observer; the exact-source
+  repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
+  Sole reproduction20978 and entry20994 own the remaining offline run/one entry.
+  H100942047 is still pending; distinct CPU fitting8 input139165316v1 is RUNNING,
+  not yet accepted. Never duplicate these originals. **0.950 remains external**;
+  there is no project S6 hidden score. Include both S6 and CoAtNet runtime.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.

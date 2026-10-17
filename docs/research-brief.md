@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 04:56 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 05:50 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -19,10 +19,11 @@ MRI-trained initialization, and whether better observations per update improve
 learning under a fixed compute budget. Whole-94 adaptation completed its first epoch
 on both T4s and the exact continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
 uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
-were fully verified. **InfluenceE1 139154664v1 is RUNNING**. Whole-parentE1 passed
+were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
+are private verified; uniformE2 139167076v1 is RUNNING**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 continues unchanged, last visible722.
-Expanded N3 is at2675/5184 finite updates/epoch9, with completed epochs1–8
+Expanded N3 is at3458/5184 finite updates/epoch11, with completed epochs1–10
 privately verified, under the original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
 there is no demonstrated new gain or fixed-final result yet.
 [Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
@@ -156,9 +157,15 @@ CPU stack now pass; private CPU-only Kaggle MRI gate139151928v1 completed all3 p
 windows. CPU942028 fully verified original compressed inputs and their decoded
 bytes on Newton. CPU942136 additionally scored all3/1586windows with the unchanged classifier/pooling
 and device/report-only replacements,355.95s/zero fallback. This is a CPUFP32
-reference. Bounded H100 probe942047 remains queued; a finite capacity-registered
-T4 reproduction owner16380 is waiting actual lanes/all-future funding without
-a GPU push. No GPU terminal or new S6 score is claimed.
+reference. Bounded H100 probe942047 remains queued. Original T4 qualification
+**139165932v1 actually COMPLETED156.6s**, bothT4s/threeMRI/finite13-column CSV/
+zero S6 fallback. The exact source was unchanged; a stale author embedded build ID
+required an observer-only repair, not a GPU rerun. Remaining offline owner20978
+and one-entry owner20994 wait capacity/actual acceptance. No project S6 score
+exists yet. A distinct eight-fitting-study CPU input bridge139165316v1 runs with
+unchanged geometry and a UID-only roster, without labels/classifier inference.
+[Actual T4 recovery](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
+[fitting bridge](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Actual acceptance and next gate](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md). Prioritize unchanged reproduction and source-exposure
 accounting before teacher combination. Head-only folds on an already exposed
 encoder are not independent OOF; probability agreement is not clinical truth.
@@ -187,3 +194,10 @@ and localization differ from CoAtNet before freezing a dual-teacher mechanism.
 Teacher agreement, cached-feature folds on exposed encoders and this label-free
 sensitivity screen are not independent clinical correctness. Preserve ongoing
 matched fits and actual scored outcomes before declaring improvement.
+
+A fixed50/50 CoAtNet/S6 per-target rank contrast is now **prepared only**. It
+changes only two AST assignments (weights/build metadata), passes eight CPU rank/
+fallback contracts, and preserves original inference. No GPU/entry/funding is
+claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
+acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
+[Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).

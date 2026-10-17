@@ -1,0 +1,109 @@
+"""Fixed fitting-only S6 anatomical input bridge; no disease labels or classifier."""
+import ast
+import base64
+import hashlib
+import json
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+assert not (L / 'source.private.py').exists()
+raw = (L.parent / 's6-public-source-20261017-v1/source.extracted.py').read_bytes()
+assert hashlib.sha256(raw).hexdigest() == '6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+protocol = {
+    'kind': 'S6_original_fitting8_UID_only_roster_view_bridge_v2',
+    'population': 3887,
+    'population_sha256': '0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42',
+    'selection': 'Eight equally spaced rounded ordinal quantiles of (train_series study-count, UID), sorted ascending; no labels or predictions select cases',
+    'split': 'train',
+    'studies': 8,
+    'geometry': {'backbone': 'convnext_small', 'size': 320, 'crop': 288, 'views': 'v4', 'slices': 3, 'phys_mm': 3.5},
+    'clinical_labels_reports_teacher_arrays_decoded_or_used': False,
+    'encoder_disease_inference_fitting_GPU_or_competition_entry': False,
+    'maximum_new_fixture_bytes': 3 * 2**29,
+    'existing_public_fixture_bytes': 348312520,
+    'existing_total_fixture_admission_bytes': 2 * 2**30,
+    'total_fixture_bound_including_original': 348312520 + 3 * 2**29,
+    'original_labelled_train_CSV_never_opened': True,
+    'input_view': 'UID-only train.csv; original train_series directory and full metadata CSV are read-only symlinks; original native and geometry functions unchanged',
+    'original_failed_input_notebook': {'kernel_id': 139162434, 'version': 1, 'actual_terminal': 'ERROR'},
+    'purpose': 'Prepare a fixed source-fit bridge for a later complementary-lineage comparison; this is neither clinical validation nor a new training recipe',
+}
+assert protocol['total_fixture_bound_including_original'] + 2**20 < 2 * 2**30
+body = r'''
+import base64,contextlib,hashlib,importlib.util,io,json,os,resource,signal,sys,time
+from pathlib import Path
+os.environ.update(CUDA_VISIBLE_DEVICES='',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1')
+import numpy as np
+import pandas as pd
+import torch
+assert not torch.cuda.is_available();torch.set_num_threads(2);torch.set_num_interop_threads(1)
+PROTOCOL=__PROTOCOL__
+R=Path('/kaggle/working/S6-original-fitting8-UID-view-v2');assert not R.exists();R.mkdir(mode=0o700)
+view=R/'input-view-private';view.mkdir(mode=0o700);uid_roster=(view/'train.csv').resolve()
+raw=base64.b64decode(__ORIGINAL__,validate=True);assert hashlib.sha256(raw).hexdigest()=='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+original=R/'original.private.py';original.write_bytes(raw);original.chmod(0o600)
+namespace={'__name__':'original_S6_definitions_without_main','__file__':str(original)};exec(compile(raw,str(original),'exec'),namespace)
+namespace['OUT'].mkdir(parents=True,exist_ok=True);namespace['TMP'].mkdir(parents=True,exist_ok=True)
+with (R/'source-stack.private.log').open('x') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):
+ I=namespace['prepare_inputs']();stack={'scope':'Existing strict classifier proof reused; this input-only bridge does not reload or forward the disease classifier','original_CPU_stack_job':941960,'original_CPU_public_MRI_kernel':139151928}
+ spec=importlib.util.spec_from_file_location('original_S6_fitting_CPU_launcher',I.launcher);launch=importlib.util.module_from_spec(spec);spec.loader.exec_module(launch)
+assert I.manifest_sha256=='b66c574b5c0c13ccaa49d1219d41a8781431166186ef83e78cab6a9ba6b02d22'
+assert hashlib.sha256((I.src/'compact_infer.py').read_bytes()).hexdigest()=='34f433fe72b732543813165c3397ec80cef01b0d49b25b7b22668714f0b0ef4a'
+def metadata_only_csv_guard(event,args):
+ if event=='open' and isinstance(args[0],(str,bytes,os.PathLike)):
+  p=Path(os.fsdecode(args[0]))
+  if p.suffix.lower()=='.csv':
+   controlled_roster=p.resolve()==uid_roster
+   private_patient_metadata=p.name=='patients.csv' and p.resolve().is_relative_to((R/'working-private').resolve())
+   assert controlled_roster or private_patient_metadata or p.name in {'train_series.csv','test_series.csv','test.csv','sample_submission.csv'},'Clinical/report CSV access is outside this input-only bridge'
+sys.addaudithook(metadata_only_csv_guard)
+g=namespace['B_GEOMETRY'];assert all(g[k]==v for k,v in PROTOCOL['geometry'].items())
+paths=[p for p in Path('/kaggle/input').rglob('targets.private.npz') if p.stat().st_size==483656];assert len(paths)==1
+target=paths[0];assert hashlib.sha256(target.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+# Only the UID zip member is decoded; no label, mask or teacher array is accessed.
+with np.load(target,allow_pickle=False) as z:assert set(z.files)=={'uids','labels','masks','parent_logits'};uids=z['uids'].tolist()
+assert len(uids)==3887 and uids==sorted(set(uids)) and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==PROTOCOL['population_sha256']
+series=I.comp/'train_series.csv';counts=pd.read_csv(series,dtype=str,usecols=['StudyInstanceUID'])['StudyInstanceUID'].value_counts().to_dict();assert set(uids)<=set(counts)
+costs=sorted(((int(counts[u]),u) for u in uids));positions=np.linspace(0,len(costs)-1,8).round().astype(int).tolist();chosen=[costs[i][1] for i in positions];assert len(set(chosen))==8 and set(chosen)<=set(uids) and not set(chosen)&set(I.test_ids)
+selection=R/'selection.private.json';selection.write_text(json.dumps({'protocol':PROTOCOL,'ordered_fitting_uids':uids,'series_counts':[[u,int(counts[u])] for u in uids],'selected_positions':positions,'selected_uids':chosen,'target_container_sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'train_series_csv_sha256':hashlib.sha256(series.read_bytes()).hexdigest()},sort_keys=True,indent=2)+'\n')
+(view/'train_series').symlink_to(I.comp/'train_series',target_is_directory=True);(view/'train_series.csv').symlink_to(series);pd.DataFrame({'StudyInstanceUID':chosen}).to_csv(view/'train.csv',index=False);assert not (view/'train.csv').is_symlink() and pd.read_csv(view/'train.csv',dtype=str).to_dict('list')=={'StudyInstanceUID':chosen}
+ds=launch.CI.CStudies(view,'train',chosen,R/'working-private',I.code,g['size'],eval_stride=g['eval_stride'],views=g['views'],slices=g['slices'],anchor_weights=I.anatomy,phys_mm=g['phys_mm'])
+def alarm(signum,frame):raise TimeoutError('Bounded original fitting MRI preparation timed out')
+signal.signal(signal.SIGALRM,alarm);rows=[];total=0;t0=time.perf_counter()
+class BoundedBytesIO(io.BytesIO):
+ def __init__(self,limit):super().__init__();self.limit=limit
+ def write(self,b):
+  assert self.tell()+len(b)<=self.limit,'Compressed fixture would exceed its funded cap'
+  return super().write(b)
+for i in range(8):
+ remaining=4800-(time.perf_counter()-t0);assert remaining>0;signal.alarm(max(1,min(900,int(remaining))))
+ with (R/'source-stack.private.log').open('a') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):item=ds[i]
+ signal.alarm(0)
+ if item['error'] is not None or item.get('anchor') is None or item['uid']!=chosen[i]:
+  (R/'failure.private.json').write_text(json.dumps({'ordinal':i,'uid':chosen[i],'error':item['error'],'anchor_present':item.get('anchor') is not None},indent=2)+'\n');raise RuntimeError('Original MRI input failed at ordinal %d; exact cause retained privately'%i)
+ x=item['images'].numpy();m=item['meta'].numpy();assert x.dtype==np.uint8 and x.ndim==4 and tuple(x.shape[1:])==(3,320,320) and 0<len(x)<=3000
+ assert m.dtype==np.float32 and m.shape==(len(x),6) and np.isfinite(m).all() and x.nbytes+m.nbytes<1024**3
+ p=R/('study-%03d.npz'%i)
+ with BoundedBytesIO(PROTOCOL['maximum_new_fixture_bytes']-total) as memory:
+  np.savez_compressed(memory,images=x,meta=m)
+  with p.open('xb') as f:f.write(memory.getbuffer())
+ assert total+p.stat().st_size<=PROTOCOL['maximum_new_fixture_bytes'];total+=p.stat().st_size
+ with np.load(p,allow_pickle=False) as z:assert np.array_equal(z['images'],x) and np.array_equal(z['meta'],m)
+ rows.append({'ordinal':i,'uid':item['uid'],'file':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'windows':len(x),'images_sha256':hashlib.sha256(x.tobytes()).hexdigest(),'meta_sha256':hashlib.sha256(m.tobytes()).hexdigest(),'raw_tensor_bytes':x.nbytes+m.nbytes,'anchor':item['anchor'],'seconds':item['seconds']})
+ print(json.dumps({'status':'actual_original_S6_CPU_fitting_item_accepted','ordinal':i,'windows':len(x),'elapsed_seconds':time.perf_counter()-t0}),flush=True);del x,m,item
+index=R/'index.private.json';index.write_text(json.dumps({'records':rows,'source_sha256':hashlib.sha256(raw).hexdigest(),'geometry':g,'selection_sha256':hashlib.sha256(selection.read_bytes()).hexdigest()},sort_keys=True,indent=2)+'\n')
+receipt={'status':'actual_original_S6_fitting8_CPU_anatomical_inputs_and_lossless_roundtrip_accepted','protocol':PROTOCOL,'source_sha256':hashlib.sha256(raw).hexdigest(),'source_tree_manifest_sha256':I.manifest_sha256,'model_sha256':namespace['B_MODEL']['sha256'],'anatomy_sha256':namespace['ANATOMY_SHA256'],'population_sha256':PROTOCOL['population_sha256'],'studies':8,'selected_series_count_range':[costs[i][0] for i in positions],'windows':[r['windows'] for r in rows],'compressed_pixel_bytes':total,'index_bytes':index.stat().st_size,'index_sha256':hashlib.sha256(index.read_bytes()).hexdigest(),'selection_bytes':selection.stat().st_size,'selection_sha256':hashlib.sha256(selection.read_bytes()).hexdigest(),'geometry':g,'stack':stack,'files':[{k:r[k] for k in ('file','bytes','sha256')} for r in rows],'elapsed_seconds':time.perf_counter()-t0,'max_RSS_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,'original_source_functions_unchanged':True,'GPU':False,'classifier_predictions':False,'competition_submission':False,'source_label_mask_teacher_arrays_decoded_or_used':False,'protected_clinical_values_read':False,'clinical_or_hidden_accuracy_claim':False}
+assert receipt['max_RSS_bytes']<27*2**30 and total+selection.stat().st_size+index.stat().st_size<PROTOCOL['maximum_new_fixture_bytes']+2**20
+Path('/kaggle/working/S6-original-fitting8-accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
+'''
+source = body.replace('__ORIGINAL__', repr(base64.b64encode(raw).decode())).replace('__PROTOCOL__',repr(protocol))
+compile(source, 'S6_fitting8_CPU', 'exec')
+assert not any(isinstance(n,ast.Constant) and isinstance(n.value,str) and
+               (n.value=='submission.csv' or n.value=='/kaggle/working/submission.csv')
+               for n in ast.walk(ast.parse(source)))
+assert 'z[\'labels\']' not in source and "z['masks']" not in source and "z['parent_logits']" not in source
+assert sum(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='exec' for n in ast.walk(ast.parse(source)))==1
+(L/'source.private.py').write_text(source)
+(L/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n')
+(L/'prepared.json').write_text(json.dumps({'status':'CPU_only_original_fitting8_bridge_prepared_not_dispatched','source_sha256':hashlib.sha256(source.encode()).hexdigest(),'original_source_sha256':hashlib.sha256(raw).hexdigest(),'protocol_sha256':hashlib.sha256((L/'protocol.json').read_bytes()).hexdigest(),'no_clinical_UIDs_embedded':True,'no_Git_HF_pixel_or_case_records':True},indent=2)+'\n')
+print((L/'prepared.json').read_text())

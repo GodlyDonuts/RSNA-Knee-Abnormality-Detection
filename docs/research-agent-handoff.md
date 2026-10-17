@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 04:56 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 05:50 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -87,8 +87,10 @@ The first concrete action was source-only admission of S6 ConvNeXt:
 138285808 v2 and Dataset 12589750 v3 manifests are pinned. Its author's reported
 0.950 is not our reproduction. The original 200,185,003-byte checkpoint is now
 privately downloaded once and SHA/header verified. Dependencies/source/anatomy,
-CPU MRI tensors and CPU classifier reference now pass. Actual T4/runtime/output
-acceptance and a distinct S6 entry remain undone. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Original numerical training continues unchanged; only terminal serving/entry3
+CPU MRI tensors and CPU classifier reference pass. Original qualification
+139165932v1 now actually COMPLETED156.6s on bothT4s with threeMRIs, zero S6
+fallback and a finite13-column CSV. This is public acceptance; a distinct
+offline run and S6 entry remain owned and unsubmitted at this observation. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Original numerical training continues unchanged; only terminal serving/entry3
 observer dependencies were replaced. [Current originals and new sole owners](codex-continuation.md).
 
 The program's recommendation to obtain strict five-fold OOF by fitting heads on
@@ -202,8 +204,11 @@ Current guide receipt bookkeeping can be later than that mirrored source.
 
 Whole94 E2 last visible722/1458 remains an older detailed log observation.
 Uniform16 E1 actually completed486updates and all5objects are privately fully
-verified; influenceE1 is RUNNING. Expanded N3 original938284 is at2675/5184 finite updates,epoch9, with eight
-completed privately fully verified epochs; this supersedes2166/epoch7. Original patch929938 actually
+verified; influenceE1 also completed486 and all5objects were independently private
+verified at HFb09816181e2e79eb24563884af5c7ed0e1af40a5. UniformE2 139167076v1
+is RUNNING under resumed same owner97530. Expanded N3 original938284 is at
+3458/5184 finite updates,epoch11, with ten completed privately fully verified epochs.
+[Actual new original progress](../initiative/audits/research-progress-20261017-0550-v1/README.md). Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
 [Actual later receipts](../initiative/audits/research-progress-20261017-0401-v1/README.md).
@@ -214,8 +219,16 @@ private CPU-only Kaggle input gate139151928v1 completed on all three public MRIs
 with1586windows and no decode/anchor failures; original inputs are now privately
 fully verified on Newton. CPU942136 then passed the full classifier reference on all3/1586windows with
 zero fallback. H100 classifier probe942047 remains queued, not scored; finite
-T4 reproduction owner16380 is waiting actual capacity/all-future budget. It has
-zero competition entries and has not pushed an S6 GPU notebook at this check.
+Original T4 qualification139165932v1 completed in156.6s on bothT4s with exact
+source/model/CSV acceptance. The original author embedded build ID is stale; the
+source-bound observer repair preserved exact numerical bytes and did not rerun
+qualification. S6 admission now counts the actual active45h grant, retaining
+all obligations. Owner20978 owns remaining offline inference and20994 one entry;
+both wait actual capacity/acceptance, with zero S6 entries so far.
+[Exact T4/observer/quota evidence](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
+Distinct CPU fitting8 input139165316v1 remains RUNNING after a preserved earlier
+guard-contract failure; it uses a UID-only roster view with original geometry,
+not new targets. [Bridge protocol](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Exact source/runtime/gate proof](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
 Original full regression terminated successfully:4537passed/8skipped/exit0;
 no numerical source changed. Do not mistake that for clinical improvement.
@@ -248,3 +261,10 @@ sole final-serving owners. No private pixels/clinical arrays/features/weights.
 [Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
 Never repeat this or earlier prefixes; this receipt bookkeeping is later than
 that mirrored source.
+
+A fixed50/50 CoAtNet/S6 per-target rank contrast is now **prepared only**. It
+changes only two AST assignments (weights/build metadata), passes eight CPU rank/
+fallback contracts, and preserves original inference. No GPU/entry/funding is
+claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
+acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
+[Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).

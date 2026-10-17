@@ -1,0 +1,51 @@
+{
+  "status": "four_S6_single_entry_owner_paths_and_exact_code_request_checked",
+  "cases": [
+    {
+      "case": "prior_ineligible_then_scored",
+      "passed": true,
+      "phase_calls": [
+        "eligibility",
+        "eligibility",
+        "submit",
+        "outcome"
+      ],
+      "expected_stop": null
+    },
+    {
+      "case": "submit_claim_contention_then_scored",
+      "passed": true,
+      "phase_calls": [
+        "eligibility",
+        "submit",
+        "eligibility",
+        "submit",
+        "outcome"
+      ],
+      "expected_stop": null
+    },
+    {
+      "case": "failed_reproduction",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "RuntimeError"
+    },
+    {
+      "case": "wrong_offline_proof",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "AssertionError"
+    }
+  ],
+  "one_CreateCodeSubmission_call_site": true,
+  "exact_fileName": "submission.csv",
+  "kernel_version": 1,
+  "qualification_or_CPU_fitting_notebook_rejected_by_explicit_slug_role_and_metadata_checks": true,
+  "real_Kaggle_or_GPU_or_competition_mutations": 0,
+  "mock_terminal_is_not_a_model_score": true,
+  "source_sha256": {
+    "finish_once.py": "bdfe25e0e718ef1baf3ddd166e10e1cf9f7ac1c26685c105d9375cb049453bc6",
+    "program.py.txt": "9f61328e9b843fd21ff8f60b908441bd8a6621ee749e13b463db1ea39e7d95f7",
+    "run_phase.py": "d3d720caab2746f921a4e27aa1ae194c97649ea8a563bf6761c6d7ee32000bdf"
+  }
+}

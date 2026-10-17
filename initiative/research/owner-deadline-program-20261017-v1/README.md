@@ -14,8 +14,10 @@ checkpoint/code manifests have now actually been acquired and pinned;
 separates the author's0.950 claim from our still-unscored reproduction. The
 [original S6 checkpoint](../../audits/s6-checkpoint-admission-20261017-v1/README.md)
 is also privately acquired once and SHA/header verified. Original CPU MRI inputs
-and full classifier reference now pass; T4 reproduction is owned and waiting
-actual capacity/funding. [Actual new acceptance and owner](../../audits/s6-original-classifier-reproduction-20261017-v1/README.md). Continue
+and full classifier reference pass; unchanged T4 qualification139165932v1 now
+actually completed156.6s on bothT4s/threeMRI/finite13-column CSV. Remaining
+offline run and one entry are owned and wait capacity, not a project score.
+[Actual T4/observer recovery](../../audits/s6-original-t4-recovery-20261017-v1/README.md). [Actual new acceptance and owner](../../audits/s6-original-classifier-reproduction-20261017-v1/README.md). Continue
 healthy full-parent, matched sampling and expanded N3 fitting unchanged. Their
 exact live owners are in [the execution handoff](../../../docs/codex-continuation.md).
 This decision stages no additional GPU or competition entry.
@@ -81,16 +83,23 @@ private performance.
   distinct compute-funded comparison; the present crop-only inference negative
   does not answer retraining with physical crops.
 
-No new best model, S6 GPU acceptance or winning score is claimed by this assessment.
+No new best model or winning score is claimed. S6 public T4 acceptance is now
+actual as linked above; no project S6 hidden score exists at this observation.
 
 
 ## Later measured triage and actual execution
 
-Learned whole94E1 now has one actual code entry**57294905**, actual hidden score**0.949**, no demonstrated gain; uniform16E1 is complete/private verified, influenceE1 is running and
-expanded N3 has eight verified epochs. [Actual progress](../../audits/research-progress-20261017-0448-v1/README.md).
+Learned whole94E1 now has one actual code entry**57294905**, actual hidden score**0.949**, no demonstrated gain; uniform16E1 is complete/private verified, influenceE1 completed/private verified, uniformE2 is running, and
+expanded N3 has ten verified epochs/3458finite updates into epoch11. [Actual progress](../../audits/research-progress-20261017-0448-v1/README.md).
 The [existing boundary-policy screen](../../audits/frozen-series-boundary-screen-20261017-v1/README.md)
 found low boundary attention and smaller ordering sensitivity than count-matched
 interior removal across3887cases. Deprioritize a new boundary-only training arm.
 This is a label-free negative, not proof of improved AUC. Source-DICOM physical
 crops, second-parent complementarity and a genuinely new geometry mechanism
 remain distinct from that readout counterfactual and completed context heads.
+
+The fixed equal-rank CoAtNet/S6 contrast is now
+[prepared and CPU-checked](../../audits/s6-equalrank-preparation-20261017-v1/README.md),
+without a new GPU dispatch or entry. Its original model/preprocessing code is
+unchanged; only blend weights/build metadata differ. It does not claim0.956
+or independent OOF, and waits original S6 hidden evidence and fresh admission.

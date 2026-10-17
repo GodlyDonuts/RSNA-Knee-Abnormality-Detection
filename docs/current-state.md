@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 04:56 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 05:50 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -49,17 +49,20 @@ Do not resubmit those exact versions.
 | Work | Original identity | Latest verified state |
 |---|---|---|
 | Whole94 licensed-parent adaptation | E1 139111324v1; E2 **139137922v1** | E1 complete486, all5private objects verified; E2 RUNNING, last visible722/1458 finite updates, bothT4s |
-| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; 2675/5184 finite updates, epoch9 at04:50; **epochs1–8 privately verified** |
+| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **3458/5184 finite updates, epoch11**; **epochs1–10 privately verified** |
 | Uniform16 full-encoder control | E1**139137040v1** | **E1 complete486**, whole state verified; all5private objects HFc19961db0f377086b4a2fd12f6ec477213a1da7d |
-| Influence16 full-encoder contrast | E1**139154664v1** | Pushed once, actual API RUNNING; original comparison owner97530 |
+| Influence16 full-encoder contrast | E1**139154664v1** | **E1 complete486/all5private objects verified**; original owner97530 now runs uniformE2**139167076v1** |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
-| S6 unchanged-source reproduction | Finite owner**16380** | CPU classifier reference passed; T4 qualification waiting actual lane/all-future funding, **no S6 GPU push yet** |
+| S6 unchanged-source reproduction | Qualification**139165932v1**; owner**20978** | **COMPLETE156.6s/twoT4/threeMRI/13columns**; remaining offline run and sole entry20994 wait capacity |
 
 [New original epoch/publication/push evidence](../initiative/audits/research-progress-20261017-0448-v1/README.md),
 [earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
-Actual CPU942323 observed2675/5184 finite updates/epoch9 at04:50; E7/E8
-publication proofs establish those completed immutable epochs. The original GPU
-and watcher95408 remain healthy. Never repeat any original publication.
+Actual CPU942744 now observed3458/5184 finite updates/epoch11. E9/E10 publication
+proofs establish completed immutable epochs1–10, each privately fully verified.
+InfluenceE1 completed486 and all5objects are independently private verified;
+uniformE2 is now API RUNNING under the resumed same owner97530.
+[New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
+The original GPU and watcher95408 remain healthy. Never repeat publications.
 
 Whole94 E1 was independently complete-state verified and privately preserved
 at HF**d436986137570a9a4259a4b59981d261cffd2f20**, all5objects full download/size/SHA.
@@ -95,6 +98,8 @@ all-rank RNG/scaler/history and16×12 full94 CSV equality. CPU940795 matched32
 originalMRI inputs/both views/repeated draws; proposal Dataset12644218v1/all5
 objects was privately fully verified once. UniformE1 is now actually complete
 and preserved; influenceE1 runs under the same original comparison owner.
+The original influenceE1 now also completed486 and all5objects are private verified
+at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 runs.
 Sampled-model serving remains synthetic preparation, with **no actual learned
 sampled-checkpoint serving T4/public acceptance or score**.
 [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
@@ -126,31 +131,36 @@ points. Its predeclared triage was **intermediate**; no new GPU arm or target
 change followed. Those teacher pairs are not clinical positive-negative AUC errors.
 [Actual screen](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
 
-## S6 second lineage: actual CPU classifier, T4 still pending
+## S6 second lineage: actual T4 public acceptance, no hidden score
 
-The [owner paper and assessment](../initiative/research/owner-deadline-program-20261017-v1/README.md)
-prioritize unchanged S6 reproduction before teacher combination. Exact source
-**138285808v2/SHA6e87350d**, weight Dataset**12589750v3**, original200185003-byte
-modelSHA**0c7297d5**,293member source/anatomy and runtime are privately verified.
-CPU941960 passed strict50M-parameter loading and finite anatomy forward.
-[Original source/runtime admission](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
+Exact author138285808v2/sourceSHA6e87350d, Dataset12589750v3/modelSHA0c7297d5,
+293-member source tree/anatomy and CPU classifier references remain pinned.
+Original qualification **139165932v1** actually COMPLETED on **both T4s in156.6s**,
+three public MRIs, strict50M graph, zero S6 fallback and a finite13-column CSV
+(626bytes/SHA00031c53). Both original CoAtNet and S6 paths executed. The public
+CSV was not uploaded, and this is not a hidden runtime or score.
 
-Original private CPU-only MRI gate139151928v1 completed3cases/1586windows; all
-348312520 compressed bytes and decoded tensors were independently verified once.
-Actual CPU**942136** then scored every window with unchanged classifier/pooling
-and four device/report-only AST replacements: finite3×1×12 logits, zero fallback,
-355.95s/5.83GB peakRSS. This is a **CPU FP32 reference, not T4/hidden-scale or
-clinical acceptance**. Queued original H100 FP32/FP16 fixture probe**942047**
-remains pending and must not be repeated.
+Our observer stopped because the unchanged author's baked build ID is stale.
+Independent execution of its build-ID function on the exact original source
+reproduced the mismatch. The repaired observer requires exact source SHA plus
+that exact baked/derived pair and all original device/model/CSV checks; no GPU
+rerun or numerical source change occurred. Canonical acceptance is reconciled.
 
-CPU942176 staged the exact author source for distinct T4 qualification and
-nine-hour offline reproduction purposes. Finite owner**16380/exec14034** has
-12h/max2publicGPUruns/**zero competition entries**. Six schema checks preserve
-the original main lane and count unresolved S6 sessions as occupied. Its latest
-actual admission waited for both occupied lanes and all-future VM funding without
-any GPU push or reservation. The original notebook executes both CoAtNet and S6
-even W_A0/W_B1; budget both. **0.950 remains the author's result, not ours.**
-[Actual classifier, owner and budget evidence](../initiative/audits/s6-original-classifier-reproduction-20261017-v1/README.md).
+S6 admission also now counts the actual already-granted45h account allowance,
+not just its30h minimum. Used/reserved time, all future training, serving reserve
+and actual two-session limit still govern. No billing/account setting changed.
+Remaining offline-run owner **20978/44859** waits the auxiliary lane; sole entry
+owner **20994/20982** waits actual offline acceptance and fresh allowance. Neither
+has submitted S6. Original H100942047 remains pending.
+[Exact acceptance, quota correction and owners](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
+
+A separate CPU-only eight-fitting-study input bridge is RUNNING as139165316v1,
+owner20144. It uses a UID-only roster view and unchanged physical/anatomical
+functions after a preserved first guard-contract failure139162434v1. No labels,
+classifier predictions or clinical pass is claimed; fixtures remain private in
+the existing2GiB pool. This prepares a cross-lineage comparison without waiting
+for a GPU lane. [Protocol, failure and nine checks](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
+The author's0.950 remains external; no project S6 score exists yet.
 
 ## Completed fixed-final own-model comparisons
 
@@ -220,3 +230,10 @@ sole final-serving owners. No private pixels/clinical arrays/features/weights.
 [Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
 Never repeat this or earlier prefixes; this receipt bookkeeping is later than
 that mirrored source.
+
+A fixed50/50 CoAtNet/S6 per-target rank contrast is now **prepared only**. It
+changes only two AST assignments (weights/build metadata), passes eight CPU rank/
+fallback contracts, and preserves original inference. No GPU/entry/funding is
+claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
+acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
+[Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).

@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 04:56 UTC:**
+**Current entry points — verified October 17, 2026, 05:50 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -21,19 +21,22 @@ Whole-parent adaptation completed its first **486-update epoch**, privately full
 verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
 Epoch2 continues with the original worker/checkpoint. Expanded own N3 fitting on
-2592studies runs on a Newton H100 at **2675/5184 updates, epoch9**, with
-**epochs1–8 privately verified**.
-Matched uniform16E1 also completed486updates/all5private objects; influence16E1
-is now RUNNING. No new scored learned-model gain is claimed.
+2592studies runs on a Newton H100 at **3458/5184 finite updates, epoch11**, with
+**epochs1–10 privately verified**.
+Both matched uniform16E1 and influence16E1 completed486updates/all5private
+objects; original uniformE2 is now RUNNING. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 The [owner deadline program](initiative/research/owner-deadline-program-20261017-v1/README.md)
 prioritizes the distinct S6 ConvNeXt parent. Its original source/checkpoint/anatomy,
 CPU MRI gate and **full CPU classifier reference on3studies/1586windows** pass.
-Original H100 probe942047 is queued. A finite T4 reproduction owner now waits
-actual two-session capacity and complete-future funding; **no S6 GPU push yet**.
-Its author-reported0.950 is not our reproduced score.
-[Actual CPU acceptance and finite owner](initiative/audits/s6-original-classifier-reproduction-20261017-v1/README.md).
+Original T4 qualification**139165932v1 actually completed in156.6seconds** on
+both T4s, three MRIs, finite13-column output and zero S6 fallback. The exact
+source was unchanged; our observer was repaired to account for its stale embedded
+build ID. The separate offline run and one-entry owners now wait the auxiliary
+lane. Its author-reported0.950 is **not our project hidden score**.
+[Actual T4 acceptance and owned continuation](initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
+[new original training progress](initiative/audits/research-progress-20261017-0550-v1/README.md).
 
 A fitting-only screen on3887existing bags found the parent already gives crossing
 series windows little attention; removing them changes study ordering less than

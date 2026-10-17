@@ -1,0 +1,43 @@
+"""One S6 entry only after the exact original offline notebook actually passes."""
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;S=L.parent/'s6-source-tree-admission-20261017-v1';owner=json.loads((S/'source-bound-s6-finish.intent.json').read_text())['PID'];files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('program.py.txt','run_phase.py')};entry_deadline=datetime(2026,10,18,2,0,tzinfo=timezone.utc).timestamp();outcome_deadline=datetime(2026,10,18,12,0,tzinfo=timezone.utc).timestamp();start=time.monotonic()
+with (L/'source-bound-finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'original_S6_reproduction_owner_PID':owner,'immutable_files':files,'maximum_competition_entries':1,'exact_original_source_sha256':'6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe','entry_deadline_UTC':datetime.fromtimestamp(entry_deadline,timezone.utc).isoformat(),'outcome_deadline_UTC':datetime.fromtimestamp(outcome_deadline,timezone.utc).isoformat(),'actual_offline_T4_MRI_acceptance_prior_hidden_outcomes_and_fresh_allowance_required':True,'qualification_notebook_never_submitted':True,'public_CSV_upload':False,'automatic_retry':False},f,indent=2)
+def progress(phase,**extra):(L/'source-bound-finish.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds,deadline):
+ end=min(time.time()+seconds,deadline)
+ while time.time()<end:time.sleep(min(60,max(.01,end-time.time())))
+def call(phase):
+ assert all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in files.items());progress('phase_'+phase);x=subprocess.run([sys.executable,str(L/'run_phase.py'),phase],capture_output=True,text=True,timeout=700)
+ with (L/('source-bound-child-'+str(time.monotonic_ns())+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original S6 entry phase stopped; exact read-only reconciliation required, never repeat';return json.loads(x.stdout)
+try:
+ submitted=None
+ while time.time()<entry_deadline:
+  proof=S/'source-bound-s6-competition-accepted.json'
+  if not proof.exists():
+   stopped=S/'source-bound-s6-finish.result.json'
+   if stopped.exists():raise RuntimeError('Original S6 reproduction stopped before offline acceptance; no code entry')
+   os.kill(owner,0);assert subprocess.check_output(['ps','-p',str(owner),'-o','command='],text=True).strip().endswith('finish_original_s6_source_bound_once.py');progress('waiting_same_live_original_S6_offline_reproduction');wait(60,entry_deadline);continue
+  p=json.loads(proof.read_text());assert p['accepted']['status']=='actual_original_S6_competition_two_T4_public_MRI_and_CSV_accepted' and p['accepted']['source_sha256']=='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+  eligible=call('eligibility')
+  if eligible['status']=='waiting_canonical_claim_without_mutation':progress('waiting_canonical_claim_without_mutation');wait(60,entry_deadline);continue
+  if eligible['eligible']:
+   proposed=call('submit')
+   if proposed['status']=='waiting_canonical_claim_without_mutation':progress('waiting_canonical_claim_without_mutation');wait(60,entry_deadline);continue
+   submitted=proposed;assert submitted['status']=='one_exact_original_S6_offline_code_submission_accepted';(L/'actual-submitted.json').write_text(json.dumps(submitted,indent=2)+'\n');progress('one_exact_S6_code_entry_accepted',actual=submitted);break
+  progress('waiting_fresh_allowance_and_actual_prior_hidden_outcomes',actual=eligible);wait(600,entry_deadline)
+ if submitted is None:result={'status':'finite_S6_entry_window_expired_without_submission','competition_entries':0,'automatic_retry':False}
+ else:
+  result=None;wait(180,outcome_deadline)
+  while time.time()<outcome_deadline:
+   actual=call('outcome')
+   if actual['status']=='waiting_canonical_claim_without_mutation':wait(60,outcome_deadline);continue
+   progress('actual_original_S6_hidden_outcome_observed',actual=actual)
+   if actual['outcome'] in ('scored','failed'):result={'status':'one_original_S6_actual_hidden_terminal','actual':actual,'competition_entries':1};break
+   wait(300,outcome_deadline)
+  if result is None:result={'status':'finite_original_S6_hidden_observation_expired_pending_or_unknown','actual_submission':submitted,'competition_entries':1,'automatic_retry':False}
+ (L/'source-bound-finish.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+except BaseException as e:
+ (L/'source-bound-finish.result.json').write_text(json.dumps({'status':'stopped_original_S6_single_entry_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise

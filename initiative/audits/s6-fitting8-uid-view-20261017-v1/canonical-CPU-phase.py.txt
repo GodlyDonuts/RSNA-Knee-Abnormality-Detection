@@ -1,0 +1,29 @@
+"""One canonical CPU input phase. Secrets and large originals never enter argv."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+L=Path(__file__).resolve().parent
+phase=sys.argv[1]
+assert phase in ('stage','push','status','collect','record-collected')
+program=(L/'cloud-program.py.txt').read_text()
+compile(program,'original_fitting8_input_phase','exec')
+prepared=json.loads((L/'prepared.json').read_text())
+payload={'phase':phase,'prepared':prepared,'program':program}
+if phase=='stage':
+    assert not (L/'stage.intent.json').exists()
+    payload.update(source=(L/'source.private.py').read_text(),protocol=json.loads((L/'protocol.json').read_text()))
+    with (L/'stage.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_sha256':prepared['source_sha256'],'GPU':False,'competition_entries':0,'automatic_retry':False},f,indent=2)
+E=Path('.env');assert E.stat().st_mode&0o077==0
+values={k.strip():v.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+payload['token']=values['KAGGLE_API_TOKEN']
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-S6-fit8-'+phase,'env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c','import json,sys;v=json.load(sys.stdin);exec(compile(v.pop("program"),"S6_fitting8_inputs","exec"),{"__name__":"__main__","PACKAGE":v})']
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=950)
+name=phase+'-result-'+str(len(list(L.glob(phase+'-result-*.json'))))+'.json'
+(L/name).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,x.stderr[-2500:]
+out=json.loads(x.stdout)
+print(json.dumps(out),flush=True)
