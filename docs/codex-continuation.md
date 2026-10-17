@@ -602,3 +602,23 @@ SHAe812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e. No Dataset
 or slot used. Original main training and today's five-entry plan are unchanged.
 [Protocol and papers](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
 [actual stage, push and CPU input receipt](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).
+
+## Actual sampled recovery — October17 01:28UTC
+
+Original importance139130771v1 actuallyCOMPLETE/476.790s; owner90613terminalsuccess.
+See licensed-importance-encoder-20261017-v1/actual-terminal.json. Never repeat.
+Both roles exact full/stop/resume and full94 predictions, identical initial graph/
+allrankRNG,73,136,096 trainable,5.87GBpeak. Full-production compiler implemented,
+34focused checks/Ruff/mypy passed. No sampled production dispatch exists yet.
+CPU940715 read-only capacity proof proposes12GiB+16MiB onnode39 and fits by5.37GB
+after existing liabilities; this is not an admitted funding receipt. Fullq table
+CPU940658/e812a9f9 remains original/private; no Dataset exists yet.
+
+Original main whole94 controller80039 stopped during observation when SSH master
+expired; status-only940734 remainsPENDINGPriority/zero runtime. This is NOT a
+training terminal. SSH master reauthenticated successfully01:28UTC. A distinct
+finite reconnected continuation observes original E1 first and may dispatch only
+original still-unpushed E2/E3 through the unchanged original coordinator. Read
+its reconnected-continuation intent/progress/result before action; never restart
+old80039 or repeat an existing segment. Old preservation watcher may stop on its
+old owner check; reconcile actual publications before a distinct preservation handoff.

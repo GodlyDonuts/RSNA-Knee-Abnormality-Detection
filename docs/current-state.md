@@ -196,7 +196,7 @@ The strict final exporter/serving compiler is implemented. CPU935892 passed actu
 
 A label-free importance proposal targets windows that stabilize the strong frozen teacher's full-study MIL readout. Fixed25%uniformcoverage/75%normalizedinfluence,16IIDwindows with inverse-proposal correction,128repeats. The32-study screen reduced teacher-approximation MSE42.0%; the unchanged full3,887study repeat **reduced it45.6%**, ratio0.54401685, with all12targets improving. It took31.3seconds/oneCPU and reused the existing feature cache. No labels/reports/Gold/confirmation or newCNN inference were used. [Exact results/limits](../initiative/audits/licensed-MIL-sampling-20261016-v1/README.md).
 
-This is a concrete training-exposure hypothesis, **not disease accuracy or an independent validation result**. Teacher attention is not verified anatomy, and computing its proposal still needs the full teacher cache. No guided CNN training has been dispatched; matched same-input/initialization/compute evidence remains necessary before promotion.
+This is a concrete training-exposure hypothesis, **not disease accuracy or an independent validation result**. Teacher attention is not verified anatomy, and computing its proposal still needs the full teacher cache. No full guided CNN comparison has been dispatched; matched accuracy evidence remains necessary before promotion.
 
 Latest prior small milestone sourceccb85232 is privately fully verified at HF3b6ccde8c36723627c9de1796137b59907ea10ce (36objects/165,794bytes). Never repeat that or earlier mirrors. New serving/sampling/full-feature/final-head/T4/publicMRI evidence and the single next-allowance owner are now separately private-HF verified at e9d200fbbc9d6fcc9d12838279ceaf28bd75a35a:64objects/269,278bytes from source4428247b, all fully re-downloaded/size/SHA under the canonical lock. [Verified small milestone](../initiative/audits/hf-context-final-sampling-20261016-v1/verified.json). Never repeat.
 
@@ -583,3 +583,11 @@ SHAe812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e. No Dataset
 or slot used. Original main training and today's five-entry plan are unchanged.
 [Protocol and papers](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
 [actual stage, push and CPU input receipt](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).
+
+Actual both-role sampled full-encoder recovery139130771v1 is now COMPLETE:
+full/interrupted/resumed learned model, optimizer, allrankRNG/scaler/history,
+epoch snapshots and full94 MRI prediction bytes match exactly. Initial model/RNG
+are identical across roles; all73.1M parameters trainable, peak5.87GB/T4. This
+accepts engineering behavior only. The fixed3 full3887-study uniform16/influence16
+comparison compiler is implemented; storage/input/Dataset/GPU-budget prerequisites
+remain before dispatch. [Actual evidence](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).
