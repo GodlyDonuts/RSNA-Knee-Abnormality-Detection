@@ -7,7 +7,7 @@ Devin. Preserve healthy work while pursuing concrete, falsifiable experiments.
 Software tests, parameter count, model downloads and training loss are not score
 improvements; report actual measured results without promising first place.
 
-## Latest execution, October 17, 17:02 UTC
+## Latest execution, October 17, 17:39 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
 comparison **completed all three epochs/1,458 finite updates**, fitting all
@@ -19,9 +19,12 @@ objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
 epochs are now privately verified. Original owner **61037 finished successfully**;
 never restart it or repeat publication. Scoring owner **78386** remains live and
 has advanced the completed fixed-final comparisons. **Uniform qualification
-139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
-and original32-MRI/training-graph checks. CPU948784 prepared the completed label
-model. This is a GPU validation run, not a qualification pass or a hidden score.
+139267646 v1 actually passed** on both T4s:32MRI per device, bit-equal94-view
+inputs and complete learned graph, maximum prediction gap0.0, peak allocated
+2017322496bytes per GPU. The sole scorer then pushed public competition run
+**139269448v1**, `godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf`,
+source24af4c2f…. Its actual outcome is still pending. CPU948784 prepared the
+completed label model. Qualification is engineering evidence, not a hidden score.
 Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
@@ -48,10 +51,19 @@ Its source3161acbe and actual dispatch are now privately fully verified at
 Do not repeat this mirror or owner10613.
 [Exact controls](initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
-The exact stronger reference **139199164 v2** is still Queued, unqualified and
-unscored. Official SDK default status is QUEUED when the raw response omits it;
-the expired read-only observer is not a worker failure. Preserve its original
-Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
+The eight-hour Starting reference139199164v2 was canceled ONCE and actually
+CANCEL_ACKNOWLEDGED. Its source is preserved. The distinct script
+**139271768v2**, `godlydonuts/rsna-public0958-script-b472091d7a32`, was saved
+and registered ONCE under the canonical claim (CPU949029). Actual source
+SHAaffa4436… has a complete AST equal to preparationb472091d…; all eight
+original cell and credit strings remain byte equal. OriginalR6Datasetv1 was
+pinned. Actual new status remains absent/SDKQUEUED; public qualification and a
+hidden result remain unproven. Twenty-five focused checks pass; no new Dataset
+or competition entry was made. Preserve both healthy scoring owners. A separate
+finite read-only public observer25736 is live; it has no push or entry authority.
+[Actual recovery and exact original controls](initiative/audits/public0958-script-recovery-20261017-v1/README.md).
+Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
+Authenticated best remains entry57300990 COMPLETE/noerror0.950.
 
 ## Read first
 
@@ -122,8 +134,9 @@ historical release/plan documents now link back to the current guides.
 
 Completed uniform/influence final models now have CPU-compiled exact full94
 serving sources (**946894**) and actual preserved-snapshot validation (**946946**).
-Uniform T4qualification139267646v1 is now RUNNING; no new public run/entry or
-qualification pass is claimed. New `licensed_label_serving`
+Uniform T4qualification139267646v1 actually passed on both devices; public
+run139269448v1 was pushed once and is awaiting its actual outcome. No new hidden
+score or competition entry is claimed. New `licensed_label_serving`
 helpers accept only the fully preserved fixed-final label contrast and retain
 the original graph/input/math checks. They are preparation, not an accuracy gain.
 [Current scoring preparation](initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
@@ -236,42 +249,7 @@ results. Check guide links, source pins and secret/large-artifact exclusions
 before publication. Tests and checkpoint preservation establish operability,
 not MRI accuracy.
 
-The active full-label campaign/recovery and all completed sampling receipts are
-now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
-all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
-01bda353. Never repeat that milestone.
-[Exact private preservation](initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
-
-Actual live Kaggle logs now also verify **486finite optimizer updates**, both
-allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
-trainable on the3887study label-only E1. Epoch1is actually complete; fixed-final3and an accuracy result remain pending.
-
-Latest distinct source**86cfc7b6** is privately preserved at
-**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
-re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
-label-serving helper hashes now bind published main86cfc7b6; this supplies code
-provenance, not final-model or T4admission. [Exact preservation receipt](initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
-
-CPU947337staged one new matched-final scoring coordinator; actualCPU947372
-refused the unfinished treatment before anyGPUintent. It will wait original
-61037final/private proof, then qualify/public-run the uniform, label and influence
-E3models and enter only exact accepted versions under fresh allowance. A ready
-entry need not wait for unrelated qualification; actual previous hidden score
-is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
-owner **78386now armed/live**, waiting original61037final/private proof. [Exact coordinator](initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
-
-**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
-modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
-HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
-E2sourcebinding was checked14:28UTC;139245643v1/source6882d479… later
-COMPLETED972updates at15:46UTC; private verification later passed viaCPU948213/HFf5a74128…. Do not repeat
-epoch1publication or either GPU push.
-No fixed-final or new score yet. [Actual epoch records](initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
-
-Latest distinct source**f25a17d7** is privately preserved at
-**HF276963b335043f552d8f3e8cfd59c8afe92247a3**,29objects/152794bytes fully
-re-downloaded/size/SHA verified viaCPU947499. Original scoring owner**78386**
-is actually live, immutable sources/private pin accepted, waiting actual
-labelE3/private proof. Maximum6GPU pushes/3code entries; no model/weightDataset
-copies. Do not restart owner61037or78386or repeat either private publication.
-[Exact new preservation](initiative/audits/hf-matched-final-scoring-ready-20261017-v1/README.md).
+The older E1/E2 phase snapshots and preceding small-milestone pins are preserved
+in [historical phase notes](docs/AGENTS.history-20261017-1748.md). Their running/
+unfinished statements are superseded by the completed fixed-final campaign and
+current scoring owners above; the original exact receipts remain authoritative.

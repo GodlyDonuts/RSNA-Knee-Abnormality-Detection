@@ -1,0 +1,56 @@
+
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+def load(name,p):
+ s=importlib.util.spec_from_file_location(name,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=load('exact_script_batch_guard',W);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+P=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1');D=P/'serving-v1';G=D/'reference-script-recovery-v1';prepared=json.loads((G/'prepared.json').read_text());oldcancel=json.loads((G/'old-v2-cancel-acknowledged.json').read_text());assert oldcancel['actual_session']['status']=='CANCEL_ACKNOWLEDGED'
+source=(G/'exact8cell.private.py').read_text();h=hashlib.sha256(source.encode()).hexdigest();assert h=='b472091d7a323e0165958ca01e6f023b21db9c3d2b10d3f79ba8962fb83efc5b';compile(source,'exact8_original_cells_batch','exec')
+assert sum(p.stat().st_size for p in G.rglob('*') if p.is_file())+2*2**20<4*2**20
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+2*2**20<32*2**20 and sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+2*2**20+16*2**20<256*2**20 and shutil.disk_usage('/tmp').free>612022943803
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');wait=time.monotonic()+90
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<wait,'Existing canonical owner remains active; no mutation'
+  time.sleep(3)
+owner={'kind':'exact8cell_reference_one_UI_script_batch_and_registration','CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key='licensed-parent-full-epoch-serving:exact-public0958-script:'+h;original='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+  row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);old=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(original,)).fetchone()[0]);assert row['state']=='reference_script_source_only_prepared' and old['state']=='public0958_packaging_recovery_reference_unfinished'
+  assert r.kernel('GetKernelSessionStatus','godlydonuts/rsna-public0958-native-300b34417bc1',2)['status']=='CANCEL_ACKNOWLEDGED'
+  slug='godlydonuts/rsna-public0958-script-'+h[:12];a=r.kernel('GetKernel',slug,1);assert a['metadata']['id']==139271768 and a['blob']['source']==source and a['metadata']['kernelType']=='script'
+  cap_path=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(cap_path.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';capacity=load('unchanged_actual_shared_GPU_capacity',cap_path).admission(db,r,caller='serving')
+  assert hashlib.sha256(v['capacity_contract'].encode()).hexdigest()=='2210eb134cf6261e1a4fb5013d3dff559a3d8d294c711b97b9aae348216675ff'
+  admitted={};exec(compile(v['capacity_contract'],'proven_cancelled_reference_admission','exec'),admitted)
+  cancel_proof={**oldcancel,'fresh_source_sha256':hashlib.sha256(r.kernel('GetKernel','godlydonuts/rsna-public0958-native-300b34417bc1',2)['blob']['source'].encode()).hexdigest()}
+  capacity=admitted['acknowledged_reference_capacity'](capacity,cancel_proof)
+  contract_path=Path('/tmp/rsna-S6-training-release-20261017-v1/production-template-v1/recovery_contract.py.txt');assert hashlib.sha256(contract_path.read_bytes()).hexdigest()=='0afcad6c14951e8e6a3403745b59e2a63836b38efbbe3720f398245746e336e0';contract={};exec(compile(contract_path.read_text(),'unchanged_remaining_VM', 'exec'),contract)
+  # Completed label fitting/recovery is paid; retain reference, two serving caps and margin.
+  label=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/label/prepared.json');label=json.loads(label.read_text());assert label['training']['receipt']['fixed_final_complete'] is True and label['training']['receipt']['completed']==1458
+  quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];funding=contract['budget'](quota,original_main=0,original_sampling=0,reference_unfinished=True,blend_unfinished=False,scout_unfinished=False);required=funding['required_all_future_VM_seconds']-19800;funding.update(required_after_actually_completed_label_training_and_recovery_seconds=required,retired_actual_complete_seconds=19800,existing_reference_32400_reassigned_not_duplicated=True)
+  assert capacity['available'] and funding['available_VM_seconds']>=required, {'capacity':capacity,'funding':funding}
+  assert not (G/'batch-intent.json').exists()
+  histkey='public0958-script-source-only:'+h;assert db.execute('SELECT value FROM meta WHERE key=?',(histkey,)).fetchone() is None;db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(histkey,json.dumps(row,sort_keys=True)))
+  intent={'status':'ready_one_UI_SaveAndRun_exact_script_v2_under_live_canonical_claim','CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'kernel_id':139271768,'slug':slug,'version':2,'source_sha256':h,'all8code_cells_sha256':prepared['compiler_binding']['all8code_cells_sha256'],'original_R6_version1_pin_applied_in_UI':True,'maximum_VM_seconds':32400,'no_numeric_or_dataset_changes':True,'actual_old_cancel_acknowledged':True,'capacity':capacity,'funding':funding,'UI_action_deadline_unix':time.time()+180,'automatic_retry':False}
+  w.new_json(G/'batch-intent.json',intent);row={'state':'full_parent_epoch_reference_script_push_intent',**{k:intent[k] for k in ('slug','version','kernel_id','source_sha256','maximum_VM_seconds')},'intent':{k:v for k,v in intent.items() if k!='capacity'},'historical_source_only_key':histkey,'canonical_original_reference':original};db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit();retain=True;print(json.dumps(intent),flush=True)
+  deadline=time.monotonic()+240
+  while time.monotonic()<deadline:
+   try:a=r.kernel('GetKernel',slug,2)
+   except w.RemoteError as e:
+    if 'HTTP 404' not in str(e) and 'HTTP 403' not in str(e):raise
+    time.sleep(3);continue
+   m=a['metadata'];assert m['id']==139271768 and m['currentVersionNumber']==2 and a['blob']['source']==source
+   for n,value in {'isPrivate':True,'enableInternet':False,'enableGpu':True,'machineShape':'NvidiaTeslaT4','kernelType':'script','dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f'}.items():assert m.get(n,False if n=='enableInternet' else None)==value,(n,m.get(n),value)
+   for n in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(m.get(n,[]))==sorted(prepared['data_sources'][n]),n
+   out={'status':'one_exact_private_offline8cell_reference_script_v2_batch_committed_registered','CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'kernel_id':139271768,'slug':slug,'version':2,'source_sha256':h,'all8code_cells_sha256':intent['all8code_cells_sha256'],'kernelType':'script','private_offline_twoT4':True,'old_kernel139199164v2_actual_cancel_acknowledged':True,'new_Dataset_or_weight_transfers':0,'actual_session':r.kernel('GetKernelSessionStatus',slug,2),'original_R6v1_runtime_manifest_still_required':True,'allstage_final_reader_and_CSV_acceptance_still_required':True,'no_new_competition_entry_or_hidden_score':True,'canonical_capacity_key':key,'maximum_VM_seconds':32400}
+   w.new_json(G/'batch-pushed.json',out);row.update(state='full_parent_epoch_reference_script_pushed',actual_committed=out);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));old['script_recovery_actual_committed']=out;db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(old,sort_keys=True),original));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),h,out['status']));db.commit();retain=False;print(json.dumps(out),flush=True);break
+  assert not retain,'Exact new saved version unresolved: preserve claim, reconcile read-only, never repeat Save'
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner
+  (claim/'owner.json').unlink();claim.rmdir()

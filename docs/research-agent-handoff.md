@@ -6,7 +6,7 @@
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
 engineering checks with accuracy.
 
-## Latest execution, October 17, 17:02 UTC
+## Latest execution, October 17, 17:39 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
 comparison **completed all three epochs/1,458 finite updates**, fitting all
@@ -18,9 +18,12 @@ objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
 epochs are now privately verified. Original owner **61037 finished successfully**;
 never restart it or repeat publication. Scoring owner **78386** remains live and
 has advanced the completed fixed-final comparisons. **Uniform qualification
-139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
-and original32-MRI/training-graph checks. CPU948784 prepared the completed label
-model. This is a GPU validation run, not a qualification pass or a hidden score.
+139267646 v1 actually passed** on both T4s:32MRI per device, bit-equal94-view
+inputs and complete learned graph, maximum prediction gap0.0, peak allocated
+2017322496bytes per GPU. The sole scorer then pushed public competition run
+**139269448v1**, `godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf`,
+source24af4c2f…. Its actual outcome is still pending. CPU948784 prepared the
+completed label model. Qualification is engineering evidence, not a hidden score.
 Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
@@ -47,10 +50,51 @@ Its source3161acbe and actual dispatch are now privately fully verified at
 Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
-The exact stronger reference **139199164 v2** is still Queued, unqualified and
-unscored. Official SDK default status is QUEUED when the raw response omits it;
-the expired read-only observer is not a worker failure. Preserve its original
-Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
+The eight-hour Starting reference139199164v2 was canceled ONCE and actually
+CANCEL_ACKNOWLEDGED. Its source is preserved. The distinct script
+**139271768v2**, `godlydonuts/rsna-public0958-script-b472091d7a32`, was saved
+and registered ONCE under the canonical claim (CPU949029). Actual source
+SHAaffa4436… has a complete AST equal to preparationb472091d…; all eight
+original cell and credit strings remain byte equal. OriginalR6Datasetv1 was
+pinned. Actual new status remains absent/SDKQUEUED; public qualification and a
+hidden result remain unproven. Twenty-five focused checks pass; no new Dataset
+or competition entry was made. Preserve both healthy scoring owners. A separate
+finite read-only public observer25736 is live; it has no push or entry authority.
+[Actual recovery and exact original controls](../initiative/audits/public0958-script-recovery-20261017-v1/README.md).
+Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
+Authenticated best remains entry57300990 COMPLETE/noerror0.950.
+
+## Focused outside research requested by the owner
+
+The project has **own training progress, but no demonstrated original mechanism
+that beats the reproduced public baseline**. Independently trained N3, initialized
+from general ImageNet weights, reached0.894; S6exact0.950 uses released knee
+weights/inference. The current completed label/sampling/coverage treatments have
+no actual new score yet. Upstream0.958 is external evidence; our new exact script
+remains unqualified/unscored. A public score does not establish private-final
+generalization, and no private-final decline has been observed either.
+
+Complementary research should focus on three concrete gaps:
+
+1. **Generalization and leakage:** audit patient/source grouping and distribution
+   differences; distinguish clean own-model validation from released-encoder
+   exposure. Propose an independent evaluation that does not tune protected gold
+   or confirmation values.
+2. **Supervision:** identify which report-label disagreements correspond to actual
+   errors, uncertainty, or missing findings. Compare alternative targets under
+   matched images/masks/recipe; neither public weak labels nor our labels are
+   clinical ground truth. The current matched label experiment must finish
+   scoring before its benefit is asserted.
+3. **MRI evidence integration:** propose one mechanism that addresses a measured
+   localization, multi-plane, or slice-coverage failure. Explain what the existing
+   disease-specific MIL head cannot represent; parameter count alone is not a
+   mechanism. Avoid repeating an already completed or currently active comparison.
+
+For each lane, return one falsifiable hypothesis, evidence and source citations,
+exact baseline/control, a bounded experiment runnable within24hours, expected
+resource cost, failure criterion, and what would change our next training choice.
+A useful negative result is preferable to an unsupported architectural promise.
+Current-state and original receipts override historical progress paragraphs.
 
 ## Completed CPU research: labels × whole-study coverage
 

@@ -1,12 +1,12 @@
 # Execution handoff
 
-**Actual October17,17:02UTC.** Target0.97; best measured0.950. Read
+**Actual October17,17:39UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Latest execution, October 17, 17:02 UTC
+## Latest execution, October 17, 17:39 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
 comparison **completed all three epochs/1,458 finite updates**, fitting all
@@ -18,9 +18,12 @@ objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
 epochs are now privately verified. Original owner **61037 finished successfully**;
 never restart it or repeat publication. Scoring owner **78386** remains live and
 has advanced the completed fixed-final comparisons. **Uniform qualification
-139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
-and original32-MRI/training-graph checks. CPU948784 prepared the completed label
-model. This is a GPU validation run, not a qualification pass or a hidden score.
+139267646 v1 actually passed** on both T4s:32MRI per device, bit-equal94-view
+inputs and complete learned graph, maximum prediction gap0.0, peak allocated
+2017322496bytes per GPU. The sole scorer then pushed public competition run
+**139269448v1**, `godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf`,
+source24af4c2f…. Its actual outcome is still pending. CPU948784 prepared the
+completed label model. Qualification is engineering evidence, not a hidden score.
 Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
@@ -47,10 +50,19 @@ Its source3161acbe and actual dispatch are now privately fully verified at
 Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
-The exact stronger reference **139199164 v2** is still Queued, unqualified and
-unscored. Official SDK default status is QUEUED when the raw response omits it;
-the expired read-only observer is not a worker failure. Preserve its original
-Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
+The eight-hour Starting reference139199164v2 was canceled ONCE and actually
+CANCEL_ACKNOWLEDGED. Its source is preserved. The distinct script
+**139271768v2**, `godlydonuts/rsna-public0958-script-b472091d7a32`, was saved
+and registered ONCE under the canonical claim (CPU949029). Actual source
+SHAaffa4436… has a complete AST equal to preparationb472091d…; all eight
+original cell and credit strings remain byte equal. OriginalR6Datasetv1 was
+pinned. Actual new status remains absent/SDKQUEUED; public qualification and a
+hidden result remain unproven. Twenty-five focused checks pass; no new Dataset
+or competition entry was made. Preserve both healthy scoring owners. A separate
+finite read-only public observer25736 is live; it has no push or entry authority.
+[Actual recovery and exact original controls](../initiative/audits/public0958-script-recovery-20261017-v1/README.md).
+Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
+Authenticated best remains entry57300990 COMPLETE/noerror0.950.
 
 ## Completed CPU research: labels × whole-study coverage
 
@@ -89,7 +101,8 @@ and [actual recovery/full/private proofs](../initiative/audits/cached-full-study
 | Whole94fixed3 | 139172537v1 | Complete1458; all3private epochs verified;`licensed-parent-whole94-production-20261016-v1` |
 | Uniform16fixed3 | 139192503v1 | Complete1458/all3private verified;`licensed-importance-full-comparison-20261017-v1` |
 | Influence16final | **139220032v1**, terminal**34538** | Complete1458/all3epochs private verified; same sampling root`session-status-finish.*` |
-| Exact0.958reference | **139199164v2**, readonly**47637** | OneUI Save&RunAll committed;Queued (official SDK default), unqualified/unscored |
+| Historical exact reference notebook | **139199164v2**, expired47637 | Actual CANCEL_ACKNOWLEDGED after eight-hour startup stall; source preserved, never retry |
+| Current exact8cell reference script | **139271768v2**, readonly**25736** | Saved once; sourceaffa4436/complete AST and original8cells equal; API status absent/SDKQUEUED, unqualified/unscored |
 | Label-onlyGPUrecovery | **139230981v1**, read-only**60305** | COMPLETE/full recovery accepted13:01UTC; returned identity reconciled without repetition; observer root`s6-source-label-recovery-observer-20261017-v2` |
 | LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1COMPLETE139234107v1/486updates at14:21UTC; owner finished successfully, never restart |
 | LabelE1preservation/E2–3successor | **61037**, finished successfully | `s6-label-fixed3-followthrough-20261017-v2`; all3epochs/1458updates COMPLETE and independently/private verified; finalHF56581aab…; never restart |
@@ -105,7 +118,7 @@ and [actual recovery/full/private proofs](../initiative/audits/cached-full-study
 Inspect live PIDs and original phase intents/results before acting. A finite
 observer's expiry/failure never means its GPU failed. Do not restart old owners.
 
-## One committed public0.958version: observe, never Save again
+## Historical original notebook; current script recovery above supersedes it
 
 Slug`godlydonuts/rsna-public0958-native-300b34417bc1`, notebook139199164,
 **currentv2**, all8code cells SHA
@@ -128,8 +141,9 @@ Canonical original key
 `public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f`
 is`public0958_UI_current_container_pushed`. Its active capacity alias is
 `licensed-parent-full-epoch-serving:exact-public0958-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f`.
-Keep this alias until actual terminal reconciliation. Old capacity code must
-count it while status is absent; unknown is not completion or a free lane.
+The alias was retired only after actualCANCEL_ACKNOWLEDGED/CPU948996. The
+new current script has its own capacity key in the latest execution above.
+Historical unknown status was never treated as a free lane.
 
 Node33 original root:
 `/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1`.

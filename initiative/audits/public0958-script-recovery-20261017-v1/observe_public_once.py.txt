@@ -1,0 +1,66 @@
+"""Finite read-only platform observer; never pushes or submits a candidate."""
+import hashlib,json,os,shlex,subprocess,time,traceback
+from pathlib import Path
+L=Path(__file__).resolve().parent
+program=r'''
+import hashlib,importlib.util,json,os,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('reference_script_public_readonly_observer',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+G=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1');actual=json.loads((G/'batch-pushed.json').read_text());assert actual['CPU_job']=='949029' and actual['kernel_id']==139271768 and actual['version']==2
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim')
+try:claim.mkdir(mode=0o700)
+except FileExistsError:
+ print(json.dumps({'status':'waiting_existing_canonical_owner_no_mutation'}));sys.exit(0)
+owner={'kind':'exact_reference_script_public_readonly_observer','CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner)
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key=actual['canonical_capacity_key'];row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert row['source_sha256']==actual['source_sha256']
+  if row['state']=='full_parent_epoch_reference_script_public_accepted':print(json.dumps(row['actual_public_accepted']));sys.exit(0)
+  assert row['state']=='full_parent_epoch_reference_script_pushed'
+  slug=actual['slug'];kernel=r.kernel('GetKernel',slug,2);assert kernel['metadata']['id']==139271768 and hashlib.sha256(kernel['blob']['source'].encode()).hexdigest()==actual['source_sha256']
+  session=r.kernel('GetKernelSessionStatus',slug,2);status=session.get('status');out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'kernel_id':139271768,'version':2,'source_sha256':actual['source_sha256'],'Kaggle_mutation_calls':0,'competition_entry_or_score':False}
+  original='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';old=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(original,)).fetchone()[0])
+  if status=='COMPLETE':
+   proof=r.output_json(slug,2,'exact8cell-script-accepted.json')
+   assert proof['status']=='actual_exact8cell_reference_script_MRI_and_final_reader_accepted' and proof['all8code_cells_sha256']==actual['all8code_cells_sha256']
+   assert proof['completed_original_cells']==list(range(8)) and proof['rows']==3 and proof['columns']==13 and proof['R6_fallbacks']==0 and proof['R6_bundle_id']=='fe055406fad6a12f' and proof['full_final_reader_output_exists'] is True
+   assert proof['original_public_example_exact_CSV_match'] is True and proof['small_output_proofs']['submission.csv']['sha256']=='5e9ba665f3e30642e18dbb555eb7cbd16ab8a659ffb5f7226c72aaac44c9df1b' and proof['small_output_proofs']['submission.csv']['bytes']==830
+   assert proof['competition_entry'] is False and proof['clinical_or_hidden_score_claim'] is False
+   # Independently download only the tiny public CSV into RAM. Never upload it.
+   csv_path=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/code/scripts/kaggle/output_csv.py');assert hashlib.sha256(csv_path.read_bytes()).hexdigest()=='0e212a3295468aa0a157887e349a86abaab48a728ebb272d5e16a8b1909ecf95'
+   csv_spec=importlib.util.spec_from_file_location('unchanged_bounded_versioned_CSV_transport',csv_path);csv=importlib.util.module_from_spec(csv_spec);csv_spec.loader.exec_module(csv)
+   data=csv.download_csv(r,slug,2);assert len(data)==830 and hashlib.sha256(data).hexdigest()=='5e9ba665f3e30642e18dbb555eb7cbd16ab8a659ffb5f7226c72aaac44c9df1b'
+   out.update(status='actual_exact8cell_script_public_MRI_final_reader_and_CSV_verified',receipt=proof,independent_public_CSV_bytes_SHA_verified_in_RAM=True,actual_account=r.account(),public_example_is_not_a_hidden_score=True)
+   w.new_json(G/'actual-public-accepted.json',out);row.update(state='full_parent_epoch_reference_script_public_accepted',actual_public_accepted=out)
+   # Legacy reference-family state used by unchanged live VM-budget readers.
+   # Explicitly binds acceptance to the replacement, never to canceled notebook v2.
+   old.update(state='public0958_UI_current_container_accepted',actual_current_accepted_candidate=out,legacy_state_scope='Reference family obligation completed by replacement script139271768v2; old notebook139199164v2 remains canceled and unqualified')
+  elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+   out.update(status='actual_exact8cell_script_public_failed',actual_session=session,no_new_competition_entry=True);w.new_json(G/'actual-public-failed.json',out);row.update(state='full_parent_epoch_reference_script_public_failed',actual_public_failed=out);old.update(state='public0958_UI_current_container_failed',actual_current_failed_candidate=out,legacy_state_scope='Replacement script terminal; no clinical accuracy/root cause inferred')
+  else:print(json.dumps(out));sys.exit(0)
+  db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(old,sort_keys=True),original));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),actual['source_sha256'],out['status']));db.commit();print(json.dumps(out),flush=True)
+finally:
+ assert json.loads((claim/'owner.json').read_text())==owner
+ (claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program,'exact_reference_finite_public_observer','exec')
+assert not (L/'public-observation.intent.json').exists()
+(L/'public-observation-program.py.txt').write_text(program)
+with (L/'public-observation.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_elapsed_seconds':36000,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'new_GPU_Dataset_or_entry_mutations':0,'automatic_mutation_retries':False},f,indent=2)
+start=time.monotonic()
+try:
+ while time.monotonic()-start<36000:
+  E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+  cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-ref-script-public','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=360)
+  result={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'public-observation.latest.json').write_text(json.dumps(result,indent=2)+'\n');assert x.returncode==0,x.stderr[-2000:];out=json.loads(x.stdout);(L/'public-observation.progress.json').write_text(json.dumps({'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'actual':out},indent=2)+'\n')
+  if out['status'] in ('actual_exact8cell_script_public_MRI_final_reader_and_CSV_verified','actual_exact8cell_script_public_failed'):
+   (L/'public-observation.result.json').write_text(json.dumps(out,indent=2)+'\n');break
+  time.sleep(120)
+ else:raise TimeoutError('Finite observation expired; inspect the original exact batch, never resubmit it')
+except BaseException:
+ (L/'public-observation.failure.json').write_text(json.dumps({'PID':os.getpid(),'error':traceback.format_exc(),'no_GPU_failure_inferred':True,'no_automatic_restart_or_mutation':True},indent=2)+'\n');raise

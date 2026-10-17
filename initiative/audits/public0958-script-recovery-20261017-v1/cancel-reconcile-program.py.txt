@@ -1,0 +1,27 @@
+
+import hashlib,importlib.util,json,os,sys,time,subprocess
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('reference_cancel_actual_readonly_reconciliation',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+G=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1');intent=json.loads((G/'old-v2-cancel-intent.json').read_text());assert intent['CPU_job']=='948985'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');oldowner={'kind':'stalled_exact_reference_old_v2_UI_cancel_and_ack','CPU_job':'948985'};assert json.loads((claim/'owner.json').read_text())==oldowner
+job=subprocess.check_output(['sacct','-j','948985','--noheader','--parsable2','--format=JobIDRaw,State,ExitCode'],text=True);assert any(x.split('|')[:3]==['948985','FAILED','1:0'] for x in job.splitlines())
+slug='godlydonuts/rsna-public0958-native-300b34417bc1';deadline=time.monotonic()+480
+while True:
+ status=r.kernel('GetKernelSessionStatus',slug,2)
+ if status.get('status') in ('CANCEL_ACKNOWLEDGED','CANCELLED'):break
+ assert status.get('status')=='CANCEL_REQUESTED',status
+ if time.monotonic()>deadline:
+  print(json.dumps({'status':'original_cancellation_still_requested_no_repeat_or_new_GPU','actual_session':status,'canonical_claim_retained':True,'old_CPU_job':'948985','reconciliation_CPU_job':os.environ['SLURM_JOB_ID']}),flush=True);sys.exit(0)
+ time.sleep(5)
+actual=r.kernel('GetKernel',slug,2);assert actual['metadata']['id']==139199164 and hashlib.sha256(actual['blob']['source'].encode()).hexdigest()==intent['old_source_sha256']
+with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+ w.verify_account(db,r);key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';alias='licensed-parent-full-epoch-serving:exact-public0958-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+ row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);capacity_alias=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(alias,)).fetchone()[0]);assert row['state']=='public0958_UI_current_container_pushed' and row['old_v2_packaging_cancel_intent']==intent and capacity_alias['state'].endswith('_pushed') and not (G/'old-v2-cancel-acknowledged.json').exists()
+ out={'status':'exact_old_reference_v2_actual_cancel_acknowledged_for_distinct_script_packaging','CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'kernel_id':139199164,'version':2,'actual_session':status,'original_source_preserved':True,'replacement_source_only_kernel':139271768,'old_alias_retired_only_after_actual_ack':True,'existing_reference_VM_seconds_unchanged':32400,'other_training_and_scorers_untouched':True,'new_GPU_or_competition_entries':0,'original_UI_cancellation_CPU_job':'948985','original_control_failed_only_on_unhandled_intermediate_CANCEL_REQUESTED':True,'read_only_reconciliation_no_second_cancel':True,'actual_old_control_terminal':job}
+ w.new_json(G/'old-v2-cancel-acknowledged.json',out);row.update(state='public0958_packaging_recovery_reference_unfinished',old_v2_actual_cancel=out);capacity_alias.update(state='exact_public0958_UI_cancelled_for_distinct_script_recovery',actual_cancel=out)
+ db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(capacity_alias,sort_keys=True),alias));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),intent['old_source_sha256'],out['status']));db.commit()
+assert json.loads((claim/'owner.json').read_text())==oldowner;(claim/'owner.json').unlink();claim.rmdir();print(json.dumps(out),flush=True)

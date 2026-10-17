@@ -1,9 +1,9 @@
 # Research brief
 
-**October17,17:02UTC.** Target0.97; actual best0.950. See
+**October17,17:39UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
-## Latest execution, October 17, 17:02 UTC
+## Latest execution, October 17, 17:39 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
 comparison **completed all three epochs/1,458 finite updates**, fitting all
@@ -15,9 +15,12 @@ objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
 epochs are now privately verified. Original owner **61037 finished successfully**;
 never restart it or repeat publication. Scoring owner **78386** remains live and
 has advanced the completed fixed-final comparisons. **Uniform qualification
-139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
-and original32-MRI/training-graph checks. CPU948784 prepared the completed label
-model. This is a GPU validation run, not a qualification pass or a hidden score.
+139267646 v1 actually passed** on both T4s:32MRI per device, bit-equal94-view
+inputs and complete learned graph, maximum prediction gap0.0, peak allocated
+2017322496bytes per GPU. The sole scorer then pushed public competition run
+**139269448v1**, `godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf`,
+source24af4c2f…. Its actual outcome is still pending. CPU948784 prepared the
+completed label model. Qualification is engineering evidence, not a hidden score.
 Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
@@ -44,10 +47,19 @@ Its source3161acbe and actual dispatch are now privately fully verified at
 Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
-The exact stronger reference **139199164 v2** is still Queued, unqualified and
-unscored. Official SDK default status is QUEUED when the raw response omits it;
-the expired read-only observer is not a worker failure. Preserve its original
-Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
+The eight-hour Starting reference139199164v2 was canceled ONCE and actually
+CANCEL_ACKNOWLEDGED. Its source is preserved. The distinct script
+**139271768v2**, `godlydonuts/rsna-public0958-script-b472091d7a32`, was saved
+and registered ONCE under the canonical claim (CPU949029). Actual source
+SHAaffa4436… has a complete AST equal to preparationb472091d…; all eight
+original cell and credit strings remain byte equal. OriginalR6Datasetv1 was
+pinned. Actual new status remains absent/SDKQUEUED; public qualification and a
+hidden result remain unproven. Twenty-five focused checks pass; no new Dataset
+or competition entry was made. Preserve both healthy scoring owners. A separate
+finite read-only public observer25736 is live; it has no push or entry authority.
+[Actual recovery and exact original controls](../initiative/audits/public0958-script-recovery-20261017-v1/README.md).
+Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
+Authenticated best remains entry57300990 COMPLETE/noerror0.950.
 
 ## Completed CPU research: labels × whole-study coverage
 

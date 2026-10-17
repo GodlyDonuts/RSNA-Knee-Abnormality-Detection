@@ -1,0 +1,44 @@
+
+import hashlib,importlib.util,json,os,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('exact_stalled_reference_cancel_guard',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+G=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1');replacement=json.loads((G/'quick-save-verified.json').read_text());assert replacement['kernel_id']==139271768 and replacement['actual_batch_GPU_dispatches']==0
+newslug=replacement['slug'];new=r.kernel('GetKernel',newslug,1);assert new['metadata']['id']==139271768 and hashlib.sha256(new['blob']['source'].encode()).hexdigest()==replacement['source_sha256'] and new['metadata']['kernelType']=='script'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');
+wait_deadline=time.monotonic()+90
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<wait_deadline,'Existing canonical claim remains active; no mutation attempted'
+  time.sleep(3)
+owner={'kind':'stalled_exact_reference_old_v2_UI_cancel_and_ack','CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';alias='licensed-parent-full-epoch-serving:exact-public0958-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+  row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);capacity_alias=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(alias,)).fetchone()[0]);assert row['state']=='public0958_UI_current_container_pushed' and capacity_alias['state'].endswith('_pushed') and not row.get('submission_id')
+  slug='godlydonuts/rsna-public0958-native-300b34417bc1';actual=r.kernel('GetKernel',slug,2);assert actual['metadata']['id']==139199164 and hashlib.sha256(actual['blob']['source'].encode()).hexdigest()=='e13e0e84e701c61ac400f9cc39254c7690f66961ffd47ef7dae9ebb2772cabb6'
+  session=r.kernel('GetKernelSessionStatus',slug,2);assert session.get('status') in (None,'QUEUED'),session
+  assert not (G/'old-v2-cancel-intent.json').exists()
+  intent={'status':'ready_one_UI_cancel_of_exact_stalled_old_v2_under_canonical_claim','CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'old_kernel_id':139199164,'old_version':2,'old_script_version':359343744,'old_source_sha256':'e13e0e84e701c61ac400f9cc39254c7690f66961ffd47ef7dae9ebb2772cabb6','actual_UI_observation':'Save & Run All / Starting... 8 hours; draft session off','API_status':session,'replacement_source_only_kernel':139271768,'replacement_source_sha256':replacement['source_sha256'],'UI_R6_version1_selected_and_applied':True,'canonical_alias_retained_until_actual_cancel_ack':True,'existing_reference_VM_seconds_retained':32400,'no_healthy_training_or_other_scorer_canceled':True,'UI_action_deadline_unix':time.time()+180,'automatic_retry':False}
+  w.new_json(G/'old-v2-cancel-intent.json',intent);row['old_v2_packaging_cancel_intent']=intent;db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit();retain=True;print(json.dumps(intent),flush=True)
+  deadline=time.monotonic()+240
+  while time.monotonic()<deadline:
+   status=r.kernel('GetKernelSessionStatus',slug,2)
+   if status.get('status') in ('CANCEL_ACKNOWLEDGED','CANCELLED'):
+    actual=r.kernel('GetKernel',slug,2);assert actual['metadata']['id']==139199164 and hashlib.sha256(actual['blob']['source'].encode()).hexdigest()==intent['old_source_sha256']
+    out={'status':'exact_old_reference_v2_actual_cancel_acknowledged_for_distinct_script_packaging','CPU_job':os.environ['SLURM_JOB_ID'],'at_UTC':w.utcnow(),'kernel_id':139199164,'version':2,'actual_session':status,'original_source_preserved':True,'replacement_source_only_kernel':139271768,'old_alias_retired_only_after_actual_ack':True,'existing_reference_VM_seconds_unchanged':32400,'other_training_and_scorers_untouched':True,'new_GPU_or_competition_entries':0}
+    w.new_json(G/'old-v2-cancel-acknowledged.json',out);row.update(state='public0958_packaging_recovery_reference_unfinished',old_v2_actual_cancel=out)
+    capacity_alias.update(state='exact_public0958_UI_cancelled_for_distinct_script_recovery',actual_cancel=out)
+    db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(capacity_alias,sort_keys=True),alias));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),intent['old_source_sha256'],out['status']));db.commit();retain=False;print(json.dumps(out),flush=True);break
+   assert status.get('status') in (None,'QUEUED'), 'Old run changed state; inspect before any further action: '+json.dumps(status)
+   time.sleep(3)
+  assert not retain,'UI cancellation outcome unresolved: preserve claim and reconcile read-only'
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner
+  (claim/'owner.json').unlink();claim.rmdir()
