@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 07:41 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 08:05 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -14,8 +14,9 @@ proposing new work. [Current state](current-state.md) is the score/job authority
   parameter; it is not the historical frozen DINO model or a tiny adapter.
 - Our sequence-context addition and full-384 inference field each scored **0.948**.
   Neither establishes an improvement over the released 0.949 parent.
-- Full-parent adaptation is running on Kaggle; expanded own-model fitting is
-  running on Newton. Neither has a final/new competition score. The matched
+- Full-parent adaptation is running on Kaggle. Expanded own-model fitting
+  completed0:0/all5184updates, with fixed-final weak macro0.91743158 versus
+  original0.92092535 and no established gain; it has no new competition score. The matched
   importance-sampling production comparison has completed/private-verified uniformE1;
   influenceE1 139154664v1 is also complete/private verified; uniformE2 completed972/private verified; influenceE2 runs.
   Whole94 E2 completed972 and is private verified; original E3 139172537v1 runs.
@@ -209,7 +210,7 @@ Uniform16 E1 actually completed486updates and all5objects are privately fully
 verified; influenceE1 also completed486 and all5objects were independently private
 verified at HFb09816181e2e79eb24563884af5c7ed0e1af40a5. UniformE2 139167076v1
 completed972/all5private objects; influenceE2 139181903v1 runs under the same97530. Expanded N3 original938284 is at
-at least4860/5184 completed updates, with epochs1–15 privately fully verified.
+at least5184/5184 completed updates, with epochs1–16 privately fully verified.
 [Actual new original progress](../initiative/audits/research-progress-20261017-0550-v1/README.md). Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
@@ -327,3 +328,22 @@ Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03
 all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
 under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
 later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+
+## Verified expanded final and original R7 execution,08:05UTC
+
+Expanded original938284 completed0:0/5,184updates and all16epochs are privately
+verified. CPU944038 independently replayed **0.9174315801 versus0.9209253491**,
+delta−0.0034937690, paired conditional95%[−0.0133171112,+0.0060725221],
+2,836defined/1,164undefined of4,000whole-component draws. This is no established
+weak-endpoint gain, not a new Kaggle score. Preserve the original independent
+N3 reference; no best-epoch selection or class splicing.
+[Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
+
+R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
+**Sole finite owner31309** now handles one offline run and one exact code entry,
+then the actual hidden outcome. It waits the currently occupied two-session GPU
+capacity and full prior main/sampling/blend/scout/serving budget, reserving no GPU
+while prerequisites are missing. The numerical Notebook cells are unchanged;
+all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
+fallback and a strict three-MRI/13-column CSV are required.
+[Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).

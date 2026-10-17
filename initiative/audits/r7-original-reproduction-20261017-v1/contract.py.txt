@@ -1,0 +1,121 @@
+"""Contracts around unchanged R7 inference; no training or cloud side effects."""
+import hashlib
+import json
+import math
+
+SOURCE = "cb2a0f57962ca9b6668661e34461aad772ed9ed10d576d32772e7c2898f2e315"
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+INPUTS = ["heliosli/rsna-knee-compact-r7cnxfsss", "nartaa/rsna-knee-publication-swa-weights-20261007", "heliosli/rsna-orthofoundation-fold0-epoch7-20261004"]
+MODELS = [f"E_lrprior_s0_f{i}.pt" for i in range(4)]
+ANATOMY = "5904dd16eb9a4fd7a1caf90ac977f8fe2ef364908598c23c209db3fe7fd1563e"
+SIDE = "ab623e2b619db4917639220fed15202e8c8aedd07c8e298a66a2afc0f153650a"
+FLUID = "be5a1664077300db1fdd0af8daaf44a3ebc41f91152e4f0ec124f805a7a51efb"
+STATE = "7b54a3f774dad3f842d68aaccbb03771806c26c0a3ca3a07fea8575a21f3ead3"
+MODULES = {
+    "px_cache.py": "b13e38a7ad3bd496f8027e02209653e224b0926db4f0853eeb0d076a2d6e2632",
+    "compact_train.py": "04df7e2e154b2c2521696908f272940c63ce17e9b6337b85847fee64504eeaba",
+    "compact_infer.py": "8401812cd63737ec99839d317c4037c4efb445d1baec892fa7481bb30399cc2d",
+    "probe_infer.py": "a6cc31448019c84be5868d0a2ff1d99719b23b0f86110efc03efff3ce6bd6980",
+    "side_common.py": "bbcc5d027834e6a6fd48c4a8cf228e25661b7522c792587c840fe4d7cd5c0566",
+    "knee_anchor_bank_v2.py": "e564807a129dfcd3c984348917436ee6083066a4d685340587ebd1d3ea14f309",
+}
+
+
+def cells(text):
+    value = json.loads(text)
+    if value.get("nbformat") != 4 or not isinstance(value.get("cells"), list):
+        raise ValueError("Native original Notebook required")
+    result = []
+    for cell in value["cells"]:
+        if cell.get("cell_type") == "code":
+            content = cell["source"]
+            if isinstance(content, list) and all(isinstance(x, str) for x in content):
+                content = "".join(content)
+            if not isinstance(content, str):
+                raise ValueError("Code-cell bytes required")
+            result.append(content)
+    if not result:
+        raise ValueError("Nonempty original code required")
+    return result
+
+
+def exact_cells(original, returned):
+    left, right = cells(original), cells(returned)
+    if left != right:
+        raise ValueError("Every executed code cell and its order must stay byte identical")
+    raw = json.dumps(left, ensure_ascii=False, separators=(",", ":")).encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def metadata_contract(metadata):
+    if not (metadata.get("isPrivate") is True and metadata.get("enableInternet") is False
+            and metadata.get("enableGpu") is True and metadata.get("kernelType") == "notebook"
+            and metadata.get("machineShape") == "NvidiaTeslaT4"
+            and metadata.get("dockerImage") == DOCKER
+            and sorted(metadata.get("datasetDataSources", [])) == sorted(INPUTS)
+            and metadata.get("competitionDataSources") == ["rsna-knee-abnormality-detection"]
+            and not metadata.get("kernelDataSources", [])):
+        raise ValueError("Exact private offline original Docker/two-T4/input binding required")
+
+
+def budget(quota, *, unfinished_main, known_main_reserved, unfinished_sampling,
+           blend_unfinished, scout_unfinished):
+    def duration(value):
+        if not isinstance(value, str) or not value.endswith("s"):
+            raise ValueError("Fresh authoritative seconds required")
+        seconds = float(value[:-1])
+        if not math.isfinite(seconds) or seconds < 0:
+            raise ValueError("Finite nonnegative duration required")
+        return seconds
+    if any(type(x) is not int or x < 0 for x in (unfinished_main, known_main_reserved, unfinished_sampling)):
+        raise ValueError("All actual unfinished liabilities required")
+    if type(blend_unfinished) is not bool or type(scout_unfinished) is not bool:
+        raise ValueError("Explicit sibling obligations required")
+    total, minimum, used, reserved = [duration(quota[k]) for k in ("totalTimeAllowed", "minimumTimeAllowed", "timeUsed", "timeReserved")]
+    if not total >= minimum > 0:
+        raise ValueError("Actual allowance required")
+    allowed = total if quota.get("isPayToScaleEnabled") is True else minimum
+    available = allowed - used - reserved + min(reserved, known_main_reserved)
+    required = unfinished_main + unfinished_sampling + 3600 + 32400
+    required += 32400 if blend_unfinished else 0
+    required += 1800 if scout_unfinished else 0
+    return {"allowed": available >= required, "funded_VM_seconds": available,
+            "required_VM_seconds": required, "own_maximum_VM_seconds": 32400,
+            "fixed_blend_VM_liability": 32400 if blend_unfinished else 0,
+            "scout_VM_liability": 1800 if scout_unfinished else 0,
+            "serving_reserve_seconds": 3600, "fresh_GPU_quota": quota,
+            "no_account_or_billing_change": True}
+
+
+def public_receipts(blend, receipt):
+    expected_weights = {"raptor": 0.5, "ours": 0.5, "raptor_per_class": {"Medial OA": 0.5, "Lateral OA": 0.5, "PF OA": 0.5}}
+    if not (blend.get("weights") == expected_weights and blend.get("rows") == 3
+            and blend.get("raptor_failed") == blend.get("ours_failed") == blend.get("both_failed") == 0
+            and blend.get("mode") == "blend" and 0 < blend.get("total_seconds", 0) < 32400):
+        raise ValueError("Both complete original lineages with fixed ranks and no public fallback required")
+    if not (receipt.get("status") == "PASS" and receipt.get("rows") == receipt.get("scored") == 3
+            and receipt.get("fallback_studies") == 0 and receipt.get("bundle_id") == "8c7b666e27dc0e8f"
+            and receipt.get("arm") == "E_lrprior" and receipt.get("worker") == "compact_infer.py"
+            and len(receipt.get("gpus", [])) == 2 and all("T4" in n for n in receipt["gpus"])
+            and len(receipt.get("worker_exit_codes", {})) == 2
+            and all(v == 0 for v in receipt["worker_exit_codes"].values())):
+        raise ValueError("Actual two-worker/T4 public inference required")
+    workers = receipt.get("workers", [])
+    if len(workers) != 2 or sum(w.get("scored", 0) for w in workers) != 3:
+        raise ValueError("Both original workers must score their actual assignment")
+    for w in workers:
+        if not (w.get("status") == "PASS" and w.get("studies") == w.get("scored") and w["scored"] > 0
+                and not w.get("fallback") and not w.get("timed_out")
+                and sorted(w.get("models", [])) == MODELS and w.get("backbone") == "convnext_small"
+                and w.get("spatial_models") == w.get("extent_models") == w.get("syn_decomp_models") == 4
+                and w.get("crop") == 352 and w.get("views") == "v4" and w.get("phys_mm") == 3.5
+                and w.get("amp") == "fp16" and "T4" in w.get("gpu", "")
+                and w.get("sha256") == MODULES and w.get("anchor_weights_sha256") == ANATOMY
+                and w.get("side_check", {}).get("model_sha256") == SIDE
+                and w.get("fluid_stacker", {}).get("sha256") == FLUID
+                and w.get("state_stacker", {}).get("sha256") == STATE):
+            raise ValueError("All4 original fold graphs, numerical modules and physical assets must execute")
+    return {"original_fold_models_per_worker": 4, "two_T4_workers": 2,
+            "both_lineages_public_failures": 0, "MRI_studies": 3,
+            "runtime_seconds": blend["total_seconds"], "AMP": "fp16",
+            "actual_hidden_score_or_runtime_claim": False}

@@ -1,5 +1,9 @@
 # Complete initiative record
 
+Latest verified follow-up: [expanded2592 fixed-final negative](audits/compact-expanded2592-fixed-final-20261017-v1/README.md)
+and [the admitted original R7 single-run/entry owner](audits/r7-original-reproduction-20261017-v1/README.md).
+No new project score is claimed; target0.97 remains open.
+
 Latest actual evidence: [S6 exact code entry57300990, uniformE2 and expandedE15](audits/research-progress-20261017-0735-v1/README.md),
 [public0.956 R7 source/manifest/private weights](audits/r7-public-reference-admission-20261017-v1/README.md),
 [fixed equal-rank deployment](audits/s6-equalrank-deployment-20261017-v1/README.md),

@@ -1,0 +1,128 @@
+"""Finite single owner: exact R7 offline run, one code entry, actual hidden outcome."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+WAIT = {'waiting_canonical_claim_without_mutation', 'waiting_R7_actual_all_future_VM_budget_or_two_session_capacity_without_mutation'}
+
+
+def transaction(call, observe, now, sleep, *, GPU_deadline, public_deadline, entry_deadline, outcome_deadline):
+    pushed = None
+    while now() < GPU_deadline:
+        event = call('push')
+        observe('fresh_GPU_admission', event)
+        if event['status'] == 'one_exact_original_R7_offline_notebook_pushed':
+            pushed = event
+            break
+        if event['status'] not in WAIT:
+            raise RuntimeError('Unexpected R7 admission; reconcile without retrying a mutation')
+        sleep(180, GPU_deadline)
+    if pushed is None:
+        return {'status': 'finite_R7_admission_expired_without_GPU_or_entry', 'GPU_runs': 0, 'competition_entries': 0}
+    accepted = None
+    while now() < public_deadline:
+        event = call('status')
+        observe('same_original_public_notebook', event)
+        if event['status'] == 'waiting_canonical_claim_without_mutation':
+            sleep(60, public_deadline)
+            continue
+        if event['status'] in ('ERROR', 'CANCELLED'):
+            return {'status': 'actual_original_R7_public_failure_no_entry_or_retry', 'actual': event, 'GPU_runs': 1, 'competition_entries': 0}
+        if event['status'] == 'COMPLETE':
+            if event['accepted']['status'] != 'actual_original_R7_two_T4_all4_folds_both_lineages_public_MRI_CSV_accepted':
+                raise RuntimeError('Wrong original R7 source/model/public acceptance')
+            accepted = event
+            break
+        sleep(60, public_deadline)
+    if accepted is None:
+        return {'status': 'finite_R7_public_observation_expired_not_job_terminal_evidence', 'original_push': pushed, 'GPU_runs': 1, 'competition_entries': 0, 'automatic_retry': False}
+    submitted = None
+    while now() < entry_deadline:
+        event = call('eligibility')
+        observe('fresh_authoritative_entry_allowance', event)
+        if event['status'] == 'waiting_canonical_claim_without_mutation':
+            sleep(60, entry_deadline)
+            continue
+        if event['status'] != 'original_R7_entry_eligibility_readonly':
+            raise RuntimeError('Unexpected exact R7 eligibility; read-only reconciliation required')
+        if not event['eligible']:
+            sleep(300, entry_deadline)
+            continue
+        event = call('submit')
+        observe('one_exact_code_entry_phase', event)
+        if event['status'] == 'waiting_canonical_claim_without_mutation':
+            sleep(60, entry_deadline)
+            continue
+        if event['status'] == 'original_R7_entry_eligibility_readonly' and not event['eligible']:
+            sleep(180, entry_deadline)
+            continue
+        if event['status'] != 'one_exact_original_R7_offline_code_submission_accepted':
+            raise RuntimeError('Unexpected R7 mutation response; never repeat the entry')
+        submitted = event
+        break
+    if submitted is None:
+        return {'status': 'finite_R7_entry_window_expired_without_entry', 'actual_public_accepted': accepted, 'GPU_runs': 1, 'competition_entries': 0}
+    sleep(180, outcome_deadline)
+    while now() < outcome_deadline:
+        event = call('outcome')
+        observe('same_exact_actual_hidden_outcome', event)
+        if event['status'] == 'waiting_canonical_claim_without_mutation':
+            sleep(60, outcome_deadline)
+            continue
+        if event['status'] != 'actual_original_R7_hidden_outcome_readonly':
+            raise RuntimeError('Wrong exact hidden observer response')
+        if event['outcome'] in ('scored', 'failed'):
+            return {'status': 'one_exact_original_R7_actual_hidden_terminal', 'actual': event, 'GPU_runs': 1, 'competition_entries': 1}
+        sleep(300, outcome_deadline)
+    return {'status': 'finite_R7_hidden_observation_expired_without_terminal_claim', 'actual_submission': submitted, 'GPU_runs': 1, 'competition_entries': 1, 'automatic_retry': False}
+
+
+def main():
+    L = Path(__file__).resolve().parent
+    assert not (L / 'finish.intent.json').exists()
+    admission = json.loads((L / 'actual-controller-admitted.json').read_text())
+    assert admission['status'] == 'unchanged_native_R7_single_run_single_entry_controller_admitted_without_GPU'
+    frozen = {name: hashlib.sha256((L / name).read_bytes()).hexdigest() for name in ('program.py.txt', 'contract.py.txt', 'run_phase_once.py')}
+    assert frozen['program.py.txt'] == admission['program_sha256']
+    assert frozen['contract.py.txt'] == admission['contract_sha256']
+    deadlines = {'GPU_deadline': datetime(2026, 10, 17, 18, tzinfo=timezone.utc).timestamp(), 'public_deadline': datetime(2026, 10, 18, 3, 30, tzinfo=timezone.utc).timestamp(), 'entry_deadline': datetime(2026, 10, 18, 18, tzinfo=timezone.utc).timestamp(), 'outcome_deadline': datetime(2026, 10, 19, 4, tzinfo=timezone.utc).timestamp()}
+    assert time.time() < deadlines['GPU_deadline'] < deadlines['public_deadline'] < deadlines['entry_deadline'] < deadlines['outcome_deadline']
+    with (L / 'finish.intent.json').open('x') as f:
+        json.dump({'PID': os.getpid(), 'immutable_files': frozen, 'source_sha256': 'cb2a0f57962ca9b6668661e34461aad772ed9ed10d576d32772e7c2898f2e315', 'maximum_GPU_runs': 1, 'maximum_session_seconds': 32400, 'maximum_code_entries': 1, 'deadlines_UTC': {k: datetime.fromtimestamp(v, timezone.utc).isoformat() for k, v in deadlines.items()}, 'fresh_actual_allowance_no_assumed_reset_time': True, 'all_other_future_main_sampling_blend_scout_obligations_preserved': True, 'new_Dataset_or_weight_uploads': 0, 'public_CSV_uploaded': False, 'automatic_retry': False}, f, indent=2)
+    start = time.monotonic()
+
+    def observe(phase, actual):
+        (L / 'finish.progress.json').write_text(json.dumps({'PID': os.getpid(), 'phase': phase, 'elapsed_seconds': time.monotonic() - start, 'actual': actual}, indent=2) + '\n')
+        names = {'one_exact_original_R7_offline_notebook_pushed': 'actual-pushed.json', 'one_exact_original_R7_offline_code_submission_accepted': 'actual-submitted.json', 'COMPLETE': 'actual-public-accepted.json'}
+        if actual['status'] in names:
+            (L / names[actual['status']]).write_text(json.dumps(actual, indent=2) + '\n')
+
+    def sleep(seconds, deadline):
+        until = min(time.time() + seconds, deadline)
+        while time.time() < until:
+            time.sleep(min(30, max(0.01, until - time.time())))
+
+    def call(phase):
+        assert all(hashlib.sha256((L / name).read_bytes()).hexdigest() == digest for name, digest in frozen.items())
+        child = subprocess.run([sys.executable, str(L / 'run_phase_once.py'), phase], capture_output=True, text=True, timeout=700)
+        with (L / ('child-' + str(time.monotonic_ns()) + '.json')).open('x') as f:
+            json.dump({'phase': phase, 'returncode': child.returncode, 'stdout': child.stdout, 'stderr': child.stderr}, f, indent=2)
+        assert child.returncode == 0, 'Exact R7 phase stopped; no automatic retry before read-only reconciliation'
+        return json.loads(child.stdout)
+
+    try:
+        result = transaction(call, observe, time.time, sleep, **deadlines)
+        (L / 'finish.result.json').write_text(json.dumps(result, indent=2) + '\n')
+        print(json.dumps(result), flush=True)
+    except BaseException as error:
+        (L / 'finish.result.json').write_text(json.dumps({'status': 'stopped_original_R7_owner_for_readonly_reconciliation', 'error_type': type(error).__name__, 'reason': str(error), 'automatic_retry': False}, indent=2) + '\n')
+        raise
+
+
+if __name__ == '__main__':
+    main()

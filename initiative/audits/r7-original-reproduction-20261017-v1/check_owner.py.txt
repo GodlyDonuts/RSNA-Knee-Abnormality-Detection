@@ -1,0 +1,66 @@
+"""Finite ownership paths; synthetic client events are not real Kaggle outcomes."""
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('R7_finite_owner_only', L / 'finish_once.py')
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+P = {'status': 'one_exact_original_R7_offline_notebook_pushed'}
+A = {'status': 'COMPLETE', 'accepted': {'status': 'actual_original_R7_two_T4_all4_folds_both_lineages_public_MRI_CSV_accepted'}}
+E = {'status': 'original_R7_entry_eligibility_readonly', 'eligible': True}
+S = {'status': 'one_exact_original_R7_offline_code_submission_accepted'}
+H = {'status': 'actual_original_R7_hidden_outcome_readonly', 'outcome': 'scored'}
+passed = 0
+
+
+def run(events, *, expire=False, raises=False, expire_after=1):
+    global passed
+    clock = [0]
+    sleeps = [0]
+    calls = []
+
+    def call(phase):
+        calls.append(phase)
+        expected, value = events.pop(0)
+        assert expected == phase
+        if isinstance(value, BaseException):
+            raise value
+        return value
+
+    def sleep(seconds, deadline):
+        sleeps[0] += 1
+        clock[0] = deadline if expire and sleeps[0] >= expire_after else clock[0] + 1
+
+    try:
+        result = m.transaction(call, lambda *_: None, lambda: clock[0], sleep, GPU_deadline=10, public_deadline=20, entry_deadline=30, outcome_deadline=40)
+        assert not raises
+    except RuntimeError:
+        assert raises
+        result = {'raised': True}
+    assert not events
+    assert calls.count('submit') <= 1
+    assert calls.count('push') <= 1 or calls[0] == 'push'
+    passed += 1
+    return result, calls
+
+
+r, calls = run([('push', {'status': 'waiting_R7_actual_all_future_VM_budget_or_two_session_capacity_without_mutation'}), ('push', P), ('status', A), ('eligibility', E), ('submit', S), ('outcome', H)])
+assert r['competition_entries'] == 1 and calls.count('submit') == 1
+r, calls = run([('push', P), ('status', {'status': 'ERROR'})])
+assert r['competition_entries'] == 0 and 'submit' not in calls
+r, calls = run([('push', {'status': 'waiting_canonical_claim_without_mutation'})], expire=True)
+assert r['GPU_runs'] == r['competition_entries'] == 0
+r, calls = run([('push', P), ('status', {'status': 'RUNNING'})], expire=True)
+assert r['competition_entries'] == 0 and 'not_job_terminal_evidence' in r['status']
+r, calls = run([('push', P), ('status', A), ('eligibility', {'status': 'original_R7_entry_eligibility_readonly', 'eligible': False})], expire=True)
+assert r['competition_entries'] == 0 and 'submit' not in calls
+r, calls = run([('push', P), ('status', A), ('eligibility', E), ('submit', RuntimeError('uncertain response'))], raises=True)
+assert calls.count('submit') == 1
+r, calls = run([('push', P), ('status', A), ('eligibility', E), ('submit', S), ('outcome', {'status': 'actual_original_R7_hidden_outcome_readonly', 'outcome': 'pending_or_unknown'})], expire=True, expire_after=2)
+assert r['competition_entries'] == 1 and 'without_terminal_claim' in r['status']
+out = {'status': 'original_R7_finite_owner_paths_checked_no_cloud_or_model_execution', 'paths_passed': passed, 'owner_sha256': hashlib.sha256((L/'finish_once.py').read_bytes()).hexdigest(), 'check_program_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'new_GPU_or_entries_from_checks': 0}
+(L/'owner-checked.json').write_text(json.dumps(out, indent=2)+'\n')
+print(json.dumps(out))

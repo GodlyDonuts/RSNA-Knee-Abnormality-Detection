@@ -1,0 +1,10 @@
+import hashlib,json,os,sys;from pathlib import Path
+import torch
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-R7-checkpoint-admission-20261017-v1');P=R/'graph-metadata.json';assert not P.exists();proof=json.loads((R/'verified.json').read_text());rows=[]
+for i in range(4):
+ n=f'E_lrprior_s0_f{i}.pt';p=R/n;x=proof['files'][n];s=p.stat();assert s.st_size==x['bytes'] and s.st_mtime_ns==x['original_stat_mtime_ns']
+ state=torch.load(p,weights_only=True,map_location='meta',mmap=True);assert isinstance(state,dict) and all(isinstance(k,str) for k in state)
+ row={'name':n,'source_original_SHA':x['sha256'],'tensors':len(state),'all_tensor_devices_meta_no_values_read':all(t.device.type=='meta' for t in state.values() if isinstance(t,torch.Tensor)),'spatial':any(k=='sp_q' or k.endswith('.sp_q') for k in state),'extent':any(k.split('.')[-1] in ('ext_u','ext_view','ext_gamma') for k in state),'syn_decomp':any(k=='syn_beta' or k.endswith('.syn_beta') for k in state)}
+ assert row['all_tensor_devices_meta_no_values_read'] and row['spatial'] and row['extent'] and row['syn_decomp'];rows.append(row);del state
+out={'status':'actual_R7_existing4_fold_meta_headers_confirm_original_public_graph_guards','CPU_job':os.environ['SLURM_JOB_ID'],'files':rows,'models':4,'original_size_SHA_proofs_reused':True,'mmap_meta_only_no_tensor_numeric_values_or_CNN_read':True,'new_GPU_MRI_inference_or_fitting':0,'new_weight_download_or_whole_hash':0};P.write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

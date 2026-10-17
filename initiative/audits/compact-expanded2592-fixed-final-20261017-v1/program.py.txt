@@ -1,0 +1,46 @@
+
+import argparse,hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=PACKAGE;assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+slurm=subprocess.check_output(['sacct','-X','-j','938284','-n','-P','--format=State,ExitCode,Elapsed'],text=True).strip();assert slurm.startswith('COMPLETED|0:0|')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+ROOT=Path('/tmp/rsna-compact-expanded2592-production-20261016-v1');O=ROOT/'production';B=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production');S=Path('/tmp/rsna-compact-expanded2592-engine-20261016-v1/code');R=Path('/tmp/rsna-compact-expanded2592-fixed-final-20261017-v1')
+assert not R.exists() and shutil.disk_usage('/tmp').free>611754508347
+retained=sum(p.stat().st_size for p in ROOT.rglob('*') if p.is_file());assert retained+2*2**20<16*2**30
+I=Path('/tmp/rsna-compact-expanded2592-inputs-20261016-v1/inputs/accepted.json');assert sha(I)=='235538195accbac10369779324f10c3fbd7eea42981c95a7164144a17591c3de'
+admitted=json.loads(I.read_text());assert admitted['all_old_labels_masks_and_outer_unchanged'] and admitted['old_image_tensor_parity'] and admitted['source_MRI_payload_bytes_copied']==0
+result=json.loads((O/'result.json').read_text());run=json.loads((O/'run.json').read_text());b=run['binding'];base=json.loads((B/'run.json').read_text())['binding'];terminal=json.loads((ROOT/'invocations/938284/terminal.json').read_text())
+assert result['status']=='fixed_final_fit_complete' and result['optimizer_steps']==result['total_steps']==5184 and result['diagnostic_only'] is False
+assert terminal['status']=='fixed_final_expanded2592_production_complete' and terminal['actual_integer_child_returncode']==0 and terminal['result_sha256']==sha(O/'result.json')
+assert b['engine']=='native_coatnet_bag12_N3_full_v1' and b['fitting_count']==2592 and b['total_steps']==5184 and b['settings']['epochs']==16
+assert b['fitting_population']['sixteen_passes_updates']==5184 and b['fitting_population']['compute_matched_to_original'] is False
+for key in ('release','outer_uids_sha256','folds_file_sha256','initialization_sha256','initialization_revision','architecture','timm_version','targets','native_input','initial_head_sha256','settings','engine','torch_version','runtime','sampler'):assert b[key]==base[key],key
+for name,digest in b['source_sha256'].items():assert sha(S/name)==digest
+original=v['original_verified'];assert original['model_state_equals_immutable_privately_verified_E16'] and original['source_git']=='dcfff319cb7bd7bbae679a20da2b1b9268e8d680'
+side=json.loads((O/'epoch-checkpoints/epoch-016.json').read_text());published=json.loads((ROOT/'publication/epoch-016/verified.json').read_text());assert published==v['epoch16'] and published['files_verified_by_download']==9
+assert side['optimizer_steps']==5184 and side['epoch']==16 and side['checkpoint_sha256']==published['checkpoint_sha256'] and (O/'epoch-checkpoints/epoch-016.pt').stat().st_size==side['checkpoint_bytes']
+R.mkdir(mode=0o700);C=R/'analysis-code'
+for name,text in v['analysis_source'].items():
+ p=C/name;p.parent.mkdir(parents=True,exist_ok=True,mode=0o700);p.write_text(text)
+sys.path[:0]=[str(C),str(S),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import numpy as np,pandas as pd,torch
+from rsna.competitive.compact_expanded_train import admitted_datasets
+from rsna.schema import TARGETS
+from scripts.research.compare_smooth_witness import paired_metrics
+torch.set_num_threads(1)
+assert sha(O/'checkpoint.pt')==result['checkpoint_sha256']
+state=torch.load(O/'checkpoint.pt',map_location='cpu',weights_only=True);snapshot=torch.load(O/'epoch-checkpoints/epoch-016.pt',map_location='cpu',weights_only=True)
+assert state['binding']==snapshot['binding']==b and state['optimizer_boundary'] and state['epoch']==16 and state['cursor']==0 and state['optimizer_steps']==5184 and len(state['history'])==5184
+assert set(state['model'])==set(snapshot['model']) and all(torch.equal(value,snapshot['model'][name]) for name,value in state['model'].items())
+for index,row in enumerate(state['history']):assert row['step']==index+1 and np.isfinite([row['loss'],row['gradient_norm'],row['active_cells'],*row['learning_rates']]).all()
+del state,snapshot
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');fit,outer,binding=admitted_datasets(argparse.Namespace(artifact_root=A,input_admission=I,engineering=False));assert len(fit)==2592 and len(outer)==1156
+for name,value in binding.items():assert b[name]==value,name
+models={}
+for role,path,expected in [('control',B/'outer_predictions.csv',original['outer_predictions_sha256']),('candidate',O/'outer_predictions.csv',result['predictions_sha256'])]:
+ assert sha(path)==expected;frame=pd.read_csv(path,dtype={'study_uid':str});assert list(frame.columns)==['study_uid',*TARGETS] and len(frame)==1156 and not frame.study_uid.duplicated().any() and set(frame.study_uid)==set(outer.studies.study_uid) and not set(frame.study_uid)&set(fit.studies.study_uid);models[role]=frame.set_index('study_uid')
+labels=outer.studies.set_index('study_uid').loc[sorted(models['control'].index)];analysis=paired_metrics(labels,models,draws=4000,seed=20261001);analysis.pop('primary_meniscus')
+assert abs(analysis['macro_auc']['candidate']-result['metrics']['macro_auc'])<1e-12 and abs(analysis['macro_auc']['control']-original['macro_auc'])<1e-12
+for row in analysis['targets']:assert abs(row['auc']['candidate']-result['metrics']['per_target_auc'][row['target']])<1e-12
+receipt={'status':'actual_expanded2592_fixed16_complete_state_roster_and_paired_outer_verified','CPU_job':os.environ['SLURM_JOB_ID'],'Slurm':slurm,'training_job':'938284','scientific_source_git':'a1ca238526dad75b2a5cea46edba44fd95c71938','primary_contrast':'additional345_fitting_studies_and_more_updates_same16epochs_not_compute_matched','fitting_studies':2592,'original_fitting_studies':2247,'outer_studies':1156,'epochs':16,'optimizer_steps':5184,'original_optimizer_steps':4496,'all5184_updates_finite_and_contiguous':True,'complete_final_model_equals_original_immutable_private_E16':True,'original_immutable_E16_SHA_proof_reused_not_rehashed':True,'source_initial_head_settings_base_release_folds_outer_labels_masks_and_rosters_match_original':True,'source_and_actual_expanded_input_bindings_exact':True,'checkpoint_sha256':result['checkpoint_sha256'],'immutable_E16_sha256':side['checkpoint_sha256'],'private_E16_revision':published['revision'],'result_sha256':sha(O/'result.json'),'predictions_sha256':result['predictions_sha256'],'analysis_source_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['analysis_source'].items()},'primary_endpoint':'fixed_final_full12_macro_candidate_minus_original_N3_same1156_weak_outer','analysis':analysis,'independent_clinical_accuracy_or_Kaggle_score':False,'Gold_confirmation_used':False,'new_MRI_inference_GPU_model_fitting_or_pixel_transfers':0,'private_clinical_rows_exported':False,'within_original16GiB_production_and_publication_envelope':True,'existing_retained_root_bytes':retained,'new_small_control_cap_bytes':2*2**20}
+(R/'verified.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n');print(json.dumps(receipt),flush=True)

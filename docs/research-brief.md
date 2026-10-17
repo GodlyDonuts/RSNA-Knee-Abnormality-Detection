@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 07:41 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 08:05 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -17,15 +17,16 @@ None demonstrates an improvement over 0.949.
 The active questions are whether full-encoder adaptation improves a strong
 MRI-trained initialization, and whether better observations per update improve
 learning under a fixed compute budget. Whole-94 adaptation completed two epochs/972updates on both T4s;
-its exact final continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
+its exact final continuation is API RUNNING. Expanded own-model fitting finished0:0; its fixed-final paired weak comparison is now verified. Matched
 uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
 were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
 are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 runs**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
-139172537v1 is RUNNING. Expanded N3 has epochs1–15 privately fully verified,
-at least4860/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
-there is no demonstrated new gain or fixed-final result yet.
+139172537v1 is RUNNING. Expanded N3 has epochs1–16 privately fully verified,
+at least5184/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
+there is no demonstrated public gain. Expanded fixed-final weak macro0.91743158
+versus0.92092535 original has no established primary improvement.
 [Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 The fresh [official Public leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
@@ -280,3 +281,22 @@ Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03
 all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
 under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
 later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+
+## Verified expanded final and original R7 execution,08:05UTC
+
+Expanded original938284 completed0:0/5,184updates and all16epochs are privately
+verified. CPU944038 independently replayed **0.9174315801 versus0.9209253491**,
+delta−0.0034937690, paired conditional95%[−0.0133171112,+0.0060725221],
+2,836defined/1,164undefined of4,000whole-component draws. This is no established
+weak-endpoint gain, not a new Kaggle score. Preserve the original independent
+N3 reference; no best-epoch selection or class splicing.
+[Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
+
+R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
+**Sole finite owner31309** now handles one offline run and one exact code entry,
+then the actual hidden outcome. It waits the currently occupied two-session GPU
+capacity and full prior main/sampling/blend/scout/serving budget, reserving no GPU
+while prerequisites are missing. The numerical Notebook cells are unchanged;
+all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
+fallback and a strict three-MRI/13-column CSV are required.
+[Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).

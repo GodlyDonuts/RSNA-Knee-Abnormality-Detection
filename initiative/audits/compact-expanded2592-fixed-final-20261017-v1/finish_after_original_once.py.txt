@@ -1,0 +1,48 @@
+"""Wait on the same actual original job, then perform at most one CPU comparison."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+assert not (L / 'finish.intent.json').exists() and not (L / 'dispatch.intent.json').exists()
+files = {n: hashlib.sha256((L / n).read_bytes()).hexdigest() for n in ('program.py.txt', 'run_once.py')}
+deadline = datetime(2026, 10, 17, 18, tzinfo=timezone.utc).timestamp()
+start = time.monotonic()
+with (L / 'finish.intent.json').open('x') as f:
+    json.dump({'PID': os.getpid(), 'original_job': '938284', 'original_node': 'evc33', 'immutable_sources': files, 'deadline_UTC': datetime.fromtimestamp(deadline, timezone.utc).isoformat(), 'maximum_CPU_comparisons': 1, 'new_GPU_jobs_MRI_inference_or_fitting': 0, 'automatic_mutation_retry': False}, f, indent=2)
+try:
+    while time.time() < deadline:
+        try:
+            r = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', 'newton', 'sacct', '-X', '-j', '938284', '-n', '-P', '--format=State,ExitCode,Elapsed'], capture_output=True, text=True, timeout=30)
+            lines = [x for x in r.stdout.splitlines() if x.strip()]
+            if r.returncode or len(lines) != 1:
+                raise OSError('Original observation unavailable; not terminal evidence')
+            state, exitcode, elapsed = lines[0].split('|')[:3]
+            progress = {'phase': 'observing_same_original_actual_Slurm', 'PID': os.getpid(), 'original_job': '938284', 'state': state, 'exitcode': exitcode, 'original_elapsed': elapsed, 'elapsed_seconds': time.monotonic() - start}
+        except (OSError, subprocess.TimeoutExpired):
+            progress = {'phase': 'original_observation_unavailable_not_terminal_evidence', 'PID': os.getpid(), 'original_job': '938284', 'elapsed_seconds': time.monotonic() - start}
+            state = None
+        (L / 'finish.progress.json').write_text(json.dumps(progress, indent=2) + '\n')
+        if state == 'COMPLETED':
+            assert exitcode == '0:0' and all(hashlib.sha256((L / n).read_bytes()).hexdigest() == h for n, h in files.items())
+            child = subprocess.run([sys.executable, str(L / 'run_once.py')], capture_output=True, text=True, timeout=900)
+            (L / 'child.result.private.json').write_text(json.dumps({'returncode': child.returncode, 'stdout': child.stdout, 'stderr': child.stderr}, indent=2) + '\n')
+            assert child.returncode == 0, 'Actual CPU final comparison stopped; original output requires read-only review'
+            result = {'status': 'original_expanded2592_actual_fixed_final_CPU_verified', 'new_GPU_MRI_inference_or_fit': 0, 'actual': json.loads(child.stdout)}
+            break
+        if state not in (None, 'PENDING', 'RUNNING', 'COMPLETING', 'CONFIGURING', 'SUSPENDED', 'REQUEUED'):
+            raise RuntimeError('Original actual terminal before accepted fixed-final result: ' + state)
+        until = min(time.time() + 90, deadline)
+        while time.time() < until:
+            time.sleep(min(30, max(.01, until-time.time())))
+    else:
+        result = {'status': 'finite_original_expanded2592_observation_expired_not_terminal_evidence', 'new_GPU_MRI_inference_or_fit': 0}
+except BaseException as error:
+    result = {'status': 'stopped_original_expanded_final_observer_for_readonly_review', 'error_type': type(error).__name__, 'reason': str(error), 'new_GPU_MRI_inference_or_fit': 0, 'automatic_retry': False}
+(L / 'finish.result.json').write_text(json.dumps(result, indent=2) + '\n')
+print(json.dumps(result), flush=True)

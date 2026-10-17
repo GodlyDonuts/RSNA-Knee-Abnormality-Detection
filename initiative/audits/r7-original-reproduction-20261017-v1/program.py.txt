@@ -1,0 +1,255 @@
+"""One canonical R7 phase; original native Notebook and numerical cells unchanged."""
+import ast
+import csv
+import hashlib
+import importlib.util
+import io
+import json
+import math
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+from urllib.parse import urljoin, urlparse
+
+import requests
+
+v = R7
+phase = v['phase']
+assert phase in ('admit', 'push', 'status', 'eligibility', 'submit', 'outcome')
+assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+exec(compile(v['contract'], 'R7_original_pure_contract', 'exec'), globals())
+P = Path('/tmp/rsna-R7-checkpoint-admission-20261017-v1')
+D = P / 'original-offline-v1'
+O = Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1')
+source = (D / 'source.private.ipynb').read_text()
+assert hashlib.sha256(source.encode()).hexdigest() == SOURCE
+key = 'licensed-parent-full-epoch-serving:R7-public0956:' + SOURCE
+slug = 'godlydonuts/rsna-r7-public0956-offline-' + SOURCE[:12]
+proof = json.loads((P / 'verified.json').read_text())
+assert proof['objects'] == 8 and proof['source_bundle_id'] == '8c7b666e27dc0e8f'
+assert shutil.disk_usage('/tmp').free > proof['correct_required_remaining_free_bytes']
+W = Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py')
+assert hashlib.sha256(W.read_bytes()).hexdigest() == '2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec = importlib.util.spec_from_file_location('unchanged_R7_canonical_workflow', W)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.session = requests.Session()
+r.session.headers['Authorization'] = 'Bearer ' + v['token']
+r.username = 'godlydonuts'
+who = r.call('security.OAuthService', 'IntrospectToken', {'token': v['token']})
+assert who.get('active') is True and who.get('username') == 'godlydonuts'
+claim = Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim')
+deadline = time.monotonic() + 180
+while True:
+    try:
+        claim.mkdir(mode=0o700)
+        break
+    except FileExistsError:
+        if time.monotonic() >= deadline:
+            print(json.dumps({'status': 'waiting_canonical_claim_without_mutation'}), flush=True)
+            raise SystemExit(0)
+        time.sleep(3)
+w.new_json(claim / 'owner.json', {'kind': 'original_R7_one_offline_run_one_entry', 'phase': phase, 'CPU_job': os.environ['SLURM_JOB_ID']})
+retain = False
+try:
+    with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'), 'godlydonuts') as db:
+        w.verify_account(db, r)
+        record = json.loads(db.execute('SELECT value FROM meta WHERE key=?', (key,)).fetchone()[0])
+        assert record['source_sha256'] == SOURCE and record['original_author_kernel_id'] == 138222340
+
+        def save():
+            db.execute('UPDATE meta SET value=? WHERE key=?', (json.dumps(record, sort_keys=True), key))
+            db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)', (w.utcnow(), SOURCE, record['state']))
+            db.commit()
+
+        def metadata_and_cells():
+            actual = r.kernel('GetKernel', slug, 1)
+            metadata_contract(actual['metadata'])
+            digest = exact_cells(source, actual['blob']['source'])
+            return {'executed_code_cell_SHA': digest, 'actual_returned_Notebook_SHA': hashlib.sha256(actual['blob']['source'].encode()).hexdigest(), 'staged_original_Notebook_SHA': SOURCE, 'every_numerical_code_cell_byte_identical': True}
+
+        if phase == 'admit':
+            assert record['state'] == 'R7_public0956_original_prepared'
+            assert not (D / 'controller-admission.json').exists() and 'controller' not in record
+            M = json.loads((O / 'public-R7-reference-review-v1/metadata-review-v1/manifest.original.json').read_text())
+            assert M['bundle_id'] == '8c7b666e27dc0e8f' and M['models'] == MODELS
+            for name, original in proof['files'].items():
+                stat = (P / name).stat()
+                assert stat.st_size == original['bytes'] and stat.st_mtime_ns == original['original_stat_mtime_ns']
+                assert original['sha256'] == M['sha256'][name]
+            request = json.loads((D / 'proposed-save-request.private.json').read_text())
+            metadata_contract(request)
+            assert request['text'] == source and request['sessionTimeoutSeconds'] == 32400
+            admission = {'status': 'unchanged_native_R7_single_run_single_entry_controller_admitted_without_GPU', 'CPU_job': os.environ['SLURM_JOB_ID'], 'program_sha256': v['program_sha256'], 'contract_sha256': hashlib.sha256(v['contract'].encode()).hexdigest(), 'pure_checks': v['checks'], 'original_staging_CPU_job': '943843', 'existing8_asset_byte_header_proofs_reused': True, 'source_sha256': SOURCE, 'code_cell_SHA': exact_cells(source, source), 'maximum_GPU_runs': 1, 'maximum_session_seconds': 32400, 'maximum_code_entries': 1, 'no_Dataset_or_model_upload': True, 'new_GPU_or_entry_mutations': 0, 'automatic_retry': False}
+            assert v['checks']['contract_sha256'] == admission['contract_sha256'] and v['checks']['program_sha256'] == v['program_sha256']
+            assert v['checks']['all_checks_passed'] is True
+            w.new_json(D / 'controller-admission.json', admission)
+            record['controller'] = admission
+            save()
+            out = admission
+        else:
+            assert record['controller']['program_sha256'] == v['program_sha256']
+            assert record['controller']['contract_sha256'] == hashlib.sha256(v['contract'].encode()).hexdigest()
+            if phase == 'push':
+                assert record['state'] == 'R7_public0956_original_prepared'
+                assert 'public' not in record and not (D / 'push-intent.json').exists()
+                main = Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')
+                sampled = Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison')
+                unfinished = known_reserved = 0
+                for e in (1, 2, 3):
+                    E = main / ('segment-' + str(e))
+                    assert not (E / 'actual-failed.json').exists()
+                    if not (E / 'actual-accepted.json').exists():
+                        unfinished += 25200
+                        if (E / 'push-response.json').exists():
+                            old = json.loads((E / 'push-intent.json').read_text())
+                            status = r.kernel('GetKernelSessionStatus', old['slug'], 1).get('status')
+                            assert status not in ('ERROR', 'CANCELLED')
+                            if status != 'COMPLETE':
+                                known_reserved += 25200
+                sampling = sum(6000 for role in ('uniform', 'influence') for e in (1, 2, 3) if not (sampled / (role + '-epoch-' + str(e)) / 'actual-accepted.json').exists())
+                blend_row = db.execute('SELECT value FROM meta WHERE key=?', ('licensed-parent-full-epoch-serving:S6-equalrank:46a9688309973ca405fb37b854ac110f3ca29752d9ac5f3588e62d868a799bac',)).fetchone()
+                assert blend_row is not None
+                blend_state = json.loads(blend_row[0])['state']
+                blend_unfinished = blend_state not in ('S6_equalrank_public_accepted', 'S6_equalrank_submitted', 'S6_equalrank_scored', 'S6_equalrank_hidden_failed', 'S6_equalrank_public_failed')
+                scout_row = db.execute('SELECT value FROM meta WHERE key=?', ('licensed-parent-full-epoch-serving:S6-source-fitting32:0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf',)).fetchone()
+                assert scout_row is not None
+                scout_unfinished = json.loads(scout_row[0])['state'] not in ('S6_fitting32_scout_actual_accepted', 'S6_fitting32_scout_collected_verified')
+                quota = r.call('kernels.KernelsApiService', 'GetAcceleratorQuotaStatistics', {})['gpuQuota']
+                funding = budget(quota, unfinished_main=unfinished, known_main_reserved=known_reserved, unfinished_sampling=sampling, blend_unfinished=blend_unfinished, scout_unfinished=scout_unfinished)
+                C = Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py')
+                assert hashlib.sha256(C.read_bytes()).hexdigest() == '0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2'
+                sp = importlib.util.spec_from_file_location('unchanged_capacity_R7', C)
+                capacity_module = importlib.util.module_from_spec(sp)
+                sp.loader.exec_module(capacity_module)
+                capacity = capacity_module.admission(db, r, caller='serving')
+                if not funding['allowed'] or not capacity['available']:
+                    out = {'status': 'waiting_R7_actual_all_future_VM_budget_or_two_session_capacity_without_mutation', 'funding': funding, 'capacity': capacity, 'new_GPU_or_entry_mutations': 0}
+                else:
+                    input_versions = []
+                    for input_slug, did in zip(INPUTS, (12520391, 12431568, 12357722)):
+                        response = requests.get('https://www.kaggle.com/api/v1/datasets/view/' + input_slug, timeout=(10, 90))
+                        assert response.status_code == 200, ('Read-only input version HTTP', response.status_code)
+                        card = response.json()
+                        assert card['id'] == did and card['currentVersionNumber'] == 1 and not card.get('isPrivate', True)
+                        input_versions.append({'slug': input_slug, 'id': did, 'version': 1})
+                    request = json.loads((D / 'proposed-save-request.private.json').read_text())
+                    metadata_contract(request)
+                    assert request['text'] == source and request['sessionTimeoutSeconds'] == 32400
+                    absence = r.require_absent_kernel(slug)
+                    intent = {'slug': slug, 'version': 1, 'source_sha256': SOURCE, 'kernel_type': 'notebook', 'session_timeout_seconds': 32400, 'code_cell_SHA': exact_cells(source, source), 'fresh_funding': funding, 'actual_capacity': capacity, 'input_versions': input_versions, 'absence': absence, 'request_sha256': w.object_hash(request), 'pushed_not_before_UTC': w.utcnow(), 'automatic_retry': False}
+                    w.new_json(D / 'push-intent.json', intent)
+                    record.update(state='R7_original_push_intent', public=intent)
+                    save()
+                    try:
+                        reply = r.call('kernels.KernelsApiService', 'SaveKernel', request)
+                        w.new_json(D / 'push-response.json', reply)
+                        assert reply.get('ref') == '/code/' + slug and reply.get('versionNumber') == 1 and not reply.get('error')
+                        assert type(reply.get('kernelId')) is int and reply['kernelId'] > 0
+                    except BaseException:
+                        record['state'] = 'R7_original_push_uncertain'
+                        save()
+                        retain = True
+                        raise
+                    record['public']['kernel_id'] = reply['kernelId']
+                    record['state'] = 'R7_original_pushed'
+                    save()
+                    out = {'status': 'one_exact_original_R7_offline_notebook_pushed', 'kernel_id': reply['kernelId'], 'slug': slug, 'version': 1, 'source_sha256': SOURCE, 'new_GPU_runs': 1, 'new_Datasets_weights_or_entries': 0}
+            elif phase == 'status':
+                item = record['public']
+                binding = metadata_and_cells()
+                status = r.kernel('GetKernelSessionStatus', slug, 1).get('status')
+                out = {'status': status, 'kernel_id': item['kernel_id'], 'slug': slug, 'version': 1, 'source_sha256': SOURCE, 'competition_entries': 0, 'source_binding': binding}
+                if status == 'COMPLETE':
+                    blend = r.output_json(slug, 1, 'blend_receipt.json')
+                    receipt = r.output_json(slug, 1, 'submission_receipt.json')
+                    summary = public_receipts(blend, receipt)
+                    response = r.session.post(w.API + 'kernels.KernelsApiService/DownloadKernelOutput', json={'ownerSlug': 'godlydonuts', 'kernelSlug': slug.split('/')[1], 'versionNumber': 1, 'filePath': 'submission.csv'}, timeout=(10, 90), stream=True, allow_redirects=False)
+                    for _ in range(6):
+                        if response.status_code == 200:
+                            break
+                        assert response.status_code in (301, 302, 303, 307, 308)
+                        url = urljoin(response.url, response.headers.get('Location', ''))
+                        response.close()
+                        host = urlparse(url).hostname
+                        assert urlparse(url).scheme == 'https' and (host in ('storage.googleapis.com', 'api.kaggle.com', 'www.kaggle.com', 'www.kaggleusercontent.com') or host.endswith('.googleusercontent.com'))
+                        response = (r.session if host == 'api.kaggle.com' else requests).get(url, timeout=(10, 90), stream=True, allow_redirects=False)
+                    assert response.status_code == 200
+                    raw = bytearray()
+                    try:
+                        for block in response.iter_content(8192):
+                            raw.extend(block)
+                            assert len(raw) < 65536
+                    finally:
+                        response.close()
+                    original_s6 = (O / 'original-offline-v1/source.private.py').read_text()
+                    assert hashlib.sha256(original_s6.encode()).hexdigest() == '6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+                    constants = {n.targets[0].id: ast.literal_eval(n.value) for n in ast.parse(original_s6).body if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name) and n.targets[0].id in ('LAB', 'PUBLIC_TEST_IDS')}
+                    rows = list(csv.reader(io.StringIO(raw.decode())))
+                    assert rows[0] == ['StudyInstanceUID', *constants['LAB']] and [row[0] for row in rows[1:]] == constants['PUBLIC_TEST_IDS']
+                    assert len(rows) == 4 and all(len(row) == 13 and all(math.isfinite(float(x)) and 0 <= float(x) <= 1 for x in row[1:]) for row in rows[1:])
+                    accepted = {'status': 'actual_original_R7_two_T4_all4_folds_both_lineages_public_MRI_CSV_accepted', 'kernel_id': item['kernel_id'], 'slug': slug, 'version': 1, 'source_binding': binding, 'R7_manifest_sha256': proof['source_original_manifest_sha256'], 'CSV_bytes': len(raw), 'CSV_sha256': hashlib.sha256(raw).hexdigest(), 'columns': 13, 'source_cells_unchanged': True, **summary}
+                    if not (D / 'actual-accepted.json').exists():
+                        w.new_json(D / 'actual-accepted.json', accepted)
+                        record['public']['accepted'] = accepted
+                        record['state'] = 'R7_original_public_accepted'
+                        save()
+                    out['accepted'] = accepted
+                elif status in ('ERROR', 'CANCELLED'):
+                    if not (D / 'actual-failed.json').exists():
+                        w.new_json(D / 'actual-failed.json', out)
+                        record['state'] = 'R7_original_public_failed'
+                        save()
+            elif phase in ('eligibility', 'submit'):
+                assert record['state'] == 'R7_original_public_accepted' and not record.get('submission_id') and not (D / 'code-entry-intent.json').exists()
+                accepted = record['public']['accepted']
+                assert accepted == json.loads((D / 'actual-accepted.json').read_text())
+                assert accepted['source_cells_unchanged'] and accepted['original_fold_models_per_worker'] == 4
+                metadata_and_cells()
+                assert r.kernel('GetKernelSessionStatus', slug, 1).get('status') == 'COMPLETE'
+                account = r.account()
+                slots = w.allowance(db, account)
+                submissions = r.submissions()
+                unresolved = [z['ref'] for z in submissions if w.submission_outcome(z) in ('pending_or_unknown', 'complete_unscored')]
+                description = 'rsna-original-R7-reference:' + SOURCE
+                assert not any(z.get('description') == description for z in submissions), 'Existing exact R7 entry requires read-only reconciliation'
+                eligible = slots > 0 and not unresolved
+                out = {'status': 'original_R7_entry_eligibility_readonly', 'eligible': eligible, 'fresh_account': account, 'effective_allowance': slots, 'actual_unresolved_submission_ids': unresolved, 'new_entries': 0}
+                if phase == 'submit' and eligible:
+                    intent = {'kernel_id': record['public']['kernel_id'], 'slug': slug, 'version': 1, 'source_sha256': SOURCE, 'code_cell_SHA': accepted['source_binding']['executed_code_cell_SHA'], 'fileName': 'submission.csv', 'description': description, 'fresh_account': account, 'effective_allowance': slots, 'public_CSV_uploaded': False, 'automatic_retry': False}
+                    w.new_json(D / 'code-entry-intent.json', intent)
+                    record.update(state='R7_original_entry_intent', description=description)
+                    save()
+                    try:
+                        reply = r.competition('CreateCodeSubmission', {'fileName': 'submission.csv', 'kernelOwner': 'godlydonuts', 'kernelSlug': slug.split('/')[1], 'kernelVersion': 1, 'submissionDescription': description})
+                        w.new_json(D / 'code-entry-response.json', reply)
+                        assert type(reply.get('ref')) is int and reply['ref'] > 0
+                    except BaseException:
+                        record['state'] = 'R7_original_entry_uncertain'
+                        save()
+                        retain = True
+                        raise
+                    record.update(state='R7_original_submitted', submission_id=reply['ref'])
+                    save()
+                    out = {'status': 'one_exact_original_R7_offline_code_submission_accepted', 'submission_id': reply['ref'], 'kernel_id': record['public']['kernel_id'], 'slug': slug, 'version': 1, 'source_sha256': SOURCE, 'competition_entries': 1, 'public_CSV_uploaded': False, 'actual_score_known': False}
+            else:
+                assert record['state'] in ('R7_original_submitted', 'R7_original_scored', 'R7_original_hidden_failed')
+                found = [x for x in r.submissions() if x['ref'] == record['submission_id']]
+                assert len(found) == 1
+                result = found[0]
+                outcome = w.submission_outcome(result)
+                out = {'status': 'actual_original_R7_hidden_outcome_readonly', 'actual_submission': {k: result.get(k) for k in ('ref', 'status', 'publicScore', 'errorDescription', 'totalBytes')}, 'outcome': outcome, 'new_entries': 0}
+                if outcome == 'scored':
+                    record.update(state='R7_original_scored', public_score=result['publicScore'])
+                    save()
+                elif outcome == 'failed':
+                    record.update(state='R7_original_hidden_failed', hidden_error=result.get('errorDescription'))
+                    save()
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        (claim / 'owner.json').unlink()
+        claim.rmdir()

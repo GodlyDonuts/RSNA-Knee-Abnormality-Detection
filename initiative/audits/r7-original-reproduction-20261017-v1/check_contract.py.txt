@@ -1,0 +1,81 @@
+"""Pure guard checks; fixtures are synthetic, not model acceptance or accuracy."""
+import ast
+import copy
+import hashlib
+import json
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+body = (L / 'contract.py.txt').read_text()
+ns = {}
+exec(compile(body, 'R7_contract_only', 'exec'), ns)
+count = 0
+
+
+def rejects(fn, *args, **kwargs):
+    global count
+    try:
+        fn(*args, **kwargs)
+    except (ValueError, KeyError, AssertionError):
+        count += 1
+    else:
+        raise AssertionError('Mutation was not rejected')
+
+
+nb = {'nbformat': 4, 'cells': [{'cell_type': 'code', 'source': ['%%writefile /tmp/run.py\n', 'x = 1\n']}, {'cell_type': 'markdown', 'source': 'note'}, {'cell_type': 'code', 'source': 'print(x)\n'}]}
+original = json.dumps(nb)
+assert ns['exact_cells'](original, json.dumps(nb, sort_keys=True, indent=2))
+count += 1
+other = copy.deepcopy(nb)
+other['cells'][0]['source'] = ''.join(other['cells'][0]['source'])
+assert ns['exact_cells'](original, json.dumps(other))
+count += 1
+other['cells'][0]['source'] += 'x = 2\n'
+rejects(ns['exact_cells'], original, json.dumps(other))
+other = copy.deepcopy(nb)
+other['cells'][0], other['cells'][2] = other['cells'][2], other['cells'][0]
+rejects(ns['exact_cells'], original, json.dumps(other))
+rejects(ns['cells'], json.dumps({'nbformat': 4, 'cells': []}))
+
+metadata = {'isPrivate': True, 'enableInternet': False, 'enableGpu': True, 'kernelType': 'notebook', 'machineShape': 'NvidiaTeslaT4', 'dockerImage': ns['DOCKER'], 'datasetDataSources': ns['INPUTS'], 'competitionDataSources': ['rsna-knee-abnormality-detection'], 'kernelDataSources': []}
+ns['metadata_contract'](metadata)
+count += 1
+for key, wrong in [('isPrivate', False), ('enableInternet', True), ('enableGpu', False), ('kernelType', 'script'), ('machineShape', 'NvidiaTeslaP100'), ('dockerImage', 'latest'), ('datasetDataSources', []), ('competitionDataSources', []), ('kernelDataSources', ['different-source'])]:
+    rejects(ns['metadata_contract'], {**metadata, key: wrong})
+
+quota = {'totalTimeAllowed': '162000s', 'minimumTimeAllowed': '108000s', 'timeUsed': '35000s', 'timeReserved': '18000s', 'isPayToScaleEnabled': True}
+kwargs = {'unfinished_main': 25200, 'known_main_reserved': 25200, 'unfinished_sampling': 18000, 'blend_unfinished': True, 'scout_unfinished': True}
+b = ns['budget'](quota, **kwargs)
+assert b['allowed'] and b['required_VM_seconds'] == 113400
+assert b['fixed_blend_VM_liability'] == 32400 and b['scout_VM_liability'] == 1800
+count += 1
+assert ns['budget']({**quota, 'isPayToScaleEnabled': False}, **kwargs)['allowed'] is False
+count += 1
+assert ns['budget']({**quota, 'timeUsed': '100000s'}, **kwargs)['allowed'] is False
+count += 1
+rejects(ns['budget'], {**quota, 'timeUsed': 'nans'}, **kwargs)
+rejects(ns['budget'], quota, **{**kwargs, 'unfinished_sampling': -1})
+
+blend = {'weights': {'raptor': 0.5, 'ours': 0.5, 'raptor_per_class': {'Medial OA': 0.5, 'Lateral OA': 0.5, 'PF OA': 0.5}}, 'rows': 3, 'raptor_failed': 0, 'ours_failed': 0, 'both_failed': 0, 'mode': 'blend', 'total_seconds': 400.0}
+worker = {'status': 'PASS', 'studies': 2, 'scored': 2, 'fallback': {}, 'timed_out': False, 'models': ns['MODELS'], 'backbone': 'convnext_small', 'spatial_models': 4, 'extent_models': 4, 'syn_decomp_models': 4, 'crop': 352, 'views': 'v4', 'phys_mm': 3.5, 'amp': 'fp16', 'gpu': 'Tesla T4', 'sha256': ns['MODULES'], 'anchor_weights_sha256': ns['ANATOMY'], 'side_check': {'model_sha256': ns['SIDE']}, 'fluid_stacker': {'sha256': ns['FLUID']}, 'state_stacker': {'sha256': ns['STATE']}}
+receipt = {'status': 'PASS', 'rows': 3, 'scored': 3, 'fallback_studies': 0, 'bundle_id': '8c7b666e27dc0e8f', 'arm': 'E_lrprior', 'worker': 'compact_infer.py', 'gpus': ['Tesla T4', 'Tesla T4'], 'worker_exit_codes': {'0': 0, '1': 0}, 'workers': [worker, {**copy.deepcopy(worker), 'studies': 1, 'scored': 1}]}
+assert ns['public_receipts'](blend, receipt)['original_fold_models_per_worker'] == 4
+count += 1
+for key, wrong in [('models', ns['MODELS'][:3]), ('amp', 'bf16'), ('crop', 288), ('backbone', 'convnext_tiny'), ('views', 'v1'), ('phys_mm', 0), ('extent_models', 0), ('spatial_models', 3), ('timed_out', True), ('fallback', {'synthetic': 'decode'}), ('sha256', {}), ('anchor_weights_sha256', 'changed'), ('side_check', {'model_sha256': 'changed'}), ('state_stacker', {'sha256': 'changed'}), ('fluid_stacker', {'sha256': 'changed'})]:
+    changed = copy.deepcopy(receipt)
+    changed['workers'][0][key] = wrong
+    rejects(ns['public_receipts'], blend, changed)
+for key, wrong in [('raptor_failed', 1), ('ours_failed', 1), ('total_seconds', float('nan')), ('total_seconds', 32401), ('weights', {'raptor': 1.0, 'ours': 0.0})]:
+    rejects(ns['public_receipts'], {**blend, key: wrong}, receipt)
+rejects(ns['public_receipts'], blend, {**receipt, 'worker_exit_codes': {'0': 0, '1': 1}})
+
+program = (L / 'program.py.txt').read_text()
+tree = ast.parse(program)
+calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
+assert sum(any(isinstance(x, ast.Constant) and x.value == 'SaveKernel' for x in n.args) for n in calls) == 1
+assert sum(any(isinstance(x, ast.Constant) and x.value == 'CreateCodeSubmission' for x in n.args) for n in calls) == 1
+compile(program, 'original_R7_canonical_phase', 'exec')
+count += 1
+result = {'status': 'original_R7_pure_contracts_passed_not_GPU_or_accuracy_acceptance', 'checks_count': count, 'all_checks_passed': True, 'contract_sha256': hashlib.sha256(body.encode()).hexdigest(), 'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'test_program_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'notebook_code_cells_byte_identical_required': True, 'all4_folds_and_both_lineages_required': True, 'all_prior_future_VM_obligations_counted': True, 'one_SaveKernel_one_CreateCodeSubmission_site': True, 'actual_GPU_or_entry_from_tests': False}
+(L / 'checked.json').write_text(json.dumps(result, indent=2) + '\n')
+print(json.dumps(result))

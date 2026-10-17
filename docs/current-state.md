@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 07:41 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 08:05 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -53,7 +53,7 @@ Do not resubmit those exact versions.
 | Work | Original identity | Latest verified state |
 |---|---|---|
 | Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
-| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **epochs1–15 privately verified**, at least4860/5184 completed updates |
+| Expanded own N3 | Slurm**938284**, evc33 | **COMPLETED0:0/6:20:49**, all16epochs privately verified; fixed-final weak macro**0.91743158**, no established gain |
 | Uniform16 full-encoder control | E2**139167076v1** | **E2 complete972/all5private objects verified**, HFea38a60272ff39f86e298f5765c7c45466ad2c89 |
 | Influence16 full-encoder contrast | E1**139154664v1** | **E1 complete486/all5private objects verified**; original owner97530 now runs influenceE2**139181903v1** |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
@@ -63,8 +63,10 @@ Do not resubmit those exact versions.
 [earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
 E2 now actually completed972updates and CPU942967 verified all5private objects
 at HF51d5efae30b4efe820723c6147054fc90ac094c0. Original E3 is RUNNING.
-Expanded epochs1–15 are now privately fully9object verified each, establishing
-at least4860completed updates; the older3458cursor is superseded.
+Expanded original938284 now COMPLETED0:0 and all16epochs are privately
+9object verified. CPU944038 independently verified fixed-final0.91743158 on
+the same1,156 weak development studies, delta−0.00349377 versus original;
+conditional95%[−0.01331711,+0.00607252]. No established primary gain.
 [New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
 InfluenceE1 completed486 and all5objects are independently private verified;
 uniformE2 completed972/all5private objects and the same owner97530 now runs
@@ -88,7 +90,7 @@ The E1 entry is a trajectory check, not best-epoch selection.
 
 Expanded N3 adds345 fitting studies to **2592 fit/1156 disjoint outer**, keeping
 the original recipe and16epochs/**5184updates**. Data and update count both
-change, so it is not a controlled data-only contrast. No fixed-final result exists.
+change, so it is not a controlled data-only contrast. Its fixed-final weak macro is0.9174315801 versus0.9209253491 original; no established gain.
 [Original recovery/production](../initiative/audits/compact-expanded2592-production-20261016-v1/README.md).
 
 ## Matched importance-guided observations
@@ -229,7 +231,7 @@ CoAtNet. Seven embedded module SHAs match the exact manifest. CPU943797 acquired
 all8 model/sidecar objects886809309bytes once; CPU943811 reconciled an observer-only
 duplicated-reserve assertion using existing full-byte proofs, without repeating
 any download/hash/header read. Originals remain private. CPU943843 staged the original Notebook/asset binding in the canonical ledger;
-no R7 GPU/push/entry or new project score exists. Reproduce the unchanged complete reference next under
+sole finite owner31309 now owns one offline run/entry, awaiting fresh capacity/funding; no R7 GPU/push/entry or new project score exists. Reproduce the unchanged complete reference next under
 fresh actual session/future funding, while original work continues.
 [Actual pins, mechanisms and limits](../initiative/audits/r7-public-reference-admission-20261017-v1/README.md),
 [latest entry/training proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
@@ -329,3 +331,22 @@ Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03
 all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
 under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
 later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+
+## Verified expanded final and original R7 execution,08:05UTC
+
+Expanded original938284 completed0:0/5,184updates and all16epochs are privately
+verified. CPU944038 independently replayed **0.9174315801 versus0.9209253491**,
+delta−0.0034937690, paired conditional95%[−0.0133171112,+0.0060725221],
+2,836defined/1,164undefined of4,000whole-component draws. This is no established
+weak-endpoint gain, not a new Kaggle score. Preserve the original independent
+N3 reference; no best-epoch selection or class splicing.
+[Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
+
+R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
+**Sole finite owner31309** now handles one offline run and one exact code entry,
+then the actual hidden outcome. It waits the currently occupied two-session GPU
+capacity and full prior main/sampling/blend/scout/serving budget, reserving no GPU
+while prerequisites are missing. The numerical Notebook cells are unchanged;
+all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
+fallback and a strict three-MRI/13-column CSV are required.
+[Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).

@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Observed October 17, 2026, 07:41 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 08:05 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
@@ -19,7 +19,7 @@ original jobs, phase intents/results and private paths before a mutation.
 | Whole94 epoch1 entry | **TERMINAL97560 / 90352** | Same directory, `entry-capacity-finish.result.json`: COMPLETE/0.949 |
 | Whole94 epoch3 entry | **17317 / 36485** | Same directory, `final-epoch3-entry-v1-finish.*` |
 | Matched IID16 full fit | **97530 / 85104** | `licensed-importance-full-comparison-20261017-v1/capacity-finish.*` |
-| Expanded original epoch watcher | **95408 / 49302** | `compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher*` |
+| Expanded original epoch watcher | **TERMINAL95408 / 49302; all16verified** | `compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher*` |
 | Source-bound S6 offline run | **TERMINAL_SUCCESS20978 / 44859** | `s6-source-tree-admission-20261017-v1/source-bound-s6-finish.*` |
 | S6 exact entry/hidden observer | **20994 / 20982; accepted57300990** | `s6-original-entry-20261017-v1/source-bound-finish.*` |
 | Fitting8 UID-view CPU input | **TERMINAL20144 / 98465** | `s6-fitting8-uid-view-20261017-v2/finish.result.json`: COMPLETE/private verified |
@@ -27,6 +27,8 @@ original jobs, phase intents/results and private paths before a mutation.
 | Fitting8 cross-lineage comparison | **TERMINAL22634 / exec69221; CPU942957** | `s6-fitting8-complementarity-20261017-v1/accepted.json` |
 | Fitting32 B-only GPU scout | **26454 / exec91663** | `s6-fitting32-scout-preparation-20261017-v4/finish.*`; staged, waits original acceptance/admission |
 | Fixed equal-rank blend | **27596 / exec58044** | `s6-equalrank-deployment-20261017-v1/finish.*`; staged, waits actual S6 score, fresh GPU/entry admission |
+| Original R7 reference | **31309 / finite owner** | `r7-original-reproduction-20261017-v1/finish.*`; actual CPU943957 admission, waits full funding/capacity |
+| Expanded fixed-final CPU analysis | **TERMINAL31839; CPU944038 COMPLETE** | `compact-expanded2592-fixed-final-20261017-v1/verified.json`; all12 paired result verified |
 | Final E3 next allowance standby | **28090 / exec30473** | `licensed-parent-epoch-serving-20261016-v1/next-allowance-epoch3.*`; waits old17317 terminal zero-entry expiry only |
 
 Verify these handles now. Earlier93163/93190/93205/93216/93228 and
@@ -180,10 +182,12 @@ immutable epochs need independent complete-state/private5object download proofs.
 
 ## Expanded own N3 and fitting-only research
 
-Original H100 **938284** remains RUNNING on evc33,1GPU/2CPUs/32GiB/8h,
+Original H100 **938284** COMPLETED0:0/6:20:49 on evc33,1GPU/2CPUs/32GiB,
 sourcea1ca238526dad75b2a5cea46edba44fd95c71938;2592fit/1156outer/16epochs5184updates.
-The earlier CPU942744 cursor3458 is superseded by original completed E11/E12/E13/E14/E15
-private nine-object proofs, at least4860/5184updates; epochs1–15 are preserved.
+The earlier cursors are superseded by actual completion of all5184updates.
+All16 immutable epochs are privately9object verified. CPU944038 completed the
+actual fixed-final state/roster/all12 paired comparison; weak macro0.91743158
+versus0.92092535 original, delta−0.00349377, interval crosses zero.
 Latest E11 HFecfd9686984aef550937e500c3f67fbdb46c7417 and E12
 HF8acff56937b8b06932f51bd42e2835250907ba6a; never repeat them.
 New E5HFed63b2d85e751949cf7bc0d5011d41dbc8954825 and E6HF7c1f26f5d9f44504eb1f55d85da2d14a3b8d9af5
@@ -494,3 +498,36 @@ Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03
 all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
 under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
 later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+
+## Verified expanded final and original R7 execution,08:05UTC
+
+Expanded original938284 completed0:0/5,184updates and all16epochs are privately
+verified. CPU944038 independently replayed **0.9174315801 versus0.9209253491**,
+delta−0.0034937690, paired conditional95%[−0.0133171112,+0.0060725221],
+2,836defined/1,164undefined of4,000whole-component draws. This is no established
+weak-endpoint gain, not a new Kaggle score. Preserve the original independent
+N3 reference; no best-epoch selection or class splicing.
+[Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
+
+R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
+**Sole finite owner31309** now handles one offline run and one exact code entry,
+then the actual hidden outcome. It waits the currently occupied two-session GPU
+capacity and full prior main/sampling/blend/scout/serving budget, reserving no GPU
+while prerequisites are missing. The numerical Notebook cells are unchanged;
+all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
+fallback and a strict three-MRI/13-column CSV are required.
+[Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).
+
+Original expanded-final observer31839 is now TERMINAL_SUCCESS; do not restart
+it or CPU944038. Its private final receipt/code stay at
+`/tmp/rsna-compact-expanded2592-fixed-final-20261017-v1`. Old938284 must never
+be restarted just to compute these already completed metrics. Original S6
+H100942047 remains pending at the last actual Slurm check, not a failed/completed
+result; preserve it. R7 owner root is `artifacts/r7-original-reproduction-20261017-v1`,
+phase/owner source and actual bounds are in its new audit. Never start another
+R7 owner or repeat stage/admit; inspect31309 and actual phase receipts first.
+
+Later visible whole94 E3 Logs independently confirm bothT4s and at least1159/1458
+actual finite updates (epoch3/batch187/loss0.52746484/grad0.66530585/scale1024),
+not just API RUNNING. The loaded log range is a lower bound, not the current
+cursor. [Exact numeric observation](../initiative/audits/r7-original-reproduction-20261017-v1/actual-original-parent-visible-progress.json).

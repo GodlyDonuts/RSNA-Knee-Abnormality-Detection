@@ -1,0 +1,33 @@
+"""A single phase through the canonical Newton account; no automatic retries."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+phase = sys.argv[1]
+assert phase in ('admit', 'push', 'status', 'eligibility', 'submit', 'outcome')
+program = (L / 'program.py.txt').read_text()
+contract = (L / 'contract.py.txt').read_text()
+checks = json.loads((L / 'checked.json').read_text())
+assert hashlib.sha256(program.encode()).hexdigest() == checks['program_sha256']
+assert hashlib.sha256(contract.encode()).hexdigest() == checks['contract_sha256']
+E = Path('.env')
+assert E.stat().st_mode & 0o077 == 0
+values = {k.strip(): val.strip().strip('"\'') for line in E.read_text().splitlines() for k, sep, val in [line.partition('=')] if sep}
+payload = {'phase': phase, 'program': program, 'program_sha256': checks['program_sha256'], 'contract': contract, 'checks': checks, 'token': values['KAGGLE_API_TOKEN']}
+if phase == 'admit':
+    with (L / 'admit.intent.json').open('x') as f:
+        json.dump({'program_sha256': checks['program_sha256'], 'contract_sha256': checks['contract_sha256'], 'scope': 'admit already staged source/assets to one finite run/entry controller; no GPU or submission', 'automatic_retry': False}, f, indent=2)
+cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=3G', '--time=00:10:00', '--job-name=rsna-R7-original-' + phase, 'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', '/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python', '-B', '-c', 'import json,sys;v=json.load(sys.stdin);exec(compile(v.pop("program"),"one_original_R7_canonical_phase","exec"),{"__name__":"__main__","R7":v})']
+r = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(cmd)], input=json.dumps(payload), capture_output=True, text=True, timeout=650)
+with (L / (phase + '-' + str(time.monotonic_ns()) + '.result.json')).open('x') as f:
+    json.dump({'returncode': r.returncode, 'stdout': r.stdout, 'stderr': r.stderr}, f, indent=2)
+assert r.returncode == 0, 'Original R7 phase stopped; reconcile its actual state read-only before any retry'
+out = json.loads(r.stdout)
+if phase == 'admit':
+    (L / 'actual-controller-admitted.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out), flush=True)

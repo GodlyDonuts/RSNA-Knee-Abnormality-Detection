@@ -28,8 +28,10 @@ historical release/plan documents now link back to the current guides.
 - Best reproduced external checkpoint: nartaa CoAtNet, **0.949**. We reproduced
   inference, not its full training. Context/regional/full-field variants scored
   **0.948**; none establishes an improvement.
-- Full-parent, sampled full-encoder and expanded N3 work is already owned and
-  running. Inspect exact original owners before acting. A missing log/SSH link
+- Full-parent and sampled full-encoder work remain owned/running. Expanded
+  N3 completed0:0/5184updates; fixed-final weak macro0.91743 versus0.92093
+  original has no established gain. All16epochs are privately verified; read
+  `initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md`. Inspect exact original owners before acting. A missing log/SSH link
   is observation loss, not terminal evidence or authority to restart a GPU.
 - S6 original source qualification139165932v1 actually COMPLETED on both T4s
   in156.6seconds; its exact-source/model/three-MRI/13-column CSV checks pass.
@@ -55,7 +57,7 @@ historical release/plan documents now link back to the current guides.
   are privately pinned/size/SHA/header verified. Fourfold R7 adds denser physical
   inputs and state/extent supervision; no individual causal gain is established.
   Read `initiative/audits/r7-public-reference-admission-20261017-v1/README.md`.
-  No R7 GPU/entry exists yet. Preserve the original S6 entry and healthy training.
+  Sole finite owner31309 now waits fresh full future funding/capacity; no R7 GPU/entry exists yet. Preserve the original S6 entry and healthy training.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.

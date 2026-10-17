@@ -1,0 +1,27 @@
+"""One CPU analysis of the actual fixed-final original; no fitting or MRI inference."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+assert not (L / 'dispatch.intent.json').exists()
+program = (L / 'program.py.txt').read_text()
+compile(program, 'expanded2592_actual_fixed_final_CPU', 'exec')
+j = json.loads(Path('artifacts/compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher-epoch-016.json').read_text())
+while isinstance(j, dict) and 'stdout' in j:
+    assert j['returncode'] == 0
+    j = json.loads(j['stdout'])
+assert j['epoch'] == 16 and j['files_verified_by_download'] == 9
+payload = {'program': program, 'analysis_source': {n: Path(n).read_text() for n in ['scripts/rank_learning.py', 'scripts/research/compare_smooth_witness.py']}, 'original_verified': json.loads(Path('initiative/audits/compact-native-n3-fixed-final-20261016-v1/actual-independent-final.json').read_text()), 'epoch16': j}
+with (L / 'dispatch.intent.json').open('x') as f:
+    json.dump({'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'analysis_source_sha256': {n: hashlib.sha256(text.encode()).hexdigest() for n, text in payload['analysis_source'].items()}, 'original_training_job': '938284', 'CPU': 1, 'GPU': 0, 'maximum_CPU_minutes': 12, 'new_MRI_inference_or_fit': False, 'reuse_original9_object_E16_proof_not_rehash_snapshot': True, 'node_small_controls_within_original16GiB_cap': 2*2**20, 'automatic_retry': False}, f, indent=2)
+cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33', '--nodes=1', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=8G', '--time=00:12:00', '--job-name=rsna-expanded2592-fixed-final-CPU', 'env', 'PYTHONDONTWRITEBYTECODE=1', 'PYTHONNOUSERSITE=1', 'CUDA_VISIBLE_DEVICES=', 'OMP_NUM_THREADS=1', 'MKL_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', 'import json,sys;v=json.load(sys.stdin);exec(compile(v["program"],"expanded2592_original_fixed_final","exec"),{"__name__":"__main__","PACKAGE":v})']
+r = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(cmd)], input=json.dumps(payload), capture_output=True, text=True, timeout=850)
+(L / 'dispatch.result.private.json').write_text(json.dumps({'returncode': r.returncode, 'stdout': r.stdout, 'stderr': r.stderr}, indent=2) + '\n')
+assert r.returncode == 0, 'Original fixed-final CPU observer stopped; inspect its original private output, never repeat automatically'
+receipt = json.loads(r.stdout)
+assert receipt['status'] == 'actual_expanded2592_fixed16_complete_state_roster_and_paired_outer_verified'
+(L / 'verified.json').write_text(json.dumps(receipt, indent=2) + '\n')
+print(json.dumps(receipt), flush=True)

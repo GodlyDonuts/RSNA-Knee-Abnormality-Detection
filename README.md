@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 07:41 UTC:**
+**Current entry points — verified October 17, 2026, 08:05 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -21,8 +21,9 @@ Whole-parent adaptation completed its first **486-update epoch**, privately full
 verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
 Epoch2 now completed972updates/all5private objects; original final E3
-**139172537v1** is RUNNING. Expanded own N3 fitting on2592studies continues
-on its original Newton H100; **epochs1–15 privately verified**, at least4860/5184updates.
+**139172537v1** is RUNNING. Expanded own N3 on2592studies completed0:0/all5184updates; all16epochs are
+privately verified. Fixed-final weak macro0.91743 versus0.92093 original has
+no established gain; no new expanded-model Kaggle result is claimed.
 Both matched uniform16E1 and influence16E1 completed486updates/all5private
 objects; original uniformE2 completed972/all5private objects; influenceE2 is RUNNING. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
