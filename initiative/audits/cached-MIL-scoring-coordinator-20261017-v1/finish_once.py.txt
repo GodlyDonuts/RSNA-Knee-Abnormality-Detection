@@ -1,0 +1,143 @@
+"""Finite owner for two completed readouts, after the full-CNN comparisons."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+PREVIOUS = ROOT / 'artifacts/matched-final-scoring-coordinator-20261017-v1'
+CANDIDATES = ('original94', 's694')
+start = time.monotonic()
+maximum = 20 * 3600
+frozen = {n: hashlib.sha256((L / n).read_bytes()).hexdigest()
+          for n in ('coordinate.py', 'program.py.txt', 'finish_once.py', 'test_controls.py')}
+staged = json.loads((L / 'staged.json').read_text())
+assert staged['program_sha256'] == frozen['program.py.txt']
+source = staged['control_source_git']
+archive = 'initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/'
+for local, name in (('program.py.txt', 'program.py.txt'), ('coordinate.py', 'coordinate.py.txt'),
+                    ('finish_once.py', 'finish_once.py.txt'), ('test_controls.py', 'test_controls.py.txt')):
+    assert hashlib.sha256(subprocess.check_output(['git', 'show', source + ':' + archive + name], cwd=ROOT)).hexdigest() == frozen[local]
+with (L / 'finish.intent.json').open('x') as f:
+    json.dump({'PID': os.getpid(), 'started_at_unix': time.time(), 'maximum_wall_seconds': maximum,
+               'control_source_git': source, 'immutable_files': frozen, 'candidate_order': list(CANDIDATES),
+               'original_full_model_scoring_owner': 78386, 'maximum_GPU_pushes': 4, 'maximum_code_entries': 2,
+               'original_three_matched_public_validations_have_priority': True,
+               'automatic_uncertain_retry': False, 'no_original_GPU_or_source_modification': True}, f, indent=2)
+
+
+def log(value, terminal=False):
+    out = {'PID': os.getpid(), 'elapsed_seconds': time.monotonic() - start, **value}
+    (L / ('finish.result.json' if terminal else 'finish.progress.json')).write_text(json.dumps(out, indent=2) + '\n')
+    print(json.dumps(out), flush=True)
+
+
+def once(name, out):
+    with (L / name).open('x') as f:
+        json.dump(out, f, indent=2)
+
+
+def wait(seconds):
+    assert time.monotonic() - start + seconds < maximum, 'Finite owner expired; preserve original GPU jobs and intents'
+    time.sleep(seconds)
+
+
+def call(phase, candidate='original94', mode='qualification'):
+    assert all(hashlib.sha256((L / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    assert time.monotonic() - start < maximum
+    p = subprocess.run([sys.executable, str(L / 'coordinate.py'), phase, candidate, mode],
+                       cwd=ROOT, capture_output=True, text=True, timeout=750)
+    assert p.returncode == 0, json.dumps({'phase': phase, 'candidate': candidate, 'mode': mode,
+                                        'stderr': p.stderr[-2500:], 'preserve_original_intents_no_retry': True})
+    out = json.loads(p.stdout)
+    log({'phase': phase, 'candidate': candidate, 'mode': mode, 'actual': out})
+    return out
+
+
+def claimed(phase, candidate='original94', mode='qualification'):
+    while True:
+        out = call(phase, candidate, mode)
+        if out['status'] != 'waiting_existing_canonical_claim_no_mutation':
+            return out
+        wait(120)
+
+
+ready = set()
+submitted = {}
+scored = []
+
+
+def advance_entry():
+    if len(scored) == len(CANDIDATES):
+        return False
+    candidate = CANDIDATES[len(scored)]
+    if candidate in submitted:
+        out = claimed('outcome', candidate, 'competition')
+        assert out['status'] == 'actual_cached_MIL_hidden_outcome'
+        assert out['outcome'] != 'failed', 'Actual hidden failure; stop remaining entries: ' + json.dumps(out)
+        if out['outcome'] == 'scored':
+            once(candidate + '-actual-scored.json', out)
+            scored.append(candidate)
+            return True
+        return False
+    if candidate not in ready:
+        return False
+    out = claimed('eligibility', candidate, 'competition')
+    assert out['status'] == 'actual_cached_MIL_entry_eligibility'
+    if not out['fresh']['eligible']:
+        return False
+    once(candidate + '-submit.intent.json', {'candidate': candidate, 'fresh': out['fresh'], 'maximum_code_entries': 1})
+    out = claimed('submit', candidate, 'competition')
+    assert out['status'] == 'one_exact_cached_MIL_code_entry_accepted'
+    once(candidate + '-actual-submitted.json', out)
+    submitted[candidate] = out['submission_id']
+    return True
+
+
+try:
+    expected = [PREVIOUS / (c + '-competition-actual-accepted.json') for c in ('uniform', 'label', 'influence')]
+    while not all(p.exists() for p in expected):
+        old = subprocess.run(['ps', '-p', '78386', '-o', 'command='], capture_output=True, text=True)
+        assert old.returncode == 0 and 'matched-final-scoring-coordinator-20261017-v1/finish_once.py' in old.stdout, 'Original scoring owner stopped before three accepted public runs; inspect originals'
+        log({'phase': 'waiting_original_live_full_model_scoring_priority', 'original_owner': 78386,
+             'new_GPU_or_entry': False})
+        wait(180)
+    out = claimed('ready')
+    assert out['status'] == 'actual_original_three_matched_public_validations_complete'
+    once('original-three-matched-public-accepted.json', out)
+    for candidate in CANDIDATES:
+        for mode in ('qualification', 'competition'):
+            once(candidate + '-' + mode + '-push.intent.json', {'maximum_GPU_pushes': 1, 'candidate': candidate, 'mode': mode})
+            while True:
+                out = claimed('push', candidate, mode)
+                if out['status'] != 'waiting_actual_capacity_or_complete_caps_no_mutation':
+                    break
+                advance_entry()
+                wait(180)
+            assert out['status'] == 'one_exact_cached_MIL_' + mode + '_pushed'
+            once(candidate + '-' + mode + '-pushed.json', out)
+            while True:
+                out = claimed('status', candidate, mode)
+                if out['status'] == 'COMPLETE':
+                    break
+                assert out['status'] not in ('ERROR', 'CANCELLED', 'CANCEL_ACKNOWLEDGED'), 'Actual serving failure; inspect original job: ' + json.dumps(out)
+                assert out['status'] in (None, 'QUEUED', 'RUNNING', 'INITIALIZING', 'STARTING', 'UNKNOWN')
+                advance_entry()
+                wait(180)
+            assert 'receipt' in out
+            once(candidate + '-' + mode + '-actual-accepted.json', out)
+            if mode == 'competition':
+                ready.add(candidate)
+                advance_entry()
+    while len(scored) < len(CANDIDATES):
+        if not advance_entry():
+            wait(300)
+    log({'status': 'two_exact_cached_MIL_fixed_final_models_actually_scored'}, terminal=True)
+except BaseException as exc:
+    log({'status': 'finite_cached_MIL_scoring_owner_stopped_preserve_originals', 'reason': str(exc),
+         'no_uncertain_mutation_retry': True, 'no_original_GPU_canceled_or_restarted': True}, terminal=True)
+    raise

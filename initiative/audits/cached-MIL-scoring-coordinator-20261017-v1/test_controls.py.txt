@@ -1,0 +1,155 @@
+"""Reject evidence/capacity drift before any new GPU or entry intent."""
+import hashlib
+import json
+import runpy
+import tempfile
+import unittest
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+C = runpy.run_path(str(L / 'program.py.txt'))
+ROOT = L.parents[1]
+contract = ROOT / 'initiative/experiments/competitive-v1/s6-source-label-contrast-v1/recovery_contract.py.txt'
+assert hashlib.sha256(contract.read_bytes()).hexdigest() == '0afcad6c14951e8e6a3403745b59e2a63836b38efbbe3720f398245746e336e0'
+B = runpy.run_path(str(contract))
+
+
+def quota(used='65653.492631500s', reserved='0s'):
+    return {'totalTimeAllowed': '162000s', 'minimumTimeAllowed': '108000s',
+            'timeUsed': used, 'timeReserved': reserved, 'isPayToScaleEnabled': True}
+
+
+def base(q=None, reference=True):
+    return B['budget'](q or quota(), original_main=0, original_sampling=0,
+                       reference_unfinished=reference, blend_unfinished=False, scout_unfinished=False)
+
+
+def receipt(candidate='original94', mode='qualification'):
+    r = {'role': C['ROLES'][candidate][0], 'training_windows': 94,
+         'head_sha256': C['FINAL'][candidate],
+         'parent_sha256': '7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef',
+         'model_source_git': C['MODEL_SOURCE'], 'serving_windows': 94, 'epoch': 3,
+         'completed_training_updates': 1458, 'encoder_changed': False,
+         'independent_internal_validation': False}
+    if mode == 'qualification':
+        r.update(status='actual_cached_MIL_bothT4_original32_MRI_training_graph_qualified',
+                 qualified_studies=32, qualification_cannot_submit=True,
+                 devices=[{'index': i, 'GPU': 'Tesla T4', 'MRI_studies': 32,
+                           'both_original94_views_bit_equal': True, 'backbone_tensor_values_unchanged': True,
+                           'all_eight_learned_head_tensors_exact': True,
+                           'head_precision': 'FP32_outside_encoder_autocast',
+                           'maximum_original_training_graph_probability_error': 0.0,
+                           'peak_allocated_bytes': 8 * 2**30} for i in range(2)])
+    else:
+        r.update(status='actual_cached_MIL_MRI_test_roster_CSV_complete', studies=3, columns=13,
+                 prediction_counts=dict(started=6, completed=6, failed=0, decode_errors=0, empty_views=0))
+    return r
+
+
+class Controls(unittest.TestCase):
+    def test_requests_are_exact_private_offline_version1_sources(self):
+        old = runpy.run_path(str(ROOT / 'artifacts/matched-final-scoring-coordinator-20261017-v1/program.py.txt'))
+        self.assertEqual(C['DOCKER'], old['DOCKER'])
+        slugs = set()
+        for candidate in C['ROLES']:
+            for mode in ('qualification', 'competition'):
+                r = C['request_for'](candidate, mode, 'exact-source:' + candidate + mode)
+                self.assertTrue(r['isPrivate'] and r['enableGpu'])
+                self.assertFalse(r['enableInternet'])
+                self.assertEqual(r['kernelType'], 'script')
+                self.assertEqual(r['machineShape'], 'NvidiaTeslaT4')
+                self.assertEqual(r['datasetDataSources'], C['DATASETS'])
+                self.assertEqual(r['sessionTimeoutSeconds'], 1800 if mode == 'qualification' else 32400)
+                self.assertEqual(r['competitionDataSources'], [] if mode == 'qualification' else ['rsna-knee-abnormality-detection'])
+                self.assertEqual(r['kernelDataSources'], [C['PIXELS']] if mode == 'qualification' else [])
+                slugs.add(r['slug'])
+        self.assertEqual(len(slugs), 4)
+
+    def test_no_diagnostic_or_unplanned_candidates(self):
+        for candidate, mode in [('original16', 'qualification'), ('s616', 'competition'), ('original94', 'diagnostic')]:
+            with self.assertRaises(AssertionError):
+                C['request_for'](candidate, mode, 'x')
+
+    def test_complete_caps_retain_reference_and_original_obligations(self):
+        for mode, expected in [('qualification', 70800), ('competition', 69000)]:
+            b = C['remaining_budget'](base(), mode)
+            self.assertEqual(b['required_current_candidate_and_all_original_future_seconds'], expected)
+            self.assertEqual(b['retired_actual_completed_label_recovery_fit_serving_seconds'], 23400)
+            self.assertTrue(b['allowed'])
+            self.assertTrue(b['later_head_candidates_not_admitted_by_this_phase'])
+
+    def test_reserved_quota_is_not_assumed_available(self):
+        b = C['remaining_budget'](base(quota(reserved='30000s')), 'qualification')
+        self.assertFalse(b['allowed'])
+
+    def test_boundary_and_both_modes(self):
+        for mode, required in [('qualification', 70800), ('competition', 69000)]:
+            q = quota(used=str(162000 - required) + 's')
+            self.assertTrue(C['remaining_budget'](base(q), mode)['allowed'])
+            q['timeUsed'] = str(162001 - required) + 's'
+            self.assertFalse(C['remaining_budget'](base(q), mode)['allowed'])
+
+    def test_cannot_retire_unfinished_original_training(self):
+        for field in ('original_main_seconds', 'original_sampling_seconds'):
+            b = base(); b[field] = 1
+            with self.assertRaises(AssertionError):
+                C['remaining_budget'](b, 'qualification')
+
+    def test_valid_both_T4_and_public_receipts(self):
+        for candidate in C['ROLES']:
+            for mode in ('qualification', 'competition'):
+                C['validate_receipt'](receipt(candidate, mode), candidate, mode)
+
+    def test_reject_wrong_fixed_final_or_exposure_claim(self):
+        for field, value in [('head_sha256', '0' * 64), ('epoch', 2), ('completed_training_updates', 972),
+                              ('encoder_changed', True), ('independent_internal_validation', True),
+                              ('role', 'released_S6'), ('serving_windows', 16), ('training_windows', 16)]:
+            r = receipt(); r[field] = value
+            with self.assertRaises(AssertionError):
+                C['validate_receipt'](r, 'original94', 'qualification')
+
+    def test_reject_incomplete_or_imprecise_device_acceptance(self):
+        for field, value in [('GPU', 'H100'), ('MRI_studies', 31), ('index', 0),
+                              ('both_original94_views_bit_equal', False), ('backbone_tensor_values_unchanged', False),
+                              ('all_eight_learned_head_tensors_exact', False), ('head_precision', 'FP16'),
+                              ('maximum_original_training_graph_probability_error', float('nan')),
+                              ('maximum_original_training_graph_probability_error', -1.0),
+                              ('maximum_original_training_graph_probability_error', 2e-6),
+                              ('peak_allocated_bytes', 0), ('peak_allocated_bytes', 16 * 2**30)]:
+            r = receipt(); r['devices'][1][field] = value
+            with self.assertRaises(AssertionError):
+                C['validate_receipt'](r, 'original94', 'qualification')
+
+    def test_public_three_rows_do_not_mask_missing_inference(self):
+        for field in ('started', 'completed', 'failed', 'decode_errors', 'empty_views'):
+            r = receipt(mode='competition'); r['prediction_counts'][field] += 1
+            with self.assertRaises(AssertionError):
+                C['validate_receipt'](r, 'original94', 'competition')
+
+    def test_original_scoring_priority_does_not_treat_plan_as_accepted(self):
+        with tempfile.TemporaryDirectory() as t:
+            fn = C['originals_ready']; g = fn.__globals__; old_root, old_sha = g['PREVIOUS'], g['sha']
+            try:
+                g['PREVIOUS'] = Path(t)
+                g['sha'] = lambda p: '38cccb2a1a7d97c834852783a364be90ee94b054ebc9bcea8061f43eabde6915'
+                self.assertFalse(fn()['ready'])
+                for role in ('uniform', 'label', 'influence'):
+                    p = Path(t) / role; p.mkdir()
+                    row = {'status': 'COMPLETE', 'mode': 'competition', 'kernel_id': 1,
+                           'source_sha256': 'x', 'CSV_verified_in_RAM': {'CSV_sha256': 'x'},
+                           'receipt': {'status': 'actual_matched_IID16_parent_epoch_MRI_test_roster_CSV_complete',
+                                       'epoch': 3, 'serving_windows': 94, 'studies': 3, 'columns': 13,
+                                       'prediction_counts': dict(started=6, completed=6, failed=0, decode_errors=0, empty_views=0),
+                                       'CSV_sha256': 'x'}}
+                    (p / 'competition-actual-accepted.json').write_text(json.dumps(row))
+                self.assertTrue(fn()['ready'])
+                row['receipt']['prediction_counts']['failed'] = 1
+                (p / 'competition-actual-accepted.json').write_text(json.dumps(row))
+                with self.assertRaises(AssertionError):
+                    fn()
+            finally:
+                g['PREVIOUS'], g['sha'] = old_root, old_sha
+
+
+if __name__ == '__main__':
+    unittest.main()

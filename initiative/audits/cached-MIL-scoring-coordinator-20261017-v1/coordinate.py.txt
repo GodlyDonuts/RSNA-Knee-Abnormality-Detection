@@ -1,0 +1,59 @@
+"""Run one immutable phase; credentials stay in stdin and RAM."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+phase = sys.argv[1]
+candidate = sys.argv[2] if len(sys.argv) > 2 else 'original94'
+mode = sys.argv[3] if len(sys.argv) > 3 else 'qualification'
+assert phase in ('stage', 'ready', 'push', 'status', 'eligibility', 'submit', 'outcome')
+assert candidate in ('original94', 's694') and mode in ('qualification', 'competition')
+program = (L / 'program.py.txt').read_text()
+compile(program, 'cached_MIL_single_phase', 'exec')
+if phase == 'stage':
+    assert not (L / 'stage.intent.json').exists()
+    source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    prefix = 'initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/'
+    for local, archived in (('program.py.txt', 'program.py.txt'), ('coordinate.py', 'coordinate.py.txt'),
+                            ('finish_once.py', 'finish_once.py.txt'), ('test_controls.py', 'test_controls.py.txt')):
+        assert hashlib.sha256((L / local).read_bytes()).digest() == hashlib.sha256(
+            subprocess.check_output(['git', 'show', source + ':' + prefix + archived], cwd=ROOT)).digest()
+    with (L / 'stage.intent.json').open('x') as f:
+        json.dump({'control_source_git': source, 'program_sha256': hashlib.sha256(program.encode()).hexdigest(),
+                   'CPU': 1, 'GPU': 0, 'new_Kaggle_mutations': 0, 'automatic_retry': False}, f, indent=2)
+else:
+    accepted = json.loads((L / 'staged.json').read_text())
+    source = accepted['control_source_git']
+    assert accepted['program_sha256'] == hashlib.sha256(program.encode()).hexdigest()
+v = {'phase': phase, 'candidate': candidate, 'mode': mode, 'source_git': source,
+     'program_sha256': hashlib.sha256(program.encode()).hexdigest()}
+if phase == 'stage':
+    v['program'] = program
+else:
+    env = ROOT / '.env'
+    assert env.stat().st_mode & 0o077 == 0
+    values = {k.strip(): t.strip().strip('"\'') for line in env.read_text().splitlines()
+              for k, sep, t in [line.partition('=')] if sep}
+    v['token'] = values['KAGGLE_API_TOKEN']
+cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable',
+       '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=3G',
+       '--time=00:10:00', '--job-name=rsna-cached-score-' + phase,
+       'env', 'PYTHONDONTWRITEBYTECODE=1', 'PYTHONNOUSERSITE=1', 'CUDA_VISIBLE_DEVICES=',
+       '/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python', '-B', '-c', program]
+p = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes',
+                    'newton', shlex.join(cmd)], input=json.dumps(v), capture_output=True, text=True, timeout=700)
+result = {'returncode': p.returncode, 'stdout': p.stdout, 'stderr': p.stderr}
+with (L / (phase + '-' + candidate + '-' + mode + '-' + str(time.time_ns()) + '.json')).open('x') as f:
+    json.dump(result, f, indent=2)
+assert p.returncode == 0, 'Inspect original phase and journals; do not blindly retry: ' + p.stderr[-2000:]
+out = json.loads(p.stdout)
+if phase == 'stage':
+    with (L / 'staged.json').open('x') as f:
+        json.dump(out, f, indent=2)
+print(json.dumps(out), flush=True)

@@ -27,6 +27,13 @@ Source645a4790 and its distinct new results are privately fully verified at
 Do not repeat this milestone. No new GPU or competition entry was made by it.
 [Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
 
+A separate **two-readout scoring owner is prepared, not yet staged or armed**.
+It preserves the existing full-CNN scorer's priority, then validates original94
+and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
+for actual previous hidden outcomes and fresh allowance. It reuses Dataset
+12661001v1 and the existing32MiB serving cap; no new training or weight copies.
+[Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
+
 The exact stronger reference **139199164 v2** is still Queued, unqualified and
 unscored. Official SDK default status is QUEUED when the raw response omits it;
 the expired read-only observer is not a worker failure. Preserve its original
