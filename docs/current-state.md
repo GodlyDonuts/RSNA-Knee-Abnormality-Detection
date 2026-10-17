@@ -155,3 +155,7 @@ re-downloaded/hash verified at private HF
 `5656db3fe39639bff57d7fcfc29d778c4022915f`. It includes actual GPU recovery,
 proposal Dataset/input/storage proofs and original training continuation. No
 MRI/labels/UIDs/features/proposals/weights/prediction rows were mirrored.
+
+The cleaned current guides at source805974c0 are separately private-HF verified
+ONCE at `6eaf98ff679cb4e9fc975c8b11c488a4ddb4990f` (4objects/28890bytes), including
+the preceding65-object receipt. [Guide preservation receipt](../initiative/audits/hf-current-guides-20261017-v1/verified.json).

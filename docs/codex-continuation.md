@@ -155,3 +155,8 @@ Never repeat that or preceding HF117b0b51/a9e66639/5c7d47eb/b0829373/a879e194
 mirrors. No pixels/clinical arrays/UIDs/features/proposals/weights were in it.
 The rewritten current guides are a later documentation change; originals are
 archived verbatim and previous source remains recoverable in Git/private HF.
+
+Clean current guides source805974c04a25623d11221231157b1966bb72f3ec privately
+fully verified ONCE at HF6eaf98ff679cb4e9fc975c8b11c488a4ddb4990f,CPU940927,
+4objects/28890bytes, prefixmilestones/current-research-guides-20261017-805974c04a25-v1.
+This receipt-only bookkeeping follows that mirror; never repeat either prefix.

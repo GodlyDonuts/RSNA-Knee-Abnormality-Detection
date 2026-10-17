@@ -1,3 +1,12 @@
+# Superseded archive — not current state
+
+This is the verbatim earlier guide body archived on October17,2026. Its job,
+owner, quota and submission observations are historical; follow the current
+[current state](current-state.md), [research brief](research-brief.md), and
+[execution handoff](codex-continuation.md) for action. Original body follows.
+
+---
+
 # Execution handoff — October17, 2026, 00:54UTC
 
 Root implements directly. **Devin is unavailable.** Read current-state.md and
