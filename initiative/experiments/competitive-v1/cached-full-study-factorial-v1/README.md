@@ -61,3 +61,28 @@ claim is allowed. All3887rows were exposed to the released encoder. Fitting loss
 is not generalization; any candidate requires complete original full-MRI T4/
 runtime/offline/output qualification and an actual competition outcome. A
 negative result is retained. No existing job, owner, Dataset or entry changes.
+
+## Fixed-final serving preparation
+
+All four fits and12immutable epochs have now actually completed and are privately
+fully verified; see the current audit. New serving keeps the exact original
+CoAtNet encoder and original full94MRI crop/LUT/mirror/preparation. It installs
+only the eight learned readout tensors, explicitly outside encoderFP16autocast
+so their accepted CPUFP32math is retained. It cannot serve diagnostic/partial/
+unpreserved or mismatched-source heads. No rounding or thresholding is added.
+
+ActualCPU948266admitted32MiBfor the four-final-head Dataset, own serving sources
+and validation within the original256MiBcap;16MiBother control reserve remains.
+No new shared bytes/files or parent/pixel/feature transfer. All four final heads
+are1126029B each; the existing parent Dataset12431568v1was freshly verified, and
+will be referenced rather than duplicated. That preparation made zero Kaggle
+mutations. Fresh allowance15:53UTCwas5used/0available; no unresolved entries and
+best actual0.950.
+
+The new source/compiler and44synthetic/numerical checks are preparation, not an
+actualMRI/GPUqualification. Real owning-node full source compilation and32cached
+feature comparisons precede one private Dataset creation. Actual both-T4raw-MRI
+qualification and exact public test-roster/CSV acceptance are still required
+before a competition entry. Preserve all source/weight/licence/runtime bindings
+and canonical mutation ownership. Existing label training/scoring owners keep
+their work. No score improvement is claimed.

@@ -1,0 +1,200 @@
+# The exact parent loader, encoder and MRI reader above remain authoritative.
+from pathlib import Path
+
+_MODE = MODE_VALUE
+_SPEC = HEAD_SPEC_VALUE
+_FULL = FULL_VALUE
+_PUBLICATION = PUB_VALUE
+_RECOVERY = RECOVERY_VALUE
+_HELPER = VALIDATOR_VALUE
+_TRAINING_CLASS = TRAINING_CLASS_VALUE
+_CODEC = CODEC_VALUE
+_scope = {"__name__": "actual_fixed_final_cached_readout_scope"}
+exec(compile(_HELPER, "actual_cached_readout_scope", "exec"), _scope)
+_counts = dict(started=0, completed=0, failed=0, decode_errors=0, empty_views=0)
+_lock = threading.Lock()
+_qualifying = [True]
+_original_load = load_model
+_original_infer = infer_probs
+_original_gpu_windows = gpu_windows
+
+
+def _locate(name, size, expected_sha):
+    found = []
+    for directory in Path("/kaggle/input").iterdir():
+        if not directory.is_dir():
+            continue
+        for root, dirs, files in os.walk(directory, followlinks=False):
+            if any(n in files or n in dirs for n in ("train.csv", "test.csv", "train_images", "train_series")):
+                dirs[:] = []
+                continue
+            if len(Path(root).relative_to(directory).parts) >= 5:
+                dirs[:] = []
+            if name in files:
+                p = Path(root) / name
+                if not p.is_symlink() and (size is None or p.stat().st_size == size):
+                    with p.open("rb") as stream:
+                        observed = hashlib.file_digest(stream, "sha256").hexdigest()
+                    if observed == expected_sha:
+                        found.append(p)
+    assert len(found) == 1, "One exact immutable original input required"
+    return found[0]
+
+
+def find_weight_file(name):
+    assert name == ARMS[0]["file"]
+    return str(_parent_path)
+
+
+def load_model(pt_path, arch_default, res_default, device, ngpu=1):
+    assert Path(pt_path) == _parent_path
+    model, resolution = _original_load(pt_path, arch_default, res_default, device, ngpu)
+    snapshot = torch.load(_head_path, map_location="cpu", weights_only=True)
+    _scope["validate"](snapshot, _FULL, _PUBLICATION, _RECOVERY,
+                       _SPEC["role"], _SPEC["training_windows"], _SPEC["head_sha256"])
+    _scope["install"](model, snapshot)
+    assert all(torch.equal(dict(model.named_parameters())[n].cpu(), t) for n, t in snapshot["model"].items())
+    return model, resolution
+
+
+def infer_probs(model, xwins, device):
+    with _lock:
+        _counts["started"] += 1
+    try:
+        out = _original_infer(model, xwins, device)
+    except Exception:
+        with _lock:
+            _counts["failed"] += 1
+        raise
+    with _lock:
+        _counts["completed"] += 1
+    return out
+
+
+def gpu_windows(vol, mask, k, res, dev, norm=NORM, mirror=False):
+    if not _qualifying[0] and not mask.any():
+        with _lock:
+            _counts["empty_views"] += 1
+    return _original_gpu_windows(vol, mask, k, res, dev, norm=norm, mirror=mirror)
+
+
+def _pre_one(sid):
+    try:
+        vol, mask = _READER(sid, _SER, _TSDIR)
+    except Exception as exc:
+        with _lock:
+            _counts["decode_errors"] += 1
+        print(json.dumps({"cached_preprocessing_error_type": type(exc).__name__}), flush=True)
+        vol, mask = np.zeros((MAXS, IMG, IMG), np.uint8), np.zeros(MAXS, np.uint8)
+    return sid, vol, mask
+
+
+def _boot():
+    global _parent_path, _head_path
+    assert torch.cuda.device_count() == 2 and all("T4" in torch.cuda.get_device_name(i) for i in range(2))
+    assert K_EVAL == 94 and INPUT_RES == 320 and SLOT_SIZES == [26, 22, 18, 12, 18] and len(ARMS) == 1
+    assert list(LAB) == list(_scope["TARGETS"])
+    torch.set_num_threads(1)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.use_deterministic_algorithms(True)
+    _parent_path = _locate(ARMS[0]["file"], None, _SPEC["parent_sha256"])
+    _head_path = _locate(_SPEC["head_filename"], _SPEC["head_bytes"], _SPEC["head_sha256"])
+    snapshot = torch.load(_head_path, map_location="cpu", weights_only=True)
+    return _scope["validate"](snapshot, _FULL, _PUBLICATION, _RECOVERY,
+                              _SPEC["role"], _SPEC["training_windows"], _SPEC["head_sha256"])
+
+
+@torch.no_grad()
+def _qualify():
+    import tarfile
+    assert not Path("/kaggle/working/submission.csv").exists()
+    codec = {"__name__": "original_admitted_pixel_codec"}
+    exec(compile(_CODEC, "original_pixel_codec", "exec"), codec)
+    training = {"__name__": "actual_original_CPU_training_Readout"}
+    exec(compile(_TRAINING_CLASS, "actual_original_training_Readout", "exec"), training)
+    p = _locate("index.private.json", 21324, "3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3")
+    rows = json.loads(p.read_text())["records"]
+    assert len(rows) == 32
+    snapshot = torch.load(_head_path, map_location="cpu", weights_only=True)
+    devices = []
+    with tarfile.open(p.parent / "pixels.tar", "r:") as archive:
+        members = {m.name: m for m in archive.getmembers()}
+        assert len(members) == 32
+        for i in range(2):
+            device = "cuda:" + str(i)
+            model, _ = load_model(str(_parent_path), ARMS[0]["arch"], 384, device)
+            reference, _ = _original_load(str(_parent_path), ARMS[0]["arch"], 384, device)
+            assert all(torch.equal(t, reference.backbone.state_dict()[n]) for n, t in model.backbone.state_dict().items())
+            reader = training["Readout"]({"format": "licensed_parent_MIL_readout_v1",
+                "parent_checkpoint_sha256": _SPEC["parent_sha256"],
+                "source_notebook_sha256": _scope["PARENT_SOURCE"], "model": snapshot["model"]}).to(device).eval()
+            maximum = 0.0
+            for row in rows:
+                member = members[row["file"]]
+                assert member.isreg() and member.size == row["bytes"]
+                handle = archive.extractfile(member)
+                assert handle is not None
+                volume, mask = codec["decode"](handle.read(), row["sha256"])
+                assert hashlib.sha256(volume.tobytes()).hexdigest() == row["volume_sha256"]
+                assert hashlib.sha256(mask.tobytes()).hexdigest() == row["mask_sha256"]
+                inputs, probabilities = [], []
+                for mirror in (False, True):
+                    cpu = eval_windows(volume, mask, 94, 320, norm=NORM, mirror=mirror)
+                    assert hashlib.sha256(cpu.contiguous().numpy().tobytes()).hexdigest() == row["original_mirrored_input_sha256" if mirror else "original_plain_input_sha256"]
+                    gpu = gpu_windows(volume, mask, 94, 320, device, norm=NORM, mirror=mirror)
+                    assert torch.equal(cpu, gpu.cpu())
+                    with torch.autocast("cuda", dtype=torch.float16):
+                        features = reference.encode(gpu[None])
+                    with torch.autocast("cuda", enabled=False):
+                        logits = reader(features.float())
+                    assert logits.dtype == torch.float32 and logits.shape == (1, 12) and torch.isfinite(logits).all()
+                    probabilities.append(logits.sigmoid()[0].cpu().numpy())
+                    inputs.append(gpu)
+                actual = infer_pair_probs(model, *inputs, device)
+                error = float(np.max(np.abs(actual - 0.5 * (probabilities[0] + probabilities[1]))))
+                maximum = max(maximum, error)
+                assert error <= 1e-6, "Full MRI serving differs from independent accepted training readout"
+                del inputs
+            devices.append({"index": i, "GPU": torch.cuda.get_device_name(i), "MRI_studies": 32,
+                "both_original94_views_bit_equal": True, "backbone_tensor_values_unchanged": True,
+                "all_eight_learned_head_tensors_exact": True, "head_precision": "FP32_outside_encoder_autocast",
+                "maximum_original_training_graph_probability_error": maximum,
+                "peak_allocated_bytes": torch.cuda.max_memory_allocated(i)})
+            del model, reference, reader
+            torch.cuda.empty_cache()
+    assert not Path("/kaggle/working/submission.csv").exists()
+    return {"status": "actual_cached_MIL_bothT4_original32_MRI_training_graph_qualified",
+        "devices": devices, "qualified_studies": 32, "qualification_cannot_submit": True}
+
+
+def _competition():
+    _qualifying[0] = False
+    start = time.monotonic()
+    main()
+    import pandas as pd
+    ids = pd.read_csv(str(find_test_root()) + "/test.csv", dtype={"StudyInstanceUID": str}).StudyInstanceUID.tolist()
+    path = Path("/kaggle/working/submission.csv")
+    out = pd.read_csv(path, dtype={"StudyInstanceUID": str})
+    assert out.StudyInstanceUID.tolist() == ids and len(ids) == len(set(ids))
+    assert list(out.columns) == ["StudyInstanceUID", *LAB] and np.isfinite(out[LAB].values).all()
+    assert ((out[LAB].values >= 0) & (out[LAB].values <= 1)).all()
+    if len(ids) == 3:
+        assert _counts == dict(started=6, completed=6, failed=0, decode_errors=0, empty_views=0)
+    return {"status": "actual_cached_MIL_MRI_test_roster_CSV_complete", "studies": len(ids),
+        "columns": 13, "CSV_bytes": path.stat().st_size, "CSV_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "test_roster_sha256": hashlib.sha256(json.dumps(ids, separators=(",", ":")).encode()).hexdigest(),
+        "prediction_counts": _counts, "elapsed_seconds": time.monotonic() - start}
+
+
+if __name__ == "__main__":
+    _boot()
+    result = _qualify() if _MODE == "qualification" else _competition()
+    result.update(**_SPEC, serving_windows=94, epoch=3, completed_training_updates=1458,
+        model_source_git=_scope["SOURCE"], encoder_changed=False, independent_internal_validation=False,
+        competition_entry=False, clinical_accuracy_claim=False)
+    name = "cached-MIL-qualification-accepted.json" if _MODE == "qualification" else "cached-MIL-public-accepted.json"
+    (Path("/kaggle/working") / name).write_text(json.dumps(result, sort_keys=True, indent=2))
+    print(json.dumps(result), flush=True)

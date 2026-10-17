@@ -1,0 +1,43 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+A=Path(__file__).resolve().parent;assert not(A/'prepare.intent.json').exists();inputs=json.loads((A/'inputs-funded.json').read_text());names=['rsna/competitive/licensed_cached_serving.py','scripts/kaggle/licensed_cached_serving.py','scripts/kaggle/series_boundary_notebook.py','rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_pixel_cache.py','initiative/experiments/competitive-v1/cached-full-study-factorial-v1/serving-runtime.py.txt'];files={n:Path(n).read_text() for n in names};files.update({'scripts/__init__.py':'','scripts/kaggle/__init__.py':''});base=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+program=r'''
+import ast,hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);R=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1');D=R/'serving-v1';S=D/'code';assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');admitted=json.loads((D/'inputs-funded.json').read_text());assert admitted==v['inputs'] and not S.exists();assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+32*2**20+16*2**20<256*2**20 and shutil.disk_usage('/tmp').free>612022943803;q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30+4*2**20 and int(row[6])-int(row[5])>5008;old=json.loads((R/'staged.json').read_text())['source_files_sha256'];assert all(hashlib.sha256((R/'code'/n).read_bytes()).hexdigest()==h for n,h in old.items());S.mkdir(mode=0o700)
+for n in old:
+ if n=='worker.py':continue
+ p=S/n;p.parent.mkdir(parents=True,mode=0o700,exist_ok=True);p.write_bytes((R/'code'/n).read_bytes());p.chmod(0o600)
+for n,t in v['files'].items():
+ p=S/n;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ if p.exists():assert p.read_text()==t
+ else:p.write_text(t);p.chmod(0o600)
+sys.path.insert(0,str(S));torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
+from rsna.competitive import licensed_cached_serving as scope
+from rsna.competitive.licensed_cached_mil import Readout
+from rsna.competitive.released_context_train import FrozenFeatures
+from scripts.kaggle.licensed_cached_serving import build
+full=json.loads((R/'full-actual-complete.json').read_text());publication=json.loads((R/'private-publication-v2/verified.json').read_text());recovery=json.loads((R/'recovery-accepted.json').read_text());parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text();assert hashlib.sha256(parent.encode()).hexdigest()==scope.PARENT_SOURCE;node=next(n for n in ast.parse(parent).body if isinstance(n,ast.ClassDef) and n.name=='RaptorClassifier');legacy={'nn':torch.nn,'torch':torch};exec(compile(ast.get_source_segment(parent,node),'original_parent_readout_interface_only','exec'),legacy)
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');meta=json.loads((F/'full-input-admitted.json').read_text());index=F/'full-features/index.private.json';assert hashlib.sha256(index.read_bytes()).hexdigest()==meta['binding']['feature_index_sha256'];rows=json.loads(index.read_text())['records'];assert len(rows)==3887;roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')};data=FrozenFeatures(rows,roots,np.zeros((3887,12),np.float32),np.zeros((3887,12),bool),{'scope':'actual_head_serving_interface_validation_only_no_labels'});features=[data[i][0] for i in range(32)];compiled={};checks={};start=time.monotonic()
+for role,windows in scope.FINAL_SHAS:
+ name=role+'-'+str(windows);claim=admitted['roles'][name];p=Path(claim['owning_path']);assert p.stat().st_size==claim['model']['bytes'];snapshot=torch.load(p,map_location='cpu',weights_only=True);scope.validate(snapshot,full,publication,recovery,role,windows,claim['model']['sha256']);model=legacy['RaptorClassifier'](torch.nn.Identity(),F_dim=1024).eval();scope.install(model,snapshot);reference=Readout({'format':'licensed_parent_MIL_readout_v1','parent_checkpoint_sha256':scope.PARENT,'source_notebook_sha256':scope.PARENT_SOURCE,'model':snapshot['model']}).eval();maximum=0.
+ with torch.no_grad():
+  for values in features:
+   actual=[]
+   for mirror in (0,1):
+    x=values[mirror:mirror+1]
+    with torch.autocast('cpu',dtype=torch.bfloat16):observed=model.head(x)
+    expected=reference(x);assert observed.dtype==torch.float32 and torch.equal(observed,expected);actual.append(observed.sigmoid()[0])
+   maximum=max(maximum,float(torch.max(torch.abs(.5*(actual[0]+actual[1])-reference(values).sigmoid().mean(0)))))
+ assert maximum<=1e-6;checks[name]={'actual_head_bytes_reused_from_verified_publication':True,'initial_parent_encoder_not_loaded_or_changed':True,'actual32_both_cached_views_and_original_class_interface_FP32_logits_bit_equal':True,'maximum_B1_serving_vs_B2_training_TTA_probability_gap':maximum,'clinical_or_independent_validation':False};compiled[name]={}
+ for mode in ('qualification','competition'):
+  source,binding=build(parent,(S/'rsna/competitive/bounded_preparation.py').read_text(),(S/'rsna/competitive/licensed_cached_serving.py').read_text(),(S/'rsna/competitive/licensed_pixel_cache.py').read_text(),(S/'rsna/competitive/licensed_cached_mil.py').read_text(),full,publication,recovery,role,windows,mode=mode);out=D/name;out.mkdir(mode=0o700,exist_ok=True);target=out/(mode+'.private.py');assert not target.exists();target.write_text(source);target.chmod(0o600);compiled[name][mode]=binding
+source_files={str(p.relative_to(S)):hashlib.sha256(p.read_bytes()).hexdigest() for p in S.rglob('*') if p.is_file()};result={'status':'actual_four_fixed_final_head_original_source_compile_and32_cached_feature_CPU_graph_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'preparation_base_git':v['base_git'],'new_unpublished_source_files_exact_sha256':source_files,'model_source_git':scope.SOURCE,'actual_full_CPU_job':'948122','original_private_epoch_publication':publication['revision'],'actual32_cached_feature_graph_checks':checks,'compiled_inference':compiled,'actual_T4_or_raw_MRI_qualification':False,'new_Kaggle_Dataset_notebook_or_entries':0,'no_protected_labels_or_new_model_inference':True,'new_shared_bytes_files':0,'new_serving_cap_bytes':32*2**20,'future_bundle_and_validation_bytes_retained':24*2**20,'other_future_small_control_bytes':16*2**20,'elapsed_seconds':time.monotonic()-start};assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+24*2**20<32*2**20;assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+24*2**20+16*2**20<256*2**20
+with(D/'prepared.json').open('x') as f:json.dump(result,f,indent=2,sort_keys=True)
+print(json.dumps(result))
+'''
+compile(program,'actual_original_head_CPU_serving_admission','exec');(A/'prepare-program.py.txt').write_text(program)
+with(A/'prepare.intent.json').open('x') as f:json.dump({'preparation_base_git':base,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_files_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in files.items()},'CPU':1,'GPU':0,'Kaggle_mutations':0,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-cached-MIL-serving-CPU','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program];p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'inputs':inputs,'files':files,'base_git':base}),text=True,capture_output=True,timeout=950);(A/'prepare.result.json').write_text(json.dumps({'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},indent=2)+'\n');assert p.returncode==0,p.stderr[-2200:];result=json.loads(p.stdout);(A/'prepared.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps({'status':result['status'],'CPU_job':result['CPU_job'],'checks':result['actual32_cached_feature_graph_checks'],'Kaggle_mutations':0}))

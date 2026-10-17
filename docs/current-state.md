@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 15:48 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 16:27 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -15,16 +15,27 @@ project public AUC remains **0.950**. The target has not been reached.
 Public AUC is not private-final performance or clinical accuracy.
 [Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
 
-## Latest full-encoder terminal, October17 15:46UTC
+## Latest execution, October 17, 16:27 UTC
 
-Original **139245643v1completed epoch2**,972cumulativeupdates/1458fixed total,
-model292872115B/SHAb00d3b46…. Original successor61037is independently verifying/
-privately preserving this exact epoch before E3resume. Do not duplicate either
-GPU push or publication. Fixed-final E3and an accuracy result are still pending.
-The separate four readout fits/all12private epochs below are already complete.
-Their actual source/result milestone2bb8de2cis privately verified at
-HFaf91f7802028bc5e750f267ee162d0fc49fd3500,CPU948212/all12small objects.
-[Actual E2terminal](../initiative/audits/s6-label-full-epochs-20261017-v1/epoch-2-terminal-sanitized.json).
+Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
+comparison has reached **1,217/1,458 finite updates** in its final epoch, on both
+T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
+E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
+CPU948213/all five objects. Never repeat either push or publication. Original
+matched-final scoring owner **78386** remains separate and live.
+
+The four completed label × coverage readouts now pass actual **32-study cached
+feature graph equality** and all **eight source compilations** (CPU948377).
+Their FP32 head stays outside encoder FP16 autocast; the parent encoder and
+original full94 MRI pipeline remain unchanged. One small private Dataset is
+prepared, **not created yet**; actual raw-MRI T4 validation/public/hidden results
+remain pending. No accuracy gain is claimed.
+[Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
+
+The exact stronger reference **139199164 v2** is still Queued, unqualified and
+unscored. Official SDK default status is QUEUED when the raw response omits it;
+the expired read-only observer is not a worker failure. Preserve its original
+Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
 
 ## Completed CPU research: labels × whole-study coverage
 
@@ -56,7 +67,7 @@ full-encoder61037and matched-final scoring78386remain separate original owners.
 [Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
 and [actual recovery/full/private proofs](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
-## Full-encoder campaign: epoch 2 complete
+## Full-encoder campaign: final epoch in progress
 
 The **source-label comparison** is training all 73,136,096 parameters on the
 same 3,887 fitting studies as the completed uniform control. Source labels are
@@ -70,9 +81,8 @@ clinical ground truth.
   both-label full/stop/resume state equality and prediction-byte equality.
 - **60358** finished successfully. **61037** independently verified and privately preserved epoch 1
   at **HF33d992cfa8157d8b6fd3cc1a547b80838b874b44** (CPU947422; all five objects
-  re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now COMPLETE at972cumulative updates; private verification is pending.
-  Exact source and private offline T4 metadata passed. Its terminal reports972
-  cumulativeupdates; independent complete-state/private verification is pending. The fixed-final model
+  re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now COMPLETE at972cumulative updates and privately verified at HFf5a74128…/CPU948213.
+  Exact source and private offline T4 metadata and independent complete-state/private verification passed. Original E3 is running as139256441v1. The fixed-final model
   and its accuracy result are still pending. Scientific source remains
   `990c8ded` throughout the campaign.
 
@@ -93,7 +103,7 @@ prepared until the actual final model and private preservation exist.
 [Exact scoring preparation](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
 The stronger public reference **139199164 v2** remains Queued on its actual
-logs page; API status is absent. It is unqualified and unscored. Its separate
+logs page; an absent raw API status decodes QUEUED in the official SDK. It is unqualified and unscored. Its separate
 interactive run passed, which is not a hidden result. Retain R6 Dataset v1;
 v2 contains different R7 weights under the same filenames. Never repeat Save,
 submit source-only v1, or upload the public three-row CSV.
@@ -112,7 +122,7 @@ no new CUDA result exists. Healthy Kaggle training remains untouched.
 
 ## Resources and handoff
 
-Authenticated competition allowance at **13:50 UTC**: **5 used, 0 available**. Refresh it
+Authenticated competition allowance at **15:53 UTC**: **5 used, 0 available**. Refresh it
 before any entry. Single canonical ledger/claim remain on Newton; credentials
 stay in ignored0600.env/RAM/stdin, and large artifacts stay private.
 
@@ -148,7 +158,7 @@ owner **78386now armed/live**, waiting original61037final/private proof. [Exact 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
-E2subsequentlyCOMPLETED972updates at15:46UTC; private verification is pending.
+E2subsequentlyCOMPLETED972updates at15:46UTC; private verification later passed viaCPU948213/HFf5a74128….
 Do not repeat epoch1publication.
 No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
 

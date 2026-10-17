@@ -1,21 +1,32 @@
 # Execution handoff
 
-**Actual October17,15:48UTC.** Target0.97; best measured0.950. Read
+**Actual October17,16:27UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Latest full-encoder terminal, October17 15:46UTC
+## Latest execution, October 17, 16:27 UTC
 
-Original **139245643v1completed epoch2**,972cumulativeupdates/1458fixed total,
-model292872115B/SHAb00d3b46…. Original successor61037is independently verifying/
-privately preserving this exact epoch before E3resume. Do not duplicate either
-GPU push or publication. Fixed-final E3and an accuracy result are still pending.
-The separate four readout fits/all12private epochs below are already complete.
-Their actual source/result milestone2bb8de2cis privately verified at
-HFaf91f7802028bc5e750f267ee162d0fc49fd3500,CPU948212/all12small objects.
-[Actual E2terminal](../initiative/audits/s6-label-full-epochs-20261017-v1/epoch-2-terminal-sanitized.json).
+Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
+comparison has reached **1,217/1,458 finite updates** in its final epoch, on both
+T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
+E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
+CPU948213/all five objects. Never repeat either push or publication. Original
+matched-final scoring owner **78386** remains separate and live.
+
+The four completed label × coverage readouts now pass actual **32-study cached
+feature graph equality** and all **eight source compilations** (CPU948377).
+Their FP32 head stays outside encoder FP16 autocast; the parent encoder and
+original full94 MRI pipeline remain unchanged. One small private Dataset is
+prepared, **not created yet**; actual raw-MRI T4 validation/public/hidden results
+remain pending. No accuracy gain is claimed.
+[Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
+
+The exact stronger reference **139199164 v2** is still Queued, unqualified and
+unscored. Official SDK default status is QUEUED when the raw response omits it;
+the expired read-only observer is not a worker failure. Preserve its original
+Save and exact R6 Dataset v1. Fresh allowance15:53 UTC was **5 used / 0 available**.
 
 ## Completed CPU research: labels × whole-study coverage
 
@@ -54,7 +65,7 @@ and [actual recovery/full/private proofs](../initiative/audits/cached-full-study
 | Whole94fixed3 | 139172537v1 | Complete1458; all3private epochs verified;`licensed-parent-whole94-production-20261016-v1` |
 | Uniform16fixed3 | 139192503v1 | Complete1458/all3private verified;`licensed-importance-full-comparison-20261017-v1` |
 | Influence16final | **139220032v1**, terminal**34538** | Complete1458/all3epochs private verified; same sampling root`session-status-finish.*` |
-| Exact0.958reference | **139199164v2**, readonly**47637** | OneUI Save&RunAll committed;Queued/APIstatusunknown, unqualified/unscored |
+| Exact0.958reference | **139199164v2**, readonly**47637** | OneUI Save&RunAll committed;Queued (official SDK default), unqualified/unscored |
 | Label-onlyGPUrecovery | **139230981v1**, read-only**60305** | COMPLETE/full recovery accepted13:01UTC; returned identity reconciled without repetition; observer root`s6-source-label-recovery-observer-20261017-v2` |
 | LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1COMPLETE139234107v1/486updates at14:21UTC; owner finished successfully, never restart |
 | LabelE1preservation/E2–3successor | **61037** | `s6-label-fixed3-followthrough-20261017-v2`; verifies/preserves completed E1 then each epoch before next resume |
@@ -362,7 +373,7 @@ owner **78386now armed/live**, waiting original61037final/private proof. [Exact 
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
 E2sourcebinding was checked14:28UTC;139245643v1/source6882d479… later
-COMPLETED972updates at15:46UTC, with private verification pending. Do not repeat
+COMPLETED972updates at15:46UTC; private verification later passed viaCPU948213/HFf5a74128…. Do not repeat
 epoch1publication or either GPU push.
 No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
 
