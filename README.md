@@ -5,7 +5,7 @@ inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-kn
 
 **Verified October17,2026,21:13UTC. Target:0.97; best actual:0.950.**
 
-Latest: [both spatial readers are training epoch3; the first two epochs of each are privately fully verified](initiative/audits/spatial-reader-engine-20261017-v1/README.md). Final held-out analysis is queued behind the original fixed endpoint. The new source census and connected-witness mathematical prototype are recorded in the current guides. Best measured score remains0.950; no new accuracy result yet.
+Latest: [both spatial readers completed843optimizer updates and all six epoch checkpoints are privately verified](initiative/audits/spatial-reader-engine-20261017-v1/README.md). Final held-out evaluation remains pending. A real metadata check exposed changing spatial kernels; the generalized path/control mathematics is implemented and tested. No new accuracy result; best measured remains0.950.
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.

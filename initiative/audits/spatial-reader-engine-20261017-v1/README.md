@@ -1,19 +1,17 @@
 # Full-map spatial reader: exact engine accepted and two full H100 fits running
 
-## Actual production preservation, October17 22:29UTC
+## Actual production preservation, October17 22:54UTC
 
-Both original GPU jobs are RUNNING in epoch3; the latest finite original owner
-reports658/657of843 updates. All four completed epoch1/2 snapshots have been
-privately published once and every object fully re-downloaded/size/SHA verified.
-New epoch2 proofs: aligned CPU951241/HFd171fd362f891ada465b89d4be6a859fdf318e95,
-null CPU951251/HFdffd02bf1fb905e99d1c39fd4e68ffe7c6d761a3, each4objects/911293bytes.
-[Aligned epoch2](actual-full-aligned-epoch-002-private-verified.json),
-[null epoch2](actual-full-null-epoch-002-private-verified.json),
-[actual progress snapshot](actual-full-pair-epoch2-progress.json).
-Epoch1 proofs remain HFe1c1592f…/HF9c02d4c9…, each4objects/882941bytes.
-Do not repeat publications or alter the fixed3epoch endpoint. Final1156-study
-analysis waits for both actual terminal0exits and all six immutable epoch proofs.
-No new held-out or competition result exists yet.
+Both original GPU jobs completed all843optimizer updates and remain RUNNING
+while final held-out evaluation is pending. All six immutable epoch snapshots
+are privately fully re-downloaded/size/SHA verified once. New final epoch3 proofs:
+aligned CPU951490/HF15daa3727ea2343b53c05ac4ba65e69856bdf748 and null
+CPU951512/HF2312e778ecc937129e227a226609f87cde98038f, each4objects/933181bytes.
+[Aligned epoch3](actual-full-aligned-epoch-003-private-verified.json),
+[null epoch3](actual-full-null-epoch-003-private-verified.json).
+Original sourceee045885/manifest3909bf50…/masks/folds/base/recipe are unchanged.
+Never repeat publications or either training dispatch. Final analysis waits for
+actual Slurm0exit terminals and all original publication proofs. No new score yet.
 
 ## Actual current execution, October17 21:13UTC
 

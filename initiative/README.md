@@ -2,7 +2,7 @@
 
 Current **October17 21:13UTC**: target0.97, actual best0.950. See the
 
-Latest: [both spatial readers are training epoch3; the first two epochs of each are privately fully verified](audits/spatial-reader-engine-20261017-v1/README.md). Final held-out analysis is queued behind the original fixed endpoint. The new source census and connected-witness mathematical prototype are recorded in the current guides. Best measured score remains0.950; no new accuracy result yet.
+Latest: [both spatial readers completed843optimizer updates and all six epoch checkpoints are privately verified](audits/spatial-reader-engine-20261017-v1/README.md). Final held-out evaluation remains pending. A real metadata check exposed changing spatial kernels; the generalized path/control mathematics is implemented and tested. No new accuracy result; best measured remains0.950.
 [current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
 [research-agent handoff](../docs/research-agent-handoff.md) and
 [execution handoff](../docs/codex-continuation.md). Original receipts override dated
