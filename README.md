@@ -5,7 +5,7 @@ inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-kn
 
 **Verified October17,2026,21:13UTC. Target:0.97; best actual:0.950.**
 
-Latest: [both spatial readers completed843optimizer updates and all six epoch checkpoints are privately verified](initiative/audits/spatial-reader-engine-20261017-v1/README.md). Final held-out evaluation remains pending. A real metadata check exposed changing spatial kernels; the generalized path/control mathematics is implemented and tested. No new accuracy result; best measured remains0.950.
+Latest: [the full spatial experiment and independent final comparison are complete](initiative/audits/spatial-reader-fixed-final-20261017-v1/actual-comparison.json): internal aligned0.92223/null0.92117/parent0.92059, with geometry-specific uncertainty including zero. No demonstrated breakthrough or new Kaggle gain. The generalized varying-path reader now covers all32 engineering fixtures and passes synthetic recovery; its real-MRI GPU recovery is being prepared on already resident evc40 inputs. Best measured Kaggle remains0.950.
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.

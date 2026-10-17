@@ -1,0 +1,82 @@
+"""Zero-GPU owning-node source/input/funding admission; does not dispatch a GPU."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc40' and not os.environ.get('SLURM_JOB_GPUS')
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+T = R / 'variable-witness-engine-v1'
+assert not T.exists()
+node = subprocess.check_output(['scontrol', 'show', 'node', 'evc40', '-o'], text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)', node)
+states = subprocess.check_output(['sacct', '-X', '-j', '950679,950680', '--noheader', '--parsable2', '--format=JobID,State,ExitCode'], text=True)
+assert all(job + '|COMPLETED|0:0' in states for job in ('950679', '950680'))
+P = R / 'reader-production-v1'
+for arm in ('aligned', 'null'):
+    result = json.loads((P / arm / 'result.json').read_text())
+    assert result['optimizer_updates'] == 843 and result['epochs'] == 3
+    for epoch in (1, 2, 3):
+        proof = json.loads((P / 'publication' / arm / ('epoch-%03d' % epoch) / 'verified.json').read_text())
+        assert proof['all_bytes_fully_re_downloaded'] and proof['objects'] == 4 and proof['epoch'] == epoch
+old_full_paid = sum(p.stat().st_size for p in P.rglob('*') if p.is_file())
+assert old_full_paid < 256 * 2**20
+paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid + 64 * 2**20 < 3 * 2**30
+assert shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid)
+quota = subprocess.check_output(['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True)
+q = next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 and int(q[6]) - int(q[5]) > 5000
+assert len(v['original118']) == 118
+assert all(hashlib.sha256(v['files']['core/' + n].encode()).hexdigest() == h for n, h in v['original118'].items())
+assert v['geometry']['CPU_job'] == '951534' and v['geometry']['all32_studies_fully_supported_by_varying_directed_path_layer']
+assert v['synthetic_recovery']['source_sha256'] == hashlib.sha256(v['files']['mechanism/path_reader.py'].encode()).hexdigest()
+assert v['synthetic_recovery']['complete_model_AdamW_LR_cursor_order_allRNG_history_and_each_epoch_state_equal']
+T.mkdir(mode=0o700)
+for name, text in v['files'].items():
+    target = T / 'code' / name
+    assert target.resolve().is_relative_to((T / 'code').resolve()) and name.endswith('.py')
+    compile(text, name, 'exec')
+    target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    target.write_text(text)
+(T / 'worker.py').write_text(v['worker']); compile(v['worker'], 'bounded_actual_path_reader_recovery_worker', 'exec')
+sys.path[:0] = [str(T / 'code/mechanism'), str(T / 'code/core'), str(R / 'original-vision-addon-v1/runtime'), '/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+spec = importlib.util.spec_from_file_location('original_verified_cached_MRI_input_helper', T / 'code/original_input_helper.py')
+h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
+original, parent, _ = h.inputs({}, 'cached')
+assert parent is None and len(original['fitting']) == len(original['outer']) == 16
+assert original['fitting'].binding['fitting16_labels_masks_sha256'] == 'a2e8e852dd7e5d02efec61cd01a3b1b66ad5cd1f756914568d3d11f3d9ee0dc5'
+from path_reader import PathCachedData, PathReader
+import torch
+torch.set_num_threads(1)
+assert str(torch.__version__) == '2.14.0+cu130'
+data = {role: PathCachedData(provider, v['mechanism_binding']) for role, provider in original.items()}
+counts = {}
+reader = PathReader().eval()
+with torch.no_grad():
+    for role, provider in data.items():
+        counts[role] = {'cases': 0, 'windows': 0}
+        for index in range(len(provider)):
+            sample = provider[index]
+            assert sample['maps'].shape[1:] == (1024, 12, 12) and sample['maps'].dtype == torch.float32
+            assert sample['plan'].accounting['unsupported_windows'] == 0
+            assert role == 'fitting' or not sample['label_mask'].any()
+            counts[role]['cases'] += 1
+            counts[role]['windows'] += len(sample['maps'])
+            if index == 0:
+                for arm in ('aligned', 'null'):
+                    actual, delta = reader(sample['maps'], sample['base_logits'], sample['plan'], arm=arm)
+                    assert torch.equal(actual, sample['base_logits']) and not delta.any()
+assert counts['fitting']['windows'] == 1175 and counts['outer']['windows'] == 1170
+proof = {'status': 'actual_original32_full1024_path_reader_source_inputs_runtime_and_existing_budget_admitted', 'CPU_job': os.environ['SLURM_JOB_ID'], 'node': 'evc40', 'source_git': v['source_git'], 'worker_sha256': hashlib.sha256(v['worker'].encode()).hexdigest(), 'files_sha256': {n: hashlib.sha256(t.encode()).hexdigest() for n, t in v['files'].items()}, 'mechanism_binding': v['mechanism_binding'], 'actual_cases_windows': counts, 'real_first_fit_and_outer_case_both_arms_zero_residual_parent_logits_exact': True, 'all32_original_cached_feature_bytes_verified_by_original_provider': True, 'original16_label_mask_values_hash_equal': True, 'outer_clinical_targets_read': False, 'old_full_paid_bytes': old_full_paid, 'original_full320MiB_reassigned': {'retained_original_completed_full_bytes_cap': 256 * 2**20, 'new_distinct_recovery_cap': 64 * 2**20}, 'original512MiB_reader_and_node3GiB_envelopes_unchanged': True, 'old_numerical_sources_and_all6_completed_epoch_bytes_retained': True, 'new_shared_or_MRI_cache_bytes': 0, 'new_GPU_submitted_or_training_accepted': False, 'full_production_or_competition_admission': False}
+(T / 'admitted.json').write_text(json.dumps(proof, indent=2) + '\n')
+assert sum(p.stat().st_size for p in T.rglob('*') if p.is_file()) < 8 * 2**20
+batch = '#!/bin/bash\nset -euo pipefail\numask 077\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8\nexec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B ' + str(T / 'worker.py') + '\n'
+(T / 'run.sbatch').write_text(batch)
+print(json.dumps(proof), flush=True)

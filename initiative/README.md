@@ -2,7 +2,7 @@
 
 Current **October17 21:13UTC**: target0.97, actual best0.950. See the
 
-Latest: [both spatial readers completed843optimizer updates and all six epoch checkpoints are privately verified](audits/spatial-reader-engine-20261017-v1/README.md). Final held-out evaluation remains pending. A real metadata check exposed changing spatial kernels; the generalized path/control mathematics is implemented and tested. No new accuracy result; best measured remains0.950.
+Latest: [the full spatial experiment and independent final comparison are complete](audits/spatial-reader-fixed-final-20261017-v1/actual-comparison.json): internal aligned0.92223/null0.92117/parent0.92059, with geometry-specific uncertainty including zero. No demonstrated breakthrough or new Kaggle gain. The generalized varying-path reader now covers all32 engineering fixtures and passes synthetic recovery; its real-MRI GPU recovery is being prepared on already resident evc40 inputs. Best measured Kaggle remains0.950.
 [current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
 [research-agent handoff](../docs/research-agent-handoff.md) and
 [execution handoff](../docs/codex-continuation.md). Original receipts override dated

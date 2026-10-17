@@ -1,0 +1,48 @@
+"""Two explicit phases; payloads use committed source, not mutable progress files."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+D = Path(__file__).resolve().parent
+L = Path('artifacts/connected-witness-real-GPU-20261017-v1')
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+phase = sys.argv[1]
+assert phase in {'stage', 'dispatch'} and not (L / (phase + '.intent.json')).exists()
+source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+def committed(name):
+    return subprocess.check_output(['git', 'show', source + ':' + name], text=True)
+relative = D.as_posix() + '/'
+if D.is_absolute():
+    relative = D.relative_to(Path.cwd()).as_posix() + '/'
+if phase == 'stage':
+    original = json.loads(committed('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json'))['numerical_source_before']
+    files = {'core/' + n: committed(n) for n in original}
+    assert len(original) == 118 and all(hashlib.sha256(files['core/' + n].encode()).hexdigest() == h for n, h in original.items())
+    names = ('prototype.py', 'source_chains.py', 'variable_paths.py', 'variable_source_chains.py', 'path_reader.py')
+    files.update({'mechanism/' + n: committed(relative + n) for n in names})
+    files['original_input_helper.py'] = committed('initiative/audits/spatial-reader-engine-20261017-v1/gpu-engine-v2.py.txt')
+    geometry = json.loads(committed(relative + 'actual-variable-source-geometry.json'))
+    recovery = json.loads(committed(relative + 'synthetic-reader-recovery.json'))
+    worker = committed(relative + 'real_gpu_recovery.py.txt')
+    binding = {'original_geometry_CPU': geometry['CPU_job'], 'geometry_receipt_sha256': hashlib.sha256(committed(relative + 'actual-variable-source-geometry.json').encode()).hexdigest(), 'synthetic_full_recovery_source_sha256': recovery['source_sha256'], 'new_sources_sha256': {n: hashlib.sha256(files['mechanism/' + n].encode()).hexdigest() for n in names}, 'original118_manifest': '3909bf501db49d0a1e921323866bbf77e848accfed7f012a143d8397992bef72'}
+    payload = {'source_git': source, 'original118': original, 'files': files, 'geometry': geometry, 'synthetic_recovery': recovery, 'worker': worker, 'mechanism_binding': binding}
+    program = committed(relative + 'admit_real_gpu.py.txt')
+else:
+    decision = json.loads((D / 'real-GPU-engineering-decision.json').read_text())
+    assert decision['status'] == 'agent_accepts_exact_real32_cached_path_reader_bounded_GPU_recovery_only'
+    payload = {'decision': decision}
+    program = committed(relative + 'dispatch_real_gpu.py.txt')
+compile(program, 'original_owning_node_variable_path_' + phase, 'exec')
+with (L / (phase + '.intent.json')).open('x') as f:
+    json.dump({'source_git': source, 'phase': phase, 'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'CPUs': 1, 'GPUs_in_control_allocation': 0, 'committed_sources_only': True, 'automatic_retry': False}, f, indent=2)
+args = ['srun', '--account=skattel', '--partition=normal', '--qos=normal', '--nodelist=evc40', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=4G', '--time=00:05:00', '--job-name=rsna-variable-path-' + phase, 'env', 'CUDA_VISIBLE_DEVICES=', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'OMP_NUM_THREADS=1', 'MKL_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program]
+x = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(args)], input=json.dumps(payload), capture_output=True, text=True, timeout=370)
+(L / (phase + '.result.json')).write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, 'Original admitted source phase failed or uncertain: reconcile existing intent, job and root read-only; never retry'
+out = json.loads(x.stdout)
+name = 'actual-real-inputs-admitted.json' if phase == 'stage' else 'actual-real-GPU-submitted.json'
+(D / name).write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps({k: v for k, v in out.items() if k not in ('files_sha256', 'mechanism_binding')}))

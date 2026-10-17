@@ -1,0 +1,105 @@
+"""One bounded real-map path-reader recovery; no encoder or accuracy experiment."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+T = R / 'variable-witness-engine-v1'
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+def cap():
+    paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+    assert paid < 3 * 2**30
+    assert shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid)
+    assert sum(p.stat().st_size for p in T.rglob('*') if p.is_file()) < 64 * 2**20
+
+def prepare():
+    assert os.uname().nodename == 'evc40'
+    admission = json.loads((T / 'admitted.json').read_text())
+    assert sha(__file__) == admission['worker_sha256']
+    for name, digest in admission['files_sha256'].items():
+        assert sha(T / 'code' / name) == digest
+    sys.path[:0] = [str(T / 'code/mechanism'), str(T / 'code/core'), str(R / 'original-vision-addon-v1/runtime'), '/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+    import torch
+    assert str(torch.__version__) == '2.14.0+cu130'
+    assert torch.cuda.is_available() and torch.cuda.device_count() == 1 and 'H100' in torch.cuda.get_device_name(0)
+    torch.ones(1, device='cuda'); torch.cuda.synchronize()
+    torch.set_num_threads(2)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    assert os.environ['CUBLAS_WORKSPACE_CONFIG'] == ':4096:8'
+    cap()
+    return admission
+
+def helper():
+    spec = importlib.util.spec_from_file_location('original_verified_cached_MRI_input_helper', T / 'code/original_input_helper.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+def worker(admission, arm, phase):
+    import torch
+    from path_reader import PathCachedData, PathTrainer
+    from rsna.competitive.spatial_train import SpatialRecipe
+    original, parent, _ = helper().inputs({}, 'cached')
+    assert parent is None
+    assert original['fitting'].binding['fitting16_labels_masks_sha256'] == 'a2e8e852dd7e5d02efec61cd01a3b1b66ad5cd1f756914568d3d11f3d9ee0dc5'
+    data = {role: PathCachedData(provider, admission['mechanism_binding']) for role, provider in original.items()}
+    engine = PathTrainer(data['fitting'], SpatialRecipe(epochs=2), arm=arm, device=torch.device('cuda'), binding={'diagnostic_only': True, 'path_mechanism_source': admission['mechanism_binding'], 'production_eligible': False, 'source_git': admission['source_git'], 'actual_original_cached_MRI_inputs': True})
+    initial = helper().parent_digest(engine.model)
+    output = T / (arm + ('-replay' if phase in {'stop', 'resume'} else '-full'))
+    result = engine.fit(output, resume=phase == 'resume', stop_after=1 if phase == 'stop' else None)
+    if phase != 'resume':
+        (output / 'initial.json').write_text(json.dumps({'model': initial}) + '\n')
+    if phase != 'stop':
+        assert engine.completed == 4 and len(engine.history) == 4
+        assert engine.history[0]['projection_gradient_norm'] == 0 and engine.history[-1]['projection_gradient_norm'] > 0
+        predictions = engine.predictions(data['outer'])
+        assert predictions.shape == (16, 13)
+        predictions.to_csv(output / 'predictions-private.csv', index=False)
+    stats = {'GPU_job': os.environ['SLURM_JOB_ID'], 'arm': arm, 'phase': phase, 'actual_completed_updates': engine.completed, 'status': result['status'], 'peak_device_allocated_bytes': torch.cuda.max_memory_allocated(), 'encoder_instantiated_or_trained': False}
+    (output / ('phase-' + phase + '.json')).write_text(json.dumps(stats) + '\n')
+    cap()
+    print(json.dumps(stats), flush=True)
+
+def main():
+    admission = prepare()
+    if len(sys.argv) > 1:
+        assert len(sys.argv) == 3
+        worker(admission, *sys.argv[1:]); return
+    import torch
+    assert not (T / 'run-start.json').exists() and not (T / 'accepted.json').exists()
+    start = time.monotonic()
+    (T / 'run-start.json').write_text(json.dumps({'GPU_job': os.environ['SLURM_JOB_ID'], 'source_git': admission['source_git'], 'GPU': torch.cuda.get_device_name(0), 'torch': str(torch.__version__), 'CUDA_visible_devices': os.environ.get('CUDA_VISIBLE_DEVICES'), 'diagnostic_only': True, 'source_files_sha256': admission['files_sha256']}) + '\n')
+    h = helper()
+    histories, peaks = {}, []
+    for arm in ('aligned', 'null'):
+        for phase in ('full', 'stop', 'resume'):
+            subprocess.run([sys.executable, '-B', __file__, arm, phase], check=True)
+        full, replay = T / (arm + '-full'), T / (arm + '-replay')
+        a, b = [torch.load(p / 'checkpoint.pt', map_location='cpu', weights_only=True) for p in (full, replay)]
+        h.identical(a, b)
+        for epoch in (1, 2):
+            h.identical(*[torch.load(p / 'epoch-checkpoints' / ('epoch-%03d.pt' % epoch), map_location='cpu', weights_only=True) for p in (full, replay)])
+        assert (full / 'predictions-private.csv').read_bytes() == (replay / 'predictions-private.csv').read_bytes()
+        histories[arm] = a['history']
+        peaks.extend(json.loads((p / n).read_text())['peak_device_allocated_bytes'] for p, n in ((full, 'phase-full.json'), (replay, 'phase-stop.json'), (replay, 'phase-resume.json')))
+    assert (T / 'aligned-full/initial.json').read_bytes() == (T / 'null-full/initial.json').read_bytes()
+    receipt = {'status': 'actual_real32_cached_MRI_varying_path_reader_full_stop1_resume_recovery_exact', 'GPU_job': os.environ['SLURM_JOB_ID'], 'node': 'evc40', 'source_git': admission['source_git'], 'files_sha256': admission['files_sha256'], 'worker_sha256': admission['worker_sha256'], 'original_private_fixture_sha256': 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f', 'original_parent_checkpoint_sha256': '5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5', 'fitting_prediction_only_original_cases': [16, 16], 'outer_clinical_targets_read': False, 'epochs': 2, 'updates_per_full': 4, 'complete_learned_AdamW_LR_order_cursor_allRNG_history_each_epoch_and16x12_CSV_recovery_exact': True, 'both_arms_same_initial_model': True, 'channels_width': [1024, 64], 'learned_parameters': 68560, 'peak_child_device_allocated_bytes': max(peaks), 'elapsed_seconds': time.monotonic() - start, 'updates': histories, 'encoder_instantiated_or_trained': False, 'reused_original_whole_byte_verified_full_maps_and_base_logits': True, 'native_online_encoder_or_dense_input_pipeline_accepted_by_this_test': False, 'clinical_accuracy_full_production_or_competition_admission': False, 'within_reassigned64MiB_existing_full320MiB_node3GiB_budget': True}
+    cap()
+    (T / 'accepted.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    print(json.dumps(receipt), flush=True)
+
+if __name__ == '__main__':
+    main()

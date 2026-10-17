@@ -1,6 +1,6 @@
 # Fixed-final spatial reader: one original three-way CPU analysis
 
-Both original H100 jobs950679/950680 are training their prespecified three epochs.
+Both original H100 jobs950679/950680 COMPLETED0:0 at the prespecified three epochs.
 This separate observer leaves all118 numerical modules, images, labels, source,
 model, optimizer and stopping unchanged. It reads only their actual fixed-final
 outputs and six privately byte-verified immutable publication receipts. It is
@@ -40,3 +40,16 @@ and its2MiB subcap on evc40, with1477388existing CPU-root bytes and fresh reserv
 once and is actually waiting on the two original live training jobs, then all
 six verified private epochs. [Actual launch](actual-follower-started.json). It has
 no training/restart/competition authority; no final analysis has run yet.
+
+## Actual fixed-final result
+
+CPU951680 independently verified original source/model/roster/result/prediction
+bindings and all six private epoch proofs. Aligned0.9222304347/null0.9211719159/
+unchanged FP32parent0.9205878230 on1156weak-label studies/all12targets. Parent
+CSV bytes match between arms. Aligned-minus-null+0.0010585188, conditional95%
+[-0.0005818393,0.0030274867]; aligned-minus-parent+0.0016426116, conditional95%
+[-0.0013325499,0.0045921787].1186of4000macro draws undefined, retained. No robust
+macro geometry gain established. Baker's nominal contrast rests on3positive
+studies; Contusion regresses. No target/epoch selection or automatic promotion.
+[All original metrics, contrasts and limits](actual-comparison.json). The earlier
+waiting snapshot above is historical; never rerun the original fit/readout.

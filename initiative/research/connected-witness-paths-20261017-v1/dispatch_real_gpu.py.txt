@@ -1,0 +1,36 @@
+"""One exact admitted recovery job; never a production fit or competition entry."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc40' and not os.environ.get('SLURM_JOB_GPUS')
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+T = R / 'variable-witness-engine-v1'
+assert not (T / 'dispatch-intent.json').exists() and not (T / 'submitted.json').exists()
+raw = (T / 'admitted.json').read_bytes()
+assert hashlib.sha256(raw).hexdigest() == v['decision']['actual_CPU_admission_sha256']
+admitted = json.loads(raw)
+assert admitted['worker_sha256'] == v['decision']['worker_sha256']
+assert admitted['source_git'] == v['decision']['source_git']
+assert hashlib.sha256((T / 'worker.py').read_bytes()).hexdigest() == admitted['worker_sha256']
+assert all(hashlib.sha256((T / 'code' / n).read_bytes()).hexdigest() == h for n, h in admitted['files_sha256'].items())
+node = subprocess.check_output(['scontrol', 'show', 'node', 'evc40', '-o'], text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)', node)
+paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid < 3 * 2**30 and shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid)
+with (T / 'dispatch-intent.json').open('x') as f:
+    json.dump({'decision': v['decision'], 'dispatch_CPU_job': os.environ['SLURM_JOB_ID'], 'GPUs': 1, 'CPUs': 2, 'minutes': 15, 'original_subcap_bytes': 64 * 2**20, 'diagnostic_only': True, 'automatic_retry': False}, f, indent=2)
+args = ['sbatch', '--parsable', '--account=skattel', '--partition=normal', '--qos=normal', '--nodelist=evc40', '--nodes=1', '--ntasks=1', '--cpus-per-task=2', '--gres=gpu:1', '--mem=16G', '--time=00:15:00', '--no-requeue', '--job-name=rsna-variable-path-recovery', '--output=' + str(T / '%j.stdout'), '--error=' + str(T / '%j.stderr'), str(T / 'run.sbatch')]
+x = subprocess.run(args, capture_output=True, text=True)
+assert x.returncode == 0, 'Original dispatch failed or uncertain; do not retry'
+job = x.stdout.strip().split(';')[0]
+assert job.isdigit()
+out = {'status': 'distinct_real_MRI_variable_path_reader_recovery_submitted_once', 'GPU_job': job, 'dispatch_CPU_job': os.environ['SLURM_JOB_ID'], 'node_constraint': 'evc40_physical2_H100_only', 'source_git': admitted['source_git'], 'worker_sha256': admitted['worker_sha256'], 'actual_CPU_admission_sha256': v['decision']['actual_CPU_admission_sha256'], 'full_dimension_real_fitting_prediction_only_cases': [16, 16], 'epochs_updates': [2, 4], 'diagnostic_only': True, 'GPU_terminal_or_accuracy_acceptance': False}
+(T / 'submitted.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out), flush=True)

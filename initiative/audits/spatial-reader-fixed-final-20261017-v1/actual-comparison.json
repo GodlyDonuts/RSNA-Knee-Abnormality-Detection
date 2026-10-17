@@ -1,0 +1,685 @@
+{
+  "status": "actual_fixed_final_spatial_reader_three_way_original_result_replayed_with_paired_whole_component_uncertainty",
+  "CPU_job": "951680",
+  "node": "evc40",
+  "source_git": "ee045885c20a2e51ca411657d5f07242078be064",
+  "original_GPU_jobs": {
+    "aligned": "950679",
+    "null": "950680"
+  },
+  "analysis_sha256": "c99ea4209d584aef5cd4f86b1382ab2a108a25833c3281965ad5694ae5400b34",
+  "bootstrap_helper_sha256": "036e61a1927610a455920a7a2b763f071cd0016836a5f2db3e570d9ce0b18829",
+  "fitting_studies": 2247,
+  "outer_studies": 1156,
+  "epochs": 3,
+  "optimizer_updates_per_arm": 843,
+  "each_production_epoch_privately_full_bytes_verified": true,
+  "observed_complete_bindings_equal_except_arm": true,
+  "direct_production_initial_state_dump_collected": false,
+  "initialization_scope": "Same deterministic trainer construction/seed/source and actual engineering common-init acceptance; direct production step0 state was not separately retained.",
+  "unchanged_FP32_parent_prediction_bytes_identical_between_arms": true,
+  "original_result_model_and_prediction_bindings": {
+    "aligned": {
+      "result_sha256": "9e15cd7d1dcc57dfb3a16594d2e801a9a82438eb7c25116e61aadd2603a38aa2",
+      "checkpoint_sha256": "c96dadbd7865cc30b8177ed8d23bd5f43b8e6af3b50e598a3e7622e746052b53",
+      "prediction_sha256": "d11660455af6777b2f830363be8d21e119ea3ea09b2a58dad0da4fbeb73c2f6f",
+      "original_parent_prediction_sha256": "8da929edb2531d9a0b5fc7f10a9bc9548dbbb6b5628fa2a996717c6481425ccc"
+    },
+    "null": {
+      "result_sha256": "734162bf5b572cab7f95cb188c4bee329d102c367440cd610387ca6e31db6964",
+      "checkpoint_sha256": "7ef15df7e2496f191d4ee038cd83805abc59e48a97475e8030e254febe8d9e47",
+      "prediction_sha256": "70755728d67361774f453826db087e8847817bc20fd86499d5297880641a6b13",
+      "original_parent_prediction_sha256": "8da929edb2531d9a0b5fc7f10a9bc9548dbbb6b5628fa2a996717c6481425ccc"
+    }
+  },
+  "metrics": {
+    "macro_auc": {
+      "aligned": 0.9222304346603716,
+      "null": 0.9211719158771722,
+      "parent": 0.9205878230326238
+    },
+    "targets": [
+      {
+        "target": "ACL",
+        "auc": {
+          "aligned": 0.9555243257712641,
+          "null": 0.9550157264270897,
+          "parent": 0.9542260590242924
+        },
+        "observed_studies": 964,
+        "positive_studies": 85,
+        "negative_studies": 879,
+        "positive_components": 85,
+        "negative_components": 830
+      },
+      {
+        "target": "MCL",
+        "auc": {
+          "aligned": 0.8361522198731501,
+          "null": 0.8345665961945031,
+          "parent": 0.8308668076109936
+        },
+        "observed_studies": 948,
+        "positive_studies": 2,
+        "negative_studies": 946,
+        "positive_components": 2,
+        "negative_components": 897
+      },
+      {
+        "target": "Medial Meniscus",
+        "auc": {
+          "aligned": 0.9478699363910278,
+          "null": 0.9486232005356545,
+          "parent": 0.9483888516906596
+        },
+        "observed_studies": 992,
+        "positive_studies": 412,
+        "negative_studies": 580,
+        "positive_components": 412,
+        "negative_components": 530
+      },
+      {
+        "target": "Lateral Meniscus",
+        "auc": {
+          "aligned": 0.8600250145100508,
+          "null": 0.8615945523955889,
+          "parent": 0.8464714008943096
+        },
+        "observed_studies": 970,
+        "positive_studies": 149,
+        "negative_studies": 821,
+        "positive_components": 149,
+        "negative_components": 772
+      },
+      {
+        "target": "Medial OA",
+        "auc": {
+          "aligned": 0.9910255293195086,
+          "null": 0.9914611832360373,
+          "parent": 0.9909383985362028
+        },
+        "observed_studies": 522,
+        "positive_studies": 23,
+        "negative_studies": 499,
+        "positive_components": 23,
+        "negative_components": 450
+      },
+      {
+        "target": "Lateral OA",
+        "auc": {
+          "aligned": 0.8300899769826323,
+          "null": 0.8315547185603683,
+          "parent": 0.8346934505126595
+        },
+        "observed_studies": 540,
+        "positive_studies": 9,
+        "negative_studies": 531,
+        "positive_components": 9,
+        "negative_components": 482
+      },
+      {
+        "target": "PF OA",
+        "auc": {
+          "aligned": 0.890715552927262,
+          "null": 0.8922531046717919,
+          "parent": 0.8869308101714961
+        },
+        "observed_studies": 464,
+        "positive_studies": 19,
+        "negative_studies": 445,
+        "positive_components": 19,
+        "negative_components": 396
+      },
+      {
+        "target": "Effusion",
+        "auc": {
+          "aligned": 0.9195230998509687,
+          "null": 0.9185295578738202,
+          "parent": 0.9157145222718993
+        },
+        "observed_studies": 680,
+        "positive_studies": 9,
+        "negative_studies": 671,
+        "positive_components": 9,
+        "negative_components": 622
+      },
+      {
+        "target": "Synovitis",
+        "auc": {
+          "aligned": 0.9603305785123967,
+          "null": 0.9603305785123967,
+          "parent": 0.9735537190082645
+        },
+        "observed_studies": 126,
+        "positive_studies": 121,
+        "negative_studies": 5,
+        "positive_components": 121,
+        "negative_components": 5
+      },
+      {
+        "target": "Baker's",
+        "auc": {
+          "aligned": 0.9397905759162304,
+          "null": 0.9223385689354275,
+          "parent": 0.9284467713787086
+        },
+        "observed_studies": 385,
+        "positive_studies": 3,
+        "negative_studies": 382,
+        "positive_components": 3,
+        "negative_components": 371
+      },
+      {
+        "target": "Contusion",
+        "auc": {
+          "aligned": 0.9434404135919756,
+          "null": 0.9455172109053952,
+          "parent": 0.9445450930140074
+        },
+        "observed_studies": 432,
+        "positive_studies": 61,
+        "negative_studies": 371,
+        "positive_components": 61,
+        "negative_components": 327
+      },
+      {
+        "target": "Fracture",
+        "auc": {
+          "aligned": 0.9922779922779923,
+          "null": 0.9922779922779923,
+          "parent": 0.9922779922779923
+        },
+        "observed_studies": 261,
+        "positive_studies": 2,
+        "negative_studies": 259,
+        "positive_components": 2,
+        "negative_components": 215
+      }
+    ],
+    "contrasts": {
+      "aligned_minus_null": {
+        "macro_delta": 0.0010585187831994025,
+        "macro_uncertainty": {
+          "defined_draws": 2814,
+          "undefined_draws": 1186,
+          "percentile_95": [
+            -0.0005818393123108056,
+            0.00302748671920326
+          ]
+        },
+        "targets": [
+          {
+            "target": "ACL",
+            "delta": 0.0005085993441744652,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0006175408615417876,
+                0.0017668248635284215
+              ]
+            }
+          },
+          {
+            "target": "MCL",
+            "delta": 0.001585623678647008,
+            "uncertainty": {
+              "defined_draws": 3471,
+              "undefined_draws": 529,
+              "percentile_95": [
+                -0.0024619449118661596,
+                0.007301174892949097
+              ]
+            }
+          },
+          {
+            "target": "Medial Meniscus",
+            "delta": -0.0007532641446267307,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.002433573035254205,
+                0.0007899111988688952
+              ]
+            }
+          },
+          {
+            "target": "Lateral Meniscus",
+            "delta": -0.0015695378855381525,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.004153599489168799,
+                0.0010866879152934357
+              ]
+            }
+          },
+          {
+            "target": "Medial OA",
+            "delta": -0.0004356539165286666,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0016974985566181738,
+                0.0005252608512649334
+              ]
+            }
+          },
+          {
+            "target": "Lateral OA",
+            "delta": -0.0014647415777360173,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.005780425173603726,
+                0.0025773048349775046
+              ]
+            }
+          },
+          {
+            "target": "PF OA",
+            "delta": -0.0015375517445298525,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.005507329499892383,
+                0.0017362118136118048
+              ]
+            }
+          },
+          {
+            "target": "Effusion",
+            "delta": 0.0009935419771485154,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                0.0,
+                0.0032566190028876234
+              ]
+            }
+          },
+          {
+            "target": "Synovitis",
+            "delta": 0.0,
+            "uncertainty": {
+              "defined_draws": 3976,
+              "undefined_draws": 24,
+              "percentile_95": [
+                -0.00656282249741999,
+                0.007352941176470562
+              ]
+            }
+          },
+          {
+            "target": "Baker's",
+            "delta": 0.017452006980802848,
+            "uncertainty": {
+              "defined_draws": 3804,
+              "undefined_draws": 196,
+              "percentile_95": [
+                0.0025067379504037034,
+                0.037037037037037084
+              ]
+            }
+          },
+          {
+            "target": "Contusion",
+            "delta": -0.002076797313419587,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.004170199320325796,
+                -0.0005401634018053235
+              ]
+            }
+          },
+          {
+            "target": "Fracture",
+            "delta": 0.0,
+            "uncertainty": {
+              "defined_draws": 3420,
+              "undefined_draws": 580,
+              "percentile_95": [
+                0.0,
+                0.0
+              ]
+            }
+          }
+        ]
+      },
+      "aligned_minus_parent": {
+        "macro_delta": 0.0016426116277478142,
+        "macro_uncertainty": {
+          "defined_draws": 2814,
+          "undefined_draws": 1186,
+          "percentile_95": [
+            -0.001332549855616376,
+            0.0045921787031320835
+          ]
+        },
+        "targets": [
+          {
+            "target": "ACL",
+            "delta": 0.0012982667469717546,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0015052257100547834,
+                0.004218751260639181
+              ]
+            }
+          },
+          {
+            "target": "MCL",
+            "delta": 0.005285412262156508,
+            "uncertainty": {
+              "defined_draws": 3471,
+              "undefined_draws": 529,
+              "percentile_95": [
+                0.0010695187165775666,
+                0.01086959251743061
+              ]
+            }
+          },
+          {
+            "target": "Medial Meniscus",
+            "delta": -0.0005189152996317725,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0018797008992387815,
+                0.0007659015330866437
+              ]
+            }
+          },
+          {
+            "target": "Lateral Meniscus",
+            "delta": 0.013553613615741145,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                0.006074255724631464,
+                0.022005407721916573
+              ]
+            }
+          },
+          {
+            "target": "Medial OA",
+            "delta": 8.713078330579993e-05,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0018428035024616706,
+                0.0020964989203510727
+              ]
+            }
+          },
+          {
+            "target": "Lateral OA",
+            "delta": -0.004603473530027213,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.018596003798572965,
+                0.006493858635941123
+              ]
+            }
+          },
+          {
+            "target": "PF OA",
+            "delta": 0.003784742755765902,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.005838163116123623,
+                0.01477890655102641
+              ]
+            }
+          },
+          {
+            "target": "Effusion",
+            "delta": 0.003808577579069383,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0007554888033025286,
+                0.009803921568627416
+              ]
+            }
+          },
+          {
+            "target": "Synovitis",
+            "delta": -0.013223140495867813,
+            "uncertainty": {
+              "defined_draws": 3976,
+              "undefined_draws": 24,
+              "percentile_95": [
+                -0.041365944934509485,
+                0.007087491370112373
+              ]
+            }
+          },
+          {
+            "target": "Baker's",
+            "delta": 0.011343804537521818,
+            "uncertainty": {
+              "defined_draws": 3804,
+              "undefined_draws": 196,
+              "percentile_95": [
+                0.0,
+                0.030610209509335674
+              ]
+            }
+          },
+          {
+            "target": "Contusion",
+            "delta": -0.0011046794220317402,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.006540978363950023,
+                0.0035303053061897446
+              ]
+            }
+          },
+          {
+            "target": "Fracture",
+            "delta": 0.0,
+            "uncertainty": {
+              "defined_draws": 3420,
+              "undefined_draws": 580,
+              "percentile_95": [
+                0.0,
+                0.0
+              ]
+            }
+          }
+        ]
+      },
+      "null_minus_parent": {
+        "macro_delta": 0.0005840928445484117,
+        "macro_uncertainty": {
+          "defined_draws": 2814,
+          "undefined_draws": 1186,
+          "percentile_95": [
+            -0.0024006941132363757,
+            0.003661745477285116
+          ]
+        },
+        "targets": [
+          {
+            "target": "ACL",
+            "delta": 0.0007896674027972894,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0025603174307215564,
+                0.004199930305473831
+              ]
+            }
+          },
+          {
+            "target": "MCL",
+            "delta": 0.0036997885835095,
+            "uncertainty": {
+              "defined_draws": 3471,
+              "undefined_draws": 529,
+              "percentile_95": [
+                -0.0020283975659228792,
+                0.011948681642369313
+              ]
+            }
+          },
+          {
+            "target": "Medial Meniscus",
+            "delta": 0.00023434884499495823,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0019945026153881384,
+                0.0024855271414801713
+              ]
+            }
+          },
+          {
+            "target": "Lateral Meniscus",
+            "delta": 0.015123151501279297,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                0.0069793572167621805,
+                0.024395270579401662
+              ]
+            }
+          },
+          {
+            "target": "Medial OA",
+            "delta": 0.0005227846998344665,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0014008355913448206,
+                0.0026039520545400076
+              ]
+            }
+          },
+          {
+            "target": "Lateral OA",
+            "delta": -0.003138731952291196,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.016544899074061314,
+                0.007183452176242031
+              ]
+            }
+          },
+          {
+            "target": "PF OA",
+            "delta": 0.0053222945002957545,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.005299503568786573,
+                0.0184086176659933
+              ]
+            }
+          },
+          {
+            "target": "Effusion",
+            "delta": 0.0028150356019208678,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.0010937735187465825,
+                0.007834967320261448
+              ]
+            }
+          },
+          {
+            "target": "Synovitis",
+            "delta": -0.013223140495867813,
+            "uncertainty": {
+              "defined_draws": 3976,
+              "undefined_draws": 24,
+              "percentile_95": [
+                -0.04132231404958675,
+                0.007092198581560294
+              ]
+            }
+          },
+          {
+            "target": "Baker's",
+            "delta": -0.00610820244328103,
+            "uncertainty": {
+              "defined_draws": 3804,
+              "undefined_draws": 196,
+              "percentile_95": [
+                -0.023023480036297627,
+                0.011234287450713006
+              ]
+            }
+          },
+          {
+            "target": "Contusion",
+            "delta": 0.000972117891387847,
+            "uncertainty": {
+              "defined_draws": 4000,
+              "undefined_draws": 0,
+              "percentile_95": [
+                -0.003779533417697753,
+                0.005786643128415279
+              ]
+            }
+          },
+          {
+            "target": "Fracture",
+            "delta": 0.0,
+            "uncertainty": {
+              "defined_draws": 3420,
+              "undefined_draws": 580,
+              "percentile_95": [
+                0.0,
+                0.0
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "studies": 1156,
+    "components": 1106,
+    "bootstrap_draws": 4000,
+    "bootstrap_seed": 20261017,
+    "paired_whole_component_draws_sha256": "7c7405f74127d6cfd8fea47bfb87f73e99b2bb129a773a710b0b07b8e9262c0b",
+    "undefined_policy": "Keep all12 targets; count each undefined draw, never drop a target, repair classes or redraw.",
+    "uncertainty_scope": "Conditional on defined draws, these fitted models, this one seed/fold and weak-label development pool; not clinical truth or training/search uncertainty."
+  },
+  "protected_gold_or_confirmation_read": false,
+  "studies_rows_or_predictions_exported": false,
+  "Kaggle_or_clinical_gain_claim": false,
+  "automatic_promotion": false,
+  "replication_required_for_promising_gain": true
+}

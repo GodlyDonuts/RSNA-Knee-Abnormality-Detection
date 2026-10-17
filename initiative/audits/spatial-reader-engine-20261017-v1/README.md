@@ -2,16 +2,19 @@
 
 ## Actual production preservation, October17 22:54UTC
 
-Both original GPU jobs completed all843optimizer updates and remain RUNNING
-while final held-out evaluation is pending. All six immutable epoch snapshots
+Both original GPU jobs completed all843optimizer updates and actually COMPLETED0:0.
+The original independent fixed-final CPU951680 analysis is also complete. All six immutable epoch snapshots
 are privately fully re-downloaded/size/SHA verified once. New final epoch3 proofs:
 aligned CPU951490/HF15daa3727ea2343b53c05ac4ba65e69856bdf748 and null
 CPU951512/HF2312e778ecc937129e227a226609f87cde98038f, each4objects/933181bytes.
 [Aligned epoch3](actual-full-aligned-epoch-003-private-verified.json),
 [null epoch3](actual-full-null-epoch-003-private-verified.json).
 Original sourceee045885/manifest3909bf50…/masks/folds/base/recipe are unchanged.
-Never repeat publications or either training dispatch. Final analysis waits for
-actual Slurm0exit terminals and all original publication proofs. No new score yet.
+Never repeat publications, training or original final analysis. Internal all12
+macro AUC aligned0.9222304347/null0.9211719159/parent0.9205878230; geometry
+delta+0.0010585 has95%[-0.0005818,0.0030275],1186/4000undefined macro draws.
+No robust geometry or Kaggle gain is established. See the complete fixed-final
+comparison in the separate analysis audit.
 
 ## Actual current execution, October17 21:13UTC
 

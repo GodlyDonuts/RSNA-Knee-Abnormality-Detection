@@ -6,6 +6,7 @@ import shlex
 import subprocess
 
 D = Path(__file__).resolve().parent
+assert not (D / 'fixture-copy-plan-retired-before-intent.json').exists(), 'Original copy plan retired before intent; use the already resident evc40 fixture'
 L = Path('artifacts/connected-witness-evc26-fixture-20261017-v1')
 L.mkdir(mode=0o700, parents=True, exist_ok=True)
 assert not (L / 'intent.json').exists()

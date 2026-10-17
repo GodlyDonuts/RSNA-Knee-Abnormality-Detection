@@ -31,22 +31,29 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 22:54UTC
+## Latest execution, October17 23:13UTC
 
-**Both full matched H100 runs completed all843finite optimizer updates**:
-aligned950679 and randomized-link-null950680 remain RUNNING on permitted
-physical2-H100 evc40 while final held-out evaluation is pending. Their fixed
-3epoch/effective8/2247-fitting/1156-development recipe/sourceee045885 and
-manifest3909bf50… remain unchanged. Best measured remains0.950(external S6
-reproduction); own independent N3E16 scored0.894. No new accuracy result exists.
+**Both full matched H100 jobs950679/950680 actually COMPLETED0:0**, each3epochs/
+843finite updates on2247 fitting studies. All six immutable epochs are privately
+fully byte-verified. Original independent CPU951680 replayed the fixed-final
+1156-study/all12-target results and4000paired whole-component draws:
+**aligned0.9222304347, null0.9211719159, simultaneous FP32parent0.9205878230**.
+Geometry-specific delta+0.0010585188 has conditional95%[-0.0005818393,0.0030274867];
+aligned-parent+0.0016426116 has[-0.0013325499,0.0045921787].1186/4000macro draws
+are undefined and retained. These are repeated weak-label, one-seed/fold internal
+results, **not clinical truth, a demonstrated robust geometry gain, or Kaggle**.
+Largest nominal geometry advantage is Baker's(+0.01745), with only3positive
+studies; Contusion regresses relative to null(-0.00208). Both arms improve lateral
+meniscus over parent(+0.01355/+0.01512), so that gain is not geometry-specific.
+No automatic promotion, target cherry-picking or unchanged-recipe expansion.
+Best measured Kaggle remains0.950(external S6); own independent N3E16 is0.894.
 
-**All six immutable epoch1/2/3 snapshots are privately fully verified.** New
-fixed-final epoch3 proofs are aligned CPU951490/HF15daa3727ea2343b53c05ac4ba65e69856bdf748
-and null CPU951512/HF2312e778ecc937129e227a226609f87cde98038f, each4objects/
-933181-byte complete reader/optimizer/RNG checkpoint plus exact provenance.
-Earlier epoch1/2 proofs remain authoritative; never repeat any publication.
-Original finite owner85548 and final-analysis follower86789 wait for actual
-GPU terminals before completing the prespecified all12-target comparison.
+All epoch1/2 proofs remain authoritative. Final epoch3: aligned CPU951490/
+HF15daa3727ea2343b53c05ac4ba65e69856bdf748; null CPU951512/
+HF2312e778ecc937129e227a226609f87cde98038f. Each4objects/933181bytes. Never repeat
+training, publication or the completed original final analysis. Direct production
+step0 states were not separately retained; deterministic construction/common-seed
+engineering evidence and that limitation remain in the actual comparison.
 Benchmark source7b764dfc/actual dispatch is separately all19-object privately
 fully download/size/SHA verified at HFa434cae3823baade2d2edbc69c1fdfe670c66e8c
 viaCPU950985, inside the cumulative8MiB source allowance. Do not repeat it.
@@ -109,7 +116,7 @@ CPU950645/950660 independently admitted the full rosters/labels/metadata on40/33
 CPU950671 submitted each full job once; never repeat dispatches or restart healthy
 jobs. Finite preservation owner **85548** is live for the six distinct immutable
 production epochs, using pinned CPU publisher91682e05…/shared privateHF lock,
-full re-download/size/SHA proofs and no uncertain automatic retry. All six epoch1/2/3 publications are verified; actual final evaluation remains pending.
+full re-download/size/SHA proofs and no uncertain automatic retry. All six epoch publications and the independent fixed-final comparison are complete.
 Large inputs/checkpoints stay private.
 
 The expanded H100 authority supersedes the old two-node cap; physical4-/8-GPU
@@ -200,9 +207,12 @@ zero-evidence/prior-mass error<=1.1921e-7. The68560-parameter learned reader and
 unchanged shared trainer loop passed fresh-process synthetic CPU full/stop1/resume
 complete model/AdamW/LR/order/cursor/all-RNG/history/epoch/CSV equality in both
 arms. Synthetic fixtures use8channels/width4; real1024/64 GPU recovery remains
-unaccepted. One private32-feature-fixture copy to evc26 is prepared inside a
-new3GiB node-only engineering cap/20GiB reserve, zero shared bytes. No new GPU
-reader fit or accuracy pass is claimed.
+unaccepted. The unstarted evc26 fixture-copy plan was retired BEFORE intent: evc40
+has now finished its original jobs and already holds every input. Prepare the
+new bounded real-MRI reader recovery there, reassigning64MiB of completed
+full-run320MiB to new controls, retaining256MiB for every old artifact. Total
+512MiB-reader/node3GiB/floor612022943803 envelopes and all original bytes remain
+unchanged. No new GPU reader fit or accuracy pass is yet claimed.
 [Exact source, original failure and mathematical evidence](../initiative/research/connected-witness-paths-20261017-v1/README.md).
 
 CPU951513 verified both existing evc26 runtimes actually have Python3.12.13,

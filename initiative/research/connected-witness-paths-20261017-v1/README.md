@@ -121,7 +121,10 @@ same model. [Actual result](synthetic-reader-recovery.json). These synthetic
 fixtures use8channels/width4 and do not accept full1024/64 real-MRI GPU execution,
 an encoder, diagnostic performance or a production candidate.
 
-Prepare one private transfer of the **already whole-byte verified32 cached
+The following private transfer was prepared but **retired before intent or any
+remote execution** when the original evc40 jobs finished; all inputs are already
+resident there. No copy, deletion or GPU cancellation occurred. Original plan:
+one private transfer of the **already whole-byte verified32 cached
 feature cases** from evc33 to evc26, through allocated CPU endpoints and a pipe
 on Newton. No feature arrays/rosters cross to the Mac/Git/HF. Original source
 files stay intact. New evc26 root is capped3GiB, including all copied data and
@@ -137,6 +140,23 @@ H100 full/stop/resume recovery on16 fitting plus16 prediction-only original
 cases,2epochs/4updates. This is engineering, not a model to submit or an accuracy
 experiment. No such GPU job is staged or submitted yet. The existing full paired
 reader jobs and their original final analysis remain unchanged.
+
+The original paired experiment is now complete: internal aligned0.9222304,
+null0.9211719, parent0.9205878 on1156 weak-label studies. Geometry delta+0.0010585
+has95%[-0.0005818,0.0030275], with1186/4000macro draws undefined. This is not a
+robust macro gain or a competition result. Preserve the negative/uncertain result.
+
+Reuse evc40's original32 full-map inputs for the new bounded recovery instead.
+Its64MiB engineering cap is reassigned within the completed full-run320MiB:
+retain256MiB for every original artifact, keep total reader512MiB/node3GiB and
+the original node40 floor612022943803 unchanged. No new large data/weight copy or
+shared files. The CPU stage must verify all32 actual1024x12x12 inputs, original
+16 fitting label/mask hash and target-free outer provider, plus zero-start parent
+logit equality on actual fitting/outer examples. Only an explicit agent decision
+bound to that actual CPU receipt may dispatch one1H100/2CPU/15minute job on
+physical2-H100 evc40. The original shared trainer loop, fresh-process recovery
+and private sixteen-case CSV equality must pass for both new path arms. This
+does not qualify a dense/online provider, train an encoder or establish accuracy.
 
 ## Why test this next
 
