@@ -57,6 +57,47 @@ missing-operator and four invalid-source checks passed. The one-time read-only
 the new small modules in RAM, with zero new node/shared files or MRI/target reads.
 Its original intent/actual receipt, rather than this plan, determines execution.
 
+## Actual first input result and a necessary generalization
+
+CPU951433 actually assessed the original32 engineering metadata fixtures without
+reading pixels, maps or clinical values. Every2345 original window was accounted
+for, but the fixed-joint model fully supported only13/16 fitting and11/16 outer
+fixtures.53chains/250windows had changing edge kernels. Their changes may include
+header-precision effects; this does not establish clinically meaningful motion.
+[Original result](actual-source-geometry.json). Do not drop those8studies or
+silently symmetrize their geometry to make this prototype pass.
+
+`variable_paths.py` therefore implements the exact partition with **a separate
+original transition for every edge**, without requiring reversibility or a
+stationary measure. Start priors are explicit; the new source builder uses a
+uniform prior over every observed token at each possible start. Original
+nonnegative kernels are normalized by outgoing mass, without symmetrization.
+Zero-outgoing observation states remain unsupported until an explicit policy
+exists. This is a different prior construction from the first fixed prototype,
+shared identically between the two new arms.
+
+The control is derived conditionally on each possible start: propagate the
+physical prior to obtain `m[start,time,token]`, then independently draw tokens
+from those same measures. Thus **every single-position prior marginal given each
+start is preserved**; evidence-dependent path coupling is removed. The shared
+class-specific stopping prior is independent of token state. This is a stronger
+statement than replacing changing matrices by an arbitrary shuffle, and says
+nothing about equality of evidence-conditioned posteriors or predictions.
+
+Exhaustive tiny physical/control path enumeration, enumeration of every
+start-conditioned prefix marginal, both unary/continuation gradient checks,
+focal/FP32/extreme-prior cases and five source-prior refusals passed. The old
+stationary model is reproduced as an exact special case of both mathematical
+arms. [Actual mathematical result](variable-mathematical-checks.json).
+Synthetic source checks retain changing/directed kernels and refuse missing
+outgoing states. This reference implementation has **quadratic sequence-length
+cost/storage** for the conditional null; dense-MRI throughput is unmeasured.
+
+The distinct variable-geometry CPU assessor is prepared, not a GPU fit. It must
+account for all32 original fixtures and retain every unsupported state; only
+its actual receipt can establish source-geometry acceptance. No learned MRI
+reader, real optimizer recovery or accuracy gain is established by these checks.
+
 ## Why test this next
 
 The [actual full fitting census](../../audits/spatial-throughplane-information-20261017-v1/actual-coverage.json)
