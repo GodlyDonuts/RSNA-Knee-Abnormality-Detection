@@ -1,0 +1,61 @@
+"""Single canonical private T4 field qualification; no competition entry."""
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-native-field-T4-20261017-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+assert hashlib.sha256((C/'workflow.py').read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('fov_workflow',C/'workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+source=v['source'];binding=v['prepared']['binding'];sha=hashlib.sha256(source.encode()).hexdigest();assert sha==binding['source_sha256']=='47e79180cca2808f25f45c8b11ca5804750eca206c6333c59b9c9cface95859b';compile(source,'private_field_qualification','exec')
+assert v['CPU']['status']=='actual32_original_MRI_nested320_full384_fields_and_peripheral_signal_audited' and v['CPU']['CPU_job']=='940198' and v['CPU']['all_original320_values_bit_equal_inside_full384'] is True
+required=607397296067+8*2**20;free=shutil.disk_usage('/tmp').free;assert free>required,'Fund all prior node33 liabilities, new8MiB controls and reserve'
+if not R.exists():
+ assert phase=='push';R.mkdir(mode=0o700);p=R/'qualification.private.py';p.write_text(source);p.chmod(0o600);w.new_json(R/'prepared.json',v['prepared']);w.new_json(R/'CPU-input-accepted.json',v['CPU']);w.new_json(R/'funding.json',{'source_git':v['source_git'],'actual_CPU_job':os.environ['SLURM_JOB_ID'],'all_prior_required_bytes':607397296067,'new_small_controls_bytes':8*2**20,'required_bytes':required,'actual_free_bytes':free,'remaining_after_all_funded_liabilities_bytes':free-required,'new_shared_pixel_or_checkpoint_bytes':0,'new_Dataset_uploads':0})
+assert hashlib.sha256((R/'qualification.private.py').read_bytes()).hexdigest()==sha and sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Canonical coordinator busy; preserve all originals';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'original_native_field_private_qualification','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';parent=w.read_entry(db,weight);parent_hash=w.object_hash(parent);assert parent['remote_outcome']=='scored' and parent['public_score']=='0.949';key='licensed-native-field-qualification:'+sha
+  row=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()
+  record=json.loads(row[0]) if row else {'state':'fov_qualification_prepared','source_sha256':sha,'source_git':v['source_git'],'CPU_input_receipt_sha256':v['prepared']['actual_CPU_input_receipt_sha256'],'new_Dataset_uploads':0,'competition_entries':0}
+  def save():
+   db.execute('INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,json.dumps(record,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  slug='godlydonuts/rsna-native-field-precision-'+sha[:12]
+  request={'slug':slug,'newTitle':'RSNA unchanged weight native field precision '+sha[:12],'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007'],'competitionDataSources':[],'kernelDataSources':['godlydonuts/rsna-parent-exact-pixels32-09254e97913d','godlydonuts/rsna-released-context-probe-d077e354611d'],'sessionTimeoutSeconds':1800,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+  if phase=='push':
+   assert record['state']=='fov_qualification_prepared' and not (R/'push-intent.json').exists(),'Existing intent requires read-only reconciliation, never repeat SaveKernel'
+   for input_slug,filename,expected in [('godlydonuts/rsna-parent-exact-pixels32-09254e97913d','licensed-pixels32-accepted.json','3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3'),('godlydonuts/rsna-released-context-probe-d077e354611d','context-features-accepted.json','a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100')]:
+    assert r.kernel('GetKernelSessionStatus',input_slug,1)['status']=='COMPLETE';proof=r.output_json(input_slug,1,filename);assert proof['index_sha256']==expected and proof['studies']==32
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda s:float(s.removesuffix('s'));remaining=min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved'])
+   full=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');assert full.is_dir() and not any((full/('segment-'+str(i))/'actual-failed.json').exists() for i in (1,2,3));future=sum(25200 for i in (1,2,3) if not (full/('segment-'+str(i))/'actual-accepted.json').exists())+3600;needed=future+1800+300
+   if remaining<needed:out={'status':'waiting_VM_allowance_funding_all_unfinished_original_full_model_epochs','remaining_VM_seconds':remaining,'future_full_fit_and_reserve_seconds':future,'required_VM_seconds':needed,'mutation_intent_created':False}
+   else:
+    absence=r.require_absent_kernel(slug);w.new_json(R/'push-intent.json',{'slug':slug,'source_sha256':sha,'request_sha256':w.object_hash(request),'source_git':v['source_git'],'actual_CPU_acceptance':v['prepared']['actual_CPU_input_receipt_sha256'],'absence':absence,'GPU_quota':quota,'future_full_fit_and_reserve_seconds':future,'required_VM_seconds':needed,'automatic_retry':False});record['state']='fov_qualification_push_intent';save()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(R/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:record['state']='fov_qualification_push_uncertain';save();retain=True;raise
+    record.update(state='fov_qualification_pushed',slug=slug,version=1,kernel_id=response['kernelId']);save();out={'status':'one_private_unchanged_weight_field_qualification_pushed','source_sha256':sha,'slug':slug,'version':1,'kernel_id':response['kernelId'],'competition_entry':False,'new_Dataset_uploads':0,'remaining_VM_seconds_before':remaining,'future_full_fit_and_reserve_seconds':future}
+  else:
+   assert record['state'] in ('fov_qualification_pushed','fov_qualification_accepted','fov_qualification_failed') and record['slug']==slug
+   actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+   for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+   for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+   state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':state,'source_sha256':sha,'slug':slug,'version':1,'kernel_id':record['kernel_id'],'competition_entry':False}
+   if state in ('ERROR','CANCELLED'):
+    record['state']='fov_qualification_failed';save()
+    if not (R/'actual-failed.json').exists():w.new_json(R/'actual-failed.json',out)
+   elif state=='COMPLETE':
+    receipt=r.output_json(slug,1,'licensed-field-precision-accepted.json');assert receipt['status']=='actual_original32_bothT4_unchanged_weights_full384_field_qualified' and receipt['parent_checkpoint_sha256']==weight and receipt['studies']==32 and receipt['loaded_parameter_count']==73136096 and receipt['competition_entry'] is False and receipt['clinical_labels_reports_read'] is False and len(receipt['devices'])==2 and receipt['maximum_cross_GPU384_probability_difference']<=1e-5
+    assert all(d['all_learned_parameters_equal_320_384'] is True and d['control_probability_error']<=0.003 and 'T4' in d['GPU'] and len(d['roles'])==2 and all(role['CPU_GPU_inputs_bit_equal'] and role['original320_input_hashes_reproduced'] and role['studies']==32 and role['peak_GPU_bytes']<14*2**30 for role in d['roles']) for d in receipt['devices']);out['receipt']=receipt
+    if not (R/'actual-accepted.json').exists():w.new_json(R/'actual-accepted.json',out);record['state']='fov_qualification_accepted';record['receipt']=receipt;save()
+  assert w.object_hash(w.read_entry(db,weight))==parent_hash
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

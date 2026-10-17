@@ -27,3 +27,20 @@ new weight upload, and no alteration of healthy full-parent training or existing
 entries. It could hurt by diluting central evidence or shifting position bias.
 Fresh optional GPU pushes must preserve the primary training budget and actual
 per-version receipts. Public execution never substitutes for a hidden result.
+
+The actual CPU gate940198 passed. The prospective T4 control bound is the existing
+0.003 mean-TTA probability tolerance against original saved320 outputs, fixed
+before this execution. Require both sizes on EACH T4, strict checkpoint loads and
+identical complete learned-parameter hashes; exact CPU/GPU inputs and original
+central320 hashes; cross-device384 probability difference<=1e-5. Each role must
+use<14GiB VRAM, process<27GiB RSS, total<=1800seconds. Timing covers cached-input
+rendering/inference, not DICOM decoding or a hidden nine-hour guarantee. Only
+aggregate engineering evidence leaves the private runtime. A changed representation
+is allowed to change predictions; no clinical values select a size or tolerance.
+
+Compiler source47e79180cca2 and eight source/guard refusal tests are accepted
+locally. The single canonical coordinator retains7h for EVERY unfinished primary
+full-model epoch plus1h reserve, the1800s qualification and300s extra margin
+before any push. New evc33 control budget8MiB is separate from the original evc39
+CPU-audit budget. No extra pixels/weights Dataset, competition entry or live
+training alteration. Actual T4 acceptance is still required.
