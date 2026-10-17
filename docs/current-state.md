@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October17,2026,20:25UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
+**Verified October17,2026,21:13UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -28,78 +28,75 @@ remaining non-reserved eligible H100s were allocated. Existing native inputs
 and runtime are owning-node assets on evc33; fresh remote staging is required
 before moving an inference/trainer to another node. The first
 spatial scout949626was PREEMPTED after26studies; recovery949735completed
-all32 and was independently accepted. Current real-reader recovery GPU950355 is pending;
-its source/inputs are admitted on evc33/40, without a new accuracy claim.
+all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
+running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 20:25UTC
+## Latest execution, October17 21:13UTC
 
-Best actual public AUC remains **0.950** (released S6 reproduction); our own N3E16
-is **0.894**. No new leaderboard gain or completed spatial-reader fit is claimed.
-The owner's expanded H100 authorization is active: use useful accessible
-physical1/2-GPU nodes; physical4-/8-GPU nodes are excluded, even for1GPU requests.
+**Two full matched H100 runs are actually RUNNING:** aligned **950679** and
+randomized-link null **950680**, both on permitted physical2-H100 evc40, each
+1GPU/2CPUs. At21:12UTC each had47/843 finite real optimizer updates. Full
+source **ee045885**/manifest3909bf50… and receipt48d047fb… bind the unchanged
+2247 fitting/1156 development split, fixed3epochs/effective8/281updates per epoch.
+No new accuracy or leaderboard gain is claimed. Best measured remains **0.950**
+(external S6 reproduction); own independent N3E16 is **0.894**. Target0.97 is unmet.
 
-The **new full-map spatial reader is implemented** in `spatial_reader`,
-`spatial_data` and `spatial_train`: learned1024→64 projection, twelve evidence
-channels, shared image/nuisance paths and within-acquisition joint evidence,
-with a zero-start **unbounded** residual over the frozen original N3E16. Both
-arms use75%original observed binary report supervision/25%parent on observed
-cells; missing cells retain detached parent targets. This is a new shared
-recipe, not a causal comparison to the old context loss. The main null preserves
-weighted marginals/observed tokens/padding/no-self constraints and intentionally
-randomizes geometric positive edges. The older exact-positive-edge null tests
-weights only and is retained as a separate diagnostic. Cross-plane registration
-and lesion localization remain unqualified.
+The new reader learns from the original **full1024×12×12 pre-pooling maps** of
+frozen N3E16: learned1024→64 projection,12 evidence channels, shared image/nuisance
+paths and within-acquisition spatial co-support, zero-start **unbounded** residual.
+The main null deliberately randomizes geometric positive links while preserving
+weighted marginals/observed tokens/padding exclusions/local no-self. The old
+exact-positive-edge operator is only a distance-weight diagnostic. Nominal tokens
+are not lesion masks; cross-acquisition registration remains unqualified.
+Both arms share initialization/order/loss/optimizer/stopping, using75%original
+binary report supervision/25%parent on observed cells, detached parent on missing
+cells. This differs from the old context loss; do not attribute that contrast
+solely to geometry. Fixed-final all12-target paired whole-leakage-component
+uncertainty and undefined draws are required; protected Gold/confirmation unused.
 
-Actual CPU950079 admitted all32original studies/2345windows, with weighted-degree
-error2.794e-9; CPU950100 admitted16fitting target/mask arrays and16disjoint
-prediction-only outer inputs.33focused tests and118-module mypy passed. Full
-source-frozen suite completed **4719passed/6skipped**; all118numerical module
-hashes stayed identical. Global1327lint/57format debt is unchanged. Archive
-membership is being refreshed for these new small receipts; currentv2coverage
-remains89/89.
-These are engineering results, not clinical accuracy. GPU950196 actually
-FAILED1:0/18seconds on evc40 before its first optimizer update: the launch wrapper
-omitted the already-installed Python-header CPATH needed by the new backward's
-Triton compiler. Actual H100/CUDA allocation passed. This is an agent launch
-environment error, not a model/data accuracy finding. Original modules/data/
-recipe remain unchanged. Distinct **GPU950355 is PENDING(no GPU runtime yet)** after
-actual Python.h/pyconfig.h checks on both nodes (CPU950339/950340), with original
-CPATH and private Triton/inductor caches restored. WrapperSHA a67e6c7c…/Git8023a81c
-binds the same118-module manifest3909bf50…. Both evc33/40 retain original native
-cache/runtime and exact32source graphs (CPU950192/950191). The first
-27private feature files were reused after an access-time guard stopped their
-transfer; only remaining8members were continued and verified (CPU950171).
-No140GBnative cache or runtime was retransferred. Previous950125 was cancelled
-**only while PENDING**, terminalCANCELLED/zero seconds. Never repeat either job.
-Only the one950355experiment is scheduled; every other inventory node, including
-all physical4-/8-GPU nodes, is explicitly excluded. The3epoch/843update full
-matched comparison has a prepared wrapper, **not a submitted production run**.
+**Actual engine acceptance:**950355 completed all cached full/stop1/resume work
+for both arms exactly, then failed at a missing torchvision import before online
+inference. CPU950496 independently accepted/reused that completed work. Original
+950196 missing-Python.h launch failure remains preserved. Exact original
+vision0.29.1 wheel was admitted separately on evc40 without replacing Torch.
+Distinct online-only **950540 COMPLETED0:0/110seconds**; CPU950582 collected
+all32 real online/cache inputs/logits/geometry/labels/masks **bit equal**, full
+model/AdamW/LR/cursors/order/all-RNG/history/prediction recovery exact and frozen
+parent fingerprint unchanged. Maximum online/cache difference0.0;32-input encoding
+41.56seconds. Tiny engineering data establish execution, not clinical accuracy.
+CPU950645/950660 independently admitted the full rosters/labels/metadata on40/33.
+CPU950671 submitted each full job once; never repeat dispatches or restart healthy
+jobs. Finite preservation owner **85548** is live for the six distinct immutable
+production epochs, using pinned CPU publisher91682e05…/shared privateHF lock,
+full re-download/size/SHA proofs and no uncertain automatic retry. No production
+epoch was complete at21:12UTC. Large inputs/checkpoints stay private.
 
-All16old N3 publications/terminal bindings were reconciled by CPU950039 without
-repeating bulk hashes or downloads. Only8GiBof demonstrably unused old24GiBfuture
-allowance was retired, retaining16GiB/all originals; no deletion credit. Future
-node33 gates use603433009211B plus unpaid original3GiB spatial envelope; do not
-subtract8GiBagain. Node40 uses the conservative612022943803B floor and its own
-new3GiB envelope, without applying the node33 retirement there. Existing512MiB
-reader budget now retains8MiBCPU plus4MiBeach for both zero-update old GPU
-controls, and reassigns their unused120MiBto the new GPU/JIT run. No originals
-or unused future allowance are counted as physical deletion credit. Remaining
-376MiBretains320MiBfull fits,8MiBsource mirror and48MiBepoch preservation. Actual resources still govern every action.
+The expanded H100 authority supersedes the old two-node cap; physical4-/8-GPU
+nodes remain prohibited even requesting1GPU. Actual source-frozen QA is
+**4719passed/6skipped**,118-module mypy/33focused checks;118 numerical hashes
+remain unchanged. Existing1327lint/57format debt remains. Reader512MiB envelope
+retains8MiBCPU/8MiBoldcontrols/120MiBacceptedrecovery/320MiBfull/8MiBcumulative
+source/48MiBepoch preservation, inside original3GiB node root. Only demonstrably
+unused8GiB of the old N3 allowance was retired once; no originals deleted or
+retirement applied twice. Fresh node/shared reserve governs each operation.
 
-Original finite scoring78386 stopped on an obsolete resource floor; cached-MIL
-follower10613 then stopped as designed. **Neither is still live; never restart
-them.** Independent canonical read-only reconciliation CPU950158 verified
-uniform public139269448v1 COMPLETE, exact source24af4c2f…/model ed35463c…,
-bothT4s/17.8685seconds, six MRI views/no fallbacks and exact3×13CSV470bytes/SHA
-faa20e95…. This is **not a competition entry or hidden score**. The finite
-successor is prepared to reuse the original completed phases and canonical
-ledger, retaining fresh allowance, actual prior outcomes, allVM limits and
-single-attempt guards; inspect its actual dispatch before claiming it is live.
-Read-only exact-reference observer25736 remains separate. Authenticated
-GetSubmissionLimits at20:14UTC reports5today/0slots,49total and no active unresolved
-entries; do not infer an exact reset timestamp from a null response.
+**Kaggle in parallel:** finite successor **82637** is live; old78386/10613 stopped
+and must not restart. Both uniform and new-source-label fixed-final models have
+actually passed original32MRI qualification on bothT4s and exact3-study public
+runs (uniform139269448v1;label139295709v1). Influence qualification139297897v1 was
+pushed once and its actual outcome remains under observation. These are public
+acceptances, not hidden scores. The canonical owner will enter the three models
+once each in order after fresh account allowance and actual prior hidden outcomes.
+Fresh21:10UTC GetSubmissionLimits reports5used/0available,49total, no unresolved
+entries; the null reset timestamp does not verify an exact reset time.
+Exact8-cell stronger-reference script **139271768v2** also actually completed its
+full original R6/2.5D public reader and CSV acceptance via CPU950205; this is not
+our0.958 score or a competition entry. Never repeat old uncertain UI versions.
 
-[Exact source, controls, failures, resource reconciliation and receipts](../initiative/audits/spatial-reader-engine-20261017-v1/README.md).
+Git sourcecadb3885 is privately fully77-object download/size/SHA verified at
+HF99da506b9e7c6c6bfb2d5ccfa245c3f4d46ecbb2; never repeat. New actual engine,
+full dispatch and watcher receipts are being synchronized as one distinct delta.
+[Exact controls, failures, full dispatch and preservation](../initiative/audits/spatial-reader-engine-20261017-v1/README.md).
 
 ## Prior execution, October 17, 19:17 UTC
 

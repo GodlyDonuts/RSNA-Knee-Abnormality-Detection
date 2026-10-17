@@ -6,20 +6,22 @@ this workspace. No claim is made to have executed that supplied bundle. Its
 three assignments are research proposals; execution remains one coordinated
 program without spawning new agents or interrupting existing scorers.
 
-## Current implementation, October17 20:25UTC
+## Actual execution, October17 21:13UTC
 
-[The full reader and real-engine qualification](../../audits/spatial-reader-engine-20261017-v1/README.md)
-now supersede the early prepared-scout language below. The scout completed32cases;
-new numerical reader/providers/trainer are implemented with33focused checks and
-actual input gates. Original950196failed before its first update because the wrapper omitted the
-existing Python-header path. Corrected single GPU950355 is pending on evc33/40;
-all numerical sources and science remain identical. The principal
-null now preserves degrees/observed tokens/structural exclusions while
-randomizing geometric edges: an exact-positive-edge null retains topology and
-therefore tests only weights. Both are preserved and distinguished. No new
-clinical result or full-reader fitting is claimed. The3epoch843update production
-wrapper is prepared, not dispatched. Earlier source claims below are historical
-mathematical facts, not the current main-null or execution contract.
+[Complete online engine acceptance and full paired H100 fitting](../../audits/spatial-reader-engine-20261017-v1/README.md)
+now supersede the early prepared-scout text below. Actual950540/CPU950582 reuse
+completed950355cached work; full model/optimizer/RNG/history/CSV equality and
+all32 online original inputs passed exactly. Full3epoch/843update aligned950679
+and randomized-link-null950680 are RUNNING on permitted physical2-H100 evc40.
+Each has47finite updates at21:12UTC; finite85548preserves all six distinct
+immutable epochs. No fixed-final accuracy or new leaderboard gain exists yet.
+The null preserves weighted marginals/observed tokens/structural exclusions but
+randomizes geometric edges. The old exact-positive-edge null only tests weights.
+Both share75%report/25%parent observed-cell supervision; missing cells retain
+teacher targets. No cross-plane registration or clinical lesion annotation is
+assumed. Compare fixed-final all12 targets/paired whole-component uncertainty
+against null and simultaneous unchanged FP32parent before any promotion.
+Earlier source claims below are historical, not current execution status.
 
 ## What changes
 

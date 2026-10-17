@@ -1,4 +1,47 @@
-# Full-map spatial reader: actual inputs and bounded real-engine qualification
+# Full-map spatial reader: exact engine accepted and two full H100 fits running
+
+## Actual current execution, October17 21:13UTC
+
+The complete unchanged real engine is accepted by **950540/CPU950582** after
+reusing the completed cached full/stop1/resume work from950355. All32 online
+inputs/maps/logits/geometry/labels/masks are bit equal to their cached originals;
+complete learned/AdamW/LR/order/cursors/all-RNG/history/CSV recovery and frozen
+parent fingerprint passed. The original Python-header launch error and missing
+vision dependency are preserved; exact original torchvision was added separately,
+without a Torch or numerical-source change. These are engineering checks.
+
+**Full aligned950679 and randomized-link-null950680 are RUNNING on evc40**, each
+1H100/2CPUs/32GiB/6hours, admitted only on physical2-GPU nodes33/40. Each had47of843
+finite updates at21:12UTC. Full2247fitting/1156development/3epochs/effective8 and
+sourceee045885/manifest3909bf50… are fixed. [Agent engineering decision](full-engineering-decision.json),
+[actual online proof](actual-complete-GPU-engine-accepted.json),
+[full source/data admission40](actual-full-evc40-admitted.json),
+[admission33](actual-full-evc33-admitted.json),
+[one-time dispatch](actual-full-pair-submitted.json),
+[real progress](actual-full-owner-progress.json) and
+[finite preservation owner85548](actual-full-preservation-owner-started.json)
+are actual receipts. Publisher91682e05… preserves all six immutable epochs once
+with full private byte proofs; existing intents require read-only reconciliation.
+No production epoch or fixed-final result was complete at this observation.
+
+Compare fixed-final all12 targets against the matched null and simultaneous
+FP32 unchanged-parent predictions with paired whole-component uncertainty and
+undefined draws. Historical BF16 parent metrics are context, not identical
+precision control. No new clinical or Kaggle improvement is claimed.
+
+Uniform and source-label full models have both passed exact32MRI/bothT4 and
+public3study acceptance; finite canonical scorer82637 remains live, with fresh
+allowance0at21:10UTC. Exact-reference139271768v2 also completed public acceptance,
+not a hidden score. Full QA4719passed/6skipped and all118numerical hashes unchanged.
+The sourcecadb3885 private milestone is all77-object verified atHF99da506b…;
+new engine/full launch/preservation receipts form a distinct cumulative-budget
+source delta. No original data/checkpoints are deleted or repeated.
+
+## Historical engineering observations
+
+The dated sections below preserve prior states and failures; the current actual
+receipts above supersede their pending/not-dispatched snapshots.
+
 
 The new reader consumes the original N3E16 **full1024×12×12 maps**, learns a
 1024→64 projection and twelve evidence channels, and computes shared global
