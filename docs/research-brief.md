@@ -105,6 +105,10 @@ private source40c79242was fully67-object download/size/SHAverified at
 HF6cae5d110c4b9c96a34a96484cc68b7ecfe5b6c8; never repeat it. Fresh source-frozen full QA completed **4695passed/6skipped**; all115numerical
 source hashes remained unchanged. Mypy115passed and46focused checks passed;
 global1327lint/57format debt remains unchanged. No accuracy claim from QA.
+The distinct actual-scout/full-QA milestone is privately fully18-object verified
+at HFa5e50eef7676c34f0189f0d614beeaea757b828b, source d8ca4069;
+never repeat it. Latest 32-study scout is complete; no new reader training or
+competition score exists. Original Kaggle scoring owners remain untouched.
 
 ## Completed CPU research: labels × whole-study coverage
 
