@@ -45,7 +45,7 @@ Queued execution, code-entry acceptance or training loss is never called a score
 
 Helpers are exact published main86cfc7b6, matching actual CPU947129. The new
 controller will be armed only after its own archived sources are published.
-It also requires the exact new private source milestone to be fully re-downloaded/size/SHA verified before arming. It is prepared and CPU-accepted here, not yet running. Later owner/phase intents
+It also requires the exact new private source milestone to be fully re-downloaded/size/SHA verified before arming. The one original finite owner **78386** is now actually live and waiting for original61037final/private proof. Its intent binds sourcef25a17d7and the actual completed private source milestoneHF276963b3…. Never start another owner. Later owner/phase intents
 must be inspected before any action. Never start a duplicate.
 
 Twenty-two synthetic transport/scheduler cases passed: no GPU before treatment

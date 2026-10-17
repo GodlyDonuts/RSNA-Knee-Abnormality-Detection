@@ -80,13 +80,15 @@ leaving **4,128,768 other future bytes** within the unchanged 32 MiB envelope.
 Preserve the unpaid part of that 4 MiB allocation as well as other liabilities;
 deduct paid bytes once. Original 20 GiB and 5,000-file reserves remain.
 
-Source **86cfc7b6** is privately mirrored at
-**HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**, all **29 objects / 130,776 bytes**
-fully downloaded/size/SHA verified by CPU947235. It includes the actual scoring
-preparation and current research guides. Exact label-serving helper hashes now
-bind published main; final model/private proof and T4 qualification remain
-required. Do not repeat this or older verified mirrors.
-[Preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
+Source **f25a17d7** is privately mirrored at
+**HF276963b335043f552d8f3e8cfd59c8afe92247a3**, all **29 objects / 152,794 bytes**
+fully downloaded/size/SHA verified by CPU947499. It preserves the actual epoch-1
+milestone and scoring follow-through. Original scoring owner **78386** is live,
+waiting for the final treatment/private proof. It can qualify the three matched
+finals and enter ready candidates promptly under fresh limits, observing each
+actual hidden outcome before another entry. Do not duplicate either owner or
+any verified private publication.
+[Preservation receipt](../initiative/audits/hf-matched-final-scoring-ready-20261017-v1/README.md).
 
 Read the [research brief](research-brief.md), [execution handoff](codex-continuation.md)
 and [research-agent handoff](research-agent-handoff.md). Accepted masks/folds and
@@ -100,10 +102,18 @@ refused the unfinished treatment before anyGPUintent. It will wait original
 E3models and enter only exact accepted versions under fresh allowance. A ready
 entry need not wait for unrelated qualification; actual previous hidden score
 is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
-owner, not yet armed at this receipt. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+owner **78386now armed/live**, waiting original61037final/private proof. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
 and is preparing E2. Do not repeat epoch1publication.
 No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
+
+Latest distinct source**f25a17d7** is privately preserved at
+**HF276963b335043f552d8f3e8cfd59c8afe92247a3**,29objects/152794bytes fully
+re-downloaded/size/SHA verified viaCPU947499. Original scoring owner**78386**
+is actually live, immutable sources/private pin accepted, waiting actual
+labelE3/private proof. Maximum6GPU pushes/3code entries; no model/weightDataset
+copies. Do not restart owner61037or78386or repeat either private publication.
+[Exact new preservation](../initiative/audits/hf-matched-final-scoring-ready-20261017-v1/README.md).

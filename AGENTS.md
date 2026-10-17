@@ -181,7 +181,7 @@ refused the unfinished treatment before anyGPUintent. It will wait original
 E3models and enter only exact accepted versions under fresh allowance. A ready
 entry need not wait for unrelated qualification; actual previous hidden score
 is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
-owner, not yet armed at this receipt. [Exact coordinator](initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+owner **78386now armed/live**, waiting original61037final/private proof. [Exact coordinator](initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
@@ -189,3 +189,11 @@ HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
 and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
 epoch1publication or either GPU push.
 No fixed-final or new score yet. [Actual epoch records](initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
+
+Latest distinct source**f25a17d7** is privately preserved at
+**HF276963b335043f552d8f3e8cfd59c8afe92247a3**,29objects/152794bytes fully
+re-downloaded/size/SHA verified viaCPU947499. Original scoring owner**78386**
+is actually live, immutable sources/private pin accepted, waiting actual
+labelE3/private proof. Maximum6GPU pushes/3code entries; no model/weightDataset
+copies. Do not restart owner61037or78386or repeat either private publication.
+[Exact new preservation](initiative/audits/hf-matched-final-scoring-ready-20261017-v1/README.md).
