@@ -53,3 +53,14 @@ actual original source archive uses four empty generated package initializers,
 while the guard declared only two. The corrected control declares all four and
 additionally pins both original published rsna initializers. Every numerical
 module remains unchanged; no model/MRI work or Kaggle mutation was repeated.
+
+Source645a479037de89bcf6a81eddba49b6de31efca34 and its distinct new serving/
+Dataset/full-CNN E2 preservation/E3 progress findings are privately mirrored
+under the original shared lock at HF53eabcdf3fb4490ab74217455faa3fdee55c24c0.
+CPU948618 fully re-downloaded/size/SHA verified33objects/219511bytes once inside
+the original32MiB serving subcap. No MRI/feature/label/prediction records or
+encoder weights were mirrored. Never repeat. Original full-CNN owner61037 was
+still running; E3 reached1315finite updates before16:39UTC. Existing scoring
+owner78386 waits its actual final/private proof. The four new head inference
+sources are prepared and their Dataset verified; actual GPU validation remains
+a next action under fresh capacity/VM limits, not a dispatched job.

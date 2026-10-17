@@ -1,15 +1,15 @@
 # Execution handoff
 
-**Actual October17,16:27UTC.** Target0.97; best measured0.950. Read
+**Actual October17,16:39UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Latest execution, October 17, 16:27 UTC
+## Latest execution, October 17, 16:39 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,217/1,458 finite updates** in its final epoch, on both
+comparison has reached **1,315/1,458 finite updates** in its final epoch, on both
 T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
 E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
 CPU948213/all five objects. Never repeat either push or publication. Original
@@ -22,6 +22,9 @@ original full94 MRI pipeline remain unchanged. One small private Dataset is
 now fully verified: **12661001 v1**, `godlydonuts/rsna-cached-four-e3-88fd5b06a572`,
 CPU948592/all nine objects. Do not repeat it. Actual raw-MRI T4 validation/public/
 hidden results remain pending; no accuracy gain is claimed.
+Source645a4790 and its distinct new results are privately fully verified at
+**HF53eabcdf3fb4490ab74217455faa3fdee55c24c0**, CPU948618/33objects/219511B.
+Do not repeat this milestone. No new GPU or competition entry was made by it.
 [Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
 
 The exact stronger reference **139199164 v2** is still Queued, unqualified and
