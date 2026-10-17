@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 15:44 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 15:48 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -14,6 +14,17 @@ project public AUC remains **0.950**. The target has not been reached.
 
 Public AUC is not private-final performance or clinical accuracy.
 [Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
+
+## Latest full-encoder terminal, October17 15:46UTC
+
+Original **139245643v1completed epoch2**,972cumulativeupdates/1458fixed total,
+model292872115B/SHAb00d3b46…. Original successor61037is independently verifying/
+privately preserving this exact epoch before E3resume. Do not duplicate either
+GPU push or publication. Fixed-final E3and an accuracy result are still pending.
+The separate four readout fits/all12private epochs below are already complete.
+Their actual source/result milestone2bb8de2cis privately verified at
+HFaf91f7802028bc5e750f267ee162d0fc49fd3500,CPU948212/all12small objects.
+[Actual E2terminal](../initiative/audits/s6-label-full-epochs-20261017-v1/epoch-2-terminal-sanitized.json).
 
 ## Completed CPU research: labels × whole-study coverage
 
@@ -45,7 +56,7 @@ full-encoder61037and matched-final scoring78386remain separate original owners.
 [Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
 and [actual recovery/full/private proofs](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
-## Training that is actually running
+## Full-encoder campaign: epoch 2 complete
 
 The **source-label comparison** is training all 73,136,096 parameters on the
 same 3,887 fitting studies as the completed uniform control. Source labels are
@@ -59,7 +70,7 @@ clinical ground truth.
   both-label full/stop/resume state equality and prediction-byte equality.
 - **60358** finished successfully. **61037** independently verified and privately preserved epoch 1
   at **HF33d992cfa8157d8b6fd3cc1a547b80838b874b44** (CPU947422; all five objects
-  re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now RUNNING.
+  re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now COMPLETE at972cumulative updates; private verification is pending.
   Exact source and private offline T4 metadata passed; live optimizer progress
   for epoch 2 is not yet claimed. The fixed-final model
   and its accuracy result are still pending. Scientific source remains

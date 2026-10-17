@@ -24,3 +24,11 @@ RUNNING; source6882d479fe8f4913e888a4b6ea2f17ca86f6bbdb6824609863112df3d6f214d9
 and private/offline/T4 metadata match. Same990c8dedscience, previous immutable
 state preserved; allocated CUDA/header/real optimizer progress are not yet
 claimed by that API receipt. Do not restart/duplicate either job or owner.
+
+**Actual epoch2terminal,2026-10-17 15:46UTC:** original139245643v1COMPLETE,
+972cumulativeupdates/1458fixedtotal. Immutable epochmodel292872115B/
+SHAb00d3b46d1dcb8f4b2359909bf191a50c03e564a78007958f15eb4424aa89b0b.
+Original61037already owns independent verification/private preservation then
+E3resume. E2private completion is not yet claimed. No duplicate GPU, checkpoint
+publication or entry was launched. No fixed-final model or score exists yet.
+[Sanitized actual terminal](epoch-2-terminal-sanitized.json).

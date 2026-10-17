@@ -7,6 +7,17 @@ Devin. Preserve healthy work while pursuing concrete, falsifiable experiments.
 Software tests, parameter count, model downloads and training loss are not score
 improvements; report actual measured results without promising first place.
 
+## Latest full-encoder terminal, October17 15:46UTC
+
+Original **139245643v1completed epoch2**,972cumulativeupdates/1458fixed total,
+model292872115B/SHAb00d3b46…. Original successor61037is independently verifying/
+privately preserving this exact epoch before E3resume. Do not duplicate either
+GPU push or publication. Fixed-final E3and an accuracy result are still pending.
+The separate four readout fits/all12private epochs below are already complete.
+Their actual source/result milestone2bb8de2cis privately verified at
+HFaf91f7802028bc5e750f267ee162d0fc49fd3500,CPU948212/all12small objects.
+[Actual E2terminal](initiative/audits/s6-label-full-epochs-20261017-v1/epoch-2-terminal-sanitized.json).
+
 ## Read first
 
 1. `docs/current-state.md`: timestamped scores, active runs and actual evidence.
@@ -22,7 +33,7 @@ preserved verbatim at `docs/AGENTS.history-20261017.md`; its old scores,
 pending/running snapshots and next-action instructions are historical. Other
 historical release/plan documents now link back to the current guides.
 
-## Current scientific distinctions, October17 15:44UTC
+## Current scientific distinctions, October17 15:48UTC
 
 - Target0.97; actual best**0.950**, S6entry57300990 COMPLETE/noerror. This
   reproduces external weights/inference. Own independent N3E16 scored0.894;
@@ -216,7 +227,7 @@ owner **78386now armed/live**, waiting original61037final/private proof. [Exact 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
-and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
+and E2has since COMPLETED972updates; private verification pending as139245643v1/source6882d479… at14:28UTC. Do not repeat
 epoch1publication or either GPU push.
 No fixed-final or new score yet. [Actual epoch records](initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
 

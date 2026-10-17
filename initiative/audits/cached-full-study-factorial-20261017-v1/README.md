@@ -120,3 +120,11 @@ Never repeat either recovery/full-fitting phase or12epoch publication. Existing
 full-encoder61037and matched-final scoring78386remain separate original owners.
 [Exact protocol](../../experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
 and [actual recovery/full/private proofs](../cached-full-study-factorial-20261017-v1/README.md).
+
+The distinct actual-complete/source-and-result milestone2bb8de2cwas privately
+preserved atHFaf91f7802028bc5e750f267ee162d0fc49fd3500 viaCPU948212.
+All12small objects/97956B fully re-downloaded/size/SHA verified once. The12model
+epochs themselves were already fully verified atHFc4cba4c2…/CPU948191; do not
+repeat either publication. Actual paid node bytes183747129, future small
+control/receipt reserve16MiBwithin the same original256MiBcap; original shared/
+node reserves remain. No deletion credit, private record or encoder copy.
