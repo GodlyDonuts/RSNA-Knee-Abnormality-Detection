@@ -1,0 +1,41 @@
+"""One explicitly source-pinned CPU phase; no GPU/competition/Dataset mutation."""
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];phase=sys.argv[1];assert phase in ('recovery','full','publish')
+protocol='initiative/experiments/competitive-v1/cached-full-study-factorial-v1/'
+if phase=='recovery':
+ prior=json.loads((ROOT/'artifacts/cached-mil-factorial-20261017-v1/actual-zero-runtime-wrapper-failure.json').read_text());assert prior['actual_job']['JobState']=='FAILED' and prior['actual_job']['RunTime']=='00:00:00' and prior['numerical_worker_executed'] is False
+ source=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+ with (L/'source-pin.json').open('x') as f:json.dump({'source_git':source},f,indent=2)
+else:source=json.loads((L/'source-pin.json').read_text())['source_git']
+
+def git_file(path):return subprocess.check_output(['git','show',source+':'+path],cwd=ROOT,text=True)
+accepted=json.loads((L/'actual-input-admitted.json').read_text());files=accepted['funding']['source_files_sha256']
+for name,h in files.items():
+ if name.endswith('/__init__.py'):assert h==hashlib.sha256(b'').hexdigest();continue
+ actual=git_file(protocol+'worker.py.txt' if name=='worker.py' else name);assert hashlib.sha256(actual.encode()).hexdigest()==h
+worker=git_file(protocol+'worker.py.txt');driver=git_file(protocol+'driver.py.txt');publication=git_file(protocol+'publication.py.txt')
+payload={'phase':phase,'source_git':source,'driver':driver,'driver_sha256':hashlib.sha256(driver.encode()).hexdigest(),'expected_source_files':files}
+if phase=='publish':
+ assert (L/'full-actual-complete.json').exists()
+ env=ROOT/'.env';assert env.stat().st_mode&0o077==0;creds={k.strip():s.strip().strip('"\'') for line in env.read_text().splitlines() for k,sep,s in [line.partition('=')] if sep};payload.update(token=creds['HF_TOKEN'],publication=publication,publication_sha256=hashlib.sha256(publication.encode()).hexdigest())
+if phase=='full':
+ proof=json.loads((L/'actual-recovery-accepted.json').read_text());assert proof['source_git']==source and proof['status']=='actual_four_role_CPU_head_engine_recovery_accepted'
+program=r'''
+import hashlib,io,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1');S=R/'code';meta=json.loads((R/'staged.json').read_text());assert meta['source_files_sha256']==v['expected_source_files'] and all(hashlib.sha256((S/n).read_bytes()).hexdigest()==h for n,h in v['expected_source_files'].items());assert hashlib.sha256(v['driver'].encode()).hexdigest()==v['driver_sha256'];sys.path.insert(0,str(S))
+if v['phase']=='recovery':
+ assert not(R/'recovery-dispatch.intent.json').exists() and not(R/'engineering').exists() and not(R/'full').exists();assert not(S/'driver.py').exists() and not(R/'driver-admitted.json').exists();(S/'driver.py').write_text(v['driver']);(S/'driver.py').chmod(0o600)
+ with(R/'driver-admitted.json').open('x') as f:json.dump({'source_git':v['source_git'],'driver_sha256':v['driver_sha256'],'original_numerical_modules_unchanged':True},f)
+else:
+ proof=json.loads((R/'driver-admitted.json').read_text());assert proof['source_git']==v['source_git'] and proof['driver_sha256']==v['driver_sha256'] and hashlib.sha256((S/'driver.py').read_bytes()).hexdigest()==v['driver_sha256']
+if v['phase']=='publish':
+ assert hashlib.sha256(v['publication'].encode()).hexdigest()==v['publication_sha256'];sys.stdin=io.StringIO(json.dumps(v));exec(compile(v['publication'],'actual_private_twelve_epoch_publication','exec'),{'__name__':'__main__'})
+else:
+ sys.argv=[str(S/'driver.py'),v['phase'],v['source_git']];exec(compile(v['driver'],'actual_CPU_four_role_factorial_driver','exec'),{'__name__':'__main__','__file__':str(S/'driver.py')})
+'''
+compile(program,'one_published_source_CPU_phase','exec');(L/'phase-program.py.txt').write_text(program)
+with(L/(phase+'.intent.json')).open('x') as f:json.dump({'phase':phase,'source_git':source,'driver_sha256':payload['driver_sha256'],'CPU':1,'GPU':0,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time='+('03:00:00' if phase=='full' else '00:30:00'),'--job-name=rsna-cached-MIL-'+phase,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),text=True,capture_output=True,timeout=11000 if phase=='full' else 2000);(L/(phase+'.result.json')).write_text(json.dumps({'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},indent=2)+'\n');assert p.returncode==0,p.stderr[-2200:];out=json.loads(p.stdout);name={'recovery':'actual-recovery-accepted.json','full':'full-actual-complete.json','publish':'private-all-epochs-verified.json'}[phase];(L/name).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

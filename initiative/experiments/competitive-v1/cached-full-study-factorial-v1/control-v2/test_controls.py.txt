@@ -1,0 +1,11 @@
+import ast,json
+from pathlib import Path
+tree=ast.parse((Path(__file__).parent/'coordinate.py').read_text());assignment=next(n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='cmd' for t in n.targets))
+results={}
+for phase,expected in [('recovery','00:30:00'),('full','03:00:00'),('publish','00:30:00')]:
+ argv=eval(compile(ast.Expression(assignment.value),'actual_srun_vector','eval'),{'phase':phase,'program':'pass'})
+ assert '--time='+expected in argv and all(x not in ('00:30:00','03:00:00') for x in argv)
+ assert argv[0]=='srun' and '--gres=none' in argv and '--cpus-per-task=1' in argv and argv.index('--job-name=rsna-cached-MIL-'+phase)<argv.index('env')
+ assert argv[-3:]==['-B','-c','pass']
+ results[phase]={'time_option':'--time='+expected,'CPU':1,'GPU':0,'first_executable':'env','pure_argument_vector_pass':True}
+print(json.dumps(results))

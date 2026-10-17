@@ -51,3 +51,20 @@ and57format-debt files predate this change. Archive verification passed with
 historicalv1incomplete honestly retained; currentv2draft/reviewed89/89complete.
 New source/control pins, guide links and secret/large-file exclusion pass.
 These checks establish operability, not a model score.
+
+**Original CPU attempt948089:** actualFAILED2:0/zero seconds. The scheduling
+wrapper supplied bare`00:30:00`instead of`--time=00:30:00`;Slurm attempted to
+execute that nonexistent command. No worker, model, optimizer or MRI process
+ran. Owner93163stopped and all original intents/results remain. This is a
+wrapper defect, not a scientific result. No cancellation or hidden retry occurred.
+The original published control is retained. Distinct[control-v2](../../experiments/competitive-v1/cached-full-study-factorial-v1/control-v2/coordinate.py.txt)
+corrects only that command construction and requires actual zero-runtime proof/
+absent numerical outputs. The original module,worker,driver,publication,inputs
+and recipe are byte unchanged. Pure argument-vector checks cover all3phases.
+Actual corrected CPU recovery/full fitting remains required before any claim.
+
+Original published sourcea0ab0fb4was privately preserved at
+HFec32e8314f35d70271f641cf418b40bdf8cc243d viaCPU948081,all27objects/156766B
+fully re-downloaded/size/SHA verified. Never repeat that source publication.
+The corrective wrapper gets a distinct source pin/prefix; it uses the same
+separate256MiBfunding and preserves the192MiBfuture numerical/publication reserve.

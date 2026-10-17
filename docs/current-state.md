@@ -23,7 +23,7 @@ funded256MiBnode33cap preserves all prior resource obligations. The four roles
 cross two source-label sets with16IID/all94training observations; only the exact
 279832parameter readout learns, fixed3epochs/1458updates. All use identical
 CPUFP32/zero-dropout, teacher/masks/init/order/views, no new pixel/feature copies.
-Existing full-encoder61037and scoring78386remain untouched. This is not an
+Existing full-encoder61037and scoring78386remain untouched. Original CPU948089failed2:0/zero seconds on a scheduler time-flag defect before worker execution;93163stopped. Distinct control-v2corrects the wrapper only, with original numerical files unchanged; actual recovery/full fitting is still required. This is not an
 independent clinical/whole-model OOF estimate, and no score improvement exists.
 Actual CPU recovery/full fitting must follow the published/private-verified source;
 prepared wrappers alone are not a completed experiment.

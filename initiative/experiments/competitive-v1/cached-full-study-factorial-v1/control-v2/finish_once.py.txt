@@ -1,0 +1,24 @@
+"""One finite CPU owner: actual recovery, four fixed-final fits, one private batch."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];start=time.monotonic();maximum=5*3600
+source=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip();protocol='initiative/experiments/competitive-v1/cached-full-study-factorial-v1/'
+files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('coordinate.py','worker.py.txt','driver.py.txt','publication.py.txt','finish_once.py')}
+for n,h in files.items():
+ archived=protocol+('control-v2/' if n in ('coordinate.py','finish_once.py') else '')+(n+'.txt' if n.endswith('.py') else n)
+ assert hashlib.sha256(subprocess.check_output(['git','show',source+':'+archived],cwd=ROOT)).hexdigest()==h
+mirror=json.loads((ROOT/'artifacts/hf-cached-MIL-factorial-wrapper-v2-20261017-v1/verified.json').read_text());assert mirror['source_git']==source and mirror['status']=='cached_MIL_factorial_wrapper_v2_private_download_size_SHA_verified'
+with(L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'started_at_unix':time.time(),'maximum_wall_seconds':maximum,'source_git':source,'immutable_files':files,'source_milestone_revision':mirror['revision'],'maximum_CPU_phase_jobs':3,'CPU_per_job':1,'GPU':0,'maximum_full_production_arms':4,'fixed_full_epochs_each':3,'new_Kaggle_entries_or_Datasets':0,'private_node_cap_bytes':256*2**20,'automatic_uncertain_retry':False},f,indent=2)
+
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(L/('finish.result.json' if terminal else 'finish.progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ for phase,status in [('recovery','actual_four_role_CPU_head_engine_recovery_accepted'),('full','actual_four_role_cached_MIL_fixed3_full3887_completed'),('publish','all12_cached_MIL_factorial_epochs_private_full_download_size_SHA_verified')]:
+  assert time.monotonic()-start<maximum and all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in files.items())
+  record({'phase':phase,'CPU_job_dispatched_once_no_GPU':True})
+  p=subprocess.run([sys.executable,str(L/'coordinate.py'),phase],cwd=ROOT,capture_output=True,text=True,timeout=min(11100 if phase=='full' else 2100, max(1, maximum-(time.monotonic()-start))))
+  if p.returncode:raise RuntimeError(json.dumps({'phase':phase,'returncode':p.returncode,'stderr':p.stderr[-2200:],'preserve_original_intent_and_partial_outputs':True}))
+  result=json.loads(p.stdout);assert result['status']==status;record({'phase':phase,'actual':result})
+ record({'status':'actual_four_role_CPU_full_factorial_and_all12_private_epochs_complete','new_Kaggle_score_claim':False},terminal=True)
+except BaseException as exc:
+ record({'status':'original_CPU_factorial_owner_stopped_for_readonly_reconciliation','reason':str(exc),'no_existing_job_canceled_restarted_or_retried':True},terminal=True);raise
