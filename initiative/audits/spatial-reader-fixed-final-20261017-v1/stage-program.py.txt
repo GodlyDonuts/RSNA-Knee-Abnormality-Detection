@@ -1,0 +1,15 @@
+
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc40' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');P=R/'reader-production-v1';E=R/'reader-fixed-final-v1';assert not E.exists()
+a=json.loads((P/'admitted.json').read_text());assert a['source_git']=='ee045885c20a2e51ca411657d5f07242078be064' and a['GPU_acceptance_sha256']=='48d047fb5cd2dee5ee470da0ad9938bf350a4917fe7a8571ef4d6f5ae2a2bda8';assert hashlib.sha256((P/'publisher.py').read_bytes()).hexdigest()=='91682e05d1291c50c3e6f3fb7e400f95eea53640d01164e80630b45eaaffda9e'
+state=subprocess.check_output(['sacct','-j','950679,950680','-X','-n','-P','-o','JobIDRaw,State,ExitCode,NodeList'],text=True);rows={r[0]:r for line in state.splitlines() if len(r:=line.split('|'))>=4};assert all(rows[j][1] in {'RUNNING','COMPLETING','COMPLETED'} and rows[j][3]=='evc40' for j in ('950679','950680'))
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());cpu_root_paid=sum(p.stat().st_size for p in R.iterdir() if p.is_file());assert cpu_root_paid+2*2**20<8*2**20 and paid<3*2**30 and shutil.disk_usage('/tmp').free>612022943803+max(0,3*2**30-paid)
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+assert set(v['files'])=={'analyze.py','rank_learning.py'} and sum(len(x.encode()) for x in v['files'].values())<2**20
+for name,text in v['files'].items():compile(text,name,'exec')
+assert hashlib.sha256(v['files']['analyze.py'].encode()).hexdigest()==v['controls']['analysis_sha256'] and hashlib.sha256(v['files']['rank_learning.py'].encode()).hexdigest()==v['controls']['helper_sha256']
+E.mkdir(mode=0o700)
+for n,t in v['files'].items():p=E/n;p.write_text(t);p.chmod(0o600)
+out={'status':'separate_fixed_final_CPU_only_analysis_original_source_and_funding_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'analysis_source_git':v['source_git'],'original_training_source_git':a['source_git'],'analysis_sha256':v['controls']['analysis_sha256'],'helper_sha256':v['controls']['helper_sha256'],'original_fixed_final_GPU_jobs':['950679','950680'],'CPU_root_existing_paid_bytes':cpu_root_paid,'new_analysis_subcap_bytes':2*2**20,'inside_original_CPU8MiB_reader512MiB_node3GiB_allowances':True,'new_shared_bytes_files':0,'original_training_model_recipes_and118_modules_unchanged':True,'all_production_epochs_private_verification_and_both_actual_0exit_terminals_required_before_analysis':True,'actual_analysis_not_run_yet':True,'no_accuracy_claim':True}
+(E/'admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

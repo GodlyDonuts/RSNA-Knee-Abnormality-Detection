@@ -19,15 +19,28 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 21:17UTC
+## Latest execution, October17 21:25UTC
 
 **Two full matched H100 runs are actually RUNNING:** aligned **950679** and
 randomized-link null **950680**, both on permitted physical2-H100 evc40, each
-1GPU/2CPUs. At21:12UTC each had47/843 finite real optimizer updates. Full
+1GPU/2CPUs. At21:24UTC aligned/null had143/143of843 finite updates. Full
 source **ee045885**/manifest3909bf50… and receipt48d047fb… bind the unchanged
 2247 fitting/1156 development split, fixed3epochs/effective8/281updates per epoch.
 No new accuracy or leaderboard gain is claimed. Best measured remains **0.950**
 (external S6 reproduction); own independent N3E16 is **0.894**. Target0.97 is unmet.
+
+The fixed-final readout is now separately admitted by **CPU950839**, and finite
+follower **86789** is live. It waits for both original0exit GPU terminals and
+all six private epoch proofs, then dispatches exactly one1CPU/zeroGPU analysis
+on owning evc40. No GPU, training or competition mutation authority. It requires
+full result/model/roster/prediction bindings, complete decoded final/epoch3 state
+equality and byte-identical simultaneously unchanged FP32parent CSVs.4000paired
+whole-component draws/seed20261017 cover all12 diagnoses and three contrasts;
+undefined draws are counted, never repaired. Thirty weighted/tied AUC cases,
+ten refusals and exact all12/4000-draw replay of the old sampling comparison
+passed. This is analysis acceptance, not a new reader result. Its2MiB source/
+output subcap stays inside originalCPU8MiB/reader512MiB/node3GiB with fresh reserve.
+[Exact independent readout](../initiative/audits/spatial-reader-fixed-final-20261017-v1/README.md).
 
 The new reader learns from the original **full1024×12×12 pre-pooling maps** of
 frozen N3E16: learned1024→64 projection,12 evidence channels, shared image/nuisance

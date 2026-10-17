@@ -33,3 +33,10 @@ evc40 performs the original final replay after fitting and preservation finish.
 No new source model, raw pixels, study rows or predictions are exported to this
 repo or the Mac. An actual staged receipt and finite-owner launch are required
 before calling this observer active; existing intents stop uncertain retries.
+
+Actual CPU950839 admitted exact source5f9213fda4aa25498e1f3a0d21f0074aa67924c8
+and its2MiB subcap on evc40, with1477388existing CPU-root bytes and fresh reserves.
+[Original admission](actual-CPU-admitted.json). Finite follower86789 was started
+once and is actually waiting on the two original live training jobs, then all
+six verified private epochs. [Actual launch](actual-follower-started.json). It has
+no training/restart/competition authority; no final analysis has run yet.
