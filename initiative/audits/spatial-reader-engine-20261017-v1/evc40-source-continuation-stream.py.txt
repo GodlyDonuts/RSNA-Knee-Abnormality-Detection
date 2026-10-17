@@ -1,0 +1,18 @@
+
+import hashlib,json,os,struct,sys
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');p=R/'pilot-recovery-v2-accepted.json';assert hashlib.sha256(p.read_bytes()).hexdigest()=='f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f';rows=json.loads(p.read_text())['private_records'];files=[]
+for n in ['admitted.json','membership.private.json','pilot-recovery-v2-accepted.json','initialization-provenance.json','original-N3-unused8GiB-retirement-v1.json']:
+ f=R/n;files.append((f,n,hashlib.sha256(f.read_bytes()).hexdigest()))
+for row in rows:files.append((R/'features'/row['file'],'features/'+row['file'],row['sha256']))
+P=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production');side=json.loads((P/'epoch-checkpoints/epoch-016.json').read_text());assert side['checkpoint_sha256']=='5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5'
+for n in ['run.json','epoch-checkpoints/epoch-016.json','epoch-checkpoints/epoch-016.pt']:
+ f=P/n;files.append((f,'parent/'+n,side['checkpoint_sha256'] if n.endswith('.pt') else hashlib.sha256(f.read_bytes()).hexdigest()))
+files=files[32:]
+header={'version':1,'files':[{'name':n,'bytes':f.stat().st_size,'sha256':h} for f,n,h in files]};raw=json.dumps(header,sort_keys=True).encode();assert len(raw)<256*2**10 and sum(x['bytes'] for x in header['files'])<2*2**30;out=sys.stdout.buffer;out.write(b'RSNA-SPATIAL-RECOVERY-1\n');out.write(struct.pack('!I',len(raw)));out.write(raw)
+for f,n,h in files:
+ stat=f.stat();digest=hashlib.sha256();assert not f.is_symlink()
+ with f.open('rb') as reader:
+  while chunk:=reader.read(2**20):out.write(chunk);digest.update(chunk)
+ after=f.stat();assert digest.hexdigest()==h and (after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns)==(stat.st_dev,stat.st_ino,stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns),'Original immutable transfer fields changed; access time excluded'
+out.write(hashlib.sha256(raw).digest());out.flush()
