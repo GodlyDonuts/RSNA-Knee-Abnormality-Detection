@@ -53,9 +53,13 @@ untouched. No new accuracy or hidden result is claimed.
 
 Twenty-five compiler/error-ordering/source-drift/terminal-capacity tests and changed-file Ruff pass.
 Actual complete original CPU packaging passes. Mypy111modules passes; existing
-global1327lint/57format debt remains. Current full regression is running in the
-original `artifacts/qa-env` environment; the unrelated system interpreter lacks
-DICOM dependencies and is not the accepted QA environment.
+global1327lint/57format debt remains. Full regression in the original `artifacts/qa-env` environment completed:
+**4637passed/8skipped/2warnings**,1779.10seconds. The ten new terminal-capacity
+cases were added after that suite was collected and separately passed. All25
+focused checks pass. The unrelated system interpreter lacks DICOM dependencies
+and is not the accepted QA environment. Archive refresh/verification and
+current89/89evidence coverage pass; original clinical artifacts are unchanged.
+These checks establish operability, not an accuracy gain.
 
 One finite **read-only public observer25736** is armed/live; its first actual
 authenticated CPU949073 check at17:44UTC still reports absent status/SDKQUEUED.
