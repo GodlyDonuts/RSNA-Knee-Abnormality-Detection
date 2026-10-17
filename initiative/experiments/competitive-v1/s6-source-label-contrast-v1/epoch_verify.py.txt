@@ -1,0 +1,67 @@
+"""Verify an actual label-only epoch, retaining every original state check."""
+
+from __future__ import annotations
+
+import hashlib
+
+from rsna.competitive.licensed_importance_epoch import verify as original_verify
+
+STATUS = "actual_S6_label_only_uniform16_full_parent_epoch_session_complete"
+TARGET = "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9"
+
+
+def verify(state, snapshot, receipt, *, expected_parameters=73136096):
+    binding = state["binding"]
+    labels = binding.get("source_label_contrast", {})
+    recovery = binding.get("actual_label_recovery", {})
+    if (
+        receipt.get("status") != STATUS
+        or receipt.get("role") != "uniform"
+        or binding.get("role") != "uniform"
+        or binding.get("production_plan")
+        != "licensed_MRI_parent_S6_label_only_uniform16_full3887_fixed3_v1"
+        or binding.get("source_label_role") != "released_S6_source"
+        or binding.get("source_label_target_sha256") != TARGET
+        or labels.get("version") != "fixed_S6_source_label_only_overlay_v1"
+        or labels.get("role") != "released_S6_source"
+        or labels.get("diagnostic_only") is not False
+        or labels.get("population") != 3887
+        or labels.get("population_sha256")
+        != "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+        or labels.get("parent_checkpoint_sha256")
+        != "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+        or labels.get("original_target_file_sha256")
+        != "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+        or labels.get("target_file_sha256") != TARGET
+        or labels.get("released_S6_raw_source_sha256")
+        != "8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6"
+        or labels.get("new_label_array_sha256")
+        != "5a4bcc95fc1e5c841834781243fc00a390da1f20d3feed055a64065b6b222fac"
+        or labels.get("mask_array_sha256") != hashlib.sha256(bytes([1]) * (3887 * 12)).hexdigest()
+        or labels.get("parent_teacher_array_sha256")
+        != "d9853c7745161807705087bef505f1ceb488f2138264dea3902388662fe37566"
+        or type(recovery.get("kernel_id")) is not int
+        or recovery["kernel_id"] <= 0
+        or recovery.get("version") != 1
+        or recovery.get("source_sha256")
+        != "0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de"
+        or recovery.get("worker_sha256")
+        != "7b7a1bf3e5a8860a68067d023b2c63b39fc09169b5c626ca769f13b6e238037c"
+        or not isinstance(recovery.get("receipt_canonical_JSON_sha256"), str)
+        or len(recovery["receipt_canonical_JSON_sha256"]) != 64
+    ):
+        raise ValueError("Exact full-population label-only scope and actual GPU recovery required")
+    # Only the dispatch receipt's type tag is adapted. No learned state, recipe,
+    # numerical history, source binding, snapshot, RNG or optimizer is normalized.
+    checked = original_verify(
+        state,
+        snapshot,
+        {**receipt, "status": "actual_matched_IID16_full_parent_epoch_session_complete"},
+        expected_parameters=expected_parameters,
+    )
+    return {
+        **checked,
+        "label_role": "released_S6_source",
+        "actual_label_recovery_kernel": recovery["kernel_id"],
+        "actual_S6_label_bytes_and_original_teacher_mask_binding_exact": True,
+    }

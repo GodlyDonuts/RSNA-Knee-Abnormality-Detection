@@ -1,0 +1,101 @@
+"""Synthetic complete-state and adverse publication checks; no actual epoch."""
+
+import copy
+import hashlib
+import json
+import runpy
+from dataclasses import asdict
+from pathlib import Path
+
+import torch
+
+from rsna.competitive.licensed_importance import VERSION, Recipe
+from rsna.competitive.licensed_importance_epoch import PROPOSAL_SHA
+from rsna.competitive.licensed_pixel_bags import POPULATION_SHA
+
+P = Path(__file__).resolve().parent
+v = runpy.run_path(str(P / "epoch_verify.py.txt"))
+fixture = runpy.run_path(str(P.parents[3] / "tests/test_licensed_parent_epoch.py"))
+state, snapshot, receipt = fixture["completed"].__wrapped__()
+state["binding"].update(
+    role="uniform",
+    version=VERSION,
+    recipe=asdict(Recipe(epochs=3, role="uniform")),
+    population_sha256=POPULATION_SHA,
+    proposal={"proposal_table": {"bytes": 2923152, "sha256": PROPOSAL_SHA}},
+    teacher_proposal_sha256="a" * 64,
+    actual_recovery={"kernel_id": 139130771},
+    production_plan="licensed_MRI_parent_S6_label_only_uniform16_full3887_fixed3_v1",
+    source_label_role="released_S6_source",
+    source_label_target_sha256=v["TARGET"],
+    source_label_contrast={
+        "version": "fixed_S6_source_label_only_overlay_v1",
+        "role": "released_S6_source",
+        "diagnostic_only": False,
+        "population": 3887,
+        "population_sha256": POPULATION_SHA,
+        "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "original_target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+        "target_file_sha256": v["TARGET"],
+        "released_S6_raw_source_sha256": "8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6",
+        "new_label_array_sha256": "5a4bcc95fc1e5c841834781243fc00a390da1f20d3feed055a64065b6b222fac",
+        "mask_array_sha256": hashlib.sha256(bytes([1]) * (3887 * 12)).hexdigest(),
+        "parent_teacher_array_sha256": "d9853c7745161807705087bef505f1ceb488f2138264dea3902388662fe37566",
+    },
+    actual_label_recovery={
+        "kernel_id": 1,
+        "version": 1,
+        "source_sha256": "0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de",
+        "worker_sha256": "7b7a1bf3e5a8860a68067d023b2c63b39fc09169b5c626ca769f13b6e238037c",
+        "receipt_canonical_JSON_sha256": "f" * 64,
+    },
+)
+receipt.update(status=v["STATUS"], role="uniform")
+result = v["verify"](state, snapshot, receipt, expected_parameters=3)
+assert result["actual_AdamW_parameters"] == 3 and result["label_role"] == "released_S6_source"
+checks = ["complete_original_numerical_state_checks_retained"]
+for key, value in [
+    ("role", "original_source"),
+    ("diagnostic_only", True),
+    ("target_file_sha256", "0" * 64),
+    ("mask_array_sha256", "0" * 64),
+    ("parent_teacher_array_sha256", "0" * 64),
+]:
+    s, p, r = copy.deepcopy((state, snapshot, receipt))
+    s["binding"]["source_label_contrast"][key] = value
+    try:
+        v["verify"](s, p, r, expected_parameters=3)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Wrong label role/source/mask/teacher allowed")
+checks.append("changed_source_scope_mask_or_teacher_refused")
+for damage in ["optimizer", "weights", "padding", "recovery", "status"]:
+    s, p, r = copy.deepcopy((state, snapshot, receipt))
+    if damage == "optimizer":
+        s["optimizer"]["state"][0]["step"] = torch.tensor(485.0)
+    elif damage == "weights":
+        p["model"]["backbone.weight"][0] = 2.0
+    elif damage == "padding":
+        s["history"][-1]["studies"] = 8
+    elif damage == "recovery":
+        s["binding"]["actual_label_recovery"]["source_sha256"] = "0" * 64
+    else:
+        r["status"] = "actual_matched_IID16_full_parent_epoch_session_complete"
+    try:
+        v["verify"](s, p, r, expected_parameters=3)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Damaged actual state admitted")
+checks.append("old_state_model_last_batch_and_new_recovery_constraints_all_enforced")
+print(
+    json.dumps(
+        {
+            "status": "synthetic_label_epoch_verifier_adverse_checks_passed",
+            "count": len(checks),
+            "checks": checks,
+            "actual_epoch_or_accuracy": False,
+        }
+    )
+)

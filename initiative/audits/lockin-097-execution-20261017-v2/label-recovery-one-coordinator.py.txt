@@ -1,0 +1,103 @@
+"""Single finite owner for one admitted label-only recovery; never a fit or entry."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+C = ROOT / 'initiative/experiments/competitive-v1/s6-source-label-contrast-v1/recovery_contract.py.txt'
+contract = C.read_text()
+contract_sha = hashlib.sha256(contract.encode()).hexdigest()
+prefix = (ROOT / 'artifacts/public0958-reference-20261017-v1/UI-reconcile-program.py.txt').read_text().split('claim=Path(', 1)[0]
+program = prefix + r'''
+import time
+ns={};exec(compile(v['contract'],'frozen_S6_recovery_contract','exec'),ns);assert hashlib.sha256(v['contract'].encode()).hexdigest()==v['contract_sha'];phase=v['phase'];assert phase in ('admit_push','status');R=Path('/tmp/rsna-S6-training-release-20261017-v1');D=R/'source-label-recovery-v1';gate=json.loads((D/'staged.json').read_text());assert gate['CPU_job']=='946080' and gate['compiler_sha256']==ns['COMPILER'] and gate['actual_arrays32_UID_order_old_labels_masks_both_teacher_views_bit_equal'] is True and gate['all32_in_admitted3887_fitting_only'] is True
+source=(D/'recovery.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==ns['SOURCE'] and gate['binding']['source_sha256']==ns['SOURCE'] and gate['binding']['worker_sha256']==ns['WORKER'];assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+2*2**20<16*2**20 and shutil.disk_usage('/tmp').free>611754508347
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+60
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>=deadline:print(json.dumps({'status':'waiting_original_account_claim_no_mutation','phase':phase}),flush=True);raise SystemExit(0)
+  time.sleep(3)
+owner={'kind':'one_fixed_S6_label_only_recovery','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key=ns['KEY'];slug=ns['SLUG'];raw=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();row=json.loads(raw[0]) if raw else None
+  def save(record):
+   db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit()
+  if phase=='admit_push' and row is None:
+   main=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');sampled=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison');unfinished=0
+   for e in (1,2,3):
+    E=main/('segment-'+str(e));assert not (E/'actual-failed.json').exists()
+    if not (E/'actual-accepted.json').exists():unfinished+=25200
+   sampling=sum(6000 for role in ('uniform','influence') for e in (1,2,3) if not (sampled/(role+'-epoch-'+str(e))/'actual-accepted.json').exists())
+   def record(k):
+    q=db.execute('SELECT value FROM meta WHERE key=?',(k,)).fetchone();assert q is not None;return json.loads(q[0])
+   blend=record('licensed-parent-full-epoch-serving:S6-equalrank:46a9688309973ca405fb37b854ac110f3ca29752d9ac5f3588e62d868a799bac');scout=record('licensed-parent-full-epoch-serving:S6-source-fitting32:0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf');reference=record('public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f')
+   assert blend['state']=='S6_equalrank_deprioritized_without_GPU_for_exact0958' and scout['state']=='S6_fitting32_scout_queued_deprioritized'
+   reference_unfinished=reference['state'] not in ('public0958_UI_current_container_accepted','public0958_UI_current_container_failed')
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];funding=ns['budget'](quota,original_main=unfinished,original_sampling=sampling,reference_unfinished=reference_unfinished,blend_unfinished=False,scout_unfinished=False)
+   P=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(P.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';spec=importlib.util.spec_from_file_location('unchanged_single_account_GPU_capacity',P);capacity=importlib.util.module_from_spec(spec);spec.loader.exec_module(capacity);live=capacity.admission(db,r,caller='sampling')
+   if not funding['allowed'] or not live['available']:
+    out={'status':'waiting_actual_all_future_budget_or_batch_capacity_no_mutation','at_UTC':w.utcnow(),'funding':funding,'capacity':live,'push_intent_created':False,'GPU_reserved':False}
+   else:
+    # No Dataset acquisition or validation-pixel transfer. Reuse original proven inputs.
+    target=record('S6-full-fitting-source-label-targets-v1:'+ns['TARGET']);assert target['state']=='S6_fitting_source_targets_fully_verified'
+    P=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/publication.py');assert hashlib.sha256(P.read_bytes()).hexdigest()=='e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336';spec=importlib.util.spec_from_file_location('unchanged_private_dataset_metadata',P);publication=importlib.util.module_from_spec(spec);spec.loader.exec_module(publication);assert publication.metadata(r,ns['DATASETS'][1])=={'id':12653444,'version':1,'slug':ns['DATASETS'][1],'private':True}
+    for ref in ns['NOTEBOOKS']:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+    old=r.kernel('GetKernel',ns['NOTEBOOKS'][-1],1);assert hashlib.sha256(old['blob']['source'].encode()).hexdigest()==gate['binding']['unchanged_original_recovery_sha256']
+    request=ns['request'](source,hashlib.sha256(source.encode()).hexdigest());absence=r.require_absent_kernel(slug);assert not (D/'push-intent.json').exists()
+    row={'state':'S6_label_recovery_push_intent','slug':slug,'version':1,'source_sha256':ns['SOURCE'],'worker_sha256':ns['WORKER'],'contract_sha256':v['contract_sha'],'actual_CPU_stage':gate,'label_Dataset_id':12653444,'label_Dataset_version':1,'request_sha256':w.object_hash(request),'absence':absence,'funding':funding,'capacity':live,'future_fixed_label_campaign_VM_seconds':24000,'maximum_GPU_seconds':1800,'storage_funding_CPU':'945706','storage_funding_is_separate_from_VM':True,'diagnostic_only':True,'production_or_entry_admitted':False,'automatic_retry':False}
+    w.new_json(D/'push-intent.json',row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:row['state']='S6_label_recovery_push_uncertain';save(row);retain=True;raise
+    row.update(state='S6_label_recovery_pushed',kernel_id=response['kernelId']);save(row);out={'status':'one_exact_S6_label_only_recovery_pushed','at_UTC':w.utcnow(),'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':ns['SOURCE'],'contract_sha256':v['contract_sha'],'all_future_VM_funding':funding,'storage_funding_CPU':'945706','maximum_seconds':1800,'diagnostic_only':True,'new_Datasets_fits_or_competition_entries':0};w.new_json(D/'pushed.json',out)
+  elif row is not None:
+   assert row['source_sha256']==ns['SOURCE'] and row['contract_sha256']==v['contract_sha'] and row['state'] not in ('S6_label_recovery_push_uncertain','S6_label_recovery_push_intent'),'Existing intent requires read-only reconciliation, never a retry'
+   actual=r.kernel('GetKernel',slug,1);metadata=actual['metadata'];assert hashlib.sha256(actual['blob']['source'].encode()).hexdigest()==ns['SOURCE'];request=ns['request'](source,ns['SOURCE'])
+   for name in ('isPrivate','enableInternet','enableGpu','machineShape','dockerImage','kernelType'):assert metadata[name]==request[name],name
+   for name in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(metadata.get(name,[]))==sorted(request[name]),name
+   session=r.kernel('GetKernelSessionStatus',slug,1);status=session.get('status');out={'status':status,'kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':ns['SOURCE'],'at_UTC':w.utcnow(),'diagnostic_only':True,'new_Datasets_fits_or_entries':0}
+   if status=='COMPLETE':
+    receipt=r.output_json(slug,1,'S6-label-only-real-MRI-recovery-accepted.json');checked=ns['accept'](receipt,gate['binding']);out.update(accepted=checked,receipt=receipt)
+    if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='S6_label_recovery_actual_accepted',actual=out);save(row)
+   elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+    if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row.update(state='S6_label_recovery_actual_failed',actual=out);save(row)
+  else:out={'status':'not_yet_pushed_no_mutation','source_sha256':ns['SOURCE']}
+  print(json.dumps(out),flush=True)
+finally:
+ if not retain:assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program, 'single_source_label_GPU_recovery_coordinator', 'exec')
+(L / 'coordinate-program.py.txt').write_text(program)
+phase = sys.argv[1]
+assert phase in ('admit_push', 'status')
+E = ROOT / '.env'
+assert E.stat().st_mode & 0o077 == 0
+values = {k.strip(): v.strip().strip('\"\'') for line in E.read_text().splitlines()
+          for k, sep, v in [line.partition('=')] if sep}
+cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable',
+       '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=2G',
+       '--time=00:06:00', '--job-name=rsna-S6-label-only-' + phase,
+       'env', 'PYTHONDONTWRITEBYTECODE=1', 'PYTHONNOUSERSITE=1',
+       '/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python', '-B', '-c', program]
+payload = {'token': values['KAGGLE_API_TOKEN'], 'phase': phase,
+           'contract': contract, 'contract_sha': contract_sha}
+p = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o',
+                    'BatchMode=yes', 'newton', shlex.join(cmd)],
+                   input=json.dumps(payload), capture_output=True, text=True, timeout=430)
+stamp = str(time.time_ns())
+(L / (phase + '-' + stamp + '.result.json')).write_text(json.dumps(
+    {'returncode': p.returncode, 'stdout': p.stdout, 'stderr': p.stderr}, indent=2) + '\n')
+assert p.returncode == 0, p.stderr[-1800:]
+out = json.loads(p.stdout)
+if out['status'] == 'one_exact_S6_label_only_recovery_pushed':
+    with (L / 'actual-pushed.json').open('x') as f: json.dump(out, f, indent=2)
+if out.get('accepted'):
+    with (L / 'actual-accepted.json').open('x') as f: json.dump(out, f, indent=2)
+print(json.dumps(out), flush=True)

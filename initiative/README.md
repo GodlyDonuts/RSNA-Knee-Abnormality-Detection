@@ -1,44 +1,32 @@
 # Complete initiative record
 
-Latest09:32UTC: **[S6 actually scored0.950](audits/s6-actual0950-result-20261017-v1/README.md)**,
-[exact public0.958 source-only copy with required old R6v1 input](audits/public0958-reference-20261017-v1/README.md),
-and [full3887study global-teacher assembly preparation](audits/s6-fullteacher-cohort-plan-20261017-v1/README.md).
-Target0.97 is open;0.958 has not been reproduced/scored by the project yet.
+Current **October17 12:25UTC**: target0.97, actual best0.950. See the
+[current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
+[research-agent handoff](../docs/research-agent-handoff.md) and
+[execution handoff](../docs/codex-continuation.md). Original receipts override dated
+narratives; engineering checks and completed fits are not accuracy improvements.
 
+- [Current original execution](audits/lockin-097-execution-20261017-v2/README.md):
+  uniform final1458/all3private verified, influence final actuallyRUNNING, one
+  exact-referencev2committed/Starting with a recorded Docker difference, source-
+  label GPU recovery compiled/CPU-admitted and finite owner waiting capacity,
+  plus explicit capacity rejection/quarantine and queued-scout cancellation.
+- [Actual S6score0.950](audits/s6-actual0950-result-20261017-v1/README.md): external
+  inference reproduction; own independent N3E16 remains0.894.
+- [Whole94fixed3 completion](audits/whole94-fixed3-final-20261017-v1/README.md): all
+  1458updates and all3private verified epochs; no finalE3score.
+- [Source-label contrast](experiments/competitive-v1/s6-source-label-contrast-v1/README.md):
+  fixed uniform16 label-only mechanism, actual data/storage/CPU admission, no
+  actual GPU recovery, treatment fitting or score yet.
+- [Earlier exact-reference interactive pass](audits/public0958-reference-20261017-v1/interactive-v1/README.md):
+  separate from the still-unqualified committedv2 and from a hidden score.
+- [Newly released S6training source](audits/s6-training-release-20261017-v1/README.md),
+  [expanded N3negative](audits/compact-expanded2592-fixed-final-20261017-v1/README.md),
+  and [owner deadline paper assessment](research/owner-deadline-program-20261017-v1/README.md).
 
-Earlier08:40UTC: [original sampling E2 preservation/E3 queued-observer recovery](audits/iid16-session-status-recovery-20261017-v1/README.md),
-[S6 scout metadata recovery](audits/s6-scout-mount-recovery-20261017-v1/README.md), and
-[the independent fixed32 follow-through](audits/s6-fitting32-acceptance-20261017-v1/README.md).
-These advance original execution, not a new score.
-
-Earlier verified follow-up: [expanded2592 fixed-final negative](audits/compact-expanded2592-fixed-final-20261017-v1/README.md)
-and [the admitted original R7 single-run/entry owner](audits/r7-original-reproduction-20261017-v1/README.md).
-No new project score is claimed; target0.97 remains open.
-
-Latest actual evidence: [S6 exact code entry57300990, uniformE2 and expandedE15](audits/research-progress-20261017-0735-v1/README.md),
-[public0.956 R7 source/manifest/private weights](audits/r7-public-reference-admission-20261017-v1/README.md),
-[fixed equal-rank deployment](audits/s6-equalrank-deployment-20261017-v1/README.md),
-and [ordinal-target data path](experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md).
-Target0.97 remains distinct from verified best0.950.
-
-The [October 17 owner program and critical assessment](research/owner-deadline-program-20261017-v1/README.md)
-and [actual S6 source-only admission](audits/s6-public-source-20261017-v1/README.md)
-are available for new research agents. The [original S6 checkpoint](audits/s6-checkpoint-admission-20261017-v1/README.md)
-is privately downloaded once and SHA/header verified. Original T4 qualification
-139165932v1 now actually completed156.6s on bothT4s/threeMRI/finite13-column CSV.
-[Actual T4 and observer recovery](audits/s6-original-t4-recovery-20261017-v1/README.md).
-The reported S6 score has not yet been reproduced by this project.
-
-**Current state is maintained in the [current-state guide](../docs/current-state.md),
-[research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
-Earlier October17 06:25UTC snapshot: actual best remains attributed0.949; own N3 is0.894.
-Whole94 E2 completed972/private verified and original E3 runs. Expanded original
-H100 has epochs1–14 privately verified. Both sampling E1 roles are preserved;
-uniformE2 runs. [Actual new epochs](audits/research-progress-20261017-0625-v1/README.md).
-The [actual CPU8 teacher comparison](audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
-motivates an [ordinal transport contrast](experiments/competitive-v1/s6-rank-transport-v1/README.md),
-numerically prepared, not trained. Target0.97 is not a result. Use current guides
-and original receipts for live status.
+Old unstarted equal-rank/R7 campaigns and queuedGPU32scout are retired; do not
+resurrect stale owners from their historical audit snapshots. All original source,
+private bytes, losses, negatives and earlier dated findings remain archived.
 
 ## Historical releases and training narrative
 

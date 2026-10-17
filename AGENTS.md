@@ -22,82 +22,62 @@ preserved verbatim at `docs/AGENTS.history-20261017.md`; its old scores,
 pending/running snapshots and next-action instructions are historical. Other
 historical release/plan documents now link back to the current guides.
 
-## Current scientific distinctions
+## Current scientific distinctions, October17 12:02UTC
 
-- Best independently MRI-trained model: N3 CoAtNet E16, public AUC **0.894**.
-- Best reproduced external checkpoint: S6, **0.950**, original entry57300990
-  COMPLETE/noerror; nartaa CoAtNet remains0.949. We reproduced inference, not full
-  source training. Context/regional/full-field variants scored
-  **0.948**; none establishes an improvement.
-- Full-parent fitting completed all3epochs/1458updates and all3private epochs
-  are fully verified; finalE3 serving/entry remain owned. Sampled work is running. Expanded
-  N3 completed0:0/5184updates; fixed-final weak macro0.91743 versus0.92093
-  original has no established gain. All16epochs are privately verified; read
-  `initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md`. Inspect exact original owners before acting. A missing log/SSH link
-  is observation loss, not terminal evidence or authority to restart a GPU.
-- S6 original source qualification139165932v1 actually COMPLETED on both T4s
-  in156.6seconds; its exact-source/model/three-MRI/13-column CSV checks pass.
-  A stale author embedded build ID stopped only our observer; the exact-source
-  repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
-  Original offline139181157v1 also completed233seconds with the same checks;
-  sole entry20994 accepted code submission57300990 once and observed COMPLETE/0.950/noerror.
-  H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
-  are privately byte verified; CPU942806 now scored all eight/5372windows and
-  CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
-  sole recovered finite owner34237, pushed once as139210569v1 (last APIstatusnull/UIqueued); original offline acceptance passed. CPU follow-through34308 waits actual completion for input/precision/cost checks. Never duplicate these originals. The reproduced0.950 is now actual;
-  observer20994 is terminal success. Include both S6 and CoAtNet runtime.
-- Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the
-  eight cost quantiles. Do not equate raw gaps with clinical uncertainty. See
-  `initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md` for the
-  fixed ordinal-transport matched comparison. Its explicit data overlay now
-  passes17synthetic CPU/real-engine recovery checks, not full MRI/GPU fitting.
-- Original influenceE2 completed972/all5private objects verified. UniformE3
-  139192503v1 is RUNNING; recovered CPU observer34538 treats missing API status
-  as unknown. Never restart the original GPU. Current guide has exact receipts.
-- Fixed equal-rank CPU owner27596 is terminal/deprioritized before any GPU
-  push or entry, after actual absence/intent/ledger proofs. Source/models remain.
-  Its unspent32400second liability retired; exact0.958reservation is unchanged.
-  FinalE3 follow-on28090 waits original17317 terminal zero-entry expiry only;
-  neither can duplicate the original submission. Current execution guide has pins.
-- Original public0.956 R7+CoAtNet source and all8 R7 weight/sidecar objects
-  are privately pinned/size/SHA/header verified. Fourfold R7 adds denser physical
-  inputs and state/extent supervision; no individual causal gain is established.
-  Read `initiative/audits/r7-public-reference-admission-20261017-v1/README.md`.
-  Old finite owner31309 is retired with no push/entry after CPU944959 proof; source/
-  assets remain intact. Its reservation now funds the exact public0.958 reference.
-- Exact public0.958 native copy139199164v1 is source-only Quick Save: all8code
-  cells equal, private/offline/originalDocker/twoT4, **R6 dataset pinned version1**.
-  Version2 serves different R7 weights under identical names. One separate
-  interactive twoT4run of all8unchanged cells passed3MRI/13column/zeroR6fallback
-  checks, and the VM was explicitly stopped; CPU945812 reconciled it. There is
-  still no committed offline version or entry. Read
-  `initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md`;
-  fresh canonical funding/capacity admission before one existing-draft UI commit.
-  Never submit source-only v1 or push unversioned inputs through the SDK.
-- Released encoders exposed internal studies. Head-only cross-validation on
-  their features is not independent whole-model OOF. Protected clinical values
-  remain unused by us; weak-label agreement is not clinical truth.
+- Target0.97; actual best**0.950**, S6entry57300990 COMPLETE/noerror. This
+  reproduces external weights/inference. Own independent N3E16 scored0.894;
+  CoAtNet0.949; context/regional/full-field each0.948. No new score is claimed.
+- Whole94 and uniformIID16 each completed all3epochs/1458updates; all their
+  immutable checkpoints are privately fully verified. UniformfinalHFf47a8846…,
+  modelSHAed35463c…. Never republish them. InfluenceE3**139220032v1** is RUNNING,
+  under original observer34538. Preserve its healthy source/recipe/owner.
+- Exact public0.958 copy**139199164v2** was committed once viaUI Save&RunAll;
+  all8code cells are exact, but Kaggle changed its Docker to2757e0c7…. It is
+  Starting/APIstatusunknown and **unqualified/unscored**. Prior interactive
+  success is separate. Require actual committed full-stage/input/output checks.
+  Keep R6Datasetv1;v2 contains different R7 weights under identical filenames.
+  Never submit source-onlyv1 or repeat theSave/push.
+- New S6v5targets differ on the same3887fitting studies; Fracture rank
+  correlation0.51446. Neither source is clinical truth. Fixed next comparison
+  changes only source-label values in the accepted uniformIID16 engine. Dataset
+  12653444v1 already all5object private/hashverified; storageCPU945706 already
+  funded4GiB+16MiB. Actual CPU946080 compiled a separate GPU recovery source and
+  verified32original real feature/label/mask/teacher arrays. Seven compiler and
+  five contract check groups pass; **actual GPU recovery/fitting remain absent**.
+- Single finite label-recovery owner**46281** waits fresh all-future VM funding
+  and actual two-batch-lane capacity, may push one diagnostic then observe, no
+  production/entry authority. At12:02funding passed110405.97/66000seconds;
+  influenceE3 plus unknown referencev2 occupied both lanes. Never duplicate it.
+- Distinct finite first-epoch owner**59829** waits actual label-GPU recovery and
+  a published-main source pin, then fresh capacity/VM/storage before at most
+  one486-update epoch of the fixed3recipe. No full epoch is built or submitted
+  yet; it cannot publish, submit or advanceE2. Never duplicate either owner.
+- Queued/zero-output scout139210569v1 is actuallyCANCEL_ACKNOWLEDGED; old
+  observers34237/34308 retired. Independent CPU32**139205901v2/40709** remains
+  alive. A provisional-state capacity race caused finalE3qualification push
+  **725d71f2fbd6** to be explicitly rejected; CPU946111 quarantined that ambiguous
+  identity and reconciled the dead claim. Never retry/submit thatslug. OldE3
+  controllers17301/17317/28090 stopped; the completed learned E3 model is intact.
+  Hold the account claim through any futureUI mutation and actual registration.
+- Old unstarted equal-rank/R7 campaigns are retired with sources preserved.
+  No speculative resurrection. H100942047 remains lastpending; a fresh bounded
+  evc26health request946295 could not allocate, so no newCUDA result exists.
+- Released encoders exposed internal studies. Head CV on their features is not
+  independent whole-model OOF. Protected clinical values stay unused; tests,
+  teacher fidelity and weak-label agreement are not clinical accuracy.
 
-## New source/CPU finding, October17 10:55UTC
+Read [the original current execution receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md)
+and the in-place current guides before acting. New64KiBUIcontrols leave
+8,323,072future bytes inside the old32MiBnode33 envelope; do not restore8MiB
+or double-count paid large bytes in later publication funding.
 
-Read `initiative/audits/s6-training-release-20261017-v1/README.md`: exact newly
-released S6v5training recipe and targets differ from our current source. All3887
-fit-only labels compared; Fracture rankcorrelation0.51446, no protected numeric
-values used. Distinct private label-only overlay945389 preserves exact existing
-UIDs/masks/teacher; original live data/recipes unchanged. CPU945573 admitted the
-full-array path; CPU945599 created private12653444v1 once/all5objects fully
-verified; CPU945706 funded4GiB checkpoints+16MiBcontrols after all old liabilities.
-24whole94+8sampled CPU engine checks pass. New fixed source-label arm uses the
-unchanged uniformIID16 recipe; actual treatment GPU recovery/fit/VM reservation
-are absent. Read `initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md`.
-The author's86missing studies were local disk deletions,
-not host removal. No OAI in S6; separate CoAtNet provenance differs.
 
-CPU-only32study Kaggle139205901v2 is actuallyRUNNING; finite owner40709 in
-`artifacts/s6-fitting32-cpu-scout-20261017-v2`. No new push/GPU/entry authority
-in that observer. Inspect original intent/result before collection. Existing
-T4scout34237 already pushed139210569v1 once; lastqueued/unknown, no terminal. Read CPUaudit for strict
-four-call device-only AST patch/parity and funding. Current0.950best unchanged.
+The fixed3 label-production compiler is now also CPU-admitted on the actual
+original uniform source and all3887arrays (**CPU946417**); all13numerical modules
+remain exact. It cannot build an executable epoch without the actual label-GPU
+recovery receipt. No production fit or score exists. Read-only referencev2
+observer**47637** is active; it cannot push, run or submit another model.
+[Original updated receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md).
 
 ## Execution, assets and resources
 

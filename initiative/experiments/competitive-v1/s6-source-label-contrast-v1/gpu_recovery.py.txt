@@ -1,0 +1,210 @@
+"""Compile the fixed label-only diagnostic around the accepted original GPU engine.
+
+The supplied original contains licensed source/private32 engineering targets and
+must stay on authorized storage. This compiler contains neither payload nor pixels.
+It has no API, GPU-dispatch or competition-entry method.
+"""
+
+from __future__ import annotations
+
+import ast
+import base64
+import hashlib
+
+ORIGINAL_SHA = "a01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554"
+ORIGINAL_WORKER_SHA = "cbe40bfab07a1a24d990dd8b4c8b9f4b3713fde12a200ce7d1d73b28e5557f60"
+OVERLAY_SHA = "f6414308fd4506cf2719980e5657ec2c038e996a6bc5651710b48b002bca01f5"
+SAMPLED_SHA = "5621ee32f127c58d9e38b78fa2edb51e8f45f8cfb2e03da1511e4130a6794fbd"
+TARGET_SHA = "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9"
+CONTROL_PREDICTION_SHA = "dac71137a4fd02403ccf3bc6a46268252d1e75087f5c27e54c3a2686eacc2618"
+
+
+def digest(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def change_once(text, old, new):
+    if text.count(old) != 1:
+        raise ValueError("Original accepted template changed; no ambiguous source substitution")
+    return text.replace(old, new)
+
+
+HELPER = r"""
+import importlib.machinery,importlib.util
+_sl=importlib.machinery.SourceFileLoader('accepted_S6_sampled_label_fit',str(Path(__file__).parent/'s6_labels/sampled_fit.py.txt'))
+_ss=importlib.util.spec_from_loader(_sl.name,_sl);_sf=importlib.util.module_from_spec(_ss);_sl.exec_module(_sf);fit=_sf.fit
+
+class _SourceArrayFacade:
+    def __init__(self,original):
+        self.original=original;self.uids=list(original.uids)
+        self.labels=torch.tensor([original.targets['labels'][i] for i in original.indices],dtype=torch.float32)
+        self.mask=torch.tensor([original.targets['masks'][i] for i in original.indices],dtype=torch.bool)
+        rows=[]
+        for i in original.indices:
+            f=original.frows[i];raw=(original.features/f['file']).read_bytes();assert len(raw)==f['bytes'] and hashlib.sha256(raw).hexdigest()==f['sha256']
+            with np.load(io.BytesIO(raw),allow_pickle=False) as a:rows.append(torch.from_numpy(a['parent_logits'].copy()))
+        self.teacher=torch.stack(rows);assert self.teacher.shape==(len(self),2,12) and torch.isfinite(self.teacher).all()
+    def __len__(self):return len(self.uids)
+    def case(self,index,positions,mirror):return self.original.case(index,positions,mirror)
+
+def _source_labels(original,role,root):
+    facade=_SourceArrayFacade(original)
+    roots=[Path('/kaggle/input/rsna-s6-fit-labels-5e34bbf40f4f'),Path('/kaggle/input/datasets/godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f')]
+    paths=[p/'targets.private.npz' for p in roots if (p/'targets.private.npz').is_file()];assert len(paths)==1
+    raw=paths[0].read_bytes();assert len(raw)==613297 and hashlib.sha256(raw).hexdigest()==_sf.source.S6_FILE_SHA
+    with np.load(io.BytesIO(raw),allow_pickle=False) as a:values={k:a[k].copy() for k in a.files}
+    assert set(values)=={'uids','labels','masks','parent_logits'} and len(values['uids'])==3887
+    assert hashlib.sha256(json.dumps(values['uids'].tolist(),separators=(',',':')).encode()).hexdigest()==_sf.source.POPULATION_SHA
+    lookup={u:i for i,u in enumerate(values['uids'].tolist())};assert len(lookup)==3887 and all(u in lookup for u in original.uids)
+    positions=[lookup[u] for u in original.uids]
+    masks=torch.from_numpy(values['masks'][positions]);teacher=torch.from_numpy(values['parent_logits'][positions]);assert torch.equal(masks,facade.mask) and torch.equal(teacher,facade.teacher)
+    labels=facade.labels if role=='original_source' else torch.from_numpy(values['labels'][positions])
+    binding={'version':_sf.source.VERSION,'role':role,'population':len(facade),'population_sha256':hashlib.sha256(json.dumps(facade.uids,separators=(',',':')).encode()).hexdigest(),'diagnostic_only':True,'parent_checkpoint_sha256':PARENT_SHA,'original_target_file_sha256':_sf.source.ORIGINAL_FILE_SHA,'target_file_sha256':_sf.source.ORIGINAL_FILE_SHA if role=='original_source' else _sf.source.S6_FILE_SHA,'released_S6_raw_source_sha256':None if role=='original_source' else _sf.source.S6_SOURCE_SHA,'original_label_array_sha256':_sf.source.sha(facade.labels),'new_label_array_sha256':_sf.source.sha(labels),'mask_array_sha256':_sf.source.sha(masks),'parent_teacher_array_sha256':_sf.source.sha(teacher)}
+    wrapped=_sf.source.SourceLabels(facade,facade.uids,labels,masks,teacher,binding,engineering_only=True)
+    assert (torch.equal(wrapped._labels,facade.labels))==(role=='original_source')
+    return wrapped
+
+"""
+
+
+def rewrite_worker(worker):
+    """Make only explicit data-role, reader-wrapper and output-root substitutions."""
+    worker = change_once(
+        worker,
+        "parser.add_argument('role',choices=('uniform','influence'))",
+        "parser.add_argument('role',choices=('original_source','released_S6_source'))",
+    )
+    worker = change_once(worker, "def main():\n", HELPER + "def main():\n")
+    worker = change_once(
+        worker,
+        "original_data=PixelCases(targets,list(range(16)));data=ProposalCases(original_data,_teacher_proposals(model,original_data));initial_identity=_initial_identity(model,device);engineering=",
+        "original_data=PixelCases(targets,list(range(16)));proposals=_teacher_proposals(model,original_data);data=ProposalCases(_source_labels(original_data,a.role,root),proposals);initial_identity=_initial_identity(model,device);engineering=",
+    )
+    worker = change_once(worker, "Recipe(epochs=2,role=a.role)", "Recipe(epochs=2,role='uniform')")
+    # Original feature and target lookup remains exact. Only this owned output changes.
+    worker = change_once(
+        worker,
+        "Path('/kaggle/working/importance-recovery')",
+        "Path('/kaggle/working/s6-source-label-recovery')",
+    )
+    compile(worker, "actual_S6_label_only_GPU_worker", "exec")
+    return worker
+
+
+def build(original, overlay, sampled):
+    if digest(original) != ORIGINAL_SHA:
+        raise ValueError("Exact accepted original IID16 two-T4 diagnostic required")
+    if digest(overlay) != OVERLAY_SHA or digest(sampled) != SAMPLED_SHA:
+        raise ValueError("Exact actual-array/CPU-engine-admitted source label helpers required")
+    values = {}
+    for n in ast.parse(original).body:
+        if isinstance(n, ast.Assign) and len(n.targets) == 1:
+            target = n.targets[0]
+            if isinstance(target, ast.Name) and target.id in (
+                "FILES",
+                "WORKER",
+                "TARGETS",
+                "PERMISSION",
+            ):
+                values[target.id] = ast.literal_eval(n.value)
+    if set(values) != {"FILES", "WORKER", "TARGETS", "PERMISSION"}:
+        raise ValueError("Complete original private closure/targets/permission literals required")
+    worker = base64.b64decode(values["WORKER"], validate=True).decode()
+    if digest(worker) != ORIGINAL_WORKER_SHA:
+        raise ValueError("Exact actually accepted original numerical worker required")
+    for name, expected in {
+        "rsna/competitive/licensed_importance_train.py": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+        "rsna/competitive/licensed_importance.py": "fc3fcedfc52fc922b82f7cb8e2034b6d7526d65c536c2ae8163aa8de1d3dafe4",
+        "rsna/competitive/licensed_parent_train.py": "cf238d9154806a51cd92c80a61e39ca344ef865558305db51cbfdc86f89eeec0",
+    }.items():
+        if digest(values["FILES"].get(name, "")) != expected:
+            raise ValueError("Unchanged accepted optimization/sampling engines required")
+    worker = rewrite_worker(worker)
+    files = {
+        **values["FILES"],
+        "s6_labels/source_overlay.py.txt": overlay,
+        "s6_labels/sampled_fit.py.txt": sampled,
+    }
+    bootstrap = BOOTSTRAP
+    for key, value in {
+        "FILES_VALUE": files,
+        "WORKER_VALUE": base64.b64encode(worker.encode()).decode(),
+        "TARGETS_VALUE": values["TARGETS"],
+        "PERMISSION_VALUE": values["PERMISSION"],
+        "ORIGINAL_SOURCE_SHA_VALUE": ORIGINAL_SHA,
+        "CONTROL_PREDICTION_SHA_VALUE": CONTROL_PREDICTION_SHA,
+    }.items():
+        if bootstrap.count(key) != 1:
+            raise ValueError("Unique complete bootstrap literal required")
+        bootstrap = bootstrap.replace(key, repr(value))
+    compile(bootstrap, "actual_private_S6_label_recovery", "exec")
+    return bootstrap, {
+        "source_sha256": digest(bootstrap),
+        "worker_sha256": digest(worker),
+        "unchanged_original_recovery_sha256": ORIGINAL_SHA,
+        "original_target_sha256": hashlib.sha256(base64.b64decode(values["TARGETS"])).hexdigest(),
+        "original_module_sha256": {k: digest(v) for k, v in values["FILES"].items()},
+        "overlay_sha256": OVERLAY_SHA,
+        "sampled_adapter_sha256": SAMPLED_SHA,
+        "released_S6_target_sha256": TARGET_SHA,
+        "control_prediction_sha256": CONTROL_PREDICTION_SHA,
+        "fit_studies": 16,
+        "disjoint_engineering_studies": 16,
+        "roles": ["original_source", "released_S6_source"],
+        "full_production_or_competition_entry": False,
+        "maximum_retained_GPU_bytes": 12 * 2**30,
+    }
+
+
+BOOTSTRAP = r"""
+import os,sys,json,base64,subprocess,time,hashlib,shutil
+from pathlib import Path
+os.environ.update(HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',HF_HUB_DISABLE_TELEMETRY='1',CUBLAS_WORKSPACE_CONFIG=':4096:8',PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1')
+FILES=FILES_VALUE
+WORKER=WORKER_VALUE
+TARGETS=TARGETS_VALUE
+PERMISSION=PERMISSION_VALUE
+ORIGINAL_SOURCE_SHA=ORIGINAL_SOURCE_SHA_VALUE
+CONTROL_PREDICTION_SHA=CONTROL_PREDICTION_SHA_VALUE
+root=Path('/kaggle/working/s6-source-label-recovery');assert not root.exists() and shutil.disk_usage('/kaggle/working').free>12*2**30;root.mkdir(mode=0o700);code=root/'code';code.mkdir(mode=0o700)
+original_roots=[Path('/kaggle/input/rsna-importance-recovery-a01dd9643355'),Path('/kaggle/input/notebooks/godlydonuts/rsna-importance-recovery-a01dd9643355')]
+old_roots=[p/'importance-recovery' for p in original_roots if (p/'importance-recovery/uniform/full/checkpoint.pt').is_file()];assert len(old_roots)==1
+old=old_roots[0];old_receipts=[p.parent/'licensed-importance-real-MRI-recovery-accepted.json' for p in old_roots];old_receipt=json.loads(old_receipts[0].read_text());assert old_receipt['status']=='actual_matched_uniform_influence_full_encoder_twoT4_MRI_recovery_accepted' and old_receipt['worker_source_sha256']=='cbe40bfab07a1a24d990dd8b4c8b9f4b3713fde12a200ce7d1d73b28e5557f60'
+assert old_receipt['roles']['uniform']['prediction_SHA']==CONTROL_PREDICTION_SHA and old_receipt['same_initial_complete_model_and_allrank_RNG_between_roles']
+(root/'source-permission.txt').write_bytes(base64.b64decode(PERMISSION))
+weights=[p for d in Path('/kaggle/input').iterdir() if d.is_dir() for p in d.rglob('raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt') if p.is_file()];assert len(weights)==1
+with weights[0].open('rb') as f:assert hashlib.file_digest(f,'sha256').hexdigest()=='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef'
+for name,text in {**FILES,'rsna/__init__.py':'','rsna/competitive/__init__.py':''}.items():
+ p=code/name;assert p.resolve().is_relative_to(code.resolve());p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+(root/'targets.private.json').write_bytes(base64.b64decode(TARGETS));(root/'targets.private.json').chmod(0o600);worker=code/'worker.private.py';worker.write_bytes(base64.b64decode(WORKER));worker.chmod(0o600)
+env={**os.environ,'PYTHONPATH':str(code)};start=time.monotonic();phases=[]
+for role in ('original_source','released_S6_source'):
+ for phase in ('full','stop','resume'):
+  with (root/(role+'-'+phase+'.private.log')).open('x') as log:result=subprocess.run([sys.executable,'-m','torch.distributed.run','--standalone','--nnodes=1','--nproc_per_node=2',str(worker),phase,role],env=env,stdout=log,stderr=subprocess.STDOUT,timeout=600)
+  assert result.returncode==0,'Retain the exact failure; never restart or retry this diagnostic';phases.append({'role':role,'phase':phase,'elapsed_seconds':time.monotonic()-start});print(json.dumps(phases[-1]),flush=True)
+import torch
+def same(a,b):
+ if isinstance(a,torch.Tensor):assert a.dtype==b.dtype and a.shape==b.shape and torch.equal(a,b)
+ elif isinstance(a,dict):
+  assert a.keys()==b.keys()
+  for n in a:same(a[n],b[n])
+ elif isinstance(a,(list,tuple)):
+  assert type(a) is type(b) and len(a)==len(b)
+  for x,y in zip(a,b):same(x,y)
+ else:assert a==b
+roles={};identities=[];finals=[]
+for role in ('original_source','released_S6_source'):
+ d=root/role;full=torch.load(d/'full/checkpoint.pt',map_location='cpu',weights_only=True);resumed=torch.load(d/'resumed/checkpoint.pt',map_location='cpu',weights_only=True);same(full,resumed)
+ assert full['completed']==4 and full['binding']['world_size']==2 and full['binding']['recipe']['windows']==16 and full['binding']['recipe']['role']=='uniform' and full['binding']['source_label_contrast']['role']==role and full['binding']['source_label_contrast']['diagnostic_only'] is True
+ assert [x['update'] for x in full['history']]==[1,2,3,4] and all(x['gradient_norm']>0 and x['loss']>=0 for x in full['history'])
+ for epoch in (1,2):same(torch.load(d/'full/epoch-checkpoints'/('epoch-'+str(epoch).zfill(3)+'.pt'),map_location='cpu',weights_only=True),torch.load(d/'resumed/epoch-checkpoints'/('epoch-'+str(epoch).zfill(3)+'.pt'),map_location='cpu',weights_only=True))
+ pred=(d/'full/engineering-predictions.private.npy').read_bytes();assert pred==(d/'resumed/engineering-predictions.private.npy').read_bytes();devices=[json.loads((d/'full'/('full-rank-'+str(rank)+'.json')).read_text()) for rank in (0,1)];assert all(x['GPU']=='Tesla T4' and x['finite_updates']==4 and x['trainable_parameters']==73136096 and x['all_BN_buffers_equal_parent'] for x in devices)
+ identities.append([x['initial_identity'] for x in devices]);finals.append(full['model']);roles[role]={'complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal':True,'all16_full94_two_view_prediction_bytes_equal':True,'prediction_SHA':hashlib.sha256(pred).hexdigest(),'proposal_SHA':full['binding']['teacher_proposal_sha256'],'label_binding':full['binding']['source_label_contrast'],'finite_updates':4,'devices':devices}
+ if role=='original_source':
+  original=torch.load(old/'uniform/full/checkpoint.pt',map_location='cpu',weights_only=True);normal={**full,'binding':{k:v for k,v in full['binding'].items() if k!='source_label_contrast'}};same(normal,original)
+  assert hashlib.sha256(pred).hexdigest()==CONTROL_PREDICTION_SHA and pred==(old/'uniform/full/engineering-predictions.private.npy').read_bytes()
+  roles[role]['actual_original_accepted_control_complete_state_and_predictions_exact_except_label_binding']=True
+same(identities[0],identities[1]);same(identities[0],[x['initial_identity'] for x in old_receipt['roles']['uniform']['devices']]);assert roles['original_source']['proposal_SHA']==roles['released_S6_source']['proposal_SHA']==old_receipt['roles']['uniform']['proposal_SHA']
+distinct=sum(not torch.equal(finals[0][n],value) for n,value in finals[1].items());assert distinct>0 and roles['original_source']['label_binding']['new_label_array_sha256']!=roles['released_S6_source']['label_binding']['new_label_array_sha256'];files_bytes=sum(p.stat().st_size for p in root.rglob('*') if p.is_file());assert files_bytes<12*2**30 and not Path('/kaggle/working/submission.csv').exists()
+receipt={'status':'actual_S6_label_only_uniform16_twoT4_MRI_recovery_accepted','source_mode':'diagnostic_only_not_competition_model','fit_studies':16,'disjoint_engineering_studies':16,'epochs':2,'updates_per_role':4,'sampled_windows':16,'full_inference_windows':94,'world_size':2,'roles':roles,'same_initial_complete_model_and_allrank_RNG_between_roles_and_original':True,'original_control_complete_state_and_predictions_exact_except_label_binding':True,'distinct_final_learned_tensors':distinct,'source_module_sha256':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in FILES.items()},'worker_source_sha256':hashlib.sha256(base64.b64decode(WORKER)).hexdigest(),'private_target_sha256':hashlib.sha256(base64.b64decode(TARGETS)).hexdigest(),'original_recovery_source_sha256':ORIGINAL_SOURCE_SHA,'released_S6_target_sha256':'5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9','all_retained_bytes':files_bytes,'elapsed_seconds':time.monotonic()-start,'phases':phases,'clinical_or_competition_accuracy_claim':False,'full_production_fit_dispatched':False,'competition_entry':False};(Path('/kaggle/working')/'S6-label-only-real-MRI-recovery-accepted.json').write_text(json.dumps(receipt,sort_keys=True,indent=2));print(json.dumps(receipt),flush=True)
+"""

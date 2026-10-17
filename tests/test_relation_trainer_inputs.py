@@ -2,6 +2,7 @@ import copy
 import hashlib
 import io
 import json
+import shutil
 import tarfile
 
 import pandas as pd
@@ -151,8 +152,14 @@ def cache_fixture(tmp_path, change):
     [None, "missing", "duplicate", "link", "csv_duplicate", "path", "source_stat", "overlap"],
 )
 def test_original_cache_copy_admits_exact_32_studies_and_excludes_every_other_exam(
-    tmp_path, change
+    tmp_path, change, monkeypatch
 ):
+    # This tiny synthetic archive tests membership, not the host's spare disk.
+    disk = type(shutil.disk_usage(tmp_path))
+    monkeypatch.setattr(
+        "scripts.newton.launch_relation_trainer_inputs.shutil.disk_usage",
+        lambda _: disk(64 * 1024**3, 32 * 1024**3, 32 * 1024**3),
+    )
     archive, cache, fixture, table, proof = cache_fixture(tmp_path, change)
     if change is not None:
         with pytest.raises(ValueError):
@@ -168,3 +175,16 @@ def test_original_cache_copy_admits_exact_32_studies_and_excludes_every_other_ex
         assert hashlib.sha256(path.read_bytes()).hexdigest() == row["sha256"]
     with pytest.raises(ValueError):
         copy_fixture(archive, cache, fixture, table, proof, helper)
+
+
+def test_original_cache_copy_keeps_real_node_reserve_before_materialization(tmp_path, monkeypatch):
+    archive, cache, fixture, table, proof = cache_fixture(tmp_path, None)
+    disk = type(shutil.disk_usage(tmp_path))
+    monkeypatch.setattr(
+        "scripts.newton.launch_relation_trainer_inputs.shutil.disk_usage",
+        lambda _: disk(64 * 1024**3, 33 * 1024**3 + 1, 31 * 1024**3 - 1),
+    )
+    with pytest.raises(OSError, match="Preserve20GiB"):
+        copy_fixture(archive, cache, fixture, table, proof, helper)
+    assert not cache.exists()
+    assert helper.signature(archive) == proof["assets"][str(archive)]["stat"]

@@ -1,0 +1,15 @@
+"""One finite read-only observer; not permission to run or enter anything."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent
+with (L/'finish-observation.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'started_at_unix':time.time(),'maximum_wall_seconds':14400,'existing_kernel':139199164,'existing_version':2,'observer_SHA':hashlib.sha256((L/'observe_once.py').read_bytes()).hexdigest(),'Kaggle_mutation_calls':0,'no_RunAll_Save_push_submission_or_recovery':True},f,indent=2)
+start=time.monotonic()
+while time.monotonic()-start<14400:
+ p=subprocess.run([sys.executable,str(L/'observe_once.py')],cwd=L.parents[1],capture_output=True,text=True,timeout=350)
+ if p.returncode:
+  out={'status':'observer_stopped_preserve_existing_v2','returncode':p.returncode,'stderr':p.stderr[-2200:],'new_GPU_or_entry':False};(L/'finish-observation.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True);raise SystemExit(1)
+ out=json.loads(p.stdout);progress={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'actual':out};(L/'finish-observation.progress.json').write_text(json.dumps(progress,indent=2)+'\n');print(json.dumps(progress),flush=True)
+ if out['status'] in ('COMPLETE','ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+  (L/'finish-observation.result.json').write_text(json.dumps(progress,indent=2)+'\n');break
+ time.sleep(300)
+else:(L/'finish-observation.result.json').write_text(json.dumps({'status':'finite_observer_expired_preserve_exact_v2','new_GPU_or_entry':False},indent=2)+'\n')

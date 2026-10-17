@@ -1,0 +1,133 @@
+"""Exercise wrapper rewriting and array facade without private records or CUDA."""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import importlib.machinery
+import importlib.util
+import io
+import json
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import torch
+
+L = Path(__file__).resolve().parent
+loader = importlib.machinery.SourceFileLoader(
+    "S6_gpu_compile_checks", str(L / "gpu_recovery.py.txt")
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+module = importlib.util.module_from_spec(spec)
+loader.exec_module(module)
+passed = []
+
+
+def refuse(call):
+    try:
+        call()
+    except (ValueError, AssertionError):
+        return
+    raise AssertionError("Invalid source or array mutation was admitted")
+
+
+refuse(lambda: module.build("unaccepted original", "", ""))
+passed.append("unaccepted_private_original_source_refused_before_rewrite")
+for old, new in [("", "new"), ("duplicate duplicate", "new")]:
+    refuse(lambda old=old, new=new: module.change_once(old, "duplicate", new))
+passed.append("missing_or_ambiguous_substitution_refused")
+
+fixture = """
+from pathlib import Path
+def main():
+    parser.add_argument('role',choices=('uniform','influence'))
+    original_data=PixelCases(targets,list(range(16)));data=ProposalCases(original_data,_teacher_proposals(model,original_data));initial_identity=_initial_identity(model,device);engineering=PixelCases(targets,list(range(16,32)))
+    root=Path('/kaggle/working/importance-recovery')
+    recipe=Recipe(epochs=2,role=a.role)
+"""
+rewritten = module.rewrite_worker(fixture)
+assert "Recipe(epochs=2,role='uniform')" in rewritten
+assert "choices=('original_source','released_S6_source')" in rewritten
+assert "ProposalCases(_source_labels(original_data,a.role,root),proposals)" in rewritten
+assert "engineering=PixelCases(targets,list(range(16,32)))" in rewritten
+passed.append("same_uniform_recipe_and_disjoint_engineering_cases_with_only_source_role_changed")
+for token in [
+    "def main():",
+    "Recipe(epochs=2,role=a.role)",
+    "Path('/kaggle/working/importance-recovery')",
+]:
+    refuse(lambda token=token: module.rewrite_worker(fixture.replace(token, "changed_marker")))
+    # Append only a marker, not a real licensed body or a private target.
+    refuse(lambda token=token: module.rewrite_worker(fixture + "\n# " + token + "\n"))
+passed.append("worker_drift_or_duplicate_marker_fails_closed")
+
+tree = ast.parse(module.HELPER)
+class_node = next(
+    n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "_SourceArrayFacade"
+)
+namespace = {"torch": torch, "np": np, "io": io, "hashlib": hashlib}
+exec(compile(ast.Module(body=[class_node], type_ignores=[]), "array_facade", "exec"), namespace)
+
+with tempfile.TemporaryDirectory(prefix="S6-array-facade-check-") as tmp:
+
+    class Original:
+        def __init__(self):
+            self.uids = ["synthetic-case-1", "synthetic-case-0"]
+            self.indices = [1, 0]
+            self.targets = {"labels": [[0.1] * 12, [0.9] * 12], "masks": [[True] * 12] * 2}
+            self.features = Path(tmp)
+            self.frows = []
+            for i in range(2):
+                p = self.features / (str(i) + ".npz")
+                np.savez(p, parent_logits=np.full((2, 12), i, dtype=np.float32))
+                raw = p.read_bytes()
+                self.frows.append(
+                    {"file": p.name, "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+                )
+            self.sentinel = object()
+
+        def case(self, index, positions, mirror):
+            assert index == 1 and positions == [5, 5, 0] and mirror is True
+            return self.sentinel
+
+    original = Original()
+    facade = namespace["_SourceArrayFacade"](original)
+    assert facade.uids == original.uids and torch.equal(facade.labels[0], torch.tensor([0.9] * 12))
+    assert torch.equal(facade.teacher[0], torch.ones(2, 12)) and torch.equal(
+        facade.teacher[1], torch.zeros(2, 12)
+    )
+    assert facade.case(1, [5, 5, 0], True) is original.sentinel
+    passed.append(
+        "actual_feature_NPZ_array_facade_preserves_order_labels_masks_teacher_and_duplicate_view_delegation"
+    )
+    row = original.frows[1]
+    row["sha256"] = "0" * 64
+    refuse(lambda: namespace["_SourceArrayFacade"](original))
+    passed.append("wrong_original_feature_bytes_refused")
+
+for phrase in [
+    "same(normal,original)",
+    "same(full,resumed)",
+    "CONTROL_PREDICTION_SHA",
+    "original_control_complete_state_and_predictions_exact_except_label_binding",
+    "same(identities[0],identities[1])",
+    "maximum_retained_GPU_bytes",
+]:
+    assert phrase in (module.BOOTSTRAP + (L / "gpu_recovery.py.txt").read_text())
+assert "SaveKernel" not in module.BOOTSTRAP and "CreateSubmission" not in module.BOOTSTRAP
+assert "not Path('/kaggle/working/submission.csv').exists()" in module.BOOTSTRAP
+passed.append(
+    "GPU_receipt_requires_original_control_and_full_state_recovery_without_entry_or_production_API"
+)
+
+result = {
+    "status": "label_GPU_recovery_compiler_and_array_facade_checks_passed",
+    "compiler_sha256": hashlib.sha256((L / "gpu_recovery.py.txt").read_bytes()).hexdigest(),
+    "checks": passed,
+    "count": len(passed),
+    "synthetic_only": True,
+    "actual_private_compile_or_GPU_or_accuracy_proved": False,
+}
+(L / "gpu-compiler-checked.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result))

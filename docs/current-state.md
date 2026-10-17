@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 10:55 UTC.** The owner targets **0.97**. Best actual
+**Verified October 17, 2026, 12:25 UTC.** The owner targets **0.97**. Best actual
 project public AUC remains **0.950**; the target has not been reached. Read the
 [research brief](research-brief.md), [execution handoff](codex-continuation.md)
 and [research-agent handoff](research-agent-handoff.md). Original receipts and
@@ -24,64 +24,75 @@ leaderboard first place was0.969; no current leading method is inferred.
 
 ## New actual progress
 
-**The exact public0.958 reference completed one interactive two-T4 MRI run.**
-Both CoAtNet stages, original four-foldR6v1 and the three-checkpoint2.5D reader
-executed. R6 scored3/3 with zero fallback and both worker exits0. Final830-byte
-CSV passes3rows/13columns, exact publictest UID order and finite[0,1] values;
-SHA5e9ba665f3e30642e18dbb555eb7cbd16ab8a659ffb5f7226c72aaac44c9df1b.
-The session was explicitly stopped at about17minutes. CPU945812 reconciled all
-8unchanged saved source cells and actual success under the canonical claim.
-**No committed offline version or competition entry exists for this copy.**
-Our139199164v1 remains source-only; never submit it. Keep R6Datasetv1 pinned:
-its v2 contains different R7 weights under the same names. This is public
-qualification, not our0.958 score or hidden-runtime proof.
-[Exact qualification and controls](../initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
+**UniformIID16 finished all3epochs/1,458finite updates.** CPU946112 verified
+its complete learned state and privately preserved all5final objects at
+HFf47a884610cb9dc930827ba539ee3fcc77a4b050. Whole94 also finished all3epochs;
+all six immutable epochs are fully verified and must not be republished. Influence
+sampling is now in its final epoch, exact139220032v1 actuallyRUNNING. Completion
+is not a measured accuracy improvement.
 
-**Our whole94 adaptation completed all3epochs/1,458finite updates.** Original
-139172537v1 is terminal success; CPU945622 verified complete final state and
-privately preserved all5objects at HF1ea56fa5f9a263597df0a10cc87d98fe2dc1da7b.
-All three epochs are already verified; do not republish. Sole final-serving and
-entry owners17301/17317 remain live; no finalE3 score exists.
-[Original terminal and final preservation](../initiative/audits/whole94-fixed3-final-20261017-v1/README.md).
+**The stronger public reference now has one committed v2.** Notebook139199164
+has8unchanged code cells, private/offline/twoT4, with originalR6Datasetv1 retained.
+Kaggle changed Docker duringSave&RunAll; CPU946191 recorded the difference and
+requires actual committed-runtime/input/output acceptance. Latest API status is
+absent and UI saysStarting. Prior interactive success is separate; this is not
+our0.958score. Never submit source-onlyv1 or duplicate the newSave.
 
-**A matched source-label experiment is prepared and admitted on CPU.** S6v5's
-released labels differ from our Stevenv6 labels across all3,887fit studies;
-Fracture rank correlation is0.51446. CPU945573 verified the real full-array
-label-only path. CPU945599 created private Dataset12653444v1 once and fully
-re-downloaded/hash verified all5objects. CPU945706 funded4GiB checkpoints plus
-16MiB controls, preserving all old liabilities/reserves. Twenty-four whole94
-and8sampled CPU engineering checks pass. The fixed comparison uses the unchanged
-uniformIID16 recipe, changing only source labels. **No treatment GPU recovery,
-fit, VM reservation or score exists yet.**
-[Protocol](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md),
-[actual data/storage proofs](../initiative/audits/s6-source-label-admission-20261017-v1/README.md).
+**The source-label test now has a real-payload GPU recovery compiled and CPU-
+admitted.** CPU946080 verified32actual original feature/label/mask/teacher arrays.
+New source0a6f6c567901… preserves all original numerical modules and tests complete
+old-control replay plus both-label-role full/stop1/resume. Seven compiler checks
+and five contract groups pass. The fixed treatment uses the same3887studies,
+uniform16draws, inputs, teacher, objective and optimizer, changing only source labels.
+Single finite owner46281 waits capacity and may push this one diagnostic only;
+no treatment GPU recovery or fit has run. Fresh12:02VMfunding passed110405.97
+available/66000required, including all old commitments and the24000second label
+campaign. Dataset12653444v1 and4GiB+16MiB storage funding are already verified.
 
-The author's86missing studies were local disk deletions, not host removal or a
-quality filter. S6's own recipe uses4263fit/16epochs/64windows/denseBCE/fixedE16,
-noEMA/SWA and noOAI. Our3epoch25%source/75%parent adaptation is a different recipe.
-[Original released-source comparison](../initiative/audits/s6-training-release-20261017-v1/README.md).
+The zero-output GPU32scout was canceled once; it isCANCEL_ACKNOWLEDGED, and its
+CPU owners retired. During that transition an old capacity race caused the
+finalE3qualification push to be explicitly rejected. CPU946111 reconciled it
+read-only and permanently quarantined that ambiguousslug; final learned weights
+are intact, but old serving/entry controllers stopped. This is an infrastructure
+failure, not evidence about model accuracy. No competition entry was made.
+
+[Actual original receipts and controls](../initiative/audits/lockin-097-execution-20261017-v2/README.md),
+[label experiment](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
+
+
+The fixed3 label-production compiler is now also CPU-admitted on the actual
+original uniform source and all3887arrays (**CPU946417**); all13numerical modules
+remain exact. It cannot build an executable epoch without the actual label-GPU
+recovery receipt. No production fit or score exists. Read-only referencev2
+observer**47637** is active; it cannot push, run or submit another model.
+[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 
 ## Current owned work
 
 | Work | Original identity | Latest actual state |
 |---|---|---|
-| Whole94 adaptation and preservation | 139172537v1;96833/96866 | **Terminal success**, all1458updates/all3private epochs verified |
-| Final whole94 serving / entry | 17301/17317; standby28090 | Owned/waiting actual capacity, acceptance and allowance |
-| UniformIID16 full fit | 139192503v1; sole observer34538 | RUNNING; epochs1/2 privately verified |
-| InfluenceIID16 full fit | 139181903v1 | Epoch2 complete972/private verified; final role remains owned by34538 |
-| S6 T4 fitting32 scout | **139210569v1**, sole34237 | Pushed once; APIstatusnull/UIqueued at last observation, not terminal |
-| Independent scout analysis | 34308 | Waits original scout; no GPU/entry authority |
-| S6 CPU32 scout | **139205901v2**,40709 | RUNNING; no new MRI result yet |
-| Public0.958 reference | 139199164v1 | Interactive qualification complete/stopped; source-only saved version |
-| Old equal-rank blend | old27596 | **Deprioritized before any GPU push/entry**, source preserved |
-| Older R7 reference | old31309 | Deprioritized before push/entry; original assets preserved |
-| Expanded own N3 | Slurm938284 | COMPLETED0:0/5184updates; all16epochs privately verified |
-| S6 H100 pilot | original942047 | Last pending; never duplicate based on observation loss |
+| Whole94 fixed3 | 139172537v1 | Complete1458; all3private epochs verified |
+| UniformIID16 fixed3 | 139192503v1 | Complete1458; all3private epochs verified |
+| InfluenceIID16 final | **139220032v1**, sole34538 | RUNNING; first2epochs already private verified |
+| Exact public0.958 reference | **139199164v2** | Save&RunAll committed once;Starting/unknown, no acceptance/entry |
+| Source-label recovery | **46281** finite CPU owner | Funding passed; waits one free batch lane; no push intent yet |
+| First-label-epoch follow-through | **59829** finite CPU owner | Waits actual recovery and published source pin; may admit one first epoch only, no entry/publishing/E2 authority |
+| S6 CPU32 scout | **139205901v2**,40709 | Existing CPU run alive; no new MRI result collected |
+| S6 GPU32 scout | 139210569v1 | Canceled while queued/zerooutput;34237/34308 retired |
+| Old finalE3serving/entry | old17301/17317/28090 | Stopped; rejected qualification identity quarantined |
+| Expanded own N3 | original938284 | Complete5184/all16private epochs verified; no established weak gain |
+| S6 H100 pilot | original942047 | Lastpending, never duplicated |
 
-Fresh authenticated allowance at**10:54UTC:5used/0available**. No additional
-competition entry was made this turn. Actual two-batch-GPU-session capacity
-still governs batch work; Kaggle separately allocated our now-stopped interactive
-session. Do not infer capacity or hidden scores from a missing API status.
+Last authenticated competition allowance10:54UTC:5used/**0available**. No new
+competition entry this turn. A bounded immediate H100device-only request946295
+could not allocate; no newCUDA/MRI/optimizer result is claimed. Large originals
+remain private, healthy existing runs are unchanged, and all liabilities remain.
+
+A new fitting-only objective diagnostic (**CPU946541**) weakened the hypothesis
+that75%teacher anchoring necessarily prevents corrections: the current0.25source
+weight already reverses most opposed strong-source pairs, all595plainFracture
+pairs included. This changed no recipe and is not an accuracy result.
+[Actual negative and scope](../initiative/audits/fitting-teacher-anchor-tension-20261017-v1/README.md).
 
 ## Evidence and limits
 

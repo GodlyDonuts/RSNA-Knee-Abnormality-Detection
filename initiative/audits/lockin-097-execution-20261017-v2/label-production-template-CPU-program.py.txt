@@ -1,0 +1,28 @@
+
+import ast,hashlib,importlib.machinery,importlib.util,io,json,os,shutil,sys
+from pathlib import Path
+import numpy as np,torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1);R=Path('/tmp/rsna-S6-training-release-20261017-v1');D=R/'production-template-v1';assert not D.exists() and shutil.disk_usage('/tmp').free>611754508347;used=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert used+2*2**20+2*sum(len(t.encode()) for t in v['files'].values())<16*2**20
+ns={};exec(compile(v['files']['production.py.txt'],'immutable_S6_fixed3_label_compiler','exec'),ns);assert hashlib.sha256(v['files']['recovery_contract.py.txt'].encode()).hexdigest()==ns['CONTRACT_SHA']
+F=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison');original=(F/'uniform-epoch-1/source.private.py').read_text();G=R/'source-label-recovery-v1';overlay=(G/'source_overlay.py.txt').read_text();adapter=(G/'sampled_fit.py.txt').read_text();values,worker,closure=ns['prepare'](original,overlay,adapter);assert len(values['FILES'])==13 and all(closure[n]==s for n,s in values['FILES'].items()) and set(closure)==set(values['FILES'])|{'s6_labels/source_overlay.py.txt','s6_labels/sampled_fit.py.txt'}
+sys.path.insert(0,str(F/'code'));loader=importlib.machinery.SourceFileLoader('accepted_full_source_label_adapter',str(G/'sampled_fit.py.txt'));spec=importlib.util.spec_from_loader(loader.name,loader);fit=importlib.util.module_from_spec(spec);loader.exec_module(fit)
+O=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');N=R/'matched-fitting-overlay-v1/targets.private.npz';assert hashlib.sha256(O.read_bytes()).hexdigest()==fit.source.ORIGINAL_FILE_SHA and hashlib.sha256(N.read_bytes()).hexdigest()==fit.source.S6_FILE_SHA
+with np.load(O,allow_pickle=False) as a:old={k:a[k].copy() for k in a.files}
+with np.load(N,allow_pickle=False) as a:new={k:a[k].copy() for k in a.files}
+class OriginalArrays:
+ def __init__(self):self.uids=old['uids'].tolist();self.labels=torch.from_numpy(old['labels']);self.mask=torch.from_numpy(old['masks']);self.teacher=torch.from_numpy(old['parent_logits'])
+ def __len__(self):return len(self.uids)
+ def case(self,*a,**k):raise AssertionError('CPU production-template admission cannot decode MRIs')
+node=next(n for n in ast.parse(ns['HELPER']).body if isinstance(n,ast.FunctionDef) and n.name=='_full_source_labels');missing=D/'nonexistent-second-mount';assert not missing.exists()
+def route(p):
+ if p=='/kaggle/input/rsna-s6-fit-labels-5e34bbf40f4f':return N.parent
+ if p=='/kaggle/input/datasets/godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f':return missing
+ raise AssertionError('No unadmitted CPU mount access')
+context={'Path':route,'torch':torch,'np':np,'io':io,'hashlib':hashlib,'_s6_fit':fit,'PARENT_SHA':fit.source.PARENT_SHA};exec(compile(ast.Module(body=[node],type_ignores=[]),'actual_full3887_data_helper','exec'),context);original_arrays=OriginalArrays();data=context['_full_source_labels'](original_arrays);assert len(data)==3887 and data.uids==original_arrays.uids and torch.equal(data._labels,torch.from_numpy(new['labels'])) and torch.equal(data._old,original_arrays.labels) and torch.equal(data._teacher,original_arrays.teacher) and torch.equal(data._masks,original_arrays.mask) and data.binding['diagnostic_only'] is False and data.binding['role']=='released_S6_source';assert not torch.equal(data._labels,data._old)
+for segment in (1,2,3):
+ try:ns['build'](original,overlay,adapter,{},'a'*40,segment)
+ except ValueError as e:assert 'actual' in str(e).lower() and 'recovery' in str(e).lower()
+ else:raise AssertionError('Production allowed without actual GPU recovery')
+D.mkdir(mode=0o700)
+for n,t in v['files'].items():p=D/n;p.write_text(t);p.chmod(0o600)
+out={'status':'actual_original_uniform_source_and_full3887_label_only_production_template_CPU_admitted_not_GPU_or_fit','CPU_job':os.environ['SLURM_JOB_ID'],'compiler_sha256':hashlib.sha256(v['files']['production.py.txt'].encode()).hexdigest(),'recovery_contract_sha256':ns['CONTRACT_SHA'],'original_control_source_sha256':ns['CONTROL_SOURCE'],'original_control_worker_sha256':ns['CONTROL_WORKER'],'all13_original_numerical_modules_byte_unchanged':True,'two_actual_label_helpers_only_added':True,'actual3887_UID_order_old_new_labels_masks_teacher_arrays_and_hashes_verified':True,'original_model_init_draws_recipe_and_optimizer_not_modified':True,'all_three_segments_refuse_missing_actual_GPU_recovery':True,'new_private_MRI_model_or_dataset_copies':0,'new_controls_bytes':sum(p.stat().st_size for p in D.rglob('*') if p.is_file()),'within_existing16MiB_S6_root_envelope':True,'future_controls_preserved_bytes':2*2**20,'template_not_executable_or_admitted_production':True,'actual_GPU_recovery_or_full_fit':False,'competition_entry':False};(D/'CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

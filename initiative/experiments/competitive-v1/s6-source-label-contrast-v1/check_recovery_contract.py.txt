@@ -1,0 +1,157 @@
+"""Synthetic adverse admission checks; never an actual GPU receipt."""
+
+import copy
+import json
+import runpy
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+c = runpy.run_path(str(P / "recovery_contract.py.txt"))
+q = {
+    "totalTimeAllowed": "162000s",
+    "minimumTimeAllowed": "108000s",
+    "timeUsed": "51264s",
+    "timeReserved": "0s",
+    "isPayToScaleEnabled": True,
+}
+kw = dict(
+    original_main=0,
+    original_sampling=6000,
+    reference_unfinished=True,
+    blend_unfinished=False,
+    scout_unfinished=False,
+)
+checks = []
+b = c["budget"](q, **kw)
+assert b["allowed"] and b["required_all_future_VM_seconds"] == 66000
+assert (
+    b["new_recovery_seconds"]
+    + b["future_fixed3_fit_seconds"]
+    + b["future_label_serving_seconds"]
+    + b["new_margin_seconds"]
+    == 24000
+)
+# Existing pay-to-scale availability is used, never enabled or changed here.
+q2 = {**q, "isPayToScaleEnabled": False}
+assert not c["budget"](q2, **kw)["allowed"]
+q3 = {**q, "timeReserved": "50000s"}
+assert not c["budget"](q3, **kw)["allowed"]
+assert c["budget"](q, **{**kw, "blend_unfinished": True})["required_all_future_VM_seconds"] == 98400
+checks.append("all_old_and_new_future_obligations_no_reserved_credit_or_billing_change")
+
+
+def refused(fn, *a, **k):
+    try:
+        fn(*a, **k)
+    except (ValueError, KeyError):
+        return
+    raise AssertionError("adverse input was accepted")
+
+
+for v in ["NaNs", "-1s", "1", None]:
+    refused(c["budget"], {**q, "timeUsed": v}, **kw)
+refused(c["budget"], q, **{**kw, "original_sampling": -1})
+checks.append("unknown_nonfinite_negative_or_incomplete_quota_refused")
+r = c["request"]("PRIVATE_PAYLOAD_NOT_A_MODEL", c["SOURCE"])
+assert r["sessionTimeoutSeconds"] == 1800 and r["competitionDataSources"] == []
+assert r["isPrivate"] and not r["enableInternet"] and r["kernelDataSources"] == c["NOTEBOOKS"]
+assert r["datasetDataSources"] == c["DATASETS"] and r["dockerImage"] == c["DOCKER"]
+refused(c["request"], "other", "0" * 64)
+checks.append("unique_exact_diagnostic_request_no_competition_or_new_dataset")
+
+binding = {
+    "original_module_sha256": {"original.py": "a" * 64},
+    "overlay_sha256": "b" * 64,
+    "sampled_adapter_sha256": "c" * 64,
+    "unchanged_original_recovery_sha256": "d" * 64,
+    "original_target_sha256": "e" * 64,
+}
+devices = [
+    {
+        "GPU": "Tesla T4",
+        "finite_updates": 4,
+        "trainable_parameters": 73136096,
+        "all_BN_buffers_equal_parent": True,
+    }
+    for _ in range(2)
+]
+roles = {}
+for i, name in enumerate(["original_source", "released_S6_source"]):
+    roles[name] = {
+        "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal": True,
+        "all16_full94_two_view_prediction_bytes_equal": True,
+        "finite_updates": 4,
+        "label_binding": {
+            "role": name,
+            "diagnostic_only": True,
+            "new_label_array_sha256": str(i) * 64,
+        },
+        "devices": copy.deepcopy(devices),
+        "proposal_SHA": "f" * 64,
+    }
+roles["original_source"].update(
+    prediction_SHA=c["CONTROL_PREDICTION"],
+    actual_original_accepted_control_complete_state_and_predictions_exact_except_label_binding=True,
+)
+receipt = {
+    "status": "actual_S6_label_only_uniform16_twoT4_MRI_recovery_accepted",
+    "worker_source_sha256": c["WORKER"],
+    "released_S6_target_sha256": c["TARGET"],
+    "source_module_sha256": {
+        **binding["original_module_sha256"],
+        "s6_labels/source_overlay.py.txt": binding["overlay_sha256"],
+        "s6_labels/sampled_fit.py.txt": binding["sampled_adapter_sha256"],
+    },
+    "original_recovery_source_sha256": binding["unchanged_original_recovery_sha256"],
+    "private_target_sha256": binding["original_target_sha256"],
+    "fit_studies": 16,
+    "disjoint_engineering_studies": 16,
+    "epochs": 2,
+    "updates_per_role": 4,
+    "sampled_windows": 16,
+    "full_inference_windows": 94,
+    "world_size": 2,
+    "same_initial_complete_model_and_allrank_RNG_between_roles_and_original": True,
+    "original_control_complete_state_and_predictions_exact_except_label_binding": True,
+    "distinct_final_learned_tensors": 1,
+    "all_retained_bytes": 5856482635,
+    "elapsed_seconds": 500,
+    "clinical_or_competition_accuracy_claim": False,
+    "full_production_fit_dispatched": False,
+    "competition_entry": False,
+    "roles": roles,
+}
+assert c["accept"](receipt, binding)["production_admitted"] is False
+for k, v in [
+    ("world_size", 1),
+    ("competition_entry", True),
+    ("sampled_windows", 32),
+    ("released_S6_target_sha256", "0" * 64),
+    ("original_control_complete_state_and_predictions_exact_except_label_binding", False),
+    ("all_retained_bytes", 12 * 2**30),
+    ("elapsed_seconds", 1800),
+]:
+    refused(c["accept"], {**receipt, k: v}, binding)
+checks.append("runtime_output_and_actual_control_failure_refuse_production_admission")
+for which in range(4):
+    d = copy.deepcopy(receipt)
+    if which == 0:
+        d["roles"]["released_S6_source"]["devices"][1]["GPU"] = "H100"
+    elif which == 1:
+        d["roles"]["released_S6_source"]["proposal_SHA"] = "0" * 64
+    elif which == 2:
+        d["roles"]["released_S6_source"]["label_binding"]["new_label_array_sha256"] = "0" * 64
+    else:
+        d["roles"]["original_source"]["prediction_SHA"] = "0" * 64
+    refused(c["accept"], d, binding)
+checks.append("single_device_wrong_proposal_unchanged_labels_or_wrong_control_prediction_refused")
+print(
+    json.dumps(
+        {
+            "status": "synthetic_recovery_contract_adverse_checks_passed",
+            "count": len(checks),
+            "checks": checks,
+            "actual_GPU": False,
+        }
+    )
+)

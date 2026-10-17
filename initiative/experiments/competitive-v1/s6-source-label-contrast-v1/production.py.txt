@@ -1,0 +1,256 @@
+"""Compile the fixed3 label-only arm around the completed uniform16 control.
+
+The exact original private source is supplied on authorized storage. Preparing
+a template is not GPU acceptance. Building an executable epoch requires the
+actual label-recovery receipt. This module cannot dispatch or enter a model.
+"""
+
+from __future__ import annotations
+
+import ast
+import base64
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+from pathlib import Path
+
+CONTROL_SOURCE = "8155b3803c5a4ccd6646c21ead1a8a4eb6d0000ed84106b10befae9901f35081"
+CONTROL_WORKER = "670cef5d628de28960d6de5750241ebfeaacb0ee1198df7d976e555f39fead3b"
+OVERLAY = "f6414308fd4506cf2719980e5657ec2c038e996a6bc5651710b48b002bca01f5"
+ADAPTER = "5621ee32f127c58d9e38b78fa2edb51e8f45f8cfb2e03da1511e4130a6794fbd"
+TARGET = "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9"
+RECOVERY_SOURCE = "0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de"
+CONTRACT_SHA = "0afcad6c14951e8e6a3403745b59e2a63836b38efbbe3720f398245746e336e0"
+
+
+def sha(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def literals(text, names):
+    result = {}
+    for node in ast.parse(text).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name) and target.id in names:
+                if target.id in result:
+                    raise ValueError("Unique original literal assignment required")
+                result[target.id] = ast.literal_eval(node.value)
+    if set(result) != set(names):
+        raise ValueError("Complete original literal closure required")
+    return result
+
+
+def assignments(text, values):
+    nodes = []
+    for node in ast.parse(text).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name) and target.id in values:
+                nodes.append((node.lineno, node.end_lineno, target.id))
+    if {n for _, _, n in nodes} != set(values) or len(nodes) != len(values):
+        raise ValueError("Unique complete original assignments required")
+    lines = text.splitlines(keepends=True)
+    for first, last, name in sorted(nodes, reverse=True):
+        lines[first - 1 : last] = [name + "=" + repr(values[name]) + "\n"]
+    return "".join(lines)
+
+
+def change_once(text, old, new):
+    if text.count(old) != 1:
+        raise ValueError("Ambiguous or changed original worker; no substitution")
+    return text.replace(old, new)
+
+
+HELPER = r"""
+import importlib.machinery,importlib.util
+_s6_loader=importlib.machinery.SourceFileLoader('full_S6_label_adapter',str(Path(__file__).parent/'s6_labels/sampled_fit.py.txt'))
+_s6_spec=importlib.util.spec_from_loader(_s6_loader.name,_s6_loader);_s6_fit=importlib.util.module_from_spec(_s6_spec);_s6_loader.exec_module(_s6_fit);fit=_s6_fit.fit
+
+def _full_source_labels(original):
+    assert len(original)==3887
+    roots=[Path('/kaggle/input/rsna-s6-fit-labels-5e34bbf40f4f'),Path('/kaggle/input/datasets/godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f')]
+    paths=[p/'targets.private.npz' for p in roots if (p/'targets.private.npz').is_file()];assert len(paths)==1
+    raw=paths[0].read_bytes();assert len(raw)==613297 and hashlib.sha256(raw).hexdigest()==_s6_fit.source.S6_FILE_SHA
+    with np.load(io.BytesIO(raw),allow_pickle=False) as a:values={k:a[k].copy() for k in a.files}
+    assert set(values)=={'uids','labels','masks','parent_logits'} and values['uids'].tolist()==original.uids
+    labels=torch.from_numpy(values['labels']);masks=torch.from_numpy(values['masks']);teacher=torch.from_numpy(values['parent_logits'])
+    binding={'version':_s6_fit.source.VERSION,'role':'released_S6_source','population':3887,'population_sha256':_s6_fit.source.POPULATION_SHA,'diagnostic_only':False,'parent_checkpoint_sha256':PARENT_SHA,'original_target_file_sha256':_s6_fit.source.ORIGINAL_FILE_SHA,'target_file_sha256':_s6_fit.source.S6_FILE_SHA,'released_S6_raw_source_sha256':_s6_fit.source.S6_SOURCE_SHA,'original_label_array_sha256':_s6_fit.source.sha(original.labels),'new_label_array_sha256':_s6_fit.source.sha(labels),'mask_array_sha256':_s6_fit.source.sha(masks),'parent_teacher_array_sha256':_s6_fit.source.sha(teacher)}
+    return _s6_fit.source.SourceLabels(original,original.uids,labels,masks,teacher,binding)
+
+"""
+
+
+def prepare(original, overlay, adapter):
+    """Validate original closure and prepare only a non-admitted worker template."""
+    if sha(original) != CONTROL_SOURCE or sha(overlay) != OVERLAY or sha(adapter) != ADAPTER:
+        raise ValueError("Exact completed control and admitted label-only data path required")
+    values = literals(
+        original, ("FILES", "WORKER", "BINDING", "SEGMENT", "ROLE", "PREVIOUS", "PERMISSION")
+    )
+    if values["ROLE"] != "uniform" or values["SEGMENT"] != 1 or values["PREVIOUS"] is not None:
+        raise ValueError("Original first-epoch uniform16 parent initialization required")
+    binding = values["BINDING"]
+    files = values["FILES"]
+    if (
+        binding.get("role") != "uniform"
+        or binding.get("diagnostic_only") is not False
+        or binding.get("original_target_sha256")
+        != "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+        or {n: sha(s) for n, s in files.items()} != binding["source_module_sha256"]
+        or len(files) != 13
+        or hashlib.sha256(base64.b64decode(values["PERMISSION"], validate=True)).hexdigest()
+        != "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+    ):
+        raise ValueError("All original scientific modules/targets/rights must remain exact")
+    worker = base64.b64decode(values["WORKER"], validate=True).decode()
+    if sha(worker) != CONTROL_WORKER:
+        raise ValueError("Exact actual uniform16 production worker required")
+    worker = change_once(
+        worker,
+        "from rsna.competitive.licensed_importance_train import fit",
+        "from rsna.competitive.licensed_importance_train import fit as _unchanged_fit",
+    )
+    worker = change_once(worker, "def main():\n", HELPER + "def main():\n")
+    worker = change_once(
+        worker,
+        "data=ProposalCases(original,torch.from_numpy(q));del q",
+        "data=ProposalCases(_full_source_labels(original),torch.from_numpy(q));del q",
+    )
+    compile(worker, "private_S6_label_only_uniform16_worker_template", "exec")
+    return (
+        values,
+        worker,
+        {
+            **files,
+            "s6_labels/source_overlay.py.txt": overlay,
+            "s6_labels/sampled_fit.py.txt": adapter,
+        },
+    )
+
+
+def build(original, overlay, adapter, actual_recovery, source_git, segment, *, previous=None):
+    """Build one epoch only after actual source-label T4/control recovery passed."""
+    if (
+        not isinstance(actual_recovery, dict)
+        or actual_recovery.get("status") != "COMPLETE"
+        or actual_recovery.get("source_sha256") != RECOVERY_SOURCE
+        or type(actual_recovery.get("kernel_id")) is not int
+        or actual_recovery["kernel_id"] <= 0
+        or actual_recovery.get("version") != 1
+    ):
+        raise ValueError("Actual exact completed label-only recovery required before building")
+    contract_path = Path(__file__).with_name("recovery_contract.py.txt")
+    if hashlib.sha256(contract_path.read_bytes()).hexdigest() != CONTRACT_SHA:
+        raise ValueError("Exact immutable recovery contract required")
+    loader = importlib.machinery.SourceFileLoader(
+        "accepted_label_recovery_contract", str(contract_path)
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    contract = importlib.util.module_from_spec(spec)
+    loader.exec_module(contract)
+    values, worker, files = prepare(original, overlay, adapter)
+    binding = dict(values["BINDING"])
+    expected_recovery_binding = {
+        "original_module_sha256": {
+            n: h
+            for n, h in binding["source_module_sha256"].items()
+            if n
+            not in (
+                "rsna/competitive/licensed_pixel_cache.py",
+                "rsna/competitive/licensed_pixel_bags.py",
+                "rsna/competitive/licensed_parent_population.py",
+            )
+        },
+        "overlay_sha256": OVERLAY,
+        "sampled_adapter_sha256": ADAPTER,
+        "unchanged_original_recovery_sha256": "a01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554",
+        "original_target_sha256": "87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834",
+    }
+    receipt = actual_recovery.get("receipt", {})
+    contract.accept(receipt, expected_recovery_binding)
+    if (
+        not isinstance(source_git, str)
+        or len(source_git) != 40
+        or any(c not in "0123456789abcdef" for c in source_git)
+        or type(segment) is not int
+        or not 1 <= segment <= 3
+    ):
+        raise ValueError("Pinned source and one fixed three-epoch segment required")
+    binding.update(
+        production_plan="licensed_MRI_parent_S6_label_only_uniform16_full3887_fixed3_v1",
+        source_git=source_git,
+        source_module_sha256={n: sha(s) for n, s in files.items()},
+        source_label_role="released_S6_source",
+        source_label_target_sha256=TARGET,
+        actual_label_recovery={
+            "kernel_id": actual_recovery["kernel_id"],
+            "version": 1,
+            "source_sha256": RECOVERY_SOURCE,
+            "worker_sha256": contract.WORKER,
+            "receipt_canonical_JSON_sha256": sha(
+                json.dumps(receipt, sort_keys=True, separators=(",", ":"))
+            ),
+        },
+    )
+    worker = assignments(worker, {"_BINDING": binding})
+    if segment == 1:
+        if previous is not None:
+            raise ValueError("New label role begins from original parent only")
+    elif (
+        not isinstance(previous, dict)
+        or previous.get("status")
+        != "actual_S6_label_only_uniform16_full_parent_epoch_session_complete"
+        or previous.get("role") != "uniform"
+        or previous.get("segment") != segment - 1
+        or previous.get("completed") != (segment - 1) * 486
+        or previous.get("worker_sha256") != sha(worker)
+        or previous.get("binding") != binding
+    ):
+        raise ValueError("Exact previous same-label optimizer/RNG/source boundary required")
+    if previous is not None:
+        for name in ("checkpoint", "run"):
+            row = previous.get(name, {})
+            if (
+                type(row.get("bytes")) is not int
+                or not 0 < row["bytes"] <= 2 * 2**30
+                or not isinstance(row.get("sha256"), str)
+                or len(row["sha256"]) != 64
+            ):
+                raise ValueError("Whole-byte original resume input proof required")
+    source = assignments(
+        original,
+        {
+            "FILES": files,
+            "WORKER": base64.b64encode(worker.encode()).decode(),
+            "BINDING": binding,
+            "SEGMENT": segment,
+            "ROLE": "uniform",
+            "PREVIOUS": previous,
+        },
+    )
+    source = change_once(
+        source,
+        "'status':'actual_matched_IID16_full_parent_epoch_session_complete'",
+        "'status':'actual_S6_label_only_uniform16_full_parent_epoch_session_complete'",
+    )
+    # The original fit adds the actual source-label binding to checkpoint identity.
+    source = change_once(
+        source,
+        "state['binding']['total_steps']==1458;assert",
+        "state['binding']['total_steps']==1458 and state['binding']['source_label_contrast']['role']=='released_S6_source' and state['binding']['source_label_contrast']['diagnostic_only'] is False and state['binding']['source_label_contrast']['target_file_sha256']==BINDING['source_label_target_sha256'];assert",
+    )
+    compile(source, "private_actual_recovery_gated_S6_uniform16_fixed3_epoch", "exec")
+    return source, {
+        "source_sha256": sha(source),
+        "worker_sha256": sha(worker),
+        "binding": binding,
+        "segment": segment,
+        "completed_target": 486 * segment,
+        "actual_label_recovery_kernel": actual_recovery["kernel_id"],
+        "maximum_GPU_seconds": 6000,
+        "competition_entries": 0,
+        "new_dataset_or_source_acquisition": False,
+        "full_production_fit": True,
+    }

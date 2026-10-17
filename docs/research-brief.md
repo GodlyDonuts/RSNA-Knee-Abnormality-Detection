@@ -1,6 +1,6 @@
 # Research brief
 
-**October17,10:55UTC.** Target0.97; actual best0.950. See
+**October17,12:25UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
 ## What we are testing now
@@ -9,7 +9,8 @@ First reproduce the exact stronger public reference before changing it. The
 public0.958 ensemble completed our unchanged8cell interactive two-T4 run:
 CoAtNet384/224, four-foldR6v1 with physical/extent/state information and fluid/
 state stackers, then a three-checkpoint2.5D reader. FinalCSV checks passed;
-no committed offline version or hidden score exists. These are jointly different
+committed v2 is Starting/unknown, with no acceptance or hidden score. Kaggle
+changed its Docker; exact source and actual runtime acceptance remain separate. These are jointly different
 mechanisms, not evidence that resolution or a particular fold alone causes a gain.
 [Actual qualification](../initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
 
@@ -19,13 +20,16 @@ only0.51446. Neither is ground truth. The fixed next contrast uses the original
 uniformIID16 full-encoder engine and all original inputs/random draws/views/
 parent supervision/optimizer/1458updates, replacing only source labels. It
 matches the existing uniform control, avoiding a slower second whole94 arm.
-Real full-array acceptance/private Dataset/full-byte proof and32synthetic CPU
-engine checks passed; actual treatment GPU recovery/fitting remain absent.
+Real full-array/private Dataset proofs and32synthetic CPU engine checks passed.
+CPU946080 also compiled the distinct GPU recovery and verified32real original
+feature/target arrays;7compiler/5contract groups pass. Sole finite owner46281
+waits capacity; actual treatment GPU recovery/fitting remain absent.
 [Protocol and original evidence](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
 
 Third finish evaluating the owned learned checkpoints. Whole94 completed all
-3epochs/1458updates and privately verified all epochs. FinalE3 serving/entry
-remain owned. Uniform16 final is running, influence16 final remains owned.
+3epochs/1458updates and privately verified all epochs. The original E3qualification push was rejected on capacity and its ambiguous
+identity quarantined; old serving/entry controllers stopped. Uniform16 completed
+all1458updates/all3private epochs verified; influence16final139220032v1 is RUNNING.
 Their actual scores may be positive or negative; completion is not improvement.
 
 ## Why the score gap is not just compute
@@ -74,10 +78,32 @@ are biased, proposals become stale and teacher errors can amplify;94/16 is not
 an observed speedup. The matched source-label arm keeps this uniform recipe and
 changes only target values. No tiny engineering model is competition-eligible.
 
+
+The fixed3 label-production compiler is now also CPU-admitted on the actual
+original uniform source and all3887arrays (**CPU946417**); all13numerical modules
+remain exact. It cannot build an executable epoch without the actual label-GPU
+recovery receipt. No production fit or score exists. Read-only referencev2
+observer**47637** is active; it cannot push, run or submit another model.
+[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
+
+## New fitting-only objective check
+
+CPU946541 tested the teacher-anchor blocker hypothesis on all3887fitting rows,
+both views and12targets. The exact original loss derivative matched the convex
+pseudo-target equation with0.0observed gradient error on32actual rows. At the
+predeclared0.9/0.1strong-source thresholds, alpha0.25already reorders86.83–100%
+of plain-view teacher-opposed pairs; all595Fracture pairs reorder. This weakens
+the strong claim that the75%anchor necessarily prevents corrections. It is a
+fitting/source-agreement screen with parent exposure, not clinical error,
+independent held-out AUC or achieved student rankings. Keep the fixed contrast
+unchanged; do not choose an anchor weight from this screen.
+[All24target-view results and limits](../initiative/audits/fitting-teacher-anchor-tension-20261017-v1/README.md).
+
 ## Promotion and next decisions
 
 Obtain the exact reference's committed offline acceptance and actual hidden
-result. Inspect original finalE3/CPU32/scout outcomes without duplicating them.
+result. Inspect the original referencev2/CPU32/influence outcomes without duplicating them.
+The queued zero-output GPU32scout is canceled; its CPU owners retired.
 Admit a distinct real-MRI GPU source-label recovery under fresh complete VM and
 storage funding, then fit only after acceptance. Preserve fixed-final evidence,
 all12targets, original checkpoint identities and negative outcomes. A useful

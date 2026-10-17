@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Verified October17,2026,10:55UTC. Target0.97; actual best0.950.** Read
+**Verified October17,2026,12:25UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
@@ -15,27 +15,40 @@ engineering checks with accuracy.
 - Context/regional/full-field variants each scored0.948. Whole94E1 scored0.949.
   No public improvement over its unchanged parent is established.
 - Whole94 **finished all1458updates**; all3epochs privately fully verified.
-  FinalE3 serving/entry are owned but unscored. Uniform16E3 is RUNNING;
-  influence16final remains owned. Never duplicate those originals.
+  Old finalE3qualification was rejected on capacity; the ambiguous identity is
+  quarantined and old serving/entry controllers stopped. Uniform16E3 completed
+  all1458updates/all3private epochs; influence16final139220032v1 is RUNNING.
 - Expanded ownN3 completed16epochs/5184updates/allprivate verified; weak-final
   macro0.91743158 versus0.92092535 has no established gain. It changes both
   data and updates, so is not a data-only causal comparison.
 - Public0.958 reference ran all8unchanged cells in one separate interactive
   twoT4session and passed final3×13CSV/roster/finite/hash checks. VM stopped.
-  Our saved139199164v1 is still source-only, with no committed offline version
-  or competition entry. Do not report0.958 as our measured score.
+  Our139199164v2 is now committed once/Starting/APIunknown, but unqualified and
+  unscored. Kaggle changed Docker; never claim original-runtime equality. Do not
+  report0.958 as our measured score or submit source-onlyv1.
 - Its **R6 input must remain Datasetv1**: v2 replaced it with R7 weights under
   identical filenames. Original scored code/input/runtime bindings matter.
 - S6v5 source supervision differs from ours across all3887fit studies;
   Fracture target rankcorrelation0.51446. A label-only uniformIID16 contrast has
   actual full-array/private-Dataset/storage admission and32CPU engineering
-  checks, but no GPU recovery/fit/score. Neither label source is clinical truth.
+  checks. Actual CPU946080 additionally verified32real original arrays and
+  compiled the GPU recovery;7compiler/5contract groups pass. Single finite
+  owner46281 waits capacity, no GPU recovery/fit/score. Neither label source is
+  clinical truth.
 - Fresh10:54UTC allowance5used/0available. Existing GPU/entry/publication owners
   retain ownership. Old unstarted equal-rank27596 and R7owner31309 are retired
   without a push/entry; their source/assets remain.
 - Released encoders saw our internal cohort/Gold58. Head-only CV on their
   features is not independent whole-model OOF. We have not read protected
   clinical values to tune these experiments.
+
+
+The fixed3 label-production compiler is now also CPU-admitted on the actual
+original uniform source and all3887arrays (**CPU946417**); all13numerical modules
+remain exact. It cannot build an executable epoch without the actual label-GPU
+recovery receipt. No production fit or score exists. Read-only referencev2
+observer**47637** is active; it cannot push, run or submit another model.
+[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 
 ## Exact recipes and assets
 
@@ -80,12 +93,20 @@ Conditional intervals are not unconditional certainty. Expensive LLM labels are
 not automatically correct; silence/uncertainty remain masked. Preserve original
 reports/judgments/accepted corrections. Do not optimize against protected labels.
 
+A new [full3887fitting-only anchor diagnostic](../initiative/audits/fitting-teacher-anchor-tension-20261017-v1/README.md)
+weakens the strong teacher-blocker story: alpha0.25already reverses most
+teacher-opposed strong-source target pairs, including all595plainFracture pairs.
+It is not clinical truth or independent validation, and it changed no live recipe.
+Do not cite low source-label rankcorrelation as proof of major clinical errors.
+
 ## Next useful work and falsification
 
-1. Obtain one exact committed offline0.958version under fresh capacity/funding,
-   then its actual hidden result under live allowance. No diagnostic model or
+1. Qualify the already committed exact-source0.958v2, explicitly accepting its
+   changed container only after actual full-stage/input/output checks, then
+   obtain its hidden result under fresh allowance. Do not push it again. No diagnostic model or
    public3rowCSV submission. Do not change the reference before reproduction.
-2. Finish observing owned finalE3/scout/CPU32/sampled outcomes. Negative results
+2. Finish observing owned referencev2/CPU32/influence outcomes. GPU32scout is
+   canceled; finalE3rejected qualification identity is permanently quarantined. Negative results
    should change priorities, not trigger a duplicate run.
 3. Admit actual real-MRI source-label GPU recovery and fit the fixed treatment
    only after full state/prediction recovery and all-future funding pass. It
@@ -105,3 +126,8 @@ Full previous narrative/source/evidence remains in
 [research archive](research-watch/README.md), [research index](research-watch/INDEX.md)
 and [original initiative receipts](../initiative/audits/). Those dated job states
 are historical; the current execution handoff owns live next actions.
+
+Latest [original execution receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md)
+include uniform final preservation, the one committed v2, runtime difference,
+source-label CPU recovery admission, finite ownership and the reconciled capacity
+failure. No new model score exists. Do not resurrect stale owners from earlier text.

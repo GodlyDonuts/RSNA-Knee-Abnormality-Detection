@@ -54,3 +54,37 @@ and appropriately exposed held-out evidence. Preserve a negative result.
 
 The [data/publication/funding receipts](../../../audits/s6-source-label-admission-20261017-v1/README.md)
 contain exact pins. No private labels, case membership or pixel arrays are in Git.
+
+## Actual real-payload recovery preparation, 12:02UTC
+
+`gpu_recovery.py.txt` compilerSHA404d8cc7… uses the unchanged accepted private
+recoverya01dd964… and exact overlayf6414308…/sampledadapter5621ee32…. It preserves
+all ten original numerical modules; both source roles use the original uniform
+recipe. Control complete state/predictions must equal the actual oldT4result,
+not merely a second new run. Both roles require complete full/stop1/resume learned/
+AdamW/LR/cursor/allrankRNG/scaler/history/epoch and16×12full94prediction equality.
+
+Actual CPU946080 compiled source0a6f6c567901…/worker7b7a1bf3e5a8… and verified the
+real32case array facade against original input bridge939362. No MRI/GPU ran.
+`check_gpu_recovery.py.txt` has7adverse compiler/data checks;
+`check_recovery_contract.py.txt` has5adverse contract groups, including missing
+old obligations, insufficient quota, missing T4/control proof and changed proposals.
+`recovery_contract.py.txt` has no cloud mutation method or private payload.
+
+Single finite owner46281 can push one diagnostic under fresh funding/capacity
+and observe it. Its first actual check passed110405.97/66000VMseconds but both
+batch lanes were occupied; no push/VMreservation existed. It cannot launch a
+full fit or competition entry. A separate actual GPU pass and immutable production
+wrapper are still required. [Original actual receipts](../../../audits/lockin-097-execution-20261017-v2/README.md).
+
+## Full-population template, not executed production
+
+`production.py.txt` is now actually CPU-admitted by946417 on the original
+private uniform production source and all3887source arrays. All13numerical
+modules remain byte exact; the two accepted label helpers are the only additions.
+The builder requires the actual new GPU recovery's COMPLETE/source/version and
+complete receipt. Original MRI parent/order/draws/optimizer/1458step schedule and
+continuous per-epoch state stay fixed. Six adverse compiler groups pass.
+`epoch_verify.py.txt` adds strict source-label/teacher/mask/recovery bindings and
+retains all original numerical state checks; three synthetic adverse groups pass.
+No executable epoch, full fit, GPU acceptance or accuracy result is claimed.

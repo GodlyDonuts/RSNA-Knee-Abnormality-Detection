@@ -5,15 +5,15 @@ Received October 17, 2026. [Original](original.md) is preserved verbatim with
 are not repository evidence links. Proposed gains and wall times are planning
 assumptions; they are not measured results or a promise of first place.
 
-**Latest actual execution10:15UTC:** original S6 entry57300990 scored0.950.
-New S6v5training code and all3887fit-only source targets were compared;
-Fracture ordering differs markedly. CPU-only32study139205901v2 is RUNNING,
-source/data accepted preparation is not an accuracy gain. Expanded N3 is
-complete/all16privately verified; whole94E3/uniformE3 bothRUNNING. The separate
-[exact public0.956 R7 reference](../../audits/r7-public-reference-admission-20261017-v1/README.md)
-now has original sources, all8 private byte-verified weight/sidecars and a
-canonical prepared Notebook, no GPU/entry. The dated decision/triage below is
-historical progression; current guides and original receipts govern execution.
+**Latest actual execution, October17 12:02UTC:** S6entry57300990 remains0.950.
+Whole94 and uniform16 each finished all1458updates/all3private epochs verified;
+influence16final139220032v1 is RUNNING. Exact public0.958copy139199164v2 is
+committed once/Starting, unqualified/unscored; its Docker changed duringSave.
+A real-payload source-label GPU recovery is compiled/CPU-admitted, and sole finite
+owner46281 waits batch capacity after all-future funding passed. No new accuracy
+result exists. [Original current receipts](../../audits/lockin-097-execution-20261017-v2/README.md).
+All decisions/triage below are dated historical progression; current guides and
+actual original receipts govern execution, not stale pending states below.
 
 ## Decision
 

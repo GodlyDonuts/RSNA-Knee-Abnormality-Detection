@@ -1,0 +1,29 @@
+"""One finite CPU observer: one admitted GPU recovery, never production or entry."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+
+L=Path(__file__).resolve().parent
+with (L/'finish.intent.json').open('x') as f:
+ json.dump({'PID':os.getpid(),'started_at_unix':time.time(),'maximum_wall_seconds':14400,
+  'maximum_GPU_pushes':1,'maximum_GPU_VM_seconds':1800,'full_fits_or_entries':0,
+  'coordinator_sha256':hashlib.sha256((L/'coordinate.py').read_bytes()).hexdigest(),
+  'source_sha256':'0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de',
+  'future_full_fixed3_VM_funding_checked_at_push':True,'automatic_retry_uncertain_mutation':False},f,indent=2)
+start=time.monotonic();observing=(L/'actual-pushed.json').exists();calls=0
+while time.monotonic()-start<14400:
+ phase='status' if observing else 'admit_push'
+ p=subprocess.run([sys.executable,str(L/'coordinate.py'),phase],cwd=L.parents[1],capture_output=True,text=True,timeout=450)
+ calls+=1
+ if p.returncode:
+  out={'status':'stopped_for_exact_original_reconciliation','PID':os.getpid(),'phase':phase,
+       'elapsed_seconds':time.monotonic()-start,'returncode':p.returncode,'stderr':p.stderr[-2200:],
+       'GPU_retry_or_entry':False};(L/'finish.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True);raise SystemExit(1)
+ out=json.loads(p.stdout);s=out.get('status')
+ if s=='one_exact_S6_label_only_recovery_pushed' or s in ('RUNNING','COMPLETE','ERROR','CANCELLED','CANCEL_ACKNOWLEDGED') or out.get('kernel_id'):observing=True
+ progress={'PID':os.getpid(),'phase':phase,'elapsed_seconds':time.monotonic()-start,'calls':calls,'actual':out}
+ (L/'finish.progress.json').write_text(json.dumps(progress,indent=2)+'\n');print(json.dumps(progress),flush=True)
+ if out.get('accepted') or s in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+  (L/'finish.result.json').write_text(json.dumps(progress,indent=2)+'\n');break
+ time.sleep(180)
+else:
+ (L/'finish.result.json').write_text(json.dumps({'status':'finite_observation_expired_preserve_original_GPU','PID':os.getpid(),'observing_existing_GPU':observing,'GPU_retry_or_entry':False},indent=2)+'\n')

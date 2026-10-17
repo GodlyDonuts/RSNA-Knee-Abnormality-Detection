@@ -1,0 +1,87 @@
+"""Adverse compiler gates only; never an actual GPU acceptance receipt."""
+
+import hashlib
+import json
+import runpy
+import tempfile
+from pathlib import Path
+
+P = Path(__file__).resolve().parent
+c = runpy.run_path(str(P / "production.py.txt"))
+checks = []
+for actual in (
+    None,
+    {},
+    {"status": "RUNNING", "kernel_id": 1, "version": 1, "source_sha256": c["RECOVERY_SOURCE"]},
+):
+    try:
+        c["build"]("private payload unavailable", "", "", actual, "a" * 40, 1)
+    except ValueError as e:
+        assert "recovery" in str(e)
+    else:
+        raise AssertionError("Missing GPU prerequisite accepted")
+checks.append("no_private_parse_or_executable_production_without_actual_GPU_recovery")
+for s in ("X=1\nX=2\n", "X=f()\n", "Y=3\n"):
+    try:
+        c["literals"](s, ["X"])
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ambiguous or nonliteral original admitted")
+checks.append("duplicate_nonliteral_incomplete_private_closure_refused")
+s = 'import os\nX={"old":1}\nprint(X)\n'
+out = c["assignments"](s, {"X": {"new": 2}})
+assert c["literals"](out, ["X"]) == {"X": {"new": 2}}
+assert out.startswith("import os\n") and out.endswith("print(X)\n")
+checks.append("AST_literal_update_preserves_other_code")
+for s in ("X=1\nX=2\n", "Y=3\n"):
+    try:
+        c["assignments"](s, {"X": 2})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ambiguous source assignment accepted")
+checks.append("missing_or_ambiguous_assignment_refused")
+try:
+    c["prepare"]("other-source", "", "")
+except ValueError:
+    pass
+else:
+    raise AssertionError("Unaccepted actual control admitted")
+checks.append("unknown_private_control_or_label_helpers_refused")
+# Even a plausible terminal header cannot bypass a changed acceptance contract.
+globals_ = c["build"].__globals__
+original_path = globals_["Path"]
+with tempfile.TemporaryDirectory() as tmp:
+    (Path(tmp) / "recovery_contract.py.txt").write_text("changed contract")
+    globals_["Path"] = lambda _: Path(tmp) / "production.py.txt"
+    try:
+        try:
+            c["build"](
+                "private payload unavailable",
+                "",
+                "",
+                {
+                    "status": "COMPLETE",
+                    "source_sha256": c["RECOVERY_SOURCE"],
+                    "version": 1,
+                    "kernel_id": 1,
+                },
+                "a" * 40,
+                1,
+            )
+        except ValueError as e:
+            assert "immutable recovery contract" in str(e)
+        else:
+            raise AssertionError("Changed recovery contract admitted")
+    finally:
+        globals_["Path"] = original_path
+checks.append("modified_actual_recovery_contract_refused_before_private_compile")
+result = {
+    "status": "synthetic_production_compiler_adverse_checks_passed",
+    "compiler_sha256": hashlib.sha256((P / "production.py.txt").read_bytes()).hexdigest(),
+    "count": len(checks),
+    "checks": checks,
+    "actual_GPU_or_fit_or_accuracy": False,
+}
+print(json.dumps(result))

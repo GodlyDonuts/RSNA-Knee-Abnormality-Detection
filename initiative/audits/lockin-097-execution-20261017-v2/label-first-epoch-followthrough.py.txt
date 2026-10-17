@@ -1,0 +1,26 @@
+"""Finite follow-through: wait actual recovery, then one first fixed3 epoch."""
+from pathlib import Path
+import hashlib,json,os,subprocess,sys,time
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];recovery=ROOT/'artifacts/s6-source-label-recovery-20261017-v1';start=time.monotonic()
+with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'started_at_unix':time.time(),'maximum_wall_seconds':25200,'wait_for_actual_recovery_and_published_source_pin':True,'maximum_full_epoch_pushes':1,'maximum_VM_seconds':6000,'scientific_recipe_epochs':3,'scientific_recipe_updates':1458,'first_epoch_only_target':486,'new_Datasets_or_competition_entries':0,'publisher_or_next_epoch_authority':False,'coordinator_sha256':hashlib.sha256((L/'coordinate.py').read_bytes()).hexdigest(),'automatic_retry_uncertain_mutation':False},f,indent=2)
+def record(out,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**out};(L/('finish.result.json' if terminal else 'finish.progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+while not (recovery/'actual-accepted.json').exists() or not (L/'source-pin.json').exists():
+ if (recovery/'finish.result.json').exists() and not (recovery/'actual-accepted.json').exists():record({'status':'no_full_fit_actual_recovery_unaccepted_or_expired','GPU_or_entry':False},True);raise SystemExit(0)
+ if time.monotonic()-start>25200:record({'status':'finite_wait_expired_no_full_fit','GPU_or_entry':False},True);raise SystemExit(0)
+ record({'status':'waiting_actual_label_GPU_recovery_and_published_source_before_any_full_fit','GPU_or_entry':False});time.sleep(90)
+pin=json.loads((L/'source-pin.json').read_text());assert len(pin['source_git'])==40 and pin['published_main'] is True
+phase='prepare'
+while time.monotonic()-start<25200:
+ if phase=='prepare':
+  with (L/'prepare.intent.json').open('x') as f:json.dump({'source_git':pin['source_git'],'requires_actual_recovery':True},f)
+ p=subprocess.run([sys.executable,str(L/'coordinate.py'),phase],cwd=ROOT,capture_output=True,text=True,timeout=850)
+ if p.returncode:
+  record({'status':'stopped_preserve_exact_first_epoch_controls_or_GPU','phase':phase,'returncode':p.returncode,'stderr':p.stderr[-2200:],'GPU_retry_or_entry':False},True);raise SystemExit(1)
+ out=json.loads(p.stdout);record({'phase':phase,'actual':out})
+ if out['status']=='actual_GPU_recovery_gated_first_label_epoch_prepared':phase='push';continue
+ if out['status']=='one_actual_recovery_gated_S6_label_first_epoch_pushed':phase='status'
+ if out['status'] in ('COMPLETE','ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+  record({'phase':phase,'actual':out,'require_private_complete_epoch_verification_publication_before_next_epoch':True,'no_further_GPU_or_entry':True},True);break
+ time.sleep(180)
+else:record({'status':'finite_observer_expired_preserve_original_first_epoch_if_pushed','GPU_retry_or_entry':False},True)

@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Verified October17,2026,10:55UTC. Target:0.97; best actual:0.950.**
+**Verified October17,2026,12:25UTC. Target:0.97; best actual:0.950.**
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.
@@ -19,15 +19,18 @@ The stronger **public0.958 reference completed our exact8cell interactive two-T4
 qualification**: both CoAtNet resolutions, originalR6fourfold stack and the
 three-checkpoint2.5Dreader. Its final3×13CSV passed exact roster/finite-value/hash
 checks. The GPU VM is explicitly stopped. **This is not our0.958 hidden score**:
-the saved139199164v1 is source-only; a distinct committed offline version is
-still required. OriginalR6Datasetv1 must stay pinned because v2 contains different
+one**139199164v2 Save&RunAll** is now committed/Starting, but has no actual
+offline acceptance or score. Kaggle changed its Docker; that difference is
+recorded and must pass the committed run. Never submit source-onlyv1. OriginalR6Datasetv1 must stay pinned because v2 contains different
 weights under identical names.
 [Actual qualification](initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
 
 Our whole94 full-parent adaptation **completed all3epochs/1458updates** and all
 three immutable checkpoints are privately full-download/hash verified. FinalE3
-serving/entry remain owned and unscored; E1 scored0.949. Uniform16final is running,
-with influence16final still owned. Expanded ownN3 finished16epochs but did not
+qualification push was rejected on capacity and its ambiguous identity is
+quarantined; old serving/entry controllers stopped, learned weights are intact.
+E1 scored0.949. Uniform16final also completed1458/all3epochs private verified;
+influence16final139220032v1 is actuallyRUNNING. Expanded ownN3 finished16epochs but did not
 establish a weak-held-out gain.
 [Final original terminal/preservation](initiative/audits/whole94-fixed3-final-20261017-v1/README.md).
 
@@ -35,9 +38,21 @@ A fitting-only audit found materially different S6 supervision, especially
 Fracture (source-label rankcorrelation0.51446). A new **label-only uniformIID16
 contrast** now has real3887-array admission, a fully verified private input
 Dataset, checkpoint storage funding and32meaningful CPU engineering checks.
-GPU recovery and treatment fitting have not run; this is a testable mechanism,
+CPU946080 additionally compiled the actual private GPU recovery and verified32
+original feature/label/mask/teacher arrays;7compiler/5contract groups pass.
+Single finite owner46281 waits actual batch capacity after all-future funding
+passed. GPU recovery and treatment fitting have not run; this is a testable mechanism,
 not an accuracy claim. Original accepted masks/labels and healthy science remain.
-[Matched protocol](initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
+[Matched protocol](initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md),
+[original current execution receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md).
+
+
+The fixed3 label-production compiler is now also CPU-admitted on the actual
+original uniform source and all3887arrays (**CPU946417**); all13numerical modules
+remain exact. It cannot build an executable epoch without the actual label-GPU
+recovery receipt. No production fit or score exists. Read-only referencev2
+observer**47637** is active; it cannot push, run or submit another model.
+[Original updated receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md).
 
 Fresh10:54UTC Kaggle allowance was5used/0available. We never upload a public
 three-row example as a competition result. Current guides distinguish completed
@@ -57,7 +72,7 @@ Implement directly; Devin is unavailable.
 
 The counts below describe the original accepted release, **not the active fitting
 population or latest supervision**. The original N3 reference uses 2,247 fitting studies and dense
-public soft labels; the live expanded run fits 2,592. Correspondence-filtered expansion capacities and all current
+public soft labels; the completed expanded run fit 2,592. Correspondence-filtered expansion capacities and all current
 score claims are in [current state](docs/current-state.md).
 
 The published [report-supervision release](docs/data-readiness-report.md) passed

@@ -1,0 +1,180 @@
+"""Pure admission and actual-result checks for the fixed source-label GPU test.
+
+No credential, private clinical payload, API call or mutation lives here.
+The original T4 control must replay exactly before a label-only fit is accepted.
+"""
+
+from __future__ import annotations
+
+import math
+
+SOURCE = "0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de"
+WORKER = "7b7a1bf3e5a8860a68067d023b2c63b39fc09169b5c626ca769f13b6e238037c"
+COMPILER = "404d8cc75cdbe8f19a5bd12292b7423b9dc6f1cc60e13e308f06e19691bb1afc"
+TARGET = "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9"
+CONTROL_PREDICTION = "dac71137a4fd02403ccf3bc6a46268252d1e75087f5c27e54c3a2686eacc2618"
+SLUG = "godlydonuts/rsna-s6-label-recovery-0a6f6c567901"
+KEY = "licensed-importance-full-fit:S6-label-recovery:" + SOURCE
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+DATASETS = [
+    "nartaa/rsna-knee-publication-swa-weights-20261007",
+    "godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f",
+]
+NOTEBOOKS = [
+    "godlydonuts/rsna-released-context-probe-d077e354611d",
+    "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+    "godlydonuts/rsna-importance-recovery-a01dd9643355",
+]
+
+
+def request(source, source_sha):
+    if source_sha != SOURCE:
+        raise ValueError("Exactly CPU-admitted private source required")
+    return {
+        "slug": SLUG,
+        "newTitle": "RSNA private fixed source-label recovery",
+        "text": source,
+        "language": "python",
+        "kernelType": "script",
+        "isPrivate": True,
+        "enableGpu": True,
+        "machineShape": "NvidiaTeslaT4",
+        "enableInternet": False,
+        "datasetDataSources": DATASETS,
+        "kernelDataSources": NOTEBOOKS,
+        "competitionDataSources": [],
+        "sessionTimeoutSeconds": 1800,
+        "dockerImage": DOCKER,
+        "dockerImagePinningType": "original",
+    }
+
+
+def budget(
+    quota,
+    *,
+    original_main,
+    original_sampling,
+    reference_unfinished,
+    blend_unfinished,
+    scout_unfinished,
+):
+    def seconds(v):
+        if not isinstance(v, str) or not v.endswith("s"):
+            raise ValueError("Fresh authoritative seconds required")
+        n = float(v[:-1])
+        if not math.isfinite(n) or n < 0:
+            raise ValueError("Finite nonnegative quota required")
+        return n
+
+    if any(type(n) is not int or n < 0 for n in (original_main, original_sampling)):
+        raise ValueError("All unfinished original liabilities required")
+    if any(type(b) is not bool for b in (reference_unfinished, blend_unfinished, scout_unfinished)):
+        raise ValueError("Explicit actual sibling state required")
+    total, minimum, used, reserved = [
+        seconds(quota[k])
+        for k in ("totalTimeAllowed", "minimumTimeAllowed", "timeUsed", "timeReserved")
+    ]
+    if not total >= minimum > 0:
+        raise ValueError("Actual quota allowance required")
+    allowed = total if quota.get("isPayToScaleEnabled") is True else minimum
+    # No speculative reserved-time credit. Retain all actual unfinished caps.
+    available = allowed - used - reserved
+    required = original_main + original_sampling + 3600 + 24000
+    required += 32400 * (reference_unfinished + blend_unfinished) + 1800 * scout_unfinished
+    return {
+        "allowed": available >= required,
+        "available_VM_seconds": available,
+        "required_all_future_VM_seconds": required,
+        "new_label_campaign_seconds": 24000,
+        "new_recovery_seconds": 1800,
+        "future_fixed3_fit_seconds": 18000,
+        "future_label_serving_seconds": 3600,
+        "new_margin_seconds": 600,
+        "old_serving_reserve_seconds": 3600,
+        "reference_future_seconds": 32400 if reference_unfinished else 0,
+        "original_main_seconds": original_main,
+        "original_sampling_seconds": original_sampling,
+        "old_blend_seconds": 32400 if blend_unfinished else 0,
+        "old_scout_seconds": 1800 if scout_unfinished else 0,
+        "fresh_quota": quota,
+        "no_account_or_billing_change": True,
+    }
+
+
+def accept(receipt, binding):
+    if not (
+        receipt.get("status") == "actual_S6_label_only_uniform16_twoT4_MRI_recovery_accepted"
+        and receipt.get("worker_source_sha256") == WORKER
+        and receipt.get("released_S6_target_sha256") == TARGET
+        and receipt.get("source_module_sha256")
+        == {
+            **binding["original_module_sha256"],
+            "s6_labels/source_overlay.py.txt": binding["overlay_sha256"],
+            "s6_labels/sampled_fit.py.txt": binding["sampled_adapter_sha256"],
+        }
+        and receipt.get("original_recovery_source_sha256")
+        == binding["unchanged_original_recovery_sha256"]
+        and receipt.get("private_target_sha256") == binding["original_target_sha256"]
+        and receipt.get("fit_studies") == receipt.get("disjoint_engineering_studies") == 16
+        and receipt.get("epochs") == 2
+        and receipt.get("updates_per_role") == 4
+        and receipt.get("sampled_windows") == 16
+        and receipt.get("full_inference_windows") == 94
+        and receipt.get("world_size") == 2
+        and receipt.get("same_initial_complete_model_and_allrank_RNG_between_roles_and_original")
+        is True
+        and receipt.get(
+            "original_control_complete_state_and_predictions_exact_except_label_binding"
+        )
+        is True
+        and receipt.get("distinct_final_learned_tensors", 0) > 0
+        and 0 < receipt.get("all_retained_bytes", 0) < 12 * 2**30
+        and 0 < receipt.get("elapsed_seconds", 0) < 1800
+        and receipt.get("clinical_or_competition_accuracy_claim") is False
+        and receipt.get("full_production_fit_dispatched") is False
+        and receipt.get("competition_entry") is False
+    ):
+        raise ValueError("Complete actual T4/control/source/labels/recovery proof required")
+    roles = receipt.get("roles", {})
+    if set(roles) != {"original_source", "released_S6_source"}:
+        raise ValueError("Both actual label roles required")
+    proposals = []
+    for name, role in roles.items():
+        if not (
+            role.get(
+                "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal"
+            )
+            is True
+            and role.get("all16_full94_two_view_prediction_bytes_equal") is True
+            and role.get("finite_updates") == 4
+            and role.get("label_binding", {}).get("role") == name
+            and role.get("label_binding", {}).get("diagnostic_only") is True
+            and len(role.get("devices", [])) == 2
+            and all(
+                d.get("GPU") == "Tesla T4"
+                and d.get("finite_updates") == 4
+                and d.get("trainable_parameters") == 73136096
+                and d.get("all_BN_buffers_equal_parent") is True
+                for d in role["devices"]
+            )
+        ):
+            raise ValueError("Complete learned state and predictions on both T4s required")
+        proposals.append(role.get("proposal_SHA"))
+    if not (
+        proposals[0] == proposals[1]
+        and isinstance(proposals[0], str)
+        and len(proposals[0]) == 64
+        and roles["original_source"].get("prediction_SHA") == CONTROL_PREDICTION
+        and roles["original_source"].get(
+            "actual_original_accepted_control_complete_state_and_predictions_exact_except_label_binding"
+        )
+        is True
+        and roles["original_source"]["label_binding"]["new_label_array_sha256"]
+        != roles["released_S6_source"]["label_binding"]["new_label_array_sha256"]
+    ):
+        raise ValueError("Actual old control and only changed labels required")
+    return {
+        "status": "actual_fixed_label_only_GPU_recovery_accepted",
+        "production_admitted": False,
+        "competition_entry": False,
+    }
