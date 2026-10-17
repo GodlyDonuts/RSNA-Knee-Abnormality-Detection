@@ -144,6 +144,13 @@ via CPU950770, within the same cumulative8MiB source allowance; never repeat.
 
 ## New measured input finding and next mechanism, October17 22:29UTC
 
+Sourcea8ea0d56 and13distinct small objects are now privately fully
+re-downloaded/size/SHA verified at HF90ed1ec92d2c345de27bc0fdd6d0bacf363397e3
+viaCPU951373. This preserves the prototype/aggregate findings/epoch2 proofs,
+with exact public-Git guide identities bound rather than copied again.
+[Actual private preservation](../initiative/audits/hf-spatial-paths-and-epoch2-20261017-v1/verified.json).
+Never repeat it; no new trained-model or accuracy acceptance is implied.
+
 Actual CPU951202 reproduced the full2247-fitting-study source proof: within the
 currently selected11639 series,16-slice selection retains185929/386846 original
 slices (48.06%). All2247 studies are used. Dense adjacent triplets would produce
