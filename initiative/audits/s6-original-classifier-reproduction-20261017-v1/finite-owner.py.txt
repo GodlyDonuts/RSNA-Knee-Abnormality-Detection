@@ -1,0 +1,33 @@
+"""Finite owner of two explicitly different runtime roles; no competition entry."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;P=L/'run_s6_reproduction_phase.py';frozen=hashlib.sha256(P.read_bytes()).hexdigest();start=time.monotonic();maximum=12*3600
+with (L/'original-s6-finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'phase_coordinator_sha256':frozen,'maximum_seconds':maximum,'maximum_GPU_public_runs':2,'qualification_session_seconds':1800,'full_offline_session_seconds':32400,'original_source_sha256':'6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe','existing_main_and_sampling_obligations_preserved':True,'maximum_competition_entries':0,'automatic_mutation_retry':False},f,indent=2)
+def progress(phase,**extra):(L/'original-s6-finish.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds):
+ until=time.monotonic()+seconds
+ while time.monotonic()<until:assert time.monotonic()-start<maximum;time.sleep(min(30,until-time.monotonic()))
+def call(phase,role):
+ assert hashlib.sha256(P.read_bytes()).hexdigest()==frozen;progress('phase_'+phase,role=role);x=subprocess.run([sys.executable,str(P),phase,role],capture_output=True,text=True,timeout=700)
+ with (L/('original-s6-child-'+str(time.monotonic_ns())+'.json')).open('x') as f:json.dump({'phase':phase,'role':role,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original S6 phase stopped; reconcile authoritative state, never retry uncertainty';return json.loads(x.stdout)
+try:
+ actuals=[]
+ for role in ('qualification','competition'):
+  # Prepared source exists; neither role has a mutation intent at owner dispatch.
+  while True:
+   value=call('push',role)
+   if value['status']=='one_original_S6_'+role+'_notebook_pushed':break
+   assert value['status'] in ('waiting_original_S6_GPU_capacity_or_VM_budget_without_mutation','waiting_canonical_claim_without_mutation') and value['mutation_intent_created'] is False and value['GPU_reserved'] is False
+   progress('waiting_actual_capacity_and_all_original_future_funding_without_mutation',role=role,actual=value);wait(60)
+  (L/('original-s6-'+role+'-pushed.json')).write_text(json.dumps(value,indent=2)+'\n');progress('one_exact_original_S6_role_pushed',role=role,actual=value);wait(45)
+  while True:
+   actual=call('status',role)
+   if actual['status']=='waiting_canonical_claim_without_mutation':progress('readonly_claim_contention',role=role);wait(45);continue
+   assert actual['status'] not in ('ERROR','CANCELLED'),'Original S6 actual GPU run failed; no new version or retry';progress('observed_same_original_S6_role',role=role,actual=actual)
+   if actual['status']=='COMPLETE':
+    assert actual['accepted']['status']=='actual_original_S6_'+role+'_two_T4_public_MRI_and_CSV_accepted';actuals.append(actual);(L/('original-s6-'+role+'-accepted.json')).write_text(json.dumps(actual,indent=2)+'\n');break
+   wait(60)
+ result={'status':'original_S6_unchanged_source_two_T4_qualification_and_full_offline_public_acceptance_complete','actual':actuals,'competition_entries':0,'clinical_or_hidden_score_claim':False};(L/'original-s6-finish.result.json').write_text(json.dumps(result,indent=2)+'\n');progress('terminal_success');print(json.dumps(result),flush=True)
+except BaseException as e:
+ (L/'original-s6-finish.result.json').write_text(json.dumps({'status':'stopped_original_S6_reproduction_for_readonly_reconciliation','failure_type':type(e).__name__,'reason':str(e),'automatic_mutation_retry':False},indent=2)+'\n');raise

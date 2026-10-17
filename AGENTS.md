@@ -32,8 +32,9 @@ historical release/plan documents now link back to the current guides.
   is observation loss, not terminal evidence or authority to restart a GPU.
 - New S6 checkpoint/source/anatomy are privately verified, and the unchanged
   CPU stack loads strictly. Original CPU-only MRI gate139151928v1 completed;
-  its1586windows are privately fully verified. Original H100 classifier
-  probe942047 is pending; never duplicate either. Its
+  its1586windows and full CPU classifier reference942136 pass. Original H100
+  probe942047 is pending; finite S6 T4 owner16380 waits capacity/funding without
+  a GPU push. Never duplicate those originals. Its
   reported **0.950 is external**, not a project inference/score result. The
   unchanged notebook runs both S6 and CoAtNet; include both in runtime estimates.
 - Released encoders exposed internal studies. Head-only cross-validation on

@@ -1,0 +1,93 @@
+"""One canonical phase; identical author source, explicit qualification/full roles."""
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+L=Path(__file__).resolve().parent;phase=sys.argv[1];role=sys.argv[2] if len(sys.argv)>2 else 'qualification';assert phase in ('stage','push','status') and role in ('qualification','competition')
+program=r'''
+import ast,hashlib,importlib.util,io,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=S6_PACKAGE;phase=v['phase'];role=v['role'];assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'original-offline-v1';assert shutil.disk_usage('/tmp').free>610493834008
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('S6_original_canonical_workflow',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>=end:print(json.dumps({'status':'waiting_canonical_claim_without_mutation','mutation_intent_created':False,'GPU_reserved':False}),flush=True);raise SystemExit(0)
+  time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'S6_original_reproduction_serving','phase':phase,'role':role,'job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);sha='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe';key='licensed-parent-full-epoch-serving:S6-released-epoch16:'+sha
+  def save(record):db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  if phase=='stage':
+   assert not R.exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None;source=v['source'];assert hashlib.sha256(source.encode()).hexdigest()==sha;old=r.kernel('GetKernel','nartaa/rsna-knee-s6fall-solo',2);assert old['blob']['source']==source
+   expected_ds=['nartaa/rsna-knee-s6fall-weights','nartaa/rsna-knee-publication-swa-weights-20261007','heliosli/rsna-orthofoundation-fold0-epoch7-20261004'];assert sorted(old['metadata'].get('datasetDataSources',[]))==sorted(expected_ds)
+   inputs=json.loads((P/'CPU-MRI-v1/collected/verified.json').read_text());stack=json.loads((P/'source-tree-v1/CPU-stack-v4/terminal.json').read_text());assert inputs['original_actual_terminal_status']=='COMPLETE' and inputs['all_original_lossless_pixel_and_metadata_tensor_bytes_equal'] is True and stack['status']=='actual_original_S6_CPU_stack_and_strict_model_load_accepted'
+   R.mkdir(mode=0o700);(R/'source.private.py').write_text(source);(R/'source.private.py').chmod(0o600)
+   record={'state':'S6_original_reproduction_prepared','source_sha256':sha,'model_family':'author-trained S6 ConvNeXt-Small','author_epoch':16,'project_training_epoch':None,'original_notebook_id':138285808,'original_notebook_version':2,'model_sha256':stack['model_sha256'],'anatomy_sha256':stack['anatomy_sha256'],'CPU_input_proof_SHA':hashlib.sha256((P/'CPU-MRI-v1/collected/verified.json').read_bytes()).hexdigest(),'compatible_capacity_registration':'existing licensed-parent full-epoch serving family; explicit distinct S6 lineage','unchanged_capacity_helper_and_all_original_training_owners':True,'qualification_submission_eligible':False,'competition_entry_authorized_by_this_controller':False,'automatic_retry':False};w.new_json(R/'prepared.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit();out={'status':'original_S6_source_prepared_and_capacity_registered_without_GPU_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'metadata':record}
+  else:
+   source=(R/'source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==sha;record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);D=R/role
+   slug='godlydonuts/rsna-s6-original-'+('t4-check' if role=='qualification' else 'offline')+'-'+sha[:12]
+   seconds=1800 if role=='qualification' else 32400
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-s6fall-weights','nartaa/rsna-knee-publication-swa-weights-20261007','heliosli/rsna-orthofoundation-fold0-epoch7-20261004'],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[],'sessionTimeoutSeconds':seconds,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   if phase=='push':
+    assert not D.exists() and role not in record
+    if role=='competition':assert record['state']=='full_parent_epoch_qualification_accepted' and record['model_family']=='author-trained S6 ConvNeXt-Small'
+    cp=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(cp.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';sp=importlib.util.spec_from_file_location('original_unchanged_capacity_for_S6',cp);capacity=importlib.util.module_from_spec(sp);sp.loader.exec_module(capacity);admission=capacity.admission(db,r,caller='serving')
+    original=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');sample=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison');old_unfinished=0;known_reserved_bound=0
+    for e in (1,2,3):
+     E=original/('segment-'+str(e));assert not (E/'actual-failed.json').exists()
+     if not (E/'actual-accepted.json').exists():
+      old_unfinished+=25200
+      if (E/'push-response.json').exists():
+       oldpush=json.loads((E/'push-intent.json').read_text());state=r.kernel('GetKernelSessionStatus',oldpush['slug'],1).get('status');assert state not in ('ERROR','CANCELLED')
+       if state!='COMPLETE':known_reserved_bound+=25200
+    new_unfinished=sum(6000 for a in ('uniform','influence') for e in (1,2,3) if not (sample/(a+'-epoch-'+str(e))/'actual-accepted.json').exists())
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];sec=lambda x:float(x.removesuffix('s'));unreserved=min(sec(quota['totalTimeAllowed']),sec(quota['minimumTimeAllowed']))-sec(quota['timeUsed'])-sec(quota['timeReserved']);credited=min(sec(quota['timeReserved']),known_reserved_bound);funded=unreserved+credited;required=old_unfinished+new_unfinished+3600+seconds
+    if role=='competition' and funded>=required:record['GPU_wait_until']=time.time()+300;save(record);admission=capacity.admission(db,r,caller='serving')
+    if not admission['available'] or funded<required:out={'status':'waiting_original_S6_GPU_capacity_or_VM_budget_without_mutation','role':role,'capacity':admission,'funded_VM_seconds':funded,'required_VM_seconds':required,'original_main_unfinished_seconds':old_unfinished,'original_sampling_unfinished_seconds':new_unfinished,'own_session_seconds':seconds,'original_serving_reserve_seconds':3600,'fresh_GPU_quota':quota,'mutation_intent_created':False,'GPU_reserved':False}
+    else:
+     absence=r.require_absent_kernel(slug);D.mkdir(mode=0o700);intent={'pushed_not_before_UTC':w.utcnow(),'slug':slug,'version':1,'source_sha256':sha,'model_sha256':record['model_sha256'],'role':role,'session_timeout_seconds':seconds,'request_sha256':w.object_hash(request),'absence':absence,'fresh_GPU_quota':quota,'funded_VM_seconds':funded,'required_VM_seconds':required,'qualification_is_never_submission_eligible':True,'automatic_retry':False};w.new_json(D/'push-intent.json',intent);record[role]=intent;record['state']='S6_original_reproduction_'+role+'_push_intent';save(record)
+     try:
+      response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+     except BaseException:record['state']='S6_original_reproduction_'+role+'_push_uncertain';save(record);retain=True;raise
+     record[role]['kernel_id']=response['kernelId'];record['state']='S6_original_reproduction_'+role+'_pushed';save(record);out={'status':'one_original_S6_'+role+'_notebook_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':sha,'role':role,'session_timeout_seconds':seconds,'competition_entry':False,'new_Dataset_or_weight_upload':False}
+   elif phase=='status':
+    item=record[role];assert item['slug']==slug and item['version']==1;actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('enableGpu') is True and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('machineShape')=='NvidiaTeslaT4' and m.get('dockerImage')==request['dockerImage']
+    for k in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(k,[]))==sorted(request[k])
+    state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':state,'kernel_id':item['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'role':role,'competition_entry':False}
+    if state=='COMPLETE':
+     receipt=r.output_json(slug,1,'k1/k1_receipt.json');from datetime import datetime,timezone;import re;assert re.fullmatch('[0-9a-f]{32}',receipt['run']['nonce']);started=datetime.fromisoformat(receipt['run']['started_utc']).timestamp();assert datetime.fromisoformat(item['pushed_not_before_UTC']).timestamp()-5<=started<=datetime.now(timezone.utc).timestamp()+5;assert receipt['self'].get('sha256') in (None,sha);assert receipt['self'].get('sha256') is None or receipt['self'].get('derived_matches') is True;assert receipt['mode']=='submit' and receipt['inputs']['n_test']==3 and receipt['inputs']['model']['sha256']==record['model_sha256'] and receipt['blend']['weights']=={'A_0949':0.0,'B_s6f0':1.0} and receipt['blend']['rows']==3 and receipt['blend']['b_failed_rank_A_only']=={} and receipt['env']['n_gpu']==2 and all('T4' in x for x in receipt['env']['gpus']) and receipt['B_probe']['params']==50018284 and receipt['B_probe']['spatial'] is True and receipt['total_seconds']<seconds and all(x.get('ok',True) is True for x in receipt['stages'].values())
+     # Three-row output is checked in RAM only; it is never a competition upload.
+     response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':1,'filePath':'submission.csv'},timeout=(10,90),stream=True,allow_redirects=False)
+     from urllib.parse import urljoin,urlparse
+     for _ in range(6):
+      if response.status_code==200:break
+      assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();host=urlparse(url).hostname;assert urlparse(url).scheme=='https' and (host in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or host.endswith('.googleusercontent.com'));response=(r.session if host=='api.kaggle.com' else requests).get(url,timeout=(10,90),stream=True,allow_redirects=False)
+     assert response.status_code==200;raw=b''
+     try:
+      for b in response.iter_content(8192):raw+=b;assert len(raw)<=65536
+     finally:response.close()
+     assert hashlib.sha256(raw).hexdigest()==receipt['blend']['submission_sha256']
+     import csv,math
+     rows=list(csv.reader(io.StringIO(raw.decode())));tree=ast.parse(source);const={n.targets[0].id:ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('PUBLIC_TEST_IDS','LAB')};assert rows[0]==['StudyInstanceUID',*const['LAB']] and [x[0] for x in rows[1:]]==const['PUBLIC_TEST_IDS'] and all(len(x)==13 and all(math.isfinite(float(z)) and 0<=float(z)<=1 for z in x[1:]) for x in rows[1:])
+     if role=='competition':assert record['qualification']['accepted']['CSV_sha256']==hashlib.sha256(raw).hexdigest()
+     accepted={'status':'actual_original_S6_'+role+'_two_T4_public_MRI_and_CSV_accepted','kernel_id':item['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'model_sha256':record['model_sha256'],'anatomy_sha256':record['anatomy_sha256'],'studies':3,'columns':13,'CSV_bytes':len(raw),'CSV_sha256':hashlib.sha256(raw).hexdigest(),'total_seconds':receipt['total_seconds'],'env':receipt['env'],'B_probe':receipt['B_probe'],'weights':receipt['blend']['weights'],'B_failed':0,'A_public_reference_CSV_matches':receipt['A'].get('public_csv_matches_0949_commit'),'both_source_pipelines_executed':True,'qualification_submission_eligible':False if role=='qualification' else None,'competition_entry':False,'hidden_runtime_or_score_claim':False}
+     if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',accepted);record[role]['accepted']=accepted;record['state']='full_parent_epoch_qualification_accepted' if role=='qualification' else 'S6_original_reproduction_competition_accepted';record['qualification_scope']='Actual unchanged original source on three public MRIs and both T4s; not 32-case or hidden-scale qualification';save(record)
+     out['accepted']=accepted
+    elif state in ('ERROR','CANCELLED'):
+     if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);record['state']='S6_original_reproduction_'+role+'_failed';save(record)
+   else:raise AssertionError('Known phase')
+  print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program,'S6_original_two_phase_reproduction','exec')
+payload={'phase':phase,'role':role,'program':program};E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep};payload['token']=values['KAGGLE_API_TOKEN']
+if phase=='stage':
+ assert not (L/'original-offline-stage.intent.json').exists();payload['source']=(L.parent/'s6-public-source-20261017-v1/source.extracted.py').read_text();(L/'original-offline-stage.intent.json').write_text(json.dumps({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'original_source_unchanged':True,'new_dataset_or_competition_entries':0,'automatic_retry':False},indent=2)+'\n')
+(L/'original-offline-program.py.txt').write_text(program)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=3G','--time=00:10:00','--job-name=rsna-S6-'+role+'-'+phase,'env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c','import json,sys;v=json.load(sys.stdin);exec(compile(v.pop("program"),"S6_original_two_phase_reproduction","exec"),{"__name__":"__main__","S6_PACKAGE":v})']
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=650);name='original-offline-'+phase+'-'+role+'-'+str(len(list(L.glob('original-offline-'+phase+'-'+role+'-*.result.json'))))+'.result.json';(L/name).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-2000:];out=json.loads(x.stdout);print(json.dumps(out),flush=True)

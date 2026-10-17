@@ -11,10 +11,11 @@ Prioritize unchanged reproduction of the distinct public S6 ConvNeXt before
 another generic architecture search. Its current notebook source and small
 checkpoint/code manifests have now actually been acquired and pinned;
 [the original source audit](../../audits/s6-public-source-20261017-v1/README.md)
-separates the author's 0.950 claim from our not-yet-executed reproduction. The
+separates the author's0.950 claim from our still-unscored reproduction. The
 [original S6 checkpoint](../../audits/s6-checkpoint-admission-20261017-v1/README.md)
-is also now privately acquired once and SHA/header verified; MRI inference is
-not yet executed. Continue
+is also privately acquired once and SHA/header verified. Original CPU MRI inputs
+and full classifier reference now pass; T4 reproduction is owned and waiting
+actual capacity/funding. [Actual new acceptance and owner](../../audits/s6-original-classifier-reproduction-20261017-v1/README.md). Continue
 healthy full-parent, matched sampling and expanded N3 fitting unchanged. Their
 exact live owners are in [the execution handoff](../../../docs/codex-continuation.md).
 This decision stages no additional GPU or competition entry.
@@ -81,3 +82,15 @@ private performance.
   does not answer retraining with physical crops.
 
 No new best model, S6 GPU acceptance or winning score is claimed by this assessment.
+
+
+## Later measured triage and actual execution
+
+Learned whole94E1 now has one actual code entry**57294905**, actual hidden score**0.949**, no demonstrated gain; uniform16E1 is complete/private verified, influenceE1 is running and
+expanded N3 has eight verified epochs. [Actual progress](../../audits/research-progress-20261017-0448-v1/README.md).
+The [existing boundary-policy screen](../../audits/frozen-series-boundary-screen-20261017-v1/README.md)
+found low boundary attention and smaller ordering sensitivity than count-matched
+interior removal across3887cases. Deprioritize a new boundary-only training arm.
+This is a label-free negative, not proof of improved AUC. Source-DICOM physical
+crops, second-parent complementarity and a genuinely new geometry mechanism
+remain distinct from that readout counterfactual and completed context heads.

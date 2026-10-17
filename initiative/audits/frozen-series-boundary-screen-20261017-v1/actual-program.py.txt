@@ -1,0 +1,39 @@
+
+import datetime,hashlib,json,os,shutil,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+v=SCREEN_PACKAGE;assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1);torch.set_num_interop_threads(1)
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'frozen-boundary-screen-v1';assert not D.exists() and shutil.disk_usage('/tmp').free>610493834008;used=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert used+8*2**20+8*2**20<32*2**20
+meta=json.loads((R/'staged.json').read_text());sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();S=R/'code';assert all(sha(S/n)==h for n,h in meta['source_files'].items());sys.path.insert(0,str(S));from rsna.competitive.released_context_train import FrozenFeatures;from rsna.competitive.mil_sampling import readout_moments,probability
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');admission=json.loads((F/'full-input-admitted.json').read_text());index=F/'full-features/index.private.json';assert sha(index)==admission['binding']['feature_index_sha256'] and admission['all3887_feature_members_exact_size_SHA_NPY_metadata'] is True;records=json.loads(index.read_text())['records'];uids=[r['study_uid'] for r in records];assert len(uids)==3887 and len(set(uids))==3887 and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==v['protocol']['population_sha256']
+D.mkdir(mode=0o700);(D/'protocol.json').write_text(json.dumps(v['protocol'],indent=2)+'\n');(D/'intent.json').write_text(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'protocol_sha256':sha(D/'protocol.json'),'private_bound_bytes':8*2**20,'future_control_reserve_bytes':8*2**20,'prior_control_bytes':used,'new_CNN_GPU_fitting_or_competition_mutation':False,'automatic_retry':False},indent=2)+'\n');(D/'series_boundary.py').write_text(v['helper']);ns={};exec(compile(v['helper'],'committed_existing_boundary_helper','exec'),ns)
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')};data=FrozenFeatures(records,roots,np.zeros((3887,12),dtype=np.float32),np.zeros((3887,12),dtype=bool),{'scope':'existing_boundary_counterfactual_without_source_labels'});headpath=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt');assert headpath.stat().st_size==1122765 and sha(headpath)=='8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5';head=torch.load(headpath,map_location='cpu',weights_only=True)
+names=v['protocol']['policies'];pred=np.empty((5,3887,12),dtype=np.float64);mass=np.empty((4,3887,12),dtype=np.float64);removed=np.zeros((4,3887),dtype=np.int64);fallback=np.zeros((4,3887),dtype=bool);matched=np.ones(3887,dtype=bool);sizes=np.array([26,22,18,12,18]);bounds=np.r_[0,np.cumsum(sizes)];vol_slot=np.repeat(np.arange(5),sizes);plane=np.array([0,0,1,1,2])[vol_slot];rule=(vol_slot>=2).astype(int);fp32_moment_gap=0.;cached_probability_gap=0.;t0=time.monotonic()
+def reduce(weights,votes,bias,keep):
+ if not keep.any():keep=np.ones(len(keep),dtype=bool)
+ a=weights[:,keep];a=a/a.sum(1,keepdims=True);return probability((a*votes[:,keep]).sum(1)+bias).mean(0)
+for i in range(len(data)):
+ row=data[i];features,parent,slot,depth=row[:4];c=np.rint(depth[0].numpy()*(sizes[slot[0].numpy()]-1)).astype(np.int64)+bounds[slot[0].numpy()];assert np.all((1<=c)&(c<=94))
+ weights,votes,bias,reference=readout_moments(head,features);base=reduce(weights,votes,bias,np.ones(94,dtype=bool));fp32_moment_gap=max(fp32_moment_gap,float(np.max(np.abs(base-reference))));cached_probability_gap=max(cached_probability_gap,float(np.max(np.abs(reference-parent.sigmoid().mean(0).numpy()))));pred[0,i]=base
+ donors=ns['series_donor_indices'](c,sizes.tolist());cross=~ns['same_series_windows'](c,sizes.tolist());crossplane=np.array([len(set(plane[x]))>1 for x in donors]);mixed=np.array([len(set(rule[x]))>1 for x in donors]);within=~cross
+ if not within.any():within=np.ones(94,dtype=bool);fallback[0,i]=True
+ interior=np.where(~cross)[0];n=int((~within).sum());control=np.ones(94,dtype=bool)
+ if n and n<=len(interior):control[interior[np.linspace(0,len(interior)-1,n).round().astype(int)]]=False;assert (~control).sum()==n
+ elif n:matched[i]=False
+ masks=[within,control,~crossplane,~mixed]
+ for j,keep in enumerate(masks):
+  if not keep.any():keep=np.ones(94,dtype=bool);fallback[j,i]=True
+  pred[j+1,i]=reduce(weights,votes,bias,keep);mass[j,i]=weights[:,~keep].sum(1).mean(0);removed[j,i]=int((~keep).sum())
+ if i==0:
+  order=np.arange(94)[::-1];assert np.max(np.abs(reduce(weights[:,order],votes[:,order],bias,np.ones(94,dtype=bool))-base))<1e-12;assert np.array_equal(reduce(weights,votes,bias,np.zeros(94,dtype=bool)),base)
+ if (i+1)%512==0:(D/'progress.json').write_text(json.dumps({'completed':i+1,'population':3887,'seconds':time.monotonic()-t0})+'\n')
+assert np.isfinite(pred).all() and np.isfinite(mass).all() and fp32_moment_gap<2e-6
+rng=np.random.default_rng(20261017);pairs=np.sort(rng.integers(0,3887,size=(50000,2)),axis=1);pairs=np.unique(pairs[pairs[:,0]!=pairs[:,1]],axis=0);base_diff=pred[0,pairs[:,0]]-pred[0,pairs[:,1]];results={}
+for j,name in enumerate(names[1:]):
+ delta=np.abs(pred[j+1]-pred[0]);new_diff=pred[j+1,pairs[:,0]]-pred[j+1,pairs[:,1]];valid=(np.abs(base_diff)>1e-9)&(np.abs(new_diff)>1e-9);opposite=(base_diff*new_diff<0)&valid
+ results[name]={'removed_windows_mean':float(removed[j].mean()),'removed_windows_max':int(removed[j].max()),'studies_with_removed_windows':int((removed[j]>0).sum()),'all_removed_parent_fallback_studies':int(fallback[j].sum()),'mean_removed_attention_mass_per_target':mass[j].mean(0).tolist(),'p95_removed_attention_mass_per_target':np.quantile(mass[j],.95,axis=0).tolist(),'mean_absolute_probability_change_per_target':delta.mean(0).tolist(),'p95_absolute_probability_change_per_target':np.quantile(delta,.95,axis=0).tolist(),'max_absolute_probability_change_per_target':delta.max(0).tolist(),'fraction_probability_change_above_point05_per_target':(delta>.05).mean(0).tolist(),'conditional_strict_pair_reversal_fraction_per_target':np.divide(opposite.sum(0),valid.sum(0),out=np.zeros(12),where=valid.sum(0)>0).tolist(),'strict_pairs_defined_per_target':valid.sum(0).tolist(),'pair_ties_or_near_ties_per_target':(~valid).sum(0).tolist()}
+private=D/'counterfactuals.private.npz'
+with private.open('xb') as f:np.savez_compressed(f,predictions=pred,removed_attention_mass=mass,removed_windows=removed,matched_interior=matched)
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<8*2**20
+out={'status':'actual3887_existing_boundary_policy_label_free_readout_screen_complete','CPU_job':os.environ['SLURM_JOB_ID'],'recorded_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'protocol':v['protocol'],'feature_index_sha256':sha(index),'frozen_MIL_head_sha256':sha(headpath),'boundary_helper_sha256':sha(D/'series_boundary.py'),'policies':results,'maximum_FP64_moment_versus_exact_FP32_head_probability_gap':fp32_moment_gap,'maximum_replayed_FP32_versus_original_cached_FP16_probability_gap':cached_probability_gap,'cached_precision_gap_exceeds_point003':cached_probability_gap>.003,'interior_count_matched_studies':int(matched.sum()),'interior_count_unmatched_studies':int((~matched).sum()),'deterministic_study_pairs':len(pairs),'private_output_bytes':private.stat().st_size,'private_output_sha256':sha(private),'elapsed_seconds':time.monotonic()-t0,'no_source_labels_reports_gold_confirmation_or_pixels_read':True,'no_new_CNN_encoding_or_GPU_or_training_or_submission':True,'prediction_change_is_not_accuracy_improvement':True,'existing_original_notebooks_or_running_recipes_unchanged':True};(D/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

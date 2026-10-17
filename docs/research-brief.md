@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 04:15 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 04:56 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -18,12 +18,14 @@ The active questions are whether full-encoder adaptation improves a strong
 MRI-trained initialization, and whether better observations per update improve
 learning under a fixed compute budget. Whole-94 adaptation completed its first epoch
 on both T4s and the exact continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
-uniform-16 production139137040v1 is actually API RUNNING; influence remains
-unpushed. Whole-parent epoch1 completed486updates, is privately verified and
-passed both-T4 learned-model inference qualification. Epoch2 resumed the exact
-original worker/checkpoint as139137922v1. Later actual logs now show **722/1458 whole94** and **486/1458 uniform16** finite
-updates, with both allocated T4s and exact original input admission. Expanded N3
-is at2166/5184,epoch7; all six completed epochs are privately verified. None has a final new competition result yet.
+uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
+were fully verified. **InfluenceE1 139154664v1 is RUNNING**. Whole-parentE1 passed
+bothT4 qualification/public acceptance and was submitted once**57294905**;
+actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 continues unchanged, last visible722.
+Expanded N3 is at2675/5184 finite updates/epoch9, with completed epochs1–8
+privately verified, under the original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
+there is no demonstrated new gain or fixed-final result yet.
+[Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 The fresh [official Public leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
 shows first place **0.969** versus our **0.949**. A publicly shared 0.956 blend is not the
@@ -105,12 +107,12 @@ influence can become stale and teacher errors can be amplified. A 94/16 sampling
 ratio is not measured throughput or disease improvement.
 
 Actual both-role MRI GPU recovery, original-input CPU comparison, proposal
-Dataset and checkpoint storage acceptance are complete. The original uniform
-production job is now running after its funding check. A capacity-aware observer
+Dataset and checkpoint storage acceptance are complete. UniformE1 is now complete/private verified and influenceE1 runs after the original
+funding check. A capacity-aware observer
 protects the original main continuation and shares the other actual Kaggle GPU
-lane with qualified-model inference; no running scientific recipe was changed. The new serving compiler has synthetic checks only and still
-requires an actual completed/preserved sampled epoch plus both-T4 and public-MRI
-acceptance. [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
+lane with qualified-model inference; no running scientific recipe was changed. The sampled serving compiler has synthetic checks only. UniformE1 now satisfies
+the completed/preserved checkpoint prerequisite; actual learned sampled-model
+bothT4/public-MRI serving acceptance remains absent. [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
 [recovery](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md),
 [full readiness](../initiative/audits/licensed-importance-full-comparison-20261017-v1/README.md),
 [serving preparation](../initiative/audits/licensed-importance-serving-preparation-20261017-v1/README.md).
@@ -152,10 +154,36 @@ privately once with exact SHA and safe tensor-header verification. Its reported
 0.950 remains external. Its exact293-member source/anatomy and unchanged strict
 CPU stack now pass; private CPU-only Kaggle MRI gate139151928v1 completed all3 public studies/1586
 windows. CPU942028 fully verified original compressed inputs and their decoded
-bytes on Newton. Bounded H100 classifier probe942047 is queued; no GPU
-terminal or new score is claimed.
+bytes on Newton. CPU942136 additionally scored all3/1586windows with the unchanged classifier/pooling
+and device/report-only replacements,355.95s/zero fallback. This is a CPUFP32
+reference. Bounded H100 probe942047 remains queued; a finite capacity-registered
+T4 reproduction owner16380 is waiting actual lanes/all-future funding without
+a GPU push. No GPU terminal or new S6 score is claimed.
 [Actual acceptance and next gate](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md). Prioritize unchanged reproduction and source-exposure
 accounting before teacher combination. Head-only folds on an already exposed
 encoder are not independent OOF; probability agreement is not clinical truth.
 The assessment retains source-DICOM physical crops and geometry/query mechanisms
 as separate, falsifiable proposals, without changing current full fits.
+
+
+## Boundary-crossing evidence lowers its research priority
+
+The existing within-series policy was screened on **all3887 fitting feature bags**,
+with no clinical labels, reports, pixels, new CNN encoding or fitting. CPU942278
+found mean8.0003 crossing windows/94, carrying **0.35–1.54% mean attention** across
+12targets. Removal changed strict study-pair order **0.074–0.494%**, versus
+**0.321–1.511%** for a count-matched interior removal. The parent already suppresses
+these windows strongly. Deprioritize a boundary-only training arm; this screen
+cannot establish disease-AUC gain and rare large changes remain. Its full target
+aggregates, exact source/input bindings and numerical precision limits are in
+[the original audit](../initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
+This builds on an existing policy and earlier anatomy audit, rather than claiming
+a newly found source bug. Within-series and edge-repeat inference notebooks
+already have public MRI acceptance but no competition scores.
+
+The next evidence-dependent research question remains **second-lineage
+complementarity**: reproduce S6 unchanged, then characterize where its ordering
+and localization differ from CoAtNet before freezing a dual-teacher mechanism.
+Teacher agreement, cached-feature folds on exposed encoders and this label-free
+sensitivity screen are not independent clinical correctness. Preserve ongoing
+matched fits and actual scored outcomes before declaring improvement.

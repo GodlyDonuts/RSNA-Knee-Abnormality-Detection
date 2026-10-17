@@ -1,0 +1,65 @@
+"""Execute isolated control paths with no SSH, Slurm, Kaggle or real process signals."""
+import hashlib
+import json
+import subprocess
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+REAL = Path(__file__).resolve().parent
+preserver = (REAL.parent/'licensed-parent-whole94-production-20261016-v1/preserve_after_actual_worker_replay_once.py').read_bytes()
+results=[]
+
+def run_case(kind, mode):
+    with tempfile.TemporaryDirectory(prefix='rsna-final-owner-local-test-') as temp:
+        L=Path(temp)/'serving';L.mkdir();P=L.parent/'licensed-parent-whole94-production-20261016-v1';P.mkdir()
+        script='qualify_final_epoch3_single_owner_once.py' if kind=='serving' else 'submit_final_epoch3_single_owner_once.py'
+        source=(REAL/script).read_text();clock=[0.0];calls=[]
+        (P/'worker-replay-preserve.intent.json').write_text(json.dumps({'PID':42}))
+        (P/'preserve_after_actual_worker_replay_once.py').write_bytes(preserver)
+        (L/'staged.json').write_text('{}')
+        (L/'final-epoch3-serving-v1.intent.json').write_text(json.dumps({'PID':43})) if kind=='entry' else None
+        for name in ('program-capacity.py.txt','run_serving_capacity_once.py','entry3-program.py.txt','run_entry3_after_reconnection_once.py'):
+            (L/name).write_bytes((REAL/name).read_bytes())
+        if mode=='terminal_without_checkpoint':(P/'worker-replay-preserve.result.json').write_text('{}')
+        if mode=='wrong_preserver_hash':(P/'preserve_after_actual_worker_replay_once.py').write_text('changed')
+        eligibility_calls=[0]
+        def sleep(seconds):
+            clock[0]+=seconds
+            if kind=='serving':(P/'epoch-3-private-verified.json').write_text('{}')
+            else:(L/'epoch-3-competition-actual-accepted.json').write_text('{}')
+        def command(args,**kwargs):
+            if kind=='serving':return 'python '+('wrong_observer.py' if mode=='wrong_owner' else 'preserve_after_actual_worker_replay_once.py')
+            return 'python '+('wrong_observer.py' if mode=='wrong_owner' else 'qualify_final_epoch3_single_owner_once.py')
+        def run(args,**kwargs):
+            assert 'ssh' not in str(args) and 'srun' not in str(args)
+            phase=args[2];calls.append(list(args[2:]))
+            if kind=='serving':
+                assert args[3]=='3';role=args[4]
+                if phase=='prepare':value={'status':'one_actual_full_parent_epoch_serving_prepared'}
+                elif phase=='push':value={'status':'one_full_parent_epoch_'+role+'_pushed'}
+                else:value={'status':'COMPLETE','receipt':{}}
+            else:
+                if phase=='eligibility':eligibility_calls[0]+=1;value={'eligible':eligibility_calls[0]>1}
+                elif phase=='submit':value={'status':'one_exact_whole94_full_parent_epoch3_code_submission_accepted'}
+                else:value={'outcome':'scored'}
+            return SimpleNamespace(returncode=0,stdout=json.dumps({'returncode':0,'stdout':json.dumps(value)}),stderr='')
+        error=None
+        base=datetime(2026,10,17,4,56,tzinfo=timezone.utc).timestamp()
+        with patch('subprocess.check_output',command),patch('subprocess.run',run),patch('os.kill'),patch('time.monotonic',lambda:clock[0]),patch('time.time',lambda:base+clock[0]),patch('time.sleep',sleep):
+            try:exec(compile(source,str(L/script),'exec'),{'__name__':'__main__','__file__':str(L/script)})
+            except BaseException as e:error=type(e).__name__
+        if mode=='success':
+            assert error is None
+            if kind=='serving':assert [c for c in calls if c[0]=='push']==[['push','3','qualification'],['push','3','competition']]
+            else:assert sum(c==['submit'] for c in calls)==1 and eligibility_calls[0]==2
+        else:assert error is not None and not calls
+        results.append({'kind':kind,'case':mode,'passed':True,'phase_calls':calls,'expected_stop':error})
+
+for mode in ('success','wrong_owner','wrong_preserver_hash','terminal_without_checkpoint'):run_case('serving',mode)
+for mode in ('success','wrong_owner'):run_case('entry',mode)
+out={'status':'six_isolated_final_owner_control_paths_passed','cases':results,'real_process_signals_or_remote_commands':0,'mock_scores_are_not_clinical_evidence':True,'source_sha256':{n:hashlib.sha256((REAL/n).read_bytes()).hexdigest() for n in ('qualify_final_epoch3_single_owner_once.py','submit_final_epoch3_single_owner_once.py')}}
+(REAL/'final-owner-control-paths-checked.json').write_text(json.dumps(out,indent=2)+'\n')
+print(json.dumps(out))

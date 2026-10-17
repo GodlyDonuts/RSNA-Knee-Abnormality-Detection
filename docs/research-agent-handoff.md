@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 04:15 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 04:56 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -16,9 +16,10 @@ proposing new work. [Current state](current-state.md) is the score/job authority
   Neither establishes an improvement over the released 0.949 parent.
 - Full-parent adaptation is running on Kaggle; expanded own-model fitting is
   running on Newton. Neither has a final/new competition score. The matched
-  importance-sampling production comparison has its first uniform GPU session
-  actually running; influence is not yet pushed.
-- Kaggle account allowance was **two slots** at the stated check. Regional
+  importance-sampling production comparison has completed/private-verified uniformE1;
+  influenceE1 139154664v1 is now actually running.
+- The earlier **two-slot** observation preceded the actual learnedE1 entry
+  **57294905** (COMPLETE/**0.949**, noerror); refresh authoritative allowance. Regional
   submission 57291182 actually scored **0.948**; entry owners already cover
   learned-parent epoch 1 and fixed-final epoch 3. Inspect
   those originals before proposing a conflicting submission.
@@ -85,9 +86,10 @@ Read the [complete new program and assessment](../initiative/research/owner-dead
 The first concrete action was source-only admission of S6 ConvNeXt:
 138285808 v2 and Dataset 12589750 v3 manifests are pinned. Its author's reported
 0.950 is not our reproduction. The original 200,185,003-byte checkpoint is now
-privately downloaded once and SHA/header verified; complete dependencies, offline
-T4 numerical/runtime/output acceptance and an independently identified entry
-remain undone. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Current training and submission owners continue unchanged.
+privately downloaded once and SHA/header verified. Dependencies/source/anatomy,
+CPU MRI tensors and CPU classifier reference now pass. Actual T4/runtime/output
+acceptance and a distinct S6 entry remain undone. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Original numerical training continues unchanged; only terminal serving/entry3
+observer dependencies were replaced. [Current originals and new sole owners](codex-continuation.md).
 
 The program's recommendation to obtain strict five-fold OOF by fitting heads on
 released encoder features is not valid when those encoders saw the evaluated
@@ -154,7 +156,8 @@ Broader software QA is recorded in [the current refresh audit](../initiative/aud
 do not infer full-suite success before its actual terminal receipt. The sampled serving preparation has synthetic checks only and still lacks
 actual sampled-model GPU/public-MRI acceptance. Separately, learned whole94E1
 actually passed32MRI/twoT4 qualification with zero probability difference; its
-public run waits for the next admitted GPU lane. Current recovery/capacity/screen/
+public run actually passed and its exact code entry57294905 is accepted once;
+hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. Current recovery/capacity/screen/
 serving checks total80focused cases, Ruff6/mypy3; no clinical gain is inferred. Tests and state recovery establish operability, not accuracy.
 
 ## Open PRs and collaboration
@@ -197,9 +200,10 @@ Current guide receipt bookkeeping can be later than that mirrored source.
 
 ## Later actual engineering and training evidence
 
-Whole94 E2 has722/1458 and uniform16 E1 has486/1458 actual finite updates on
-both original T4s in the later Logs. Expanded N3 was observed at2166/5184,epoch7,
-and its epochs1–6 are privately fully verified. Original patch929938 actually
+Whole94 E2 last visible722/1458 remains an older detailed log observation.
+Uniform16 E1 actually completed486updates and all5objects are privately fully
+verified; influenceE1 is RUNNING. Expanded N3 original938284 is at2675/5184 finite updates,epoch9, with eight
+completed privately fully verified epochs; this supersedes2166/epoch7. Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
 [Actual later receipts](../initiative/audits/research-progress-20261017-0401-v1/README.md).
@@ -208,7 +212,10 @@ S6 source/anatomy now passes all293 original hashes; unchanged CPU B_PROBE
 passes with strict full classifier loading and a finite anatomy forward. Distinct
 private CPU-only Kaggle input gate139151928v1 completed on all three public MRIs
 with1586windows and no decode/anchor failures; original inputs are now privately
-fully verified on Newton. Bounded H100 classifier probe942047 is queued, not scored. It does not compete for current GPU lanes.
+fully verified on Newton. CPU942136 then passed the full classifier reference on all3/1586windows with
+zero fallback. H100 classifier probe942047 remains queued, not scored; finite
+T4 reproduction owner16380 is waiting actual capacity/all-future budget. It has
+zero competition entries and has not pushed an S6 GPU notebook at this check.
 [Exact source/runtime/gate proof](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
 Original full regression terminated successfully:4537passed/8skipped/exit0;
 no numerical source changed. Do not mistake that for clinical improvement.
@@ -216,5 +223,18 @@ no numerical source changed. Do not mistake that for clinical improvement.
 Latest distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
 all40objects/268191bytes; current receipt bookkeeping follows that source.
 [Exact private proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
-Uniform486 is the first optimizer boundary, not an observed terminal/checkpoint
-publication. The original finite owners continue.
+UniformE1 is now terminal/private verified at HFc19961db; influenceE1 is active.
+[Original results and sole final-serving/entry owners](../initiative/audits/research-progress-20261017-0448-v1/README.md).
+
+
+## New evidence against a boundary-only explanation
+
+[Actual all3887 label-free screen](../initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md)
+compared existing within-series removal to a same-count interior control.
+Boundary windows already receive only0.35–1.54%meanattention and their removal
+reverses0.074–0.494%strict study pairs, versus0.321–1.511%for interior windows.
+This deprioritizes another boundary-only training arm, not proof of accuracy.
+The existing within-series and edge-repeat notebooks are public-MRI accepted
+but unscored; do not recreate them. An improved source-DICOM representation or
+S6/CoAtNet complementary-error mechanism must address information this readout
+screen did not test, with actual runtime and source-exposure limits stated.

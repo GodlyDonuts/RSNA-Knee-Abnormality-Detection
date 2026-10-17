@@ -1,0 +1,92 @@
+{
+  "status": "six_isolated_final_owner_control_paths_passed",
+  "cases": [
+    {
+      "kind": "serving",
+      "case": "success",
+      "passed": true,
+      "phase_calls": [
+        [
+          "prepare",
+          "3",
+          "qualification"
+        ],
+        [
+          "push",
+          "3",
+          "qualification"
+        ],
+        [
+          "status",
+          "3",
+          "qualification"
+        ],
+        [
+          "push",
+          "3",
+          "competition"
+        ],
+        [
+          "status",
+          "3",
+          "competition"
+        ]
+      ],
+      "expected_stop": null
+    },
+    {
+      "kind": "serving",
+      "case": "wrong_owner",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "AssertionError"
+    },
+    {
+      "kind": "serving",
+      "case": "wrong_preserver_hash",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "AssertionError"
+    },
+    {
+      "kind": "serving",
+      "case": "terminal_without_checkpoint",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "RuntimeError"
+    },
+    {
+      "kind": "entry",
+      "case": "success",
+      "passed": true,
+      "phase_calls": [
+        [
+          "eligibility"
+        ],
+        [
+          "eligibility"
+        ],
+        [
+          "submit"
+        ],
+        [
+          "outcome"
+        ]
+      ],
+      "expected_stop": null
+    },
+    {
+      "kind": "entry",
+      "case": "wrong_owner",
+      "passed": true,
+      "phase_calls": [],
+      "expected_stop": "AssertionError"
+    }
+  ],
+  "real_process_signals_or_remote_commands": 0,
+  "mock_scores_are_not_clinical_evidence": true,
+  "source_sha256": {
+    "qualify_final_epoch3_single_owner_once.py": "d774e4c8dc993a5a3a5d2b17f1460839a2219c05d7983ebf72720df3ed53a9a9",
+    "submit_final_epoch3_single_owner_once.py": "1c7262118f64394dc49c7239de61f12209b0a92f518fbfe1198049bf328faaac"
+  }
+}

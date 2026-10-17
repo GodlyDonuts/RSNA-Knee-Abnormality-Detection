@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 04:15 UTC:**
+**Current entry points — verified October 17, 2026, 04:56 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -17,29 +17,28 @@ we did not train that model from scratch. Our sequence-context head and full-384
 inference-field experiments, plus the regional spatial head, each scored 0.948
 without improving the external reference. These are public leaderboard scores, not final private or clinical results.
 
-Full adaptation completed its first **486-update epoch on both T4s**, privately
-preserved and independently verified. The learned checkpoint also passed 32-MRI
-qualification on both T4s with zero prediction difference. Epoch 2 shows **722 of 1,458 actual finite updates**
-under the exact original worker/checkpoint. Expanded own-model fitting on 2,592
-studies is **running on a Newton H100**, at 2,166 of 5,184 updates / epoch 7; its
-first six checkpoints are privately verified. Neither has a new competition score.
+Whole-parent adaptation completed its first **486-update epoch**, privately fully
+verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
+Its code entry **57294905 completed at0.949**, matching the parent without a gain.
+Epoch2 continues with the original worker/checkpoint. Expanded own N3 fitting on
+2592studies runs on a Newton H100 at **2675/5184 updates, epoch9**, with
+**epochs1–8 privately verified**.
+Matched uniform16E1 also completed486updates/all5private objects; influence16E1
+is now RUNNING. No new scored learned-model gain is claimed.
+[Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
 
-The matched uniform-16 versus teacher-influence-16 full-encoder comparison now
-has its first uniform GPU session at **486 of 1,458 actual finite updates**;
-influence is not yet pushed. Both original Kaggle sessions now show allocated
-T4 headers and real optimizer records. Capacity-aware inference has next-lane
-priority after actual two-session admission. A fitting-only teacher mirror screen
-returned an intermediate result, without promoting another GPU arm.
+The [owner deadline program](initiative/research/owner-deadline-program-20261017-v1/README.md)
+prioritizes the distinct S6 ConvNeXt parent. Its original source/checkpoint/anatomy,
+CPU MRI gate and **full CPU classifier reference on3studies/1586windows** pass.
+Original H100 probe942047 is queued. A finite T4 reproduction owner now waits
+actual two-session capacity and complete-future funding; **no S6 GPU push yet**.
+Its author-reported0.950 is not our reproduced score.
+[Actual CPU acceptance and finite owner](initiative/audits/s6-original-classifier-reproduction-20261017-v1/README.md).
 
-The [new owner research program and assessment](initiative/research/owner-deadline-program-20261017-v1/README.md)
-prioritize unchanged reproduction of the public S6 ConvNeXt. Its notebook and
-checkpoint/code manifests are now pinned, and the original checkpoint is privately
-downloaded and SHA/header verified. The exact293-file source/anatomy bundle and
-strict CPU model-stack probe now pass. The original CPU-only Kaggle MRI gate
-completed all three public studies/1,586 windows, and the exact private inputs
-are verified on Newton. Bounded H100 classifier job942047 is queued. Its reported 0.950 has **not** yet been
-reproduced by us. The assessment corrects the proposed validation claims and
-maps the next experiments to completed controls.
+A fitting-only screen on3887existing bags found the parent already gives crossing
+series windows little attention; removing them changes study ordering less than
+count-matched interior removal. This **deprioritizes a boundary-only training arm**,
+without claiming disease accuracy. [Original aggregate result](initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
 
 The current guides distinguish completed training, weak-label evaluation,
 competition scores and preparation. They preserve failed and near-null experiments,
