@@ -1,0 +1,34 @@
+"""Actual quota/outcome/order refusal checks without network or credentials."""
+import ast,copy,hashlib,json,tempfile
+from pathlib import Path
+D=Path('initiative/audits/spatial-reader-engine-20261017-v1');L=Path('artifacts/matched-final-scoring-recovery-20261017-v2');old=ast.parse(Path('artifacts/matched-final-scoring-coordinator-20261017-v1/program.py.txt').read_text());new=ast.parse((L/'program.py.txt').read_text())
+def normalized(tree):
+ tree=copy.deepcopy(tree)
+ for f in tree.body:
+  if isinstance(f,ast.FunctionDef) and f.name=='bounds':f.body=[ast.Pass()]
+  if isinstance(f,ast.FunctionDef) and f.name=='execute':
+   f.body=[x for x in f.body if not (isinstance(x,ast.Assert) and isinstance(x.test,ast.Compare) and isinstance(x.test.comparators[0],ast.Set))]
+ return ast.dump(ast.fix_missing_locations(tree),include_attributes=False)
+assert normalized(old)==normalized(new),'Model, quota, exact-version or canonical mutation code changed'
+parsed=ast.parse((L/'finish_once.py').read_text());advance=next(n for n in parsed.body if isinstance(n,ast.FunctionDef) and n.name=='advance');code=compile(ast.fix_missing_locations(ast.Module(body=[advance],type_ignores=[])),'actual_successor_advance','exec')
+with tempfile.TemporaryDirectory() as tmp:
+ def case(ready=False,submitted=False,response=None):
+  calls=[];writes=[];g={'CANDIDATES':('uniform','label','influence'),'ready':{'uniform'} if ready else set(),'submitted':{'uniform':123} if submitted else {},'scored':[],'OLD':Path(tmp),'json':json}
+  def call(phase,candidate,mode='competition'):
+   calls.append((phase,candidate));return response[phase]
+  g.update(call=call,once=lambda n,v:writes.append((n,v)));exec(code,g);return g,calls,writes
+ g,c,w=case();assert g['advance']() is False and not c and not w
+ g,c,w=case(True,response={'eligibility':{'status':'actual_matched_final_entry_eligibility','fresh':{'eligible':False,'effective_allowance':0}}});assert not g['advance']() and c==[('eligibility','uniform')] and not w
+ g,c,w=case(True,response={'eligibility':{'status':'actual_matched_final_entry_eligibility','fresh':{'eligible':True}},'submit':{'status':'one_exact_matched_final_code_entry_accepted','submission_id':123},'outcome':{'status':'actual_matched_final_hidden_outcome','outcome':'pending_or_unknown'}});assert g['advance']() and len(w)==2 and g['submitted']=={'uniform':123};assert not g['advance']() and c==[('eligibility','uniform'),('submit','uniform'),('outcome','uniform')]
+ g,c,w=case(submitted=True,response={'outcome':{'status':'actual_matched_final_hidden_outcome','outcome':'failed'}})
+ try:g['advance']()
+ except RuntimeError:pass
+ else:raise AssertionError('Hidden failure must stop later entries')
+ assert c==[('outcome','uniform')] and not w
+ g,c,w=case(submitted=True,response={'outcome':{'status':'actual_matched_final_hidden_outcome','outcome':'scored','public_score':.1}});assert g['advance']() and g['scored']==['uniform'] and len(w)==1
+ p=Path(tmp)/'uniform-submit.intent.json';p.write_text('{}');g,c,w=case(True,response={'eligibility':{'status':'actual_matched_final_entry_eligibility','fresh':{'eligible':True}}})
+ try:g['advance']()
+ except AssertionError:pass
+ else:raise AssertionError('Original submit intent must prevent another entry')
+ assert c==[('eligibility','uniform')] and not w
+out={'status':'actual_successor_control_checks_passed','checks':7,'original_program_AST_same_except_resource_bounds_and_disabled_prepare_stage':True,'checked':['not_ready_no_calls','zero_allowance_no_intent_or_submit','one_accepted_submit_then_pending_never_resubmits','actual_hidden_failure_stops_later_entries','actual_score_advances_order','original_intent_refuses_duplicate','source_AST_scope_equivalence'],'network_GPU_or_credentials_used':False};(D/'successor-control-checks.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

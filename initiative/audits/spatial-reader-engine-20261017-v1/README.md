@@ -36,3 +36,26 @@ Only8GiB of its unused original24GiB future allowance was retired; all originals
 stay in place with16GiB retained. This is not deletion credit. Source/engineering
 controls draw from the existing512MiB reader allowance inside the3GiB scout
 root. Later full fitting still needs actual GPU acceptance and fresh funding.
+
+## Actual pending execution and alternate-node move
+
+Original recovery950125was submitted once, then cancelled only whilePENDING
+with actualCANCELLED/zero runtime. New single950196uses frozen numerical source
+3909bf50…/wrapperb49895ea… fromGitf6719ba8 and can allocate only evc33or40. Both
+actual CPU source/geometry gates passed. It is stillPENDING(Resources), so no
+GPU-engine acceptance or full training is claimed. A fixed3epoch/843update full
+wrapper is prepared separately and cannot run without actual engine acceptance.
+
+The evc40stream preserved27complete feature copies, independently byte/SHAchecked
+byCPU950169, when comparing access-time in a whole stat tuple stopped the sender.
+Distinct continuation950171transferred only the missing8members/488086315B;
+completed copies, original140GBcache and runtime were reused. A read naturally
+changes access-time; content/size/mtime/ctime/inode checks remain enforced. All
+inputs stay on approved private nodes. No new scientific recipe changed.
+
+Canonical CPU950158also recovered the old uniform public acceptance after
+finite78386stopped on the outdated storage floor and10613stopped as designed.
+BothT4scompleted six MRI views in17.8685seconds; exact3×13CSV470Bwas verified in
+RAM. This is not an entry or hidden score. A distinct finite successor is
+prepared, with fresh allowance/actual-outcome and no-duplicate guards unchanged;
+its launch must be checked before calling it live.

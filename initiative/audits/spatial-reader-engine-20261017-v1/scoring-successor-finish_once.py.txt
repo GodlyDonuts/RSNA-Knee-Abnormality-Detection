@@ -1,0 +1,67 @@
+"""Distinct finite successor; reconcile completed original phases, never restart them."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];OLD=ROOT/'artifacts/matched-final-scoring-coordinator-20261017-v1';start=time.monotonic();maximum=20*3600;source=json.loads((L/'source-binding.json').read_text());frozen={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('program.py.txt','coordinate.py','finish_once.py','source-binding.json')}
+assert json.loads((OLD/'finish.result.json').read_text())['status']=='finite_scoring_owner_stopped_preserve_originals'
+assert 'Original scoring owner stopped' in json.loads((ROOT/'artifacts/cached-MIL-scoring-coordinator-20261017-v1/finish.result.json').read_text())['reason']
+for pid in ('78386','10613'):
+ p=subprocess.run(['ps','-p',pid,'-o','command='],capture_output=True,text=True);assert p.returncode!=0,'Original owner still exists; no successor authority'
+with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'source':source,'maximum_wall_seconds':maximum,'scope':'same three privately preserved fixed-final full-CNN comparisons; old training/prepare/push states reused','maximum_new_GPU_pushes':4,'maximum_new_entries':3,'canonical_Newton_ledger_and_fresh_allowance_max5_required':True,'no_new_Dataset_or_public_CSV_upload':True,'automatic_uncertain_retry':False},f,indent=2)
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(L/('finish.result.json' if terminal else 'finish.progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+def wait(seconds=180):
+ if time.monotonic()-start+seconds>=maximum:raise TimeoutError('Finite successor expired; preserve all originals and uncertain state')
+ time.sleep(seconds)
+def call(phase,candidate,mode='competition'):
+ assert all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in frozen.items())
+ while True:
+  assert time.monotonic()-start<maximum
+  x=subprocess.run([sys.executable,str(L/'coordinate.py'),phase,candidate,mode],cwd=ROOT,text=True,capture_output=True,timeout=500)
+  assert x.returncode==0,json.dumps({'phase':phase,'candidate':candidate,'mode':mode,'error':x.stderr[-2000:],'uncertain_mutation_never_retried':True})
+  out=json.loads(x.stdout);record({'phase':phase,'candidate':candidate,'mode':mode,'actual':out})
+  if out['status']!='waiting_existing_canonical_claim_no_mutation':return out
+  wait(120)
+def once(name,value):
+ with (L/name).open('x') as f:json.dump(value,f,indent=2)
+CANDIDATES=('uniform','label','influence');ready=set();submitted={};scored=[]
+def advance():
+ if len(scored)==3:return False
+ c=CANDIDATES[len(scored)]
+ if c in submitted:
+  out=call('outcome',c);assert out['status']=='actual_matched_final_hidden_outcome'
+  if out['outcome']=='failed':raise RuntimeError('Actual hidden failure stops later entries: '+json.dumps(out))
+  if out['outcome']=='scored':once(c+'-actual-scored.json',out);scored.append(c);return True
+  return False
+ if c not in ready:return False
+ out=call('eligibility',c);assert out['status']=='actual_matched_final_entry_eligibility'
+ if not out['fresh']['eligible']:return False
+ assert not (OLD/(c+'-submit.intent.json')).exists() and not (OLD/(c+'-actual-submitted.json')).exists()
+ once(c+'-submit.intent.json',{'actual_serving_accepted':True,'fresh':out['fresh'],'maximum_entries':1})
+ out=call('submit',c);assert out['status']=='one_exact_matched_final_code_entry_accepted';once(c+'-actual-submitted.json',out);submitted[c]=out['submission_id'];return True
+try:
+ assert (OLD/'label-prepared.json').exists()
+ for c in CANDIDATES:
+  for mode in ('qualification','competition'):
+   previous=OLD/(c+'-'+mode+'-pushed.json')
+   if previous.exists():
+    once(c+'-'+mode+'-original-pushed-proof-reused.json',json.loads(previous.read_text()))
+   else:
+    assert not (OLD/(c+'-'+mode+'-push.intent.json')).exists(),'Old uncertain push needs separate read-only reconciliation'
+    once(c+'-'+mode+'-push.intent.json',{'maximum_pushes':1,'original_phase_never_attempted':True})
+    while True:
+     out=call('push',c,mode)
+     if out['status']!='waiting_actual_capacity_or_current_complete_VM_caps_no_mutation':break
+     advance();wait()
+    assert out['status']=='one_exact_matched_final_'+mode+'_pushed';once(c+'-'+mode+'-pushed.json',out)
+   while True:
+    out=call('status',c,mode)
+    if out['status']=='COMPLETE':break
+    assert out['status'] not in {'ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'},'Actual public/qualification failure: '+json.dumps(out)
+    assert out['status'] in (None,'RUNNING','QUEUED','INITIALIZING','STARTING','UNKNOWN');advance();wait()
+   assert 'receipt' in out;once(c+'-'+mode+'-actual-accepted.json',out)
+   if mode=='competition':ready.add(c);advance()
+ while len(scored)<3:
+  if not advance():wait(300)
+ record({'status':'three_original_matched_fixed_finals_actually_scored','maximum_new_entries':3},True)
+except BaseException as e:
+ record({'status':'finite_successor_stopped_preserve_all_originals','reason':str(e),'no_uncertain_retry':True,'healthy_original_GPU_or_dataset_unchanged':True},True);raise

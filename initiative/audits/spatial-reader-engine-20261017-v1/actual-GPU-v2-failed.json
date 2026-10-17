@@ -1,0 +1,24 @@
+{
+  "status": "actual_GPU_v2_launch_environment_failure_before_first_optimizer_update",
+  "GPU_job": "950196",
+  "CPU_collector": "950310",
+  "node": "evc40",
+  "actual_Slurm_terminal": "FAILED1:0/18seconds",
+  "actual_device": {
+    "GPU_job": "950196",
+    "source_git": "f6719ba86ff5fb2e3fcc2ae6868bc5a46cc143d5",
+    "actual_device": "NVIDIA H100 PCIe",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "torch_version": "2.14.0+cu130",
+    "CUDA_version": "13.0",
+    "diagnostic_only": true,
+    "full_fit_authority": false
+  },
+  "optimizer_updates": 0,
+  "progress_records": {},
+  "error": "Triton native bmm_outer_product backward could not compile driver.c: Python.h missing from compiler search path. The wrapper omitted CPATH used by the existing original native trainers.",
+  "existing_header_path": "/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12",
+  "scientific_source_or_recipe_changed": false,
+  "accuracy_or_data_failure_inferred": false,
+  "next": "Distinct wrapper with original CPATH and node-local Triton/inductor caches, after actual header/budget/source checks; no repeat of completed optimizer work."
+}

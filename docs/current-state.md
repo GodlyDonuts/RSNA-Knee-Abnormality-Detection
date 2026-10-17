@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October17,2026,19:17UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
+**Verified October17,2026,20:15UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -27,10 +27,69 @@ The fresh inventory found one momentarily idle usable H100 on evc46;
 remaining non-reserved eligible H100s were allocated. Existing native inputs
 and runtime are owning-node assets on evc33; fresh remote staging is required
 before moving an inference/trainer to another node. The first
-spatial scout949626was actually PREEMPTED after91seconds, preserving26/32studies
-and1912windows. No full scout acceptance or new accuracy is claimed.
+spatial scout949626was PREEMPTED after26studies; recovery949735completed
+all32 and was independently accepted. Current real-reader GPU950196 is pending;
+its source/inputs are admitted on evc33/40, without a new accuracy claim.
 
-## Latest execution, October 17, 19:17 UTC
+## Latest execution, October17 20:15UTC
+
+Best actual public AUC remains **0.950** (released S6 reproduction); our own N3E16
+is **0.894**. No new leaderboard gain or completed spatial-reader fit is claimed.
+The owner's expanded H100 authorization is active: use useful accessible
+physical1/2-GPU nodes; physical4-/8-GPU nodes are excluded, even for1GPU requests.
+
+The **new full-map spatial reader is implemented** in `spatial_reader`,
+`spatial_data` and `spatial_train`: learned1024→64 projection, twelve evidence
+channels, shared image/nuisance paths and within-acquisition joint evidence,
+with a zero-start **unbounded** residual over the frozen original N3E16. Both
+arms use75%original observed binary report supervision/25%parent on observed
+cells; missing cells retain detached parent targets. This is a new shared
+recipe, not a causal comparison to the old context loss. The main null preserves
+weighted marginals/observed tokens/padding/no-self constraints and intentionally
+randomizes geometric positive edges. The older exact-positive-edge null tests
+weights only and is retained as a separate diagnostic. Cross-plane registration
+and lesion localization remain unqualified.
+
+Actual CPU950079 admitted all32original studies/2345windows, with weighted-degree
+error2.794e-9; CPU950100 admitted16fitting target/mask arrays and16disjoint
+prediction-only outer inputs.33focused tests and118-module mypy passed. Full
+source-frozen suite is finishing; inspect its actual result before publication.
+These are engineering results, not clinical accuracy. **GPU950196 is PENDING
+(Resources)** for the same real full/stop1/resume numerical checks on both arms
+and an actual online-versus-cached complete-state/CSV comparison. Its exact
+source is f6719ba8; workerSHA b49895ea…. Both evc33/40 have the original native
+cache/runtime and actual32source graphs admitted (CPU950192/950191). The first
+27private feature files were reused after an access-time guard stopped their
+transfer; only remaining8members were continued and verified (CPU950171).
+No140GBnative cache or runtime was retransferred. Previous950125 was cancelled
+**only while PENDING**, terminalCANCELLED/zero seconds. Never repeat either job.
+Only the one950196experiment is scheduled; every other inventory node, including
+all physical4-/8-GPU nodes, is explicitly excluded. The3epoch/843update full
+matched comparison has a prepared wrapper, **not a submitted production run**.
+
+All16old N3 publications/terminal bindings were reconciled by CPU950039 without
+repeating bulk hashes or downloads. Only8GiBof demonstrably unused old24GiBfuture
+allowance was retired, retaining16GiB/all originals; no deletion credit. Future
+node33 gates use603433009211B plus unpaid original3GiB spatial envelope; do not
+subtract8GiBagain. Node40 uses the conservative612022943803B floor and its own
+new3GiB envelope, without applying the node33 retirement there. Existing512MiB
+reader budget retains8MiBCPU+64MiBoldGPU+64MiBnewGPU controls, leaving376MiB for
+later fitting/publication. Actual resources still govern every action.
+
+Original finite scoring78386 stopped on an obsolete resource floor; cached-MIL
+follower10613 then stopped as designed. **Neither is still live; never restart
+them.** Independent canonical read-only reconciliation CPU950158 verified
+uniform public139269448v1 COMPLETE, exact source24af4c2f…/model ed35463c…,
+bothT4s/17.8685seconds, six MRI views/no fallbacks and exact3×13CSV470bytes/SHA
+faa20e95…. This is **not a competition entry or hidden score**. The finite
+successor is prepared to reuse the original completed phases and canonical
+ledger, retaining fresh allowance, actual prior outcomes, allVM limits and
+single-attempt guards; inspect its actual dispatch before claiming it is live.
+Read-only exact-reference observer25736 remains separate.
+
+[Exact source, controls, failures, resource reconciliation and receipts](../initiative/audits/spatial-reader-engine-20261017-v1/README.md).
+
+## Prior execution, October 17, 19:17 UTC
 
 Best measured public AUC remains **0.950**, reproduced S6 entry57300990;
 own independently MRI-trained N3E16 is **0.894**. Target0.97 is unachieved.

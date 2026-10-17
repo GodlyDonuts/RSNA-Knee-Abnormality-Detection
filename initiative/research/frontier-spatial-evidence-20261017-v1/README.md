@@ -6,6 +6,19 @@ this workspace. No claim is made to have executed that supplied bundle. Its
 three assignments are research proposals; execution remains one coordinated
 program without spawning new agents or interrupting existing scorers.
 
+## Current implementation, October17 20:15UTC
+
+[The full reader and real-engine qualification](../../audits/spatial-reader-engine-20261017-v1/README.md)
+now supersede the early prepared-scout language below. The scout completed32cases;
+new numerical reader/providers/trainer are implemented with33focused checks and
+actual input gates. Single GPU950196 remains pending on evc33/40. The principal
+null now preserves degrees/observed tokens/structural exclusions while
+randomizing geometric edges: an exact-positive-edge null retains topology and
+therefore tests only weights. Both are preserved and distinguished. No new
+clinical result or full-reader fitting is claimed. The3epoch843update production
+wrapper is prepared, not dispatched. Earlier source claims below are historical
+mathematical facts, not the current main-null or execution contract.
+
 ## What changes
 
 Preserve spatial tokens **before** their global/regional reduction. This is a

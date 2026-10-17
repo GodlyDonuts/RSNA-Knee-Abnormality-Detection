@@ -1,0 +1,209 @@
+"""Exact actual-engine cached/online MRI recovery; never a clinical experiment."""
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+T = R / 'reader-engine-recovery-v3'
+CODE = R / 'reader-engine-recovery-v2/code'
+A = Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')
+INDEX_SHA = 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+PARENT_SHA = '5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5'
+RETIRE_SHA = 'f7a39ef29040ff8e922c8325fe515ff2d6aa773e8a04dcd355ebd69aefcc9e4a'
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def cap():
+    paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+    assert paid < 3 * 2**30
+    floor=603433009211 if os.uname().nodename=='evc33' else 612022943803
+    assert shutil.disk_usage('/tmp').free > floor + max(0, 3 * 2**30 - paid)
+    assert sum(p.stat().st_size for p in T.rglob('*') if p.is_file()) < 120 * 2**20
+    return paid
+
+
+def prepare():
+    assert os.uname().nodename in {'evc33','evc40'}
+    admission = json.loads((T / 'admitted.json').read_text())
+    assert sha(__file__) == admission['worker_sha256']
+    assert sha(R / 'original-N3-unused8GiB-retirement-v1.json') == RETIRE_SHA
+    assert sha(R / 'pilot-recovery-v2-accepted.json') == INDEX_SHA
+    for name, digest in admission['source_files_sha256'].items():
+        assert sha(CODE / name) == digest
+    sys.path[:0] = [str(CODE), '/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+    import torch
+    assert torch.cuda.is_available() and torch.cuda.device_count() == 1
+    assert 'H100' in torch.cuda.get_device_name(0)
+    torch.ones(1, device='cuda'); torch.cuda.synchronize()
+    torch.set_num_threads(2)
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = True  # unchanged original scout default
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    assert os.environ['CUBLAS_WORKSPACE_CONFIG'] == ':4096:8'
+    assert os.environ['CPATH']=='/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12'
+    assert (Path(os.environ['CPATH'])/'Python.h').is_file()
+    assert os.environ['TRITON_CACHE_DIR']==str(T/'triton') and os.environ['TORCHINDUCTOR_CACHE_DIR']==str(T/'inductor')
+    cap()
+    return admission
+
+
+def identical(first, second, path='root'):
+    import numpy as np
+    import torch
+    if isinstance(first, torch.Tensor):
+        assert isinstance(second, torch.Tensor) and first.dtype == second.dtype and torch.equal(first, second), path
+    elif isinstance(first, np.ndarray):
+        assert isinstance(second, np.ndarray) and first.dtype == second.dtype and np.array_equal(first, second), path
+    elif isinstance(first, dict):
+        assert isinstance(second, dict) and first.keys() == second.keys(), path
+        for key in first: identical(first[key], second[key], path + '.' + str(key))
+    elif isinstance(first, (tuple, list)):
+        assert type(first) is type(second) and len(first) == len(second), path
+        for i, (a, b) in enumerate(zip(first, second)): identical(a, b, path + '.' + str(i))
+    else:
+        assert type(first) is type(second) and first == second, path
+
+
+def parent_digest(parent):
+    value = hashlib.sha256()
+    for name, tensor in parent.state_dict().items():
+        array = tensor.detach().cpu().contiguous().numpy()
+        value.update(name.encode()); value.update(str(array.dtype).encode())
+        value.update(json.dumps(list(array.shape)).encode()); value.update(array.tobytes())
+    return value.hexdigest()
+
+
+def inputs(admission, mode):
+    import numpy as np
+    import pandas as pd
+    import torch
+    from rsna.competitive.data import CompetitiveStudyDataset
+    from rsna.competitive.spatial_data import CachedSpatialData, OnlineSpatialData
+    from rsna.competitive.compact_infer import load_model
+    from rsna.schema import TARGETS
+    rows = json.loads((R / 'pilot-recovery-v2-accepted.json').read_text())['private_records']
+    original = json.loads((R / 'admitted.json').read_text())
+    if os.uname().nodename=='evc40':
+        staged=json.loads((R/'alternate-node-staging-verified.json').read_text())
+        assert staged['status']=='actual_evc40_private32_spatial_inputs_original_N3E16_parent_whole_transfer_verified' and staged['GPU_or_optimizer_ran'] is False
+        original['native_cache']='/tmp/rsna-final-public-source-fit-evc40-20261013-v1/cache'
+        original['checkpoint']=str(R/'parent/epoch-checkpoints/epoch-016.pt')
+    membership = json.loads((R / 'membership.private.json').read_text())
+    fit_ids = membership['fitting']; outer_ids = membership['outer']
+    assert len(fit_ids) == 2247 and len(outer_ids) == 1156 and not (set(fit_ids) & set(outer_ids))
+    assert all(hashlib.sha256(json.dumps(ids).encode()).hexdigest() == original[role + '_uids_sha256'] for role, ids in membership.items())
+    by_role = {role: [x for x in rows if x['role'] == role] for role in ('fitting', 'outer')}
+    assert all([x['study_uid'] for x in by_role[role]] == membership[role][:16] for role in by_role)
+    label_path = A / 'initiative/releases/report-supervision-v1/studies.parquet'
+    parent_binding = json.loads((Path(original['checkpoint']).parents[1] / 'run.json').read_text())['binding']
+    assert sha(label_path) == parent_binding['release']['manifest_sha256']
+    ids = [x['study_uid'] for x in by_role['fitting']]
+    columns = ['study_uid', *TARGETS, *[x + '__mask' for x in TARGETS]]
+    labels = pd.read_parquet(label_path, columns=columns, filters=[('study_uid', 'in', ids)])
+    assert len(labels) == 16 and not labels.study_uid.duplicated().any()
+    labels = labels.set_index('study_uid').loc[ids].reset_index()
+    lab = labels[list(TARGETS)].to_numpy(dtype=np.float32)
+    mask = labels[[x + '__mask' for x in TARGETS]].to_numpy(dtype=np.float32)
+    assert np.isin(mask, [0, 1]).all() and np.isin(lab[mask.astype(bool)], [0, 1]).all()
+    lab = np.where(mask, lab, 0).astype(np.float32)
+    data_binding = {'original_private_index_sha256': INDEX_SHA, 'parent_checkpoint_sha256': PARENT_SHA,
+                    'original_source_labels_sha256': sha(label_path), 'fitting16_labels_masks_sha256': hashlib.sha256(lab.tobytes() + mask.tobytes()).hexdigest(),
+                    'original_source2247_fitting_roster_sha256': original['fitting_uids_sha256'], 'original_source1156_outer_roster_sha256': original['outer_uids_sha256'],
+                    'fixed_input': {'side':384,'slices':16,'max_series':6,'precision':'float32','chunk_size':12},
+                    'diagnostic_only': True, 'seed':20261017}
+    # Clinical values are loaded for the 16 fitting cases only. The engineering
+    # outer provider has no target columns and is never evaluated for accuracy.
+    source_frames = {'fitting':labels, 'outer':pd.DataFrame({'study_uid':[x['study_uid'] for x in by_role['outer']]})}
+    cached = {role: CachedSpatialData(R/'features', by_role[role], lab if role == 'fitting' else np.zeros((16,12),np.float32), mask if role == 'fitting' else np.zeros((16,12),np.float32), {**data_binding,'role':role}, seed=20261017) for role in by_role}
+    if mode == 'cached': return cached, None, None
+    assert mode == 'online'
+    parent, policy = load_model(Path(original['checkpoint']), PARENT_SHA, precision='float32', device=torch.device('cuda'))
+    assert policy['epoch'] == 16 and policy['optimizer_steps'] == 4496 and policy['competition_eligible']
+    before = parent_digest(parent)
+    series = pd.read_csv(original['series_path'])
+    assert sha(original['series_path']) == parent_binding['release']['series_sha256']
+    online = {role: OnlineSpatialData(CompetitiveStudyDataset(source_frames[role], series, Path(original['native_cache']), side=384, slices=16, max_series=6, augment=False, soft_targets=False), parent, cached[role].binding, seed=20261017, chunk_size=12) for role in by_role}
+    # This is the provider substitution being tested; exact equality is required
+    # before fitting, including full maps, geometry operators, logits and masks.
+    start = time.monotonic()
+    maximum = 0.0
+    for role in by_role:
+        for i in range(16):
+            actual, expected = online[role][i], cached[role][i]
+            assert actual['study_uid'] == expected['study_uid']
+            for key in ('maps', 'base_logits', 'labels', 'label_mask'):
+                a,b=actual[key].cpu(),expected[key].cpu()
+                maximum=max(maximum,float((a.float()-b.float()).abs().max()))
+                assert torch.equal(a,b), 'original cached/online MRI tensor differs: ' + key
+            assert actual['plan'].metadata_sha256 == expected['plan'].metadata_sha256
+            assert len(actual['plan'].groups) == len(expected['plan'].groups)
+            for a,b in zip(actual['plan'].groups,expected['plan'].groups):
+                assert a.kind == b.kind and np.array_equal(a.first,b.first) and np.array_equal(a.second,b.second)
+                assert torch.equal(a.aligned,b.aligned) and torch.equal(a.control,b.control)
+    assert parent_digest(parent) == before
+    (T/'online-inputs-exact.json').write_text(json.dumps({'status':'actual32_online_full_map_base_input_and_operator_exact','GPU_job':os.environ['SLURM_JOB_ID'],'cases':32,'maximum_absolute_tensor_difference':maximum,'elapsed_seconds':time.monotonic()-start,'parent_all_parameter_buffer_fingerprint':before,'outer_clinical_targets_read':False})+'\n')
+    return online, parent, before
+
+
+def worker(admission, mode, arm, phase):
+    import torch
+    from rsna.competitive.spatial_train import SpatialRecipe, SpatialTrainer
+    data,parent,before = inputs(admission, mode)
+    recipe = SpatialRecipe(epochs=2)
+    binding = {'diagnostic_only': True, 'source_git':admission['source_git'], 'source_manifest_sha256':admission['source_manifest_sha256'], 'original_base_sha256':PARENT_SHA, 'production_eligible':False}
+    engine = SpatialTrainer(data['fitting'], recipe, arm=arm, device=torch.device('cuda'), binding=binding)
+    output=T/(mode+'-'+arm+('-replay' if phase in {'stop','resume'} else '-full'))
+    initial_reader=parent_digest(engine.model)
+    result=engine.fit(output, resume=phase=='resume', stop_after=1 if phase=='stop' else None)
+    (output/'initial-reader.json').write_text(json.dumps({'state_sha256':initial_reader})+'\n')
+    if phase!='stop':
+        assert result['completed']==4 and len(engine.history)==4
+        assert engine.history[0]['projection_gradient_norm']==0 and engine.history[-1]['projection_gradient_norm']>0
+        frame=engine.predictions(data['outer']);assert frame.shape==(16,13)
+        frame.to_csv(output/'predictions-private.csv',index=False)
+    if parent is not None:
+        assert parent_digest(parent)==before and not parent.training and not any(p.requires_grad for p in parent.parameters())
+        (output/'frozen-parent-exact.json').write_text(json.dumps({'all_parameters_buffers_exact':True,'fingerprint':before})+'\n')
+    cap()
+    print(json.dumps({'phase':mode+'-'+arm+'-'+phase,'status':result['status'],'actual_finite_updates':engine.completed,'GPU_job':os.environ['SLURM_JOB_ID']}),flush=True)
+
+
+def main():
+    admission = prepare()
+    if len(sys.argv)>1:
+        assert len(sys.argv)==4
+        worker(admission,*sys.argv[1:]);return
+    import torch
+    assert not (T/'run-start.json').exists() and not (T/'accepted.json').exists()
+    start=time.monotonic()
+    (T/'run-start.json').write_text(json.dumps({'GPU_job':os.environ['SLURM_JOB_ID'],'source_git':admission['source_git'],'actual_device':torch.cuda.get_device_name(0),'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'torch_version':str(torch.__version__),'CUDA_version':torch.version.cuda,'diagnostic_only':True,'full_fit_authority':False})+'\n')
+    for arm in ('aligned','null'):
+        for phase in ('full','stop','resume'):
+            subprocess.run([sys.executable,'-B',__file__,'cached',arm,phase],check=True)
+        first,second=T/('cached-'+arm+'-full'),T/('cached-'+arm+'-replay')
+        a,b=[torch.load(p/'checkpoint.pt',map_location='cpu',weights_only=True) for p in (first,second)]
+        identical(a,b)
+        for epoch in (1,2): identical(torch.load(first/'epoch-checkpoints'/f'epoch-{epoch:03d}.pt',map_location='cpu',weights_only=True),torch.load(second/'epoch-checkpoints'/f'epoch-{epoch:03d}.pt',map_location='cpu',weights_only=True))
+        assert (first/'predictions-private.csv').read_bytes()==(second/'predictions-private.csv').read_bytes()
+    subprocess.run([sys.executable,'-B',__file__,'online','aligned','full'],check=True)
+    cached,online=T/'cached-aligned-full',T/'online-aligned-full'
+    identical(torch.load(cached/'checkpoint.pt',map_location='cpu',weights_only=True),torch.load(online/'checkpoint.pt',map_location='cpu',weights_only=True))
+    assert (cached/'predictions-private.csv').read_bytes()==(online/'predictions-private.csv').read_bytes()
+    assert (T/'cached-aligned-full/initial-reader.json').read_bytes()==(T/'cached-null-full/initial-reader.json').read_bytes()
+    assert (T/'cached-aligned-full/initial-reader.json').read_bytes()==(T/'online-aligned-full/initial-reader.json').read_bytes()
+    histories={arm:torch.load(T/('cached-'+arm+'-full')/'checkpoint.pt',map_location='cpu',weights_only=True)['history'] for arm in ('aligned','null')}
+    receipt={'status':'actual_real_MRI_reader_cached_recovery_and_online_engine_exact','GPU_job':os.environ['SLURM_JOB_ID'],'source_git':admission['source_git'],'source_manifest_sha256':admission['source_manifest_sha256'],'original_base_sha256':PARENT_SHA,'original_input_index_sha256':INDEX_SHA,'fitting_engineering_studies':16,'disjoint_outer_prediction_only_studies':16,'epochs':2,'updates_per_full':4,'arms':['aligned','null'],'complete_model_AdamW_LR_cursor_order_allRNG_history_epoch_checkpoint_and_CSV_recovery_exact':True,'online_cached_full_model_optimizer_rng_history_and16x12_CSV_exact':True,'full_maps_base_geometry_inputs_exact':True,'frozen_parent_all_parameters_buffers_exact':True,'updates':histories,'elapsed_seconds':time.monotonic()-start,'diagnostic_only':True,'clinical_accuracy_or_full_production_admission':False,'peak_parent_GPU_bytes':torch.cuda.max_memory_allocated(),'new_root_cap_bytes':120*2**20,'within_original512MiB_reader_envelope':True,'no_competition_entry_or_full_fit':True}
+    cap();(T/'accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
+
+
+if __name__=='__main__':main()
