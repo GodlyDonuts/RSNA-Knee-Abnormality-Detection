@@ -1,0 +1,96 @@
+"""Verify three-way readout against known AUCs and an original4000-draw result."""
+import csv
+import hashlib
+import json
+from pathlib import Path
+import runpy
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+
+from rsna.schema import TARGETS
+
+ROOT = Path.cwd()
+D = ROOT / 'initiative/audits/spatial-reader-fixed-final-20261017-v1'
+analysis = runpy.run_path(str(D / 'analyze_once.py.txt'))
+library = analysis['module'](ROOT / 'scripts/rank_learning.py', 'original_component_bootstrap_analysis_check')
+paired = analysis['paired_metrics']
+rng = np.random.default_rng(721)
+for _ in range(30):
+    y = np.r_[0, 1, rng.integers(0, 2, 16)]
+    scores = rng.integers(0, 5, len(y)) / 4
+    weights = rng.integers(1, 4, len(y))
+    assert abs(library.weighted_auc(library.auc_plan(y, scores), weights) - roc_auc_score(y, scores, sample_weight=weights)) < 1e-14
+ids = ['synthetic-' + str(i) for i in range(8)]
+truth = np.array([0, 0, 1, 1, 0, 0, 1, 1])
+labels = pd.DataFrame({'leakage_group': np.repeat(['a', 'b', 'c', 'd'], 2)}, index=ids)
+for t in TARGETS:
+    labels[t] = truth
+    labels[t + '__mask'] = 1
+good = pd.DataFrame({t: .1 + .8 * truth for t in TARGETS}, index=ids)
+bad = 1 - good
+models = {'aligned': good, 'null': bad, 'parent': bad}
+result = paired(labels, models, library, draws=128, seed=721)
+assert result['macro_auc'] == {'aligned': 1., 'null': 0., 'parent': 0.}
+assert result['contrasts']['aligned_minus_null']['macro_delta'] == 1.
+assert result['contrasts']['aligned_minus_null']['macro_uncertainty']['percentile_95'] == [1., 1.]
+assert 0 < result['contrasts']['aligned_minus_null']['macro_uncertainty']['undefined_draws'] < 128
+assert result['contrasts']['null_minus_parent']['macro_uncertainty']['percentile_95'] == [0., 0.]
+assert result == paired(labels, {k: v.iloc[::-1] for k, v in models.items()}, library, draws=128, seed=721)
+masked = labels.copy()
+masked[TARGETS[-1] + '__mask'] = 0
+masked[TARGETS[-1]] = np.nan
+empty_target = paired(masked, models, library, draws=128, seed=721)
+assert all(x['macro_delta'] is None and x['macro_uncertainty']['undefined_draws'] == 128 for x in empty_target['contrasts'].values())
+assert empty_target['targets'][-1]['observed_studies'] == 0
+refusals = 0
+for case in range(10):
+    y = labels.copy()
+    m = {k: x.copy() for k, x in models.items()}
+    kwargs = {'draws': 128, 'seed': 721}
+    if case == 0: m.pop('parent')
+    elif case == 1: m['aligned'] = m['aligned'].iloc[1:]
+    elif case == 2: m['null'].index = ['duplicated'] * 8
+    elif case == 3: m['parent'].iloc[0, 0] = np.nan
+    elif case == 4: m['aligned'].iloc[0, 0] = 1.01
+    elif case == 5:
+        y[TARGETS[0] + '__mask'] = y[TARGETS[0] + '__mask'].astype(float)
+        y.iloc[0, y.columns.get_loc(TARGETS[0] + '__mask')] = .5
+    elif case == 6:
+        y[TARGETS[0]] = y[TARGETS[0]].astype(float)
+        y.iloc[0, y.columns.get_loc(TARGETS[0])] = .5
+    elif case == 7: y.iloc[0, 0] = None
+    elif case == 8: kwargs['draws'] = 0
+    elif case == 9: kwargs['seed'] = -1
+    try:
+        paired(y, m, library, **kwargs)
+    except ValueError:
+        refusals += 1
+    else:
+        raise AssertionError('Invalid analysis input accepted: ' + str(case))
+assert refusals == 10
+
+# Replay the already completed original sampling comparison, not the new reader.
+old = ROOT / 'initiative/audits/sampling-fixed-final-v1'
+expected = json.loads((old / 'comparison.json').read_text())
+uniform = pd.read_csv(old / 'uniform/outer_predictions.csv').set_index('study_uid').sort_index()
+stratified = pd.read_csv(old / 'stratified/outer_predictions.csv').set_index('study_uid').sort_index()
+keep = set(uniform.index)
+with (ROOT / 'initiative/releases/report-supervision-v1/study_labels.csv').open(newline='') as f:
+    records = [r for r in csv.DictReader(f) if r['study_uid'] in keep]
+old_labels = pd.DataFrame(records).set_index('study_uid').loc[uniform.index]
+for t in TARGETS:
+    old_labels[t] = pd.to_numeric(old_labels[t], errors='coerce')
+    old_labels[t + '__mask'] = pd.to_numeric(old_labels[t + '__mask'])
+actual = paired(old_labels, {'aligned': stratified, 'null': uniform, 'parent': uniform}, library, draws=4000, seed=20261001)
+contrast = actual['contrasts']['aligned_minus_null']
+assert abs(actual['macro_auc']['aligned'] - expected['stratified_macro_auc']) < 1e-12
+assert abs(actual['macro_auc']['null'] - expected['uniform_macro_auc']) < 1e-12
+assert contrast['macro_uncertainty'] == expected['macro_delta_uncertainty']
+for got, previous in zip(contrast['targets'], expected['targets'], strict=True):
+    assert got['target'] == previous['target'] and abs(got['delta'] - previous['delta']) < 1e-12
+    assert got['uncertainty'] == previous['paired_delta_uncertainty']
+out = {'status': 'separate_fixed_final_three_way_CPU_analysis_checks_passed', 'analysis_sha256': hashlib.sha256((D / 'analyze_once.py.txt').read_bytes()).hexdigest(), 'helper_sha256': hashlib.sha256((ROOT / 'scripts/rank_learning.py').read_bytes()).hexdigest(), 'random_weighted_tie_AUC_cases_matching_sklearn': 30, 'synthetic_perfect_reverse_identical_paired_predictions_and_component_undefined_draws_passed': True, 'permuted_prediction_rows_align_exactly': True, 'unobserved_target_kept_all128_macro_draws_undefined': True, 'invalid_input_refusals': refusals, 'original_sampling4000_draw_all12_point_intervals_and_undefined_counts_reproduced_exactly': True, 'original_comparison_sha256': hashlib.sha256((old / 'comparison.json').read_bytes()).hexdigest(), 'current_spatial_reader_result_inferred': False, 'no_new_training_or_accuracy_claim': True}
+(D / 'analysis-controls.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

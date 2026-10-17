@@ -1,0 +1,48 @@
+"""Finite follower of actual original fitting and six verified epoch publications."""
+import hashlib,json,os,shlex,subprocess,time
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2];os.chdir(ROOT)
+D=ROOT/'initiative/audits/spatial-reader-fixed-final-20261017-v1'
+L=ROOT/'artifacts/spatial-reader-fixed-final-20261017-v1'
+PRESERVE=ROOT/'artifacts/spatial-reader-full-preservation-20261017-v1'
+S='/tmp/rsna-research-20261001-stable.sock'
+E='/tmp/rsna-criterion-N3-features-20261017-v1/reader-fixed-final-v1'
+P='/tmp/rsna-criterion-N3-features-20261017-v1/reader-production-v1'
+admit=json.loads((D/'actual-CPU-admitted.json').read_text());assert admit['status']=='separate_fixed_final_CPU_only_analysis_original_source_and_funding_admitted'
+assert hashlib.sha256((D/'analyze_once.py.txt').read_bytes()).hexdigest()==admit['analysis_sha256'] and hashlib.sha256((ROOT/'scripts/rank_learning.py').read_bytes()).hexdigest()==admit['helper_sha256']
+assert not (L/'finish.intent.json').exists();L.mkdir(mode=0o700,parents=True,exist_ok=True)
+START=time.monotonic();MAXIMUM=24*3600
+def new(p,v):
+ with p.open('x') as f:json.dump(v,f,indent=2,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
+def record(v,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-START,**v};p=L/('finish.result.json' if terminal else 'finish.progress.json');t=p.with_suffix('.tmp');t.write_text(json.dumps(out,indent=2)+'\n');t.replace(p);print(json.dumps(out),flush=True)
+new(L/'finish.intent.json',{'PID':os.getpid(),'maximum_wall_seconds':MAXIMUM,'original_GPU_jobs':['950679','950680'],'maximum_new_CPU_analysis_jobs':1,'GPU_training_restart_or_mutation_authority':False,'automatic_uncertain_retry':False,'accepted_analysis':admit})
+try:
+ while time.monotonic()-START<MAXIMUM:
+  try:
+   x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','-o','ConnectTimeout=8','newton','sacct -j 950679,950680 -X -n -P -o JobIDRaw,State,ExitCode,NodeList'],capture_output=True,text=True,timeout=25)
+   if x.returncode:
+    record({'status':'observation_unavailable_no_mutation_no_terminal_inference'});time.sleep(120);continue
+  except subprocess.TimeoutExpired:
+   record({'status':'read_only_observation_timeout_same_original_jobs_preserved'});time.sleep(120);continue
+  rows={r[0]:r for line in x.stdout.splitlines() if len(r:=line.split('|'))>=4};assert {'950679','950680'}<=rows.keys(),'Original job states missing; no inference of failure'
+  assert all(rows[j][1] in {'PENDING','RUNNING','COMPLETING','COMPLETED'} for j in ('950679','950680')),'Actual original job terminal failure; do not analyze or restart'
+  if not all(rows[j][1:]==['COMPLETED','0:0','evc40'] for j in ('950679','950680')):
+   record({'status':'waiting_actual_original_full_terminals','original_jobs':rows});time.sleep(120);continue
+  result=PRESERVE/'owner.result.json'
+  if not result.exists():
+   process=subprocess.run(['ps','-p','85548','-o','command='],capture_output=True,text=True)
+   assert process.returncode==0 and str(PRESERVE/'preserve_once.py') in process.stdout,'Original preservation handle missing; inspect its journals read-only'
+   record({'status':'waiting_original_live_preservation_owner_all6_private_proofs'});time.sleep(120);continue
+  prior=json.loads(result.read_text());assert prior['status']=='both_original_full_arms_complete_all6_epochs_privately_verified','Original preservation did not complete; reconcile its actual state'
+  assert len(list(PRESERVE.glob('*-actual-verified.json')))==6 and not (L/'analysis.intent.json').exists()
+  new(L/'analysis.intent.json',{'actual_original_GPU_states':rows,'analysis_sha256':admit['analysis_sha256'],'helper_sha256':admit['helper_sha256'],'actual_all6_private_preservation':prior,'maximum_analysis_dispatches':1,'automatic_retry':False})
+  shell="set -euo pipefail; test ! -e "+shlex.quote(E+'/comparison.json')+"; export CUDA_VISIBLE_DEVICES='' PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH="+shlex.quote(P+'/code')+"; "+shlex.join(['/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B',E+'/analyze.py','--helper',E+'/rank_learning.py','--helper-sha',admit['helper_sha256'],'--output',E+'/comparison.json'])
+  args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc40','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-spatial-fixed-final-analysis','/bin/bash','-c',shell]
+  x=subprocess.run(['ssh','-S',S,'-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=1000)
+  new(L/'analysis.result.json',{'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr});assert x.returncode==0,'CPU analysis failed or uncertain; inspect original output, never retry blindly'
+  out=json.loads(x.stdout);assert out['status']=='actual_fixed_final_spatial_reader_three_way_original_result_replayed_with_paired_whole_component_uncertainty' and out['analysis_sha256']==admit['analysis_sha256'] and out['metrics']['studies']==1156
+  new(D/'actual-comparison.json',out);record({'status':'actual_fixed_final_three_way_analysis_completed','CPU_job':out['CPU_job'],'macro_auc':out['metrics']['macro_auc'],'three_paired_contrasts':{k:{'delta':v['macro_delta'],'uncertainty':v['macro_uncertainty']} for k,v in out['metrics']['contrasts'].items()},'automatic_promotion':False},True);break
+ else:record({'status':'finite_analysis_owner_expired_preserve_originals','automatic_retry':False},True)
+except BaseException as e:
+ record({'status':'finite_analysis_owner_stopped_preserve_all_originals','reason':str(e),'automatic_uncertain_retry':False},True);raise

@@ -1,0 +1,204 @@
+"""Fixed-final three-way spatial-reader audit; aggregate output only.
+
+This separate CPU observer never changes the frozen trainer, selects an epoch,
+fits a model, reads protected labels or exports study-level predictions.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+import numpy as np
+import pandas as pd
+
+from rsna.model import auc_metrics
+from rsna.schema import TARGETS
+
+ROLES = ('aligned', 'null', 'parent')
+CONTRASTS = (('aligned', 'null'), ('aligned', 'parent'), ('null', 'parent'))
+SOURCE = 'ee045885c20a2e51ca411657d5f07242078be064'
+ROOT = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+PRODUCTION = ROOT / 'reader-production-v1'
+ACCEPTED = Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')
+JOBS = {'aligned': '950679', 'null': '950680'}
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def module(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    obj = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(obj)
+    return obj
+
+
+def same(left, right):
+    import torch
+    if isinstance(left, torch.Tensor):
+        return isinstance(right, torch.Tensor) and left.dtype == right.dtype and left.shape == right.shape and torch.equal(left, right)
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(same(v, right[k]) for k, v in left.items())
+    if isinstance(left, (list, tuple)):
+        return len(left) == len(right) and all(same(a, b) for a, b in zip(left, right, strict=True))
+    return left == right
+
+
+def paired_metrics(labels, models, library, *, draws=4000, seed=20261017):
+    if type(draws) is not int or draws < 100 or type(seed) is not int or not 0 <= seed < 2**32:
+        raise ValueError('A fixed positive bootstrap plan is required')
+    if not len(labels) or set(models) != set(ROLES) or not labels.index.is_unique or labels.leakage_group.isna().any() or labels.leakage_group.eq('').any():
+        raise ValueError('Three exact model roles and complete unique component membership required')
+    arrays = {}
+    for role, frame in models.items():
+        if not frame.index.is_unique or set(frame.index) != set(labels.index):
+            raise ValueError('Prediction study membership differs')
+        values = frame.loc[labels.index, list(TARGETS)].to_numpy(float)
+        if not np.isfinite(values).all() or (values < 0).any() or (values > 1).any():
+            raise ValueError('Finite probabilities required')
+        arrays[role] = values
+    plans, points, targets = [], {r: [] for r in ROLES}, []
+    for j, target in enumerate(TARGETS):
+        observed = labels[target + '__mask'].to_numpy()
+        if not np.isin(observed, [0, 1]).all():
+            raise ValueError('Original binary observation masks required')
+        mask = observed == 1
+        truth = labels.loc[mask, target].to_numpy(float)
+        if not np.isfinite(truth).all() or not np.isin(truth, [0, 1]).all():
+            raise ValueError('Original observed binary labels required')
+        plan = {r: library.auc_plan(truth, x[mask, j]) if len(truth) else None for r, x in arrays.items()}
+        values = {r: library.weighted_auc(p, np.ones(len(truth))) if p is not None else None for r, p in plan.items()}
+        for role in ROLES:
+            points[role].append(values[role])
+        targets.append({'target': target, 'auc': values, 'observed_studies': int(mask.sum()), 'positive_studies': int(truth.sum()), 'negative_studies': int(len(truth) - truth.sum()), 'positive_components': int(labels.loc[mask & labels[target].eq(1), 'leakage_group'].nunique()), 'negative_components': int(labels.loc[mask & labels[target].eq(0), 'leakage_group'].nunique())})
+        plans.append((mask, plan))
+    macro = {r: float(np.mean(v)) if all(x is not None for x in v) else None for r, v in points.items()}
+    rng = np.random.default_rng(seed)
+    samples = {a + '_minus_' + b: {'targets': [[] for _ in TARGETS], 'macro': []} for a, b in CONTRASTS}
+    draw_sha = hashlib.sha256()
+    for _ in range(draws):
+        weights = library.component_weights(labels.leakage_group.to_list(), rng)
+        draw_sha.update(weights.astype('<i8').tobytes())
+        differences = {key: [] for key in samples}
+        for j, (mask, plan) in enumerate(plans):
+            values = {r: library.weighted_auc(p, weights[mask]) if p is not None else None for r, p in plan.items()}
+            for a, b in CONTRASTS:
+                key = a + '_minus_' + b
+                delta = None if values[a] is None or values[b] is None else values[a] - values[b]
+                samples[key]['targets'][j].append(delta)
+                differences[key].append(delta)
+        for key, values in differences.items():
+            samples[key]['macro'].append(float(np.mean(values)) if all(x is not None for x in values) else None)
+    contrasts = {}
+    for a, b in CONTRASTS:
+        key = a + '_minus_' + b
+        contrasts[key] = {'macro_delta': None if macro[a] is None or macro[b] is None else macro[a] - macro[b], 'macro_uncertainty': library.interval(samples[key]['macro'], draws), 'targets': [{'target': t, 'delta': None if points[a][j] is None or points[b][j] is None else points[a][j] - points[b][j], 'uncertainty': library.interval(samples[key]['targets'][j], draws)} for j, t in enumerate(TARGETS)]}
+    return {'macro_auc': macro, 'targets': targets, 'contrasts': contrasts, 'studies': len(labels), 'components': int(labels.leakage_group.nunique()), 'bootstrap_draws': draws, 'bootstrap_seed': seed, 'paired_whole_component_draws_sha256': draw_sha.hexdigest(), 'undefined_policy': 'Keep all12 targets; count each undefined draw, never drop a target, repair classes or redraw.', 'uncertainty_scope': 'Conditional on defined draws, these fitted models, this one seed/fold and weak-label development pool; not clinical truth or training/search uncertainty.'}
+
+
+def actual_final_inputs():
+    import torch
+    assert os.uname().nodename == 'evc40' and not os.environ.get('SLURM_JOB_GPUS')
+    admit = json.loads((PRODUCTION / 'admitted.json').read_text())
+    assert admit['source_git'] == SOURCE and admit['GPU_acceptance_sha256'] == '48d047fb5cd2dee5ee470da0ad9938bf350a4917fe7a8571ef4d6f5ae2a2bda8'
+    assert sha(PRODUCTION / 'publisher.py') == '91682e05d1291c50c3e6f3fb7e400f95eea53640d01164e80630b45eaaffda9e'
+    assert sha(PRODUCTION / 'worker.py') == '120c49f851a843d3c82af897d5abb5adcb532f7103b95bcc7ac83e460683b9d1'
+    for name, h in admit['source_files_sha256'].items():
+        assert sha(PRODUCTION / 'code' / name) == h
+    publisher = module(PRODUCTION / 'publisher.py', 'pinned_original_spatial_epoch_validation')
+    slurm = subprocess.check_output(['sacct', '-j', ','.join(JOBS.values()), '-X', '-n', '-P', '-o', 'JobIDRaw,State,ExitCode,NodeList'], text=True)
+    rows = {r[0]: r for line in slurm.splitlines() if len(r := line.split('|')) >= 4}
+    assert all(rows[j] == [j, 'COMPLETED', '0:0', 'evc40'] for j in JOBS.values())
+    membership = json.loads((ROOT / 'membership.private.json').read_text())
+    assert set(membership) == {'fitting', 'outer'} and len(membership['fitting']) == 2247 and len(membership['outer']) == 1156 and not set(membership['fitting']) & set(membership['outer'])
+    results, models, bindings, parents, hashes = {}, {}, {}, [], {}
+    for arm, job in JOBS.items():
+        out = PRODUCTION / arm
+        final = json.loads((out / 'result.json').read_text())
+        assert final['status'] == 'actual_fixed_final_spatial_reader3epoch_complete' and final['GPU_job'] == job and final['source_git'] == SOURCE and final['optimizer_updates'] == 843 and final['epochs'] == 3 and final['fitting_studies'] == 2247 and final['outer_studies'] == 1156 and final['all12_targets'] == list(TARGETS)
+        assert final['full_parent_parameter_and_buffer_state_unchanged'] and final['full_frozen_parent_state_sha256'] == '8ba6c84e2c7715799dc78c64e4bfdde198cd8d1ef1db307119d70e1b55773c1e'
+        assert sha(out / 'checkpoint.pt') == final['checkpoint_sha256']
+        latest = torch.load(out / 'checkpoint.pt', map_location='cpu', weights_only=True)
+        publisher.validate(latest, admit, arm, 3)
+        for epoch in range(1, 4):
+            proof = json.loads((PRODUCTION / 'publication' / arm / f'epoch-{epoch:03d}' / 'verified.json').read_text())
+            assert proof['status'] == 'actual_spatial_reader_production_epoch_private_full_download_size_SHA_verified' and proof['arm'] == arm and proof['epoch'] == epoch and proof['source_git'] == SOURCE and proof['objects'] == 4 and proof['all_bytes_fully_re_downloaded'] is True
+            snapshot = out / 'epoch-checkpoints' / f'epoch-{epoch:03d}.pt'
+            assert snapshot.stat().st_size == proof['checkpoint_bytes']
+            if epoch == 3:
+                assert sha(snapshot) == proof['checkpoint_sha256']
+                assert same(torch.load(snapshot, map_location='cpu', weights_only=True), latest)
+        assert sha(out / 'outer_predictions.csv') == final['predictions_sha256'] and sha(out / 'unchanged_parent_outer_predictions.csv') == final['unchanged_parent_predictions_sha256']
+        frame = pd.read_csv(out / 'outer_predictions.csv')
+        assert frame.columns.tolist() == ['study_uid', *TARGETS] and frame.study_uid.tolist() == membership['outer']
+        models[arm] = frame.set_index('study_uid')
+        parent = pd.read_csv(out / 'unchanged_parent_outer_predictions.csv')
+        assert parent.columns.tolist() == ['study_uid', *TARGETS] and parent.study_uid.tolist() == membership['outer']
+        parents.append((out / 'unchanged_parent_outer_predictions.csv').read_bytes())
+        bindings[arm] = {k: v for k, v in latest['binding'].items() if k != 'arm'}
+        assert latest['binding']['data']['labels_masks_sha256'] == admit['labels_masks_sha256']
+        results[arm] = final
+        hashes[arm] = {'result_sha256': sha(out / 'result.json'), 'checkpoint_sha256': final['checkpoint_sha256'], 'prediction_sha256': final['predictions_sha256'], 'original_parent_prediction_sha256': final['unchanged_parent_predictions_sha256']}
+    assert bindings['aligned'] == bindings['null'] and parents[0] == parents[1]
+    models['parent'] = parent.set_index('study_uid')
+    for role, expected in [('fitting', '850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74'), ('outer', '2983434d353efee3b3f13af5bb8cb7520e43f8fc23c329cfd0351def93da62cd')]:
+        assert hashlib.sha256(json.dumps(membership[role]).encode()).hexdigest() == expected
+    release = ACCEPTED / 'initiative/releases/report-supervision-v1/studies.parquet'
+    assert sha(release) == '2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7'
+    meta = pd.read_parquet(release, columns=['study_uid', 'split', 'leakage_group'], filters=[('study_uid', 'in', membership['fitting'] + membership['outer'])]).set_index('study_uid')
+    assert meta.index.is_unique and meta.split.eq('train').all() and not meta.leakage_group.isna().any()
+    assert not set(meta.loc[membership['fitting'], 'leakage_group']) & set(meta.loc[membership['outer'], 'leakage_group'])
+    columns = ['study_uid', 'leakage_group', *TARGETS, *[t + '__mask' for t in TARGETS]]
+    labels = pd.read_parquet(release, columns=columns, filters=[('study_uid', 'in', membership['outer'])]).set_index('study_uid').loc[membership['outer']]
+    assert len(labels) == 1156 and labels.leakage_group.equals(meta.loc[labels.index, 'leakage_group'])
+    y = labels[list(TARGETS)].to_numpy(float)
+    masks = labels[[t + '__mask' for t in TARGETS]].to_numpy(float)
+    for arm in JOBS:
+        actual = auc_metrics(y, models[arm].loc[labels.index, list(TARGETS)].to_numpy(float), masks)
+        assert abs(actual['macro_auc'] - results[arm]['metrics']['macro_auc']) < 1e-12
+        assert all(abs(actual['per_target_auc'][t] - results[arm]['metrics']['per_target_auc'][t]) < 1e-12 for t in TARGETS)
+        parent_actual = auc_metrics(y, models['parent'].loc[labels.index, list(TARGETS)].to_numpy(float), masks)
+        assert abs(parent_actual['macro_auc'] - results[arm]['unchanged_FP32_parent_metrics']['macro_auc']) < 1e-12
+        assert all(abs(parent_actual['per_target_auc'][t] - results[arm]['unchanged_FP32_parent_metrics']['per_target_auc'][t]) < 1e-12 for t in TARGETS)
+    return labels, models, hashes
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--helper', type=Path, required=True)
+    parser.add_argument('--helper-sha', required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    assert args.output.parent == ROOT / 'reader-fixed-final-v1' and not args.output.exists() and sha(args.helper) == args.helper_sha
+    admission = json.loads((args.output.parent / 'admitted.json').read_text())
+    assert admission['status'] == 'separate_fixed_final_CPU_only_analysis_original_source_and_funding_admitted' and admission['analysis_sha256'] == sha(__file__) and admission['helper_sha256'] == args.helper_sha
+    paid = sum(p.stat().st_size for p in ROOT.rglob('*') if p.is_file())
+    assert paid < 3 * 2**30 and shutil.disk_usage('/tmp').free > 612022943803 + max(0, 3 * 2**30 - paid)
+    assert sum(p.stat().st_size for p in args.output.parent.rglob('*') if p.is_file()) + 2**20 < 2 * 2**20
+    quota = subprocess.check_output(['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True)
+    q = next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'))
+    assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 and int(q[6]) - int(q[5]) > 5000
+    labels, models, hashes = actual_final_inputs()
+    library = module(args.helper, 'pinned_component_bootstrap_helpers')
+    metrics = paired_metrics(labels, models, library)
+    out = {'status': 'actual_fixed_final_spatial_reader_three_way_original_result_replayed_with_paired_whole_component_uncertainty', 'CPU_job': os.environ['SLURM_JOB_ID'], 'node': os.uname().nodename, 'source_git': SOURCE, 'original_GPU_jobs': JOBS, 'analysis_sha256': sha(__file__), 'bootstrap_helper_sha256': args.helper_sha, 'fitting_studies': 2247, 'outer_studies': 1156, 'epochs': 3, 'optimizer_updates_per_arm': 843, 'each_production_epoch_privately_full_bytes_verified': True, 'observed_complete_bindings_equal_except_arm': True, 'direct_production_initial_state_dump_collected': False, 'initialization_scope': 'Same deterministic trainer construction/seed/source and actual engineering common-init acceptance; direct production step0 state was not separately retained.', 'unchanged_FP32_parent_prediction_bytes_identical_between_arms': True, 'original_result_model_and_prediction_bindings': hashes, 'metrics': metrics, 'protected_gold_or_confirmation_read': False, 'studies_rows_or_predictions_exported': False, 'Kaggle_or_clinical_gain_claim': False, 'automatic_promotion': False, 'replication_required_for_promising_gain': True}
+    text = json.dumps(out, indent=2, allow_nan=False) + '\n'
+    assert len(text.encode()) < 2**20
+    with args.output.open('x') as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    print(json.dumps(out, allow_nan=False), flush=True)
+
+
+if __name__ == '__main__':
+    main()
