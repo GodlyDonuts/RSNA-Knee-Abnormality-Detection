@@ -23,11 +23,13 @@ full94 crop/LUT/mirror/MRI reader. It rejects partial/unpreserved/mismatched hea
 Actual both-T4 original raw-MRI qualification and exact public test-roster/CSV
 acceptance are still required. Qualification cannot emit a competition CSV.
 
-A single private version1 Dataset containing four1.126MB final heads and original
-licence/own code/provenance is prepared. It has NOT yet been created. The one-time
-coordinator requires published exact source, original input proofs, fresh quota,
-canonical account ledger/claim, one create RPC and full download/size/SHA checks.
-It does not push GPU notebooks or submit an entry. Preserve uncertainty read-only.
+One private version1 Dataset was actually created once by CPU948592:
+`godlydonuts/rsna-cached-four-e3-88fd5b06a572`, ID12661001. All nine objects were
+fully downloaded/size/SHA verified. The four1.126MB final heads retain original
+licence/own code/provenance, while the parent encoder remains referenced only.
+Source3e6034de and original CPU proofs were bound before the canonical ledger/
+claim admitted its single create RPC. No GPU notebook or entry was pushed.
+Never repeat this Dataset creation or original twelve-epoch publication.
 
 The original full-CNN label campaign remains untouched; E2 was independently
 privately fully verified at HFf5a74128…/CPU948213. E3 original139256441v1 has

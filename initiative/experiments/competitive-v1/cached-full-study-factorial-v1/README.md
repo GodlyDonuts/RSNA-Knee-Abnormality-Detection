@@ -86,3 +86,10 @@ qualification and exact public test-roster/CSV acceptance are still required
 before a competition entry. Preserve all source/weight/licence/runtime bindings
 and canonical mutation ownership. Existing label training/scoring owners keep
 their work. No score improvement is claimed.
+
+ActualCPU948377 subsequently compiled all eight sources and found zero observed
+FP32 serving/training graph gap on32 original cached studies for all four heads.
+One new private Dataset12661001v1 (`godlydonuts/rsna-cached-four-e3-88fd5b06a572`)
+was created once/full nine-object downloaded/size/SHA verified viaCPU948592.
+No GPU qualification or entry was dispatched by this operation. Never repeat
+this Dataset or the original private twelve-epoch publication.

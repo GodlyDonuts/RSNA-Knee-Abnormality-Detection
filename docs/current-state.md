@@ -28,8 +28,9 @@ The four completed label × coverage readouts now pass actual **32-study cached
 feature graph equality** and all **eight source compilations** (CPU948377).
 Their FP32 head stays outside encoder FP16 autocast; the parent encoder and
 original full94 MRI pipeline remain unchanged. One small private Dataset is
-prepared, **not created yet**; actual raw-MRI T4 validation/public/hidden results
-remain pending. No accuracy gain is claimed.
+now fully verified: **12661001 v1**, `godlydonuts/rsna-cached-four-e3-88fd5b06a572`,
+CPU948592/all nine objects. Do not repeat it. Actual raw-MRI T4 validation/public/
+hidden results remain pending; no accuracy gain is claimed.
 [Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
 
 The exact stronger reference **139199164 v2** is still Queued, unqualified and
