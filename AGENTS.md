@@ -42,13 +42,16 @@ historical release/plan documents now link back to the current guides.
   H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
   are privately byte verified; CPU942806 now scored all eight/5372windows and
   CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
-  sole finite owner26454, staged and awaiting fresh two-session GPU admission; original offline acceptance passed. Never duplicate these originals. **0.950 remains external**;
+  sole recovered finite owner34237, staged and awaiting fresh two-session GPU admission; original offline acceptance passed. CPU follow-through34308 waits actual completion for input/precision/cost checks. Never duplicate these originals. **0.950 remains external**;
   there is no project S6 hidden score at this observation. Include both S6 and CoAtNet runtime.
 - Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the
   eight cost quantiles. Do not equate raw gaps with clinical uncertainty. See
   `initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md` for the
   fixed ordinal-transport matched comparison. Its explicit data overlay now
   passes17synthetic CPU/real-engine recovery checks, not full MRI/GPU fitting.
+- Original influenceE2 completed972/all5private objects verified. UniformE3
+  139192503v1 is QUEUED; recovered CPU observer34538 treats missing API status
+  as unknown. Never restart the original GPU. Current guide has exact receipts.
 - Fixed equal-rank deployment has sole owner27596; CPU943330 staged it once.
   It waits actual S6 scoring, fresh GPU funding/capacity and fresh daily allowance.
   FinalE3 follow-on28090 waits original17317 terminal zero-entry expiry only;

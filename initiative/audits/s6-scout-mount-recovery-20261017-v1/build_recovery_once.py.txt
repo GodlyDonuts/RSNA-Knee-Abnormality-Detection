@@ -1,0 +1,66 @@
+"""Metadata-only scout handoff after actual terminal/no-push reconciliation."""
+import ast
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+O = L.parent / 's6-fitting32-scout-preparation-20261017-v4'
+N = L.parent / 's6-fitting32-scout-preparation-20261017-v5'
+assert not N.exists()
+proof = json.loads((L / 'reconciled.json').read_text())
+assert proof['status'] == 'original_scout_pre_push_mount_assertion_reconciled_readonly'
+assert proof['no_push_intent_response_GPU_or_collection'] is True and proof['Kaggle_or_ledger_mutations'] == 0
+terminal = json.loads((O / 'finish.result.json').read_text())
+assert terminal['status'] == 'stopped_original_source_scout_for_readonly_reconciliation'
+assert subprocess.run(['ps', '-p', '26454'], stdout=subprocess.DEVNULL).returncode != 0
+phase = (O / 'run_phase_once.py').read_text()
+old = "assert sorted(old['metadata']['datasetDataSources'])==sorted(mounts)"
+new = "assert sorted(old['metadata']['datasetDataSources'])==sorted([x for x in mounts if x!='nartaa/rsna-knee-publication-swa-weights-20261007'])"
+assert phase.count(old) == 1
+updated = phase.replace(old, new)
+assert updated.replace(new, old) == phase
+compile(updated, 'same_scout_metadata_only_phase', 'exec')
+owner = (O / 'finish_once.py').read_text()
+line = "handoff=json.loads((L.parent/'s6-fitting32-scout-preparation-20261017-v3/observer-handoff-complete.json').read_text());assert handoff['status']=='old_CPU_scout_observer_terminal_after_actual_no_push_readonly_reconciliation' and handoff['actual_reconciliation']['no_push_intent_or_response_or_collection'] is True"
+replay = "handoff=json.loads((L.parent/'s6-scout-mount-recovery-20261017-v1/reconciled.json').read_text());assert handoff['status']=='original_scout_pre_push_mount_assertion_reconciled_readonly' and handoff['no_push_intent_response_GPU_or_collection'] is True and handoff['Kaggle_or_ledger_mutations']==0"
+assert owner.count(line) == 1
+owner = owner.replace(line, replay).replace("['ps','-p','24413','-o','state=']", "['ps','-p','26454','-o','state=']")
+compile(owner, 'same_scout_new_CPU_metadata_recovery_owner', 'exec')
+N.mkdir()
+(N / 'run_phase_once.py').write_text(updated)
+(N / 'finish_once.py').write_text(owner)
+original_program = next(ast.literal_eval(n.value) for n in ast.parse(phase).body if isinstance(n, ast.Assign) and any(isinstance(x, ast.Name) and x.id == 'program' for x in n.targets))
+new_program = next(ast.literal_eval(n.value) for n in ast.parse(updated).body if isinstance(n, ast.Assign) and any(isinstance(x, ast.Name) and x.id == 'program' for x in n.targets))
+assert new_program.replace(new, old) == original_program
+model = 'nartaa/rsna-knee-publication-swa-weights-20261007'
+request_sources = ['nartaa/rsna-knee-s6fall-weights', model, 'heliosli/rsna-orthofoundation-fold0-epoch7-20261004', 'godlydonuts/rsna-parent-fit-targets-48b4485f03b6']
+expected_cpu_sources = sorted(x for x in request_sources if x != model)
+assert expected_cpu_sources == proof['actual_old_CPU_dataset_sources']
+checks = []
+for name, value, accepted in [
+    ('actual original CPU3 mounts', expected_cpu_sources, True),
+    ('dataset ordering is irrelevant', expected_cpu_sources[::-1], True),
+    ('missing B weights refused', expected_cpu_sources[1:], False),
+    ('unsupported extra mount refused', expected_cpu_sources + ['unverified/dataset'], False),
+    ('wrongly expected extra A refused', request_sources, False),
+    ('duplicate mount refused', expected_cpu_sources + expected_cpu_sources[:1], False),
+]:
+    assert (sorted(value) == expected_cpu_sources) is accepted
+    checks.append(name)
+assert new_program.count("'SaveKernel'") == 1 and 'CreateCodeSubmission' not in new_program
+checks += ['exact reverse patch restores every old phase byte', 'one unchanged SaveKernel and zero code-entry call sites']
+out = {'status': 'metadata_only_scout_recovery_prepared_after_original_terminal_no_push_proof',
+       'checks': checks, 'count': len(checks), 'original_terminal_PID': 26454,
+       'original_reconciliation_CPU': proof['CPU_job'], 'original_failed_CPU': 944345,
+       'same_source_sha256': proof['source_sha256'], 'same_request_mounts': request_sources,
+       'same_GPU_numerical_source_and_candidate_slug': True,
+       'old_phase_sha256': hashlib.sha256(phase.encode()).hexdigest(),
+       'new_phase_sha256': hashlib.sha256(updated.encode()).hexdigest(),
+       'old_program_sha256': hashlib.sha256(original_program.encode()).hexdigest(),
+       'new_program_sha256': hashlib.sha256(new_program.encode()).hexdigest(),
+       'new_owner_sha256': hashlib.sha256(owner.encode()).hexdigest(),
+       'new_CPU_observer_starts': 0, 'new_GPU_or_entry_mutations': 0}
+(L / 'recovery-checked.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

@@ -1,6 +1,11 @@
 # Complete initiative record
 
-Latest verified follow-up: [expanded2592 fixed-final negative](audits/compact-expanded2592-fixed-final-20261017-v1/README.md)
+Latest08:40UTC: [original sampling E2 preservation/E3 queued-observer recovery](audits/iid16-session-status-recovery-20261017-v1/README.md),
+[S6 scout metadata recovery](audits/s6-scout-mount-recovery-20261017-v1/README.md), and
+[the independent fixed32 follow-through](audits/s6-fitting32-acceptance-20261017-v1/README.md).
+These advance original execution, not a new score.
+
+Earlier verified follow-up: [expanded2592 fixed-final negative](audits/compact-expanded2592-fixed-final-20261017-v1/README.md)
 and [the admitted original R7 single-run/entry owner](audits/r7-original-reproduction-20261017-v1/README.md).
 No new project score is claimed; target0.97 remains open.
 
@@ -20,7 +25,7 @@ The reported S6 score has not yet been reproduced by this project.
 
 **Current state is maintained in the [current-state guide](../docs/current-state.md),
 [research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
-As of October17 06:25UTC, actual best remains attributed0.949; own N3 is0.894.
+Earlier October17 06:25UTC snapshot: actual best remains attributed0.949; own N3 is0.894.
 Whole94 E2 completed972/private verified and original E3 runs. Expanded original
 H100 has epochs1–14 privately verified. Both sampling E1 roles are preserved;
 uniformE2 runs. [Actual new epochs](audits/research-progress-20261017-0625-v1/README.md).

@@ -1,0 +1,67 @@
+"""Preserve the original numerical jobs; recover only CPU status observation."""
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+R = L.parent / 'licensed-importance-full-comparison-20261017-v1'
+assert not (L / 'checked.json').exists()
+proof = json.loads((L / 'reconciled.json').read_text())
+assert proof['status'] == 'original_uniformE3_status_observation_reconciled_without_GPU_mutation'
+assert proof['new_GPU_Dataset_checkpoint_or_entry_mutations'] == 0
+assert proof['actual_source_sha256'] == '7b1b5ddf9a4b66c003234b79f4ffb57628ef843aabbba10b02e258742240ca9a'
+assert subprocess.run(['ps', '-p', '97530'], stdout=subprocess.DEVNULL).returncode != 0
+assert json.loads((R / 'capacity-finish.result.json').read_text())['status'] == 'stopped_original_matched_full_comparison_for_exact_readonly_reconciliation'
+old_program = (R / 'cloud-capacity.py.txt').read_text()
+old = "state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out="
+new = "state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out="
+assert old_program.count(old) == 1
+program = old_program.replace(old, new)
+assert program.replace(new, old) == old_program
+phase = (R / 'run_phase_capacity_once.py').read_text()
+phase = phase.replace("L/'cloud-capacity.py.txt'", "L/'cloud-capacity-status-recovery.py.txt'")
+phase = phase.replace("assert phase in ('dataset','prepare','push','status')", "assert phase in ('prepare','push','status')")
+phase = phase.replace("name='capacity-'", "name='session-status-'")
+owner = (R / 'finish_with_actual_capacity_once.py').read_text()
+owner = owner.replace("'cloud-capacity.py.txt','run_phase_capacity_once.py'", "'cloud-capacity-status-recovery.py.txt','run_phase_status_recovery_once.py'")
+owner = owner.replace("str(L/'run_phase_capacity_once.py')", "str(L/'run_phase_status_recovery_once.py')")
+owner = owner.replace('capacity-finish.', 'session-status-finish.').replace('capacity-child-', 'session-status-child-')
+owner = owner.replace("prefix=role+'-epoch-'+str(epoch);prepared_path=L/(prefix+'-prepared.json')", """prefix=role+'-epoch-'+str(epoch);prepared_path=L/(prefix+'-prepared.json')
+   # Reuse actual already preserved original epochs without re-downloading weights.
+   completed_actual=L/(prefix+'-actual-accepted.json');completed_private=L/(prefix+'-private-verified.json')
+   if completed_actual.exists() and completed_private.exists():
+    actual=json.loads(completed_actual.read_text());published=json.loads(completed_private.read_text())
+    assert actual['status']=='COMPLETE' and actual['role']==role and actual['epoch']==epoch and actual['receipt']['completed']==486*epoch
+    assert published['status']=='actual_matched_IID16_parent_epoch_private_full_download_size_SHA_verified' and published['role']==role and published['epoch']==epoch and published['completed']==486*epoch
+    assert published['original_Kaggle_kernel']==actual['kernel_id'] and published['original_source_sha256']==actual['source_sha256'] and published['objects']==5
+    assert published['independent_CPU_state_verification']['full_learned_graph_exact'] is True
+    if epoch==1:initials[role]=[d['initial_identity'] for d in actual['receipt']['devices']]
+    completed.append({'actual':actual,'publication':published});progress('reused_original_epoch_already_complete_and_private_verified',role=role,epoch=epoch);continue""")
+for name, data in [('cloud-capacity-status-recovery.py.txt', program), ('run_phase_status_recovery_once.py', phase), ('finish_with_session_status_recovery_once.py', owner)]:
+    assert not (R / name).exists()
+    compile(data, name, 'exec')
+    (R / name).write_text(data)
+checks = []
+for value in [{}, {'status': None}, {'status': 'QUEUED'}, {'status': 'RUNNING'}, {'status': 'COMPLETE'}, {'status': 'ERROR'}, {'status': 'CANCELLED'}]:
+    status = value.get('status')
+    category = 'failed' if status in ('ERROR', 'CANCELLED') else 'complete' if status == 'COMPLETE' else 'unknown_or_pending'
+    assert (category == 'failed') is (status in ('ERROR', 'CANCELLED'))
+    checks.append({'response': value, 'classification': category})
+assert phase.count("assert phase in ('prepare','push','status')") == 1
+assert program.count("'SaveKernel'") == old_program.count("'SaveKernel'") == 1
+out = {'status': 'original_IID16_status_only_CPU_recovery_prepared', 'original_terminal_PID': 97530,
+       'actual_reconciliation_CPU': proof['CPU_job'], 'actual_original_uniformE3_kernel': proof['actual_kernel_id'],
+       'observations': checks, 'status_contracts': len(checks),
+       'old_program_sha256': hashlib.sha256(old_program.encode()).hexdigest(),
+       'new_program_sha256': hashlib.sha256(program.encode()).hexdigest(),
+       'new_phase_sha256': hashlib.sha256(phase.encode()).hexdigest(),
+       'new_owner_sha256': hashlib.sha256(owner.encode()).hexdigest(),
+       'one_readonly_status_expression_only_cloud_change': True,
+       'original_numerical_GPU_sources_and_all_existing_jobs_unchanged': True,
+       'already_verified_epochs_reused_without_bulk_hash_or_transfer': 4,
+       'one_original_uniformE3_already_pushed': True,
+       'maximum_remaining_new_GPU_sessions_in_existing_campaign': 1,
+       'new_Dataset_and_competition_entries': 0}
+(L / 'checked.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

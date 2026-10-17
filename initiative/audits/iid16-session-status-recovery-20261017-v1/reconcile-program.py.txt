@@ -1,0 +1,17 @@
+
+import hashlib,importlib.util,json,os,sqlite3,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/uniform-epoch-3');sha='7b1b5ddf9a4b66c003234b79f4ffb57628ef843aabbba10b02e258742240ca9a';slug='godlydonuts/rsna-u16-full-e3-'+sha[:12]
+assert hashlib.sha256((R/'source.private.py').read_bytes()).hexdigest()==sha and not (R/'actual-failed.json').exists()
+intent=json.loads((R/'push-intent.json').read_text());response=json.loads((R/'push-response.json').read_text());assert intent['slug']==slug and response['kernelId']==139192503 and response['versionNumber']==1
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('readonly_original_uniformE3',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert hashlib.sha256(actual['blob']['source'].encode()).hexdigest()==sha and m['isPrivate'] is True and m['enableGpu'] is True and m['enableInternet'] is False and m['machineShape']=='NvidiaTeslaT4'
+state=r.kernel('GetKernelSessionStatus',slug,1);assert isinstance(state,dict)
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-importance-full-fit:'+sha,)).fetchone()[0]);assert record['state']=='importance_full_fit_pushed' and record['kernel_id']==139192503
+out={'status':'original_uniformE3_status_observation_reconciled_without_GPU_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'actual_kernel_id':139192503,'actual_slug':slug,'actual_version':1,'actual_source_sha256':sha,'actual_private_offline_T4_metadata_exact':True,'actual_status_response_keys':sorted(state),'reported_status':state.get('status'),'canonical_state':record['state'],'no_actual_failed_receipt':True,'new_GPU_Dataset_checkpoint_or_entry_mutations':0,'missing_status_is_unknown_not_terminal':True};print(json.dumps(out),flush=True)

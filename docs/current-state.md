@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 08:26 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 08:40 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -54,8 +54,8 @@ Do not resubmit those exact versions.
 |---|---|---|
 | Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
 | Expanded own N3 | Slurm**938284**, evc33 | **COMPLETED0:0/6:20:49**, all16epochs privately verified; fixed-final weak macro**0.91743158**, no established gain |
-| Uniform16 full-encoder control | E2**139167076v1** | **E2 complete972/all5private objects verified**, HFea38a60272ff39f86e298f5765c7c45466ad2c89 |
-| Influence16 full-encoder contrast | E1**139154664v1** | **E1 complete486/all5private objects verified**; original owner97530 now runs influenceE2**139181903v1** |
+| Uniform16 full-encoder control | E3**139192503v1** | **E2 complete972/all5private objects verified**; original E3 is UI QUEUED, no optimizer claim yet |
+| Influence16 full-encoder contrast | E2**139181903v1** | **E2 complete972/all5private objects verified**, HFde388a6e4ee800a0835c1d82f13fea94e903653f |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
 | S6 unchanged-source reproduction | Offline**139181157v1**, code entry**57300990** | **Public run COMPLETE233s/twoT4/zero fallback**; exact entry accepted, hidden score pending |
 
@@ -69,8 +69,8 @@ the same1,156 weak development studies, delta−0.00349377 versus original;
 conditional95%[−0.01331711,+0.00607252]. No established primary gain.
 [New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
 InfluenceE1 completed486 and all5objects are independently private verified;
-uniformE2 completed972/all5private objects and the same owner97530 now runs
-influenceE2 139181903v1.
+uniformE2 and influenceE2 completed972/all5private objects each. UniformE3
+139192503v1 is now queued; sole recovered observer34538 preserves that same run.
 [New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
 The expanded GPU938284 and its watcher95408 are now terminal success; all16
 epochs are already privately verified. Preserve the still-running whole94 and
@@ -111,7 +111,7 @@ originalMRI inputs/both views/repeated draws; proposal Dataset12644218v1/all5
 objects was privately fully verified once. Both E1 roles are complete and privately preserved under the same original
 comparison owner; uniformE2 also completed972/private verified.
 The original influenceE1 now also completed486 and all5objects are private verified
-at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 completed972/private verified; influenceE2 runs.
+at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is queued.
 Sampled-model serving remains synthetic preparation, with **no actual learned
 sampled-checkpoint serving T4/public acceptance or score**.
 [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
@@ -192,8 +192,8 @@ state recovery/funding are still required. The original target bundle stays
 immutable. [Matched protocol/source/tests](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
 
 CPU942920 staged a distinct32fitting-study B-only scout, source0573a2a1, in
-existing controls. Sole finite PID26454/exec91663 waits original S6 offline
-acceptance and fresh canonical capacity/budget; **no GPU push yet at this
+existing controls. Sole recovered finite PID34237/v5 waits fresh canonical
+capacity/budget after the actual original S6 offline acceptance; **no GPU push yet at this
 observation**, zero entries. It contains the original eight and checks actual
 T4/CPU parity, full preparation/inference time and diversity before any full
 teacher acquisition. Never restart its original owner or stager.
@@ -354,3 +354,31 @@ while prerequisites are missing. The numerical Notebook cells are unchanged;
 all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
 fallback and a strict three-MRI/13-column CSV are required.
 [Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).
+
+
+## Latest08:40UTC execution and scout follow-through
+
+Original influenceE2 **139181903v1** completed972finite updates; CPU944360 privately
+fully verified all5objects at **HFde388a6e4ee800a0835c1d82f13fea94e903653f**.
+Never repeat them. Original uniformE3 **139192503v1** was pushed once and the
+actual authenticated UI shows **QUEUED / twoT4s /0B**. An empty API status is
+unknown, not GPU failure. Sole recovered CPU observer**34538** preserves that
+same source/run and all prior verified epochs; old97530 is terminal.
+[Actual originals, reversible status-only repair and controls](../initiative/audits/iid16-session-status-recovery-20261017-v1/README.md).
+
+Original S6 scout26454 also stopped before any push because it incorrectly
+expected the old B-only CPU reference to mount an extra unused A dataset.
+Read-only CPU944394 verified exact old3mounts/candidate absence/no mutation.
+Sole recovered**34237/v5** uses the unchanged source/model/candidate and correct
+reference metadata, waiting fresh capacity; never restart26454 or stage again.
+[Exact pre-push proof and source diff](../initiative/audits/s6-scout-mount-recovery-20261017-v1/README.md).
+Independent CPU follow-through**34308** now waits that same original completion.
+It enforces exact old8 image/meta bytes, original0.003FP16/FP32 precision, all32
+outputs/windows, measured time and all12descriptive rank summaries.22pure input/
+precision/timing guards and7finite paths passed; no actual scout/full teacher/
+MRI training result is claimed. [Source, scope and caps](../initiative/audits/s6-fitting32-acceptance-20261017-v1/README.md).
+
+R7 owner31309 now has sufficient fresh future VM funding at the latest actual
+check, but the actual two-session lane remains occupied by mainE3 and queuedU3.
+It reserves no extra GPU. S6 entry57300990 still has null hidden status/score.
+Best verified0.949/target0.97 are unchanged; published R7 0.956 remains external.

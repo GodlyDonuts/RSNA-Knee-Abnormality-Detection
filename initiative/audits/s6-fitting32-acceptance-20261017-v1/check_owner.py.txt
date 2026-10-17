@@ -1,0 +1,61 @@
+"""Finite ownership paths: no premature CPU work and no mutation retry."""
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('actual_scout_analysis_owner', L / 'finish_once.py')
+owner = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(owner)
+success = {'status': 'one_original_source_scout_actual_complete_and_private_collection_verified'}
+accepted = {'status': 'actual_original_fitting32_scout_independent_CPU_acceptance_complete'}
+paths = []
+
+
+def exercise(name, states, alive, child, expected=None, raises=False):
+    clock, calls, observations = [0.], [], []
+    events = iter(states)
+    last = [None]
+
+    def state():
+        last[0] = next(events, last[0])
+        return last[0]
+
+    def call():
+        calls.append('oneCPU')
+        if isinstance(child, Exception):
+            raise child
+        return child
+
+    try:
+        result = owner.wait_then_analyze(state, lambda: alive, call,
+            lambda *v: observations.append(v), lambda: clock[0],
+            lambda t: clock.__setitem__(0, clock[0] + t), 120)
+    except RuntimeError:
+        assert raises, name
+    else:
+        assert not raises and result['status'] == expected, name
+    assert len(calls) <= 1, name
+    paths.append({'name': name, 'new_CPU_jobs': len(calls)})
+
+
+exercise('live original followed by actual acceptance', [None, success], True, accepted,
+         'one_original_scout_independent_CPU_analysis_complete')
+exercise('already complete original requires no live observer', [success], False, accepted,
+         'one_original_scout_independent_CPU_analysis_complete')
+exercise('live original wait expires without allocation', [None], True, accepted,
+         'finite_CPU_analysis_wait_expired_without_dispatch')
+exercise('actual original terminal failure reserves no CPU', [{'status': 'actual_source_scout_GPU_terminal_failure'}], False, accepted,
+         'original_scout_terminal_without_analysis_admission')
+exercise('missing handle is not GPU terminal authority', [None], False, accepted, raises=True)
+exercise('uncertain CPU outcome is never retried', [success], False, RuntimeError('observation lost'), raises=True)
+exercise('wrong returned acceptance refused', [success], False, {'status': 'wrong'}, raises=True)
+program = (L / 'program.py.txt').read_text()
+compile(program, 'fixed32_actual_CPU_acceptance', 'exec')
+assert 'requests' not in program and 'SaveKernel' not in program and 'CreateCodeSubmission' not in program
+out = {'status': 'fixed32_CPU_followthrough_finite_owner_checks_passed', 'paths': paths,
+       'count': len(paths), 'owner_sha256': hashlib.sha256((L / 'finish_once.py').read_bytes()).hexdigest(),
+       'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'GPU_Kaggle_or_new_inference_mutation_calls': 0}
+(L / 'owner-checked.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

@@ -25,7 +25,7 @@ Epoch2 now completed972updates/all5private objects; original final E3
 privately verified. Fixed-final weak macro0.91743 versus0.92093 original has
 no established gain; no new expanded-model Kaggle result is claimed.
 Both matched uniform16E1 and influence16E1 completed486updates/all5private
-objects; original uniformE2 completed972/all5private objects; influenceE2 is RUNNING. No new scored learned-model gain is claimed.
+objects; uniformE2 and influenceE2 each completed972/all5private objects. Original uniformE3 is queued; the same numerical fit is preserved. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 **The owner targets0.97; best verified remains0.949.** Actual CPU inference

@@ -1,0 +1,102 @@
+"""Independent adversarial fixtures for fixed32 parity and timing acceptance."""
+
+import copy
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+import numpy as np
+
+L = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location("scout_acceptance", L / "core.py")
+core = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(core)
+original_population_sha = core.POPULATION_SHA
+uids = [f"synthetic-{i:04d}" for i in range(3887)]
+core.POPULATION_SHA = hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+p8 = np.linspace(0, 3886, 8).round().astype(int).tolist()
+positions = sorted(set(p8 + np.linspace(0, 3886, 26).round().astype(int).tolist()))
+chosen, old8 = [uids[i] for i in positions], [uids[i] for i in p8]
+logits = np.linspace(-1, 1, 32 * 12).reshape(32, 12)
+probabilities = 1 / (1 + np.exp(-logits))
+pixels = {u: {"n": 100 + i, "img_sha256": "a" * 64, "meta_sha256": "b" * 64}
+          for i, u in enumerate(chosen)}
+old_rows = [{"uid": u, "windows": pixels[u]["n"], "images_sha256": "a" * 64,
+             "meta_sha256": "b" * 64} for u in old8]
+old_logits = {u: [logits[chosen.index(u)].tolist()] for u in old8}
+selection = {"selected_uids": chosen, "population_sha256": core.POPULATION_SHA,
+             "positions": positions, "old8_selected_uids": old8,
+             "series_counts": [i + 1 for i in positions]}
+old_selection = {"ordered_fitting_uids": uids, "selected_uids": old8,
+                 "series_counts": [[u, i + 1] for i, u in enumerate(uids)]}
+receipt = {"status": "actual_original_S6_B_only_fitting32_two_T4_scout_complete",
+           "studies": 32, "failed": 0, "windows": sum(r["n"] for r in pixels.values()),
+           "no_labels_reports_gold_or_parent_teacher_arrays_decoded": True,
+           "no_submission_CSV_or_competition_entry": True,
+           "B_seconds": 100., "elapsed_seconds": 160.}
+summary_ns = {}
+summary_source = L.parent / "s6-fitting8-complementarity-20261017-v1/core.py.txt"
+assert hashlib.sha256(summary_source.read_bytes()).hexdigest() == "837b3dfa508767ae171e70368dbdd31d760c382dc04356fee2daa9bd03ccb09f"
+exec(compile(summary_source.read_text(), "original_descriptive_summary", "exec"), summary_ns)
+base = dict(selection=selection, pixel_rows=pixels, probabilities=probabilities, logits=logits,
+            old_selection=old_selection, old_rows=old_rows, old_logits=old_logits,
+            parent_uids=uids, parent_logits=np.zeros((3887, 2, 12), dtype=np.float32),
+            receipt=receipt, summarize=summary_ns["summarize"])
+checks = []
+
+
+def run(name, change, *, reject=True):
+    value = copy.deepcopy(base)
+    change(value)
+    try:
+        result = core.evaluate(**value)
+    except (ValueError, TypeError, KeyError):
+        if not reject:
+            raise
+    else:
+        assert not reject, name
+        assert result["studies"] == 32 and len(result["summary"]["targets"]) == 12
+        assert result["old8_FP16_vs_original_CPU_FP32_max_probability_error"] == 0
+        assert result["full_teacher_generation_or_training_admitted"] is False
+    checks.append(name)
+
+
+run("exact aligned32 plus original8 accepted", lambda v: None, reject=False)
+run("duplicate or reordered selected identity refused", lambda v: v["selection"]["selected_uids"].reverse())
+run("stale population refused", lambda v: v["selection"].update(population_sha256="0" * 64))
+run("old8 subset mismatch refused", lambda v: v["selection"]["old8_selected_uids"].reverse())
+run("new MRI image bytes refused", lambda v: v["pixel_rows"][old8[0]].update(img_sha256="c" * 64))
+run("new physical metadata bytes refused", lambda v: v["pixel_rows"][old8[0]].update(meta_sha256="c" * 64))
+run("unaccounted window refused", lambda v: v["receipt"].update(windows=1))
+run("incomplete hash record refused", lambda v: v["pixel_rows"][chosen[1]].update(img_sha256="x" * 64))
+run("actual fallback refused", lambda v: v["receipt"].update(failed=1))
+run("NaN logits refused", lambda v: v["logits"].__setitem__((0, 0), np.nan))
+run("NaN parent refused", lambda v: v["parent_logits"].__setitem__((0, 0, 0), np.nan))
+run("probability without matching logit refused", lambda v: v["probabilities"].__setitem__((0, 0), .9))
+run("changed teacher dtype refused", lambda v: v.update(parent_logits=v["parent_logits"].astype(np.float64)))
+run("zero elapsed refused", lambda v: v["receipt"].update(B_seconds=0))
+run("negative B elapsed refused", lambda v: v["receipt"].update(B_seconds=-1))
+run("elapsed deadline refused", lambda v: v["receipt"].update(elapsed_seconds=1700))
+run("infinite elapsed refused", lambda v: v["receipt"].update(elapsed_seconds=float("inf")))
+run("impossible child timing refused", lambda v: v["receipt"].update(B_seconds=170))
+run("label scope violation refused", lambda v: v["receipt"].update(no_labels_reports_gold_or_parent_teacher_arrays_decoded=False))
+run("noninteger cost metadata refused", lambda v: v["old_selection"]["series_counts"][0].__setitem__(1, .5))
+
+
+def precision_violation(v):
+    v["probabilities"][0, 0] += .0031
+    p = v["probabilities"][0, 0]
+    v["logits"][0, 0] = np.log(p / (1 - p))
+
+
+run("unaltered 0.003 precision threshold enforced", precision_violation)
+core.POPULATION_SHA = original_population_sha
+run("synthetic roster cannot acquire actual population authority", lambda v: None)
+result = {"status": "fixed32_acceptance_pure_adversarial_checks_passed",
+          "checks": checks, "count": len(checks),
+          "core_sha256": hashlib.sha256((L / "core.py").read_bytes()).hexdigest(),
+          "original_summary_sha256": hashlib.sha256(summary_source.read_bytes()).hexdigest(),
+          "synthetic_only_no_actual_scout_or_full_cohort_admission": True}
+(L / "checked.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result))

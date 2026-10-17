@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 08:05 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 08:40 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -20,7 +20,7 @@ learning under a fixed compute budget. Whole-94 adaptation completed two epochs/
 its exact final continuation is API RUNNING. Expanded own-model fitting finished0:0; its fixed-final paired weak comparison is now verified. Matched
 uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
 were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
-are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 runs**. Whole-parentE1 passed
+are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 completed972/private verified; original uniformE3 139192503v1 is queued**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
 139172537v1 is RUNNING. Expanded N3 has epochs1–16 privately fully verified,
@@ -122,8 +122,8 @@ influence can become stale and teacher errors can be amplified. A 94/16 sampling
 ratio is not measured throughput or disease improvement.
 
 Actual both-role MRI GPU recovery, original-input CPU comparison, proposal
-Dataset and checkpoint storage acceptance are complete. UniformE1 is now complete/private verified and influenceE1 runs after the original
-funding check. A capacity-aware observer
+Dataset and checkpoint storage acceptance are complete. Both E1 and E2 roles
+are now complete/private verified; original uniformE3 is queued. A capacity-aware observer
 protects the original main continuation and shares the other actual Kaggle GPU
 lane with qualified-model inference; no running scientific recipe was changed. The sampled serving compiler has synthetic checks only. UniformE1 now satisfies
 the completed/preserved checkpoint prerequisite; actual learned sampled-model
@@ -248,8 +248,8 @@ numerical identity and both-role full/stop/resume complete checkpoint/CSV equali
 No full MRI/GPU fitting or gain is claimed.
 [Explicit data-path evidence](../initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md).
 
-Sole scout26454/exec91663 owns a staged32study B-only throughput/CPU-parity check.
-It waits original S6 offline acceptance and fresh actual two-session/VM admission,
+Sole recovered scout34237/v5 owns the unchanged staged32study B-only throughput/CPU-parity check.
+It waits fresh actual two-session/VM admission; independent CPU follow-through34308 waits its actual completion,
 maxone1800second session/zeroentries. Complete3887 teacher acquisition and a new
 trainer require actual full input/state/funding acceptance. Fixed equal-rank
 inference is already prepared separately. Continue healthy training and the
@@ -302,3 +302,31 @@ while prerequisites are missing. The numerical Notebook cells are unchanged;
 all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
 fallback and a strict three-MRI/13-column CSV are required.
 [Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).
+
+
+## Latest08:40UTC execution and scout follow-through
+
+Original influenceE2 **139181903v1** completed972finite updates; CPU944360 privately
+fully verified all5objects at **HFde388a6e4ee800a0835c1d82f13fea94e903653f**.
+Never repeat them. Original uniformE3 **139192503v1** was pushed once and the
+actual authenticated UI shows **QUEUED / twoT4s /0B**. An empty API status is
+unknown, not GPU failure. Sole recovered CPU observer**34538** preserves that
+same source/run and all prior verified epochs; old97530 is terminal.
+[Actual originals, reversible status-only repair and controls](../initiative/audits/iid16-session-status-recovery-20261017-v1/README.md).
+
+Original S6 scout26454 also stopped before any push because it incorrectly
+expected the old B-only CPU reference to mount an extra unused A dataset.
+Read-only CPU944394 verified exact old3mounts/candidate absence/no mutation.
+Sole recovered**34237/v5** uses the unchanged source/model/candidate and correct
+reference metadata, waiting fresh capacity; never restart26454 or stage again.
+[Exact pre-push proof and source diff](../initiative/audits/s6-scout-mount-recovery-20261017-v1/README.md).
+Independent CPU follow-through**34308** now waits that same original completion.
+It enforces exact old8 image/meta bytes, original0.003FP16/FP32 precision, all32
+outputs/windows, measured time and all12descriptive rank summaries.22pure input/
+precision/timing guards and7finite paths passed; no actual scout/full teacher/
+MRI training result is claimed. [Source, scope and caps](../initiative/audits/s6-fitting32-acceptance-20261017-v1/README.md).
+
+R7 owner31309 now has sufficient fresh future VM funding at the latest actual
+check, but the actual two-session lane remains occupied by mainE3 and queuedU3.
+It reserves no extra GPU. S6 entry57300990 still has null hidden status/score.
+Best verified0.949/target0.97 are unchanged; published R7 0.956 remains external.

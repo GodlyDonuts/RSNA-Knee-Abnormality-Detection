@@ -1,0 +1,100 @@
+"""One CPU follow-through of the recovered original scout, without new inference."""
+
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+
+def wait_then_analyze(read_state, original_live, call, observe, now, sleep, deadline):
+    while now() < deadline:
+        state = read_state()
+        if state is not None:
+            if state.get('status') != 'one_original_source_scout_actual_complete_and_private_collection_verified':
+                return {'status': 'original_scout_terminal_without_analysis_admission', 'original': state, 'new_CPU_jobs': 0}
+            observe('original_actual_collection_verified', state)
+            result = call()
+            if result.get('status') != 'actual_original_fitting32_scout_independent_CPU_acceptance_complete':
+                raise RuntimeError('Unexpected actual scout analysis result; reconcile read-only')
+            return {'status': 'one_original_scout_independent_CPU_analysis_complete', 'actual': result,
+                    'new_CPU_jobs': 1, 'new_GPU_or_inference_or_entry_mutations': 0}
+        if not original_live():
+            raise RuntimeError('Original scout handle missing without authoritative terminal; reconcile read-only')
+        observe('waiting_same_live_original_scout_without_resource_reservation', None)
+        sleep(60)
+    return {'status': 'finite_CPU_analysis_wait_expired_without_dispatch', 'new_CPU_jobs': 0}
+
+
+def main():
+    L = Path(__file__).resolve().parent
+    S = L.parent / 's6-fitting32-scout-preparation-20261017-v5'
+    assert not (L / 'finish.intent.json').exists()
+    original = json.loads((S / 'finish.intent.json').read_text())
+    owner = original['PID']
+    dispatch = json.loads((S / 'owner-dispatched.json').read_text())
+    assert owner == dispatch['PID'] == 34237 and original['maximum_GPU_sessions'] == 1
+    recovery = json.loads((L.parent / 's6-scout-mount-recovery-20261017-v1/reconciled.json').read_text())
+    assert recovery['no_push_intent_response_GPU_or_collection'] is True and recovery['CPU_job'] == '944394'
+    assert original['source_sha256'] == '0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf'
+    checks = json.loads((L / 'checked.json').read_text())
+    frozen = {n: hashlib.sha256((L / n).read_bytes()).hexdigest() for n in ('core.py', 'program.py.txt', 'finish_once.py')}
+    assert frozen['core.py'] == checks['core_sha256']
+    start = time.monotonic()
+    deadline = start + 6 * 3600
+    with (L / 'finish.intent.json').open('x') as f:
+        json.dump({'PID': os.getpid(), 'original_scout_PID': owner, 'original_scout_source_sha256': original['source_sha256'],
+                   'maximum_seconds': 6 * 3600, 'maximum_new_CPU_jobs': 1,
+                   'maximum_new_GPU_inference_entries_or_downloads': 0, 'immutable_files': frozen,
+                   'allocation_from_existing_future_control_bytes': 2**20, 'automatic_retry': False}, f, indent=2)
+
+    def state():
+        path = S / 'finish.result.json'
+        return json.loads(path.read_text()) if path.exists() else None
+
+    def live():
+        x = subprocess.run(['ps', '-p', str(owner), '-o', 'command='], capture_output=True, text=True)
+        return x.returncode == 0 and x.stdout.strip().endswith(S.name + '/finish_once.py')
+
+    def observe(phase, actual):
+        (L / 'finish.progress.json').write_text(json.dumps({'PID': os.getpid(), 'phase': phase,
+            'original_scout_PID': owner, 'elapsed_seconds': time.monotonic() - start, 'actual': actual}, indent=2) + '\n')
+
+    def call():
+        assert all(hashlib.sha256((L / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+        assert json.loads((S / 'actual-collected.json').read_text())['status'] == 'one_fitting32_private_metadata_and_logits_collection_full_size_SHA_verified'
+        summary = (L.parent / 's6-fitting8-complementarity-20261017-v1/core.py.txt').read_text()
+        assert hashlib.sha256(summary.encode()).hexdigest() == checks['original_summary_sha256']
+        with (L / 'analyze.intent.json').open('x') as f:
+            json.dump({'immutable_files': frozen, 'original_scout_PID': owner, 'maximum_CPU_jobs': 1,
+                       'automatic_retry': False, 'new_GPU_or_competition_mutations': 0}, f, indent=2)
+        observe('one_CPU_independent_parity_and_cost_analysis', None)
+        cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33',
+               '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=1G', '--time=00:03:00',
+               '--job-name=rsna-S6-fit32-acceptance', 'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1',
+               'OPENBLAS_NUM_THREADS=1', 'OMP_NUM_THREADS=1',
+               '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', (L / 'program.py.txt').read_text()]
+        child = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(cmd)],
+                               input=json.dumps({'core': (L / 'core.py').read_text(), 'summary': summary, 'checked': checks}),
+                               capture_output=True, text=True, timeout=400)
+        with (L / 'analyze.result.json').open('x') as f:
+            json.dump({'returncode': child.returncode, 'stdout': child.stdout, 'stderr': child.stderr}, f, indent=2)
+        assert child.returncode == 0, 'Original analysis stopped; no retry before actual-state reconciliation'
+        actual = json.loads(child.stdout)
+        (L / 'accepted.json').write_text(json.dumps(actual, indent=2) + '\n')
+        return actual
+
+    try:
+        result = wait_then_analyze(state, live, call, observe, time.monotonic, time.sleep, deadline)
+        (L / 'finish.result.json').write_text(json.dumps(result, indent=2) + '\n')
+        print(json.dumps(result), flush=True)
+    except BaseException as error:
+        (L / 'finish.result.json').write_text(json.dumps({'status': 'stopped_original_scout_analysis_for_readonly_reconciliation',
+            'error_type': type(error).__name__, 'reason': str(error), 'automatic_retry': False}, indent=2) + '\n')
+        raise
+
+
+if __name__ == '__main__':
+    main()

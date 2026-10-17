@@ -1,0 +1,18 @@
+
+import hashlib,importlib.util,json,os,sqlite3,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'GPU-fitting32-scout-v1';source=(R/'source.private.py').read_bytes();sha=hashlib.sha256(source).hexdigest();assert sha=='0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf'
+names=['push-intent.json','push-response.json','actual-accepted.json','actual-failed.json','collected'];assert all(not (R/n).exists() for n in names)
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('readonly_scout_original_reconcile',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+old=r.kernel('GetKernel','godlydonuts/rsna-s6-fitting8-uid-cpu-47ae6254eedd',1);actual=old['metadata'];expected=['nartaa/rsna-knee-s6fall-weights','heliosli/rsna-orthofoundation-fold0-epoch7-20261004','godlydonuts/rsna-parent-fit-targets-48b4485f03b6'];assert sorted(actual['datasetDataSources'])==sorted(expected) and old['metadata']['enableInternet'] is False and old['metadata']['isPrivate'] is True
+assert r.kernel('GetKernelSessionStatus','godlydonuts/rsna-s6-fitting8-uid-cpu-47ae6254eedd',1)['status']=='COMPLETE'
+absence=r.require_absent_kernel('godlydonuts/rsna-s6-fit32-scout-'+sha[:12])
+key='licensed-parent-full-epoch-serving:S6-source-fitting32:'+sha
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ row=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();assert row;record=json.loads(row[0]);assert record['state']=='S6_fitting32_scout_prepared' and 'qualification' not in record
+out={'status':'original_scout_pre_push_mount_assertion_reconciled_readonly','CPU_job':os.environ['SLURM_JOB_ID'],'source_sha256':sha,'old_CPU_kernel':139165316,'old_CPU_version':1,'actual_old_CPU_dataset_sources':sorted(expected),'unused_A_dataset_not_in_old_CPU_source':'nartaa/rsna-knee-publication-swa-weights-20261007','original_old_CPU_completed':True,'canonical_state':record['state'],'source_and_pixel_recipe_unchanged':True,'no_push_intent_response_GPU_or_collection':True,'candidate_absence':absence,'Kaggle_or_ledger_mutations':0};print(json.dumps(out),flush=True)

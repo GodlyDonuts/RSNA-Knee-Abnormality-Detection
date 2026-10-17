@@ -1,0 +1,52 @@
+"""One bounded S6 source-fitting scout and private collection, zero entries."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+
+WAITING={'waiting_claim_without_mutation','waiting_original_S6_offline_acceptance_without_GPU_reservation','waiting_original_CPU_fitting8_classifier_without_GPU_reservation','waiting_actual_scout_capacity_or_all_future_funding_without_mutation'}
+def run_transaction(call,observe,now,sleep,deadline):
+ pushed=None
+ while now()<deadline:
+  event=call('push');observe('push_admission',event)
+  if event['status']=='one_exact_private_B_only_fitting32_scout_pushed':pushed=event;break
+  if event['status'] not in WAITING:raise RuntimeError('Unexpected source-scout admission; reconcile read-only')
+  sleep(60)
+ if pushed is None:return {'status':'finite_source_scout_admission_expired_without_GPU_push','GPU_runs':0}
+ while now()<deadline:
+  event=call('status');observe('same_exact_scout_status',event)
+  if event['status']=='waiting_claim_without_mutation':sleep(45);continue
+  if event['status'] in ('ERROR','CANCELLED'):return {'status':'actual_source_scout_GPU_terminal_failure','actual':event,'GPU_runs':1,'automatic_retry':False}
+  if event['status']=='COMPLETE':
+   if event['accepted']['status']!='actual_original_S6_B_only_fitting32_two_T4_scout_complete':raise RuntimeError('Wrong actual source scout acceptance')
+   while now()<deadline:
+    result=call('collect');observe('private_collection',result)
+    if result['status']=='waiting_claim_without_mutation':sleep(45);continue
+    if result['status']!='one_fitting32_private_metadata_and_logits_collection_full_size_SHA_verified':raise RuntimeError('Wrong private source-scout collection')
+    return {'status':'one_original_source_scout_actual_complete_and_private_collection_verified','actual':event,'collected':result,'GPU_runs':1,'competition_entries':0,'clinical_accuracy_claim':False}
+  sleep(60)
+ return {'status':'finite_source_scout_observation_expired_actual_outcome_unresolved','original_push':pushed,'GPU_runs':1,'automatic_retry':False}
+
+def main():
+ L=Path(__file__).resolve().parent;P=L/'run_phase_once.py';frozen=hashlib.sha256(P.read_bytes()).hexdigest();started=time.monotonic();deadline=started+6*3600
+ assert not (L/'finish.intent.json').exists()
+ handoff=json.loads((L.parent/'s6-scout-mount-recovery-20261017-v1/reconciled.json').read_text());assert handoff['status']=='original_scout_pre_push_mount_assertion_reconciled_readonly' and handoff['no_push_intent_response_GPU_or_collection'] is True and handoff['Kaggle_or_ledger_mutations']==0
+ oldstate=subprocess.run(['ps','-p','26454','-o','state='],capture_output=True,text=True);assert oldstate.returncode!=0 or oldstate.stdout.strip().startswith('Z'),'Previous CPU observer must be terminal before replacement'
+ for p in L.glob('push-*.result.json'):
+  old=json.loads(p.read_text());assert old['returncode']==0 and json.loads(old['stdout'])['status'] in WAITING,'Prior push result must be reconciled before a new owner'
+ with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'phase_script_sha256':frozen,'source_sha256':'0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf','maximum_seconds':6*3600,'maximum_GPU_sessions':1,'maximum_session_seconds':1800,'maximum_private_collections':1,'maximum_Dataset_or_competition_entries':0,'original_S6_public_offline_and_CPU8_acceptance_required':True,'fresh_canonical_capacity_and_all_future_compute_funding_required':True,'automatic_retry':False},f,indent=2)
+ def observe(phase,actual):
+  (L/'finish.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-started,'actual':actual},indent=2)+'\n')
+  if actual['status']=='one_exact_private_B_only_fitting32_scout_pushed':(L/'actual-pushed.json').write_text(json.dumps(actual,indent=2)+'\n')
+  if phase=='same_exact_scout_status' and actual['status']=='COMPLETE':(L/'actual-accepted.json').write_text(json.dumps(actual,indent=2)+'\n')
+  if actual['status']=='one_fitting32_private_metadata_and_logits_collection_full_size_SHA_verified':(L/'actual-collected.json').write_text(json.dumps(actual,indent=2)+'\n')
+ def sleep(seconds):
+  end=min(deadline,time.monotonic()+seconds)
+  while time.monotonic()<end:time.sleep(min(30,end-time.monotonic()))
+ def call(phase):
+  assert hashlib.sha256(P.read_bytes()).hexdigest()==frozen;child=subprocess.run([sys.executable,str(P),phase],capture_output=True,text=True,timeout=530)
+  with (L/('child-'+str(time.monotonic_ns())+'.json')).open('x') as f:json.dump({'phase':phase,'returncode':child.returncode,'stdout':child.stdout,'stderr':child.stderr},f,indent=2)
+  assert child.returncode==0,'Canonical source scout phase stopped; reconcile actual state, never retry uncertainty';return json.loads(child.stdout)
+ try:
+  result=run_transaction(call,observe,time.monotonic,sleep,deadline);(L/'finish.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+ except BaseException as e:
+  (L/'finish.result.json').write_text(json.dumps({'status':'stopped_original_source_scout_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise
+if __name__=='__main__':main()

@@ -1,0 +1,37 @@
+{
+  "status": "fixed32_CPU_followthrough_finite_owner_checks_passed",
+  "paths": [
+    {
+      "name": "live original followed by actual acceptance",
+      "new_CPU_jobs": 1
+    },
+    {
+      "name": "already complete original requires no live observer",
+      "new_CPU_jobs": 1
+    },
+    {
+      "name": "live original wait expires without allocation",
+      "new_CPU_jobs": 0
+    },
+    {
+      "name": "actual original terminal failure reserves no CPU",
+      "new_CPU_jobs": 0
+    },
+    {
+      "name": "missing handle is not GPU terminal authority",
+      "new_CPU_jobs": 0
+    },
+    {
+      "name": "uncertain CPU outcome is never retried",
+      "new_CPU_jobs": 1
+    },
+    {
+      "name": "wrong returned acceptance refused",
+      "new_CPU_jobs": 1
+    }
+  ],
+  "count": 7,
+  "owner_sha256": "ceb88e0c9c26ad19811896c37d074f2056bc0f7f3d71c467ecd0d662889cbbdd",
+  "program_sha256": "66e1db3734551dbac4936d9511a6cef83eb94da8306505f00b56d17403392255",
+  "GPU_Kaggle_or_new_inference_mutation_calls": 0
+}
