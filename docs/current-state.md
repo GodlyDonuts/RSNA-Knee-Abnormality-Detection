@@ -9,7 +9,7 @@ and authenticated Kaggle resolve later changes. Historical observations are in
 
 | Candidate | Submission | Public score | Interpretation |
 |---|---:|---:|---|
-| Released author-trained CoAtNet, reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not our training improvement |
+| Author-trained CoAtNet, inference reproduced unchanged | 57258866 | **0.949** | Attributed external baseline; not our training improvement |
 | Own N3 CoAtNet, epoch 4 | 57256756 | **0.821** | Successful hidden execution |
 | Own N3 CoAtNet, epoch 8 | 57259376 | **0.869** | Up .048 from epoch 4 |
 | Own N3 CoAtNet, epoch 12 | 57262392 | **0.890** | Up .021 from epoch 8 |
@@ -17,6 +17,12 @@ and authenticated Kaggle resolve later changes. Historical observations are in
 | Licensed-parent + our sequence-context E10 | 57287572 | **0.948** | Successful hidden run; below unchanged external0.949 |
 | Unchanged licensed parent, full384field | 57289392 | **Pending / unknown** | Exact v1 accepted once; no hidden score yet |
 | Prior own DINO best | 57182737 / 57182547 | **0.872** | Historical own-trained reference, now exceeded |
+
+The **0.949 used the author's released MRI-trained weights**. We reproduced
+inference and its score, not the author's training from scratch. Our independently
+MRI-trained N3 started from general ImageNet pretraining and scored0.894. Current
+whole94 training is further adaptation of the strong MRI-trained parent; it has
+no scored learned checkpoint yet. These are three distinct claims.
 
 Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 [Original scored receipt](../initiative/audits/compact-production-e012-kaggle-20261016-v1/actual-scored-canonical.json).
@@ -364,8 +370,8 @@ CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle
 Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
 was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
 T4s, all73,136,096parameters trainable and **293finite optimizer updates** in epoch1 (latest visible log)
-at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
-[Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
+at00:53UTC. No epoch is complete and no new accuracy/competition score exists.
+[Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-293.json).
 
 Live finiteowner80039/exec6555 continues up to3checkpoint-continuous seven-hour
 sessions at486/972/1458steps, preserving one complete LR/optimizer/RNG schedule.
@@ -558,3 +564,22 @@ Today's plan is context,field,regional,E1,E3; only context/field are submitted.
 There is no guarantee unready candidates finish within the daily window, and no
 unqualified duplicate will fill a slot. No scientific recipe changed. [Actual score/recovery](../initiative/audits/released-context-deployment-20261016-v1/README.md),
 [field proof and exact public source](../initiative/audits/licensed-native-field-20261017-v1/README.md).
+
+## Matched efficient full-encoder sampling — current engineering work
+
+The original all3887label-free screen found45.6%lower teacher-readout approximation
+MSE with16influence-guided draws; this is not disease accuracy. The new matched
+uniform/influence full-encoder engine is implemented,46focused numerical/recovery/
+compiler checks pass, and original whole94 source stays byte-identical.
+CPU940638 staged scientific sourcebe837f9b and funded32MiB controls above carried
+607422461891bytes, preserving25.29GB after all liabilities; future full-production
+checkpoint funding is not included. ONE private offline twoT4 diagnostic139130771v1
+was pushed from exact sourcea01dd9643355, observed by live90613/exec24374. It
+requires actual both-role full/stop1/resume equality on16fitting+16disjoint
+engineering cases; no GPU acceptance, clinical gain or new full fit is claimed yet.
+CPU940658 separately materialized the complete fixed3887x94proposal table from
+original features in21.97seconds, zero labels/newCNN/transfers, private2.923MB
+SHAe812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e. No Dataset
+or slot used. Original main training and today's five-entry plan are unchanged.
+[Protocol and papers](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
+[actual stage, push and CPU input receipt](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).

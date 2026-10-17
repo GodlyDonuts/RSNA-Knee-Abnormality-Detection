@@ -583,3 +583,22 @@ Today's plan is context,field,regional,E1,E3; only context/field are submitted.
 There is no guarantee unready candidates finish within the daily window, and no
 unqualified duplicate will fill a slot. No scientific recipe changed. [Actual score/recovery](../initiative/audits/released-context-deployment-20261016-v1/README.md),
 [field proof and exact public source](../initiative/audits/licensed-native-field-20261017-v1/README.md).
+
+## Matched efficient full-encoder sampling — current engineering work
+
+The original all3887label-free screen found45.6%lower teacher-readout approximation
+MSE with16influence-guided draws; this is not disease accuracy. The new matched
+uniform/influence full-encoder engine is implemented,46focused numerical/recovery/
+compiler checks pass, and original whole94 source stays byte-identical.
+CPU940638 staged scientific sourcebe837f9b and funded32MiB controls above carried
+607422461891bytes, preserving25.29GB after all liabilities; future full-production
+checkpoint funding is not included. ONE private offline twoT4 diagnostic139130771v1
+was pushed from exact sourcea01dd9643355, observed by live90613/exec24374. It
+requires actual both-role full/stop1/resume equality on16fitting+16disjoint
+engineering cases; no GPU acceptance, clinical gain or new full fit is claimed yet.
+CPU940658 separately materialized the complete fixed3887x94proposal table from
+original features in21.97seconds, zero labels/newCNN/transfers, private2.923MB
+SHAe812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e. No Dataset
+or slot used. Original main training and today's five-entry plan are unchanged.
+[Protocol and papers](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
+[actual stage, push and CPU input receipt](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md).
