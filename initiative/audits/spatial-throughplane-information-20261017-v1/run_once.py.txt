@@ -1,0 +1,12 @@
+"""One CPU-only representation probe; no GPU or optimization authority."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/spatial-throughplane-information-20261017-v1');L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists()
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();assert not subprocess.check_output(['git','status','--porcelain'],text=True).strip()
+program=(D/'probe.py.txt').read_text();compile(program,'fitting_metadata_operator_sensitivity','exec');files=json.loads(Path('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json').read_text())['numerical_source_before'];assert len(files)==118 and all(hashlib.sha256(Path(n).read_bytes()).hexdigest()==h for n,h in files.items())
+h=hashlib.sha256(program.encode()).hexdigest()
+with (L/'intent.json').open('x') as f:json.dump({'source_git':source,'program_sha256':h,'CPUs':1,'GPUs':0,'automatic_retry':False},f,indent=2)
+a=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps({'source_git':source,'program_sha256':h,'source_files':files}),capture_output=True,text=True,timeout=230)
+(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Original representation probe incomplete; inspect original state, never blindly repeat'
+out=json.loads(x.stdout);(D/'actual-result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

@@ -1,0 +1,56 @@
+"""Counterfactual metadata/operator audit; no image, model or clinical values."""
+import copy,hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');E=R/'throughplane-operator-probe-v1';assert not E.exists()
+assert hashlib.sha256((R/'pilot-recovery-v2-accepted.json').read_bytes()).hexdigest()=='f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+CODE=R/'reader-engine-recovery-v2/code';assert len(v['source_files'])==118 and all(hashlib.sha256((CODE/n).read_bytes()).hexdigest()==h for n,h in v['source_files'].items())
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());cpu_paid=sum(p.stat().st_size for p in R.iterdir() if p.is_file())
+assert paid<3*2**30 and cpu_paid+2*2**20<8*2**20 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);q=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(q[2])-int(q[1]))*1024>20*2**30 and int(q[6])-int(q[5])>5000
+sys.path.insert(0,str(CODE));from rsna.competitive.spatial_reader import build_plan
+torch.set_num_threads(1);rows=[r for r in json.loads((R/'pilot-recovery-v2-accepted.json').read_text())['private_records'] if r['role']=='fitting'];membership=json.loads((R/'membership.private.json').read_text())
+assert len(rows)==16 and [r['study_uid'] for r in rows]==membership['fitting'][:16]
+def operator_sha(plan,arm):
+ h=hashlib.sha256();h.update(json.dumps([plan.windows,plan.channels,plan.height,plan.width]).encode())
+ for x in plan.valid_tokens:h.update(x.tobytes())
+ for g in plan.groups:
+  h.update(g.kind.encode())
+  for x in (g.first,g.second,g.tokens,(g.aligned if arm=='aligned' else g.control).numpy()):h.update(str(x.shape).encode());h.update(x.tobytes())
+ return h.hexdigest()
+def rounded_repeat_families(graphs):
+ result=[]
+ for g in graphs:
+  basis=np.asarray(g['image_orientation_patient'],float).reshape(2,3);positions=np.asarray(g['selected_image_positions_patient'],float);families={}
+  for first,second in g['repeat_edges']:
+   dx,dy=np.round((positions[second+1]-positions[first+1])@basis.T,3).tolist();families.setdefault((dx,dy),None)
+  result.append([(key,json.dumps(list(key))) for key in families])
+ return result
+def changed(graphs,scale=None,shear=False):
+ result=copy.deepcopy(graphs);maximum_inplane_change=0.
+ for old,g in zip(graphs,result,strict=True):
+  basis=np.asarray(g['image_orientation_patient'],float).reshape(2,3);normal=np.cross(*basis);normal/=np.linalg.norm(normal);p=np.asarray(g['selected_image_positions_patient'],float);q=p.copy()
+  if shear:q += np.arange(len(p))[:,None]*basis[0][None,:]  #1mm per selected position
+  else:
+   z=(p-p[0])@normal;q += (scale-1)*z[:,None]*normal[None,:]
+  lookup={int(x):i for i,x in enumerate(g['selected_source_indices'])};centers=[lookup[int(s[1])] for s in g['supports']];c=q[centers]@normal;g['centers_mm']=c.tolist()
+  for edges,gaps in [('continuity_edges','continuity_gaps_mm'),('repeat_edges','repeat_gaps_mm')]:
+   pairs=np.asarray(g[edges],int).reshape(-1,2);g[gaps]=np.abs(c[pairs[:,1]]-c[pairs[:,0]]).tolist()
+  maximum_inplane_change=max(maximum_inplane_change,float(np.max(np.abs((q-q[0])@basis.T-(p-p[0])@basis.T))))
+  g['selected_image_positions_patient']=q.tolist()
+ return result,maximum_inplane_change
+stats={str(s):{'cases':0,'changed_metadata_hash':0,'unchanged_aligned_operator':0,'unchanged_null_operator':0,'rounded_inplane_family_values_equal':0,'null_seed_family_JSON_strings_changed':0,'max_inplane_coordinate_change_mm':0.} for s in (.5,2.,4.)};positive={'cases':0,'changed_aligned_operator':0,'changed_null_operator':0};gaps=[];repeat_cases=0;start=time.perf_counter()
+for row in rows:
+ graphs=row['source_graphs'];windows=np.array([(g['slot'],j) for g in graphs for j in range(len(g['supports']))],dtype=np.int64);base=build_plan(graphs,windows,(1024,12,12),seed=20261017);original={arm:operator_sha(base,arm) for arm in ('aligned','null')};old_families=rounded_repeat_families(graphs)
+ repeat_cases+=int(any(g.kind=='repeat' for g in base.groups));gaps.extend(float(x) for g in graphs for x in g['repeat_gaps_mm'])
+ for scale in (.5,2.,4.):
+  modified,error=changed(graphs,scale=scale);plan=build_plan(modified,windows,(1024,12,12),seed=20261017);r=stats[str(scale)];r['cases']+=1;r['changed_metadata_hash']+=int(plan.metadata_sha256!=base.metadata_sha256)
+  for arm in ('aligned','null'):r['unchanged_'+arm+'_operator']+=int(operator_sha(plan,arm)==original[arm])
+  new_families=rounded_repeat_families(modified);r['rounded_inplane_family_values_equal']+=int([[x[0] for x in g] for g in new_families]==[[x[0] for x in g] for g in old_families]);r['null_seed_family_JSON_strings_changed']+=int([[x[1] for x in g] for g in new_families]!=[[x[1] for x in g] for g in old_families]);r['max_inplane_coordinate_change_mm']=max(error,r['max_inplane_coordinate_change_mm'])
+ modified,error=changed(graphs,shear=True);plan=build_plan(modified,windows,(1024,12,12),seed=20261017);positive['cases']+=1
+ for arm in ('aligned','null'):positive['changed_'+arm+'_operator']+=int(operator_sha(plan,arm)!=original[arm])
+E.mkdir(mode=0o700);out={'status':'actual_fitting_metadata_only_throughplane_operator_sensitivity_measured','CPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'probe_source_git':v['source_git'],'program_sha256':v['program_sha256'],'original118_source_manifest_sha256':'3909bf501db49d0a1e921323866bbf77e848accfed7f012a143d8397992bef72','original32_private_source_index_sha256':'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f','fitting_cases':16,'cases_with_actual_repeat_operator':repeat_cases,'normal_only_spacing_scale_counterfactuals':stats,'inplane_positive_control_1mm_per_selected_position':positive,'original_repeat_edge_gap_mm_quantiles':np.quantile(gaps,[0,.25,.5,.75,1]).tolist(),'elapsed_seconds':time.perf_counter()-start,'metadata_copies_modified_only_in_RAM':True,'original_live_training_and_data_untouched':True,'MRI_pixels_feature_maps_model_weights_labels_or_reports_loaded':False,'protected_cohort_values_used':False,'subcap_bytes':2*2**20,'inside_original_CPU8MiB_reader512MiB_node3GiB':True,'new_shared_bytes_files':0,'root_cause_of_low_score_proven':False,'accuracy_benefit_of_using_z_spacing_proven':False,'scope':'Operator-information test on16 fitting metadata records. Constant operator with changed through-plane spacing means this fixed-map reader cannot condition on that gap; it does not prove spacing sensitivity is necessary or helpful for binary classification, nor describe accuracy.'}
+assert len(json.dumps(out).encode())<2**20;(E/'result.json').write_text(json.dumps(out,indent=2,allow_nan=False)+'\n');print(json.dumps(out,allow_nan=False),flush=True)
