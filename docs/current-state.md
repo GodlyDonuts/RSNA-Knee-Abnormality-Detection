@@ -400,6 +400,7 @@ Actual32study precision/cost acceptance comes first.
 
 Earlier08:40 evidence remains in the original recovery audits. Exact original
 private preservation HF9fcf3f30d3766e40e9c931adb7f03ea0162f6f02 covers48small
-objects; never repeat it. Current new reference/result/cohort receipts await their
-distinct small-milestone mirror; no source weights, clinical rows or raw private
-assignment IDs are published.
+objects; never repeat it. New sourcef1540f77 reference/result/cohort milestone is
+now privately verified at HF6599eae559e004384bbf278ee948d15589b7a9b0,
+all70objects/491310bytes viaCPU945031. [Actual preservation](../initiative/audits/hf-public0958-actual0950-20261017-v1/README.md).
+No source weights, clinical rows or raw private assignment IDs are published.
