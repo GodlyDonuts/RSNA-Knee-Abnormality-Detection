@@ -1,0 +1,26 @@
+"""One distinct streaming encoder probe; not a retry of951853 or950940."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+
+D=Path(__file__).resolve().parent;L=Path('artifacts/connected-witness-dense-GPU-20261017-v1')
+L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists()
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+def committed(name):return subprocess.check_output(['git','show',git+':'+name],text=True)
+relative=D.relative_to(Path.cwd()).as_posix()+'/'
+names=('prototype.py','source_chains.py','variable_paths.py','variable_source_chains.py','path_reader.py','dense_inputs.py','online_inputs.py')
+files={n:committed(relative+n) for n in names}
+proof_text=committed(relative+'actual-dense-inputs.json')
+payload={'source_git':git,'files':files,'worker':committed(relative+'dense_gpu_probe.py.txt'),
+         'original118':json.loads(committed('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json'))['numerical_source_before'],
+         'actual_CPU_input':json.loads(proof_text),'CPU_input_receipt_sha256':hashlib.sha256(proof_text.encode()).hexdigest(),
+         'synthetic_online':json.loads(committed(relative+'synthetic-online-inputs.json'))}
+program=committed(relative+'stage_dense_gpu.py.txt');compile(program,'dense_source_runtime_CPU_admission_and_probe_dispatch','exec')
+with (L/'intent.json').open('x') as f:json.dump({'source_git':git,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'no_retry':True,'one_new_distinct_GPU_input_probe':True},f,indent=2)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-dense-stream-source-admission','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps(payload),capture_output=True,text=True,timeout=370)
+(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,'Reconcile existing CPU admission and any GPU intent; never retry an uncertain mutation'
+out=json.loads(x.stdout);(D/'actual-dense-GPU-submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

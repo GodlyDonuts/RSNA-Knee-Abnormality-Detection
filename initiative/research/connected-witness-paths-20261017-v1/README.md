@@ -245,3 +245,31 @@ accept encoder output equality, online GPU recovery, dense throughput or accurac
 `observe_real_gpu.py.txt` is a finite read-only follower for original951853.
 It may collect the exact source-bound engineering receipt using oneCPU only after
 actual0:0 completion. It has no GPU retry or production dispatch authority.
+
+## Online frozen-encoder integration
+
+`online_inputs.py` adds streamed sparse/dense full-map providers. Encoder chunks
+remain global12-window batches across acquisition boundaries, matching the
+original sparse encoder call order. Both samplings retain the **same original
+sparse16 parent teacher**, rather than changing the teacher when coverage changes.
+Native `[0,1]` grayscale tensors receive the original final `2*x-1` transform
+before encoding; a synthetic end-to-end reference test caught its omission in
+the new wrapper, and it was fixed before any GPU dispatch or training. This is
+not an explanation of old Kaggle failures or a change to old numerical sources.
+
+Synthetic encoder integration now reproduces original sparse full maps, source
+plan and parent logits exactly, keeps dense teacher logits equal and retains all
+dense windows. Every frozen parent parameter/buffer stays byte equal; train-mode
+parents and metadata drift are refused. [Actual synthetic result](synthetic-online-inputs.json).
+This small synthetic encoder cannot accept the real72.9M-parameter N3 encoder.
+
+The distinct `dense_gpu_once.py.txt` prepares one1H100/twoCPU/15minute **input
+probe**, on physical2-H100 evc33, with no optimizer or clinical label reads. It
+checks real sparse full-map/parent equality against all32 original cached cases,
+real dense full-map coverage with the same teacher, zero-start readout on a
+fitting and outer case, exact frozen state and measured time/peak memory.
+Source/runtime/metadata/funding are checked by oneCPU before GPU submission.
+It reassigns32MiB inside node33's original full320MiB allowance, retaining288MiB
+for every original/future artifact, with no new shared bytes or large copies.
+It does not duplicate the cached-reader recovery951853 or two-device benchmark
+950940. Original intent and actual submission/terminal receipt decide execution.

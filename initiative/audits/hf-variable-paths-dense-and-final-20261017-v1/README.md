@@ -13,3 +13,9 @@ reader512MiB. Existing local/remote intent requires read-only reconciliation.
 Each new small object is fully re-downloaded at exact immutable revision and
 size/SHA checked. `verified.json` alone establishes actual publication success.
 No accuracy, dense encoder or production admission is claimed by this milestone.
+
+Actual CPU951919 fully re-downloaded/size/SHA verified all44objects/228061bytes
+at private revision94d643949a101fe944045d5ffc843c3b1db79be0. Source1c631ae2
+includes the32-study pixel proof, GPU recovery dispatch, new path source and
+uncertain first full experiment. Do not repeat this mirror. The later online
+encoder wrapper and its probe are not included in that earlier source snapshot.
