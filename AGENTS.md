@@ -87,20 +87,25 @@ part of the4MiBserving cap too; deduct actual paid bytes once. Do not restore
 8MiB or count paid preparation twice. Exact funding is at
 `/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/funding.json`.
 
-## New CPU research lane: labels × whole-study coverage
+## Completed CPU fitting: labels × whole-study coverage
 
-ActualCPU947802accepted the original3887cached features, old/S6targets and exact
-parent readout;32FP32initial predictions match original math. A new separately
-funded256MiBnode33cap preserves all prior resource obligations. The four roles
-cross two source-label sets with16IID/all94training observations; only the exact
-279832parameter readout learns, fixed3epochs/1458updates. All use identical
-CPUFP32/zero-dropout, teacher/masks/init/order/views, no new pixel/feature copies.
-Existing full-encoder61037and scoring78386remain untouched. Original CPU948089failed2:0/zero seconds on a scheduler time-flag defect before worker execution;93163stopped. Distinct control-v2corrects the wrapper only, with original numerical files unchanged; actual recovery/full fitting is still required. This is not an
-independent clinical/whole-model OOF estimate, and no score improvement exists.
-Actual CPU recovery/full fitting must follow the published/private-verified source;
-prepared wrappers alone are not a completed experiment.
-[Exact protocol](initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
-and [actual admission/funding](initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
+Actual recovery948113passed all four full/stop1/resume complete state/prediction
+checks; **CPU948122completed all four3887study fits**, fixed3epochs/1458finite
+updates each. These train279832readout parameters on frozen original CNNfeatures
+with original/S6labels and16IID/all94windows, all shared init/order/views/masks/
+teacher/objective. Full-CNN61037and scoring78386remain unchanged. No independent
+whole-model OOF/clinical or Kaggle score is claimed.
+
+Original scheduler948089failed zero-runtime; corrected control sourceeed22c54
+is privately verified atHFebffa540e0f0f033b4acfe7324ab9b713e3da7e9. Owner93414
+completed actual fitting, then stopped on a wrong publication-licence path before
+a commit. CPU948164reconciled all60remote target paths absent and exact original
+licence4411B/SHA34c44b20… . Corrective publication-v2preserves the same12epochs
+once, separately pinned; never restart recovery/full fitting or old owners.
+Original256MiBfunding remains, all numerical/checkpoint obligations paid;32MiB
+publication/control future reserve retained. Protected clinical values stay unused.
+[Protocol](initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
+and [actual complete/reconciliation proofs](initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
 ## Execution, assets and resources
 

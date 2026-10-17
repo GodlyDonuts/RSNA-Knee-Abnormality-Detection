@@ -68,3 +68,24 @@ HFec32e8314f35d70271f641cf418b40bdf8cc243d viaCPU948081,all27objects/156766B
 fully re-downloaded/size/SHA verified. Never repeat that source publication.
 The corrective wrapper gets a distinct source pin/prefix; it uses the same
 separate256MiBfunding and preserves the192MiBfuture numerical/publication reserve.
+
+**Actual full fitting completed:** CPU948113passed all four real fresh-process
+full/stop1/resume recoveries; CPU948122then completed **four3epoch/1458update
+full3887fits in204.75seconds**. Original16/original94/S6_16/S6_94all have finite
+updates and all12immutable model/optimizer snapshots remain private on node33.
+This readout-only work is not a full-CNN fit or accuracy gain. Sourceeed22c54
+was privately fully14object/94480Bverified atHFebffa540… viaCPU948112.
+
+Original publication stopped before intent/commit while looking up a licence
+under the wrong HFpath. CPU948164read-only reconciliation confirms all60target
+paths absent and no prior remote commit; it recovered the exact original4411B/
+SHA34c44b20… licence from already verified uniformE3revisionf47a8846… .
+No training or publication was duplicated. Corrective[publication-v2](../../experiments/competitive-v1/cached-full-study-factorial-v1/publication-v2/publication.py.txt)
+uses that admitted original licence and a new private-publication-v2directory,
+with unchanged models, worker and numerical graph. The publication/source control
+is pinned separately from actual model sourceeed22c54. Owning-node paid bytes
+182235230; retain32MiBremaining publication/control within the original256MiBcap,
+now that all original numerical/checkpoint obligations are physically complete.
+No deletion credit or new shared obligation. Original owner93414stopped; do not
+restart it or any recovery/full-fitting phase. Private full verification remains
+required before calling these12models preserved. No Kaggle score exists.
