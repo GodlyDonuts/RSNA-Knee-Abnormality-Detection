@@ -10,8 +10,8 @@ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def main():
-    node=os.uname().nodename;assert node in {'evc33','evc40'} and len(sys.argv)==2 and sys.argv[1] in {'aligned','null'}
-    arm=sys.argv[1];root=R/'reader-production-v1';out=root/arm;admit=json.loads((root/'admitted.json').read_text())
+    node=os.uname().nodename;assert node in {'evc33','evc40'} and len(sys.argv) in {2,3} and sys.argv[1] in {'aligned','null'}
+    arm=sys.argv[1];resume=len(sys.argv)==3;assert not resume or sys.argv[2]=='resume';root=R/'reader-production-v1';out=root/arm;admit=json.loads((root/'admitted.json').read_text())
     assert admit['status']=='matched_fixed3_spatial_reader_full_production_admitted_after_real_engine_acceptance'
     assert sha(__file__)==admit['worker_sha256']
     accepted=json.loads((root/'original-GPU-engine-accepted.json').read_text());assert sha(root/'original-GPU-engine-accepted.json')==admit['GPU_acceptance_sha256']
@@ -22,7 +22,7 @@ def main():
     def cap():
         paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert paid<3*2**30 and shutil.disk_usage('/tmp').free>floor+max(0,3*2**30-paid)
         assert sum(p.stat().st_size for p in root.rglob('*') if p.is_file())<320*2**20
-    cap();assert not out.exists();sys.path[:0]=[str(root/'code'),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+    cap();assert (not out.exists()) if not resume else ((out/'checkpoint.pt').exists() and not (out/'result.json').exists());sys.path[:0]=[str(root/'code'),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
     import numpy as np
     import pandas as pd
     import torch
@@ -57,7 +57,7 @@ def main():
     assert engine.total==843;stopping=[False]
     def stop(signum,frame):stopping[0]=True
     for sig in (signal.SIGTERM,signal.SIGUSR1):signal.signal(sig,stop)
-    started=time.monotonic();result=engine.fit(out,should_stop=lambda:stopping[0]);cap()
+    started=time.monotonic();result=engine.fit(out,resume=resume,should_stop=lambda:stopping[0]);cap()
     if result['completed']!=843:
         (out/'stopped.json').write_text(json.dumps({**result,'complete_update_boundary_preserved':True,'no_auto_restart':True})+'\n');raise SystemExit(75)
     assert engine.epoch==3 and engine.cursor==0 and len(engine.history)==843

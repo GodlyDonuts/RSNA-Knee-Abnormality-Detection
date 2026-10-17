@@ -1,0 +1,22 @@
+"""Synthetic private-epoch refusal contracts; no publication/training/clinical claim."""
+from pathlib import Path
+import ast,copy,importlib,json,runpy
+from dataclasses import asdict
+import torch
+from rsna.competitive.spatial_reader import SpatialReader
+from rsna.competitive.spatial_train import SpatialRecipe
+from rsna.competitive.checkpoint import capture_rng
+D=Path('initiative/audits/spatial-reader-engine-20261017-v1');g=runpy.run_path(str(D/'publish_full_epoch.py.txt'),run_name='synthetic_contract_not_main');admit={'source_git':'a'*40,'source_manifest_sha256':'b'*64,'GPU_acceptance_sha256':'c'*64};model=SpatialReader();rng=capture_rng(torch.device('cpu'));rng['cuda']=torch.zeros(16,dtype=torch.uint8)
+state={'schema_version':1,'binding':{'diagnostic_only':False,'arm':'aligned','fitting_count':2247,'total_steps':843,**admit,'recipe':asdict(SpatialRecipe()),'data':{'parent_sha256':'5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5','weak_release_sha256':'2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7','fitting_uids_sha256':'850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74','outer_uids_sha256':'2983434d353efee3b3f13af5bb8cb7520e43f8fc23c329cfd0351def93da62cd'}},'optimizer_boundary':True,'epoch':1,'cursor':0,'completed':281,'history':[{'step':i+1,'loss':.5,'gradient_norm':.1} for i in range(281)],'model':model.state_dict(),'optimizer':{'state':{i:{'step':torch.tensor(281.)} for i in range(8)},'param_groups':[{}]},'rng':rng,'order':[],'scheduler':{'completed':281}}
+assert g['validate'](state,admit,'aligned',1)==state['binding'];cases=[]
+for name,mutation in [('diagnostic',lambda s:s['binding'].update(diagnostic_only=True)),('wrong_arm',lambda s:s['binding'].update(arm='null')),('missing_rng',lambda s:s.pop('rng')),('partial_epoch',lambda s:s.update(cursor=1)),('wrong_base',lambda s:s['binding']['data'].update(parent_sha256='d'*64)),('wrong_schedule',lambda s:s['binding']['recipe'].update(epochs=10)),('nonfinite_update',lambda s:s['history'][0].update(loss=float('nan'))),('incomplete_optimizer',lambda s:s['optimizer'].update(state={})),('wrong_learned_graph',lambda s:s['model'].pop('evidence.bias'))]:
+ value=copy.deepcopy(state);mutation(value)
+ try:g['validate'](value,admit,'aligned',1)
+ except (AssertionError,KeyError):cases.append(name)
+ else:raise AssertionError(name+' did not refuse')
+for n in ('full-fit.py.txt','publish_full_epoch.py.txt'):
+ tree=ast.parse((D/n).read_text());compile(tree,n,'exec')
+ for node in ast.walk(tree):
+  if isinstance(node,ast.ImportFrom) and node.module and node.module.startswith('rsna.'):
+   m=importlib.import_module(node.module);assert all(hasattr(m,a.name) for a in node.names)
+out={'status':'synthetic_full_publication_and_API_contract_checks_passed','positive_fixture':1,'refusal_cases':cases,'actual_new_reader_parameters':sum(p.numel() for p in model.parameters()),'GPU_network_real_data_or_checkpoint_publication_used':False,'scope':'Synthetic contract only; actual real GPU acceptance is separate950540/950355.'};(D/'full-control-checks.json').write_text(json.dumps(out,indent=2)+chr(10));print(json.dumps(out))

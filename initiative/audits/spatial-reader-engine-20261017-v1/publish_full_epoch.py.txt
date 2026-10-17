@@ -1,0 +1,48 @@
+"""Private immutable production reader epoch; diagnostic or uncertain work refuses."""
+import hashlib,importlib.util,json,math,os,shutil,sys,tempfile
+from pathlib import Path
+
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');P=R/'reader-production-v1'
+
+
+def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def validate(state,admit,arm,epoch):
+    assert set(state)=={'schema_version','binding','optimizer_boundary','model','optimizer','epoch','cursor','completed','order','scheduler','rng','history'} and state['schema_version']==1
+    assert set(state['rng'])=={'torch','cuda','python','numpy'} and state['rng']['cuda'] is not None
+    assert set(state['optimizer'])=={'state','param_groups'} and len(state['optimizer']['state'])==8 and len(state['optimizer']['param_groups'])==1
+    assert all(float(x['step'])==281*epoch for x in state['optimizer']['state'].values())
+    b=state['binding'];recipe=b['recipe'];assert b['diagnostic_only'] is False and b['arm']==arm and b['fitting_count']==2247 and b['total_steps']==843
+    assert b['source_git']==admit['source_git'] and b['source_manifest_sha256']==admit['source_manifest_sha256'] and b['GPU_acceptance_sha256']==admit['GPU_acceptance_sha256']
+    assert recipe=={'epochs':3,'effective_batch':8,'learning_rate':.001,'weight_decay':.01,'warmup_epochs':1,'clip':1.,'teacher_fraction':.25,'seed':20261017,'channels':1024,'width':64}
+    assert state['optimizer_boundary'] is True and state['epoch']==epoch and state['cursor']==0 and state['completed']==281*epoch and len(state['history'])==281*epoch
+    assert b['data']['parent_sha256']=='5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5' and b['data']['weak_release_sha256']=='2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7'
+    assert b['data']['fitting_uids_sha256']=='850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74' and b['data']['outer_uids_sha256']=='2983434d353efee3b3f13af5bb8cb7520e43f8fc23c329cfd0351def93da62cd'
+    assert all(math.isfinite(x['loss']) and math.isfinite(x['gradient_norm']) and x['step']==i+1 for i,x in enumerate(state['history']))
+    shapes={'project.0.weight':(1024,),'project.0.bias':(1024,),'project.1.weight':(64,1024),'project.1.bias':(64,),'evidence.weight':(12,64),'evidence.bias':(12,),'output':(12,12),'bias':(12,)}
+    assert set(state['model'])==set(shapes) and all(tuple(state['model'][n].shape)==shape for n,shape in shapes.items())
+    return b
+
+
+def main():
+    v=json.load(sys.stdin);arm,epoch=v['arm'],v['epoch'];assert os.uname().nodename in {'evc33','evc40'} and not os.environ.get('SLURM_JOB_GPUS') and arm in {'aligned','null'} and type(epoch) is int and 1<=epoch<=3
+    admit=json.loads((P/'admitted.json').read_text());assert sha(__file__)==admit['publisher_sha256']
+    snapshot=P/arm/'epoch-checkpoints'/f'epoch-{epoch:03d}.pt';assert snapshot.is_file() and not snapshot.is_symlink() and snapshot.stat().st_size<16*2**20
+    journal=P/'publication'/arm/f'epoch-{epoch:03d}';assert not journal.exists(),'Existing original publication requires read-only reconciliation'
+    floor=603433009211 if os.uname().nodename=='evc33' else 612022943803;paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert shutil.disk_usage('/tmp').free>floor+max(0,3*2**30-paid);assert sum(p.stat().st_size for p in (P/'publication').rglob('*') if p.is_file())+4*snapshot.stat().st_size+2**20<48*2**20
+    import torch
+    state=torch.load(snapshot,map_location='cpu',weights_only=True);binding=validate(state,admit,arm,epoch);assert all(torch.isfinite(t).all() for t in state['model'].values());before=snapshot.stat();h=sha(snapshot);assert (snapshot.stat().st_size,snapshot.stat().st_mtime_ns)==(before.st_size,before.st_mtime_ns)
+    journal.mkdir(mode=0o700,parents=True);provenance={'kind':'immutable_full_map_spatial_reader_with_optimizer_and_complete_resume_state','source_git':admit['source_git'],'source_manifest_sha256':admit['source_manifest_sha256'],'source_files_sha256':admit['source_files_sha256'],'GPU_engine_acceptance_sha256':admit['GPU_acceptance_sha256'],'arm':arm,'epoch':epoch,'completed_optimizer_updates':281*epoch,'checkpoint_sha256':h,'checkpoint_bytes':before.st_size,'original_parent_checkpoint_sha256':binding['data']['parent_sha256'],'original_parent_private_revision':'b346ee1409d871ab3eef865156ed1207114d58b7','weak_release_sha256':binding['data']['weak_release_sha256'],'fitting_roster_sha256':binding['data']['fitting_uids_sha256'],'outer_roster_sha256':binding['data']['outer_uids_sha256'],'targets':binding['targets'],'recipe':binding['recipe'],'torch_runtime':binding['torch_version'],'runtime_flags':binding['runtime'],'fixed_final_only':True,'clinical_or_Kaggle_accuracy_claim':False,'base_license_provenance_preserved_separately':True,'no_new_license_claim_for_owner_checkpoint':True}
+    (journal/'provenance.json').write_text(json.dumps(provenance,indent=2)+chr(10));(journal/'source-binding.json').write_text(json.dumps({'source_git':admit['source_git'],'source_files_sha256':admit['source_files_sha256'],'full_worker_sha256':admit['worker_sha256'],'publisher_sha256':admit['publisher_sha256'],'accepted_actual_GPU_receipt_sha256':admit['GPU_acceptance_sha256'],'source_plan':'fixed3epochs/aligned-versus-randomized-link-null; no best-epoch or Gold tuning'},indent=2)+chr(10))
+    paths={'epoch.pt':snapshot,'provenance.json':journal/'provenance.json','source-binding.json':journal/'source-binding.json','original-initialization-provenance.json':R/'initialization-provenance.json'}
+    core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert sha(core)=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde';spec=importlib.util.spec_from_file_location('original_shared_checkpoint_publication_lock',core);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);os.environ.update(HF_HUB_DISABLE_XET='1',HF_HOME=str(journal/'hf-private'),HF_XET_CACHE=str(journal/'xet-private'));from huggingface_hub import HfApi,CommitOperationAdd
+    with m.shared_publication_lock():
+        api=HfApi(token=v['token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True;prefix='models/spatial-reader-full-map-v1/'+admit['source_git'][:12]+'/'+arm+f'/epoch-{epoch:03d}';assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in paths],repo_type='dataset'));table={n:{'bytes':p.stat().st_size,'sha256':sha(p)} for n,p in paths.items()};m.atomic_new(journal/'intent.json',{'source_git':admit['source_git'],'prefix':prefix,'parent':info.sha,'files':table,'automatic_retry':False});commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message=f'Preserve immutable spatial-reader {arm} epoch{epoch}; full checkpoint/provenance and byte verification',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in paths.items()]);m.atomic_new(journal/'commit.json',{'revision':commit.oid})
+        for name,row in table.items():
+            with tempfile.TemporaryDirectory(prefix='rsna-spatial-head-verify-',dir=journal) as tmp:
+                p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+name,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and sha(p)==row['sha256']
+        out={'status':'actual_spatial_reader_production_epoch_private_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'arm':arm,'epoch':epoch,'source_git':admit['source_git'],'revision':commit.oid,'prefix':prefix,'checkpoint_sha256':h,'checkpoint_bytes':before.st_size,'objects':len(paths),'all_bytes_fully_re_downloaded':True,'exact_source_parent_license_runtime_folds_and_recipe_bound':True,'no_private_rows_pixels_or_predictions_uploaded':True,'clinical_or_Kaggle_accuracy_claim':False};m.atomic_new(journal/'verified.json',out);print(json.dumps(out),flush=True)
+
+
+if __name__=='__main__':main()
