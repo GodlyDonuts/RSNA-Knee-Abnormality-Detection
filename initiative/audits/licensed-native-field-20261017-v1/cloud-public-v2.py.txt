@@ -1,0 +1,71 @@
+"""Canonical fixed384 source/public CSV/entry operations; unchanged licensed weights."""
+import hashlib,importlib.util,json,os,shutil,subprocess,time,types
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];assert phase in ('push','status','eligibility','submit','outcome') and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');assert hashlib.sha256((C/'workflow.py').read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('fov_public_workflow',C/'workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+source=v['source'];sha=hashlib.sha256(source.encode()).hexdigest();assert sha==v['prepared']['binding']['source_sha256']=='21439b1543827e6482224b5b3857ff0fcafcc40642ee4c36ff44607494efe471';compile(source,'qualified_field_public_source','exec');permission_source=Path('/tmp/rsna-source-ranking-serving-20261016-v1/source-permission.txt');permission=permission_source.read_bytes();assert hashlib.sha256(permission).hexdigest()=='34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79'
+R=Path('/tmp/rsna-licensed-native-field-serving-20261017-v1');required=607397296067+16*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+quota_text=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);q=[line.split() for line in quota_text.splitlines() if line.strip().startswith('/home/sa305415')];assert len(q)==1;shared_free=(int(q[0][2])-int(q[0][1]))*1024;shared_files=int(q[0][6])-int(q[0][5]);assert shared_free>20*2**30+2**20 and shared_files>5004,'Preserve soft shared reserve; no new shared images/models'
+if not R.exists():
+ assert phase=='push';R.mkdir(mode=0o700);p=R/'competition.private.py';p.write_text(source);p.chmod(0o600);w.new_json(R/'prepared.json',v['prepared']);os.link(permission_source,R/'source-permission.txt');w.new_json(R/'funding.json',{'actual_CPU_job':os.environ['SLURM_JOB_ID'],'all_prior_node33_required_bytes':607397296067,'new_combined_qualification_and_public_controls_bytes':16*2**20,'required_bytes':required,'actual_free_bytes':free,'remaining_after_all_node_liabilities_bytes':free-required,'shared_soft_free_bytes':shared_free,'shared_soft_free_files':shared_files,'new_persistent_shared_pixel_model_files':0,'existing_ledger_growth_cap_bytes':2**20,'existing_obligations_not_retired':True,'source_git':v['source_git']})
+assert hashlib.sha256((R/'competition.private.py').read_bytes()).hexdigest()==sha and sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Existing canonical owner busy; do not bypass it';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'qualified_unchanged_weight_field_public','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';parent=w.read_entry(db,weight);parent_hash=w.object_hash(parent);assert parent['remote_outcome']=='scored' and parent['public_score']=='0.949'
+  Q=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-native-field-qualification:47e79180cca2808f25f45c8b11ca5804750eca206c6333c59b9c9cface95859b',)).fetchone()[0]);assert Q['state']=='fov_qualification_accepted' and Q['kernel_id']==139126353 and Q['receipt']==v['prepared']['qualification']['receipt'];key='licensed-native-field-serving:'+sha;row=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();record=json.loads(row[0]) if row else {'state':'field_public_prepared','source_sha256':sha,'source_git':v['source_git'],'qualification_kernel':139126353,'qualification_receipt':Q['receipt'],'new_Dataset_uploads':0}
+  def save():
+   db.execute('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,json.dumps(record,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),sha,record['state']));db.commit()
+  slug='godlydonuts/rsna-field384-'+sha[:12];request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007'],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[],'sessionTimeoutSeconds':25200,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'};assert len(request['newTitle'])<=50 and request['newTitle'].replace(' ','-')==slug.split('/')[1]
+  if phase=='push':
+   assert record['state']=='field_public_prepared' and not (R/'push-intent.json').exists(),'Existing original intent requires read-only reconciliation'
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));remaining=min(seconds(quota['totalTimeAllowed']),seconds(quota['minimumTimeAllowed']))-seconds(quota['timeUsed'])-seconds(quota['timeReserved']);full=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');assert full.is_dir() and not any((full/('segment-'+str(i))/'actual-failed.json').exists() for i in (1,2,3));future=sum(25200 for i in (1,2,3) if not (full/('segment-'+str(i))/'actual-accepted.json').exists())+3600
+   optional=[];rows=db.execute("SELECT key,value FROM meta WHERE key LIKE 'licensed-parent-full-epoch-serving:%' OR key=?",('licensed-ranking-context-serving:6e0894d90343ac37b19f46e8ef140f4c8838abbf3e142f9fefa2d055b4502dcf',)).fetchall()
+   for _,raw in rows:
+    other=json.loads(raw)
+    assert 'uncertain' not in other.get('state',''),'An unresolved relevant push must first be reconciled'
+    for role in ('qualification','competition'):
+     ref=other.get(role,{})
+     if ref.get('slug') and not ref.get('receipt'):
+      state=r.kernel('GetKernelSessionStatus',ref['slug'],ref['version'])['status']
+      if state not in ('COMPLETE','ERROR','CANCELLED'):optional.append({'slug':ref['slug'],'version':ref['version'],'actual_status':state,'conservative_future_seconds':32400})
+   needed=future+sum(x['conservative_future_seconds'] for x in optional)+25200+300
+   if remaining<needed:out={'status':'waiting_actual_VM_allowance_preserving_all_unfinished_primary_epochs_and_live_optional_runs','remaining_VM_seconds':remaining,'future_full_fit_and_reserve_seconds':future,'live_optional':optional,'required_VM_seconds':needed,'mutation_intent_created':False}
+   else:
+    absence=r.require_absent_kernel(slug);w.new_json(R/'push-intent.json',{'slug':slug,'source_sha256':sha,'request_sha256':w.object_hash(request),'source_git':v['source_git'],'GPU_quota':quota,'future_full_fit_and_reserve_seconds':future,'live_optional':optional,'required_VM_seconds':needed,'absence':absence,'automatic_retry':False});record['state']='field_public_push_intent';save()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(R/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:record['state']='field_public_push_uncertain';save();retain=True;raise
+    record.update(state='field_public_pushed',slug=slug,version=1,kernel_id=response['kernelId']);save();out={'status':'one_qualified_full384_public_MRI_notebook_pushed','source_sha256':sha,'slug':slug,'version':1,'kernel_id':response['kernelId'],'new_Dataset_uploads':0,'competition_entries':0}
+  else:
+   assert record['slug']==slug and record['version']==1;actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+   for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+   for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+   state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':state,'source_sha256':sha,'slug':slug,'version':1,'kernel_id':record['kernel_id'],'competition_entry':False}
+   if phase=='status' and state in ('ERROR','CANCELLED'):
+    if not (R/'actual-failed.json').exists():w.new_json(R/'actual-failed.json',out);record['state']='field_public_failed';save()
+   if phase=='status' and state=='COMPLETE':
+    receipt=r.output_json(slug,1,'licensed-field-MRI-accepted.json');assert receipt['status']=='actual_unchanged_weight_full384_MRI_test_roster_CSV_complete' and receipt['input_side']==384 and receipt['studies']==3 and receipt['learned_parameter_sha256']==v['prepared']['binding']['learned_parameter_sha256'] and receipt['counts']=={'models_loaded':2,'pairs_started':3,'pairs_completed':3,'pair_failures':0,'empty_views':0};csv=types.ModuleType('field_output_csv');exec(compile(v['csv_helper'],'field_output_csv','exec'),csv.__dict__);checked=csv.verify_csv(csv.download_csv(r,slug,1),v['columns'],v['expected_roster_sha256']);assert checked['CSV_sha256']==receipt['CSV_sha256'];out.update(receipt=receipt,CSV_verified=checked)
+    if not (R/'actual-accepted.json').exists():w.new_json(R/'actual-accepted.json',out);record.update(state='field_public_accepted',receipt=receipt,CSV_verified=checked);save()
+   if phase in ('eligibility','submit'):
+    assert state=='COMPLETE' and record['state']=='field_public_accepted' and not record.get('submission_id') and not (R/'entry-intent.json').exists();assert r.output_json(slug,1,'licensed-field-MRI-accepted.json')==record['receipt'];account=r.account();slots=w.allowance(db,account);submissions=r.submissions();context=[x for x in submissions if x['ref']==57287572];assert len(context)==1;prior=w.submission_outcome(context[0]);assert prior!='failed','First context actually failed; review before another slot';active=[x['ref'] for x in submissions if w.submission_outcome(x) in ('pending_or_unknown','complete_unscored')];description='rsna-unchanged-parent-field384:'+sha;assert not any(x.get('description')==description for x in submissions);eligible=slots>0 and prior=='scored' and not active;out={'status':'field384_actual_entry_eligibility_readonly','source_sha256':sha,'slug':slug,'version':1,'account':account,'effective_allowance':slots,'prior_actual_context_outcome':prior,'active_unresolved_submission_ids':active,'eligible':eligible,'new_competition_entries':0}
+    if phase=='submit':
+     assert eligible;w.new_json(R/'entry-intent.json',{'slug':slug,'version':1,'fileName':'submission.csv','source_sha256':sha,'description':description,'account':account,'effective_allowance':slots,'prior_actual_context_submission':57287572,'automatic_retry':False});record.update(state='field_submit_intent',description=description);save()
+     try:
+      owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});w.new_json(R/'entry-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     except BaseException:record['state']='field_submit_uncertain';save();retain=True;raise
+     record.update(state='field_submitted',submission_id=response['ref']);save();out={'status':'one_exact_unchanged_parent_field384_code_submission_accepted','source_sha256':sha,'slug':slug,'version':1,'submission_id':response['ref'],'competition_entries':1,'public_CSV_uploaded':False}
+   if phase=='outcome':
+    assert record['state'] in ('field_submitted','field_scored','field_hidden_failed');found=[x for x in r.submissions() if x['ref']==record['submission_id']];assert len(found)==1;found=found[0];out={'status':'actual_field384_hidden_outcome_readonly','actual_submission':{k:found.get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')},'outcome':w.submission_outcome(found),'new_competition_entries':0}
+    if out['outcome']=='scored':record.update(state='field_scored',public_score=found['publicScore']);save()
+    elif out['outcome']=='failed':record.update(state='field_hidden_failed',error=found['errorDescription']);save()
+  assert w.object_hash(w.read_entry(db,weight))==parent_hash
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()
