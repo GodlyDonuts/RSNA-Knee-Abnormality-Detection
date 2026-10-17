@@ -17,3 +17,9 @@ predictions or CSV data are exported by this source milestone.
 a prepared script alone is not a publication proof. Existing intent/commit paths
 require read-only reconciliation, never an automatic retry. Engineering success
 and real optimizer progress do not establish an accuracy gain.
+
+Actual CPU950770 completed the distinct source7bd2af746f857eb06e703841b668112f87ac09e9
+publication at private HF67775579057b95716771bbe821adaecb37854a35. All56objects/
+346006source bytes were fully re-downloaded/size/SHA verified; original prior
+source paid634026bytes plus this delta stay within the cumulative8MiB cap.
+[Authoritative original receipt](verified.json). Never repeat this mutation.

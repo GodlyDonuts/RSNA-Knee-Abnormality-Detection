@@ -23,7 +23,7 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 21:13UTC
+## Latest execution, October17 21:17UTC
 
 **Two full matched H100 runs are actually RUNNING:** aligned **950679** and
 randomized-link null **950680**, both on permitted physical2-H100 evc40, each
@@ -87,7 +87,9 @@ our0.958 score or a competition entry. Never repeat old uncertain UI versions.
 
 Git sourcecadb3885 is privately fully77-object download/size/SHA verified at
 HF99da506b9e7c6c6bfb2d5ccfa245c3f4d46ecbb2; never repeat. New actual engine,
-full dispatch and watcher receipts are being synchronized as one distinct delta.
+full dispatch and watcher source **7bd2af74** is separately all56-object fully
+re-downloaded/size/SHA verified at HF67775579057b95716771bbe821adaecb37854a35
+via CPU950770, within the same cumulative8MiB source allowance; never repeat.
 [Exact controls, failures, full dispatch and preservation](initiative/audits/spatial-reader-engine-20261017-v1/README.md).
 
 ## Prior execution, October 17, 19:17 UTC

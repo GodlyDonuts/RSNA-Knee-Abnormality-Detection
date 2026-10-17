@@ -34,8 +34,10 @@ public3study acceptance; finite canonical scorer82637 remains live, with fresh
 allowance0at21:10UTC. Exact-reference139271768v2 also completed public acceptance,
 not a hidden score. Full QA4719passed/6skipped and all118numerical hashes unchanged.
 The sourcecadb3885 private milestone is all77-object verified atHF99da506b…;
-new engine/full launch/preservation receipts form a distinct cumulative-budget
-source delta. No original data/checkpoints are deleted or repeated.
+new engine/full launch/preservation source7bd2af74 is separately all56-object
+fully download/size/SHA verified at HF67775579057b95716771bbe821adaecb37854a35
+via CPU950770, within the same cumulative8MiB source cap. Never repeat either
+publication. [Original proof](../hf-spatial-full-launch-20261017-v1/verified.json). No original data/checkpoints are deleted or repeated.
 
 ## Historical engineering observations
 
