@@ -273,3 +273,11 @@ It reassigns32MiB inside node33's original full320MiB allowance, retaining288MiB
 for every original/future artifact, with no new shared bytes or large copies.
 It does not duplicate the cached-reader recovery951853 or two-device benchmark
 950940. Original intent and actual submission/terminal receipt decide execution.
+
+**Actual CPU951962 completed0:0:** exact sources/runtime, physical2-H100 node,
+original118-module binding and reserves admitted. It submitted independent
+no-optimizer input probe **951964 ONCE** on evc33,1H100/twoCPU/15minutes,
+sourceaf6f439a. Latest actual state PENDING(Priority). Original951853 and950940
+remain queued and unchanged. [Original dispatch](actual-dense-GPU-submitted.json).
+The finite read-only `observe_dense_gpu.py.txt` can collect its source-bound
+receipt after actual0:0; it has no GPU retries/production authority.

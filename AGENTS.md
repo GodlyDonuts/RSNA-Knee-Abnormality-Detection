@@ -13,8 +13,9 @@ are supported, zero dropped windows, no target reads. This is input acceptance;
 no dense encoder/GPU trainer or accuracy result exists yet.
 The streamed encoder wrapper now passes synthetic sparse full-map/logit equality
 and common sparse-teacher checks; actual real-encoder GPU acceptance remains
-unexecuted. Distinct bounded no-optimizer evc33 probe is prepared, preserving
-all original jobs. Actual private HF94d643949a101fe944045d5ffc843c3b1db79be0
+unexecuted. Distinct no-optimizer evc33 probe951964 was submitted once after
+CPU951962 source/runtime/quota admission, currently PENDING(Priority). Preserve
+all originals; its32MiB cap is inside node33 full320MiB/reader512MiB/node3GiB. Actual private HF94d643949a101fe944045d5ffc843c3b1db79be0
 fully re-download/size/SHA verifies44small objects at source1c631ae2, including
 new paths/dense CPU input proof and the uncertain full result; do not repeat.
 See the [current mechanism and receipts](initiative/research/connected-witness-paths-20261017-v1/README.md).
