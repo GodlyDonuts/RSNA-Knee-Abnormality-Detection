@@ -1,0 +1,66 @@
+"""Finite read-only follower of original951853; never dispatch/retry a GPU."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+import time
+
+D = Path(__file__).resolve().parent
+L = Path('artifacts/connected-witness-real-GPU-20261017-v1')
+assert json.loads((D / 'actual-real-GPU-submitted.json').read_text())['GPU_job'] == '951853'
+with (L / 'observer.intent.json').open('x') as f:
+    json.dump({'GPU_job': '951853', 'read_only': True, 'limit_seconds': 21600,
+               'automatic_GPU_retries_or_production_dispatch': False}, f, indent=2)
+ssh = ['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes',
+       '-o', 'ConnectTimeout=8', 'newton']
+deadline = time.monotonic() + 21600
+while time.monotonic() < deadline:
+    x = subprocess.run(ssh + [shlex.join(['sacct', '-X', '-j', '951853', '-n', '-P',
+                                          '--format=JobID,State,ExitCode,Elapsed,NodeList'])],
+                       capture_output=True, text=True, timeout=25)
+    if x.returncode:
+        (L / 'observer.progress.json').write_text(json.dumps({'status': 'observation_temporarily_unavailable', 'no_restart_authority': True})+'\n')
+        time.sleep(60)
+        continue
+    rows = [line.split('|') for line in x.stdout.splitlines() if line.startswith('951853|')]
+    assert len(rows) == 1
+    job, state, code, elapsed, node, *_ = rows[0]
+    progress = {'GPU_job': job, 'state': state, 'exit_code': code, 'elapsed': elapsed, 'node': node}
+    (L / 'observer.progress.json').write_text(json.dumps(progress, indent=2)+'\n')
+    if state in {'PENDING', 'RUNNING', 'CONFIGURING', 'COMPLETING', 'SUSPENDED'}:
+        time.sleep(60)
+        continue
+    if state != 'COMPLETED' or code != '0:0':
+        (D / 'actual-real-GPU-terminal.json').write_text(json.dumps({**progress, 'status': 'original_recovery_terminal_without_acceptance_no_retry'}, indent=2)+'\n')
+        break
+    program = '''import hashlib,json,os
+from pathlib import Path
+assert os.uname().nodename=='evc40' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1/variable-witness-engine-v1')
+a=json.loads((R/'accepted.json').read_text()); admission=json.loads((R/'admitted.json').read_text())
+assert a['GPU_job']=='951853' and a['source_git']==admission['source_git']
+assert a['worker_sha256']==hashlib.sha256((R/'worker.py').read_bytes()).hexdigest()==admission['worker_sha256']
+assert a['files_sha256']==admission['files_sha256']
+assert all(hashlib.sha256((R/'code'/n).read_bytes()).hexdigest()==h for n,h in a['files_sha256'].items())
+assert a['complete_learned_AdamW_LR_order_cursor_allRNG_history_each_epoch_and16x12_CSV_recovery_exact']
+assert a['both_arms_same_initial_model'] and a['fitting_prediction_only_original_cases']==[16,16]
+assert a['channels_width']==[1024,64] and a['learned_parameters']==68560
+assert not a['outer_clinical_targets_read'] and not a['clinical_accuracy_full_production_or_competition_admission']
+print(json.dumps(a),flush=True)
+'''
+    compile(program, 'read_only_terminal_path_reader_receipt_collection', 'exec')
+    with (L / 'collection.intent.json').open('x') as f:
+        json.dump({**progress, 'CPU': 1, 'GPU': 0, 'program_sha256': hashlib.sha256(program.encode()).hexdigest()}, f, indent=2)
+    args = ['srun', '--account=skattel', '--partition=normal', '--qos=normal', '--nodelist=evc40',
+            '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=1G', '--time=00:02:00',
+            '--job-name=rsna-path-recovery-original-receipt', 'env', 'CUDA_VISIBLE_DEVICES=',
+            'PYTHONDONTWRITEBYTECODE=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program]
+    result = subprocess.run(ssh + [shlex.join(args)], capture_output=True, text=True, timeout=180)
+    (L / 'collection.result.json').write_text(json.dumps({'returncode': result.returncode, 'stdout': result.stdout, 'stderr': result.stderr}, indent=2)+'\n')
+    assert result.returncode == 0, 'Reconcile original read-only collection; no GPU retry'
+    receipt = json.loads(result.stdout)
+    (D / 'actual-real-GPU-accepted.json').write_text(json.dumps(receipt, indent=2)+'\n')
+    break
+else:
+    (L / 'observer.expired.json').write_text(json.dumps({'status': 'finite_read_only_observer_expired', 'GPU_job': '951853', 'job_terminal_not_inferred': True})+'\n')

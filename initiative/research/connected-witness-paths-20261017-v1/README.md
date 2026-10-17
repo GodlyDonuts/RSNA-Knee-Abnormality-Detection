@@ -231,3 +231,17 @@ exact original sparse graphs, complete independent normalized-slice tensor
 reference and dense varying-path accounting. It does not read clinical targets,
 instantiate an encoder or fund dense model training. Original intent/receipt
 determines whether it actually ran.
+
+**Actual CPU951889 completed:** all32 original native MRI studies/168series/5234
+source slices were read from their owning-node cache with metadata/cache hash
+checks. Sparse2345 and dense4898 windows were tensor-equal to the independently
+normalized complete-slice reference; every sparse graph equalled its original
+accepted graph. All4898 dense windows/4394 repeat edges are supported by the
+variable-path layer, with zero dropped/unsupported windows.34.85seconds, oneCPU,
+zero GPU, zero new node/shared files, no clinical target reads.
+[Original pixel/tensor/geometry receipt](actual-dense-inputs.json). This does not
+accept encoder output equality, online GPU recovery, dense throughput or accuracy.
+
+`observe_real_gpu.py.txt` is a finite read-only follower for original951853.
+It may collect the exact source-bound engineering receipt using oneCPU only after
+actual0:0 completion. It has no GPU retry or production dispatch authority.

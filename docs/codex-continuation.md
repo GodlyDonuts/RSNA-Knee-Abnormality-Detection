@@ -7,8 +7,10 @@ new variable-path reader. Distinct1H100/twoCPU recovery951853 was submitted once
 on physical2-H100 evc40; latest actual state PENDING(Priority), not a production
 fit or accuracy pass. Preserve its original intent/job. The completed first
 reader's weak-label gain remains uncertain; do not expand that unchanged recipe.
-New streamed dense inputs are implemented and162 synthetic reference checks
-passed; original32 CPU pixel/tensor admission is next. No dense model is trained.
+Actual CPU951889 now verifies all32 original MRI studies: sparse2345/dense4898
+windows are exact to original per-slice normalization, all4394 dense repeat edges
+are supported, zero dropped windows, no target reads. This is input acceptance;
+no dense encoder/GPU trainer or accuracy result exists yet.
 See the [current mechanism and receipts](../initiative/research/connected-witness-paths-20261017-v1/README.md).
 
 
