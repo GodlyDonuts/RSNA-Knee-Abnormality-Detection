@@ -1,0 +1,124 @@
+"""CPU-only original-feature factorial worker; private data never leaves owner node."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from dataclasses import asdict
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from rsna.competitive import licensed_cached_mil as engine
+from rsna.competitive.mil_sampling import readout_moments
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.schema import TARGETS
+
+R=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1')
+POPULATION='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+OLD='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+NEW='5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9'
+CAP=256*2**20
+
+
+def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def write_new(path,value):
+    with path.open('x') as f:json.dump(value,f,indent=2,sort_keys=True)
+    path.chmod(0o600)
+def limits():
+    assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+    assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<CAP
+    assert __import__('shutil').disk_usage('/tmp').free>611754508347+CAP
+
+
+class Cases:
+    def __init__(self,base,uid_list,label,mask,teacher,indices):
+        self.base=base;self.indices=list(indices);self.uids=[uid_list[i] for i in self.indices]
+        self.labels=torch.from_numpy(label.copy());self.masks=torch.from_numpy(mask.copy());self.teacher=torch.from_numpy(teacher.copy())
+    def __len__(self):return len(self.indices)
+    def case(self,index,positions,mirror):
+        i=self.indices[index];raw=self.base[i]
+        assert torch.equal(raw[1],self.teacher[i])
+        return {'features':raw[0][int(mirror),positions].contiguous(),'parent_logits':self.teacher[i,int(mirror)],
+                'labels':self.labels[i],'mask':self.masks[i]}
+
+
+def inputs():
+    limits();torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
+    F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');admitted=json.loads((F/'full-input-admitted.json').read_text())
+    assert admitted['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted' and admitted['all3887_feature_members_exact_size_SHA_NPY_metadata'] is True
+    index=F/'full-features/index.private.json';assert digest(index)==admitted['binding']['feature_index_sha256'];rows=json.loads(index.read_text())['records'];uids=[r['study_uid'] for r in rows]
+    assert len(uids)==3887 and uids==sorted(uids) and len(set(uids))==3887 and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==POPULATION
+    oldpath=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');newpath=Path('/tmp/rsna-S6-training-release-20261017-v1/matched-fitting-overlay-v1/targets.private.npz')
+    assert digest(oldpath)==OLD and digest(newpath)==NEW
+    with np.load(oldpath,allow_pickle=False) as a,np.load(newpath,allow_pickle=False) as b:
+        assert a['uids'].tolist()==b['uids'].tolist()==uids and all(np.array_equal(a[k],b[k]) for k in ('masks','parent_logits'))
+        labels={role:x['labels'].copy() for role,x in [('original',a),('released_S6',b)]};mask=a['masks'].copy();teacher=a['parent_logits'].copy()
+    assert mask.shape==(3887,12) and mask.dtype==np.bool_ and mask.all() and teacher.shape==(3887,2,12) and teacher.dtype==np.float32
+    assert not np.array_equal(labels['original'],labels['released_S6'])
+    assert all(y.shape==(3887,12) and y.dtype==np.float32 and np.isfinite(y).all() and (y>=0).all() and (y<=1).all() for y in labels.values())
+    roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+    base=FrozenFeatures(rows,roots,np.zeros((3887,12),np.float32),np.zeros((3887,12),bool),{'scope':'admitted3887_cached_original_backbone_features_no_clinical_claim'})
+    h=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt');assert h.stat().st_size==1122765 and digest(h)==engine.READOUT_SHA
+    original=torch.load(h,map_location='cpu',weights_only=True)
+    binding={'parent_checkpoint_sha256':engine.PARENT_SHA,'original_readout_sha256':engine.READOUT_SHA,
+        'original_feature_index_sha256':digest(index),'old_source_target_file_sha256':OLD,'released_S6_target_file_sha256':NEW,
+        'accepted_masks_unchanged':True,'parent_full_teacher_unchanged':True,'target_order':list(TARGETS),
+        'protected_gold_confirmation_used':False,'source_encoder_exposed_cohort_no_independent_OOF':True,
+        'initial_fixed_parent_CNN_unchanged':True,'head_dropout_fixed_zero_all_four_roles':True,
+        'no_new_MRI_decode_or_feature_inference':True}
+    return original,base,uids,labels,mask,teacher,binding
+
+
+def equal(a,b):
+    if isinstance(a,torch.Tensor):return isinstance(b,torch.Tensor) and a.dtype==b.dtype and a.shape==b.shape and torch.equal(a,b)
+    if isinstance(a,dict):return isinstance(b,dict) and a.keys()==b.keys() and all(equal(a[k],b[k]) for k in a)
+    if isinstance(a,(tuple,list)):return type(a) is type(b) and len(a)==len(b) and all(equal(x,y) for x,y in zip(a,b))
+    return type(a) is type(b) and a==b
+
+
+def main(phase,source_git):
+    original,base,uids,labels,mask,teacher,binding=inputs();binding['source_git']=source_git
+    staged=json.loads((R/'staged.json').read_text());binding['source_files_sha256']=staged['source_files_sha256']
+    assert all(digest(R/'code'/n)==h for n,h in binding['source_files_sha256'].items())
+    if phase=='admission':
+        model=engine.Readout(original).eval();maximum=0.
+        for i in range(32):
+            f=base[i][0];actual=model(f).sigmoid().mean(0).detach().numpy();reference=readout_moments(original,f)[3]
+            assert np.array_equal(actual,reference);cached=1/(1+np.exp(-teacher[i].astype(np.float64)));maximum=max(maximum,float(np.max(np.abs(actual-cached.mean(0)))))
+        assert maximum<=.003
+        out={'status':'actual_full3887_cached_feature_and_old_new_label_binding_with32_FP32_initial_readout_accepted','CPU_job':os.environ['SLURM_JOB_ID'],
+            'population':3887,'population_sha256':POPULATION,'trainable_readout_parameters':sum(p.numel() for p in model.parameters()),
+            'all32_FP32_initial_readouts_exact':True,'maximum_initial_FP32_vs_cached_FP16_probability_gap':maximum,
+            'engineering_train_indices':'first16fitting','engineering_prediction_indices':'next16fitting_disjoint_not_independent_validation',
+            'encoder_optimizer_or_fit_executed':False,'new_weights_pixels_features_or_dataset_transfers':0,'source_files_sha256':staged['source_files_sha256'],
+            'new_shared_bytes_files':0,'clinical_or_Kaggle_accuracy_claim':False,'binding':binding}
+        write_new(R/'input-admitted.json',out);return out
+    assert (R/'input-admitted.json').exists()
+    role,window=sys.argv[3],int(sys.argv[4]);assert role in labels and window in (16,94)
+    mode=sys.argv[5]
+    engineering=phase=='engineering'
+    assert phase in ('engineering','full')
+    recipe=engine.Recipe(role,window,epochs=2 if engineering else 3)
+    D=R/('engineering' if engineering else 'full')/(role+'-'+str(window))/mode
+    data=Cases(base,uids,labels[role],mask,teacher,range(16) if engineering else range(3887))
+    binding.update(diagnostic_only=engineering,source_label_role=role,source_label_array_sha256=hashlib.sha256(labels[role].tobytes()).hexdigest(),
+        mask_array_sha256=hashlib.sha256(mask.tobytes()).hexdigest(),parent_teacher_array_sha256=hashlib.sha256(teacher.tobytes()).hexdigest())
+    if not engineering:
+        recovery=json.loads((R/'recovery-accepted.json').read_text());assert recovery['status']=='actual_four_role_CPU_head_engine_recovery_accepted';binding['actual_recovery_sha256']=digest(R/'recovery-accepted.json')
+    result=engine.fit(original,data,D,binding,recipe,resume=mode=='resume',stop_after=1 if mode=='stop' else None)
+    if mode=='stop':
+        resume=R/'engineering'/(role+'-'+str(window))/'resume';assert not resume.exists();resume.mkdir(parents=True)
+        # Preserve the original stopped run; copy only its small checkpoint for
+        # a genuinely fresh resume process, never its model/optimizer objects.
+        __import__('shutil').copy2(D/'checkpoint.pt',resume/'checkpoint.pt')
+        __import__('shutil').copy2(D/'run.json',resume/'run.json')
+    if engineering and mode in ('full','resume'):
+        state=torch.load(D/'checkpoint.pt',map_location='cpu',weights_only=True);prediction=engine.predict(original,state,[base[i][0] for i in range(16,32)])
+        with (D/'predictions.private.npy').open('xb') as f:np.save(f,prediction.numpy(),allow_pickle=False)
+    limits();return result
+
+
+if __name__=='__main__':
+    print(json.dumps(main(sys.argv[1],sys.argv[2])),flush=True)

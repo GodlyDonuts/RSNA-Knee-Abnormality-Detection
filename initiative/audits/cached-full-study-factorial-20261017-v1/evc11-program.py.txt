@@ -1,0 +1,17 @@
+
+import ctypes,hashlib,json,os,subprocess,time
+from ctypes import c_int,c_uint,c_void_p,c_size_t,c_uint64,byref,create_string_buffer
+assert os.uname().nodename=='evc11' and os.environ.get('SLURM_JOB_GPUS')
+start=time.monotonic();out={'CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc11','assigned_GPU':os.environ['SLURM_JOB_GPUS'],'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'new_weight_pixel_model_or_training_bytes':0}
+try:out['NVML_devices']=subprocess.run(['nvidia-smi','--query-gpu=name,uuid','--format=csv,noheader'],capture_output=True,text=True,timeout=8).stdout.strip().splitlines()
+except subprocess.TimeoutExpired:out['NVML_bounded_timeout']=True
+lib=ctypes.CDLL('libcuda.so.1');out['cuInit']=lib.cuInit(0)
+if out['cuInit']==0:
+ count=c_int();out['cuDeviceGetCount']=lib.cuDeviceGetCount(byref(count));out['visible_driver_devices']=count.value
+ dev=c_int();out['cuDeviceGet']=lib.cuDeviceGet(byref(dev),0);name=create_string_buffer(256);out['cuDeviceGetName']=lib.cuDeviceGetName(name,256,dev);out['GPU_name']=name.value.decode();context=c_void_p();out['cuCtxCreate_v2']=lib.cuCtxCreate_v2(byref(context),0,dev)
+ if out['cuCtxCreate_v2']==0:
+  pointer=c_uint64();out['cuMemAlloc_v2']=lib.cuMemAlloc_v2(byref(pointer),c_size_t(32))
+  if out['cuMemAlloc_v2']==0:
+   source=create_string_buffer(b'rsna-device-round-trip-v1',32);target=create_string_buffer(32);out['cuMemcpyHtoD_v2']=lib.cuMemcpyHtoD_v2(pointer,source,c_size_t(32));out['cuMemcpyDtoH_v2']=lib.cuMemcpyDtoH_v2(target,pointer,c_size_t(32));out['device_roundtrip_equal']=source.raw==target.raw;out['cuMemFree_v2']=lib.cuMemFree_v2(pointer)
+  out['cuCtxDestroy_v2']=lib.cuCtxDestroy_v2(context)
+out['elapsed_seconds']=time.monotonic()-start;out['status']='actual_V100_driver_context_and_memory_roundtrip_accepted' if out.get('device_roundtrip_equal') and all(out.get(k)==0 for k in ['cuInit','cuDeviceGetCount','cuDeviceGet','cuCtxCreate_v2','cuMemAlloc_v2','cuMemcpyHtoD_v2','cuMemcpyDtoH_v2','cuMemFree_v2','cuCtxDestroy_v2']) else 'actual_V100_driver_health_not_accepted';print(json.dumps(out),flush=True)

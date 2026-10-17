@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 14:28 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 15:27 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -14,6 +14,21 @@ project public AUC remains **0.950**. The target has not been reached.
 
 Public AUC is not private-final performance or clinical accuracy.
 [Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
+
+## New CPU research lane: labels × whole-study coverage
+
+ActualCPU947802accepted the original3887cached features, old/S6targets and exact
+parent readout;32FP32initial predictions match original math. A new separately
+funded256MiBnode33cap preserves all prior resource obligations. The four roles
+cross two source-label sets with16IID/all94training observations; only the exact
+279832parameter readout learns, fixed3epochs/1458updates. All use identical
+CPUFP32/zero-dropout, teacher/masks/init/order/views, no new pixel/feature copies.
+Existing full-encoder61037and scoring78386remain untouched. This is not an
+independent clinical/whole-model OOF estimate, and no score improvement exists.
+Actual CPU recovery/full fitting must follow the published/private-verified source;
+prepared wrappers alone are not a completed experiment.
+[Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
+and [actual admission/funding](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
 ## Training that is actually running
 

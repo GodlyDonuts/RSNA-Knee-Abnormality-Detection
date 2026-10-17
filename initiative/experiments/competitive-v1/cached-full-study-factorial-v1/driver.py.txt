@@ -1,0 +1,74 @@
+"""One CPU recovery or fixed-final production driver, original outputs immutable."""
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import torch
+
+R=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1');S=R/'code'
+phase,source_git=sys.argv[1:3];assert phase in ('recovery','full')
+staged=json.loads((R/'staged.json').read_text());admitted=json.loads((R/'input-admitted.json').read_text())
+assert admitted['all32_FP32_initial_readouts_exact'] and admitted['population']==3887
+assert all(hashlib.sha256((S/n).read_bytes()).hexdigest()==h for n,h in staged['source_files_sha256'].items())
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+sys.path.insert(0,str(S));spec=importlib.util.spec_from_file_location('actual_cached_factorial_worker',S/'worker.py');worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
+worker.limits();start=time.monotonic();target=R/('recovery-dispatch.intent.json' if phase=='recovery' else 'full-dispatch.intent.json')
+worker.write_new(target,{'CPU_job':os.environ['SLURM_JOB_ID'],'phase':phase,'source_git':source_git,'original_source_files_sha256':staged['source_files_sha256'],'automatic_retry':False})
+if phase=='full':
+ proof=json.loads((R/'recovery-accepted.json').read_text());assert proof['status']=='actual_four_role_CPU_head_engine_recovery_accepted' and proof['source_git']==source_git
+results={};finals={}
+for role in ('original','released_S6'):
+ for windows in (16,94):
+  name=role+'-'+str(windows);mode_list=('full','stop','resume') if phase=='recovery' else ('full',)
+  for mode in mode_list:
+   worker.limits();p=R/(phase+'-progress.json');p.write_text(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'role':role,'windows':windows,'process':mode,'elapsed_seconds':time.monotonic()-start})+'\n')
+   cmd=[sys.executable,'-B',str(S/'worker.py'),'engineering' if phase=='recovery' else 'full',source_git,role,str(windows),mode]
+   child=subprocess.run(cmd,capture_output=True,text=True,check=False)
+   worker.write_new(R/(phase+'-'+name+'-'+mode+'-process.json'),{'returncode':child.returncode,'stdout':child.stdout,'stderr':child.stderr})
+   assert child.returncode==0,'Original CPU training process failed; preserve its exact outputs and do not retry'
+   result=json.loads(child.stdout)
+   assert result['completed']==(1 if mode=='stop' else (4 if phase=='recovery' else 1458))
+  D=R/('engineering' if phase=='recovery' else 'full')/name
+  if phase=='recovery':
+   a=torch.load(D/'full/checkpoint.pt',map_location='cpu',weights_only=True);b=torch.load(D/'resume/checkpoint.pt',map_location='cpu',weights_only=True)
+   assert worker.equal(a,b),'Complete decoded model/AdamW/LR/counter/all-RNG/history mismatch'
+   assert a['completed']==4 and len(a['history'])==4
+   assert worker.equal(a['binding'],json.loads((D/'full/run.json').read_text())['binding'])
+   for epoch in (1,2):
+    for suffix in ('.pt','-optimizer.pt'):
+     x=torch.load(D/'full/epoch-checkpoints'/('epoch-'+str(epoch).zfill(3)+suffix),map_location='cpu',weights_only=True);y=torch.load(D/'resume/epoch-checkpoints'/('epoch-'+str(epoch).zfill(3)+suffix),map_location='cpu',weights_only=True);assert worker.equal(x,y)
+   left=(D/'full/predictions.private.npy').read_bytes();right=(D/'resume/predictions.private.npy').read_bytes();assert left==right
+   original=torch.load('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt',map_location='cpu',weights_only=True)
+   assert any(not torch.equal(t,original['model'][k]) for k,t in a['model'].items())
+   finals[name]=a
+   results[name]={'finite_updates':4,'train_studies':16,'disjoint_engineering_prediction_studies':16,'prediction_shape':[16,12],
+    'complete_decoded_model_AdamW_LR_cursors_allRNG_history_and_epoch_snapshots_equal':True,'prediction_bytes_equal':True,
+    'prediction_sha256':hashlib.sha256(left).hexdigest(),'actual_learned_tensor_change':True,
+    'final_optimizer_bytes':(D/'full/checkpoint.pt').stat().st_size,'final_optimizer_sha256':worker.digest(D/'full/checkpoint.pt')}
+  else:
+   state=torch.load(D/'full/checkpoint.pt',map_location='cpu',weights_only=True);assert state['completed']==1458 and state['epoch']==3 and len(state['history'])==1458
+   assert all(torch.isfinite(t).all() for t in state['model'].values()) and all(__import__('math').isfinite(row['loss']) and row['update']==i+1 for i,row in enumerate(state['history']))
+   snapshots=[json.loads((D/'full/epoch-checkpoints'/('epoch-'+str(i).zfill(3)+'.json')).read_text()) for i in (1,2,3)]
+   results[name]={'actual_updates':1458,'fixed_epochs':3,'population':3887,'encoder_trained':False,'trainable_head_parameters':279832,'immutable_epochs':snapshots,
+      'source_label_role':role,'training_windows':windows,'inference_windows':94,'clinical_or_Kaggle_score':False}
+  worker.limits()
+if phase=='recovery':
+ for windows in (16,94):
+  a=finals['original-'+str(windows)];b=finals['released_S6-'+str(windows)];assert worker.equal(a['rng'],b['rng'])
+  assert any(not torch.equal(t,b['model'][k]) for k,t in a['model'].items())
+ out={'status':'actual_four_role_CPU_head_engine_recovery_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':source_git,
+      'source_files_sha256':staged['source_files_sha256'],'roles':results,'old_new_source_values_actually_change_learned_tensors':True,
+      'small_engineering_only_no_accuracy_claim':True,'full_fit_dispatched':False}
+ worker.write_new(R/'recovery-accepted.json',out)
+else:
+ out={'status':'actual_four_role_cached_MIL_fixed3_full3887_completed','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':source_git,
+      'source_files_sha256':staged['source_files_sha256'],'roles':results,'encoder_trained':False,'independent_internal_validation':False,
+      'clinical_or_Kaggle_accuracy_claim':False}
+ worker.write_new(R/'full-actual-complete.json',out)
+out['elapsed_seconds']=time.monotonic()-start
+print(json.dumps(out),flush=True)

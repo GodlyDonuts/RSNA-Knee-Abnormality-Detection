@@ -1,10 +1,25 @@
 # Execution handoff
 
-**Actual October17,14:21UTC.** Target0.97; best measured0.950. Read
+**Actual October17,15:27UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
+
+## New CPU research lane: labels × whole-study coverage
+
+ActualCPU947802accepted the original3887cached features, old/S6targets and exact
+parent readout;32FP32initial predictions match original math. A new separately
+funded256MiBnode33cap preserves all prior resource obligations. The four roles
+cross two source-label sets with16IID/all94training observations; only the exact
+279832parameter readout learns, fixed3epochs/1458updates. All use identical
+CPUFP32/zero-dropout, teacher/masks/init/order/views, no new pixel/feature copies.
+Existing full-encoder61037and scoring78386remain untouched. This is not an
+independent clinical/whole-model OOF estimate, and no score improvement exists.
+Actual CPU recovery/full fitting must follow the published/private-verified source;
+prepared wrappers alone are not a completed experiment.
+[Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
+and [actual admission/funding](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
 ## Original owners: current, completed and retired
 
