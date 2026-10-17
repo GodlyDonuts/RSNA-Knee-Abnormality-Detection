@@ -1,72 +1,75 @@
 # Research-agent handoff
 
-**Verified October17,2026,17:02UTC. Target0.97; actual best0.950.** Read
+**Verified October17,2026,18:50UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
 engineering checks with accuracy.
 
-## Latest execution, October 17, 17:39 UTC
+## Latest execution, October 17, 18:50 UTC
 
-Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison **completed all three epochs/1,458 finite updates**, fitting all
-**73,136,096 parameters** on3,887 studies. Original E3 **139256441 v1** completed
-at16:59UTC; model292872115B/SHA`17565527…`. Source990c8ded and actual two-T4/
-input/runtime bindings passed. Independent CPU948773 verified complete learned/
-AdamW/counter/both-rank RNG/scaler state and fully re-downloaded all five private
-objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
-epochs are now privately verified. Original owner **61037 finished successfully**;
-never restart it or repeat publication. Scoring owner **78386** remains live and
-has advanced the completed fixed-final comparisons. **Uniform qualification
-139267646 v1 actually passed** on both T4s:32MRI per device, bit-equal94-view
-inputs and complete learned graph, maximum prediction gap0.0, peak allocated
-2017322496bytes per GPU. The sole scorer then pushed public competition run
-**139269448v1**, `godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf`,
-source24af4c2f…. Its actual outcome is still pending. CPU948784 prepared the
-completed label model. Qualification is engineering evidence, not a hidden score.
-Do not repeat either source, GPU push or original scorer.
+Best measured public AUC remains **0.950**, reproduced S6 entry57300990;
+own independently MRI-trained N3E16 is **0.894**. Target0.97 is unachieved.
+No new score is claimed. Full-CNN label training and all three immutable epochs
+completed and are privately fully verified (final HF56581aab…); never repeat.
+Original scoring owners78386/10613 and read-only reference observer25736 remain
+live. Uniform public139269448v1 and exact reference script139271768v2 still have
+no actual public acceptance/hidden score. Preserve their original intents.
+Latest authenticated allowance17:50UTC was5used/0available; refresh before entries.
 
-The four completed label × coverage readouts now pass actual **32-study cached
-feature graph equality** and all **eight source compilations** (CPU948377).
-Their FP32 head stays outside encoder FP16 autocast; the parent encoder and
-original full94 MRI pipeline remain unchanged. One small private Dataset is
-now fully verified: **12661001 v1**, `godlydonuts/rsna-cached-four-e3-88fd5b06a572`,
-CPU948592/all nine objects. Do not repeat it. Actual raw-MRI T4 validation/public/
-hidden results remain pending; no accuracy gain is claimed.
-Source645a4790 and its distinct new results are privately fully verified at
-**HF53eabcdf3fb4490ab74217455faa3fdee55c24c0**, CPU948618/33objects/219511B.
-Do not repeat this milestone. No new GPU or competition entry was made by it.
-[Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
+The [new owner frontier memo](../initiative/research/frontier-GRAIL-20261017-v1/README.md)
+is preserved verbatim and assessed against actual source evidence. Next research
+priority is **criterion-relational residual learning**, with an aligned/sham
+control sharing original images, encoder, targets, parameter graph, histogram,
+metadata and compute. The zero-initialized branch now implements distinct-source
+corroboration, physical-gap-weighted continuity/variation and common nuisance
+inputs. It is implemented/local-tested, **not trained or accuracy-validated**.
+Do not silently turn Gold58 into meta-training or claim released-encoder head CV
+is independent whole-model OOF. Full one-header patient audit already covers4410
+studies/no repeated IDs; it does not prove true-patient independence.
 
-A separate **two-readout scoring owner10613 is now armed and confirmed live**.
-Actual CPU948717 staged its exact published a10f1331 controls; an authenticated
-cluster check correctly waited before any GPU intent. It preserves the existing
-full-CNN scorer's priority, then validates original94
-and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
-for actual previous hidden outcomes and fresh allowance. It reuses Dataset
-12661001v1 and the existing32MiB serving cap; no new training or weight copies.
-Its source3161acbe and actual dispatch are now privately fully verified at
-**HF37d2f1ef1fb65f0ff117cd9b0cb79b710731eb18**, CPU948743/22objects/158518B.
-Do not repeat this mirror or owner10613.
-[Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
+**Actual CPU949320:** all3887 fitting studies/four fixed-final heads/both weak
+sources/all12targets quantified achieved response in41.24seconds. None of5832
+updates clipped (maximum norm0.135618). In S6-label/full94, median Fracture
+probability movement0.0750 yielded77/660 pointwise-correctable opposed pairs
+reordered, with55 new inversions. These are dependent weak-label fitting pairs,
+not clinical errors or a generalization gain. This rules out clipping in these
+runs and distinguishes loss-permitted correction from achieved discrimination.
+[Complete results and limits](../initiative/audits/fitting-achieved-response-20261017-v1/README.md).
+Never repeat the completed diagnostic or old head fits/publications.
 
-The eight-hour Starting reference139199164v2 was canceled ONCE and actually
-CANCEL_ACKNOWLEDGED. Its source is preserved. The distinct script
-**139271768v2**, `godlydonuts/rsna-public0958-script-b472091d7a32`, was saved
-and registered ONCE under the canonical claim (CPU949029). Actual source
-SHAaffa4436… has a complete AST equal to preparationb472091d…; all eight
-original cell and credit strings remain byte equal. OriginalR6Datasetv1 was
-pinned. Actual new status remains absent/SDKQUEUED; public qualification and a
-hidden result remain unproven. Twenty-five focused checks pass; no new Dataset
-or competition entry was made. Preserve both healthy scoring owners. A separate
-finite read-only public observer25736 is live; it has no push or entry authority.
-[Actual recovery and exact original controls](../initiative/audits/public0958-script-recovery-20261017-v1/README.md).
-Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
-Authenticated best remains entry57300990 COMPLETE/noerror0.950.
-The distinct source3f405412 milestone is privately fully verified at
-**HF657b411587c1291d134e41c3183d62e50276ba5a**, CPU949182/all38objects.
-[Private preservation](../initiative/audits/hf-reference-script-recovery-20261017-v1/README.md);
-never repeat it.
+**Actual CPU949445:** unchanged N3 rosters2247fit/1156development and all selected
+source metadata have usable within-series geometry.162651/84333original windows
+and127734/66237disjoint-support repeat edges are bound without pixel or clinical
+target reads. Their median separation is about20mm: this is NOT literal adjacent-
+image clinical evidence. All17671selected series lack cached FrameOfReferenceUID
+and SliceThickness. Cross-plane registration and lesion volume remain unproved.
+A separately funded frozen-feature pilot is prepared, **not yet submitted**;
+require its actual source/roster/base-logit/device/throughput acceptance before
+one full cache pass or aligned/sham fitting. Reuse original N3E16/native bytes.
+
+The [latest spatial-evidence proposal](../initiative/research/frontier-spatial-evidence-20261017-v1/README.md)
+changes the scout: retain actual N3 **pre-pooling spatial maps**, not merely
+window embeddings. The actual regional operator has a reproduced location
+collision; the new centered co-support and weighted-marginal/exact-support null
+have nine focused tests. These establish representation/math, not MRI gain.
+The bounded32-study H100scout is source-prepared, not yet submitted. It records
+actual dimensions, original letterbox/source geometry, base-logit fidelity and
+cost. No full spatial cache or fit is admitted. Cross-acquisition geometry is
+unqualified; cached frame/thickness fields are absent. Existing longitudinal
+GRAIL work remains separate and cannot stand in for the spatial experiment.
+
+**Original GPU942047 actually completed0:0** and passed the three-MRI S6 H100
+FP32/FP16 fixture:1586windows, maximum probability gap0.0003156333. This replaces
+old pending snapshots; it does not qualify GPU anatomy preprocessing, a trainer
+or hidden-scale serving. [Exact original terminal](../initiative/audits/s6-source-tree-admission-20261017-v1/actual-original-H100-accepted.json).
+No new GPU was used for its collection; do not repeat it. All healthy source
+recipes, accepted masks/folds, original checkpoints and protected cohorts stay
+unchanged. All46focused new cases and115-module mypy passed; current v2coverage is89/89.
+Initial fullsuite had4660pass/4fail/6skip: one child lackedPYTHONPATH and
+three bound source edits made during replay. The same four isolated cases now
+pass; a new complete suite freezes and checks all numerical sources. Global
+1327lint/57format debt is unchanged. Source publication is in progress.
 
 ## Focused outside research requested by the owner
 

@@ -1,0 +1,64 @@
+"""Single bounded CPU diagnostic; no credentials or platform mutations required."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+A = Path('initiative/audits/fitting-achieved-response-20261017-v1')
+L = Path('artifacts/fitting-achieved-response-20261017-v1')
+assert L.exists() and not (L / 'dispatch.intent.json').exists()
+program = (A / 'program.py.txt').read_text()
+analysis = Path('rsna/competitive/fitting_response.py').read_text()
+compile(program, 'fitting_achieved_response_exact_program', 'exec')
+compile(analysis, 'fitting_achieved_response_exact_analysis', 'exec')
+base = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+value = {
+    'base_git': base,
+    'program_source': program,
+    'program_sha256': hashlib.sha256(program.encode()).hexdigest(),
+    'analysis_source': analysis,
+    'analysis_sha256': hashlib.sha256(analysis.encode()).hexdigest(),
+    'complete': json.loads(Path('initiative/audits/cached-full-study-factorial-20261017-v1/actual-four-full-complete.json').read_text()),
+    'private': json.loads(Path('initiative/audits/cached-full-study-factorial-20261017-v1/actual-all12-private-verified.json').read_text()),
+}
+args = [
+    'srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable',
+    '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none',
+    '--mem=8G', '--time=00:15:00', '--job-name=rsna-fit-response',
+    'env', 'PYTHONDONTWRITEBYTECODE=1', 'PYTHONNOUSERSITE=1', 'CUDA_VISIBLE_DEVICES=',
+    '/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python', '-B', '-c', program,
+]
+with (L / 'dispatch.intent.json').open('x') as f:
+    json.dump({
+        'base_git': base, 'program_sha256': value['program_sha256'],
+        'analysis_sha256': value['analysis_sha256'],
+        'node': 'evc33', 'CPUs': 1, 'GPUs': 0, 'timeout_seconds': 1200,
+        'new_inside_existing_node_cap_bytes': 2 * 2**20,
+        'no_optimizer_or_platform_mutation': True, 'automatic_retry': False,
+    }, f, indent=2)
+x = subprocess.run(
+    ['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(args)],
+    input=json.dumps(value), text=True, capture_output=True, timeout=1200,
+)
+(L / 'dispatch.result.json').write_text(json.dumps({
+    'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr,
+}, indent=2) + '\n')
+assert x.returncode == 0, x.stderr[-4000:]
+out = json.loads(x.stdout)
+assert out['status'] == 'actual_fitting3887_four_fixed_final_heads_two_source_achieved_response_quantified'
+(L / 'actual.json').write_text(json.dumps(out, indent=2) + '\n')
+(A / 'actual.json').write_text(json.dumps(out, indent=2) + '\n')
+(A / 'dispatch.intent.json').write_text((L / 'dispatch.intent.json').read_text())
+(A / 'dispatch-terminal.json').write_text(json.dumps({
+    'returncode': x.returncode, 'CPU_job': out['CPU_job'],
+    'status': out['status'], 'source_program_SHA': value['program_sha256'],
+    'source_analysis_SHA': value['analysis_sha256'],
+    'stderr': x.stderr, 'private_case_rows_or_prediction_arrays_transferred': False,
+}, indent=2) + '\n')
+print(json.dumps({
+    'CPU_job': out['CPU_job'], 'status': out['status'],
+    'elapsed_seconds': out['elapsed_seconds'],
+    'aggregate_output_bytes': (A / 'actual.json').stat().st_size,
+    'Kaggle_entries_or_new_training': 0,
+}))

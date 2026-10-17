@@ -1,0 +1,43 @@
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+A = Path('initiative/research/frontier-GRAIL-20261017-v1')
+L = Path('artifacts/frontier-GRAIL-20261017-v1')
+L.mkdir(exist_ok=False)
+program = (A / 'geometry-census.py.txt').read_text()
+geometry = Path('rsna/competitive/criterion_geometry.py').read_text()
+compile(program, 'original_N3_criterion_geometry_census', 'exec')
+compile(geometry, 'original_criterion_geometry_module', 'exec')
+selector = subprocess.check_output(['git', 'show', 'dcfff319cb7bd7bbae679a20da2b1b9268e8d680:rsna/data.py'])
+v = {
+    'base_git': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+    'program_sha256': hashlib.sha256(program.encode()).hexdigest(),
+    'geometry_source': geometry,
+    'geometry_sha256': hashlib.sha256(geometry.encode()).hexdigest(),
+    'original_selector_sha256': hashlib.sha256(selector).hexdigest(),
+}
+with (L / 'census.intent.json').open('x') as f:
+    json.dump({k: value for k, value in v.items() if k != 'geometry_source'}, f, indent=2)
+args = [
+    'srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable',
+    '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none',
+    '--mem=4G', '--time=00:10:00', '--job-name=rsna-criterion-geometry',
+    'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'CUDA_VISIBLE_DEVICES=',
+    'OMP_NUM_THREADS=1', 'MKL_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1',
+    '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program,
+]
+x = subprocess.run(
+    ['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(args)],
+    input=json.dumps(v), capture_output=True, text=True, timeout=750,
+)
+(L / 'census.result.json').write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, x.stderr[-4000:]
+out = json.loads(x.stdout)
+assert out['status'] == 'actual_original_N3_fixed_roster_metadata_and_distinct_source_relations_census_complete'
+(A / 'actual-geometry-census.json').write_text(json.dumps(out, indent=2) + '\n')
+(A / 'census.intent.json').write_text((L / 'census.intent.json').read_text())
+(A / 'census-terminal.json').write_text(json.dumps({'returncode': x.returncode, 'CPU_job': out['CPU_job'], 'stderr': x.stderr, 'new_GPU_or_model_fit': False}, indent=2) + '\n')
+print(json.dumps(out))

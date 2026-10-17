@@ -1,0 +1,182 @@
+"""One CPU-only diagnostic of original completed heads, with aggregate output only."""
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+v = json.load(sys.stdin)
+R = Path('/tmp/rsna-cached-MIL-factorial-20261017-v1')
+D = R / 'fitting-achieved-response-v1'
+CAP = 2 * 2**20
+start = time.monotonic()
+assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+assert not torch.cuda.is_available() and not D.exists()
+torch.set_num_threads(1)
+torch.use_deterministic_algorithms(True)
+paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid + CAP + 16 * 2**20 < 256 * 2**20
+free = shutil.disk_usage('/tmp').free
+assert free > 612022943803
+quota = __import__('subprocess').check_output(
+    ['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True
+)
+q = next(row.split() for row in quota.splitlines() if row.strip().startswith('/home/sa305415'))
+shared_free = (int(q[2]) - int(q[1])) * 1024
+shared_files = int(q[6]) - int(q[5])
+assert shared_free > 20 * 2**30 and shared_files > 5000
+complete = json.loads((R / 'full-actual-complete.json').read_text())
+private = json.loads((R / 'private-publication-v2/verified.json').read_text())
+assert complete == v['complete'] and private == v['private']
+assert complete['CPU_job'] == '948122'
+assert private['revision'] == 'c4cba4c210542307436a3bdc89034f5f99633ce4'
+assert complete['source_git'] == private['source_git'] == 'eed22c54d56b0416d666c9a7f2fb53e4a370d957'
+for name, digest in complete['source_files_sha256'].items():
+    assert hashlib.sha256((R / 'code' / name).read_bytes()).hexdigest() == digest
+analysis = v['analysis_source']
+assert hashlib.sha256(analysis.encode()).hexdigest() == v['analysis_sha256']
+assert hashlib.sha256(v['program_source'].encode()).hexdigest() == v['program_sha256']
+namespace = {'__name__': 'fitting_achieved_response_v1'}
+exec(compile(analysis, 'immutable_fitting_response.py', 'exec'), namespace)
+summarize = namespace['response_summary']
+sys.path.insert(0, str(R / 'code'))
+spec = importlib.util.spec_from_file_location('original_immutable_factorial_worker', R / 'code/worker.py')
+worker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(worker)
+original, base, uids, labels, mask, teacher, binding = worker.inputs()
+assert len(uids) == 3887 and binding['protected_gold_confirmation_used'] is False
+assert binding['source_encoder_exposed_cohort_no_independent_OOF'] is True
+from rsna.competitive.licensed_cached_mil import Readout
+from rsna.schema import TARGETS
+
+models = {'initial': Readout(original).eval()}
+histories = {}
+snapshot_proofs = {}
+for role in ('original-16', 'original-94', 'released_S6-16', 'released_S6-94'):
+    directory = R / 'full' / role / 'full' / 'epoch-checkpoints'
+    sidecar = json.loads((directory / 'epoch-003.json').read_text())
+    assert sidecar == complete['roles'][role]['immutable_epochs'][2]
+    # Original full-byte/private proofs are reused. Do not stream/re-hash models,
+    # the encoder or whole feature archives as a second standalone verification.
+    for file, key in (('epoch-003.pt', 'model'), ('epoch-003-optimizer.pt', 'optimizer')):
+        assert (directory / file).is_file() and not (directory / file).is_symlink()
+        assert (directory / file).stat().st_size == sidecar[key]['bytes']
+    state = torch.load(directory / 'epoch-003-optimizer.pt', map_location='cpu', weights_only=True)
+    assert state['epoch'] == 3 and state['cursor'] == 0 and state['completed'] == 1458
+    assert state['binding']['source_git'] == complete['source_git']
+    assert state['binding']['population'] == 3887
+    assert state['binding']['population_sha256'] == worker.POPULATION
+    assert state['binding']['protected_gold_confirmation_used'] is False
+    assert state['binding']['recipe']['source_weight'] == .25
+    assert state['binding']['recipe']['clip'] == 1
+    model = Readout(original).eval()
+    model.load_state_dict(state['model'], strict=True)
+    assert all(torch.isfinite(x).all() for x in model.state_dict().values())
+    models[role] = model
+    history = state['history']
+    assert len(history) == 1458 and all(row['update'] == i + 1 for i, row in enumerate(history))
+    per_epoch = []
+    for epoch in (1, 2, 3):
+        rows = [row for row in history if row['epoch'] == epoch]
+        assert len(rows) == 486 and sum(row['studies'] for row in rows) == 3887
+        norm = np.array([row['gradient_norm'] for row in rows], dtype=np.float64)
+        losses = np.array([row['loss'] for row in rows], dtype=np.float64)
+        assert np.isfinite(norm).all() and np.isfinite(losses).all()
+        per_epoch.append({
+            'epoch': epoch, 'updates': len(rows), 'mean_recorded_training_loss': float(losses.mean()),
+            'gradient_clipped_updates': int((norm > 1).sum()),
+            'unclipped_gradient_norm_quantiles': {
+                name: float(x) for name, x in zip(
+                    ('median', 'q90', 'maximum'), np.quantile(norm, (.5, .9, 1)), strict=True
+                )
+            },
+        })
+    histories[role] = per_epoch
+    snapshot_proofs[role] = sidecar
+D.mkdir(mode=0o700)
+intent = {
+    'kind': 'fitting_only_achieved_response_no_training_v1', 'CPU_job': os.environ['SLURM_JOB_ID'],
+    'analysis_base_git': v['base_git'], 'analysis_sha256': v['analysis_sha256'],
+    'program_sha256': v['program_sha256'], 'model_source_git': complete['source_git'],
+    'actual_original_full_fit_CPU_job': '948122', 'original_private_revision': private['revision'],
+    'exact_population_sha256': worker.POPULATION, 'source_thresholds': [.1, .9],
+    'source_weight_fixed_unchanged': .25, 'views': ['plain', 'mirrored', 'mean_probability'],
+    'all_four_heads_evaluated_against_both_weak_label_sources': True,
+    'new_cap_inside_existing256MiB_bytes': CAP, 'actual_paid_before_bytes': paid,
+    'retained_other_future_controls_bytes': 16 * 2**20,
+    'actual_node_free_bytes': free, 'required_node_free_bytes': 612022943803,
+    'actual_shared_free_bytes': shared_free, 'actual_shared_free_files': shared_files,
+    'new_shared_bytes_files': 0, 'automatic_retry': False,
+    'no_encoder_optimizer_GPU_Dataset_or_entry_authority': True,
+    'protected_gold_confirmation_or_reports_read': False,
+}
+(D / 'intent.json').write_text(json.dumps(intent, indent=2) + '\n')
+(D / 'analysis.py').write_text(analysis)
+(D / 'program.py.txt').write_text(v['program_source'])
+predictions = {name: np.empty((3887, 2, 12), dtype=np.float64) for name in models}
+with torch.inference_mode():
+    for i in range(3887):
+        raw = base[i]
+        assert torch.equal(raw[1], torch.from_numpy(teacher[i]))
+        features = raw[0]
+        assert features.shape == (2, 94, 1024)
+        for name, model in models.items():
+            predictions[name][i] = model(features).sigmoid().numpy()
+        if (i + 1) % 500 == 0:
+            (D / 'progress.json').write_text(json.dumps({
+                'CPU_job': os.environ['SLURM_JOB_ID'], 'studies': i + 1,
+                'total': 3887, 'elapsed_seconds': time.monotonic() - start,
+                'private_predictions_retained_only_in_RAM': True,
+            }) + '\n')
+teacher_probability = torch.from_numpy(teacher).sigmoid().double().numpy()
+results = {}
+for name in models:
+    if name == 'initial':
+        continue
+    results[name] = {}
+    for label_role, targets in labels.items():
+        view_rows = []
+        for view, view_name in enumerate(('plain', 'mirrored', 'mean_probability')):
+            t, initial, candidate = [
+                x[:, view] if view < 2 else x.mean(axis=1)
+                for x in (teacher_probability, predictions['initial'], predictions[name])
+            ]
+            view_rows.append({
+                'view': view_name,
+                'targets': {
+                    target: summarize(targets[:, col], mask[:, col], t[:, col], initial[:, col], candidate[:, col])
+                    for col, target in enumerate(TARGETS)
+                },
+            })
+        results[name][label_role] = view_rows
+out = {
+    'status': 'actual_fitting3887_four_fixed_final_heads_two_source_achieved_response_quantified',
+    **intent, 'snapshot_proofs_reused_not_rehashed': snapshot_proofs,
+    'population': 3887, 'fixed_final_epochs': 3, 'completed_updates_each': 1458,
+    'all94_two_view_inference': True, 'original_model_source_unchanged': True,
+    'maximum_initial_FP32_vs_original_FP16_teacher_probability_gap': float(
+        np.max(np.abs(predictions['initial'] - teacher_probability))
+    ),
+    'training_history': histories, 'results': results,
+    'elapsed_seconds': time.monotonic() - start,
+    'new_checkpoint_or_prediction_array_files': 0,
+    'no_threshold_recipe_or_checkpoint_selection': True,
+    'dependent_pairs_not_independent_samples': True,
+    'pointwise_optimum_not_a_shared_model_realizability_guarantee': True,
+    'full94_objective_is_a_diagnostic_not_sampled_training_loss_replay': True,
+    'not_clinical_or_independent_held_out_or_Kaggle_accuracy': True,
+}
+encoded = json.dumps(out, indent=2) + '\n'
+assert len(encoded.encode()) < CAP - 65536
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file()) + len(encoded.encode()) < CAP
+assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file()) + len(encoded.encode()) + 16 * 2**20 < 256 * 2**20
+with (D / 'actual.json').open('x') as f:
+    f.write(encoded)
+assert shutil.disk_usage('/tmp').free > 612022943803
+print(encoded, flush=True)

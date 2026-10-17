@@ -1,0 +1,56 @@
+{
+  "ruff": {
+    "returncode": 1,
+    "seconds": 0.19820774998515844,
+    "command": [
+      "/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection/artifacts/qa-env/bin/python",
+      "-m",
+      "ruff",
+      "check",
+      "."
+    ]
+  },
+  "format": {
+    "returncode": 1,
+    "seconds": 0.11717462498927489,
+    "command": [
+      "/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection/artifacts/qa-env/bin/python",
+      "-m",
+      "ruff",
+      "format",
+      "--check",
+      "."
+    ]
+  },
+  "mypy": {
+    "returncode": 0,
+    "seconds": 5.826818583009299,
+    "command": [
+      "/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection/artifacts/qa-env/bin/python",
+      "-m",
+      "mypy",
+      "rsna"
+    ]
+  },
+  "pytest": {
+    "returncode": 1,
+    "seconds": 2118.6826427500055,
+    "command": [
+      "/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection/artifacts/qa-env/bin/python",
+      "-m",
+      "pytest",
+      "-q"
+    ]
+  },
+  "full_result": {
+    "passed": 4660,
+    "failed": 4,
+    "skipped": 6
+  },
+  "failure_reconciliation": {
+    "resident_worker": "ModuleNotFoundError: rsna in child script without repository PYTHONPATH",
+    "recovery_source_changes": "Full/replay source bindings differed while new modules were edited during initial suite. Three failed source-identity comparisons; no numerical tolerances changed.",
+    "isolated_same_four_cases": "4 passed /59.57seconds with fixed PYTHONPATH and thread counts",
+    "new_complete_frozen_source_suite": "PID46826 is active; pending terminal; do not claim complete"
+  }
+}

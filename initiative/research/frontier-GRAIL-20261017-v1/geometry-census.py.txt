@@ -1,0 +1,96 @@
+"""Original native metadata only; no pixel, model or clinical-target reads."""
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import time
+import types
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P = Path('/tmp/rsna-cached-MIL-factorial-20261017-v1')
+D = P / 'criterion-geometry-census-v1'
+assert not D.exists()
+paid = sum(p.stat().st_size for p in P.rglob('*') if p.is_file())
+assert paid + 2 * 2**20 + 16 * 2**20 < 256 * 2**20
+assert shutil.disk_usage('/tmp').free > 612022943803
+original = Path('/tmp/rsna-compact-target-admission-evc33-20261016-v3/accepted.json')
+assert hashlib.sha256(original.read_bytes()).hexdigest() == '0482c3e43def44388c371348e2602650d251f9b4ba6f0d903c87520f3a3b4c88'
+admitted = json.loads(original.read_text())
+cache = Path(admitted['cache'])
+assert cache == Path('/tmp/rsna-compact-native-evc33-relocation-20261016-v1/cache')
+run = json.loads(Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/run.json').read_text())
+binding = run['binding']
+A = Path('/home/sa305415/rsna-knee/code-stopfix-1f486765')
+folds_path = A / 'initiative/experiments/competitive-v1/folds/fold.csv'
+series_path = A / 'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv'
+manifest_path = A / 'initiative/releases/report-supervision-v1/studies.parquet'
+assert hashlib.sha256(folds_path.read_bytes()).hexdigest() == binding['folds_file_sha256']
+assert hashlib.sha256(series_path.read_bytes()).hexdigest() == binding['release']['series_sha256']
+targets = ['ACL', 'MCL', 'Medial Meniscus', 'Lateral Meniscus', 'Medial OA', 'Lateral OA', 'PF OA', 'Effusion', 'Synovitis', "Baker's", 'Contusion', 'Fracture']
+# Accepted mask/membership metadata only. Clinical target columns are not loaded.
+m = pd.read_parquet(manifest_path, columns=['study_uid', 'split'] + [t + '__mask' for t in targets])
+eligible = m[m['split'].eq('train') & m[[t + '__mask' for t in targets]].sum(axis=1).gt(0)]
+folds = pd.read_csv(folds_path, dtype={'study_uid': str}, usecols=['study_uid', 'fold'])
+joined = eligible[['study_uid']].merge(folds, on='study_uid', validate='one_to_one')
+roles = {'fitting': sorted(joined.loc[joined.fold.ne(0), 'study_uid']), 'outer': sorted(joined.loc[joined.fold.eq(0), 'study_uid'])}
+assert len(roles['fitting']) == 2247 and len(roles['outer']) == 1156
+assert hashlib.sha256(json.dumps(roles['fitting']).encode()).hexdigest() == binding['fitting_uids_sha256']
+assert hashlib.sha256(json.dumps(roles['outer']).encode()).hexdigest() == binding['outer_uids_sha256']
+selector = Path(admitted['source']) / 'rsna/data.py'
+assert hashlib.sha256(selector.read_bytes()).hexdigest() == v['original_selector_sha256']
+sys.path.insert(0, admitted['source'])
+spec = importlib.util.spec_from_file_location('original_N3_selector', selector)
+original_data = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(original_data)
+analysis = types.ModuleType('criterion_geometry_original_census_v1')
+sys.modules[analysis.__name__] = analysis
+assert hashlib.sha256(v['geometry_source'].encode()).hexdigest() == v['geometry_sha256']
+exec(compile(v['geometry_source'], 'criterion_geometry.py', 'exec'), analysis.__dict__)
+series = pd.read_csv(series_path)
+table = {uid: f.sort_values('SeriesInstanceUID').to_dict('records') for uid, f in series.groupby('StudyInstanceUID')}
+D.mkdir(mode=0o700)
+(D / 'geometry.py').write_text(v['geometry_source'])
+(D / 'intent.json').write_text(json.dumps({'CPU_job': os.environ['SLURM_JOB_ID'], 'geometry_sha256': v['geometry_sha256'], 'program_sha256': v['program_sha256'], 'new_cap_inside_existing256MiB': 2 * 2**20, 'new_shared_bytes_files': 0, 'no_pixel_model_clinical_target_or_GPU_execution': True}, indent=2) + '\n')
+result = {}
+start = time.monotonic()
+for role, uids in roles.items():
+    counts = dict.fromkeys(['series', 'windows', 'physical_series', 'continuity_edges', 'disjoint_repeat_edges', 'studies_with_repeat_edges', 'frame_UID_absent_series', 'slice_thickness_absent_series'], 0)
+    gaps = []
+    proof = hashlib.sha256()
+    for uid in uids:
+        repeat_in_study = 0
+        for entry in original_data.select_series(table[uid], 6, False):
+            sid = entry['SeriesInstanceUID']
+            path = cache / 'train_series' / uid / (sid + '.json')
+            assert path.is_file() and not path.is_symlink()
+            raw = path.read_bytes()
+            meta = json.loads(raw)
+            assert (meta['study_uid'], meta['series_uid'], meta['side']) == (uid, sid, 384)
+            n = meta['n_slices']
+            selected = np.linspace(0, n - 1, min(16, n)).round().astype(np.int64)
+            graph = analysis.within_series_relations(meta, selected)
+            counts['series'] += 1
+            counts['windows'] += len(graph.supports)
+            counts['physical_series'] += int(graph.geometry_known)
+            counts['continuity_edges'] += len(graph.continuity_edges)
+            counts['disjoint_repeat_edges'] += len(graph.repeat_edges)
+            counts['frame_UID_absent_series'] += int(not meta.get('FrameOfReferenceUID') and not meta.get('frame_of_reference_uid'))
+            counts['slice_thickness_absent_series'] += int(not meta.get('SliceThickness') and not meta.get('slice_thickness'))
+            repeat_in_study += len(graph.repeat_edges)
+            gaps.extend(graph.repeat_gaps_mm.tolist())
+            proof.update(json.dumps([uid, sid, hashlib.sha256(raw).hexdigest(), selected.tolist(), graph.supports.tolist(), graph.continuity_edges.tolist(), graph.repeat_edges.tolist()], separators=(',', ':')).encode())
+        counts['studies_with_repeat_edges'] += int(repeat_in_study > 0)
+    result[role] = {'studies': len(uids), **counts, 'repeat_gap_mm_quantiles': dict(zip(['minimum', 'q10', 'median', 'q90', 'maximum'], [float(x) for x in np.quantile(gaps, [0, .1, .5, .9, 1])], strict=True)) if gaps else None, 'private_exact_metadata_support_and_graph_binding_sha256': proof.hexdigest()}
+out = {'status': 'actual_original_N3_fixed_roster_metadata_and_distinct_source_relations_census_complete', 'CPU_job': os.environ['SLURM_JOB_ID'], 'original_input_CPU_job': admitted['job_id'], 'original_input_receipt_sha256': '0482c3e43def44388c371348e2602650d251f9b4ba6f0d903c87520f3a3b4c88', 'geometry_sha256': v['geometry_sha256'], 'program_sha256': v['program_sha256'], 'base_git': v['base_git'], 'roles': result, 'elapsed_seconds': time.monotonic() - start, 'new_MRI_or_feature_cache_or_model_or_GPU_or_entry': False, 'clinical_target_values_or_reports_read': False, 'accepted_masks_and_split_metadata_read': True, 'cross_series_registration_or_lesion_extent_established': False, 'private_SOP_UID_or_patient_records_exported': False, 'new_shared_bytes_files': 0, 'actual_paid_before_bytes': paid, 'retained_other_future_small_controls_bytes': 16 * 2**20}
+encoded = json.dumps(out, indent=2) + '\n'
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file()) + len(encoded.encode()) < 2 * 2**20
+assert sum(p.stat().st_size for p in P.rglob('*') if p.is_file()) + len(encoded.encode()) + 16 * 2**20 < 256 * 2**20
+(D / 'actual.json').write_text(encoded)
+print(encoded, flush=True)

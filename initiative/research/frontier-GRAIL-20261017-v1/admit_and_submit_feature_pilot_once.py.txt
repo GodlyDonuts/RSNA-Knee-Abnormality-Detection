@@ -1,0 +1,54 @@
+"""Published-source, single bounded frozen-feature pilot on the original owning node."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+A = Path('initiative/research/frontier-GRAIL-20261017-v1')
+L = Path('artifacts/frontier-GRAIL-20261017-v1')
+assert L.exists() and not (L / 'feature-pilot.intent.json').exists()
+assert not subprocess.check_output(['git', 'status', '--porcelain'], text=True).strip()
+git = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+names = subprocess.check_output(['git', 'ls-files', 'rsna/*.py', 'rsna/**/*.py'], text=True).splitlines()
+files = {name: subprocess.check_output(['git', 'show', git + ':' + name], text=True) for name in names}
+initialization = subprocess.check_output(['git', 'show', git + ':initiative/audits/compact-native-n3-start-20261016-v1/initialization-verified.json'], text=True)
+worker = subprocess.check_output(['git', 'show', git + ':' + str(A / 'frozen-feature-worker.py.txt')], text=True)
+compile(worker, 'published_frozen_N3_feature_worker', 'exec')
+program = r'''
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+import pandas as pd
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');assert not R.exists()
+assert shutil.disk_usage('/tmp').free>612022943803+3*2**30
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);q=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(q[2])-int(q[1]))*1024>20*2**30 and int(q[6])-int(q[5])>5000
+native=Path('/tmp/rsna-compact-target-admission-evc33-20261016-v3/accepted.json');assert hashlib.sha256(native.read_bytes()).hexdigest()=='0482c3e43def44388c371348e2602650d251f9b4ba6f0d903c87520f3a3b4c88';original=json.loads(native.read_text())
+O=Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production');binding=json.loads((O/'run.json').read_text())['binding'];checkpoint=O/'epoch-checkpoints/epoch-016.pt';side=json.loads(checkpoint.with_suffix('.json').read_text());assert side['epoch']==16 and side['optimizer_steps']==4496 and side['checkpoint_sha256']=='5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5';assert checkpoint.is_file() and not checkpoint.is_symlink() and checkpoint.stat().st_size==side['checkpoint_bytes'];assert side['binding']['fitting_uids_sha256']==binding['fitting_uids_sha256'] and side['binding']['outer_uids_sha256']==binding['outer_uids_sha256']
+A=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765');folds=A/'initiative/experiments/competitive-v1/folds/fold.csv';series=A/'initiative/audits/reviewed-series-preferences-v1/export-001/series_sampling.csv';assert hashlib.sha256(folds.read_bytes()).hexdigest()==binding['folds_file_sha256'];assert hashlib.sha256(series.read_bytes()).hexdigest()==binding['release']['series_sha256']
+targets=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'];m=pd.read_parquet(A/'initiative/releases/report-supervision-v1/studies.parquet',columns=['study_uid','split']+[t+'__mask' for t in targets]);eligible=m[m['split'].eq('train')&m[[t+'__mask' for t in targets]].sum(axis=1).gt(0)];f=pd.read_csv(folds,usecols=['study_uid','fold'],dtype={'study_uid':str});joined=eligible[['study_uid']].merge(f,on='study_uid',validate='one_to_one');roles={'fitting':sorted(joined.loc[joined.fold.ne(0),'study_uid']),'outer':sorted(joined.loc[joined.fold.eq(0),'study_uid'])};assert len(roles['fitting'])==2247 and len(roles['outer'])==1156
+assert all(hashlib.sha256(json.dumps(ids).encode()).hexdigest()==binding[role+'_uids_sha256'] for role,ids in roles.items())
+jobs=subprocess.check_output(['squeue','-u','sa305415','-h','-o','%i|%T|%b|%N'],text=True);gpu=[x for x in jobs.splitlines() if 'gpu:' in x];assert len(gpu)<2,jobs
+assert len(v['files'])<256 and sum(len(x.encode()) for x in v['files'].values())<4*2**20
+R.mkdir(mode=0o700);S=R/'code';S.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve()) and name.startswith('rsna/') and name.endswith('.py');compile(text,name,'exec');p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+(R/'worker.py').write_text(v['worker']);(R/'geometry.py').write_text(v['files']['rsna/competitive/criterion_geometry.py']);(R/'membership.private.json').write_text(json.dumps(roles)+'\n')
+record={'status':'published_source_original_N3_frozen_feature_pilot_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'geometry_sha256':hashlib.sha256((R/'geometry.py').read_bytes()).hexdigest(),'original_source':str(S),'source_files_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'native_cache':original['cache'],'series_path':str(series),'checkpoint':str(checkpoint),'checkpoint_sha256':side['checkpoint_sha256'],'fitting_uids_sha256':binding['fitting_uids_sha256'],'outer_uids_sha256':binding['outer_uids_sha256'],'original_private_E16_revision':'b346ee1409d871ab3eef865156ed1207114d58b7','original_whole_byte_proof_reused_not_rehashed_during_admission':True,'new_node_cap_bytes':3*2**30,'scout_spatial_and_pooled_feature_cap_bytes':2*2**30,'future_head_and_publication_cap_bytes':512*2**20,'new_shared_bytes_files':0,'prior_required_node_free_bytes':612022943803,'fresh_node_free_before_bytes':shutil.disk_usage('/tmp').free,'new_required_node_free_before_bytes':612022943803+3*2**30,'clinical_targets_reports_or_protected_values_read':False,'only_membership_and_accepted_masks_metadata_read':True,'pilot_studies':32,'raw_original_spatial_maps_retained':True,'full_extraction_requires_separate_measured_admission':True,'full_feature_extraction_or_head_training_submitted':False,'automatic_retry':False}
+init=json.loads(v['initialization_provenance']);assert init['source']['license']=='apache-2.0' and init['source']['revision']=='2c31d82376cc244c907c064332941e6c65be81f1';record['initialization_original_provenance_sha256']=hashlib.sha256(v['initialization_provenance'].encode()).hexdigest();record['initialization_license']='apache-2.0';record['initialization_card_sha256']='e13c01cc31843c8345937ccc528504033bf83c0ce6aae92c2b26662f428bae2f';(R/'initialization-provenance.json').write_text(v['initialization_provenance'])
+(R/'admitted.json').write_text(json.dumps(record,indent=2)+'\n')
+batch='#!/bin/bash\nset -euo pipefail\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 CUDA_DEVICE_ORDER=PCI_BUS_ID CUBLAS_WORKSPACE_CONFIG=:4096:8 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1\nexport HF_HOME='+str(R/'hf-private')+' TORCH_HOME='+str(R/'torch-private')+' XDG_CACHE_HOME='+str(R/'cache-private')+'\nexec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B '+str(R/'worker.py')+' pilot\n';(R/'pilot.sbatch').write_text(batch)
+(R/'dispatch-intent.json').write_text(json.dumps({'worker_sha256':record['worker_sha256'],'batch_sha256':hashlib.sha256(batch.encode()).hexdigest(),'source_git':v['source_git'],'automatic_retry':False})+'\n')
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=00:20:00','--job-name=rsna-criterion-frozen-pilot','--output='+str(R/'pilot-%j.stdout'),'--error='+str(R/'pilot-%j.stderr'),str(R/'pilot.sbatch')];x=subprocess.run(args,capture_output=True,text=True);assert x.returncode==0,x.stderr;job=x.stdout.strip().split(';')[0];assert job.isdigit();out={'status':'one_published_source_frozen_N3_feature_pilot_submitted','GPU_job':job,'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'admitted':record,'root':str(R),'new_training_or_Kaggle_mutation':False,'actual_pilot_acceptance':False};(R/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+'''
+compile(program, 'original_feature_pilot_source_and_funding_admission', 'exec')
+(L / 'feature-pilot-admission-program.py.txt').write_text(program)
+with (L / 'feature-pilot.intent.json').open('x') as f:
+    json.dump({'source_git': git, 'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'worker_sha256': hashlib.sha256(worker.encode()).hexdigest(), 'new_funded_node_cap_bytes': 3 * 2**30, 'automatic_retry': False}, f, indent=2)
+args = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=4G', '--time=00:10:00', '--job-name=rsna-criterion-admission', 'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'OMP_NUM_THREADS=1', 'MKL_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program]
+x = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(args)], input=json.dumps({'source_git': git, 'files': files, 'worker': worker, 'initialization_provenance': initialization}), capture_output=True, text=True, timeout=750)
+(L / 'feature-pilot.result.json').write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, x.stderr[-4000:]
+out = json.loads(x.stdout)
+(A / 'actual-feature-pilot-submitted.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps({'status': out['status'], 'GPU_job': out['GPU_job'], 'CPU_job': out['CPU_job'], 'source_git': git, 'actual_pilot_acceptance': False}))
