@@ -361,7 +361,8 @@ owner **78386now armed/live**, waiting original61037final/private proof. [Exact 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
-and E2has since COMPLETED972updates; private verification pending as139245643v1/source6882d479… at14:28UTC. Do not repeat
+E2sourcebinding was checked14:28UTC;139245643v1/source6882d479… later
+COMPLETED972updates at15:46UTC, with private verification pending. Do not repeat
 epoch1publication or either GPU push.
 No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
 

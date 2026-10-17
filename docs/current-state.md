@@ -71,8 +71,8 @@ clinical ground truth.
 - **60358** finished successfully. **61037** independently verified and privately preserved epoch 1
   at **HF33d992cfa8157d8b6fd3cc1a547b80838b874b44** (CPU947422; all five objects
   re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now COMPLETE at972cumulative updates; private verification is pending.
-  Exact source and private offline T4 metadata passed; live optimizer progress
-  for epoch 2 is not yet claimed. The fixed-final model
+  Exact source and private offline T4 metadata passed. Its terminal reports972
+  cumulativeupdates; independent complete-state/private verification is pending. The fixed-final model
   and its accuracy result are still pending. Scientific source remains
   `990c8ded` throughout the campaign.
 
@@ -148,7 +148,8 @@ owner **78386now armed/live**, waiting original61037final/private proof. [Exact 
 **14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
 modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
 HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
-and is preparing E2. Do not repeat epoch1publication.
+E2subsequentlyCOMPLETED972updates at15:46UTC; private verification is pending.
+Do not repeat epoch1publication.
 No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).
 
 Latest distinct source**f25a17d7** is privately preserved at
