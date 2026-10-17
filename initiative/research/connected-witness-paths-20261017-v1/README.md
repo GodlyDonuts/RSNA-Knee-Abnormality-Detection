@@ -47,6 +47,16 @@ accepted by this prototype. This layer has no MRI loader, evidence head,
 optimizer, checkpoint, serving runner or measured hardware cost. It has not been
 staged on Newton or used to train a model.
 
+`source_chains.py` now implements explicit metadata qualification: partition
+offset3 edges without crossing blocked source gaps, prove disjoint original
+slice support within each chain, retain focal singletons and account for every
+window. Changing/directed/nonstationary priors are counted as unsupported, never
+symmetrized or repaired. Synthetic source partition, gap/focal, unsupported-motion,
+missing-operator and four invalid-source checks passed. The one-time read-only
+32-fixture CPU assessor is prepared; it loads only original metadata and executes
+the new small modules in RAM, with zero new node/shared files or MRI/target reads.
+Its original intent/actual receipt, rather than this plan, determines execution.
+
 ## Why test this next
 
 The [actual full fitting census](../../audits/spatial-throughplane-information-20261017-v1/actual-coverage.json)

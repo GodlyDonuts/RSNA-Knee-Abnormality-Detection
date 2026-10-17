@@ -1,0 +1,29 @@
+"""One read-only CPU assessment; retained original intent prevents repetition."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+
+D = Path(__file__).resolve().parent
+L = Path('artifacts/connected-witness-geometry-20261017-v1')
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / 'intent.json').exists()
+assert not subprocess.check_output(['git', 'status', '--porcelain'], text=True).strip()
+source_git = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+original = json.loads(Path('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json').read_text())['numerical_source_before']
+assert len(original) == 118 and all(hashlib.sha256(Path(n).read_bytes()).hexdigest() == h for n, h in original.items())
+sources = {name: (D / (name + '.py')).read_text() for name in ('prototype', 'source_chains')}
+hashes = {n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()}
+program = (D / 'assess_source_geometry.py.txt').read_text()
+compile(program, 'original32_read_only_source_path_assessment', 'exec')
+h = hashlib.sha256(program.encode()).hexdigest()
+with (L / 'intent.json').open('x') as f:
+    json.dump({'source_git': source_git, 'program_sha256': h, 'source_hashes': hashes, 'GPUs': 0, 'CPUs': 1, 'new_node_or_shared_bytes_files': 0, 'automatic_retry': False}, f, indent=2)
+args = ['srun', '--account=skattel', '--partition=normal', '--qos=normal', '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=4G', '--time=00:03:00', '--job-name=rsna-path-source-geometry', 'env', 'CUDA_VISIBLE_DEVICES=', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'OMP_NUM_THREADS=1', 'MKL_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program]
+x = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(args)], input=json.dumps({'source_git': source_git, 'program_sha256': h, 'original118': original, 'new_sources': sources, 'new_hashes': hashes}), capture_output=True, text=True, timeout=240)
+(L / 'result.json').write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, 'Read-only original assessment incomplete; inspect original job, never duplicate an uncertain execution'
+out = json.loads(x.stdout)
+(D / 'actual-source-geometry.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

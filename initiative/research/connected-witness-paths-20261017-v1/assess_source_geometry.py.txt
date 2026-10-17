@@ -1,0 +1,98 @@
+"""Read-only original32 source-geometry assessment; no MRI array or target load."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+import types
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+root = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+code = root / 'reader-engine-recovery-v2/code'
+assert len(v['original118']) == 118
+assert all(hashlib.sha256((code / n).read_bytes()).hexdigest() == h for n, h in v['original118'].items())
+original = root / 'pilot-recovery-v2-accepted.json'
+assert hashlib.sha256(original.read_bytes()).hexdigest() == 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+paid = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid < 3 * 2**30
+assert shutil.disk_usage('/tmp').free > 603433009211 + max(0, 3 * 2**30 - paid)
+quota = subprocess.check_output(['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True)
+q = next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 and int(q[6]) - int(q[5]) > 5000
+sys.path.insert(0, str(code))
+for name in ('prototype', 'source_chains'):
+    source = v['new_sources'][name]
+    assert hashlib.sha256(source.encode()).hexdigest() == v['new_hashes'][name]
+    module = types.ModuleType(name)
+    module.__file__ = 'Git:' + v['source_git'] + '/' + name + '.py'
+    sys.modules[name] = module
+    exec(compile(source, module.__file__, 'exec'), module.__dict__)
+
+import numpy as np
+import torch
+from prototype import factorized_joint, log_path_partition
+from source_chains import qualify_source_chains
+from rsna.competitive.spatial_reader import build_plan
+
+torch.set_num_threads(1)
+records = json.loads(original.read_text())['private_records']
+assert len(records) == 32 and sum(r['windows'] for r in records) == 2345
+start = time.monotonic()
+roles = {}
+maximum_zero_error = 0.0
+maximum_marginal_error = 0.0
+lengths = []
+for record in records:
+    graphs = record['source_graphs']
+    windows = np.asarray([(g['slot'], j) for g in graphs for j in range(len(g['supports']))], dtype=np.int64)
+    assert len(windows) == record['windows']
+    plan = build_plan(graphs, windows, tuple(record['actual_spatial_map_shape'][1:]), seed=20261017)
+    paths, report = qualify_source_chains(graphs, windows, plan)
+    role = roles.setdefault(record['role'], {'studies': 0, 'all_windows_supported_studies': 0, 'counts': {}, 'unsupported_chain_reasons': {}})
+    role['studies'] += 1
+    role['all_windows_supported_studies'] += int(report['unsupported_windows'] == 0)
+    for key, value in report.items():
+        if key == 'unsupported_chain_reasons':
+            for reason, count in value.items():
+                role[key][reason] = role[key].get(reason, 0) + count
+        else:
+            role['counts'][key] = role['counts'].get(key, 0) + value
+    for path in paths:
+        assert len(path.indices) > 0 and len(path.gaps_mm) == len(path.indices) - 1
+        empty = torch.zeros(len(path.indices), len(path.tokens), 1, dtype=path.joint.dtype)
+        score = log_path_partition(empty, path.joint, path.gaps_mm, torch.zeros(1, dtype=empty.dtype))
+        assert torch.isfinite(score).all()
+        maximum_zero_error = max(maximum_zero_error, float(score.abs().max()))
+        control = factorized_joint(path.joint)
+        normalized = path.joint / path.joint.sum()
+        maximum_marginal_error = max(maximum_marginal_error, float((normalized.sum(0) - control.sum(0)).abs().max()), float((normalized.sum(1) - control.sum(1)).abs().max()))
+        lengths.append(len(path.indices))
+assert set(roles) == {'fitting', 'outer'} and all(x['studies'] == 16 for x in roles.values())
+assert roles['fitting']['counts']['windows'] == 1175 and roles['outer']['counts']['windows'] == 1170
+assert maximum_zero_error < 2e-6 and maximum_marginal_error < 1e-6
+out = {
+    'status': 'actual_original32_source_chain_geometry_assessed_without_pixel_or_target_reads',
+    'CPU_job': os.environ['SLURM_JOB_ID'],
+    'source_git': v['source_git'],
+    'program_sha256': v['program_sha256'],
+    'new_mathematical_source_hashes': v['new_hashes'],
+    'original118_module_manifest_sha256': '3909bf501db49d0a1e921323866bbf77e848accfed7f012a143d8397992bef72',
+    'original_private32_receipt_sha256': hashlib.sha256(original.read_bytes()).hexdigest(),
+    'roles': roles,
+    'all32_original_source_windows_accounted_for': True,
+    'all32_studies_fully_supported_by_current_fixed_reversible_joint_prototype': all(x['all_windows_supported_studies'] == x['studies'] for x in roles.values()),
+    'qualified_chain_lengths_min_median_max': np.quantile(lengths, [0, .5, 1]).tolist() if lengths else [],
+    'maximum_qualified_actual_geometry_zero_evidence_log_partition_error': maximum_zero_error,
+    'maximum_qualified_control_weighted_marginal_error': maximum_marginal_error,
+    'elapsed_seconds': time.monotonic() - start,
+    'MRI_pixels_maps_weights_labels_reports_or_protected_values_loaded': False,
+    'new_node_or_shared_files_bytes': 0,
+    'original_numerical_source_and_live_training_untouched': True,
+    'actual_GPU_training_recovery_or_accuracy_acceptance': False,
+    'scope': 'Metadata and mathematical-input assessment only on the original engineering32. Unsupported source chains remain counted; no symmetrization, source skipping, clinical negative or registration is invented. No predictor or trainer has run.'
+}
+print(json.dumps(out, indent=2, allow_nan=False), flush=True)
