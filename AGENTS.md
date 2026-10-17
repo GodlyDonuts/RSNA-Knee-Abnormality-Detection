@@ -18,6 +18,13 @@ CPU951962 source/runtime/quota admission, currently PENDING(Priority). Preserve
 all originals; its32MiB cap is inside node33 full320MiB/reader512MiB/node3GiB. Actual private HF94d643949a101fe944045d5ffc843c3b1db79be0
 fully re-download/size/SHA verifies44small objects at source1c631ae2, including
 new paths/dense CPU input proof and the uncertain full result; do not repeat.
+Actual private HF0cf9ab27bb3232eeee0d9a260068ee3480f7a9bf now verifies12new
+streamed-encoder/probe objects at source9ca3bfb2; do not repeat. Original Kaggle
+owner82637 stopped during read-only eligibility after SSH authentication expired,
+before any submission intent. Access restored; distinct finite successor97513
+reuses all three completed T4/public versions with zero pushes and fresh account
+allowance/canonical ledger/claim. It submits at most3, requiring each actual
+hidden outcome before the next. Do not restart either old controller.
 See the [current mechanism and receipts](initiative/research/connected-witness-paths-20261017-v1/README.md).
 
 
