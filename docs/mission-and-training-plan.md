@@ -1,3 +1,9 @@
+> **Historical contract or plan.** This document preserves its original dated
+> release or experiment. For current scores, fitting populations and active work,
+> read [current state](current-state.md), [research brief](research-brief.md) and
+> [research-agent handoff](research-agent-handoff.md). Old “next” instructions
+> below are not live job or submission authority.
+
 # Mission and completion criteria
 
 The owner expanded the mission on 2026-09-22: after the data is training-ready,

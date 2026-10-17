@@ -1,10 +1,17 @@
 # Complete initiative record
 
+The [October 17 owner program and critical assessment](research/owner-deadline-program-20261017-v1/README.md)
+and [actual S6 source-only admission](audits/s6-public-source-20261017-v1/README.md)
+are available for new research agents. The [original S6 checkpoint](audits/s6-checkpoint-admission-20261017-v1/README.md)
+is now privately downloaded once and SHA/header verified. The reported S6 score has not yet been
+reproduced by this project.
+
 **Current state is maintained in the [current-state guide](../docs/current-state.md),
 [research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
-As of October 17, 2026, 02:05 UTC, our own N3 epoch 16 scored 0.894; the attributed
-external nartaa baseline scored 0.949. Full-parent and expanded-own-model training
-are running. Use those current guides and original receipts for live status.
+As of October 17, 2026, 03:20 UTC, our own N3 epoch 16 scored 0.894; the attributed
+external nartaa baseline scored 0.949. Full-parent epoch1 is complete and privately verified, epoch2 has resumed,
+and expanded-own-model training is running into epoch5. The first matched
+uniform16 GPU session is also running; no new score is claimed. Use those current guides and original receipts for live status.
 
 ## Historical releases and training narrative
 

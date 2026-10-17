@@ -1,196 +1,220 @@
 # Execution handoff
 
-**Checked October17,2026,02:05UTC.** Root implements directly; Devin unavailable.
-Read [current state](current-state.md), [research brief](research-brief.md),
-[research-agent handoff](research-agent-handoff.md), and
-exact original audits. [Earlier full handoff](codex-continuation.history-20261017-0146.md)
-is historical, not mutation authority. Keep the broad model-improvement goal active.
+**Observed October 17, 2026, 03:20 UTC.** Keep the model-improvement goal active.
+Implement directly; Devin is unavailable. Read [current state](current-state.md),
+[research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
+Original receipts and current processes override dated archive narratives.
 
-## Access and live owners
+## Access and actual owners
 
-Newton SSH master `/tmp/rsna-research-20261001-stable.sock` was reauthenticated
-01:28UTC. Credentials remain ignored0600.env/RAM/stdin/ASKPASS. Never print them.
-Read actual processes/jobs before actions; dead observer does not mean dead GPU.
+Newton SSH master `/tmp/rsna-research-20261001-stable.sock` is live. Credentials
+remain ignored0600.env/RAM/stdin/ASKPASS, never argv/logs. Read actual processes,
+original jobs, phase intents/results and private paths before a mutation.
 
-| Role | Current PID / exec session | Original work / receipt |
+| Role | Live PID / exec | Local original artifacts / current receipt prefix |
 |---|---|---|
-| Whole94 continuation | 93163 / 31892 | `observation-recovered-v2.*` |
-| Whole94 preservation | 93190 / 53027 | `observation-v2-preserve.*` |
-| Whole94 precision/public serving | 93205 / 40537 | `observation-v2-serving.*` |
-| Whole94 E1 entry | 93216 / 57462 | `entry-observation-v2-finish.*` |
-| Whole94 E3 entry | 93228 / 47734 | `entry3-observation-v2-finish.*` |
-| Matched IID16 full fit | 93305 / 74012 | `finish.*` in full-comparison artifacts |
-| Expanded original epoch watcher | 95408 / 49302 | `imports-recovered-expanded2592-publication-watcher*` |
-| Regional one-entry owner | 87869 / 67752 | `regional-recovery.*` |
+| Whole94 continuation | **96833 / 47054** | `licensed-parent-whole94-production-20261016-v1/worker-replay-continuation.*` |
+| Whole94 epoch preservation | **96866 / 88727** | Same directory, `worker-replay-preserve.*` |
+| Whole94 T4/public inference | **97546 / 85759** | `licensed-parent-epoch-serving-20261016-v1/capacity-serving.*` |
+| Whole94 epoch1 entry | **97560 / 90352** | Same directory, `entry-capacity-finish.*` |
+| Whole94 epoch3 entry | **97572 / 94303** | Same directory, `entry3-capacity-finish.*` |
+| Matched IID16 full fit | **97530 / 85104** | `licensed-importance-full-comparison-20261017-v1/capacity-finish.*` |
+| Expanded original epoch watcher | **95408 / 49302** | `compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher*` |
 
-Verify these handles now before relying on them. Old80039/80311/82392/82509/89000,
-first reconnected92496/dependents, and expanded69208 stopped after observation
-loss/busy-claim review. Their original terminal receipts remain intact; do not
-restart them. The distinct replacements reuse original exact coordinators,
-existing push/entry/publication intents and immutable scientific sources.
+Verify these handles now. Earlier93163/93190/93205/93216/93228 and
+96918/96930/96942 are terminal. Sampler93305 was deliberately stopped **only as a
+CPU observer**, with no child phase in flight, for capacity admission. Its
+original GPU continued unchanged. Never restart those old owners or create
+another independent actor for the same jobs/entries/publications.
 
-## Original whole94 training
+Regional57291182 has actually scored **0.948**, COMPLETE/noerror/247103bytes.
+Context57287572 and field57289392 also scored0.948. External unchanged57258866
+remains0.949; own independently MRI-trained N3 E16 remains0.894. Latest saved
+account observation is3today/2slots; refresh before any entry. Remaining planned
+entries are actual learned whole94E1 and fixed-finalE3, after exact acceptance and
+prior hidden outcomes. No public3rowCSV upload.
 
-Kaggle **139111324v1**, `godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138`,
-source50b5a0d9c138abb7694f5aac29d6d1b736286a0806b2a2b58d5155d0a61ecafd.
-ActualRUNNING, bothT4s,451/1458updates/epoch1 (latest numerical log), finite progress. Science
-c68d8752bd6b692babe971f08ca4b4590aa35db5, full3887/3epochs/effective8/all94,
-73,136,096trainable. Three exact sessions stop486/972/1458; never push E1 again.
+## Whole94 epoch1 complete; exact original worker resumes epoch2
 
-Remote control `/tmp/rsna-licensed-parent-whole94-production-20261016-v1` on evc33;
-artifacts/audit `licensed-parent-whole94-production-20261016-v1`. Original program
-SHA23723cc7f63a701c81b412fd59b5caac4105dd1bef407441c9d1cbead45a22e8.
-The continuation observes existing E1 first and may prepare/push only still-unpushed
-original E2/E3. Only known pure read-only busy-claim observations are retried.
-A mutation uncertainty must stop and reconcile. Preservation root on evc39
-`/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1`; no completed epoch yet at
-this snapshot. Each epoch needs exact whole-stateCPU verification/private5object
-re-download/hash proof before serving. No weight Dataset/copy is needed for
-serving: mount exact original trained-kernel output. E1/E3 entry owners require
-actual precision/publicMRI/CSV acceptance, current allowance and prior actual
-outcomes. Never upload a public3rowCSV.
+Original E1 **139111324v1** completed486finite updates on bothT4s, all73,136,096
+parameters in AdamW, BN buffers unchanged. Sciencec68d8752bd6b692babe971f08ca4b4590aa35db5;
+3887fit/3epochs/1458updates/effective8/all94. E1 modelSHA
+`a8ed4a84afd8af0613e2626cc14be90e37ee65a1dc7ec4517d29a56d83363933`.
+CPU941097 independently verified complete model/AdamW/LR/counters/history/allrank
+RNG/scaler and privately published all5objects, fully re-downloaded/size/SHA
+verified at **HFd436986137570a9a4259a4b59981d261cffd2f20**. Never repeat E1.
 
-## Expanded own N3
+Original control `/tmp/rsna-licensed-parent-whole94-production-20261016-v1`,
+original numerical checkout/code and staged metadata unchanged. First prepare2
+failed **before creating segment2 or a push intent** because reloading canonical
+JSON reordered keys in one literal proof assignment. Actual node comparison
+proved every value/binding identical and every other worker byte identical.
+CPU941151 admitted a compiler replay of the **original worker bytes**, SHA
+`32ef4bbee4f68c07c073e57238523ca40c9ca3618df514a30e454bc91060110c`.
+No numerical/model/data/recipe/optimizer/RNG change was made.
 
-Original Slurm **938284RUNNING evc33**,1H100/2CPUs/32GiB/8h, allocated01:39UTC,
-333realupdates/epoch2 observed; epoch1 snapshot complete. Sourcea1ca238526dad75b2a5cea46edba44fd95c71938;
-root `/tmp/rsna-compact-expanded2592-production-20261016-v1`, control
+The separate replay compiler is at `continuation-worker-replay-v1/compiler.py`,
+sourceGit94f2753b, SHA18d9392dda71e21391517949e0466e58ac6480c2d9bf07f73f2939f877547d96.
+Its accepted receipt is in the same directory. The original compiler/source files
+stay immutable. It accepts only actual previous-worker SHA plus identical proof
+values and byte equality everywhere else; even an unrelated comment is refused.
+
+One actual E2 push **139137922v1**, exact slug
+`godlydonuts/rsna-parent-whole94-full-e2-7cbc68dad857`, source
+7cbc68dad8571d332cd2d85fb08633283b814309f9887b6c9f3192633e4e73ca,
+is API **RUNNING**. It resumes exact E1 model/AdamW/LR/RNG/scaler at486; do not
+restart it. Newly resumed optimizer updates/allocated headers are not yet visible:
+live UI logs load without records and API log reads are blank/unavailable.
+This is observation loss, not terminal/failure/restart authority. Recheck the same
+identity; require actual progress>486 or the exact terminal receipt before claiming
+new learning. E3 must use the same replay/actual previous checkpoint at972.
+
+Local coordinator `replay-program.py.txt`; owner
+`continue_with_actual_worker_replay_once.py`. Preservation root on evc39
+`/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1` uses unchanged original
+publisher/whole-state verification, now only epochs2/3. Any existing intent or
+uncertain response means read-only reconciliation, never a repeat upload.
+[Exact evidence/source](../initiative/audits/whole94-original-worker-continuation-20261017-v1/README.md).
+
+## Actual learned-E1 serving acceptance and two-session capacity
+
+Qualification **139136981v1**,
+`godlydonuts/rsna-parent-adapted-e1-qual-46bb872b9463`, completed32originalMRI
+studies on BOTH T4s: original94-window input bytes equal, full learned graph equal,
+**maximum prediction error0.0**. This notebook cannot submit or emit a CSV.
+Public source SHA remains
+`b29b8a1d08f6f9b01260cbc672033a5a561c356bd25ea70abb5c395599832a49`.
+No independent internalOOF or new competition score is claimed.
+
+The first public SaveKernel explicitly returned `Maximum batch GPU session count
+of 2 reached.` An owned search had an ambiguous private placeholder. Do not call
+that an absent notebook or a failed competition submission. The old identity
+`godlydonuts/rsna-parent-adapted-e1-offline-b29b8a1d08f6` is permanently quarantined:
+never retry or submit it. CPU941271 verified the dead retained claim/actual
+response, preserved it in the canonical record, and released only that claim.
+
+The distinct intended public identity is the same slug **with `-g2` appended**.
+It uses the exact same source/model, creates no Dataset/weight copy, and has NOT
+been pushed at this snapshot. `program-capacity.py.txt` and
+`run_serving_capacity_once.py` use a real capacity check before any GPU intent.
+Actual current wait reports both registered lanes occupied, no new GPU intent or
+reservation. It will take the next auxiliary lane when funded, before the next
+sampled training session; source/CSV acceptance still precede one code entry.
+The entry programs read actual returned canonical identities, not the old slug.
+
+Actual admitted helper on evc33:
+`/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py`,
+sourceGit0c34eedd, SHA0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2.
+Its exact source is archived; later main adds only a type annotation and is not a
+silent replacement of the admitted helper. It executes under the account claim,
+reserves one lane until mainE3 actually completes1458, shares the other between
+sampling/serving, and honors a renewable five-minute serving priority only with
+sufficient fresh VM budget. Expiry prevents abandoned observers holding the lane.
+It covers registered campaign families; the backend still governs manual/other
+sessions. Original scientific templates, weights and source bindings are unchanged.
+[Capacity controls and actual refusal](../initiative/audits/kaggle-two-session-capacity-20261017-v1/README.md).
+
+## Matched IID16 production now actually pushed
+
+Original uniformE1 **139137040v1**,
+`godlydonuts/rsna-u16-full-e1-8155b3803c5a`, source
+8155b3803c5a4ccd6646c21ead1a8a4eb6d0000ed84106b10befae9901f35081,
+is API RUNNING. First push passed the all-future funding check. Do not push it
+again or infer optimizer progress from API RUNNING. Its live log is also currently
+unavailable. InfluenceE1 remains unpushed. Fresh-process reconstruction of the
+entire original uniform source was byte-identical, so it does not suffer the main
+initial proof-order mismatch.
+
+Sciencea420bd2ed38c657e1296881f0294917e6d466373; actual prior two-role recovery
+139130771v1 COMPLETE/476.790s, complete model/AdamW/LR/counters/allrankRNG/scaler/
+history/snapshots and16x12full94predictions equal on full/stop1/resume. Same full
+initial graph/RNG across roles;411learned tensors differ after fitting. CPU940795
+original-input bridge, frozen3887x94proposalSHAe812a9f90cd2 and private Dataset
+12644218v1/all5objects are already verified once. Never repeat them.
+
+Full recipe remains3887/3epochs1458updates/effective8/16IID draws with replacement,
+common variates/views,25%uniform proposal floor, inverse-proposal readout and
+original full94 inference. New capacity owner reuses prepared/pushed/actual/
+publication records, changes no GPU source, and launches only remaining original
+sessions. It has zero competition entries. Any old publication intent without
+verified result must stop for read-only reconciliation.
+
+Local root `artifacts/licensed-importance-full-comparison-20261017-v1`:
+`finish_with_actual_capacity_once.py`, `capacity-finish.*`, `cloud-capacity.py.txt`,
+`run_phase_capacity_once.py`; original publication programs unchanged. Remote33
+`/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison`; remote39
+`/tmp/rsna-licensed-importance-full-epochs-20261017-v1`. All completed distinct
+immutable epochs need independent complete-state/private5object download proofs.
+
+## Expanded own N3 and fitting-only research
+
+Original H100 **938284** remains RUNNING on evc33,1GPU/2CPUs/32GiB/8h,
+sourcea1ca238526dad75b2a5cea46edba44fd95c71938;2592fit/1156outer/16epochs5184updates.
+Actual1394updates/epoch5 at03:20. Epochs1–4 are now privately fully9object verified.
+Watcher95408 owns later unattempted epochs. Root
+`/tmp/rsna-compact-expanded2592-production-20261016-v1`; control
 `/tmp/rsna-compact-expanded2592-engine-20261016-v1/production-control-v1`.
-2592fit/1156outer,16epochs/5184updates, original H100recovery933382 accepted.
-Do not restart/duplicate. Distinct watcher observes this exact original, then uses
-`scripts/hf/dispatch_compact_expanded_epoch.py` only for completed unattempted
-original epochs. It checks original per-epoch intents/results and private paths;
-uncertain publication requires read-only reconciliation. Epoch1 is now privately verified (all9objects), with the actual proof linked
-in the latest preservation section below. Watcher95408 owns later epochs.
-Old patch929938 remains pending; do not duplicate/displace healthy training.
+Use only pinned `scripts/hf/dispatch_compact_expanded_epoch.py` SHA217bcdfbc18e8f21620f797189fd45516b4247e1675d09fc5e781ae34516582c.
+Do not mistake terminal CPU publications for missing jobs or duplicate the GPU.
+Original patch929938 remains pending and unchanged.
 
-## Matched IID16 full comparison
+CPU941335 screened only approved fitting UID/teacher arrays, no labels/masks/
+reports/pixels/weights/protected values. Actual1.288s result is **intermediate**:
+mean view probability gaps1.29–2.71points, strict-pair discordance2.75–7.41%,
+maximum fraction with >10point gap4.37%. These are not AUC errors/clinical labels.
+No new GPU arm or target change is admitted. Actual sourceGit6c5d4454/SHA0e9b5164
+is preserved separately from later formatting. [Result/protocol](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
 
-Scientific source **a420bd2ed38c657e1296881f0294917e6d466373**. Numerical sampler/
-trainer unchanged from actual accepted diagnostic sourcebe837f9b. Original
-recovery139130771v1 COMPLETE/476.790s, sourcea01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554,
-worker cbe40bfab07a1a24d990dd8b4c8b9f4b3713fde12a200ce7d1d73b28e5557f60.
-Actual complete learned/AdamW/LR/cursors/allrankRNG/scaler/history/snapshots and
-16x12 full94 predictions match full/stop1/resume for both roles. Same initial
-entire graph/RNG;411learned tensors differ; all73.1M trainable,5.87GBpeak/T4.
-This is engineering acceptance, no accuracy. Never repeat diagnostic90613/push.
+## Runtime, resources and preservation
 
-Local `artifacts/licensed-importance-full-comparison-20261017-v1`:
-`finish_comparison_once.py`, intent/progress/result, cloud.py.txt, run_phase_once.py,
-strict separate publish-program.py.txt/publish_epoch_once.py. Remote node33
-`/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison`; node39 epochs
-`/tmp/rsna-licensed-importance-full-epochs-20261017-v1`.
+Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`; claim
+`/home/sa305415/rsna-knee/kaggle/coordinator-claim`. Unchanged workflowSHA2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900.
+SaveKernel's title determines slug; verify returned ref/version/source. Park
+uncertainty read-only; never retry an old failed/ambiguous identity or upload a
+public example CSV. Fresh authoritative max5daily allowance governs every entry.
 
-Actual CPU940795 input bridge passed original32/two94views/both16windowroles/
-180duplicates/source/teacher/mask equality. CPU940785 storage funding accepted.
-Private Dataset **12644218v1 godlydonuts/rsna-parent-iid16-q-e812a9f90cd2**,5objects
-fully re-downloaded/size/SHA verified CPU940827. Actual proposal table original
-CPU940658:2923152bytes/e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e,
-3887x94FP64/25%uniformfloor; no labels/newCNN. Reuse it; no materialization/create
-repeat. CPU940783 observer path failure and940809 missing-SDK pre-create guard
-were reconciled before the sole real create. Exact original negatives are audited.
+Head/systemPython is3.6: use explicit managementCPython3.12
+`/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python` for SDK/API.
+Torch33/39 `/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python`;
+HF `/home/sa305415/rsna-knee/hf-epoch-publisher-v1/env-cp312/bin/python`.
+Local QA/imports: `env PYTHONNOUSERSITE=1 PYTHONPATH=. artifacts/qa-env/bin/python`.
+Keep child repo imports explicit; a script-module import failure is not training.
 
-The finite owner93305 has max30h/6GPU sessions/6private epoch publications and
-zero competition entries. UniformE1 is prepared; **no full sampled GPU pushed**.
-Actual quota107092.916s <115200required:3unfinished old7h +6new100min +1hreserve.
-It waits5min without GPU reservation/mutation intent, then rechecks live quota.
-The credited-reservation term covers only actual known original reservations;
-unrelated reservations remain unavailable. Before any action inspect original
-owner/phase intents/results and canonical ledger. Never duplicate the owner.
+Keep20GiB/5000shared-file reserves after all liabilities. Node33 required-free
+607456016323bytes includes32MiBimportance controls/future8MiB;
+add conservative336685909bytes of unused S6 envelope after its paid original
+checkpoint, for current required-free607792702232bytes before new work. original parent/
+serving controls retain their16MiB bounds. New CPU screens/metadata fit those
+existing bounds; no new shared cache/model copies or deletion credits.
+Node39 requirement689890867139 minus verified-paid cache38873651701 and verified
+retained main epochs, plus12GiBsampled models/publication+16MiBcontrols minus
+verified retained sampled epochs once. Do not double-count paid bytes or retire
+future obligations by assumption. Large originals stay private on owning storage.
 
-Both full roles have3887studies/3epochs1458updates, effective8,16IID draws with
-replacement and common random variates/views, original targets/base/recipe.
-Each epoch is one100min session with90min worker timeout; complete optimizer/RNG
-continuity required. Independent sampled validator strict role/proposal/recipe/
-actual recovery checks reuse all original complete-model/AdamW/RNG/history checks.
-Original whole94 defaults stay intact and reject sampled receipts. Preserve each
-immutable learned epoch once under its own role/private prefix. These are eligible
-RSNA-only parent adaptations, but independent internalOOF is unavailable and no
-new score may be claimed before an actual competition outcome.
+Private HF coreSHA4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde;
+canonical publication lock `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock`.
+Prior small mirrors b34d69e5/source1a2e8204 (24objects) and b2ecca99/source9008eced
+(8objects) are verified. This newer continuation/capacity/research milestone is
+separate; use its exact new receipt when published, never repeat old prefixes.
+Eighty focused regressions/Ruff6/mypy3 passed; full mypy108 also passes.
+Broad pytest status and unchanged global lint debt are in the current refresh
+audit; require its actual terminal receipt before claiming full-suite success.
+No accuracy claim follows software checks. The sampled-serving compiler remains preparation, without an actual
+sampled checkpoint or serving GPU acceptance. Protected clinical values remain
+unused; Stanford/KneeCoT are separate private research, not these scored weights.
 
-## Canonical coordination and runtime facts
+## New owner program: S6 source-only admission
 
-Ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`; claim
-`/home/sa305415/rsna-knee/kaggle/coordinator-claim`. Workflow shared cloud-control
-SHA2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900;
-publication helpere426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336.
-SaveKernel derives slug from title; compare returned ref/version/source. Never
-repeat uncertain Dataset/notebook/entry/job/transfer/publication. Fresh actual
-account allowance governs max5daily, never dated counts. At02:05UTC actual3today/2slots;
-regional57291182 submitted once and hiddenstatus/score null. Current actual scores
-and today's context/field/regional/E1/E3 plan are in current-state.md.
-
-Systempython3 on Newton is3.6. Use explicit managementCPython3.12
-`/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python` for SDK/API; versions
-kaggle2.2.3/kagglesdk0.1.30. Torch compute on evc33/39 uses
-`/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python`. HF uses
-`/home/sa305415/rsna-knee/hf-epoch-publisher-v1/env-cp312/bin/python`.
-Never assume Torch env includes the Kaggle SDK. Local imports/QA use
-`env PYTHONNOUSERSITE=1 PYTHONPATH=. artifacts/qa-env/bin/python`.
-
-## Storage and private preservation
-
-Keep20GiB shared/local and5000shared-file reserves after all actual liabilities.
-Node33 carried required607456016323bytes includes the32MiB new importance control
-envelope. Full proposal/tableZIP, future6source controls and small mirrors fit
-inside it; do not charge a new large shared allocation. All original pixels,
-features, clinical arrays and weights remain private on authorized storage.
-
-Node39 original required689890867139bytes minus verified paid cache38873651701
-and privately verified retained original epoch bytes. Add new12GiB sampled model/
-publication +16MiB controls, subtract only privately verified retained sampled
-epoch bytes once. CPU940785 actual669290184704free exceeded required663918894542
-by5371290162bytes. No deletion credit; verify live space before collection.
-The original4pixel archives/indices and original32 are already verified; use
-stat bindings/original whole-byte proofs rather than repeat bulk transfers.
-
-HF core `/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py`
-SHA4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde.
-Canonical lock `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock`.
-All completed original N3/neighbor/weighted/context/spatial epochs already private
-fully verified; do not repeat. Current original whole94/expanded/sampled epochs
-are new only when actual snapshots complete and no attempt exists.
-
-Latest distinct small mirror **HF5656db3fe39639bff57d7fcfc29d778c4022915f**, source
-3d83115d04e5790c293c3eacbb79ec53fb2d9551,65objects360309bytes fully download/hash
-verified CPU940894. Prefixmilestones/licensed-IID16-full-readiness-20261017-3d83115d04e5-v1.
-Never repeat that or preceding HF117b0b51/a9e66639/5c7d47eb/b0829373/a879e194
-mirrors. No pixels/clinical arrays/UIDs/features/proposals/weights were in it.
-The rewritten current guides are a later documentation change; originals are
-archived verbatim and previous source remains recoverable in Git/private HF.
-
-Clean current guides source805974c04a25623d11221231157b1966bb72f3ec privately
-fully verified ONCE at HF6eaf98ff679cb4e9fc975c8b11c488a4ddb4990f,CPU940927,
-4objects/28890bytes, prefixmilestones/current-research-guides-20261017-805974c04a25-v1.
-This receipt-only bookkeeping follows that mirror; never repeat either prefix.
-
-## Research-agent documentation refresh
-
-Current [research-agent handoff](research-agent-handoff.md) maps exact recipes,
-negative findings, source exposure, historical research and open PR metadata.
-Main-source serving preparation `b0314495` adds strict role/proposal-bound sampled
-checkpoint inference. Forty focused synthetic/regression tests, Ruff4/mypy2 passed;
-**actual sampled serving GPU/public-MRI acceptance remains absent**. It has no
-new cloud push or entry owner. Original whole94 numerical/serving code is unchanged.
-See `initiative/audits/licensed-importance-serving-preparation-20261017-v1`.
-The docs refresh audit records fresh authenticated outcomes, read-only canonical
-ledger and actual expanded-job metadata. Do not treat old research archive
-"next" instructions or open branches as new launch authority.
-
-## Latest preservation and documentation state
-
-Expanded observer93375 stopped on direct-script `scripts.hf` import before an
-intent/credential/RPC. Exact absence/source/terminal proof was reviewed.
-Replacement95408/exec49302 fixes repository PYTHONPATH/PYTHONNOUSERSITE only;
-GPU938284 and publisher217bcdf remain unchanged. Its original CPU941066 COMPLETE:
-expanded epoch1 privately fully verified ONCE at
-HF490960b8a7be8114607da040028e1ffe1a19ae54/all9objects. Watcher95408 now
-verified_epochs=[1] and original938284 remains RUNNING. Never repeat epoch1.
-[Exact recovery and result](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
-
-Distinct research-handoff source1a2e8204 privately fully verified ONCE at
-HFb34d69e5d815ec2bd8e799d1c52f91a7c9778b7b,24objects322098bytes,CPU941047.
-Observer-recovery source9008eced privately fully verified ONCE at
-HFb2ecca99b9b8ac2b0ac9e039eff99a922510ae5d,8objects35644bytes,CPU941076.
-This final epoch-preservation/receipt bookkeeping follows those publications;
-never repeat them. No private clinical arrays/pixels/weights were in the small mirrors.
+Owner supplied a new deadline analysis. Read its [assessment](../initiative/research/owner-deadline-program-20261017-v1/README.md)
+and [actual public source admission](../initiative/audits/s6-public-source-20261017-v1/README.md).
+Public S6 notebook138285808v2/SHA6e87350d and Dataset12589750v3 small manifests
+are now locally pinned. The original200185003-byte checkpoint was acquired once
+on evc33 and SHA/header verified by original941506/941560/941578; source failure
+was only an assumed tensor-prefix assertion, reconciled on the same bytes.
+Read [the actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md);
+never repeat acquisition. Root `/tmp/rsna-S6-checkpoint-admission-20261017-v1`,
+new512MiB private total envelope, zero shared growth. Carry unused remainder
+after paid200185003bytes alongside old node obligations; no GPU funding inferred.
+No S6 MRI/GPU or entry occurred. Unchanged reproduction is next; preserve current learned-E1 auxiliary-lane priority.
+Do not call head folds strict encoder OOF or promote another generic context
+arm without accounting for prior regional/context controls and source exposure.

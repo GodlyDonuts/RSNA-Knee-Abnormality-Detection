@@ -1,0 +1,35 @@
+import datetime,hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'acquire.intent.json').exists(), 'Existing acquisition intent: reconcile original read-only'
+program=r'''
+import datetime,hashlib,json,os,shutil,subprocess
+from pathlib import Path
+import requests,torch
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');assert not R.exists()
+prior=607456016323;new=512*2**20;free=shutil.disk_usage('/tmp').free;assert free>prior+new
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);rows=[r.split() for r in q.splitlines() if r.strip().startswith('/home/sa305415')];assert len(rows)==1 and (int(rows[0][2])-int(rows[0][1]))*1024>20*2**30 and int(rows[0][6])-int(rows[0][5])>5000
+R.mkdir(mode=0o700);permission='https://www.kaggle.com/datasets/nartaa/rsna-knee-s6fall-weights';intent={'status':'single_original_public_S6_checkpoint_acquisition_intent','CPU_job':os.environ['SLURM_JOB_ID'],'dataset_id':12589750,'dataset_version_requested':3,'filename':'E_prior_s42_fall.pt','expected_sha256':'0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12','prior_required_free_bytes':prior,'new_private_envelope_bytes':new,'before_free_bytes':free,'shared_bytes_files_growth':0,'private_only':True,'licence':'CC BY-NC 4.0','attribution':['nartaa','Heliosli'],'permission_source':permission,'automatic_retry':False};(R/'intent.json').write_text(json.dumps(intent,indent=2)+'\n');(R/'intent.json').chmod(0o600)
+url='https://www.kaggle.com/api/v1/datasets/download/nartaa/rsna-knee-s6fall-weights/E_prior_s42_fall.pt';h=hashlib.sha256();n=0;p=R/'E_prior_s42_fall.pt'
+with requests.get(url,params={'dataset_version_number':3},stream=True,timeout=(15,90)) as response:
+ response.raise_for_status()
+ with p.open('xb') as f:
+  os.fchmod(f.fileno(),0o600)
+  for b in response.iter_content(2**20):
+   n+=len(b)
+   if n>256*2**20:raise RuntimeError('Refuse more than one bounded checkpoint')
+   h.update(b);f.write(b)
+assert h.hexdigest()==intent['expected_sha256'];assert n>100*2**20
+v=torch.load(p,map_location='cpu',weights_only=True);assert isinstance(v,dict)
+roots=list(v.keys());s=v
+for k in ['state_dict','model']:
+ if isinstance(v.get(k),dict):s=v[k];break
+assert all(isinstance(k,str) for k in s);t={k:x for k,x in s.items() if isinstance(x,torch.Tensor)};assert len(t)>100 and all(torch.isfinite(x).all().item() for x in t.values());assert any('backbone' in k or 'encoder' in k for k in t)
+learned={k:{'shape':list(x.shape),'dtype':str(x.dtype)} for k,x in t.items()};(R/'tensor-header.private.json').write_text(json.dumps(learned,sort_keys=True)+'\n');(R/'tensor-header.private.json').chmod(0o600)
+out={**intent,'status':'actual_original_S6_checkpoint_download_size_SHA_and_safe_CPU_tensor_header_verified','checked_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'bytes':n,'sha256':h.hexdigest(),'owning_node':'evc33','tensor_count':len(t),'tensor_elements':sum(x.numel() for x in t.values()),'all_tensors_finite':True,'safe_weights_only_load':True,'module_graph_or_MRI_or_GPU_inference_executed':False,'model_root_keys_count':len(roots),'tensor_header_sha256':hashlib.sha256((R/'tensor-header.private.json').read_bytes()).hexdigest(),'actual_remaining_free_bytes':shutil.disk_usage('/tmp').free,'original_checkpoint_preserved_private':True,'clinical_or_Kaggle_result':False};(R/'verified.json').write_text(json.dumps(out,indent=2)+'\n');(R/'verified.json').chmod(0o600);print(json.dumps(out),flush=True)
+'''
+compile(program,'S6_checkpoint_admission','exec');(L/'program.py.txt').write_text(program)
+(L/'acquire.intent.json').write_text(json.dumps({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'maximum_checkpoint_downloads':1,'new_GPU_jobs_or_competition_entries':0,'automatic_retry':False,'source_git_before_documentation_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()},indent=2)+'\n')
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=3G','--time=00:10:00','--job-name=rsna-S6-original-checkpoint','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],capture_output=True,text=True,timeout=650);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'acquire.result.json').write_text(json.dumps(out,indent=2)+'\n');assert x.returncode==0,x.stderr[-2500:];v=json.loads(x.stdout);(L/'verified.json').write_text(json.dumps(v,indent=2)+'\n');print(json.dumps(v,indent=2))

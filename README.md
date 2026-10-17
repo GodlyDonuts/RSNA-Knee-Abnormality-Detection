@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 02:05 UTC:**
+**Current entry points — verified October 17, 2026, 03:20 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -14,16 +14,29 @@ Our **best independently MRI-trained model is N3 CoAtNet epoch 16, public AUC
 0.894**, following 0.821 / 0.869 / 0.890 at epochs 4 / 8 / 12. We also reproduced
 **0.949 using nartaa's released MRI-trained weights and unchanged inference**;
 we did not train that model from scratch. Our sequence-context head and full-384
-inference-field experiments both scored 0.948, without improving the external
-reference. These are public leaderboard scores, not final private or clinical results.
+inference-field experiments, plus the regional spatial head, each scored 0.948
+without improving the external reference. These are public leaderboard scores, not final private or clinical results.
 
-Full adaptation of all 73.1M parent parameters is **running on Kaggle's two T4s**
-on 3,887 studies, with 451 finite updates observed. Expanded own-model fitting on
-2,592 studies is **running on a Newton H100**, at 333 of 5,184 updates, with epoch 1 complete. Neither has
-a final/new score. The matched uniform-16 / teacher-influence-16 full-encoder
-comparison has actual input/GPU-recovery/storage acceptance but is waiting for
-GPU budget; no production push has occurred. Prepared serving code is explicitly
-separate from actual GPU/public-MRI acceptance.
+Full adaptation completed its first **486-update epoch on both T4s**, privately
+preserved and independently verified. The learned checkpoint also passed 32-MRI
+qualification on both T4s with zero prediction difference. Epoch 2 is API RUNNING
+under the exact original worker/checkpoint. Expanded own-model fitting on 2,592
+studies is **running on a Newton H100**, at 1,394 of 5,184 updates / epoch 5; its
+first four checkpoints are privately verified. Neither has a new competition score.
+
+The matched uniform-16 versus teacher-influence-16 full-encoder comparison now
+has its first uniform GPU session running; influence is not yet pushed. New
+optimizer logs for those Kaggle sessions are currently unavailable, so API status
+is not treated as a new-update proof. Capacity-aware inference has next-lane
+priority after actual two-session admission. A fitting-only teacher mirror screen
+returned an intermediate result, without promoting another GPU arm.
+
+The [new owner research program and assessment](initiative/research/owner-deadline-program-20261017-v1/README.md)
+prioritize unchanged reproduction of the public S6 ConvNeXt. Its notebook and
+checkpoint/code manifests are now pinned, and the original checkpoint is privately
+downloaded and SHA/header verified. Its reported 0.950 has **not** yet been
+reproduced by us. The assessment corrects the proposed validation claims and
+maps the next experiments to completed controls.
 
 The current guides distinguish completed training, weak-label evaluation,
 competition scores and preparation. They preserve failed and near-null experiments,
@@ -42,8 +55,8 @@ is unavailable. Update current guides in place after material changes.
 ## Historical report-supervision release
 
 The counts below describe the original accepted release, **not the active fitting
-population or latest supervision**. Current N3 uses 2,247 fitting studies and dense
-public soft labels. Correspondence-filtered expansion capacities and all current
+population or latest supervision**. The original N3 reference uses 2,247 fitting studies and dense
+public soft labels; the live expanded run fits 2,592. Correspondence-filtered expansion capacities and all current
 score claims are in [current state](docs/current-state.md).
 
 The published [report-supervision release](docs/data-readiness-report.md) passed

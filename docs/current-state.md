@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 02:05 UTC.** This is the current-state entry point.
+**Observed through October 17, 2026, 03:20 UTC.** This is the current-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md) next. Dated documents and
 [previous snapshots](current-state.history-20261017-0146.md) preserve history;
@@ -17,20 +17,27 @@ their pending/running/next-action statements are not current instructions.
 | Our N3, epoch 16 | 57265916 | **0.894** | Best verified independently MRI-trained model |
 | Licensed parent + our sequence-context head, epoch 10 | 57287572 | 0.948 | No demonstrated gain over the unchanged parent |
 | Unchanged licensed parent, full 384-pixel field | 57289392 | 0.948 | No demonstrated gain over its original 320-pixel field |
-| Licensed parent + regional spatial head, epoch 10 | 57291182 | **Unreported** | Submitted once; hidden status and score are null |
+| Licensed parent + regional spatial head, epoch 10 | 57291182 | **0.948** | Actual hidden completion; no gain over unchanged parent |
 | Prior own DINO | 57182737 / 57182547 | 0.872 | Historical own-model reference |
 
 These are public leaderboard AUCs, not clinical accuracy or final private scores.
 **We did not train the 0.949 model from scratch.** N3 started from general ImageNet
 pretraining and was independently MRI-finetuned by us. Current licensed-parent
 adaptation is a third category, with no scored learned checkpoint yet. The
-October 16 leaderboard reference of 0.968 is historical, not a fresh leaderboard check.
+fresh live Public leaderboard check now shows **0.969 first place**, versus our
+0.949: a **0.020 public-AUC gap**. A shared 0.956 blend is not the leaderboard
+frontier. This does not reveal the leading team's method or final private score.
+[Actual visible leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json).
 
-The [fresh authenticated check](../initiative/audits/github-research-handoff-20261017-v1/actual-observation.json)
+The [fresh authenticated check](../initiative/audits/whole94-original-worker-continuation-20261017-v1/actual-current-observation.json)
 confirms these recent outcomes and **3 submissions today / 2 live slots remaining**
-at 02:05 UTC. That allowance expires as an observation; query it again before a
+at the latest saved account check. That allowance expires as an observation; query it again before a
 mutation. The canonical ledger agrees on the completed context result. The regional
-entry receipt and fresh API agree on submission 57291182; it has no reported score.
+entry receipt and fresh API agree on submission 57291182: COMPLETE, score 0.948, no error.
+The later **03:20 owning-node observation** confirms expanded N3 at **1,394
+finite updates / epoch 5**, with empty stderr and four completed checkpoints
+privately fully verified. Epoch 4 is HF `e183899c0b2ea38adfe66c287713a872ce0effc9`,
+all nine objects. [Actual progress and preservation](../initiative/audits/github-current-state-refresh-20261017-v2/expanded-actual-progress.json).
 
 Original receipts: [external baseline](../initiative/audits/released0949-baseline-20261016-v1/actual-scored-canonical.json),
 [own N3 epoch 16](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json),
@@ -42,17 +49,28 @@ Do not resubmit their exact versions.
 
 | Work | Original identity | Latest actual evidence |
 |---|---|---|
-| Full licensed-parent adaptation | Kaggle 139111324 v1 | **RUNNING** on both T4s; 451 finite updates observed in epoch 1 of 3 |
-| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 333 of 5,184 updates, epoch 2; epoch 1 snapshot complete, now privately verified (later operational update below) |
-| Uniform-16 versus influence-16 full-encoder comparison | Finite owner 93305 | Inputs, recovery and storage accepted; uniform epoch 1 prepared; **GPU-budget wait, no production push** |
+| Full licensed-parent adaptation | E1 139111324 v1; E2 **139137922 v1** | **E1 complete**, 486 updates and private verification; E2 API RUNNING, exact original worker/checkpoint resumed; new optimizer progress not yet externally observed |
+| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 1,394 of 5,184 finite updates / epoch 5 at 03:20; epochs 1–4 privately verified |
+| Uniform-16 versus influence-16 full-encoder comparison | Owner **97530**; uniform E1 **139137040 v1** | Original uniform production API RUNNING; newly allocated optimizer progress not yet visible; influence remains unpushed |
 | Patch-header research | Original Slurm 929938 | **PENDING (Priority)**; no accuracy result |
 | Sampled-epoch serving compiler | Committed preparation | Synthetic CPU/regression checks passed; **no actual serving GPU/public-MRI acceptance** |
 
-[Fresh Slurm/account/ledger observation](../initiative/audits/github-research-handoff-20261017-v1/actual-observation.json).
-The parent log's latest observed numerical record was update 451, loss 0.53143835,
-gradient norm 0.80740583, scaler 1,024; it is progress evidence, not validation.
-The exact original push/source is unchanged. The original 415-update trace remains
-[archived](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-415.json).
+[Fresh Slurm/account/ledger observation](../initiative/audits/whole94-original-worker-continuation-20261017-v1/actual-current-observation.json).
+The first full-parent epoch completed all **486** finite updates on both T4s,
+with 73,136,096 optimizer parameters and unchanged BN running buffers. It was
+independently CPU-verified and privately published at HF
+`d436986137570a9a4259a4b59981d261cffd2f20` (all five objects fully downloaded,
+size- and SHA-verified). Its learned-state inference qualification passed on
+32 original MRI studies on **both T4s**, exact input/model equality and **zero
+prediction difference**. This is serving acceptance, not a competition score.
+[Actual first epoch, continuation and qualification](../initiative/audits/whole94-original-worker-continuation-20261017-v1/README.md).
+
+The first continuation preparation exposed a proof-JSON key-order mismatch.
+Actual CPU941151 proved every metadata value/binding equal and replayed the
+**exact original worker bytes**, without changing numerical code, recipe or
+optimizer/RNG state. The one actual epoch-2 push is139137922v1/source7cbc68dad857.
+No completed GPU run was restarted. Live logs are presently unavailable/blank
+for E2 and uniform16; API RUNNING is not evidence of a new optimizer update.
 
 The parent adaptation trains **all 73,136,096 parameters**, on **3,887 fitting
 studies**, with all **94 original windows**, effective batch 8 and a fixed
@@ -60,8 +78,8 @@ studies**, with all **94 original windows**, effective batch 8 and a fixed
 AdamW weight decay 0.02, 10% warmup, cosine decay to 1%, clipping at 1, FP16/scaler
 with FP32 loss. The objective is 25% source supervision and 75% detached-parent
 anchoring. BN running buffers are frozen; affine parameters learn. Three bounded,
-checkpoint-continuous sessions stop at 486 / 972 / 1,458 updates. No completed
-whole-parent epoch or new score was available at this check.
+checkpoint-continuous sessions stop at 486 / 972 / 1,458 updates. Epoch 1 is complete;
+there is no learned-parent competition score yet.
 [Exact training audit](../initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
 
 Expanded N3 reuses the original recipe and disjoint outer roster, adding 345
@@ -93,10 +111,20 @@ MRI cases, both views, both sampled roles and 180 repeated draws. The frozen
 once; all five Dataset objects were fully downloaded, size- and SHA-verified.
 
 CPU 940785 funded 12 GiB of node-local checkpoints/publication plus 16 MiB of
-controls after prior liabilities. The finite owner waits for actual GPU allowance
-to cover original unfinished sessions, all six new sessions and a reserve. At its
-latest check, 107,092.916 seconds available was below 115,200 required; **no GPU
-was reserved and no production push intent was created**.
+controls after prior liabilities. Once the original main epoch completed, the
+first uniform session passed the fresh all-future GPU funding check and was
+pushed once: **139137040 v1**, source8155b3803c5a. Its source was independently
+reconstructed from persisted inputs byte-for-byte, excluding the main compiler's
+initial proof-order problem. It continues unchanged under the recovered observer.
+
+Kaggle's actual **two batch GPU session** limit is now enforced before auxiliary
+push intents. Main continuation retains one lane; sampling and public inference
+share the other. The already qualified learned epoch-1 public run has next-lane
+priority when funded. Its first attempted public launch was explicitly capacity-
+rejected; the ambiguous old identity is permanently quarantined, never retried
+or submitted. A distinct `-g2` identity will be created once after capacity opens.
+No old three-row CSV, rejected notebook, model weights or Dataset is resubmitted.
+[Capacity admission and exact identities](../initiative/audits/kaggle-two-session-capacity-20261017-v1/README.md).
 [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
 [actual recovery](../initiative/audits/licensed-importance-encoder-20261017-v1/actual-terminal.json),
 [full-comparison admission and failures](../initiative/audits/licensed-importance-full-comparison-20261017-v1/README.md).
@@ -133,9 +161,39 @@ Removing `Selection_Tier` changed zero series selections on all 1,156 outer
 studies; that does not prove complete rendering parity. Context and full-field
 Kaggle scores of 0.948 do not improve the unchanged 0.949 parent. Matched regional
 and global-repeat heads completed ten epochs each; all 20 checkpoints are privately
-verified. Regional was submitted once as **57291182**; its hidden status/score were null at 02:05.
+verified. Regional **57291182** now actually completed at **0.948**, without error; no improvement over 0.949 is established.
 The [research-agent handoff](research-agent-handoff.md) maps other completed and
 historical evidence without treating every proposal as an executed experiment.
+
+## New fitting-only research evidence
+
+CPU941335 screened the original 3,887 paired-view teacher predictions without
+reading source labels, masks, reports, pixels, weights or protected clinical values.
+Mean probability gaps are 0.01287–0.02707; strict-pair ordering disagreement is
+2.75–7.41%, highest for Baker's. At most 4.37% of studies per target had gaps
+above 0.10. The predeclared result is **intermediate**: it does not admit another
+GPU arm or prove a source of disease error. These are teacher ordering pairs,
+not positive-negative AUC errors. Current training and target definitions stay
+unchanged. [Protocol and actual all-target result](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
+
+## Newly supplied research and next parent
+
+The [owner's deadline program and assessment](../initiative/research/owner-deadline-program-20261017-v1/README.md)
+are archived verbatim with provenance. We verified the public S6 notebook
+**138285808 v2**, pinned its source and actually downloaded the two small
+checkpoint/code manifests from the public weight Dataset **12589750 v3**.
+The original **200,185,003-byte S6 checkpoint is now privately acquired once**
+and SHA-bound, with 362 finite tensors and a 12-target header independently
+reconciled. No S6 MRI/GPU execution or competition entry has occurred. Its
+reported **0.950 belongs to its author**, not this project's score table.
+[Actual source-only admission](../initiative/audits/s6-public-source-20261017-v1/README.md).
+[Actual checkpoint admission and preserved checker failure](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md).
+
+Prioritize an unchanged S6 reproduction as a second model lineage, then measure
+complementarity before a matched two-teacher experiment. Preserve healthy current
+fits and the learned-E1 serving priority. A new head's five-fold split cannot
+provide independent OOF for an encoder trained on those same studies. Raw teacher
+agreement is not calibrated correctness; proposed gains and runtimes are untested.
 
 ## Exact provenance and data limits
 
@@ -169,7 +227,7 @@ masks/folds are unchanged.
 
 ## Immediate operations and preservation
 
-The regional comparison was submitted once. The two remaining planned entries
+The regional comparison scored 0.948. The two remaining planned entries
 are whole-parent epoch 1 and fixed-final epoch 3, subject to actual completion,
 precision/public MRI acceptance and fresh allowance. Do not upload public
 three-row CSVs. Read exact live owners before changing this plan or dispatching.
@@ -189,7 +247,7 @@ features, proposal tables or weights. This documentation refresh is later;
 [its audit](../initiative/audits/github-research-handoff-20261017-v1/README.md)
 separates fresh observations and source preparation from prior private mirrors.
 
-### Preservation update — October 17, 02:12 UTC
+### Earlier preservation recovery and verified mirrors
 
 The final check caught expanded preservation watcher 93375 failing on a local
 module import **before any publication intent or RPC**. Training and its snapshot
@@ -197,12 +255,13 @@ were intact. Replacement **95408 / exec49302** fixes only the child import
 environment; original numerical source, publisher and GPU job are unchanged.
 Its first original publication, **CPU941066, completed successfully**: expanded
 epoch 1 is privately preserved at HF `490960b8a7be8114607da040028e1ffe1a19ae54`,
-all **nine objects** fully re-downloaded/size/SHA verified. Do not repeat it.
+all **nine objects** fully re-downloaded/size/SHA verified. Epochs 2, 3 and 4 are
+now also fully verified through the same original watcher; never repeat 1–4.
 The watcher continues on the same original job; this is preservation, not accuracy.
 [Failure and recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md),
 [actual epoch receipt](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/actual-epoch1-private-verified.json).
 
-| Latest distinct private small mirror | Verified scope |
+| Earlier verified private small mirror | Verified scope |
 |---|---|
 | `b34d69e5d815ec2bd8e799d1c52f91a7c9778b7b` | Source `1a2e8204`, 24 objects / 322,098 bytes: research handoff, fresh observations and serving preparation |
 | `b2ecca99b9b8ac2b0ac9e039eff99a922510ae5d` | Source `9008eced`, eight objects / 35,644 bytes: observer recovery and preceding mirror receipt |

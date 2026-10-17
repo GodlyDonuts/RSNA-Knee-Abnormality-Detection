@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation at 02:05 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 03:20 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -16,14 +16,20 @@ proposing new work. [Current state](current-state.md) is the score/job authority
   Neither establishes an improvement over the released 0.949 parent.
 - Full-parent adaptation is running on Kaggle; expanded own-model fitting is
   running on Newton. Neither has a final/new competition score. The matched
-  importance-sampling production comparison is ready but waiting for GPU budget.
+  importance-sampling production comparison has its first uniform GPU session
+  actually running; influence is not yet pushed.
 - Kaggle account allowance was **two slots** at the stated check. Regional
-  submission 57291182 has null hidden status/score; entry owners already cover
+  submission 57291182 actually scored **0.948**; entry owners already cover
   learned-parent epoch 1 and fixed-final epoch 3. Inspect
   those originals before proposing a conflicting submission.
 - The external parent's development used this internal cohort/Gold58. Its
   derivatives have **no independent internal OOF** on that cohort. Our protected
   clinical values remain unused. A weak-label metric is not clinical truth.
+
+The fresh [live leaderboard check](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
+shows first place **0.969** versus our **0.949**. Shared 0.950 solos / 0.956 blends are useful
+reproduction targets, not proof we have reached the frontier. Current leaders'
+methods and private scores remain unknown.
 
 ## Exact recipes and assets
 
@@ -55,7 +61,7 @@ those differences has been isolated as its sole cause.
 | Do physical neighboring slices help N3? | Fixed-final weak macro 0.91519773 versus 0.92092535; delta -0.00572762, conditional 95% [-0.02522802, +0.01337630]. No primary promotion | [Neighbor comparison](../initiative/audits/compact-source-neighbor-fixed-final-20261016-v1/README.md) |
 | Does positive BCE weighting help? | 0.92391334; delta +0.00298799, interval [-0.00999470, +0.01656811]. Not an established primary gain | [Weighting comparison](../initiative/audits/compact-positive-weight-fixed-final-20261016-v1/README.md) |
 | Does late parameter averaging help? | Raw-serving 0.92100408 versus raw E16 0.92068844; delta +0.00031564, interval [-0.00214034, +0.00293081] | [Raw-serving averaging](../initiative/audits/compact-average-raw-outer-comparison-20261016-v1/README.md) |
-| Is spatial pooling already tested? | Matched regional/global-repeat heads completed all ten epochs and all 20 checkpoints are privately verified. Regional entry 57291182 is pending actual hidden outcome | [Spatial deployment](../initiative/audits/regional-context-deployment-20261016-v1/README.md) |
+| Is spatial pooling already tested? | Matched regional/global-repeat heads completed all ten epochs and all 20 checkpoints are privately verified. Regional entry 57291182 actually scored **0.948**, with no established gain | [Spatial deployment](../initiative/audits/regional-context-deployment-20261016-v1/README.md) |
 | Is supervision-confidence weighting already tested? | Both full ten-epoch fits completed; the uniform control reproduces original complete state/predictions. No new scored gain is established | [Confidence contrast](../initiative/audits/source-confidence-context-20261016-v1/README.md) |
 | Is a pair-ranking head already built? | Full 3,887-study / 10-epoch / 2,430-update fitting and private preservation completed, with actual two-T4 qualification. No competition score is claimed | [Ranking contrast](../initiative/audits/source-ranking-context-20261016-v1/README.md) |
 | Is adding context enough? | The head changes inter-study ordering, but actual public score is 0.948 versus 0.949. Architectural mechanism is not a gain | [Context result](../initiative/audits/released-context-deployment-20261016-v1/actual-scored-recovered.json) |
@@ -72,6 +78,23 @@ differences matter; expensive LLM annotation does not make every label ground
 truth. Original reports, accepted reviews/corrections and masks remain preserved;
 new image reviews are advisory until accepted with provenance. Do not silently
 replace training labels or use protected evaluation to choose their semantics.
+
+## October 17 owner research program
+
+Read the [complete new program and assessment](../initiative/research/owner-deadline-program-20261017-v1/README.md).
+The first concrete action was source-only admission of S6 ConvNeXt:
+138285808 v2 and Dataset 12589750 v3 manifests are pinned. Its author's reported
+0.950 is not our reproduction. The original 200,185,003-byte checkpoint is now
+privately downloaded once and SHA/header verified; complete dependencies, offline
+T4 numerical/runtime/output acceptance and an independently identified entry
+remain undone. [Actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md). Current training and submission owners continue unchanged.
+
+The program's recommendation to obtain strict five-fold OOF by fitting heads on
+released encoder features is not valid when those encoders saw the evaluated
+studies. State source exposure explicitly. The assessment also separates genuine
+geometry/protocol mechanisms from completed context/regional controls, and treats
+dual-teacher agreement as a hypothesis rather than truth. Do not promise the
+paper's speculative gains or estimated GPU-hour budgets.
 
 ## Highest-value research questions still open
 
@@ -126,10 +149,13 @@ A bounded useful experiment beats another long list of untested architectures.
 - [Source/report archive and indexes](../initiative/README.md). Historical report
   releases differ from today's fitting cohorts and public-soft supervision.
 
-No new literature search or broad full-suite rerun is claimed for this documentation
-refresh. The new serving preparation has 40 focused synthetic/regression tests,
-Ruff on four files and mypy on two sources; it still lacks actual serving GPU and
-public-MRI acceptance. Tests and state recovery establish operability, not accuracy.
+The new primary public S6 source and live leaderboard were actually checked.
+Broader software QA is recorded in [the current refresh audit](../initiative/audits/github-current-state-refresh-20261017-v2/verification.json);
+do not infer full-suite success before its actual terminal receipt. The sampled serving preparation has synthetic checks only and still lacks
+actual sampled-model GPU/public-MRI acceptance. Separately, learned whole94E1
+actually passed32MRI/twoT4 qualification with zero probability difference; its
+public run waits for the next admitted GPU lane. Current recovery/capacity/screen/
+serving checks total80focused cases, Ruff6/mypy3; no clinical gain is inferred. Tests and state recovery establish operability, not accuracy.
 
 ## Open PRs and collaboration
 
@@ -147,3 +173,19 @@ negative results, and fund actual storage/compute before a new dispatch. Keep
 private pixels, clinical records, individual predictions and restricted-source
 weights out of Git. Publish sanitized aggregate evidence and code; reference the
 existing private artifact proofs when large assets are required.
+
+## New measured opportunity screen
+
+The fitting-only teacher-view screen found mean view gaps1.29–2.71probability
+points and strict-pair ordering disagreement2.75–7.41%. The predeclared triage is
+**intermediate**, not a new training promotion. Clinical labels were not read,
+so those ordering pairs are not positive-negative AUC errors. Current target
+definitions stay unchanged. [All-target result and protocol](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
+
+Whole94 epoch1 is complete and privately verified; epoch2 resumes the exact
+original worker/model/optimizer/RNG after a metadata-order-only compiler repair.
+The first sampled uniform source was separately reproducible byte-for-byte.
+Kaggle's actual two-session cap now has admission/expiring inference priority;
+old capacity-rejected private identity is quarantined, never retried. These are
+execution facts, not accuracy improvements. Read the current execution handoff
+before taking ownership of any live model or planning a conflicting GPU push.

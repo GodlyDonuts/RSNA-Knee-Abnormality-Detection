@@ -63,9 +63,9 @@ def summarize(logits):
                 ],
                 "fraction_gap_over_005": float((gap > 0.05).mean()),
                 "fraction_gap_over_010": float((gap > 0.1).mean()),
-            "fraction_opposite_sides_of_05": float(
-                (((p[:, 0, target] - 0.5) * (p[:, 1, target] - 0.5)) < 0).mean()
-            ),
+                "fraction_opposite_sides_of_05": float(
+                    (((p[:, 0, target] - 0.5) * (p[:, 1, target] - 0.5)) < 0).mean()
+                ),
                 "all_study_pairs": n * (n - 1) // 2,
                 "strict_pairs_in_both_views": strict,
                 "discordant_view_pairs": discordant,

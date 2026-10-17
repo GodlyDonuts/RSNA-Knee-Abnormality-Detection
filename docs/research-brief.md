@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 02:05 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 03:20 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -11,14 +11,22 @@ Our independently MRI-trained N3 CoAtNet scored **0.894**, up from 0.821 / 0.869
 0.890 at epochs 4 / 8 / 12. The licensed author-trained CoAtNet scored **0.949**
 when we reproduced its unchanged inference. We did not reproduce that training
 from scratch. Our sequence-context head and unchanged-weight full-384 field
-both scored **0.948**; neither demonstrates an improvement over 0.949.
+both scored **0.948**; the regional spatial head also scored **0.948**.
+None demonstrates an improvement over 0.949.
 
 The active questions are whether full-encoder adaptation improves a strong
 MRI-trained initialization, and whether better observations per update improve
-learning under a fixed compute budget. Whole-94 adaptation is actually training
-on both T4s. Expanded own-model fitting is actually training on an H100. Matched
-uniform-16 / influence-16 production is admitted but waiting for GPU budget;
-it has not been pushed. None has a final new competition result yet.
+learning under a fixed compute budget. Whole-94 adaptation completed its first epoch
+on both T4s and the exact continuation is API RUNNING. Expanded own-model fitting is actually training on an H100. Matched
+uniform-16 production139137040v1 is actually API RUNNING; influence remains
+unpushed. Whole-parent epoch1 completed486updates, is privately verified and
+passed both-T4 learned-model inference qualification. Epoch2 resumed the exact
+original worker/checkpoint as139137922v1. Newly resumed/sampled optimizer logs
+are not yet available; API RUNNING is not a new-update proof. None has a final new competition result yet.
+
+The fresh [official Public leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
+shows first place **0.969** versus our **0.949**. A publicly shared 0.956 blend is not the
+leaderboard ceiling; no leading method/private result is inferred.
 
 ## What the strong reference actually does
 
@@ -44,6 +52,7 @@ from these confounded comparisons. More parameters alone are not a hypothesis.
 | Positive BCE weights | Delta +0.00298799; interval crosses zero | No primary promotion |
 | Late parameter averaging | Raw-serving delta +0.00031564; interval crosses zero | Keep unchanged own epoch 16 |
 | Sequence-context head | Actual Kaggle 0.948 versus parent 0.949 | No demonstrated public gain |
+| Regional spatial head | Actual Kaggle 0.948 versus parent 0.949 | No demonstrated public gain |
 | Full 384 field at inference | Actual Kaggle 0.948 versus original 320 field 0.949 | More pixels alone did not help this test |
 | Removing Selection_Tier | Zero selection changes on all 1,156 outer studies | Does not explain the gap; rendering parity remains separate |
 | Earlier DINO stratified sampling | +0.0009107 with interval crossing zero | No established gain; distinct from current influence mechanism |
@@ -95,9 +104,10 @@ influence can become stale and teacher errors can be amplified. A 94/16 sampling
 ratio is not measured throughput or disease improvement.
 
 Actual both-role MRI GPU recovery, original-input CPU comparison, proposal
-Dataset and checkpoint storage acceptance are complete. Production is not yet
-GPU-dispatched because its finite owner preserves funding for all unfinished
-original sessions. The new serving compiler has synthetic checks only and still
+Dataset and checkpoint storage acceptance are complete. The original uniform
+production job is now running after its funding check. A capacity-aware observer
+protects the original main continuation and shares the other actual Kaggle GPU
+lane with qualified-model inference; no running scientific recipe was changed. The new serving compiler has synthetic checks only and still
 requires an actual completed/preserved sampled epoch plus both-T4 and public-MRI
 acceptance. [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),
 [recovery](../initiative/audits/licensed-importance-encoder-20261017-v1/README.md),
@@ -113,9 +123,33 @@ changes study ordering; and a faithful comparison of source-data/initialization.
 Each proposal should identify what measured failure it addresses, a falsifiable
 mechanism, the closest already-run control and the smallest informative experiment.
 
-Collect the pending regional external result and actual trained-parent checkpoints
-before calling another head successful. Preserve negative results. Match inputs,
+The regional result is now0.948; it is not an improvement. Collect the actual
+trained-parent and matched-sampler competition outcomes before promoting them. Preserve negative results. Match inputs,
 initialization and compute for causal claims. Teacher fidelity, software recovery,
 three public MRI cases and Stanford source-task scores do not establish a new
 RSNA competition result. Public leaderboard selection itself can overfit; a win
 or private-score improvement is not promised.
+
+## View-consistency screen: intermediate, no promotion
+
+A new label-free screen tested whether separate-view teacher targets disagree
+substantially with the probability consensus used at inference. Across all3,887
+fitting cases, mean gaps were1.29–2.71percentage points and strict-pair ordering
+reversals2.75–7.41%. The largest fraction with >10-point probability gap was4.37%.
+Neither predeclared weak nor strong triage criterion applied: **intermediate**.
+These are teacher pairs without clinical labels, not AUC errors. Current training
+is unchanged and another GPU arm is not funded by this screen.
+[Actual evidence and limits](../initiative/audits/teacher-view-consistency-screen-20261017-v1/README.md).
+
+## New deadline-program assessment
+
+The [owner's new analysis](../initiative/research/owner-deadline-program-20261017-v1/README.md)
+points to a distinct strong public parent and structured observation, rather
+than another generic backbone search. We actually pinned S6 notebook138285808v2
+and its small checkpoint/code manifests, then acquired the original checkpoint
+privately once with exact SHA and safe tensor-header verification. Its reported
+0.950 remains external; no project MRI/GPU inference occurred. Prioritize unchanged reproduction and source-exposure
+accounting before teacher combination. Head-only folds on an already exposed
+encoder are not independent OOF; probability agreement is not clinical truth.
+The assessment retains source-DICOM physical crops and geometry/query mechanisms
+as separate, falsifiable proposals, without changing current full fits.

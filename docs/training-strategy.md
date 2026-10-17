@@ -1,3 +1,9 @@
+> **Historical contract or plan.** This document preserves its original dated
+> release or experiment. For current scores, fitting populations and active work,
+> read [current state](current-state.md), [research brief](research-brief.md) and
+> [research-agent handoff](research-agent-handoff.md). Old “next” instructions
+> below are not live job or submission authority.
+
 # Competitive training strategy
 
 Prepared September 22, 2026 against the accepted `report-supervision-v1` data.
