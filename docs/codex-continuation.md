@@ -1,15 +1,15 @@
 # Execution handoff
 
-**Actual October17,16:39UTC.** Target0.97; best measured0.950. Read
+**Actual October17,16:54UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Latest execution, October 17, 16:39 UTC
+## Latest execution, October 17, 16:54 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,315/1,458 finite updates** in its final epoch, on both
+comparison has reached **1,421/1,458 finite updates** in its final epoch, on both
 T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
 E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
 CPU948213/all five objects. Never repeat either push or publication. Original
@@ -27,8 +27,10 @@ Source645a4790 and its distinct new results are privately fully verified at
 Do not repeat this milestone. No new GPU or competition entry was made by it.
 [Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
 
-A separate **two-readout scoring owner is prepared, not yet staged or armed**.
-It preserves the existing full-CNN scorer's priority, then validates original94
+A separate **two-readout scoring owner10613 is now armed and confirmed live**.
+Actual CPU948717 staged its exact published a10f1331 controls; an authenticated
+cluster check correctly waited before any GPU intent. It preserves the existing
+full-CNN scorer's priority, then validates original94
 and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
 for actual previous hidden outcomes and fresh allowance. It reuses Dataset
 12661001v1 and the existing32MiB serving cap; no new training or weight copies.

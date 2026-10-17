@@ -47,11 +47,16 @@ allowance and no unresolved entry are required at each actual call. This can use
 the two slots after the original three comparisons without concurrent hidden
 experiments. It cannot guarantee scores or that quota will be available.
 
-The20hour finite owner has not yet been staged or armed. Code compilation and
+The20hour finite owner **10613** was staged by actual CPU948717 and armed once.
+Its original handle and waiting progress were confirmed live. An authenticated
+cluster phase verified the original sources/private Dataset/storage and correctly
+returned a wait before any GPU intent, since the original uniform public run is
+not yet accepted. Sourcea10f1331 and all original phase intents remain immutable.
+Do not start another owner. Code compilation and
 11 focused control tests pass, covering full remaining caps, reserved quota,
 source/request separation, actual prior acceptance, fixed-final/exposure/FP32/
 both-T4 evidence, zero failures and rejection of diagnostic/partial models.
 Current numerical serving/training modules are byte unchanged from the actual
 4622passed/8skipped/2warning full regression. No new Dataset/GPU/entry is created
-by preparing these controls. Stage/ready admission and a published exact source
-are required before the owner can be armed. Never duplicate an existing intent.
+by preparing these controls. The actual staged source and ready-wait admission are recorded here. Never
+duplicate an existing intent or treat this live wait as a GPU validation result.

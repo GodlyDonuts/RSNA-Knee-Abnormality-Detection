@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 16:39 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 16:54 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -15,10 +15,10 @@ project public AUC remains **0.950**. The target has not been reached.
 Public AUC is not private-final performance or clinical accuracy.
 [Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
 
-## Latest execution, October 17, 16:39 UTC
+## Latest execution, October 17, 16:54 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,315/1,458 finite updates** in its final epoch, on both
+comparison has reached **1,421/1,458 finite updates** in its final epoch, on both
 T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
 E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
 CPU948213/all five objects. Never repeat either push or publication. Original
@@ -36,8 +36,10 @@ Source645a4790 and its distinct new results are privately fully verified at
 Do not repeat this milestone. No new GPU or competition entry was made by it.
 [Serving preparation](../initiative/audits/cached-MIL-serving-preparation-20261017-v1/README.md).
 
-A separate **two-readout scoring owner is prepared, not yet staged or armed**.
-It preserves the existing full-CNN scorer's priority, then validates original94
+A separate **two-readout scoring owner10613 is now armed and confirmed live**.
+Actual CPU948717 staged its exact published a10f1331 controls; an authenticated
+cluster check correctly waited before any GPU intent. It preserves the existing
+full-CNN scorer's priority, then validates original94
 and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
 for actual previous hidden outcomes and fresh allowance. It reuses Dataset
 12661001v1 and the existing32MiB serving cap; no new training or weight copies.
