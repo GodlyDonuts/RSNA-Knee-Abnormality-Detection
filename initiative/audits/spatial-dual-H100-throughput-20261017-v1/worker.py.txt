@@ -1,0 +1,118 @@
+"""Bounded frozen-provider throughput, NOT fitting or accuracy evaluation."""
+import concurrent.futures
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import shutil
+import sys
+import time
+
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+B = R / 'dual-H100-throughput-v1'
+CODE = R / 'reader-engine-recovery-v2/code'
+PARENT = '5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5'
+INDEX = 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def cap():
+    paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+    assert paid < 3 * 2**30 and shutil.disk_usage('/tmp').free > 603433009211 + max(0, 3 * 2**30 - paid)
+    assert sum(p.stat().st_size for p in B.rglob('*') if p.is_file()) < 16 * 2**20
+    assert sum(p.stat().st_size for p in (R / 'reader-engine-recovery-v3').rglob('*') if p.is_file()) < 104 * 2**20
+
+
+def fingerprint(model):
+    h = hashlib.sha256()
+    for name, t in model.state_dict().items():
+        a = t.detach().cpu().contiguous().numpy()
+        h.update(name.encode());h.update(str(a.dtype).encode());h.update(json.dumps(list(a.shape)).encode());h.update(a.tobytes())
+    return h.hexdigest()
+
+
+def main():
+    assert os.uname().nodename == 'evc33' and os.environ.get('SLURM_JOB_GPUS') and not (B / 'result.json').exists()
+    admission = json.loads((B / 'admitted.json').read_text())
+    assert sha(__file__) == admission['worker_sha256'] and sha(R / 'pilot-recovery-v2-accepted.json') == INDEX
+    with (B/'run-started.json').open('x') as f:
+        json.dump({'GPU_job':os.environ['SLURM_JOB_ID'],'worker_sha256':admission['worker_sha256'],'no_automatic_restart':True},f)
+    for name, h in admission['source_files_sha256'].items():
+        assert sha(CODE / name) == h
+    cap()
+    sys.path[:0] = [str(CODE), '/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+    import numpy as np
+    import pandas as pd
+    import torch
+    from rsna.competitive.compact_infer import load_model
+    from rsna.competitive.data import CompetitiveStudyDataset
+    from rsna.competitive.spatial_data import CachedSpatialData, OnlineSpatialData
+    assert torch.cuda.is_available() and torch.cuda.device_count() == 2
+    assert all('H100' in torch.cuda.get_device_name(i) for i in range(2))
+    for i in range(2):
+        torch.ones(1, device='cuda:' + str(i));torch.cuda.synchronize(i)
+    torch.set_num_threads(2);torch.use_deterministic_algorithms(True)
+    torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=True;torch.backends.cudnn.benchmark=False;torch.backends.cudnn.deterministic=True
+    assert os.environ['CUBLAS_WORKSPACE_CONFIG'] == ':4096:8'
+    original = json.loads((R / 'admitted.json').read_text())
+    rows = json.loads((R / 'pilot-recovery-v2-accepted.json').read_text())['private_records']
+    assert len(rows) == 32 and {x['role'] for x in rows} == {'fitting', 'outer'} and len({x['study_uid'] for x in rows}) == 32
+    membership=json.loads((R/'membership.private.json').read_text())
+    assert all([x['study_uid'] for x in rows if x['role']==role] == membership[role][:16] for role in ('fitting','outer'))
+    # Mask ALL targets, including fitting cases. No report, disease target,
+    # protected clinical value, optimizer or loss is loaded by this benchmark.
+    labels = np.zeros((32, 12), np.float32)
+    cached = CachedSpatialData(R/'features', rows, labels, labels, {'diagnostic_only':True,'original_index_sha256':INDEX}, seed=20261017)
+    expected = [cached[i] for i in range(32)]
+    assert all(x['maps'].dtype == torch.float32 and not x['label_mask'].any() for x in expected)
+    parent, policy = load_model(Path(original['checkpoint']), PARENT, precision='float32', device=torch.device('cuda:0'))
+    assert policy['epoch'] == 16 and policy['optimizer_steps'] == 4496
+    parents = [parent, copy.deepcopy(parent).to(torch.device('cuda:1')).eval().requires_grad_(False)]
+    before = [fingerprint(p) for p in parents]
+    assert before == ['8ba6c84e2c7715799dc78c64e4bfdde198cd8d1ef1db307119d70e1b55773c1e'] * 2
+    series = pd.read_csv(original['series_path'])
+    frame = pd.DataFrame({'study_uid':[x['study_uid'] for x in rows]})
+    providers = [OnlineSpatialData(CompetitiveStudyDataset(frame, series, Path(original['native_cache']), side=384, slices=16, max_series=6, augment=False, soft_targets=False), p, cached.binding, seed=20261017, chunk_size=12) for p in parents]
+    def one(device, i):
+        with torch.cuda.device(device):
+            value, reference = providers[device][i], expected[i]
+            assert value['study_uid'] == reference['study_uid']
+            for name in ('maps','base_logits','labels','label_mask'):
+                assert value[name].dtype == reference[name].dtype and torch.equal(value[name].cpu(),reference[name]), 'Original tensor differs in dual-provider test: ' + name
+            a,b=value['plan'],reference['plan']
+            assert a.metadata_sha256==b.metadata_sha256 and len(a.groups)==len(b.groups)
+            for x,y in zip(a.groups,b.groups,strict=True):
+                assert x.kind==y.kind and np.array_equal(x.first,y.first) and np.array_equal(x.second,y.second) and torch.equal(x.aligned,y.aligned) and torch.equal(x.control,y.control)
+            torch.cuda.synchronize(device)
+            return i
+    # Warm last cases only; cache size8 cannot keep these until the first full
+    # pass reaches them. Timed order balances sequential/dual filesystem effects.
+    for device, indices in ((0,(14,15,30,31)),(1,(30,31))):
+        for i in indices:one(device,i)
+    timings=[]
+    for mode in ('single','dual','dual','single'):
+        started=time.perf_counter()
+        if mode=='single':
+            completed=[one(0,i) for i in range(32)]
+        else:
+            def half(device,indices):return [one(device,i) for i in indices]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                first=executor.submit(half,0,range(16));second=executor.submit(half,1,range(16,32));completed=first.result()+second.result()
+        seconds=time.perf_counter()-started
+        assert completed==list(range(32))
+        timings.append({'mode':mode,'studies':32,'seconds':seconds,'seconds_per_study':seconds/32,'all_original_maps_logits_masks_and_geometry_bit_equal':True})
+        cap();(B/'progress.json').write_text(json.dumps({'GPU_job':os.environ['SLURM_JOB_ID'],'completed_timed_passes':len(timings),'timings':timings})+'\n')
+    assert [fingerprint(p) for p in parents]==before and all(not p.training and not any(x.requires_grad for x in p.parameters()) for p in parents)
+    single=[x['seconds'] for x in timings if x['mode']=='single'];dual=[x['seconds'] for x in timings if x['mode']=='dual']
+    out={'status':'actual_two_H100_frozen_online_provider_exact_and_paired_throughput_measured','GPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'worker_sha256':sha(__file__),'source_manifest_sha256':admission['source_manifest_sha256'],'original_parent_sha256':PARENT,'original32_index_sha256':INDEX,'original32_maps_logits_all_masked_targets_and_geometry_exact':True,'timed_pass_order':['single','dual','dual','single'],'timed_passes':timings,'single_mean_seconds':sum(single)/2,'dual_mean_seconds':sum(dual)/2,'observed_mean_wall_speed_ratio':sum(single)/sum(dual),'peak_allocated_bytes_by_GPU':[torch.cuda.max_memory_allocated(i) for i in range(2)],'maximum_process_resident_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,'both_complete_parent_states_unchanged':True,'full_parent_fingerprint':before[0],'allocated_GPUs':2,'allocated_CPUs':4,'torch_CPU_threads':2,'torch_version':str(torch.__version__),'no_optimizer_loss_label_reports_or_new_checkpoints':True,'real_training_recovery_or_accuracy_accepted':False,'comparison_scope':'One warm32-study engineering fixture, shared4-CPU allocation, sequential versus two parallel provider workers and balanced pass order. Not2247-study throughput, pure isolated GPU scaling, trainer recovery or accuracy.','larger_MRI_coverage_or_live_training_changes_admitted':False,'private_arrays_written_to_new_files':False}
+    text=json.dumps(out,indent=2,allow_nan=False)+'\n';assert len(text.encode())<2**20
+    with (B/'result.json').open('x') as f:f.write(text);f.flush();os.fsync(f.fileno())
+    cap();print(json.dumps(out),flush=True)
+
+
+if __name__=='__main__':main()
