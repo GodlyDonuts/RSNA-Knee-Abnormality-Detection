@@ -51,7 +51,7 @@ historical release/plan documents now link back to the current guides.
   fixed ordinal-transport matched comparison. Its explicit data overlay now
   passes17synthetic CPU/real-engine recovery checks, not full MRI/GPU fitting.
 - Original influenceE2 completed972/all5private objects verified. UniformE3
-  139192503v1 is QUEUED; recovered CPU observer34538 treats missing API status
+  139192503v1 is RUNNING; recovered CPU observer34538 treats missing API status
   as unknown. Never restart the original GPU. Current guide has exact receipts.
 - Fixed equal-rank deployment has sole owner27596; CPU943330 staged it once.
   The S6 scoring gate now passes; fresh GPU funding/capacity and daily allowance remain.
@@ -72,6 +72,22 @@ historical release/plan documents now link back to the current guides.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.
+
+## New source/CPU finding, October17 10:15UTC
+
+Read `initiative/audits/s6-training-release-20261017-v1/README.md`: exact newly
+released S6v5training recipe and targets differ from our current source. All3887
+fit-only labels compared; Fracture rankcorrelation0.51446, no protected numeric
+values used. Distinct private label-only overlay945389 preserves exact existing
+UIDs/masks/teacher; original live data/recipes unchanged. It is preparation,
+not a new fit or score. The author's86missing studies were local disk deletions,
+not host removal. No OAI in S6; separate CoAtNet provenance differs.
+
+CPU-only32study Kaggle139205901v2 is actuallyRUNNING; finite owner40709 in
+`artifacts/s6-fitting32-cpu-scout-20261017-v2`. No new push/GPU/entry authority
+in that observer. Inspect original intent/result before collection. Existing
+T4scout34237 remains waiting/unpushed, unchanged. Read CPUaudit for strict
+four-call device-only AST patch/parity and funding. Current0.950best unchanged.
 
 ## Execution, assets and resources
 

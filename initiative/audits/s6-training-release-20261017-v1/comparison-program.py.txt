@@ -1,0 +1,43 @@
+
+import csv,hashlib,json,os,shutil
+from pathlib import Path
+import numpy as np
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+D=Path('/tmp/rsna-S6-training-release-20261017-v1');assert not (D/'fitting-label-comparison.json').exists() and sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+65536<16*2**20
+p=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert p.stat().st_size==483656 and hashlib.sha256(p.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(p,allow_pickle=False) as z:
+ assert set(z.files)=={'uids','labels','masks','parent_logits'};uids=z['uids'].tolist();old=z['labels'].astype(np.float64);masks=z['masks'];teacher=z['parent_logits'].astype(np.float64)
+assert len(uids)==3887 and uids==sorted(set(uids)) and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42' and old.shape==masks.shape==(3887,12) and teacher.shape==(3887,2,12)
+labels=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'];membership=set(uids);target_path=D/'originals/training_code/s6/data/targets_s6f0.csv';assert hashlib.sha256(target_path.read_bytes()).hexdigest()=='8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6';selected={};skipped=0;gold_blank=0;total=0
+with target_path.open() as f:
+ reader=csv.DictReader(f);assert all(x+'|prior' in reader.fieldnames and x+'|strict' in reader.fieldnames for x in labels)
+ for row in reader:
+  total+=1;uid=row['StudyInstanceUID']
+  if uid not in membership:
+   skipped+=1
+   if row['is_gold']=='1':
+    assert all(row[x+'|prior']==row[x+'|strict']=='' for x in labels);gold_blank+=1
+   continue
+  assert uid not in selected and row['is_gold']=='0' and all(row[x+'|strict']=='' for x in labels)
+  values=np.array([float(row[x+'|prior']) for x in labels],dtype=np.float64);assert np.isfinite(values).all() and ((values>=0)&(values<=1)).all();selected[uid]=values
+assert set(selected)==membership;new=np.stack([selected[u] for u in uids]);assert masks.dtype==np.bool_ and np.isfinite(old).all() and np.isfinite(teacher).all()
+prior=json.loads((D/'originals/training_code/s6/data/pool_ok.json').read_text());assert len(prior)==4321 and len(set(prior))==4321;pool=set(prior)
+with np.errstate(over='ignore'):parent=(1/(1+np.exp(-teacher))).mean(axis=1)
+def corr(x,y):
+ if np.std(x)==0 or np.std(y)==0:return None
+ return float(np.corrcoef(x,y)[0,1])
+def rank(a):
+ order=np.argsort(a,kind='stable');out=np.empty(len(a),dtype=np.float64);start=0
+ while start<len(a):
+  end=start+1
+  while end<len(a) and a[order[end]]==a[order[start]]:end+=1
+  out[order[start:end]]=(start+end-1)/2;start=end
+ return out
+rows=[]
+for c,label in enumerate(labels):
+ m=masks[:,c];d=np.abs(new[m,c]-old[m,c]);anchor=.25*old[:,c]+.75*parent[:,c]
+ rows.append({'target':label,'current_known_cells':int(m.sum()),'released_S6_known_cells':len(uids),'equal_known_cells_at_1e_6':int((d<=1e-6).sum()),'mean_absolute_difference_known':float(d.mean()) if len(d) else None,'max_absolute_difference_known':float(d.max()) if len(d) else None,'released_mean_on_fitting_only':float(new[:,c].mean()),'current_mean_on_known_only':float(old[m,c].mean()) if m.any() else None,'current_vs_released_rank_correlation_known':corr(rank(old[m,c]),rank(new[m,c])) if m.any() else None,'parent_vs_released_rank_correlation_fitting':corr(rank(parent[:,c]),rank(new[:,c])),'source_vs_current_75percent_anchor_optimum_rank_correlation':corr(rank(new[:,c]),rank(anchor)) if m.all() else None,'parent_probability_vs_released_MAE':float(np.abs(parent[:,c]-new[:,c]).mean())})
+out={'status':'actual_released_S6_targets_compared_only_on_existing3887_fitting_roster','CPU_job':os.environ['SLURM_JOB_ID'],'released_dataset_version':5,'released_trainer_sha256':'ae18d2e11de9a16202934787a9428ecdcefc0543d7944a75182926fb53965967','released_targets_sha256':'8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6','existing_targets_sha256':'48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285','population_sha256':'0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42','fitting_studies':len(uids),'released_target_rows':total,'nonfitting_rows_skipped_before_numeric_label_conversion':skipped,'public_gold_rows_structurally_blank_no_numeric_values_read':gold_blank,'fitting_rows_in_authors_local_pool':sum(u in pool for u in uids),'fitting_rows_absent_authors_local_pool':sum(u not in pool for u in uids),'current_known_cells':int(masks.sum()),'released_known_cells_on_same_fitting':int(new.size),'all_existing_masks_dense':bool(masks.all()),'all_existing_known_targets_equal_released_at_1e_6':bool(np.all(np.abs(new[masks]-old[masks])<=1e-6)),'per_target':rows,'interpretation':'Label equality/diversity on admitted fitting source targets only; no clinical truth, independent OOF, source causal attribution or score improvement','accepted_labels_masks_folds_or_healthy_training_changed':False,'new_GPU_fitting_entry_or_pixel_model_transfers':0,'protected_numeric_label_values_read':False}
+p=D/'fitting-label-comparison.json';b=(json.dumps(out,indent=2)+'\n').encode();assert len(b)<65536
+with p.open('xb') as f:os.fchmod(f.fileno(),0o600);f.write(b)
+print(json.dumps(out),flush=True)

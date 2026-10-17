@@ -1,9 +1,38 @@
 # Execution handoff
 
-**Observed October 17, 2026, 09:32 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 10:15 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
+
+## New source/CPU work, actual10:15UTC
+
+- CPU945294 acquired new S6v5 small training source/targets only, no model copy.
+  Private root `/tmp/rsna-S6-training-release-20261017-v1`, original16MiB cap.
+  CPU945356 comparison and CPU945389 distinct fitting overlay are complete.
+  Overlay613297bytes/SHA5e34bbf4 privately at`matched-fitting-overlay-v1/targets.private.npz`.
+  Original48b4485targets unchanged. New label-only arm requires explicit new
+  numerical data/recovery/VM/checkpoint acceptance; do not alter live science.
+- New CPU-only Kaggle**139205901v2**, source64c7290e, RUNNING. Finite local
+  owner**40709**, `artifacts/s6-fitting32-cpu-scout-20261017-v2/finish_once.py`.
+  It can collect one original terminal/private small result and one independent
+  CPU analysis, zero push/GPU/entry methods. Inspect its intent/result first.
+  Original34237T4scout and34308analysis remain unchanged/unpushed.
+- CPU32 v1 stage945219 stopped before anyremote/canonicalintent on S6v3→v5.
+  CPU945294 proved absence plus unchanged inference manifest/config/DONE;
+  coordinator945334 pushed139205901v1/source66047373 once. It actuallyERRORed
+  before classification. Python3.13 defaultASTserialization differs from the
+  reference3.12; exact-function checks on3.11/3.13 proved stable field equality.
+  Distinct corrected CPU945481 pushedversion2/source64c7290e once; owner40709
+  is live, version2 actuallyRUNNING. Original39668 is terminal failure, neverrestart.
+  New2MiB comes from11MiBfuture controls,9remain; analysis1MiB then8remain.
+- Fresh CPU94537110:04UTC: whole94E3 and uniform16E3 RUNNING.5used/0slots.
+  Exact0.958source-onlyv1 still unrun, capacityfalse;98525VMseconds<107400all
+  obligations. Earlier945359 stopped before admission on a liveclaim, nowgone.
+  Never manufacture a new GPU lane or discard a future obligation implicitly.
+- Read [new released recipe and all12label differences](../initiative/audits/s6-training-release-20261017-v1/README.md)
+  and [actual CPU32dispatch/protocol](../initiative/audits/s6-fitting32-cpu-scout-20261017-v2/README.md).
+  Zero protected numeric values read; zero accepted label/mask/fold changes.
 
 ## Access and actual owners
 
@@ -18,7 +47,7 @@ original jobs, phase intents/results and private paths before a mutation.
 | Final Whole94 E3 T4/public inference | **17301 / 38939** | `licensed-parent-epoch-serving-20261016-v1/final-epoch3-serving-v1.*` |
 | Whole94 epoch1 entry | **TERMINAL97560 / 90352** | Same directory, `entry-capacity-finish.result.json`: COMPLETE/0.949 |
 | Whole94 epoch3 entry | **17317 / 36485** | Same directory, `final-epoch3-entry-v1-finish.*` |
-| Matched IID16 full fit | **34538 / recovered CPU observer** | `licensed-importance-full-comparison-20261017-v1/session-status-finish.*`; original97530 terminal, U3 queued |
+| Matched IID16 full fit | **34538 / recovered CPU observer** | `licensed-importance-full-comparison-20261017-v1/session-status-finish.*`; original97530 terminal, U3 RUNNING |
 | Expanded original epoch watcher | **TERMINAL95408 / 49302; all16verified** | `compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher*` |
 | Source-bound S6 offline run | **TERMINAL_SUCCESS20978 / 44859** | `s6-source-tree-admission-20261017-v1/source-bound-s6-finish.*` |
 | S6 exact entry/hidden observer | **TERMINAL_SUCCESS20994; scored0.950** | `s6-original-entry-20261017-v1/source-bound-finish.*` |
@@ -340,7 +369,7 @@ CPU942086, canonical lock and every re-download/size/SHA accepted. Never repeat.
 [Actual receipt](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
 Main's722cursor is historical: E2 now completed972, original E3 is RUNNING.
 
-UniformE1 and influenceE1 are both terminal/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is queued.
+UniformE1 and influenceE1 are both terminal/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is RUNNING.
 Original owners and exact proofs above override those earlier progress snapshots.
 
 ## Existing series-boundary readout screen is completed, not a new training arm

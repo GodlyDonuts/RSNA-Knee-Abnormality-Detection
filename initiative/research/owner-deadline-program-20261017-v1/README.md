@@ -5,9 +5,11 @@ Received October 17, 2026. [Original](original.md) is preserved verbatim with
 are not repository evidence links. Proposed gains and wall times are planning
 assumptions; they are not measured results or a promise of first place.
 
-**Latest actual execution07:41UTC:** original S6 offline139181157v1 passed, code
-entry57300990 is accepted once/hidden score pending; uniformE2 completed972
-and expanded N3E15 is privately verified. The separate
+**Latest actual execution10:15UTC:** original S6 entry57300990 scored0.950.
+New S6v5training code and all3887fit-only source targets were compared;
+Fracture ordering differs markedly. CPU-only32study139205901v2 is RUNNING,
+source/data accepted preparation is not an accuracy gain. Expanded N3 is
+complete/all16privately verified; whole94E3/uniformE3 bothRUNNING. The separate
 [exact public0.956 R7 reference](../../audits/r7-public-reference-admission-20261017-v1/README.md)
 now has original sources, all8 private byte-verified weight/sidecars and a
 canonical prepared Notebook, no GPU/entry. The dated decision/triage below is
@@ -125,3 +127,15 @@ parent-only target control, transfers fixed equal-rank consensus onto the parent
 scale and reuses the existing source/teacher loss. Complete full3887 S6 targets,
 new data binding/recovery and funding are still required. These are falsifiable
 next experiments, not proof that0.97 or first place is attainable.
+
+
+## October17 actual release changes the next experiment
+
+[New original S6training release and complete fitting-only label comparison](../../audits/s6-training-release-20261017-v1/README.md)
+now supplies the actual trainer, recipe, reconstruction and target bytes.
+Current Stevenv6 and S6 JEV-blend labels differ in all46,644fitting cells;
+Fracture rankcorrelation0.51446. Label-only matched contrast is privately bound;
+no healthy fit changed and no protected numeric labels were read. This supersedes
+any assumption that our dense public targets already reproduce S6 supervision.
+[CPU-only32study scout](../../audits/s6-fitting32-cpu-scout-20261017-v2/README.md)
+actually runs while both GPU lanes are occupied. Best0.950, target0.97unmet.

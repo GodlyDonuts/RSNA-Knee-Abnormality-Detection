@@ -1,0 +1,51 @@
+{
+  "status": "distinct_CPU32_v2_integrity_serialization_repair_after_verified_terminal_v1",
+  "original_kernel_id": 139205901,
+  "failed_original_version": 1,
+  "new_expected_version": 2,
+  "original_source_sha256": "66047373f22721d5e4edc28e5ef8e103250bd83ea72afde32d36035b95349750",
+  "corrected_source_sha256": "64c7290e3e964184c8e54a646d9803966708da03916af524b400c18fbd156ba1",
+  "stable_CPU_main_AST_sha256": "7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116",
+  "complete_original_source_SHA_and_four_device_patch_preserved": true,
+  "cross_runtime_original_proof": {
+    "status": "exact_original_main_four_device_changes_cross_Python_AST_serialization_verified",
+    "runtime_checks": [
+      {
+        "python": "3.11.0",
+        "original_source_sha256": "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946",
+        "runtime_default_original_AST_sha256": "8b8144125d99c567a7264fed1c82ef95af09a787ddf3a188d392ef8f9d511bc2",
+        "runtime_default_CPU_AST_sha256": "cceb67c838444716af68b9e297e5132a8c05eb65a05645452a7723d7b923ca8a",
+        "stable_original_AST_sha256": "bc15b7ebf254793cb71978736cfc33fa7e9fdabe692923251be70e5466d9f272",
+        "stable_CPU_AST_sha256": "7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116",
+        "four_changes": {
+          "torch.device(cuda)": 1,
+          "torch.cuda.get_device_capability": 1,
+          "torch.cuda.get_device_name": 2
+        },
+        "semantic_mutation_checks": 8
+      },
+      {
+        "python": "3.13.1",
+        "original_source_sha256": "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946",
+        "runtime_default_original_AST_sha256": "dbcd5bd096f78041cf7be506a86076c3846d91a881fe0cc85b7f4086f734e19b",
+        "runtime_default_CPU_AST_sha256": "6685c65340f912555544f834ece5f7ff2725cedd41cdeb9c8cea1b0d9d4622a6",
+        "stable_original_AST_sha256": "bc15b7ebf254793cb71978736cfc33fa7e9fdabe692923251be70e5466d9f272",
+        "stable_CPU_AST_sha256": "7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116",
+        "four_changes": {
+          "torch.device(cuda)": 1,
+          "torch.cuda.get_device_capability": 1,
+          "torch.cuda.get_device_name": 2
+        },
+        "semantic_mutation_checks": 8
+      }
+    ],
+    "interpretation": "Python3.13 default ast.dump omits optional empty fields; runtime-specific hash is not cross-version source integrity",
+    "authoritative_docs": "https://docs.python.org/3.13/library/ast.html#ast.dump",
+    "source_or_model_math_changes": false,
+    "empty_type_params_only_removed_from_cross_runtime_serialization": true,
+    "all_other_AST_fields_including_None_and_empty_lists_preserved": true,
+    "new_CNN_or_GPU_execution": 0
+  },
+  "new_CPU_control_allocation_2MiB_from_existing11MiB_future_leaving9MiB": true,
+  "new_GPU_Datasets_or_entries": 0
+}

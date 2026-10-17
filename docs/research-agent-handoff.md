@@ -1,9 +1,28 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 09:32 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 10:15 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
+
+## New actual supervision finding
+
+[CPU945356's complete fitting-only comparison](../initiative/audits/s6-training-release-20261017-v1/README.md)
+shows our current Stevenv6 targets are not S6's released JEV-blend targets:
+zero of46,644cells equal within1e-6; Fracture rank correlation0.51446.
+CPU945389 privately materialized a label-only3887overlay without changing
+accepted masks, UID order, parent logits or healthy training. A fixed label-only
+arm is now defined; it has no GPU/recovery/funding/score admission yet.
+S6 source explicitly corrects86local disk deletions, not host removals, and
+specifies4263fit/16epochs/64windows/denseBCE/noEMA/SWA/fixed-final E16.
+No OAI was used in S6; the separate CoAtNet provenance differs.
+
+[CPU-only32-study scout139205901v2](../initiative/audits/s6-fitting32-cpu-scout-20261017-v2/README.md)
+is actually RUNNING under finite owner40709, without a GPU or competition slot.
+It must pass original8input/FP32parity and measured throughput before any full
+teacher claim. Both original Kaggle GPU trainings remainRUNNING; fresh10:04UTC
+allowance is5used/0available, and the exact0.958draft remains unrun. Best0.950;
+0.97unachieved. Current state contains full pins and funding.
 
 ## The facts a new proposal must account for
 
@@ -19,7 +38,7 @@ proposing new work. [Current state](current-state.md) is the score/job authority
   completed0:0/all5184updates, with fixed-final weak macro0.91743158 versus
   original0.92092535 and no established gain; it has no new competition score. The matched
   importance-sampling production comparison has completed/private-verified uniformE1;
-  influenceE1 139154664v1 is also complete/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is queued.
+  influenceE1 139154664v1 is also complete/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is RUNNING.
   Whole94 E2 completed972 and is private verified; original E3 139172537v1 runs.
 - The earlier **two-slot** observation preceded the actual learnedE1 entry
   **57294905** (COMPLETE/**0.949**, noerror); refresh authoritative allowance. Regional
@@ -243,7 +262,7 @@ no numerical source changed. Do not mistake that for clinical improvement.
 Earlier distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
 all40objects/268191bytes; current receipt bookkeeping follows that source.
 [Exact private proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
-UniformE1 and influenceE1 are both terminal/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is queued.
+UniformE1 and influenceE1 are both terminal/private verified; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is RUNNING.
 [Original results and sole final-serving/entry owners](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
 

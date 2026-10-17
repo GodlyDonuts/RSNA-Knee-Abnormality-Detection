@@ -1,0 +1,8 @@
+
+def stable_ast(node):
+ if isinstance(node,ast.AST):
+  return {'node':type(node).__name__,'fields':[[k,stable_ast(v)] for k,v in ast.iter_fields(node) if not (k=='type_params' and v==[])]}
+ if isinstance(node,list):return [stable_ast(v) for v in node]
+ if node is None or type(node) in (str,int,float,bool):return node
+ raise TypeError('Unexpected AST scalar')
+def stable_ast_sha(node):return hashlib.sha256(json.dumps(stable_ast(node),sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()

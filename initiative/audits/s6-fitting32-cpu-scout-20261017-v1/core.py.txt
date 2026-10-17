@@ -1,0 +1,121 @@
+"""Admit measured source-scout parity; never admit full-cohort training or inference."""
+
+import hashlib
+import json
+
+import numpy as np
+
+POPULATION_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+PRECISION_TOLERANCE = 0.0001
+
+
+def evaluate(selection, pixel_rows, probabilities, logits, old_selection, old_rows,
+             old_logits, parent_uids, parent_logits, receipt, summarize):
+    """Compare exact old8 inputs/FP32, all32 diversity, and descriptive time cost."""
+    selected = selection.get("selected_uids", [])
+    expected_population = hashlib.sha256(
+        json.dumps(parent_uids, separators=(",", ":")).encode()
+    ).hexdigest()
+    if (len(parent_uids) != 3887 or parent_uids != sorted(set(parent_uids))
+            or expected_population != POPULATION_SHA
+            or selection.get("population_sha256") != expected_population
+            or old_selection.get("ordered_fitting_uids") != parent_uids):
+        raise ValueError("Exact original full fitting population required")
+    counts = dict(old_selection["series_counts"])
+    if set(counts) != set(parent_uids) or any(type(v) is not int or v < 1 for v in counts.values()):
+        raise ValueError("Exact original positive integer series-count metadata required")
+    costs = sorted((counts[u], u) for u in parent_uids)
+    p8 = np.linspace(0, 3886, 8).round().astype(int).tolist()
+    positions = sorted(set(p8 + np.linspace(0, 3886, 26).round().astype(int).tolist()))
+    old8 = [costs[i][1] for i in p8]
+    if (len(selected) != 32 or selected != [costs[i][1] for i in positions]
+            or selection.get("positions") != positions
+            or selection.get("old8_selected_uids") != old8
+            or old_selection.get("selected_uids") != old8
+            or selection.get("series_counts") != [costs[i][0] for i in positions]
+            or set(pixel_rows) != set(selected)):
+        raise ValueError("Original fixed32 and contained eight cost-quantile identities required")
+    if (receipt.get("status") != "actual_original_S6_fixed32_CPU_FP32_scout_complete"
+            or receipt.get("studies") != 32 or receipt.get("failed") != 0
+            or receipt.get("no_labels_reports_gold_or_parent_teacher_arrays_decoded") is not True
+            or receipt.get("no_submission_CSV_or_competition_entry") is not True):
+        raise ValueError("Actual accepted original scout scope required")
+    if (type(receipt.get("GPU_devices")) is not int or receipt["GPU_devices"] != 0
+            or type(receipt.get("CPU_threads")) is not int
+            or not 1 <= receipt["CPU_threads"] <= 4
+            or receipt.get("device_report_only_replacements") != {
+                "torch.device(cuda)": 1, "torch.cuda.get_device_capability": 1,
+                "torch.cuda.get_device_name": 2}
+            or type(receipt.get("maximum_RSS_bytes")) is not int
+            or not 0 < receipt["maximum_RSS_bytes"] < 27 * 2**30
+            or receipt.get("actual_full_teacher_generation_or_training_admitted") is not False):
+        raise ValueError("Bounded actual CPU-only reference scope required")
+    windows = []
+    for uid in selected:
+        row = pixel_rows[uid]
+        if (row.get("error") is not None or row.get("hash_error")
+                or type(row.get("n")) is not int or row["n"] <= 0
+                or any(not isinstance(row.get(key), str) or len(row[key]) != 64
+                       or any(c not in "0123456789abcdef" for c in row[key])
+                       for key in ("img_sha256", "meta_sha256"))):
+            raise ValueError("Complete original finite input hash records required")
+        windows.append(row["n"])
+    if sum(windows) != receipt.get("windows"):
+        raise ValueError("All actual scout windows must be accounted for")
+    old_table = {r["uid"]: r for r in old_rows}
+    if len(old_table) != 8 or set(old_table) != set(old8) or set(old_logits) != set(old8):
+        raise ValueError("Original verified eight input and classifier identities required")
+    for uid in old8:
+        old, new = old_table[uid], pixel_rows[uid]
+        if (old["windows"] != new["n"] or old["images_sha256"] != new["img_sha256"]
+                or old["meta_sha256"] != new["meta_sha256"]):
+            raise ValueError("Original and new CPU MRI image/meta bytes must match")
+    probabilities, logits = np.asarray(probabilities), np.asarray(logits)
+    teacher = np.asarray(parent_logits)
+    reference = np.asarray([old_logits[u] for u in old8], dtype=np.float64)
+    if (probabilities.shape != (32, 12) or logits.shape != (32, 12)
+            or teacher.shape != (3887, 2, 12) or teacher.dtype != np.float32
+            or reference.shape != (8, 1, 12)
+            or any(not np.isfinite(v).all() for v in (probabilities, logits, teacher, reference))
+            or (probabilities < 0).any() or (probabilities > 1).any()):
+        raise ValueError("Complete aligned finite original numerical outputs required")
+    with np.errstate(over="ignore"):
+        sigmoid = lambda x: 1 / (1 + np.exp(-x))  # noqa: E731
+        if not np.allclose(probabilities, sigmoid(logits), rtol=0, atol=1e-7):
+            raise ValueError("Original S6 probability/logit relationship required")
+        error = float(np.max(np.abs(
+            probabilities[[selected.index(u) for u in old8]] - sigmoid(reference[:, 0])
+        )))
+        if error > PRECISION_TOLERANCE:
+            raise ValueError("Predeclared 0.0001 cross-runtime CPU FP32 probability tolerance exceeded")
+        a = sigmoid(teacher[[parent_uids.index(u) for u in selected]].astype(np.float64)).mean(axis=1)
+    elapsed, b_seconds = receipt.get("elapsed_seconds"), receipt.get("B_seconds")
+    if (type(elapsed) not in (float, int) or type(b_seconds) not in (float, int)
+            or not np.isfinite([elapsed, b_seconds]).all()
+            or not 0 < b_seconds <= elapsed < 10440):
+        raise ValueError("Actual bounded positive scout and B timing required")
+    summary = summarize(a, probabilities)
+    summary["interpretation"] = (
+        "Descriptive diversity on32 fixed series-count cost quantiles; exposed source cohort, "
+        "not clinical error, OOF, prevalence, calibration or accuracy evidence"
+    )
+    # This projection is explicitly descriptive: series-count rank does not fix MRI slice cost.
+    projected_windows = float(np.interp(np.arange(3887), positions, windows).sum())
+    projected_seconds = projected_windows / sum(windows) * b_seconds
+    return {
+        "status": "actual_CPU32_input_parity_precision_and_descriptive_cost_accepted",
+        "studies": 32, "actual_windows": sum(windows),
+        "old8_original_image_and_meta_bytes_equal": True,
+        "old8_CPU_FP32_vs_original_CPU_FP32_max_probability_error": error,
+        "unchanged_precision_tolerance": PRECISION_TOLERANCE,
+        "actual_B_seconds": b_seconds, "actual_total_seconds": elapsed,
+        "actual_B_windows_per_second": sum(windows) / b_seconds,
+        "window_range": [min(windows), max(windows)],
+        "non_guaranteed_ordinal_cost_projection": {
+            "full3887_windows": projected_windows, "B_seconds_at_measured_rate": projected_seconds,
+            "assumption": "Piecewise linear windows by series-count rank;32 nonrandom cases, no runtime bound",
+            "memory_full_cohort_or_job_funding_accepted": False,
+        },
+        "summary": summary, "full_teacher_generation_or_training_admitted": False,
+        "clinical_accuracy_or_Kaggle_score_claim": False,
+    }

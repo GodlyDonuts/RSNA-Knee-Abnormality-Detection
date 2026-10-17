@@ -1,0 +1,30 @@
+"""A distinct CPU version after actual ERROR; no numerical inference change."""
+from pathlib import Path
+import hashlib,json,shutil
+S=Path(__file__).resolve().parent;L=S.parent/'s6-fitting32-cpu-scout-20261017-v2';assert not L.exists();L.mkdir()
+proof=json.loads((S/'AST-runtime-repair-checked.json').read_text());assert all(x['semantic_mutation_checks']==8 for x in proof['runtime_checks']);assert json.loads((S/'finish.result.json').read_text())['status']=='actual_original_CPU32_terminal_failure_no_retry'
+old='66047373f22721d5e4edc28e5ef8e103250bd83ea72afde32d36035b95349750';legacy='390727d9d55b67abde5e612af7ee92e74a8b2627de568d022bc9e92e89f5e408';stable='7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116';s=(S/'source.private.py').read_text();assert hashlib.sha256(s.encode()).hexdigest()==old
+normal=(S/'stable-AST.py.txt').read_text();needle='threads=min(PROTOCOL';assert s.count(needle)==1;s=s.replace(needle,normal+'\n'+needle)
+s=s.replace("hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()","stable_ast_sha(tree)").replace(legacy,stable)
+s=s.replace("'reason':str(e)","'reason':str(e),'traceback_frames':[(f.name,f.lineno) for f in __import__('traceback').extract_tb(e.__traceback__)[-6:]]")
+compile(s,'CPU32_v2_stable_exact_device_patch','exec');h=hashlib.sha256(s.encode()).hexdigest();(L/'source.private.py').write_text(s);(L/'source.private.py').chmod(0o600)
+for n in ['protocol.json','check_core.py']:shutil.copyfile(S/n,L/n)
+core=(S/'core.py').read_text().replace(legacy,stable);(L/'core.py').write_text(core)
+check=(L/'check_core.py').read_text().replace(legacy,stable);(L/'check_core.py').write_text(check)
+program=(S/'cloud-program-v2.py.txt').read_text().replace("R=P/'CPU32-scout-v1'","R=P/'CPU32-scout-v2'").replace("slug='godlydonuts/rsna-s6-cpu32-scout-'+SOURCE[:12]","slug='godlydonuts/rsna-s6-cpu32-scout-66047373f227'").replace("key='S6-fixed32-CPU-FP32:'+SOURCE","key='S6-fixed32-CPU-FP32-v2:'+SOURCE")
+program=program.replace("a=r.kernel('GetKernel',slug,1)","a=r.kernel('GetKernel',slug,2)").replace("GetKernelSessionStatus',slug,1","GetKernelSessionStatus',slug,2").replace("r.output_json(slug,1,","r.output_json(slug,2,")
+program=program.replace("'versionNumber':1","'versionNumber':2").replace("'version':1","'version':2").replace("response.get('versionNumber')==1","response.get('versionNumber')==2")
+# Only runtime receipt uses the new stable serializer; original CP312 prestage proof stays unchanged.
+program=program.replace("a['executed_CPU_main_AST_sha256']=='"+legacy+"'","a['executed_CPU_main_AST_sha256']=='"+stable+"'")
+program=program.replace('used+11*2**20+2*2**20','used+9*2**20+2*2**20').replace("'existing_future_controls_preserved_bytes':11*2**20","'existing_future_controls_preserved_bytes':9*2**20")
+needle="   absence=r.require_absent_kernel(slug);R.mkdir(mode=0o700);"
+replacement="""   prior_key='S6-fixed32-CPU-FP32:66047373f22721d5e4edc28e5ef8e103250bd83ea72afde32d36035b95349750';prior=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(prior_key,)).fetchone()[0]);assert prior['state']=='S6_CPU32_scout_actual_failed' and r.kernel('GetKernelSessionStatus',slug,1).get('status')=='ERROR';old=r.kernel('GetKernel',slug,1);assert old['metadata']['id']==139205901 and hashlib.sha256(old['blob']['source'].encode()).hexdigest()=='66047373f22721d5e4edc28e5ef8e103250bd83ea72afde32d36035b95349750';absence={'existing_original_v1_is_terminal_ERROR':True,'no_uncertain_push_or_repeated_old_version':True};R.mkdir(mode=0o700);"""
+assert program.count(needle)==1;program=program.replace(needle,replacement)
+program=program.replace("record['state']=='S6_CPU32_scout_actual_complete'", "record['state']=='S6_CPU32_scout_actual_complete'")
+(L/'cloud-program-v2.py.txt').write_text(program);compile(program,'CPU32_v2_canonical','exec')
+runner=(S/'run_phase_v2.py').read_text();(L/'run_phase_v2.py').write_text(runner)
+analysis=(S/'analysis-program.py.txt').read_text().replace("R=P/'CPU32-scout-v1'","R=P/'CPU32-scout-v2'").replace("D=P/'CPU32-independent-acceptance-v1'","D=P/'CPU32-independent-acceptance-v2'").replace(old,h).replace(legacy,stable).replace('controls+10*2**20+2**20','controls+8*2**20+2**20').replace("'remaining_existing_future_controls_bytes':10*2**20","'remaining_existing_future_controls_bytes':8*2**20");(L/'analysis-program.py.txt').write_text(analysis)
+owner=(S/'finish_once.py').read_text().replace("pushed['version'] == 1","pushed['version'] == 2").replace("'version': 1","'version': 2").replace("pushed['slug'], 1","pushed['slug'], 2").replace('existing11MiB','existing9MiB').replace("'original_kernel_id': 139205901","'original_kernel_id': 139205901");(L/'finish_once.py').write_text(owner)
+prepared=json.loads((S/'prepared.json').read_text());prepared.update(source_sha256=h,source_bytes=len(s.encode()),pre_stage_change='Runtime-independent complete AST field serialization replaces cross-version default ast.dump hash only; same original source SHA and unchanged four CPU device substitutions; failed v1 preserved');(L/'prepared.json').write_text(json.dumps(prepared,indent=2)+'\n')
+repair={'status':'distinct_CPU32_v2_integrity_serialization_repair_after_verified_terminal_v1','original_kernel_id':139205901,'failed_original_version':1,'new_expected_version':2,'original_source_sha256':old,'corrected_source_sha256':h,'stable_CPU_main_AST_sha256':stable,'complete_original_source_SHA_and_four_device_patch_preserved':True,'cross_runtime_original_proof':proof,'new_CPU_control_allocation_2MiB_from_existing11MiB_future_leaving9MiB':True,'new_GPU_Datasets_or_entries':0}
+(L/'repair.json').write_text(json.dumps(repair,indent=2)+'\n');print(json.dumps(repair))

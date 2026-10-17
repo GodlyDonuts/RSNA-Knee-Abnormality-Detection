@@ -1,0 +1,21 @@
+
+import csv,hashlib,json,os,shutil
+from pathlib import Path
+import numpy as np
+D=Path('/tmp/rsna-S6-training-release-20261017-v1');R=D/'matched-fitting-overlay-v1';assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and not R.exists();assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+2*2**20<16*2**20 and shutil.disk_usage('/tmp').free>611754508347+16*2**20
+original=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');original_sha='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285';assert hashlib.sha256(original.read_bytes()).hexdigest()==original_sha
+comparison=json.loads((D/'fitting-label-comparison.json').read_text());assert comparison['status']=='actual_released_S6_targets_compared_only_on_existing3887_fitting_roster' and comparison['all_existing_masks_dense'] is True and comparison['protected_numeric_label_values_read'] is False
+with np.load(original,allow_pickle=False) as a:uid_array=a['uids'];uids=uid_array.tolist();old=a['labels'];masks=a['masks'];teacher=a['parent_logits']
+assert len(uids)==3887 and uids==sorted(set(uids)) and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==comparison['population_sha256'];membership=set(uids);labels=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture'];incoming={};source=D/'originals/training_code/s6/data/targets_s6f0.csv';assert hashlib.sha256(source.read_bytes()).hexdigest()==comparison['released_targets_sha256']
+with source.open() as f:
+ for row in csv.DictReader(f):
+  uid=row['StudyInstanceUID']
+  if uid not in membership:continue
+  assert uid not in incoming and row['is_gold']=='0';incoming[uid]=[float(row[c+'|prior']) for c in labels]
+assert set(incoming)==membership;new=np.asarray([incoming[u] for u in uids],dtype=np.float32);assert new.shape==old.shape==masks.shape==(3887,12) and masks.all() and np.isfinite(new).all() and ((new>=0)&(new<=1)).all()
+R.mkdir(mode=0o700);p=R/'targets.private.npz'
+with p.open('xb') as f:os.fchmod(f.fileno(),0o600);np.savez_compressed(f,uids=uid_array,labels=new,masks=masks,parent_logits=teacher)
+assert p.stat().st_size<2**20
+with np.load(p,allow_pickle=False) as a:assert set(a.files)=={'uids','labels','masks','parent_logits'} and all(np.array_equal(a[k],v) for k,v in {'uids':uid_array,'labels':new,'masks':masks,'parent_logits':teacher}.items())
+out={'status':'distinct_S6_v5_fitting_only_target_overlay_materialized_private_no_training','CPU_job':os.environ['SLURM_JOB_ID'],'original_comparison_CPU_job':comparison['CPU_job'],'studies':3887,'cells':46644,'original_targets_sha256':original_sha,'released_source_targets_sha256':comparison['released_targets_sha256'],'population_sha256':comparison['population_sha256'],'overlay':{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'label_array_sha256':hashlib.sha256(new.tobytes()).hexdigest()},'original_UIDs_masks_and_all_two_view_parent_logits_bit_identical':True,'only_source_supervision_array_changed':True,'protected_numeric_label_values_read':False,'original_accepted_labels_masks_folds_or_running_recipes_changed':False,'maximum_additional_node_control_payload_bytes_within_existing16MiB':2*2**20,'new_shared_pixels_models_checkpoints_or_Dataset_GPU_entries':0,'future_matched_arm':'Same existing3887/parent initialization/94windows/3epochs/1458updates/0.25source+0.75parent objective; source labels alone replaced; actual new data/GPU/funding acceptance still required','clinical_accuracy_or_Kaggle_score_claim':False}
+(R/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');assert hashlib.sha256(original.read_bytes()).hexdigest()==original_sha and sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<16*2**20;print(json.dumps(out),flush=True)

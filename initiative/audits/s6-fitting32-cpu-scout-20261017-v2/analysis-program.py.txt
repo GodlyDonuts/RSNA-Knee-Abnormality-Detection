@@ -1,0 +1,40 @@
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'CPU32-scout-v2';C=R/'collected';D=P/'CPU32-independent-acceptance-v2'
+assert not D.exists() and shutil.disk_usage('/tmp').free>610493834008
+paid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in paid) and p.suffix not in ('.pt','.whl'))
+assert controls+8*2**20+2**20<16*2**20,'Preserve original future controls after allocating1MiB from existing11MiB obligation'
+receipt=json.loads((R/'actual-accepted.json').read_text());collection=json.loads((C/'verified.json').read_text())
+assert receipt['self_sha256']=='64c7290e3e964184c8e54a646d9803966708da03916af524b400c18fbd156ba1'
+assert receipt['model_sha256']=='0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12'
+assert receipt['anatomy_sha256']=='5904dd16eb9a4fd7a1caf90ac977f8fe2ef364908598c23c209db3fe7fd1563e'
+assert receipt['source_tree_manifest_sha256']=='b66c574b5c0c13ccaa49d1219d41a8781431166186ef83e78cab6a9ba6b02d22'
+assert receipt['GPU_devices']==0 and 1<=receipt['CPU_threads']<=4 and receipt['executed_CPU_main_AST_sha256']=='7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116'
+assert collection['status']=='actual_CPU32_private_result_collected_all_original_size_SHA_verified' and collection['files']==receipt['files']
+assert set(collection['files'])=={'selection.private.json','probabilities.private.npz','pixel-hashes.private.json','fp32/receipt.json'}
+for name,row in collection['files'].items():
+ p=C/name;assert p.resolve().is_relative_to(C.resolve()) and 0<p.stat().st_size==row['bytes']<8*2**20 and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256']
+selection=json.loads((C/'selection.private.json').read_text());px=json.loads((C/'pixel-hashes.private.json').read_text())
+with np.load(C/'probabilities.private.npz',allow_pickle=False) as z:
+ assert set(z.files)=={'uids','probabilities','logits'} and z['uids'].tolist()==selection['selected_uids'];probabilities=z['probabilities'];logits=z['logits']
+O=P/'CPU-fitting8-UID-view-v2/collected';old_inputs=json.loads((O/'verified.json').read_text());old_classifier=json.loads((P/'CPU-fitting8-classifier-v1/accepted.json').read_text())
+assert old_inputs['all_original_lossless_inputs_and_fitting_roster_equal'] is True and old_inputs['kernel_id']==139165316
+assert old_classifier['status']=='actual_original_S6_fitting8_CPU_FP32_classifier_accepted' and old_classifier['all_probabilities_finite'] is True and old_classifier['studies']==8 and old_classifier['windows']==5372
+assert hashlib.sha256((O/'index.private.json').read_bytes()).hexdigest()==old_inputs['receipt']['index_sha256']
+assert hashlib.sha256((O/'selection.private.json').read_bytes()).hexdigest()==old_inputs['receipt']['selection_sha256']
+old_selection=json.loads((O/'selection.private.json').read_text());old_rows=json.loads((O/'index.private.json').read_text())['records']
+F=P/'CPU-fitting8-classifier-v1/fp32/logits.private.json';assert hashlib.sha256(F.read_bytes()).hexdigest()==old_classifier['logits_sha256'];old_logits=json.loads(F.read_text())
+T=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert T.stat().st_size==483656 and hashlib.sha256(T.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(T,allow_pickle=False) as z:
+ assert set(z.files)=={'uids','labels','masks','parent_logits'};parent_uids=z['uids'].tolist();teacher=z['parent_logits']
+assert hashlib.sha256(v['core'].encode()).hexdigest()==v['checked']['core_sha256'] and hashlib.sha256(v['summary'].encode()).hexdigest()==v['checked']['original_summary_sha256']
+ns={};exec(compile(v['core'],'fixed32_parity_and_cost','exec'),ns);ss={};exec(compile(v['summary'],'unchanged_descriptive_lineage_summary','exec'),ss)
+result=ns['evaluate'](selection,px,probabilities,logits,old_selection,old_rows,old_logits,parent_uids,teacher,receipt,ss['summarize'])
+D.mkdir(mode=0o700);(D/'core.py').write_text(v['core']);(D/'core.py').chmod(0o600)
+out={'status':'actual_original_CPU32_scout_independent_CPU_acceptance_complete','CPU_job':os.environ['SLURM_JOB_ID'],'original_scout_kernel':collection['kernel_id'],'original_collection_CPU':collection['CPU_job'],'actual_original_CPU8_classifier':old_classifier['CPU_job'],'core_sha256':v['checked']['core_sha256'],'original_source_sha256':receipt['self_sha256'],'original_model_sha256':receipt['model_sha256'],'population_sha256':ns['POPULATION_SHA'],'summary':result,'original_source_inputs_and_numerical_loops_unchanged':True,'private_inputs_or_predictions_returned_to_Mac_Git_HF':False,'new_CNN_GPU_fitting_or_competition_mutations':0,'existing_control_bytes':controls,'allocated_from_existing_future_controls_bytes':2**20,'remaining_existing_future_controls_bytes':8*2**20,'new_shared_byte_or_file_liability':0}
+(D/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<2**20
+print(json.dumps(out),flush=True)

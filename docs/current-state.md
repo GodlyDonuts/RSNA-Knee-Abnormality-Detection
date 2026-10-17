@@ -1,10 +1,40 @@
 # Current project state
 
-**Observed through October 17, 2026, 09:32 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 10:15 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
 [earlier snapshot](current-state.history-20261017-0146.md).
+
+## October17 10:15UTC: source supervision is demonstrably different
+
+The newly released S6 training code/targets are privately acquired and pinned
+at Dataset12589750v5. CPU945356 compared **all3887fitting studies only**:
+46,644dense cells in both sources, zero matching within1e-6. Fracture's
+source-target rank correlation is**0.51446**, versus0.84396–0.98761 for the
+other findings. Neither source is clinical truth; this establishes a recipe
+difference, not its causal score effect. CPU945389 prepared a distinct private
+label-only overlay, preserving all original UIDs/masks/parent logits. Existing
+training/labels are unchanged; no new GPU fit is admitted.
+[Source,12-target evidence and matched next contrast](../initiative/audits/s6-training-release-20261017-v1/README.md).
+
+Source correction: the author's86missing studies were **local disk deletions**,
+not host removal or a quality filter. S6 used4263fit,16epochs,64training windows,
+plain dense soft BCE, fixed-final E16/noEMA/SWA. Our current parent adaptation
+uses3epochs and25%source/75%parent anchoring. These jointly different recipes
+must not be called reproductions of the same training.
+
+**New actual CPU-only scout139205901v2 is RUNNING**; sole finite owner40709.
+It tests32fixed original-MRI fitting studies, FP32/source/input parity, throughput
+and boundedRAM while both Kaggle GPU lanes train. The first version failed its cross-Python AST guard before classification;
+the distinct v2 uses a full-field stable serializer, with identical classifier
+source/four CPU substitutions. No GPU/entry slot used or accuracy result. [Exact push,30checks and owner](../initiative/audits/s6-fitting32-cpu-scout-20261017-v2/README.md).
+
+Fresh10:04UTC canonical admission: whole94E3 and uniform16E3 bothRUNNING,
+5entries used/0available. Public0.958139199164v1 remains source-only; current
+98,525VMseconds cannot fund107,400seconds of all retained liabilities. No new
+GPU run/entry was attempted. [Actual binding](../initiative/audits/public0958-reference-20261017-v1/actual-capacity-funding-1004.json).
+The best actual score remains**0.950**;0.97is still a target.
 
 ## Actual competition results
 
@@ -55,7 +85,7 @@ Do not resubmit those exact versions.
 |---|---|---|
 | Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
 | Expanded own N3 | Slurm**938284**, evc33 | **COMPLETED0:0/6:20:49**, all16epochs privately verified; fixed-final weak macro**0.91743158**, no established gain |
-| Uniform16 full-encoder control | E3**139192503v1** | **E2 complete972/all5private objects verified**; original E3 is UI QUEUED, no optimizer claim yet |
+| Uniform16 full-encoder control | E3**139192503v1** | **E2 complete972/all5private objects verified**; original E3 is API RUNNING; no newly observed optimizer cursor |
 | Influence16 full-encoder contrast | E2**139181903v1** | **E2 complete972/all5private objects verified**, HFde388a6e4ee800a0835c1d82f13fea94e903653f |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
 | S6 unchanged-source reproduction | Offline**139181157v1**, code entry**57300990** | **Public run COMPLETE233s/twoT4/zero fallback**; exact hidden entry COMPLETE/0.950/noerror |
@@ -71,7 +101,7 @@ conditional95%[−0.01331711,+0.00607252]. No established primary gain.
 [New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
 InfluenceE1 completed486 and all5objects are independently private verified;
 uniformE2 and influenceE2 completed972/all5private objects each. UniformE3
-139192503v1 is now queued; sole recovered observer34538 preserves that same run.
+139192503v1 is now RUNNING; sole recovered observer34538 preserves that same run.
 [New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
 The expanded GPU938284 and its watcher95408 are now terminal success; all16
 epochs are already privately verified. Preserve the still-running whole94 and
@@ -112,7 +142,7 @@ originalMRI inputs/both views/repeated draws; proposal Dataset12644218v1/all5
 objects was privately fully verified once. Both E1 roles are complete and privately preserved under the same original
 comparison owner; uniformE2 also completed972/private verified.
 The original influenceE1 now also completed486 and all5objects are private verified
-at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is queued.
+at HFb09816181e2e79eb24563884af5c7ed0e1af40a5; uniformE2 completed972/private verified; influenceE2 is now complete972/private verified; original uniformE3 is RUNNING.
 Sampled-model serving remains synthetic preparation, with **no actual learned
 sampled-checkpoint serving T4/public acceptance or score**.
 [Protocol](../initiative/experiments/competitive-v1/licensed-importance-encoder-v1/README.md),

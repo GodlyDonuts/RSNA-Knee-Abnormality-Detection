@@ -1,0 +1,44 @@
+
+import hashlib,importlib.util,json,os,shutil,sqlite3,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');D=Path('/tmp/rsna-S6-training-release-20261017-v1');assert not D.exists();assert shutil.disk_usage('/tmp').free>611754508347+16*2**20
+q=__import__('subprocess').check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=[x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415')][0];assert (int(row[2])-int(row[1]))*1024>20*2**30+4*2**20 and int(row[6])-int(row[5])>5008
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';sp=importlib.util.spec_from_file_location('read_new_S6_training_release',W);w=importlib.util.module_from_spec(sp);sp.loader.exec_module(w);r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+# Reconcile the earlier pre-push stop; no retry or replacement mutation occurs here.
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');oldkey='S6-fixed32-CPU-FP32:66047373f22721d5e4edc28e5ef8e103250bd83ea72afde32d36035b95349750'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:assert db.execute('SELECT value FROM meta WHERE key=?',(oldkey,)).fetchone() is None
+assert not (P/'CPU32-scout-v1').exists()
+slug='nartaa/rsna-knee-s6fall-weights';meta=r.dataset(slug);assert meta['id']==12589750 and meta['currentVersionNumber']==5 and not meta.get('isPrivate',False)
+def listing(version):
+ found={};token='';seen=set()
+ for _ in range(30):
+  result=r.call('datasets.DatasetApiService','ListDatasetFiles',{'ownerSlug':'nartaa','datasetSlug':'rsna-knee-s6fall-weights','datasetVersionNumber':version,'pageSize':100,'pageToken':token})
+  for x in result.get('datasetFiles',[]):
+   n=x['name'];size=x.get('totalBytes',0);assert not n.startswith('/') and '..' not in Path(n).parts and n not in found and type(size) is int and size>=0;found[n]={'bytes':size,'optional_checksum':{k:x[k] for k in ('md5','md5Hash','checksum','sha256') if k in x}}
+  token=result.get('nextPageToken','')
+  if not token:break
+  assert token not in seen;seen.add(token)
+ else:raise ValueError('Nonterminating training release listing')
+ return found
+old,new=listing(3),listing(5);added=sorted(set(new)-set(old));candidates=[]
+for n,row in new.items():
+ is_small_proof=any(t in n.lower() for t in ('manifest','readme','license','.done.','run_config')) and row['bytes']<2**20
+ if (n in added or is_small_proof) and 0<row['bytes']<8*2**20:candidates.append(n)
+assert candidates and all(new[n]['bytes']<8*2**20 for n in candidates)
+D.mkdir(mode=0o700);w.new_json(D/'intent.json',{'CPU_job':os.environ['SLURM_JOB_ID'],'slug':slug,'version':5,'new_private_node_asset_cap_bytes':16*2**20,'maximum_payload_bytes':12*2**20,'old_required_remaining_free_bytes_preserved':611754508347,'large_original_model_copies':0,'label_or_gold_rows_decoded':False,'training_GPU_Kaggle_or_submission_mutations':0,'automatic_retry':False});(D/'metadata.private.json').write_text(json.dumps(meta,indent=2)+'\n');acquired={};skipped=[];total=0
+for n in candidates:
+ size=new[n]['bytes']
+ if total+size>12*2**20:skipped.append({'name':n,'bytes':size,'reason':'outside admitted12MiB payload'});continue
+ response=requests.get('https://www.kaggle.com/api/v1/datasets/download/'+slug+'/'+n,params={'dataset_version_number':5},timeout=(10,90),stream=True);assert response.status_code==200
+ p=D/'originals'/n;assert p.resolve().is_relative_to((D/'originals').resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);h=hashlib.sha256();count=0
+ try:
+  with p.open('xb') as f:
+   os.fchmod(f.fileno(),0o600)
+   for b in response.iter_content(65536):count+=len(b);assert count<=size;f.write(b);h.update(b)
+ finally:response.close()
+ assert count==size;total+=size;acquired[n]={'bytes':size,'sha256':h.hexdigest()}
+assert r.dataset(slug)['currentVersionNumber']==5 and sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<16*2**20
+proofs={n:{'sha256':row['sha256'],'bytes':row['bytes']} for n,row in acquired.items() if 'manifest' in n.lower() or '.done.' in n.lower() or 'run_config' in n.lower()}
+# This returns original file names/hashes, never CSV rows or private source bodies.
+out={'status':'actual_new_public_S6_v5_training_release_privately_acquired_readonly','CPU_job':os.environ['SLURM_JOB_ID'],'dataset_id':12589750,'version':5,'old_version':3,'version3_files':old,'version5_files':new,'added_files':added,'acquired_files':acquired,'skipped_small_candidates':skipped,'payload_bytes':total,'small_core_proofs':proofs,'large_model_file_size_unchanged':old.get('E_prior_s42_fall.pt')==new.get('E_prior_s42_fall.pt'),'large_model_bytes_downloaded_or_rehashed':0,'metadata_version_notes_and_licence_stay_private':True,'label_rows_gold_values_or_reports_decoded':False,'earlier_CPU32_stop_verified_before_any_intent_or_path_creation':True,'new_node_asset_cap_bytes':16*2**20,'prior_remaining_free_obligation_preserved_bytes':611754508347,'new_shared_pixel_model_bytes_or_files':0,'Kaggle_jobs_Datasets_pushes_entries_or_GPU_runs':0};w.new_json(D/'acquired.json',out);print(json.dumps(out),flush=True)

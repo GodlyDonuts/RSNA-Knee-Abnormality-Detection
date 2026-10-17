@@ -1,0 +1,22 @@
+"""One exact phase, token via stdin, private rows remain on Newton."""
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+L=Path(__file__).resolve().parent;phase=sys.argv[1];assert phase in ('stage-push','terminal','collect')
+program=(L/'cloud-program-v2.py.txt').read_text();compile(program,'CPU32_canonical_phase','exec')
+prepared=json.loads((L/'prepared.json').read_text());protocol=json.loads((L/'protocol.json').read_text());checked=json.loads((L/'checked.json').read_text());assert hashlib.sha256((L/'core.py').read_bytes()).hexdigest()==checked['core_sha256'] and checked['count']==30
+payload={'phase':phase,'program':program,'prepared':prepared,'protocol':protocol,'checked':checked}
+if phase=='stage-push':
+ assert not (L/'stage-push-v2.intent.json').exists();payload['source']=(L/'source.private.py').read_text();assert hashlib.sha256(payload['source'].encode()).hexdigest()==prepared['source_sha256']
+ with (L/'stage-push-v2.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'source_sha256':prepared['source_sha256'],'one_CPU_only_Kaggle_session_maximum_seconds':10800,'new_GPU_Datasets_or_entries':0,'existing16MiB_controls_and11MiB_future_preserved':True,'automatic_retry':False},f,indent=2)
+e=Path('.env');assert e.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('\"\'') for line in e.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep};payload['token']=values['KAGGLE_API_TOKEN']
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:06:00','--job-name=rsna-CPU32-'+phase,'env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c','import json,sys;v=json.load(sys.stdin);exec(compile(v.pop("program"),"CPU32_canonical_phase","exec"),{"__name__":"__main__","CPU32":v})']
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps(payload),capture_output=True,text=True,timeout=450)
+with (L/(phase+'-v2-'+str(time.monotonic_ns())+'.result.json')).open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Actual phase stopped; reconcile read-only before any retry; no duplicate mutation'
+out=json.loads(x.stdout)
+name={'stage-push':'actual-pushed.json','terminal':'actual-terminal.json','collect':'actual-collected.json'}[phase];(L/name).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

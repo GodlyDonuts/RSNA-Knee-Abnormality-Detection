@@ -75,3 +75,16 @@ manifest was fetched again. Browser-pinned sourceCPU944721 and the explicit
 R6v1 metadata acquisition resolve these issues without a GPU retry. Original
 intents, results and programs are preserved. No upstream code bodies, private
 clinical rows, signed browser URLs or learned weights enter this audit.
+
+
+## October17 10:04UTC actual admission
+
+CPU945371 confirms both original whole94E3 and uniform16E3 are now RUNNING.
+Fresh account allowance is5used/0available. Exact0.958source remains unrun.
+Funding available98,525VMseconds is below107,400seconds of all retained future
+obligations, including the unstarted fixed equal-rank reference. No GPU/entry
+mutation or expired UI intent was created. [Actual complete proof](actual-capacity-funding-1004.json).
+An earlier check merely found a live canonical claim and stopped before
+admission. Do not cancel healthy fits, change billing or waive retained funding.
+Refresh after terminal/publication reconciliation or an explicitly retired
+unstarted obligation. Only then one Save&Run of the existing correctR6v1draft.

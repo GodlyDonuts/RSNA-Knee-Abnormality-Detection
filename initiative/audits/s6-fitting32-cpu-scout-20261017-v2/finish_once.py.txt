@@ -1,0 +1,101 @@
+"""Finite observer of one existing CPU scout, with one collection and CPU analysis."""
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def main():
+    here = Path(__file__).resolve().parent
+    assert not (here / 'finish.intent.json').exists()
+    pushed = json.loads((here / 'actual-pushed.json').read_text())
+    assert pushed['kernel_id'] == 139205901 and pushed['version'] == 2
+    frozen = {n: hashlib.sha256((here / n).read_bytes()).hexdigest() for n in
+              ('run_phase_v2.py', 'cloud-program-v2.py.txt', 'analysis-program.py.txt', 'core.py', 'finish_once.py')}
+    checked = json.loads((here / 'checked.json').read_text())
+    assert frozen['core.py'] == checked['core_sha256'] and checked['count'] == 30
+    root = here.parent.parent
+    workflow = root / 'scripts/kaggle/workflow.py'
+    assert hashlib.sha256(workflow.read_bytes()).hexdigest() == '2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+    spec = importlib.util.spec_from_file_location('CPU32_read_only_observer', workflow)
+    w = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(w)
+    remote = w.Remote(root / '.env')
+    start = time.monotonic()
+    deadline = start + 4 * 3600
+    w.new_json(here / 'finish.intent.json', {'PID': os.getpid(), 'original_kernel_id': 139205901,
+        'version': 2, 'maximum_seconds': 14400, 'immutable_files': frozen,
+        'maximum_terminal_record_collection_and_analysis_each': 1,
+        'new_GPU_Kaggle_push_Dataset_or_entry_methods': 0,
+        'CPU_analysis_1MiB_from_existing9MiB_future_obligation': True, 'automatic_retry': False})
+
+    def observe(phase, actual):
+        (here / 'finish.progress.json').write_text(json.dumps({'PID': os.getpid(), 'phase': phase,
+            'elapsed_seconds': time.monotonic() - start, 'original_kernel_id': 139205901,
+            'actual': actual}, indent=2) + '\n')
+
+    def phase(name):
+        assert all(hashlib.sha256((here / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+        child = subprocess.run([sys.executable, str(here / 'run_phase_v2.py'), name],
+                               capture_output=True, text=True, timeout=500)
+        w.new_json(here / ('owner-' + name + '.result.json'), {'returncode': child.returncode,
+                   'stdout': child.stdout, 'stderr': child.stderr})
+        assert child.returncode == 0, 'Actual canonical phase stopped; reconcile read-only, never retry mutation'
+        return json.loads(child.stdout)
+
+    try:
+        initial = remote.kernel('GetKernel', pushed['slug'], 2)
+        assert initial['metadata']['id'] == 139205901 and initial['metadata']['isPrivate'] is True
+        assert not initial['metadata'].get('enableGpu', False) and not initial['metadata'].get('enableInternet', False)
+        assert hashlib.sha256(initial['blob']['source'].encode()).hexdigest() == pushed['source_sha256']
+        while time.monotonic() < deadline:
+            actual = remote.kernel('GetKernelSessionStatus', pushed['slug'], 2).get('status')
+            observe('same_original_CPU32_status_no_gpu_reservation', actual)
+            if actual in ('COMPLETE', 'ERROR', 'CANCELLED'):
+                terminal = phase('terminal')
+                if actual != 'COMPLETE':
+                    result = {'status': 'actual_original_CPU32_terminal_failure_no_retry', 'actual': terminal}
+                    break
+                collected = phase('collect')
+                assert collected['status'] == 'actual_CPU32_private_result_collected_all_original_size_SHA_verified'
+                summary = (here.parent / 's6-fitting8-complementarity-20261017-v1/core.py.txt').read_text()
+                assert hashlib.sha256(summary.encode()).hexdigest() == checked['original_summary_sha256']
+                w.new_json(here / 'analysis.intent.json', {'frozen': frozen, 'maximum_CPU_jobs': 1,
+                    'new_GPU_push_Dataset_or_entry_mutations': 0, 'automatic_retry': False})
+                cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33',
+                    '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=1G', '--time=00:03:00',
+                    '--job-name=rsna-S6-CPU32-analysis', 'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1',
+                    'OPENBLAS_NUM_THREADS=1', 'OMP_NUM_THREADS=1',
+                    '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c',
+                    (here / 'analysis-program.py.txt').read_text()]
+                child = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes',
+                    'newton', shlex.join(cmd)], input=json.dumps({'core': (here / 'core.py').read_text(),
+                    'summary': summary, 'checked': checked}), capture_output=True, text=True, timeout=400)
+                w.new_json(here / 'analysis.result.json', {'returncode': child.returncode,
+                           'stdout': child.stdout, 'stderr': child.stderr})
+                assert child.returncode == 0, 'Actual analysis stopped; read-only reconciliation required'
+                accepted = json.loads(child.stdout)
+                assert accepted['status'] == 'actual_original_CPU32_scout_independent_CPU_acceptance_complete'
+                w.new_json(here / 'accepted.json', accepted)
+                result = {'status': 'actual_original_CPU32_complete_collected_and_independently_checked',
+                          'actual': accepted, 'new_GPU_push_Dataset_or_entry_mutations': 0}
+                break
+            time.sleep(60)
+        else:
+            result = {'status': 'finite_original_CPU32_observation_expired_outcome_unresolved',
+                      'original_kernel_id': 139205901, 'automatic_retry': False}
+        w.new_json(here / 'finish.result.json', result)
+        print(json.dumps(result), flush=True)
+    except BaseException as error:
+        w.new_json(here / 'finish.result.json', {'status': 'stopped_original_CPU32_observer_reconcile_readonly',
+            'error_type': type(error).__name__, 'reason': str(error), 'automatic_retry': False})
+        raise
+
+
+if __name__ == '__main__':
+    main()

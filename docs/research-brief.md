@@ -1,9 +1,28 @@
 # Research brief
 
-**October 17, 2026, 09:32 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 10:15 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
+
+## New actual supervision finding
+
+[CPU945356's complete fitting-only comparison](../initiative/audits/s6-training-release-20261017-v1/README.md)
+shows our current Stevenv6 targets are not S6's released JEV-blend targets:
+zero of46,644cells equal within1e-6; Fracture rank correlation0.51446.
+CPU945389 privately materialized a label-only3887overlay without changing
+accepted masks, UID order, parent logits or healthy training. A fixed label-only
+arm is now defined; it has no GPU/recovery/funding/score admission yet.
+S6 source explicitly corrects86local disk deletions, not host removals, and
+specifies4263fit/16epochs/64windows/denseBCE/noEMA/SWA/fixed-final E16.
+No OAI was used in S6; the separate CoAtNet provenance differs.
+
+[CPU-only32-study scout139205901v2](../initiative/audits/s6-fitting32-cpu-scout-20261017-v2/README.md)
+is actually RUNNING under finite owner40709, without a GPU or competition slot.
+It must pass original8input/FP32parity and measured throughput before any full
+teacher claim. Both original Kaggle GPU trainings remainRUNNING; fresh10:04UTC
+allowance is5used/0available, and the exact0.958draft remains unrun. Best0.950;
+0.97unachieved. Current state contains full pins and funding.
 
 ## The measured position
 
@@ -20,7 +39,7 @@ learning under a fixed compute budget. Whole-94 adaptation completed two epochs/
 its exact final continuation is API RUNNING. Expanded own-model fitting finished0:0; its fixed-final paired weak comparison is now verified. Matched
 uniform16E1 **139137040v1 actually completed486 updates** and all5private objects
 were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
-are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 completed972/private verified; original uniformE3 139192503v1 is queued**. Whole-parentE1 passed
+are private verified; uniformE2 139167076v1 completed972/all5private objects; influenceE2 139181903v1 completed972/private verified; original uniformE3 139192503v1 is RUNNING**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
 139172537v1 is RUNNING. Expanded N3 has epochs1–16 privately fully verified,
@@ -123,7 +142,7 @@ ratio is not measured throughput or disease improvement.
 
 Actual both-role MRI GPU recovery, original-input CPU comparison, proposal
 Dataset and checkpoint storage acceptance are complete. Both E1 and E2 roles
-are now complete/private verified; original uniformE3 is queued. A capacity-aware observer
+are now complete/private verified; original uniformE3 is RUNNING. A capacity-aware observer
 protects the original main continuation and shares the other actual Kaggle GPU
 lane with qualified-model inference; no running scientific recipe was changed. The sampled serving compiler has synthetic checks only. UniformE1 now satisfies
 the completed/preserved checkpoint prerequisite; actual learned sampled-model

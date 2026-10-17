@@ -1,0 +1,11 @@
+
+import ast,hashlib,json,sys
+from pathlib import Path
+L=Path(sys.argv[1]);exec(compile((L/'stable-AST.py.txt').read_text(),'stable_AST_exact_fields','exec'))
+source=(L/'original-main.private.py').read_text();original=ast.parse(source)
+worker=Path('artifacts/s6-fitting8-classifier-20261017-v1/worker.py.txt').read_text();node=next(n for n in ast.parse(worker).body if isinstance(n,ast.ClassDef) and n.name=='CPUDeviceOnly');exec(compile(ast.Module(body=[node],type_ignores=[]),'original_accepted_four_device_patch','exec'));patch=CPUDeviceOnly();fixed=ast.fix_missing_locations(patch.visit(ast.parse(source)));assert patch.changes=={'torch.device(cuda)':1,'torch.cuda.get_device_capability':1,'torch.cuda.get_device_name':2}
+# Check every semantically relevant field and reject meaningful changes.
+checks=0
+for left,right in [('f(None)','f(0)'),('f()','f(1)'),('f(x=1)','f(x=2)'),('x[1:]','x[:1]'),('x+y','x-y'),('def f(x=None):\n return x\n','def f(x=0):\n return x\n'),('def f(x:int):\n return x\n','def f(x:str):\n return x\n'),('@x\ndef f():\n pass\n','@y\ndef f():\n pass\n')]:
+ assert stable_ast_sha(ast.parse(left))!=stable_ast_sha(ast.parse(right));checks+=1
+print(json.dumps({'python':sys.version.split()[0],'original_source_sha256':hashlib.sha256(source.encode()).hexdigest(),'runtime_default_original_AST_sha256':hashlib.sha256(ast.dump(original,include_attributes=False).encode()).hexdigest(),'runtime_default_CPU_AST_sha256':hashlib.sha256(ast.dump(fixed,include_attributes=False).encode()).hexdigest(),'stable_original_AST_sha256':stable_ast_sha(original),'stable_CPU_AST_sha256':stable_ast_sha(fixed),'four_changes':patch.changes,'semantic_mutation_checks':checks}))
