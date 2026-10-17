@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Actual October17,13:08UTC.** Target0.97; best measured0.950. Read
+**Actual October17,13:48UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
@@ -17,13 +17,13 @@ entries, epochs or publications. Observation loss is not restart authority.
 | Label-onlyGPUrecovery | **139230981v1**, read-only**60305** | COMPLETE/full recovery accepted13:01UTC; returned identity reconciled without repetition; observer root`s6-source-label-recovery-observer-20261017-v2` |
 | LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1actuallyRUNNING139234107v1 at13:07UTC; owns first epoch only |
 | LabelE1preservation/E2–3successor | **61037** | `s6-label-fixed3-followthrough-20261017-v2`; waits actual E1 then fully privately verifies each epoch before next resume |
-| Independent S6CPU32 | **139205901v2**,**40709** | Existing CPU run alive;`s6-fitting32-cpu-scout-20261017-v2/finish.*` |
+| Independent S6CPU32 | **139205901v2**, terminal**40709** | ERRORafter completed32/32classifier; finalbyte/RSSguard failed; no rerun |
 | QueuedGPU32scout | 139210569v1 | Canceled once while queued/zerooutput, actualCANCEL_ACKNOWLEDGED;34237/34308 retired |
 | Old finalE3serving/entry | old17301/17317/28090 | Stopped after explicit capacity rejection; exact ambiguous qualification identity quarantined |
 | Old equal-rank/R7 | old27596/31309 | Deprioritized before any push/entry; sources preserved |
 | S6exact entry | terminal20994 | Original57300990 COMPLETE/noerror0.950 |
 | Expanded own N3 | original938284/95408 | Complete5184/all16private verified; no established weak gain |
-| Old S6H100pilot | original942047 | Lastpending; inspect exact original before retirement, no duplicate |
+| Old S6H100pilot | original942047 | Zero runtime; blocked fixed evc33where bothGPUsallocated; no duplicate |
 
 Inspect live PIDs and original phase intents/results before acting. A finite
 observer's expiry/failure never means its GPU failed. Do not restart old owners.
@@ -161,8 +161,10 @@ required before any entry; last10:54UTC5used/0available. At most2Kagglebatch GPU
 sessions and2NewtonGPU nodes, minimum CPUs. A bounded immediate evc26probe946295
 could not allocate because resources became busy; no actual newCUDA result.
 
-Node33unchanged32MiBcontrol envelope now has8,323,072future bytes after spending
-64KiB on the distinctUIcommit controls; do not restore8MiB in future funding.
+Node33same32MiBenvelope now reassigns4MiBof the8,323,072future bytes to
+`full-comparison/final-matched-serving-v1`. Remaining other future bytes are
+4,128,768; preserve unpaid serving-cap bytes too. Original64KiBUIspend remains
+charged. Do not restore8MiB or double-count actual paid preparation.
 Keep20GiBnode/shared and5000sharedfile reserves after all original liabilities.
 Exact original stats/whole-byte proofs replace redundant bulk hashes/transfers.
 Credentials only ignored0600.env/RAM/stdin/ASKPASS, never argv/logs. Large
@@ -261,7 +263,42 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **21finite optimizer updates**, both
+Actual live Kaggle logs now also verify **258finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
 trainable on the3887study label-only E1. This is real optimization progress,
 not a completed epoch or an accuracy gain.
+
+## Completed matched models: prepared scoring, no GPU dispatch
+
+CPU946894compiled exact uniform/influence E3qualification/public sources and
+registered their canonical prepared keys under`licensed-parent-full-epoch-serving:`
+plus the modelSHA. Node33root
+`/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1`,
+local`artifacts/matched-final-serving-20261017-v1`. Both reuse original immutable
+training notebook outputs, with no weightDataset or large copy. CPU946946loaded
+both actual node39snapshots and passed their exact serving validation; no repeated
+whole-byte hash/transfer. Actual twoT4MRI qualification and publicCSV remain
+unexecuted and no new GPU/entry owner is admitted. Do not confuse preparation
+with an inference or score.
+
+New `rsna/competitive/licensed_label_serving.py` and
+`scripts/kaggle/licensed_label_serving.py` extend the same original full94
+compiler through isolated globals, requiring only fixed-final3/1458 and exact
+actual label recovery/target/mask/teacher/private proof. Original numerical
+training and original serving compiler SHA9b179868… remain unchanged. These
+helpers need the actual future label-final model; current E1is ineligible.
+
+CPU946881collected original CPU32failure and classifier receipts privately.
+Classifier PASS32/32,zero fallback/no timeout,20317windows/9618.9seconds; outer
+source line72retained-byte/RSSassertion failed, which one is not established.
+No full resource acceptance, independent clinical gain or full-cohort generator
+is admitted. Preserve private original numerical outputs; do not repeat the run.
+[Exact current evidence](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
+
+Final current regression4559passed/8skipped, focused40passed, mypy109passed.
+Threechanged serving files passRuff/format; global1327lint/57formatdebt remains
+explicit. CPU947129accepted the exact label-serving template against the actual
+privateparent and refused unfinished E1. Read its accepted source SHA in the
+linked scoring audit. CPU947214fresh funding includes paid controls once.
+Actual13:50account allowance remains5used/0available;13:51score replay still
+has57300990best0.950. No new inference, competition entry or score was created.

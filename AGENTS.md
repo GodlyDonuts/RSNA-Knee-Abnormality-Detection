@@ -22,7 +22,7 @@ preserved verbatim at `docs/AGENTS.history-20261017.md`; its old scores,
 pending/running snapshots and next-action instructions are historical. Other
 historical release/plan documents now link back to the current guides.
 
-## Current scientific distinctions, October17 13:08UTC
+## Current scientific distinctions, October17 13:48UTC
 
 - Target0.97; actual best**0.950**, S6entry57300990 COMPLETE/noerror. This
   reproduces external weights/inference. Own independent N3E16 scored0.894;
@@ -48,10 +48,11 @@ historical release/plan documents now link back to the current guides.
   CPU946659 verified source/runtime/inputs;946681 registered the title-derived
   identity without anotherSave. Original46281 stopped on a reference assertion,
   not a GPU failure. Never retry the old advisory slug or duplicate this GPU.
-- Read-only recovery observer**60305** watches that existing run. Original fitter
+- Recovery observer**60305** finished with actual complete acceptance. Original fitter
   59829 stopped before any prepare intent; replacement**60358** owns one first486-update epoch after that actual
   GPU acceptance. Source990c8ded is published
-  and pinned for the entire fixed3campaign. Actual E1is actuallyRUNNING as139234107v1; exactsource/runtime/inputs verified13:07UTC.
+  and pinned for the entire fixed3campaign. E1is actuallyRUNNING as139234107v1; source/runtime/inputs and real finite
+  optimizer updates are verified. The scientific recipe remains unchanged.
 - Finite successor**61037** waits60358's actual E1, independently verifies and
   privately preserves it, then may resume/preserve E2/E3, retaining the exact
   optimizer/RNG/source and3epoch/1458update recipe. Each push needs fresh actual
@@ -59,31 +60,32 @@ historical release/plan documents now link back to the current guides.
   entry authority. Do not duplicate either owner. Read the
   [actual continuation](initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 - Queued/zero-output scout139210569v1 is actuallyCANCEL_ACKNOWLEDGED; old
-  observers34237/34308 retired. Independent CPU32**139205901v2/40709** remains
-  alive. A provisional-state capacity race caused finalE3qualification push
+  observers34237/34308 retired. Independent CPU32**139205901v2** isERROR and40709finished. Its classifier
+  actually scored32/32without fallbacks, then the outer retained-byte/RSS guard
+  failed; resource acceptance is unproven. Preserve original results, no rerun. A provisional-state capacity race caused finalE3qualification push
   **725d71f2fbd6** to be explicitly rejected; CPU946111 quarantined that ambiguous
   identity and reconciled the dead claim. Never retry/submit thatslug. OldE3
   controllers17301/17317/28090 stopped; the completed learned E3 model is intact.
   Hold the account claim through any futureUI mutation and actual registration.
 - Old unstarted equal-rank/R7 campaigns are retired with sources preserved.
-  No speculative resurrection. H100942047 remains lastpending; a fresh bounded
-  evc26health request946295 could not allocate, so no newCUDA result exists.
+  No speculative resurrection. H100942047 remains pending with zero runtime on fixed evc33, bothGPUs
+  allocated. Fresh evc40request947064could not allocate; no newCUDA result.
 - Released encoders exposed internal studies. Head CV on their features is not
   independent whole-model OOF. Protected clinical values stay unused; tests,
   teacher fidelity and weak-label agreement are not clinical accuracy.
 
-Read [the original current execution receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md)
-and the in-place current guides before acting. New64KiBUIcontrols leave
-8,323,072future bytes inside the old32MiBnode33 envelope; do not restore8MiB
-or double-count paid large bytes in later publication funding.
+Completed uniform/influence final models now have CPU-compiled exact full94
+serving sources (**946894**) and actual preserved-snapshot validation (**946946**).
+No T4qualification/public run/entry was pushed. New `licensed_label_serving`
+helpers accept only the fully preserved fixed-final label contrast and retain
+the original graph/input/math checks. They are preparation, not an accuracy gain.
+[Current scoring preparation](initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
-
-The fixed3 label-production compiler is now also CPU-admitted on the actual
-original uniform source and all3887arrays (**CPU946417**); all13numerical modules
-remain exact. It cannot build an executable epoch without the actual label-GPU
-recovery receipt. No production fit or score exists. Read-only referencev2
-observer**47637** is active; it cannot push, run or submit another model.
-[Original updated receipts](initiative/audits/lockin-097-execution-20261017-v2/README.md).
+Node33reassigned4MiBfrom8,323,072future control bytes to the serving root, leaving
+**4,128,768other future bytes** inside the same32MiBenvelope. Preserve the unpaid
+part of the4MiBserving cap too; deduct actual paid bytes once. Do not restore
+8MiB or count paid preparation twice. Exact funding is at
+`/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/funding.json`.
 
 ## Execution, assets and resources
 
@@ -163,7 +165,7 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **21finite optimizer updates**, both
+Actual live Kaggle logs now also verify **258finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
 trainable on the3887study label-only E1. This is real optimization progress,
 not a completed epoch or an accuracy gain.

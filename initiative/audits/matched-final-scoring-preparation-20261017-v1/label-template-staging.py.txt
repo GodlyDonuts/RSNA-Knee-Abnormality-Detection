@@ -1,0 +1,18 @@
+
+import hashlib,json,os,shutil,sqlite3,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');R=P/'full-comparison/final-matched-serving-v1';S=R/'code';D=R/'label-scope-template-v1';assert not D.exists();fund=json.loads((R/'funding.json').read_text());assert fund['CPU_job']=='946894' and fund['new_serving_control_cap_bytes']==4*2**20 and fund['future_other_controls_bytes']==4128768;used=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());payload=sum(len(t.encode()) for t in v['files'].values());assert used+payload+65536<4*2**20 and shutil.disk_usage('/tmp').free>611754508347
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve()) and not p.exists();compile(text,name,'exec')
+for name,text in v['files'].items():p=S/name;p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(S));from scripts.kaggle import licensed_label_serving as compiler
+from rsna.competitive import licensed_label_serving as scope
+base=(S/'rsna/competitive/licensed_importance_serving.py').read_text();label=(S/'rsna/competitive/licensed_label_serving.py').read_text();standalone=compiler.standalone(base,label);namespace={};exec(compile(standalone,'standalone_actual_label_scope_CPU_admission','exec'),namespace);assert namespace['RECOVERY']==scope.RECOVERY and namespace['LABELS']==scope.LABELS
+key='licensed-importance-full-fit:S6-label-full:abfc460b8eded01a9b24486c8457216ccbe6f88746aa02289ec513bc1edc9a21'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:current=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0])
+assert current['kernel_id']==139234107 and current['epoch']==1
+training={'status':'RUNNING','kernel_id':139234107,'role':'uniform','epoch':1,'receipt':current.get('receipt',{'binding':current['binding']['binding']})};parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text();helpers=[(S/n).read_text() for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_importance_serving.py','rsna/competitive/licensed_label_serving.py','rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')]
+try:compiler.build(parent,*helpers,training,{},mode='competition')
+except ValueError as error:assert 'fixed-final' in str(error)
+else:raise RuntimeError('Actual unfinished label E1was incorrectly admitted as a final served model')
+D.mkdir(mode=0o700);out={'status':'actual_private_parent_and_standalone_label_scope_CPU_template_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'original_compiler_sha256':compiler.BASE_COMPILER_SHA,'actual_incomplete_E1_kernel_refused':139234107,'actual_incomplete_E1_ledger_state':current['state'],'actual_executable_label_final_model_or_GPU_admitted':False,'new_GPU_Dataset_submission_model_or_pixel_transfers':0,'existing_serving_control_cap_bytes':4*2**20,'future_other_controls_preserved_bytes':4128768,'preparation_base_git':v['base_git'],'published_main_source_pin_required_before_any_GPU':True};(D/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

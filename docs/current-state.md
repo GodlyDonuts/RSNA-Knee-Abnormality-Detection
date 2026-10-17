@@ -1,146 +1,87 @@
 # Current project state
 
-**Verified October 17, 2026, 13:08 UTC.** The owner targets **0.97**. Best actual
-project public AUC remains **0.950**; the target has not been reached. Read the
-[research brief](research-brief.md), [execution handoff](codex-continuation.md)
-and [research-agent handoff](research-agent-handoff.md). Original receipts and
-fresh live state override dated progress narratives.
+**Verified October 17, 2026, 13:48 UTC.** Our target is **0.97**. Best measured
+project public AUC remains **0.950**. The target has not been reached.
 
-## Actual scores
-
-| Candidate | Submission | Public AUC | Meaning |
+| Candidate | Submission | Public AUC | What was demonstrated |
 |---|---:|---:|---|
-| Released S6, exact offline inference | **57300990** | **0.950** | COMPLETE/noerror; reproduced external weights and inference |
-| Released nartaa CoAtNet | 57258866 | 0.949 | Reproduced external weights; not our source training |
-| Our whole94 parent adaptation, epoch1 | 57294905 | 0.949 | No gain over unchanged parent established |
-| Our independent N3, epochs4/8/12/16 | 57256756/57259376/57262392/57265916 | 0.821/0.869/0.890/**0.894** | Own MRI training from general ImageNet initialization |
-| Context / full-field / regional additions | 57287572/57289392/57291182 | 0.948 each | No demonstrated gain over0.949 |
+| Released S6, exact offline inference | **57300990** | **0.950** | External weights and inference reproduced; COMPLETE, no error |
+| Released nartaa CoAtNet | 57258866 | 0.949 | External weights reproduced |
+| Our whole94 parent adaptation, epoch 1 | 57294905 | 0.949 | No improvement over unchanged parent established |
+| Independent N3, epochs 4/8/12/16 | 57256756/57259376/57262392/57265916 | 0.821/0.869/0.890/**0.894** | Own MRI training from general ImageNet initialization |
+| Context / full-field / regional additions | 57287572/57289392/57291182 | 0.948 each | No demonstrated public gain |
 | Earlier own DINO | 57182737/57182547 | 0.872 | Historical own-model reference |
 
-Public leaderboard scores are not private-final or clinical accuracy. Last saved
-leaderboard first place was0.969; no current leading method is inferred.
-[Score proofs](../initiative/audits/s6-actual0950-result-20261017-v1/README.md),
-[leaderboard proof](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json).
+Public AUC is not private-final performance or clinical accuracy.
+[Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
 
-## New actual progress
+## Training that is actually running
 
-**UniformIID16 finished all3epochs/1,458finite updates.** CPU946112 verified
-its complete learned state and privately preserved all5final objects at
-HFf47a884610cb9dc930827ba539ee3fcc77a4b050. Whole94 also finished all3epochs;
-all six immutable epochs are fully verified and must not be republished. Influence
-139220032v1 also finished1458; CPU946686 privately verified all5final objects at
-HF37abff1d3c521533738d6036f0d825d0c82e51ee. Both sampling roles/all6epochs are
-complete/private verified; original34538 finished successfully. Completion is
-not a measured accuracy improvement.
+The **source-label comparison** is training all 73,136,096 parameters on the
+same 3,887 fitting studies as the completed uniform control. Source labels are
+the only scientific change: images, masks, teacher, sampling, optimizer and the
+fixed three-epoch/1,458-update recipe remain matched. Neither label source is
+clinical ground truth.
 
-**The stronger public reference now has one committed v2.** Notebook139199164
-has8unchanged code cells, private/offline/twoT4, with originalR6Datasetv1 retained.
-Kaggle changed Docker duringSave&RunAll; CPU946191 recorded the difference and
-requires actual committed-runtime/input/output acceptance. Latest API status is
-absent; actual v2logs now explicitly showQueued/twoT4/output0B. Prior interactive success is separate; this is not
-our0.958score. Never submit source-onlyv1 or duplicate the newSave.
+- **139234107 v1** is RUNNING on two T4s. Exact source/runtime/inputs were
+  verified; live logs already showed 258 finite optimizer updates.
+- Its actual GPU recovery **139230981 v1** passed complete old-control replay,
+  both-label full/stop/resume state equality and prediction-byte equality.
+- **60358** owns epoch 1. **61037** verifies and privately preserves each completed
+  epoch before resuming epochs 2/3. No completed treatment epoch or new score
+  is claimed. Scientific source remains `990c8ded` throughout the campaign.
 
-**The source-label test now has a real-payload GPU recovery compiled and CPU-
-admitted.** CPU946080 verified32actual original feature/label/mask/teacher arrays.
-New source0a6f6c567901… preserves all original numerical modules and tests complete
-old-control replay plus both-label-role full/stop1/resume. Seven compiler checks
-and five contract groups pass. The fixed treatment uses the same3887studies,
-uniform16draws, inputs, teacher, objective and optimizer, changing only source labels.
-The one actual recovery139230981v1 completed and passed at13:01UTC. Kaggle created it under its
-title-derived slug`godlydonuts/rsna-private-fixed-source-label-recovery`; original
-CPU946629 failed only the returned-reference assertion. CPU946659 verified the
-actual source/runtime/inputs;946681 registered it without repetition. Read-only
-60305 finished after complete state/prediction acceptance. Both labels replayed
-full/stop/resume exactly;411learned tensors differ across roles. This is an
-engineering pass, not accuracy. Actual E1was pushed once as139234107v1 at13:04UTC, full3887studies/486updates
-for segment1of3; no completed full fit or new score is claimed.
-Dataset12653444v1 and4GiB+16MiB storage funding are already verified.
+[Actual recovery, training and continuation](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 
-**The complete label-training follow-through is now owned.** First owner60358
-owns E1after actual recovery; distinct successor61037 waits that actual E1,
-fully verifies/preserves it privately, then advances exact E2/E3. Source990c8ded,
-3887studies, original optimizer/RNG/LR and fixed1458updates remain unchanged.
-Fresh capacity/VM/storage precede each push; uncertainty stops. NoDataset or
-competition-entry path exists. Original46281/59829 stopped; never restart them.
-[Original recovery identity and continuation](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
+## Completed models awaiting scoring
 
-The zero-output GPU32scout was canceled once; it isCANCEL_ACKNOWLEDGED, and its
-CPU owners retired. During that transition an old capacity race caused the
-finalE3qualification push to be explicitly rejected. CPU946111 reconciled it
-read-only and permanently quarantined that ambiguousslug; final learned weights
-are intact, but old serving/entry controllers stopped. This is an infrastructure
-failure, not evidence about model accuracy. No competition entry was made.
+Whole94, uniform16 and influence16 each completed three epochs and 1,458 updates;
+all nine immutable checkpoints are privately fully download/size/SHA verified.
+Do not repeat their training or preservation.
 
-[Actual original receipts and controls](../initiative/audits/lockin-097-execution-20261017-v2/README.md),
-[label experiment](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
+Uniform/influence final inference sources are now prepared by **CPU946894**;
+**CPU946946** validated both actual preserved snapshots through their serving
+adapter. They retain original full94, two-view inference and reuse immutable
+notebook weights. They have **not** run their T4 qualification/public inference
+or received competition scores. New label-final serving helpers also remain
+prepared until the actual final model and private preservation exist.
+[Exact scoring preparation](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
+The stronger public reference **139199164 v2** remains Queued on its actual
+logs page; API status is absent. It is unqualified and unscored. Its separate
+interactive run passed, which is not a hidden result. Retain R6 Dataset v1;
+v2 contains different R7 weights under the same filenames. Never repeat Save,
+submit source-only v1, or upload the public three-row CSV.
 
-The fixed3 label-production compiler is now also CPU-admitted on the actual
-original uniform source and all3887arrays (**CPU946417**); all13numerical modules
-remain exact. It cannot build an executable epoch without the actual label-GPU
-recovery receipt. No production fit or score exists. Read-only referencev2
-observer**47637** is active; it cannot push, run or submit another model.
-[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
+## Other actual outcomes
 
-## Current owned work
+The CPU32 scout **139205901 v2** is ERROR and observer40709 finished. Its
+classifier actually scored all 32 studies without fallbacks in 9,618.9 seconds;
+the outer wrapper then failed a final retained-byte/RSS assertion. Resource
+acceptance remains unproven; no repeat run was launched. Original private
+outputs were preserved, and only aggregate failure/cost evidence was collected.
 
-| Work | Original identity | Latest actual state |
-|---|---|---|
-| Whole94 fixed3 | 139172537v1 | Complete1458; all3private epochs verified |
-| UniformIID16 fixed3 | 139192503v1 | Complete1458; all3private epochs verified |
-| InfluenceIID16 final | **139220032v1**, terminal34538 | Complete1458; all3epochs private verified |
-| Exact public0.958 reference | **139199164v2** | Save&RunAll committed once;actualv2logsQueued/APIunknown, no acceptance/entry |
-| Source-label recovery | **139230981v1**, read-only60305 | COMPLETE/full recovery accepted; no duplicate push |
-| First-label-epoch follow-through | **60358** finite CPU owner | Source990c8ded pinned; actual recovery passed; E1actuallyRUNNING139234107v1, exact source/runtime/inputs verified13:07UTC |
-| Fixed3label successor | **61037** finite CPU owner | Waits actual E1; private verifies/preserves1–3 and may resume2/3; no entry |
-| S6 CPU32 scout | **139205901v2**,40709 | Existing CPU run alive; no new MRI result collected |
-| S6 GPU32 scout | 139210569v1 | Canceled while queued/zerooutput;34237/34308 retired |
-| Old finalE3serving/entry | old17301/17317/28090 | Stopped; rejected qualification identity quarantined |
-| Expanded own N3 | original938284 | Complete5184/all16private epochs verified; no established weak gain |
-| S6 H100 pilot | original942047 | Lastpending, never duplicated |
+H100 pilot **942047** remains pending with zero runtime on evc33, where both GPUs
+were allocated. Immediate evc40 device-only request947064 could not allocate;
+no new CUDA result exists. Healthy Kaggle training remains untouched.
 
-Last authenticated competition allowance10:54UTC:5used/**0available**. No new
-competition entry this turn. A bounded immediate H100device-only request946295
-could not allocate; no newCUDA/MRI/optimizer result is claimed. Large originals
-remain private, healthy existing runs are unchanged, and all liabilities remain.
+## Resources and handoff
 
-A new fitting-only objective diagnostic (**CPU946541**) weakened the hypothesis
-that75%teacher anchoring necessarily prevents corrections: the current0.25source
-weight already reverses most opposed strong-source pairs, all595plainFracture
-pairs included. This changed no recipe and is not an accuracy result.
-[Actual negative and scope](../initiative/audits/fitting-teacher-anchor-tension-20261017-v1/README.md).
+Authenticated competition allowance at **13:50 UTC**: **5 used, 0 available**. Refresh it
+before any entry. Single canonical ledger/claim remain on Newton; credentials
+stay in ignored0600.env/RAM/stdin, and large artifacts stay private.
 
-## Evidence and limits
+The new serving controls use 4 MiB of the existing node33 future allowance,
+leaving **4,128,768 other future bytes** within the unchanged 32 MiB envelope.
+Preserve the unpaid part of that 4 MiB allocation as well as other liabilities;
+deduct paid bytes once. Original 20 GiB and 5,000-file reserves remain.
 
-Expanded N3 fixed-final weak macro is0.9174315801 versus0.9209253491 original,
-delta−0.00349377, conditional95%[−0.01331711,+0.00607252]: no established gain.
-Earlier neighbor/weighting/averaging/stratification and new context/field/regional
-results remain in the research brief. Protected clinical values remain unused.
-Released encoder exposure prevents independent whole-model OOF claims on its
-training cohort. Weak-label agreement and green engineering checks are not
-clinical truth or predicted Kaggle AUC.
+Source `01bda353` is privately mirrored at
+**HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**, all 43 objects verified. Do not
+repeat it. [Preservation receipt](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-The original detailed10:15UTC guide remains recoverable from
-[the preceding Git snapshot](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/ca90fa5e347310dbbb35765e5dcc5c1b07e04910/docs/current-state.md); original receipts
-and archived source contracts are never replaced with new narratives.
-
-The source9c083a4b milestone is now privately mirrored/full37object download/SHA
-verified at HF7a14fc051d913b14b8e2895cc8db60fa6166e2ce.
-[Exact private preservation](../initiative/audits/hf-source-labels-exact0958-final3-20261017-v1/README.md).
-
-Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
-verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
-The published source pin remains990c8ded through all3label epochs. Original59829
-stopped with no prepare intent; current60358/61037 own the actual follow-through.
-[Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).
-
-The active full-label campaign/recovery and all completed sampling receipts are
-now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
-all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
-01bda353. Never repeat that milestone.
-[Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
-
-Actual live Kaggle logs now also verify **21finite optimizer updates**, both
-allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
-trainable on the3887study label-only E1. This is real optimization progress,
-not a completed epoch or an accuracy gain.
+Read the [research brief](research-brief.md), [execution handoff](codex-continuation.md)
+and [research-agent handoff](research-agent-handoff.md). Accepted masks/folds and
+protected gold/confirmation remain unchanged. Released encoders saw internal
+studies; head CV on their features is not independent whole-model OOF. Negative
+results and original evidence remain in the research archive.

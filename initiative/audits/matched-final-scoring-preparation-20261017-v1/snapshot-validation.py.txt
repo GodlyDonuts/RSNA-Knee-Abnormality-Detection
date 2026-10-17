@@ -1,0 +1,8 @@
+
+import hashlib,json,os,sys
+from pathlib import Path
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1);ns={};assert hashlib.sha256(v['helper'].encode()).hexdigest()=='e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d';exec(compile(v['helper'],'actual_preserved_snapshot_serving_admission','exec'),ns);root=Path('/tmp/rsna-licensed-importance-full-epochs-20261017-v1');out={}
+for role,inputs in v['roles'].items():
+ D=root/role/'epoch-003';proof=json.loads((D/'verified.json').read_text());assert proof==inputs['publication'];p=D/'model.pt';assert p.stat().st_size==proof['files']['model.pt']['bytes'];snapshot=torch.load(p,map_location='cpu',weights_only=True);checked=ns['validate'](snapshot,inputs['actual'],proof,proof['files']['model.pt']['sha256']);assert checked['completed']==1458 and checked['serving_windows']==94 and checked['role']==role;out[role]={'actual_serving_snapshot_validation':checked,'all_learned_state_tensor_elements':sum(t.numel() for t in snapshot['model'].values()),'original_private_revision':proof['revision'],'no_repeated_weight_hash_or_transfer':True};del snapshot
+print(json.dumps({'status':'both_actual_preserved_final_models_pass_exact_serving_CPU_validation','CPU_job':os.environ['SLURM_JOB_ID'],'roles':out,'new_GPU_MRI_forward_optimizer_or_weight_copies':0,'not_actual_T4_qualification_or_accuracy':True}),flush=True)

@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Verified October17,2026,13:08UTC. Target0.97; actual best0.950.** Read
+**Verified October17,2026,13:48UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
@@ -45,12 +45,12 @@ engineering checks with accuracy.
   clinical values to tune these experiments.
 
 
-The fixed3 label-production compiler is now also CPU-admitted on the actual
-original uniform source and all3887arrays (**CPU946417**); all13numerical modules
-remain exact. It cannot build an executable epoch without the actual label-GPU
-recovery receipt. No production fit or score exists. Read-only referencev2
-observer**47637** is active; it cannot push, run or submit another model.
-[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
+Actual label recovery passed and full3887study E1is running as139234107v1,
+with finite optimizer progress. All13numerical modules remain unchanged.
+Completed uniform/influence final models now have exact CPU serving preparation
+and actual snapshot validation, while T4qualification and scores remain absent.
+The new label-final serving path requires actual completed3/1458 and private
+proof before generation. [Current scoring evidence](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
 ## Exact recipes and assets
 
@@ -107,11 +107,12 @@ Do not cite low source-label rankcorrelation as proof of major clinical errors.
    changed container only after actual full-stage/input/output checks, then
    obtain its hidden result under fresh allowance. Do not push it again. No diagnostic model or
    public3rowCSV submission. Do not change the reference before reproduction.
-2. Finish observing owned referencev2/CPU32/influence outcomes. GPU32scout is
+2. Observe owned referencev2 and label training. CPU32ended at its finalresource
+   guard after complete32/32classification; influence finished/allprivateverified. GPU32scout is
    canceled; finalE3rejected qualification identity is permanently quarantined. Negative results
    should change priorities, not trigger a duplicate run.
-3. Admit actual real-MRI source-label GPU recovery and fit the fixed treatment
-   only after full state/prediction recovery and all-future funding pass. It
+3. Continue actual source-label fitting through its owned fixed3/1458 recipe;
+   recovery already passed. Score only qualified, privately verified models. It
    tests labels, not a claim that either supervision source is ground truth.
 4. Use measured residual failures for any new mechanism: missing localized
    evidence, cross-view geometry, state/extent supervision, teacher-error
@@ -148,7 +149,7 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **21finite optimizer updates**, both
+Actual live Kaggle logs now also verify **258finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
 trainable on the3887study label-only E1. This is real optimization progress,
 not a completed epoch or an accuracy gain.

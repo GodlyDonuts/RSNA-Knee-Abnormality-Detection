@@ -1,6 +1,6 @@
 # Research brief
 
-**October17,13:08UTC.** Target0.97; actual best0.950. See
+**October17,13:48UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
 ## What we are testing now
@@ -82,12 +82,12 @@ an observed speedup. The matched source-label arm keeps this uniform recipe and
 changes only target values. No tiny engineering model is competition-eligible.
 
 
-The fixed3 label-production compiler is now also CPU-admitted on the actual
-original uniform source and all3887arrays (**CPU946417**); all13numerical modules
-remain exact. It cannot build an executable epoch without the actual label-GPU
-recovery receipt. No production fit or score exists. Read-only referencev2
-observer**47637** is active; it cannot push, run or submit another model.
-[Original updated receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
+Actual label recovery passed and full3887study E1is running as139234107v1,
+with finite optimizer progress. All13numerical modules remain unchanged.
+Completed uniform/influence final models now have exact CPU serving preparation
+and actual snapshot validation, while T4qualification and scores remain absent.
+The new label-final serving path requires actual completed3/1458 and private
+proof before generation. [Current scoring evidence](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
 ## New fitting-only objective check
 
@@ -107,8 +107,9 @@ unchanged; do not choose an anchor weight from this screen.
 Obtain the exact reference's committed offline acceptance and actual hidden
 result. Inspect the original referencev2/CPU32/influence outcomes without duplicating them.
 The queued zero-output GPU32scout is canceled; its CPU owners retired.
-Admit a distinct real-MRI GPU source-label recovery under fresh complete VM and
-storage funding, then fit only after acceptance. Preserve fixed-final evidence,
+Continue the owned fixed3label treatment and prepare its fixed-final scoring
+after actual private epoch preservation. Refresh capacity/VM/entry allowance
+before any later mutation. Preserve fixed-final evidence,
 all12targets, original checkpoint identities and negative outcomes. A useful
 positive mechanism should survive a matched seed/fold or appropriate external
 check; public-label agreement alone cannot justify clinical truth.

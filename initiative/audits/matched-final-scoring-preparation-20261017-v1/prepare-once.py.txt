@@ -1,0 +1,54 @@
+"""One CPU-only preparation of two completed fixed-final comparisons; no GPU push."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+L=Path(__file__).resolve().parent;ROOT=L.parents[1]
+git=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+names=['rsna/competitive/licensed_importance_serving.py','rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py','scripts/kaggle/licensed_importance_serving.py','scripts/kaggle/series_boundary_notebook.py','scripts/kaggle/output_csv.py','scripts/kaggle/workflow.py','scripts/kaggle/components.py']
+files={n:subprocess.check_output(['git','show',git+':'+n],cwd=ROOT,text=True) for n in names}
+files.update({n:'' for n in ['rsna/__init__.py','rsna/competitive/__init__.py','scripts/__init__.py','scripts/kaggle/__init__.py']})
+old=ROOT/'artifacts/licensed-importance-full-comparison-20261017-v1'
+roles={role:{'actual':json.loads((old/f'{role}-epoch-3-actual-accepted.json').read_text()),'publication':json.loads((old/f'{role}-epoch-3-private-verified.json').read_text())} for role in ('uniform','influence')}
+program=r'''
+import hashlib,importlib.util,json,os,shutil,sys,time,subprocess
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');R=P/'full-comparison/final-matched-serving-v1';S=R/'code';assert not R.exists();prior=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());newcap=4*2**20;future=8323072-newcap;assert future==4128768 and prior+newcap+future+2**20<32*2**20 and shutil.disk_usage('/tmp').free>611754508347;q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);quota=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(quota[2])-int(quota[1]))*1024>20*2**30+4*2**20 and int(quota[6])-int(quota[5])>5008
+parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py');parent_source=parent.read_text();assert hashlib.sha256(parent_source.encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde';oldmeta=json.loads(parent.with_name('staged.json').read_text());R.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(S));from scripts.kaggle.licensed_importance_serving import build
+from rsna.competitive.licensed_importance_serving import provenance
+spec=importlib.util.spec_from_file_location('matched_final_serving_workflow',S/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w);import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') and who.get('username')=='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Original coordinator busy; preparation has no mutation retry';time.sleep(3)
+owner={'kind':'completed_matched_fixed_final_serving_CPU_preparation','CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner)
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);prepared={};sources={};headers={};rows={};helpers=[v['files'][n] for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_importance_serving.py','rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')]
+  for role,inputs in v['roles'].items():
+   actual,pub=inputs['actual'],inputs['publication'];model_sha=actual['receipt']['epoch']['sha256'];assert actual['role']==role and provenance(actual,pub,model_sha)==3 and actual['receipt']['completed']==1458 and actual['receipt']['fixed_final_complete'];key='licensed-parent-full-epoch-serving:'+model_sha;assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   training=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-importance-full-fit:'+actual['source_sha256'],)).fetchone()[0]);assert training['state']=='importance_full_fit_actual_complete' and training['receipt']==actual['receipt'] and training['kernel_id']==actual['kernel_id'] and training['slug']==actual['slug'];kernel=r.kernel('GetKernel',actual['slug'],1);assert hashlib.sha256(kernel['blob']['source'].encode()).hexdigest()==actual['source_sha256'] and r.kernel('GetKernelSessionStatus',actual['slug'],1).get('status')=='COMPLETE'
+   prepared[role]={};sources[role]={}
+   for mode in ('qualification','competition'):sources[role][mode],prepared[role][mode]=build(parent_source,*helpers,actual,pub,mode=mode)
+   rows[role]={'state':'importance_epoch_serving_prepared','source_git':v['source_git'],'role':role,'epoch':3,'model_sha256':model_sha,'training':actual,'publication':pub,'prepared':prepared[role],'new_weight_Dataset_or_copy':False,'CPU_only_preparation_no_GPU_or_entry_authority':True}
+  assert sum(len(s.encode()) for role in sources.values() for s in role.values())+sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+65536<newcap
+  for role in sources:
+   D=R/role;D.mkdir(mode=0o700)
+   for mode,source in sources[role].items():p=D/(mode+'.private.py');p.write_text(source);p.chmod(0o600)
+   w.new_json(D/'prepared.json',rows[role]);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',('licensed-parent-full-epoch-serving:'+rows[role]['model_sha256'],json.dumps(rows[role],sort_keys=True)))
+  db.commit();funding={'status':'within_original32MiB_controls_4MiB_reassigned_from_future_no_new_envelope','CPU_job':os.environ['SLURM_JOB_ID'],'old_future_controls_bytes':8323072,'new_serving_control_cap_bytes':newcap,'future_other_controls_bytes':future,'actual_prior_control_bytes':prior,'shared_bytes_or_weight_copies':0,'minimum_node_free_bytes_preserved':611754508347};w.new_json(R/'funding.json',funding);out={'status':'both_completed_fixed_final_IID16_models_CPU_serving_sources_prepared','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'roles':prepared,'columns':oldmeta['columns'],'expected_public_roster_sha256':oldmeta['expected_public_roster_sha256'],'original_parent_source_sha256':hashlib.sha256(parent_source.encode()).hexdigest(),'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'funding':funding,'new_Dataset_weight_download_GPU_or_entry_mutations':0,'actual_T4_qualification_or_model_accuracy_claim':False};w.new_json(R/'prepared.json',out);print(json.dumps(out),flush=True)
+finally:
+ assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program,'one_CPU_completed_matched_final_serving_preparation','exec');(L/'program.py.txt').write_text(program)
+E=ROOT/'.env';assert E.stat().st_mode&0o077==0;creds={k.strip():val.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+with (L/'prepare.intent.json').open('x') as f:json.dump({'source_git':git,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'models':['uniform-E3','influence-E3'],'new_GPU_or_entry_authority':False,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:10:00','--job-name=rsna-completed-matched-final-serving','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'files':files,'roles':roles,'source_git':git,'token':creds['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=700);(L/'prepare.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-1800:];out=json.loads(x.stdout);(L/'prepared.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
