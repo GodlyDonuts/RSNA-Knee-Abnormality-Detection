@@ -190,15 +190,15 @@ old capacity-rejected private identity is quarantined, never retried. These are
 execution facts, not accuracy improvements. Read the current execution handoff
 before taking ownership of any live model or planning a conflicting GPU push.
 
-The [latest private mirror](../initiative/audits/hf-whole94-e1-capacity-screen-20261017-v1/verified.json)
+The [earlier private mirror](../initiative/audits/hf-whole94-e1-capacity-screen-20261017-v1/verified.json)
 fully verifies source60ed92d3 at HFda34234c/all102smallobjects. This includes the
 original new paper, critical assessment and exact S6 checkpoint/source receipts.
 Current guide receipt bookkeeping can be later than that mirrored source.
 
 ## Later actual engineering and training evidence
 
-Whole94 E2 has682/1458 and uniform16 E1 has367/1458 actual finite updates on
-both original T4s at04:01UTC. Expanded N3 was observed at2166/5184,epoch7,
+Whole94 E2 has722/1458 and uniform16 E1 has486/1458 actual finite updates on
+both original T4s in the later Logs. Expanded N3 was observed at2166/5184,epoch7,
 and its epochs1–6 are privately fully verified. Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
@@ -212,3 +212,9 @@ fully verified on Newton. Bounded H100 classifier probe942047 is queued, not sco
 [Exact source/runtime/gate proof](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
 Original full regression terminated successfully:4537passed/8skipped/exit0;
 no numerical source changed. Do not mistake that for clinical improvement.
+
+Latest distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
+all40objects/268191bytes; current receipt bookkeeping follows that source.
+[Exact private proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
+Uniform486 is the first optimizer boundary, not an observed terminal/checkpoint
+publication. The original finite owners continue.

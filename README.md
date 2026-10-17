@@ -19,13 +19,13 @@ without improving the external reference. These are public leaderboard scores, n
 
 Full adaptation completed its first **486-update epoch on both T4s**, privately
 preserved and independently verified. The learned checkpoint also passed 32-MRI
-qualification on both T4s with zero prediction difference. Epoch 2 shows **682 of 1,458 actual finite updates**
+qualification on both T4s with zero prediction difference. Epoch 2 shows **722 of 1,458 actual finite updates**
 under the exact original worker/checkpoint. Expanded own-model fitting on 2,592
 studies is **running on a Newton H100**, at 2,166 of 5,184 updates / epoch 7; its
 first six checkpoints are privately verified. Neither has a new competition score.
 
 The matched uniform-16 versus teacher-influence-16 full-encoder comparison now
-has its first uniform GPU session at **367 of 1,458 actual finite updates**;
+has its first uniform GPU session at **486 of 1,458 actual finite updates**;
 influence is not yet pushed. Both original Kaggle sessions now show allocated
 T4 headers and real optimizer records. Capacity-aware inference has next-lane
 priority after actual two-session admission. A fitting-only teacher mirror screen

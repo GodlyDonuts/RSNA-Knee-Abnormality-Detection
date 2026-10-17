@@ -63,9 +63,9 @@ One actual E2 push **139137922v1**, exact slug
 `godlydonuts/rsna-parent-whole94-full-e2-7cbc68dad857`, source
 7cbc68dad8571d332cd2d85fb08633283b814309f9887b6c9f3192633e4e73ca,
 is API **RUNNING**. It resumes exact E1 model/AdamW/LR/RNG/scaler at486; do not
-restart it. At04:01 its original live Logs show both allocated T4s and682/1458
-finite updates, epoch2/batch196, loss0.5351913/grad1.3402234/scale1024.
-[Actual visible evidence](../initiative/audits/research-progress-20261017-0401-v1/actual-Kaggle-progress.json).
+restart it. Later its original live Logs show both allocated T4s and722/1458
+finite updates, epoch2/batch236, loss0.5675485/grad1.5681736/scale1024.
+[Actual visible evidence](../initiative/audits/research-progress-20261017-0401-v1/later-visible-Kaggle-boundaries.json).
 This supersedes the prior blank-log observation without any source/job change. E3 must use the same replay/actual previous checkpoint at972.
 
 Local coordinator `replay-program.py.txt`; owner
@@ -119,8 +119,8 @@ Original uniformE1 **139137040v1**,
 `godlydonuts/rsna-u16-full-e1-8155b3803c5a`, source
 8155b3803c5a4ccd6646c21ead1a8a4eb6d0000ed84106b10befae9901f35081,
 is API RUNNING. First push passed the all-future funding check. Do not push it
-again. Its04:01 live Logs show367/1458 actual finite updates, epoch1,
-loss0.5385191/grad1.6795369/scale1024 and both accepted allocated T4 headers.
+again. Its later live Logs show486/1458 actual finite updates, epoch1,
+loss0.4985697/grad2.5705879/scale1024 and both accepted allocated T4 headers.
 InfluenceE1 remains unpushed. Fresh-process reconstruction of the
 entire original uniform source was byte-identical, so it does not suffer the main
 initial proof-order mismatch.
@@ -269,7 +269,7 @@ cause another ambiguous capacity rejection.
 
 ## Latest Git/private mirror and actual broad QA terminal
 
-Current source60ed92d3 was pushed and remote-verified, then fully privately
+Earlier source60ed92d3 was pushed and remote-verified, then fully privately
 mirrored at HFda34234c32cae097e6a04cd392a88f6e2c594373/all102objects/648152bytes.
 Canonical shared lock and full re-download/size/SHA passed; never repeat. The
 large global archive manifest has an exact source Git-blob/byte/SHA proof in the
@@ -283,3 +283,11 @@ focused80/Ruff6/mypy3 and archive/currentv2 checks passed. Known unchanged
 global Ruff1327/format57 debt is preserved, not concealed by rewriting archives.
 [Actual terminal](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
 No clinical or new competition score follows these checks.
+
+Latest new sourceb9dabf263075bc8b20a624eb36b2359efefa8577 is fully privately
+mirrored at HF0917971d00d1b58731930c00bba631e487e8cf70/all40objects/268191bytes,
+CPU942086, canonical lock and every re-download/size/SHA accepted. Never repeat.
+[Actual receipt](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
+Later Logs show main722updates and uniform486. Uniform486 is an optimizer
+boundary, **not yet observed actual terminal or privately preserved epoch**;
+owner97530 continues to handle that original state. Do not duplicate it.

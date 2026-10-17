@@ -50,9 +50,9 @@ Do not resubmit their exact versions.
 
 | Work | Original identity | Latest actual evidence |
 |---|---|---|
-| Full licensed-parent adaptation | E1 139111324 v1; E2 **139137922 v1** | **E1 complete**, 486 updates and private verification; E2 **682/1458 actual finite updates**, both T4s; exact worker/checkpoint resumed |
+| Full licensed-parent adaptation | E1 139111324 v1; E2 **139137922 v1** | **E1 complete**, 486 updates and private verification; E2 **722/1458 actual finite updates**, both T4s; exact worker/checkpoint resumed |
 | Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 2,166 of 5,184 finite updates / epoch 7; epochs 1–6 privately verified |
-| Uniform-16 versus influence-16 full-encoder comparison | Owner **97530**; uniform E1 **139137040 v1** | Original uniform **367/1458 actual finite updates**, both T4s; influence remains unpushed |
+| Uniform-16 versus influence-16 full-encoder comparison | Owner **97530**; uniform E1 **139137040 v1** | Original uniform **486/1458 actual finite updates**, both T4s; influence remains unpushed |
 | Patch-header research | Original Slurm 929938 | **COMPLETED0:0**, exact full/stop1/resume engineering recovery passed; no accuracy result |
 | Sampled-epoch serving compiler | Committed preparation | Synthetic CPU/regression checks passed; **no actual serving GPU/public-MRI acceptance** |
 
@@ -70,9 +70,9 @@ The first continuation preparation exposed a proof-JSON key-order mismatch.
 Actual CPU941151 proved every metadata value/binding equal and replayed the
 **exact original worker bytes**, without changing numerical code, recipe or
 optimizer/RNG state. The one actual epoch-2 push is139137922v1/source7cbc68dad857.
-No completed GPU run was restarted. The later04:01 logs now show both allocated T4s and **682** main / **367** uniform
+No completed GPU run was restarted. The later logs now show both allocated T4s and **722** main / **486** uniform
 finite updates. This supersedes the earlier blank-log observation.
-[Actual visible records](../initiative/audits/research-progress-20261017-0401-v1/actual-Kaggle-progress.json).
+[Actual visible records](../initiative/audits/research-progress-20261017-0401-v1/later-visible-Kaggle-boundaries.json).
 
 The parent adaptation trains **all 73,136,096 parameters**, on **3,887 fitting
 studies**, with all **94 original windows**, effective batch 8 and a fixed
@@ -310,3 +310,10 @@ The original broad QA run has now actually finished: **4,537 passed, 8 skipped,
 2 warnings, exit0**,32:47. Code under rsna/scripts/tests is byte-identical to the
 tested source. [Original terminal proof](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
 Known unchanged archived/global lint debt remains recorded; no accuracy follows QA.
+
+Latest private preservation: sourceb9dabf26 is fully verified at
+HF0917971d00d1b58731930c00bba631e487e8cf70, all40smallobjects/268191bytes.
+[Actual mirror proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
+The uniform16 log's486 updates reaches the first optimizer boundary; its actual
+terminal/snapshot/private publication still belong to the original owner and are
+not inferred from that boundary. MainE2 reached722 updates.

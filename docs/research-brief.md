@@ -21,7 +21,7 @@ on both T4s and the exact continuation is API RUNNING. Expanded own-model fittin
 uniform-16 production139137040v1 is actually API RUNNING; influence remains
 unpushed. Whole-parent epoch1 completed486updates, is privately verified and
 passed both-T4 learned-model inference qualification. Epoch2 resumed the exact
-original worker/checkpoint as139137922v1. Actual04:01 logs now show **682/1458 whole94** and **367/1458 uniform16** finite
+original worker/checkpoint as139137922v1. Later actual logs now show **722/1458 whole94** and **486/1458 uniform16** finite
 updates, with both allocated T4s and exact original input admission. Expanded N3
 is at2166/5184,epoch7; all six completed epochs are privately verified. None has a final new competition result yet.
 
