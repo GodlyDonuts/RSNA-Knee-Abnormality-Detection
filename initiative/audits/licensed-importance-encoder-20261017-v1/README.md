@@ -24,5 +24,15 @@ ONE private offline30-minute twoT4 diagnostic, holding7h for every unfinished
 original whole94 production epoch plus1h reserve. It spends zero competition
 entries and cannot dispatch a full fit. Actual six-process two-role recovery,
 initial learned-state/allrankRNG equality, all immutable snapshots and full94
-engineering prediction equality must pass. No GPU has yet been submitted.
+engineering prediction equality must pass. CPU940638 actually staged the immutable scientific sourcebe837f9b and funded
+32MiB controls, leaving25.29GB after all carried liabilities. Sole diagnostic
+owner90613/exec24374 is live; inspect its actual push/result before any action.
+Actual GPU acceptance and full-production funding are still absent.
 [Prospective protocol](../../experiments/competitive-v1/licensed-importance-encoder-v1/README.md).
+
+
+A separate CPU-only fixed3887proposal table materializer is prepared under the
+same32MiB envelope, reusing the exact original teacher head and already-admitted
+features. It never reads labels/reports/Gold or reruns the CNN/fidelity benchmark.
+Its private float64 table binds the full ordered fitting roster and original
+feature/head/source hashes. It does not create a Kaggle Dataset or train a model.

@@ -1,0 +1,7 @@
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent;R=L.parents[1];program=(L/'proposal-table-program.py.txt').read_text();compile(program,'fixed_teacher_proposals','exec');source=subprocess.check_output(['git','rev-parse','HEAD'],text=True,cwd=R).strip()
+with (L/'proposal-table.intent.json').open('x') as f:json.dump({'source_git':source,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'one_CPU_zero_GPU':True,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodes=1','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:10:00','--job-name=rsna-fixed-proposal-table','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','CUDA_VISIBLE_DEVICES=','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program];x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'source_git':source,'program_sha256':hashlib.sha256(program.encode()).hexdigest()}),capture_output=True,text=True,timeout=650);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/'proposal-table.result.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+if x.returncode:raise SystemExit(1)
+(L/'actual-proposals-accepted.json').write_text(json.dumps(json.loads(x.stdout),indent=2)+'\n')
