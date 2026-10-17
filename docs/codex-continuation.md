@@ -22,7 +22,8 @@ original jobs, phase intents/results and private paths before a mutation.
 | Expanded original epoch watcher | **95408 / 49302** | `compact-expanded2592-production-20261016-v1/imports-recovered-expanded2592-publication-watcher*` |
 | Source-bound S6 remaining offline run | **20978 / 44859** | `s6-source-tree-admission-20261017-v1/source-bound-s6-finish.*` |
 | S6 one-entry waiter | **20994 / 20982** | `s6-original-entry-20261017-v1/source-bound-finish.*` |
-| Fitting8 UID-view CPU input | **20144 / 98465** | `s6-fitting8-uid-view-20261017-v2/finish.*` |
+| Fitting8 UID-view CPU input | **TERMINAL20144 / 98465** | `s6-fitting8-uid-view-20261017-v2/finish.result.json`: COMPLETE/private verified |
+| Fitting8 original CPU classifier | **21630 / exec77108; CPU942806** | `s6-fitting8-classifier-20261017-v1/dispatch.*`; not yet terminal |
 
 Verify these handles now. Earlier93163/93190/93205/93216/93228 and
 96918/96930/96942 and97546/97572 are terminal. Sampler93305 was deliberately stopped **only as a
@@ -278,7 +279,9 @@ accepted. Node33 root `/tmp/rsna-S6-checkpoint-admission-20261017-v1` retains al
 original source/anatomy/runtime/fixtures. H100 classifier942047 remains PENDING,
 not a T4 or accuracy result. No repeat assets/probe.
 
-New CPU-only fixed fitting8 bridge139165316v1/source47ae6254 runs under owner20144,
+CPU-only fixed fitting8 bridge139165316v1/source47ae6254 now actually completed;
+CPU942782 collected once and verified5372windows/1,154,209,297compressed bytes.
+Owner20144 is terminal success,
 `artifacts/s6-fitting8-uid-view-20261017-v2/finish_once.py`. Private node33 root
 `/tmp/rsna-S6-checkpoint-admission-20261017-v1/CPU-fitting8-UID-view-v2`.
 An earlier distinct139162434v1 actually errored: original train inference reads
@@ -286,7 +289,11 @@ train.csv IDs/writes private patients.csv, both refused by our first guard.
 That wrapper lost the caught exact exception; retain the source-based distinction.
 The new UID-only view preserves original train-series bytes/metadata and geometry,
 refuses original labelled/Gold/report CSVs, and retains caught errors privately.
-Nine local contracts pass; no actual MRI input pass is claimed until terminal.
+Nine local contracts and actual MRI input/decoded-byte/roster gates pass.
+Distinct twoCPU/zeroGPU classifier dispatch CPU942806/exec77108 now reuses the exact inputs,
+original model/runtime and same four CPU device/report replacements. Its private
+2MiB output fits existing16MiB controls; no extra pixel/weight copies or labels.
+It is not yet terminal and establishes no clinical/hidden accuracy.
 Fixture1.5GiB fits existing2GiB pool with public348312520B; metadata2MiB fits
 existing16MiB controls. The sole owner collects once directly to private33 and
 verifies compressed/decoded/selection bytes, never raw pixels/case IDs on Mac/Git/HF.

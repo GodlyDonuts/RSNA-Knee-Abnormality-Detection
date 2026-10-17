@@ -154,8 +154,10 @@ owner **20994/20982** waits actual offline acceptance and fresh allowance. Neith
 has submitted S6. Original H100942047 remains pending.
 [Exact acceptance, quota correction and owners](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
 
-A separate CPU-only eight-fitting-study input bridge is RUNNING as139165316v1,
-owner20144. It uses a UID-only roster view and unchanged physical/anatomical
+A separate CPU-only eight-fitting-study input bridge139165316v1 now COMPLETED;
+CPU942782 collected once and verified all5372windows/1,154,209,297compressed bytes.
+Original owner20144 is terminal success. A distinct twoCPU/zeroGPU classifier
+dispatch reuses them, with no actual terminal or accuracy result yet. It uses a UID-only roster view and unchanged physical/anatomical
 functions after a preserved first guard-contract failure139162434v1. No labels,
 classifier predictions or clinical pass is claimed; fixtures remain private in
 the existing2GiB pool. This prepares a cross-lineage comparison without waiting
@@ -237,3 +239,8 @@ fallback contracts, and preserves original inference. No GPU/entry/funding is
 claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
 acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
 [Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
+
+Later05:55UTC input milestone: fitting8CPU139165316v1 completed and private
+collection942782 verified all5372windows/1,154,209,297bytes. Its CPU classifier
+was dispatched once (CPU942806/exec77108), with no terminal/score yet. Original input owner
+20144 is terminal success. [Exact later proof](../initiative/audits/s6-fitting8-uid-view-20261017-v1/actual-inputs-private-verified.json).

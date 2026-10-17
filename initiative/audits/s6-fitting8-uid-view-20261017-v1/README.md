@@ -1,6 +1,6 @@
 # Fixed fitting-only S6 MRI input bridge
 
-Observed October 17, 2026, 05:50 UTC. This prepares the original anatomical and
+Observed October 17, 2026, 05:55 UTC. This prepares the original anatomical and
 physical S6 inputs on eight fixed fitting studies for later cross-lineage
 comparison. It is CPU-only input engineering, with no disease classifier,
 fitting, labels, clinical evaluation or competition entry.
@@ -29,8 +29,11 @@ was observed. No original job or slug was retried.
 ## Corrected distinct input view, not a geometry change
 
 **139165316v1**, `godlydonuts/rsna-s6-fitting8-uid-cpu-47ae6254eedd`, was pushed
-once from sourceSHA47ae6254. It remains actually RUNNING under finite owner
-**20144 / exec98465** at this observation; no actual MRI pass is claimed yet.
+once from sourceSHA47ae6254. It actually **COMPLETED**, and CPU942782 independently collected once and
+verified all1,154,209,297compressed bytes, decoded tensors and the fitting roster.
+All5372windows pass:248/420/586/628/480/624/780/1606, from studies with3–14series.
+Input preparation took516.75s/3.44GBpeakRSS. Original owner20144 is terminal
+success, not an unfinished collection. [Actual proof](actual-inputs-private-verified.json).
 Its private view contains only eight IDs in a generated `train.csv`, read-only
 symlinks to the original `train_series` and complete series metadata, and the
 unchanged original train reader. Original labelled train/Gold/report files stay
@@ -48,3 +51,13 @@ private node33 storage, independently verifies compressed and decoded bytes and
 the selection, and records only sanitized aggregates. No pixels, case IDs,
 patient metadata or teacher predictions enter Git/HF/Mac. A later failure retains
 the exact caught error privately rather than losing it to a bare assertion.
+
+A distinct CPU-only classifier dispatch now reuses these exact inputs and the
+already accepted original model/runtime. Worker changes from the accepted
+public-fixture CPU reference are only input/output roots, retaining the same four
+device/report AST replacements and original inference. TwoCPU/zeroGPU/16GiB/
+45minutes, private2MiB new output cap inside existing16MiB controls, no new pixel/
+weight copies or labels. It is **dispatched, not yet terminal or accurate**;
+`artifacts/s6-fitting8-classifier-20261017-v1/run_once.py`, exec77108.
+[Exact admission](classifier/dispatch-intent.json), [worker identity](classifier/checked.json).
+No raw case logits/IDs or pixels leave private node33.

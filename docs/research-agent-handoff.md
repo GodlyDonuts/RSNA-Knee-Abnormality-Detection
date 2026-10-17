@@ -226,9 +226,10 @@ qualification. S6 admission now counts the actual active45h grant, retaining
 all obligations. Owner20978 owns remaining offline inference and20994 one entry;
 both wait actual capacity/acceptance, with zero S6 entries so far.
 [Exact T4/observer/quota evidence](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
-Distinct CPU fitting8 input139165316v1 remains RUNNING after a preserved earlier
-guard-contract failure; it uses a UID-only roster view with original geometry,
-not new targets. [Bridge protocol](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
+Distinct CPU fitting8 input139165316v1 now completed after a preserved earlier
+guard-contract failure; CPU942782 verified all5372windows/1,154,209,297bytes and
+the same fitting roster. Its new CPU classifier dispatch is not yet terminal.
+It uses a UID-only roster view with original geometry, not new targets. [Bridge protocol](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Exact source/runtime/gate proof](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
 Original full regression terminated successfully:4537passed/8skipped/exit0;
 no numerical source changed. Do not mistake that for clinical improvement.

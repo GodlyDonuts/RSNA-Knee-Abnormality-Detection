@@ -35,8 +35,8 @@ historical release/plan documents now link back to the current guides.
   A stale author embedded build ID stopped only our observer; the exact-source
   repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
   Sole reproduction20978 and entry20994 own the remaining offline run/one entry.
-  H100942047 is still pending; distinct CPU fitting8 input139165316v1 is RUNNING,
-  not yet accepted. Never duplicate these originals. **0.950 remains external**;
+  H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
+  are privately byte verified; CPU classifier dispatch is not yet terminal. Never duplicate these originals. **0.950 remains external**;
   there is no project S6 hidden score. Include both S6 and CoAtNet runtime.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values

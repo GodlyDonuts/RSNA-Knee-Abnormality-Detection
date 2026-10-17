@@ -162,8 +162,9 @@ reference. Bounded H100 probe942047 remains queued. Original T4 qualification
 zero S6 fallback. The exact source was unchanged; a stale author embedded build ID
 required an observer-only repair, not a GPU rerun. Remaining offline owner20978
 and one-entry owner20994 wait capacity/actual acceptance. No project S6 score
-exists yet. A distinct eight-fitting-study CPU input bridge139165316v1 runs with
-unchanged geometry and a UID-only roster, without labels/classifier inference.
+exists yet. A distinct eight-fitting-study CPU input bridge139165316v1 completed; CPU942782
+collected once and verified5372windows/1,154,209,297bytes. Its new CPU classifier
+dispatch is not yet terminal, with no labels or accuracy claim.
 [Actual T4 recovery](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
 [fitting bridge](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Actual acceptance and next gate](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md). Prioritize unchanged reproduction and source-exposure
