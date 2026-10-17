@@ -3,9 +3,9 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Verified October17,2026,20:15UTC. Target:0.97; best actual:0.950.**
+**Verified October17,2026,20:25UTC. Target:0.97; best actual:0.950.**
 
-Latest: [full-map spatial reader implemented; real GPU recovery950196pending on permitted evc33/40](initiative/audits/spatial-reader-engine-20261017-v1/README.md). The old uniform public run is now verifiedCOMPLETE; no new hidden score or full-reader fit is claimed. Older run snapshots below are dated history.
+Latest: [full-map spatial reader implemented; real GPU recovery950355pending on permitted evc33/40](initiative/audits/spatial-reader-engine-20261017-v1/README.md). The old uniform public run is now verifiedCOMPLETE; no new hidden score or full-reader fit is claimed. Older run snapshots below are dated history.
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.

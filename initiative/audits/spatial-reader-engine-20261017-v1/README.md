@@ -59,3 +59,32 @@ BothT4scompleted six MRI views in17.8685seconds; exact3×13CSV470Bwas verified i
 RAM. This is not an entry or hidden score. A distinct finite successor is
 prepared, with fresh allowance/actual-outcome and no-duplicate guards unchanged;
 its launch must be checked before calling it live.
+
+## Current terminal review and header-only recovery
+
+GPU950196actuallyFAILED1:0/18seconds on evc40 before the first optimizer update.
+Actual H100/CUDA admission passed; the first backward's native PyTorch Triton
+kernel could not compile because the launch wrapper omitted the existing
+Python-header CPATH. [Original failure/trace](actual-GPU-v2-failed.json) preserve
+this agent launch error; no clinical or data failure is inferred. New wrapper
+Git8023a81c/SHAa67e6c7c… uses the same frozen118numerical modules, original CPATH
+and node-local Triton/inductor caches. CPU950339/950340verified both Python.h/
+pyconfig.h paths. Single replacement GPU950355was submitted once and isPENDING
+Resources. Its first dispatch coordinator stopped before intent because a
+filtered sanitized receipt was compared against the complete private receipt;
+CPU950353confirmed no dispatch/submit intent, and distinct corrected coordinator
+verified all118original module hashes before the one submission. Never retry
+any original uncertain intent.
+
+Both old zero-update controls retain4MiBeach; their unused120MiBfuture allowance
+now funds the new GPU/JIT run within the same512MiBreader allowance. Original
+files remain; no deletion credit. Full320MiB/source8MiB/epoch48MiB/CPU8MiBfuture
+obligations remain, with fresh node and shared reserves required.
+
+Complete source-frozen QA: **4719passed/6skipped**,118-module mypy and33focused
+checks; every numerical source hash stayed unchanged. Seven additional successor
+control cases proved zero-quota/pending/failure/duplicate refusal, ordered one-
+time submission and AST equivalence except the operational storage floor/
+disabled prepare/stage. Global1327lint/57format debt remains unchanged. Initial
+archive membership needed refresh for newly added receipts; no clinical archive
+or review stages were synthesized. Current v2coverage89/89passes.

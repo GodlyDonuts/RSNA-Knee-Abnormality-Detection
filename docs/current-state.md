@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October17,2026,20:15UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
+**Verified October17,2026,20:25UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -28,10 +28,10 @@ remaining non-reserved eligible H100s were allocated. Existing native inputs
 and runtime are owning-node assets on evc33; fresh remote staging is required
 before moving an inference/trainer to another node. The first
 spatial scout949626was PREEMPTED after26studies; recovery949735completed
-all32 and was independently accepted. Current real-reader GPU950196 is pending;
+all32 and was independently accepted. Current real-reader recovery GPU950355 is pending;
 its source/inputs are admitted on evc33/40, without a new accuracy claim.
 
-## Latest execution, October17 20:15UTC
+## Latest execution, October17 20:25UTC
 
 Best actual public AUC remains **0.950** (released S6 reproduction); our own N3E16
 is **0.894**. No new leaderboard gain or completed spatial-reader fit is claimed.
@@ -53,17 +53,25 @@ and lesion localization remain unqualified.
 Actual CPU950079 admitted all32original studies/2345windows, with weighted-degree
 error2.794e-9; CPU950100 admitted16fitting target/mask arrays and16disjoint
 prediction-only outer inputs.33focused tests and118-module mypy passed. Full
-source-frozen suite is finishing; inspect its actual result before publication.
-These are engineering results, not clinical accuracy. **GPU950196 is PENDING
-(Resources)** for the same real full/stop1/resume numerical checks on both arms
-and an actual online-versus-cached complete-state/CSV comparison. Its exact
-source is f6719ba8; workerSHA b49895ea…. Both evc33/40 have the original native
-cache/runtime and actual32source graphs admitted (CPU950192/950191). The first
+source-frozen suite completed **4719passed/6skipped**; all118numerical module
+hashes stayed identical. Global1327lint/57format debt is unchanged. Archive
+membership is being refreshed for these new small receipts; currentv2coverage
+remains89/89.
+These are engineering results, not clinical accuracy. GPU950196 actually
+FAILED1:0/18seconds on evc40 before its first optimizer update: the launch wrapper
+omitted the already-installed Python-header CPATH needed by the new backward's
+Triton compiler. Actual H100/CUDA allocation passed. This is an agent launch
+environment error, not a model/data accuracy finding. Original modules/data/
+recipe remain unchanged. Distinct **GPU950355 is PENDING(no GPU runtime yet)** after
+actual Python.h/pyconfig.h checks on both nodes (CPU950339/950340), with original
+CPATH and private Triton/inductor caches restored. WrapperSHA a67e6c7c…/Git8023a81c
+binds the same118-module manifest3909bf50…. Both evc33/40 retain original native
+cache/runtime and exact32source graphs (CPU950192/950191). The first
 27private feature files were reused after an access-time guard stopped their
 transfer; only remaining8members were continued and verified (CPU950171).
 No140GBnative cache or runtime was retransferred. Previous950125 was cancelled
 **only while PENDING**, terminalCANCELLED/zero seconds. Never repeat either job.
-Only the one950196experiment is scheduled; every other inventory node, including
+Only the one950355experiment is scheduled; every other inventory node, including
 all physical4-/8-GPU nodes, is explicitly excluded. The3epoch/843update full
 matched comparison has a prepared wrapper, **not a submitted production run**.
 
@@ -73,8 +81,10 @@ allowance was retired, retaining16GiB/all originals; no deletion credit. Future
 node33 gates use603433009211B plus unpaid original3GiB spatial envelope; do not
 subtract8GiBagain. Node40 uses the conservative612022943803B floor and its own
 new3GiB envelope, without applying the node33 retirement there. Existing512MiB
-reader budget retains8MiBCPU+64MiBoldGPU+64MiBnewGPU controls, leaving376MiB for
-later fitting/publication. Actual resources still govern every action.
+reader budget now retains8MiBCPU plus4MiBeach for both zero-update old GPU
+controls, and reassigns their unused120MiBto the new GPU/JIT run. No originals
+or unused future allowance are counted as physical deletion credit. Remaining
+376MiBretains320MiBfull fits,8MiBsource mirror and48MiBepoch preservation. Actual resources still govern every action.
 
 Original finite scoring78386 stopped on an obsolete resource floor; cached-MIL
 follower10613 then stopped as designed. **Neither is still live; never restart
@@ -85,7 +95,9 @@ faa20e95…. This is **not a competition entry or hidden score**. The finite
 successor is prepared to reuse the original completed phases and canonical
 ledger, retaining fresh allowance, actual prior outcomes, allVM limits and
 single-attempt guards; inspect its actual dispatch before claiming it is live.
-Read-only exact-reference observer25736 remains separate.
+Read-only exact-reference observer25736 remains separate. Authenticated
+GetSubmissionLimits at20:14UTC reports5today/0slots,49total and no active unresolved
+entries; do not infer an exact reset timestamp from a null response.
 
 [Exact source, controls, failures, resource reconciliation and receipts](../initiative/audits/spatial-reader-engine-20261017-v1/README.md).
 

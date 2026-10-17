@@ -1,8 +1,8 @@
 # Complete initiative record
 
-Current **October17 20:15UTC**: target0.97, actual best0.950. See the
+Current **October17 20:25UTC**: target0.97, actual best0.950. See the
 
-Latest: [full-map spatial reader implemented; real GPU recovery950196pending on permitted evc33/40](audits/spatial-reader-engine-20261017-v1/README.md). The old uniform public run is now verifiedCOMPLETE; no new hidden score or full-reader fit is claimed. Older run snapshots below are dated history.
+Latest: [full-map spatial reader implemented; real GPU recovery950355pending on permitted evc33/40](audits/spatial-reader-engine-20261017-v1/README.md). The old uniform public run is now verifiedCOMPLETE; no new hidden score or full-reader fit is claimed. Older run snapshots below are dated history.
 [current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
 [research-agent handoff](../docs/research-agent-handoff.md) and
 [execution handoff](../docs/codex-continuation.md). Original receipts override dated

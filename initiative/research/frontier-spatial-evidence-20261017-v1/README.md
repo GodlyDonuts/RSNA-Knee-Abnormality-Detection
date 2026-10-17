@@ -6,12 +6,14 @@ this workspace. No claim is made to have executed that supplied bundle. Its
 three assignments are research proposals; execution remains one coordinated
 program without spawning new agents or interrupting existing scorers.
 
-## Current implementation, October17 20:15UTC
+## Current implementation, October17 20:25UTC
 
 [The full reader and real-engine qualification](../../audits/spatial-reader-engine-20261017-v1/README.md)
 now supersede the early prepared-scout language below. The scout completed32cases;
 new numerical reader/providers/trainer are implemented with33focused checks and
-actual input gates. Single GPU950196 remains pending on evc33/40. The principal
+actual input gates. Original950196failed before its first update because the wrapper omitted the
+existing Python-header path. Corrected single GPU950355 is pending on evc33/40;
+all numerical sources and science remain identical. The principal
 null now preserves degrees/observed tokens/structural exclusions while
 randomizing geometric edges: an exact-positive-edge null retains topology and
 therefore tests only weights. Both are preserved and distinguished. No new
