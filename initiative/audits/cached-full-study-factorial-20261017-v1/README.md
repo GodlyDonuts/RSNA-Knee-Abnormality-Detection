@@ -89,3 +89,34 @@ now that all original numerical/checkpoint obligations are physically complete.
 No deletion credit or new shared obligation. Original owner93414stopped; do not
 restart it or any recovery/full-fitting phase. Private full verification remains
 required before calling these12models preserved. No Kaggle score exists.
+
+
+## Completed CPU research: labels × whole-study coverage
+
+**Actual 2026-10-17 15:44 UTC.** Original CPU recovery948113passed all four
+roles with exact full/stop1/resume learned/AdamW/LR/cursor/all-RNG/history/epoch
+states and16×12prediction-byte equality. The fixed numerical source stayed
+unchanged after the original zero-runtime scheduler-wrapper failure948089.
+Distinct corrected owner93414then completed all four full3887fitting runs in
+CPU948122: **3epochs/1458finite updates each**,279832learned readout
+parameters, original frozen CNN features. Source labels (original/S6) and training
+coverage (16IID/all94) are the two factors; order/views/teacher/masks/init and
+optimizer remain common. CPUFP32/zero dropout are shared across these four,
+so comparison to the live full-CNN family is not encoder-only causal evidence.
+
+All **12immutable epochs** are privately preserved once at
+**HFc4cba4c210542307436a3bdc89034f5f99633ce4**, CPU948191; all60objects/14984974bytes
+were fully re-downloaded/size/SHA verified with source/licence/parent/runtime/
+roster proofs. No encoder weights, MRI/feature/label rows or prediction arrays
+were copied into this publication. No fitting loss or teacher agreement is an
+accuracy result; released-encoder exposure precludes independent whole-model OOF.
+Protected clinical cohorts remain unused. No new Kaggle score exists.
+
+Numerical/control sourceeed22c54is separately privately verified at
+HFebffa540e0f0f033b4acfe7324ab9b713e3da7e9 (14objects/94480bytes,CPU948112).
+The separate256MiBnode33cap retains original liabilities. Owner93414stopped after the first publication path error; standalone corrected
+publisher completed after original-commit absence and licence reconciliation.
+Never repeat either recovery/full-fitting phase or12epoch publication. Existing
+full-encoder61037and matched-final scoring78386remain separate original owners.
+[Exact protocol](../../experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
+and [actual recovery/full/private proofs](../cached-full-study-factorial-20261017-v1/README.md).

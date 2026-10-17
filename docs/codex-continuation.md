@@ -1,30 +1,40 @@
 # Execution handoff
 
-**Actual October17,15:27UTC.** Target0.97; best measured0.950. Read
+**Actual October17,15:44UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Completed CPU fitting: labels × whole-study coverage
+## Completed CPU research: labels × whole-study coverage
 
-Actual recovery948113passed all four full/stop1/resume complete state/prediction
-checks; **CPU948122completed all four3887study fits**, fixed3epochs/1458finite
-updates each. These train279832readout parameters on frozen original CNNfeatures
-with original/S6labels and16IID/all94windows, all shared init/order/views/masks/
-teacher/objective. Full-CNN61037and scoring78386remain unchanged. No independent
-whole-model OOF/clinical or Kaggle score is claimed.
+**Actual 2026-10-17 15:44 UTC.** Original CPU recovery948113passed all four
+roles with exact full/stop1/resume learned/AdamW/LR/cursor/all-RNG/history/epoch
+states and16×12prediction-byte equality. The fixed numerical source stayed
+unchanged after the original zero-runtime scheduler-wrapper failure948089.
+Distinct corrected owner93414then completed all four full3887fitting runs in
+CPU948122: **3epochs/1458finite updates each**,279832learned readout
+parameters, original frozen CNN features. Source labels (original/S6) and training
+coverage (16IID/all94) are the two factors; order/views/teacher/masks/init and
+optimizer remain common. CPUFP32/zero dropout are shared across these four,
+so comparison to the live full-CNN family is not encoder-only causal evidence.
 
-Original scheduler948089failed zero-runtime; corrected control sourceeed22c54
-is privately verified atHFebffa540e0f0f033b4acfe7324ab9b713e3da7e9. Owner93414
-completed actual fitting, then stopped on a wrong publication-licence path before
-a commit. CPU948164reconciled all60remote target paths absent and exact original
-licence4411B/SHA34c44b20… . Corrective publication-v2preserves the same12epochs
-once, separately pinned; never restart recovery/full fitting or old owners.
-Original256MiBfunding remains, all numerical/checkpoint obligations paid;32MiB
-publication/control future reserve retained. Protected clinical values stay unused.
-[Protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
-and [actual complete/reconciliation proofs](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
+All **12immutable epochs** are privately preserved once at
+**HFc4cba4c210542307436a3bdc89034f5f99633ce4**, CPU948191; all60objects/14984974bytes
+were fully re-downloaded/size/SHA verified with source/licence/parent/runtime/
+roster proofs. No encoder weights, MRI/feature/label rows or prediction arrays
+were copied into this publication. No fitting loss or teacher agreement is an
+accuracy result; released-encoder exposure precludes independent whole-model OOF.
+Protected clinical cohorts remain unused. No new Kaggle score exists.
+
+Numerical/control sourceeed22c54is separately privately verified at
+HFebffa540e0f0f033b4acfe7324ab9b713e3da7e9 (14objects/94480bytes,CPU948112).
+The separate256MiBnode33cap retains original liabilities. Owner93414stopped after the first publication path error; standalone corrected
+publisher completed after original-commit absence and licence reconciliation.
+Never repeat either recovery/full-fitting phase or12epoch publication. Existing
+full-encoder61037and matched-final scoring78386remain separate original owners.
+[Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
+and [actual recovery/full/private proofs](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
 ## Original owners: current, completed and retired
 
