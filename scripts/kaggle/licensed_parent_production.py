@@ -98,13 +98,57 @@ def main():
     return source, binding
 
 
-def build(accepted, files, proofs, source_git, segment, *, previous=None):
+def replay_previous_worker(candidate, previous_worker, expected_sha):
+    """Retain actual worker bytes when JSON reload only reorders proof keys.
+
+    Nothing outside the one literal metadata assignment may differ. Canonical
+    JSON compares literal values (including bool versus int), while the returned
+    worker is the exact original, not a newly normalized numerical program.
+    """
+    if not isinstance(previous_worker, str) or digest(previous_worker) != expected_sha:
+        raise ValueError("Actual previous worker bytes must match its authenticated receipt")
+
+    def proof_assignment(source):
+        nodes = [
+            n
+            for n in ast.parse(source).body
+            if isinstance(n, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "_PRODUCTION_PROOFS" for t in n.targets)
+        ]
+        if len(nodes) != 1:
+            raise ValueError("One literal original pixel-proof assignment required")
+        node = nodes[0]
+        literal = json.dumps(
+            ast.literal_eval(node.value), sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
+        assignment = ast.get_source_segment(source, node)
+        if assignment is None or source.count(assignment) != 1:
+            raise ValueError("Unambiguous original proof metadata required")
+        return literal, assignment
+
+    old_value, old_assignment = proof_assignment(previous_worker)
+    new_value, new_assignment = proof_assignment(candidate)
+    if (
+        old_value != new_value
+        or candidate.replace(new_assignment, old_assignment, 1) != previous_worker
+    ):
+        raise ValueError(
+            "Only proof dictionary serialization order may differ; numerical code is fixed"
+        )
+    return previous_worker
+
+
+def build(accepted, files, proofs, source_git, segment, *, previous=None, previous_worker=None):
     if type(segment) is not int or not 1 <= segment <= 3:
         raise ValueError("One of three fixed epoch-boundary sessions required")
     worker, binding = worker_source(accepted, files, proofs, source_git)
-    if segment == 1 and previous is not None:
+    if segment == 1 and (previous is not None or previous_worker is not None):
         raise ValueError("First session starts only from the accepted MRI parent")
     if segment > 1:
+        if previous_worker is not None:
+            if not isinstance(previous, dict):
+                raise ValueError("Previous authenticated session receipt required")
+            worker = replay_previous_worker(worker, previous_worker, previous.get("worker_sha256"))
         if (
             not isinstance(previous, dict)
             or previous.get("status") != "actual_whole94_full_parent_epoch_session_complete"

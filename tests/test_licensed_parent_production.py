@@ -100,3 +100,48 @@ def test_changed_actual_T4_numerics_are_refused(synthetic_compiler):
 def test_production_session_cannot_change_fixed_three_epoch_design(synthetic_compiler, segment):
     with pytest.raises(ValueError):
         production.build(*synthetic_compiler, segment)
+
+
+def test_json_proof_key_reordering_replays_the_exact_actual_worker(synthetic_compiler):
+    accepted, files, _, git = synthetic_compiler
+    proofs = [{"shard": 0, "files": {"bytes": 123, "sha256": "a" * 64}}]
+    first, binding = production.build(accepted, files, proofs, git, 1)
+    original_worker = base64.b64decode(value(first, "WORKER")).decode()
+    previous = prior(first, binding, 1)
+    reloaded = [{"files": {"sha256": "a" * 64, "bytes": 123}, "shard": 0}]
+    # Real coordinator writes canonical JSON before the later session reload.
+    with pytest.raises(ValueError):
+        production.build(accepted, files, reloaded, git, 2, previous=previous)
+    second, next_binding = production.build(
+        accepted, files, reloaded, git, 2, previous=previous, previous_worker=original_worker
+    )
+    assert base64.b64decode(value(second, "WORKER")).decode() == original_worker
+    assert binding["binding"] == next_binding["binding"]
+    assert next_binding["worker_sha256"] == previous["worker_sha256"]
+    assert value(second, "PREVIOUS") == previous
+
+
+@pytest.mark.parametrize("change", ["proof_value", "numerical_code", "comment", "hash", "bool_int"])
+def test_worker_replay_cannot_bypass_any_other_source_or_proof_change(change):
+    original = "_PRODUCTION_PROOFS=[{'first':True,'second':2}]\nrate=3e-6\n"
+    candidate = "_PRODUCTION_PROOFS=[{'second':2,'first':True}]\nrate=3e-6\n"
+    sha = production.digest(original)
+    if change == "proof_value":
+        candidate = candidate.replace("'second':2", "'second':3")
+    elif change == "numerical_code":
+        candidate = candidate.replace("rate=3e-6", "rate=3e-5")
+    elif change == "comment":
+        candidate += "# even a harmless unrelated source change is refused\n"
+    elif change == "hash":
+        sha = "0" * 64
+    else:
+        candidate = candidate.replace("'first':True", "'first':1")
+    with pytest.raises(ValueError):
+        production.replay_previous_worker(candidate, original, sha)
+
+
+def test_worker_replay_is_not_available_for_initialization(synthetic_compiler):
+    source, _ = production.build(*synthetic_compiler, 1)
+    worker = base64.b64decode(value(source, "WORKER")).decode()
+    with pytest.raises(ValueError):
+        production.build(*synthetic_compiler, 1, previous_worker=worker)

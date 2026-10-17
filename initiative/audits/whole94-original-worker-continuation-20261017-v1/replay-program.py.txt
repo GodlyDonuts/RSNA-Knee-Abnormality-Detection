@@ -1,0 +1,76 @@
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];segment=v.get('segment',1);assert phase in ('prepare','push','status') and type(segment) is int and 1<=segment<=3 and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');S=R/'code';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();assert shutil.disk_usage('/tmp').free>607095306179
+roots=[Path('/tmp/rsna-licensed-parent-trainer-recovery-20261016-v1'),Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1'),Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1'),Path('/tmp/rsna-licensed-parent-whole94-small-milestone-20261016-v1'),R];used=sum(p.stat().st_size for root in roots if root.exists() for p in root.rglob('*') if p.is_file());assert used+4*2**20<16*2**20
+if phase=='stage':
+ assert not R.exists();Q=Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1');accepted=json.loads((Q/'actual-accepted.json').read_text());assert accepted['source_sha256']=='a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39' and accepted['receipt']['full_learned_encoder_MIL_AdamW_LR_cursors_all_rank_RNG_and_GradScaler_exact'] is True and accepted['receipt']['worker_source_sha256']=='9f87ffd3b4a3a090817a42fe0ee43161367efb582784db0a2176df2453606791';bridge=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/actual32-bridge/verified.json');gate=json.loads(bridge.read_text());assert gate['CPU_job']=='939362' and gate['exact_original_input_hashes'] is True and gate['both_original_feature_teacher_views_bit_equal'] is True and gate['source_modules']['rsna/competitive/licensed_pixel_bags.py']=='857a374f9f6f88b10028b6a899961d6c62c64151f800710deaa20a915cb5616e';target=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/dataset-publication/verified.json');targetproof=json.loads(target.read_text());assert targetproof['dataset']=={'id':12641441,'version':1,'slug':'godlydonuts/rsna-parent-fit-targets-48b4485f03b6','private':True} and targetproof['objects']==5
+ R.mkdir(mode=0o700)
+ for name,text in v['files'].items():
+  p=S/name;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+ meta={'status':'full_whole94_continuous_production_control_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in v['files'].items()},'actual_whole94_GPU':139105348,'actual_pixel_bridge_CPU':'939362','all_prior_node33_required_free_bytes':607095306179,'shared_controls_cap_bytes':16*2**20,'actual_node33_free_bytes':shutil.disk_usage('/tmp').free,'node39_original_12GiB_model_checkpoint_publication_funding_preserved':True,'new_shared_bytes_files':0,'new_parent_weight_copy':False,'full_fit_dispatched':False,'originals_remain_immutable':True};(R/'staged.json').write_text(json.dumps(meta,sort_keys=True,indent=2)+'\n');print(json.dumps(meta),flush=True)
+else:
+ meta=json.loads((R/'staged.json').read_text());assert meta==v['metadata'] and all(sha(S/n)==h for n,h in meta['source_files'].items());assert sha(S/'scripts/kaggle/workflow.py')=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900' and sha(S/'scripts/kaggle/components.py')=='24e2571bfe8830907bb30a23cdf1bdcde90c4e78b93cb330ae8b8557c81c8d80';sys.path.insert(0,str(S));from scripts.kaggle.licensed_parent_production import ACCEPTED_MODULES,POPULATION_MODULE
+ replay_root=R/'continuation-worker-replay-v1';replay_meta=json.loads((replay_root/'accepted.json').read_text());assert replay_meta['actual_original_worker_replay'] is True and replay_meta['compiler_sha256']=='18d9392dda71e21391517949e0466e58ac6480c2d9bf07f73f2939f877547d96';compiler_path=replay_root/'compiler.py';assert sha(compiler_path)==replay_meta['compiler_sha256'];replay_spec=importlib.util.spec_from_file_location('actual_original_worker_replay_compiler',compiler_path);replay=importlib.util.module_from_spec(replay_spec);replay_spec.loader.exec_module(replay)
+ def build(accepted,files,proofs,source_git,segment,*,previous=None):
+  import ast,base64
+  assert segment in (2,3) and previous is not None
+  prior_root=R/('segment-'+str(segment-1));prior_source=(prior_root/'source.private.py').read_text();intent=json.loads((prior_root/'push-intent.json').read_text());assert hashlib.sha256(prior_source.encode()).hexdigest()==intent['source_sha256'];worker_nodes=[n for n in ast.parse(prior_source).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='WORKER' for t in n.targets)];assert len(worker_nodes)==1;worker=base64.b64decode(ast.literal_eval(worker_nodes[0].value),validate=True).decode();assert hashlib.sha256(worker.encode()).hexdigest()==previous['worker_sha256'];source,binding=replay.build(accepted,files,proofs,source_git,segment,previous=previous,previous_worker=worker);assert binding['worker_sha256']==previous['worker_sha256'] and binding['binding']==previous['binding'];return source,binding
+ from rsna.competitive.licensed_parent_population import producer_proof,join_records,SOURCE_SHAS,KERNEL_IDS
+ spec=importlib.util.spec_from_file_location('whole94_full_workflow',S/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+ import requests
+ r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+ while True:
+  try:claim.mkdir(mode=0o700);break
+  except FileExistsError:
+   assert time.monotonic()<deadline,'Canonical coordinator remains busy; preserve original source and reconcile';time.sleep(5)
+ w.new_json(claim/'owner.json',{'kind':'licensed_parent_whole94_full_fit','phase':phase,'segment':segment,'job':os.environ['SLURM_JOB_ID']});retain=False
+ try:
+  with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+   w.verify_account(db,r);D=R/('segment-'+str(segment))
+   def save(key,record):
+    db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['source_sha256'],record['state']));db.commit()
+   probe_slug='godlydonuts/rsna-parent-exact-pixels32-09254e97913d';shard_slugs=['godlydonuts/rsna-parent-pixels-full-s'+str(i)+'-'+SOURCE_SHAS[i][:12] for i in range(4)]
+   if phase=='prepare':
+    assert not D.exists();actual=[]
+    if segment==1:
+     for i,ref in enumerate(shard_slugs):
+      source=r.kernel('GetKernel',ref,1);m=source['metadata'];assert hashlib.sha256(source['blob']['source'].encode()).hexdigest()==SOURCE_SHAS[i] and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu',False) is False and m.get('dockerImage')=='gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f';status=r.kernel('GetKernelSessionStatus',ref,1)['status'];row={'status':status,'shard':i,'slug':ref,'version':1,'source_sha256':SOURCE_SHAS[i],'kernel_id':KERNEL_IDS[i]};assert status not in ('ERROR','CANCELLED'),'Original pixel producer actually failed; no full GPU dispatch'
+      if status=='COMPLETE':row['receipt']=r.output_json(ref,1,'licensed-pixels-full-shard-accepted.json')
+      actual.append(row)
+     ready=all(x['status']=='COMPLETE' for x in actual)
+     if ready:
+      proofs=[producer_proof(x) for x in actual];indices=[r.output_json(ref,1,'licensed-parent-pixels-full/index.private.json') for ref in shard_slugs];probe=r.output_json(probe_slug,1,'licensed-parent-pixels32/index.private.json');records=join_records(probe,indices,proofs)
+      import numpy as np
+      with np.load('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz',allow_pickle=False) as a:assert [x['study_uid'] for x in records]==a['uids'].tolist()
+      allproof={'status':'all_original_Kaggle_full_pixel_inputs_actual_accepted_for_production','proofs':proofs,'CPU_job':os.environ['SLURM_JOB_ID'],'all3887_ordered_UIDs_exact_target_bundle':True,'Newton_replica_required_for_GPU_readiness':False,'Newton_original_collection_continues_independently':True};w.new_json(R/'actual-original-Kaggle-inputs.json',allproof)
+    else:
+     allproof=json.loads((R/'actual-original-Kaggle-inputs.json').read_text());proofs=allproof['proofs'];ready=True
+    if not ready:out={'status':'waiting_for_exact_original_pixel_producers','actual':actual,'GPU_reserved_or_dispatched':False}
+    else:
+     previous=None
+     if segment>1:previous=json.loads((R/('segment-'+str(segment-1))/'actual-accepted.json').read_text())['receipt']
+     original=Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py').read_text();files={n:(S/n).read_text() for n in (*ACCEPTED_MODULES,POPULATION_MODULE)};source,binding=build(original,files,proofs,meta['source_git'],segment,previous=previous);D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600);prepared={'status':'one_whole94_full_session_prepared','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':meta['source_git'],'binding':binding,'segment':segment};w.new_json(D/'prepared.json',prepared);out=prepared
+   else:
+    prepared=json.loads((D/'prepared.json').read_text());binding=prepared['binding'];source=(D/'source.private.py').read_text();source_sha=hashlib.sha256(source.encode()).hexdigest();assert source_sha==binding['source_sha256'];slug='godlydonuts/rsna-parent-whole94-full-e'+str(segment)+'-'+source_sha[:12];key='licensed-parent-whole94-full-fit:'+source_sha;dependencies=[probe_slug,*shard_slugs]
+    if segment>1:dependencies.append(json.loads((R/('segment-'+str(segment-1))/'push-intent.json').read_text())['slug'])
+    request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007','godlydonuts/rsna-parent-fit-targets-48b4485f03b6'],'competitionDataSources':[],'kernelDataSources':dependencies,'sessionTimeoutSeconds':25200,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+    if phase=='push':
+     assert not (D/'push-intent.json').exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+     for ref in dependencies:assert r.kernel('GetKernelSessionStatus',ref,1)['status']=='COMPLETE'
+     quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda s:float(s.removesuffix('s'));remaining=min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved']);assert remaining>=(4-segment)*25200+3600,'Fund all remaining7hour sessions and1hour reserve from actual VM quota';absence=r.require_absent_kernel(slug);record={'state':'whole94_full_fit_push_intent','source_git':meta['source_git'],'source_sha256':source_sha,'slug':slug,'version':1,'segment':segment,'binding':binding,'request_sha256':w.object_hash(request),'absence':absence,'fresh_accelerator_quota':quota,'remaining_VM_seconds':remaining,'competition_entry':False,'automatic_retry':False};w.new_json(D/'push-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+     try:
+      response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+     except BaseException:record['state']='whole94_full_fit_push_uncertain';save(key,record);retain=True;raise
+     record.update(state='whole94_full_fit_pushed',kernel_id=response['kernelId']);save(key,record);out={'status':'one_whole94_full_session_pushed','kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':source_sha,'segment':segment,'remaining_VM_seconds_before':remaining,'maximum_runtime_seconds':25200,'competition_entry':False,'full_production_fit':True}
+    else:
+     record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('isPrivate') is True and m.get('enableInternet') is False and m.get('enableGpu') is True and m.get('machineShape')=='NvidiaTeslaT4' and m.get('dockerImage')==request['dockerImage']
+     for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+     status=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':status,'kernel_id':record['kernel_id'],'slug':slug,'version':1,'source_sha256':source_sha,'segment':segment,'competition_entry':False,'full_production_fit':True}
+     if status=='COMPLETE':
+      receipt=r.output_json(slug,1,'licensed-parent-full-session-accepted.json');assert receipt['status']=='actual_whole94_full_parent_epoch_session_complete' and receipt['binding']==binding['binding'] and receipt['worker_sha256']==binding['worker_sha256'] and receipt['segment']==segment and receipt['completed']==486*segment and receipt['total']==1458 and receipt['fixed_final_complete']==(segment==3) and len(receipt['devices'])==2 and all(d['trainable_parameters']==73136096 and d['all_BN_buffers_equal_parent'] is True and d['completed']==486*segment and d['peak_allocated_bytes']<d['total_VRAM_bytes'] for d in receipt['devices']);out['receipt']=receipt
+      if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);record.update(state='whole94_full_fit_actual_complete',receipt=receipt);save(key,record)
+     elif status in ('ERROR','CANCELLED'):
+      if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);record['state']='whole94_full_fit_actual_failed';save(key,record)
+   print(json.dumps(out),flush=True)
+ finally:
+  if not retain:(claim/'owner.json').unlink();claim.rmdir()
