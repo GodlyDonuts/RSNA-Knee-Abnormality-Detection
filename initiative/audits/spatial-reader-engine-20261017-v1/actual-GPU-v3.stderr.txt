@@ -1,0 +1,36 @@
+Traceback (most recent call last):
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 209, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 185, in main
+    worker(admission,*sys.argv[1:]);return
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 161, in worker
+    data,parent,before = inputs(admission, mode)
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 130, in inputs
+    parent, policy = load_model(Path(original['checkpoint']), PARENT_SHA, precision='float32', device=torch.device('cuda'))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v2/code/rsna/competitive/compact_infer.py", line 135, in load_model
+    model = DeploymentBagClassifier(_blueprint(), precision=precision).float()
+                                    ^^^^^^^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v2/code/rsna/competitive/compact_infer.py", line 72, in _blueprint
+    import timm
+  File "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay/timm/__init__.py", line 2, in <module>
+    from .layers import (
+  File "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay/timm/layers/__init__.py", line 23, in <module>
+    from .classifier import create_classifier, ClassifierHead, NormMlpClassifierHead, ClNormMlpClassifierHead
+  File "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay/timm/layers/classifier.py", line 15, in <module>
+    from .create_norm import get_norm_layer
+  File "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay/timm/layers/create_norm.py", line 29, in <module>
+    from torchvision.ops.misc import FrozenBatchNorm2d
+ModuleNotFoundError: No module named 'torchvision'
+Traceback (most recent call last):
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 209, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py", line 198, in main
+    subprocess.run([sys.executable,'-B',__file__,'online','aligned','full'],check=True)
+  File "/usr/lib64/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '/tmp/rsna-criterion-N3-features-20261017-v1/reader-engine-recovery-v3/worker.py', 'online', 'aligned', 'full']' returned non-zero exit status 1.

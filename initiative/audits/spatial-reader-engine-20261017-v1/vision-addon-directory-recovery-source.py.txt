@@ -1,0 +1,4 @@
+
+import hashlib,os,sys
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');p=Path('/tmp/rsna-compact-torchvision-20261016-v1/torchvision-0.29.1-cp312-cp312-manylinux_2_28_x86_64.whl');raw=p.read_bytes();assert len(raw)==7430669 and hashlib.sha256(raw).hexdigest()=='6c717bd68dddaebbd9525377a17a84e38a291a33a218f59fdb76e8bb41e61c99';sys.stdout.buffer.write(raw);sys.stdout.buffer.flush()
