@@ -1,0 +1,37 @@
+"""Original private fixture -> allocated-node pipe; never stdout to the Mac."""
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import tarfile
+
+assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+root = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+index = root / 'pilot-recovery-v2-accepted.json'
+assert hashlib.sha256(index.read_bytes()).hexdigest() == 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+rows = json.loads(index.read_text())['private_records']
+assert len(rows) == 32 and sum(r['windows'] for r in rows) == 2345
+paid = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid < 3 * 2**30 and shutil.disk_usage('/tmp').free > 603433009211 + max(0, 3 * 2**30 - paid)
+parent = Path('/tmp/rsna-compact-native-n3-production-evc33-20261016-v1/production/run.json')
+assert json.loads(parent.read_text())['binding']['release']['manifest_sha256'] == '2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7'
+members = [('pilot-recovery-v2-accepted.json', index), ('membership.private.json', root / 'membership.private.json'), ('parent-run-binding.json', parent)]
+for row in rows:
+    p = root / 'features' / row['file']
+    assert not p.is_symlink() and p.resolve().is_relative_to((root / 'features').resolve())
+    assert p.stat().st_size == row['bytes']
+    members.append(('features/' + row['file'], p))
+with tarfile.open(fileobj=sys.stdout.buffer, mode='w|') as archive:
+    for name, path in members:
+        raw = path.read_bytes() if not name.startswith('features/') else None
+        info = tarfile.TarInfo(name)
+        info.size = len(raw) if raw is not None else path.stat().st_size
+        info.mode = 0o600
+        if raw is not None:
+            archive.addfile(info, io.BytesIO(raw))
+        else:
+            with path.open('rb') as source:
+                archive.addfile(info, source)

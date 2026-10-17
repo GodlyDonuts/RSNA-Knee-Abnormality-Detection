@@ -93,10 +93,50 @@ Synthetic source checks retain changing/directed kernels and refuse missing
 outgoing states. This reference implementation has **quadratic sequence-length
 cost/storage** for the conditional null; dense-MRI throughput is unmeasured.
 
-The distinct variable-geometry CPU assessor is prepared, not a GPU fit. It must
-account for all32 original fixtures and retain every unsupported state; only
-its actual receipt can establish source-geometry acceptance. No learned MRI
-reader, real optimizer recovery or accuracy gain is established by these checks.
+**Actual CPU951534:** the varying-kernel layer now supports all32 original
+fixtures/all2345 windows, including all53chains the first prototype could not
+represent. All1841 source-disjoint repeat edges are retained. Actual zero-evidence
+and conditional-prior-mass errors were at most1.1921e-7 in FP32; execution took4.19s.
+No pixel/map/target/model values were read and no node/shared files were created.
+[Exact original assessment](actual-variable-source-geometry.json). None of these
+32 fixtures had an individually nonreversible kernel at tolerance1e-6: support
+for directed kernels is established synthetically, not claimed as a measured
+phenomenon in these particular acquisitions.
+
+## Learned reader and bounded next execution
+
+`path_reader.py` implements the learned1024-to64 projection,12 evidence channels,
+class-specific continuation parameters, common full-map image/nuisance features
+and zero-start **unbounded** residual. It has68560 parameters. Physical versus
+independent arms use identical maps, starts/gaps, summaries and architecture;
+only path coupling changes. Overlapping phases/acquisitions enter a mixture of
+possible starts, not multiplied confirmations. Encoder weights remain external
+and frozen. The unchanged canonical `SpatialTrainer` schedule/state/RNG loop is
+reused explicitly with a new reader and fresh AdamW; no original module changes.
+
+Fresh-process synthetic CPU full/stop-after1/resume checks actually passed for
+both arms: complete learned state/AdamW/LR/order/cursors/all-RNG/history and each
+epoch agree exactly, as do16x12 prediction CSV bytes. Both arms begin at the
+same model. [Actual result](synthetic-reader-recovery.json). These synthetic
+fixtures use8channels/width4 and do not accept full1024/64 real-MRI GPU execution,
+an encoder, diagnostic performance or a production candidate.
+
+Prepare one private transfer of the **already whole-byte verified32 cached
+feature cases** from evc33 to evc26, through allocated CPU endpoints and a pipe
+on Newton. No feature arrays/rosters cross to the Mac/Git/HF. Original source
+files stay intact. New evc26 root is capped3GiB, including all copied data and
+future bounded engineering controls/checkpoints, with20GiB node reserve and zero
+new shared data/files. This does not fund full native-cache or production fits.
+The exact sender/receiver logic passed a synthetic positive case and10negative
+hash/inventory/path/size/link/missing/duplicate/cap/overwrite checks, including
+owner-only permissions. [Actual transport checks](fixture-transport-checks.json).
+Existing staging intent/root forbids repeating a copy; reconcile read-only.
+
+Only after actual fixture and source/input/runtime admission, run one bounded
+H100 full/stop/resume recovery on16 fitting plus16 prediction-only original
+cases,2epochs/4updates. This is engineering, not a model to submit or an accuracy
+experiment. No such GPU job is staged or submitted yet. The existing full paired
+reader jobs and their original final analysis remain unchanged.
 
 ## Why test this next
 

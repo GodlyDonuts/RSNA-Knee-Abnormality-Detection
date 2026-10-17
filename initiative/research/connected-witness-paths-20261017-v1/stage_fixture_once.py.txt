@@ -1,0 +1,35 @@
+"""One cluster-private fixture copy; only the aggregate proof crosses SSH back."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+
+D = Path(__file__).resolve().parent
+L = Path('artifacts/connected-witness-evc26-fixture-20261017-v1')
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / 'intent.json').exists()
+assert not subprocess.check_output(['git', 'status', '--porcelain'], text=True).strip()
+source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+geometry = json.loads((D / 'actual-variable-source-geometry.json').read_text())
+assert geometry['CPU_job'] == '951534' and geometry['all32_studies_fully_supported_by_varying_directed_path_layer']
+for name, digest in geometry['new_mathematical_source_hashes'].items():
+    assert hashlib.sha256((D / (name + '.py')).read_bytes()).hexdigest() == digest
+recovery = json.loads((D / 'synthetic-reader-recovery.json').read_text())
+assert recovery['source_sha256'] == hashlib.sha256((D / 'path_reader.py').read_bytes()).hexdigest()
+assert recovery['complete_model_AdamW_LR_cursor_order_allRNG_history_and_each_epoch_state_equal']
+sender, receiver = [(D / name).read_text() for name in ('fixture_sender.py.txt', 'fixture_receiver.py.txt')]
+for program in (sender, receiver):
+    compile(program, 'allocated_node_private_fixture_transport', 'exec')
+common = ['srun', '--account=skattel', '--partition=normal', '--qos=normal', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=1G', '--time=00:10:00']
+a = common + ['--nodelist=evc33', '--job-name=rsna-witness-fixture-source', 'env', 'CUDA_VISIBLE_DEVICES=', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', sender]
+b = common + ['--nodelist=evc26', '--job-name=rsna-witness-fixture-receiver', 'env', 'CUDA_VISIBLE_DEVICES=', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', '/tmp/rsna-environment-906337-gdraqwzl/environment/bin/python', '-B', '-c', receiver, source, hashlib.sha256(receiver.encode()).hexdigest()]
+shell = 'set -euo pipefail\n' + shlex.join(a) + ' | ' + shlex.join(b)
+with (L / 'intent.json').open('x') as f:
+    json.dump({'source_git': source, 'sender_sha256': hashlib.sha256(sender.encode()).hexdigest(), 'receiver_sha256': hashlib.sha256(receiver.encode()).hexdigest(), 'CPUs_per_endpoint': 1, 'GPUs': 0, 'new_evc26_root_cap_bytes': 3 * 2**30, 'private_data_stays_on_authorized_cluster': True, 'automatic_retry': False}, f, indent=2)
+x = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', 'bash -c ' + shlex.quote(shell)], capture_output=True, text=True, timeout=750)
+(L / 'result.json').write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, 'Original source or target incomplete/uncertain: inspect the existing handles/root read-only; never repeat the copy'
+out = json.loads(x.stdout)
+(D / 'actual-evc26-fixture-verified.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

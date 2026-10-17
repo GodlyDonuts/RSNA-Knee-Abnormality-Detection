@@ -194,8 +194,15 @@ has passed exhaustive physical/control partitions, unary/prior gradients,
 focal/FP32/extreme-prior checks and exact reproduction of the old stationary
 special case. Its control preserves every per-position prior marginal conditional
 on EACH possible start. The reference null has quadratic sequence-length cost;
-dense throughput remains unmeasured. The distinct real metadata assessment is
-prepared, not executed; no new GPU reader fit or accuracy pass is claimed.
+dense throughput remains unmeasured. Actual CPU951534 now covers all32
+fixtures/all2345windows and1841original repeat edges with no dropped source,
+zero-evidence/prior-mass error<=1.1921e-7. The68560-parameter learned reader and
+unchanged shared trainer loop passed fresh-process synthetic CPU full/stop1/resume
+complete model/AdamW/LR/order/cursor/all-RNG/history/epoch/CSV equality in both
+arms. Synthetic fixtures use8channels/width4; real1024/64 GPU recovery remains
+unaccepted. One private32-feature-fixture copy to evc26 is prepared inside a
+new3GiB node-only engineering cap/20GiB reserve, zero shared bytes. No new GPU
+reader fit or accuracy pass is claimed.
 [Exact source, original failure and mathematical evidence](../initiative/research/connected-witness-paths-20261017-v1/README.md).
 
 CPU951513 verified both existing evc26 runtimes actually have Python3.12.13,
