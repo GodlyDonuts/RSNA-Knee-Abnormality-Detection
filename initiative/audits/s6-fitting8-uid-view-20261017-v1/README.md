@@ -61,3 +61,9 @@ weight copies or labels. It is **dispatched, not yet terminal or accurate**;
 `artifacts/s6-fitting8-classifier-20261017-v1/run_once.py`, exec77108.
 [Exact admission](classifier/dispatch-intent.json), [worker identity](classifier/checked.json).
 No raw case logits/IDs or pixels leave private node33.
+
+
+Later October17 06:25UTC: that original CPU942806 classifier actually completed
+all8/5372windows, and CPU942957 completed the fitting-only cross-lineage screen.
+[Exact later terminals and limits](../s6-fitting8-cross-lineage-20261017-v1/README.md).
+The earlier dispatch-only statements above describe the original05:55snapshot.

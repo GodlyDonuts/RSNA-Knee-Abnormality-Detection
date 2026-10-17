@@ -10,10 +10,14 @@ The reported S6 score has not yet been reproduced by this project.
 
 **Current state is maintained in the [current-state guide](../docs/current-state.md),
 [research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
-As of October 17, 2026, 03:20 UTC, our own N3 epoch 16 scored 0.894; the attributed
-external nartaa baseline scored 0.949. Full-parent epoch1 is complete and privately verified, epoch2 has resumed,
-and expanded-own-model training is running into epoch5. The first matched
-uniform16 GPU session is also running; no new score is claimed. Use those current guides and original receipts for live status.
+As of October17 06:25UTC, actual best remains attributed0.949; own N3 is0.894.
+Whole94 E2 completed972/private verified and original E3 runs. Expanded original
+H100 has epochs1–12 privately verified. Both sampling E1 roles are preserved;
+uniformE2 runs. [Actual new epochs](audits/research-progress-20261017-0625-v1/README.md).
+The [actual CPU8 teacher comparison](audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
+motivates an [ordinal transport contrast](experiments/competitive-v1/s6-rank-transport-v1/README.md),
+numerically prepared, not trained. Target0.97 is not a result. Use current guides
+and original receipts for live status.
 
 ## Historical releases and training narrative
 

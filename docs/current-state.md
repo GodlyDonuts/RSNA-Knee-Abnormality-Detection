@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 05:55 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 06:25 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -48,8 +48,8 @@ Do not resubmit those exact versions.
 
 | Work | Original identity | Latest verified state |
 |---|---|---|
-| Whole94 licensed-parent adaptation | E1 139111324v1; E2 **139137922v1** | E1 complete486, all5private objects verified; E2 RUNNING, last visible722/1458 finite updates, bothT4s |
-| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **3458/5184 finite updates, epoch11**; **epochs1–10 privately verified** |
+| Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
+| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **epochs1–12 privately verified**, at least3888/5184 completed updates |
 | Uniform16 full-encoder control | E1**139137040v1** | **E1 complete486**, whole state verified; all5private objects HFc19961db0f377086b4a2fd12f6ec477213a1da7d |
 | Influence16 full-encoder contrast | E1**139154664v1** | **E1 complete486/all5private objects verified**; original owner97530 now runs uniformE2**139167076v1** |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
@@ -57,8 +57,11 @@ Do not resubmit those exact versions.
 
 [New original epoch/publication/push evidence](../initiative/audits/research-progress-20261017-0448-v1/README.md),
 [earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
-Actual CPU942744 now observed3458/5184 finite updates/epoch11. E9/E10 publication
-proofs establish completed immutable epochs1–10, each privately fully verified.
+E2 now actually completed972updates and CPU942967 verified all5private objects
+at HF51d5efae30b4efe820723c6147054fc90ac094c0. Original E3 is RUNNING.
+Expanded E11/E12 are now privately fully9object verified each, establishing
+at least3888completed updates; the older3458cursor is superseded.
+[New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
 InfluenceE1 completed486 and all5objects are independently private verified;
 uniformE2 is now API RUNNING under the resumed same owner97530.
 [New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
@@ -154,15 +157,32 @@ owner **20994/20982** waits actual offline acceptance and fresh allowance. Neith
 has submitted S6. Original H100942047 remains pending.
 [Exact acceptance, quota correction and owners](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
 
-A separate CPU-only eight-fitting-study input bridge139165316v1 now COMPLETED;
-CPU942782 collected once and verified all5372windows/1,154,209,297compressed bytes.
-Original owner20144 is terminal success. A distinct twoCPU/zeroGPU classifier
-dispatch reuses them, with no actual terminal or accuracy result yet. It uses a UID-only roster view and unchanged physical/anatomical
-functions after a preserved first guard-contract failure139162434v1. No labels,
-classifier predictions or clinical pass is claimed; fixtures remain private in
-the existing2GiB pool. This prepares a cross-lineage comparison without waiting
-for a GPU lane. [Protocol, failure and nine checks](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
-The author's0.950 remains external; no project S6 score exists yet.
+CPU-only input139165316v1 completed5372original fitting windows, all compressed/
+decoded bytes privately verified once. **CPU942806 now COMPLETED0:0**, scoring
+all eight/5372windows in1197.87seconds, peak6.62GBRSS, finite logits/zero fallback.
+CPU942957 reused those outputs and existing parent arrays without labels/masks/
+reports/Gold/newCNN/GPU/fitting: raw gaps8.04–39.09points, rank correlations
+0.8095–0.9762 and1–5reversed strict pairs/28per target. No strong0.8/0.2 opposites.
+These are descriptive exposed-cohort cost quantiles, not clinical AUC or OOF.
+**Do not use raw probability gaps as a calibrated clinical uncertainty gate.**
+[Actual classifier and all12targets](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md).
+
+**Target0.97; verified best0.949.** The next fixed mechanism transports equal
+teacher ranks onto the parent score scale and shifts its two view logits together,
+then reuses the full-encoder source/teacher loss. The matched control keeps parent
+targets bit-identical. Nineteen numerical contracts pass; no new trainer GPU or
+accuracy result exists. Full3887 S6 targets and a separately admitted complete-
+state recovery/funding are still required. The original target bundle stays
+immutable. [Matched protocol/source/tests](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
+
+CPU942920 staged a distinct32fitting-study B-only scout, source0573a2a1, in
+existing controls. Sole finite PID24413/exec38637 waits original S6 offline
+acceptance and fresh canonical capacity/budget; **no GPU push yet at this
+observation**, zero entries. It contains the original eight and checks actual
+T4/CPU parity, full preparation/inference time and diversity before any full
+teacher acquisition. Never restart its original owner or stager.
+[Exact source, ten contracts and five owner paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
+The author's0.950 remains external; no project S6 hidden score exists yet.
 
 ## Completed fixed-final own-model comparisons
 

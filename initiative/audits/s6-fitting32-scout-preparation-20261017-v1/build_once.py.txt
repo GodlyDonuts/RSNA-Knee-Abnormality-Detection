@@ -1,0 +1,44 @@
+"""Build only: bounded original S6 fitting32 GPU timing/diversity scout."""
+import base64,hashlib,json
+from pathlib import Path
+L=Path(__file__).resolve().parent;assert not (L/'source.private.py').exists();original=(L.parent/'s6-public-source-20261017-v1/source.extracted.py').read_bytes();assert hashlib.sha256(original).hexdigest()=='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe';guard=(L/'csv-guard.py.txt').read_text()
+protocol={'kind':'original_S6_B_only_fitting32_physical_runtime_and_complementarity_scout','population':3887,'population_sha256':'0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42','studies':32,'selection':'Sorted union of rounded8-quantile and26-quantile ordinals in (series-count,UID) order, exactly32 including the previously fixed8','original_fitting8_input_kernel':139165316,'original_source_sha256':hashlib.sha256(original).hexdigest(),'B_only_original_run_b':True,'A_model_not_executed':True,'exact_original_geometry_model_and_pooling':True,'parent_and_every_GPU_child_CSV_guard':True,'original_multiprocessing_launcher_top_level_and_main_guard_preserved':True,'source_label_mask_report_arrays_or_gold_used':False,'maximum_session_seconds':1800,'maximum_script_seconds':1700,'maximum_run_b_seconds':1400,'required_initial_local_free_bytes':24*2**30,'GPU_kind':'two Tesla T4','retained_download_metadata_and_logits_cap_bytes':8*2**20,'GPU_push_or_compute_funding_admitted':False,'competition_entry_or_submission_CSV':False,'purpose':'Measure actual B-only source-fitting throughput and cross-lineage behavior, with original8 CPU FP32 reference; no clinical accuracy, OOF or training'}
+body=r"""
+import base64,contextlib,hashlib,io,json,os,resource,signal,sys,time,shutil
+from pathlib import Path
+import numpy as np,pandas as pd,torch
+PROTOCOL=__PROTOCOL__;t0=time.monotonic();R=Path('/kaggle/working/S6-fitting32-scout');assert not R.exists() and shutil.disk_usage('/kaggle/working').free>PROTOCOL['required_initial_local_free_bytes'];R.mkdir(mode=0o700)
+def timeout(signum,frame):raise TimeoutError('Bounded source-fitting scout deadline')
+signal.signal(signal.SIGALRM,timeout);signal.alarm(PROTOCOL['maximum_script_seconds']);stage='environment'
+try:
+ original=base64.b64decode(__ORIGINAL__,validate=True);assert hashlib.sha256(original).hexdigest()==PROTOCOL['original_source_sha256'];original_path=R/'original.private.py';original_path.write_bytes(original);original_path.chmod(0o600)
+ ns={'__name__':'unchanged_S6_definitions_without_main','__file__':str(original_path)}
+ with (R/'original.private.log').open('x') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):
+  exec(compile(original,str(original_path),'exec'),ns);ns['OUT']=R/'original-private';ns['TMP']=Path('/tmp/S6-fitting32-private');assert not ns['TMP'].exists();ns['OUT'].mkdir(mode=0o700);ns['TMP'].mkdir(mode=0o700)
+  env=ns['probe_env']();assert env['cuda_available'] is True and env['n_gpu']==2 and len(env['gpus'])==2 and all('T4' in g for g in env['gpus']);ns['_RECEIPT']['env']=env
+  stage='original_inputs';I=ns['prepare_inputs']();assert I.manifest_sha256=='b66c574b5c0c13ccaa49d1219d41a8781431166186ef83e78cab6a9ba6b02d22';stack=ns['probe_b_stack'](I);assert stack['params']==50018284 and stack['spatial'] is True
+  stage='UID_only_fitting_view';paths=[p for p in Path('/kaggle/input').rglob('targets.private.npz') if p.stat().st_size==483656];assert len(paths)==1 and hashlib.sha256(paths[0].read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+  with np.load(paths[0],allow_pickle=False) as z:assert set(z.files)=={'uids','labels','masks','parent_logits'};uids=z['uids'].tolist()
+  assert len(uids)==3887 and uids==sorted(set(uids)) and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==PROTOCOL['population_sha256']
+  original_comp=I.comp;counts=pd.read_csv(original_comp/'train_series.csv',dtype=str,usecols=['StudyInstanceUID'])['StudyInstanceUID'].value_counts().to_dict();assert set(uids)<=set(counts);costs=sorted((int(counts[u]),u) for u in uids);p8=np.linspace(0,3886,8).round().astype(int).tolist();p26=np.linspace(0,3886,26).round().astype(int).tolist();positions=sorted(set(p8+p26));assert len(positions)==32;selected=[costs[i][1] for i in positions];assert not set(selected)&set(I.test_ids)
+  view=R/'UID-view';view.mkdir(mode=0o700);(view/'train_series').symlink_to(original_comp/'train_series',target_is_directory=True);(view/'train_series.csv').symlink_to(original_comp/'train_series.csv');pd.DataFrame({'StudyInstanceUID':selected}).to_csv(view/'train.csv',index=False);assert pd.read_csv(view/'train.csv',dtype=str).to_dict('list')=={'StudyInstanceUID':selected}
+  (R/'selection.private.json').write_text(json.dumps({'selected_uids':selected,'old8_selected_uids':[costs[i][1] for i in p8],'positions':positions,'series_counts':[costs[i][0] for i in positions],'population_sha256':PROTOCOL['population_sha256']},sort_keys=True)+'\n')
+  guard_path=R/'csv-guard.private.py';guard_path.write_text(__GUARD__);guard_path.chmod(0o600);context={'view':str(view),'original':str(original_comp),'scratch':str(ns['TMP']),'outputs':str(R)}
+  g={};exec(compile(__GUARD__,str(guard_path),'exec'),g);shim=R/'GPU-child-launcher.private.py';original_launcher_text=I.launcher.read_text();shim.write_text(g['instrument_launcher'](original_launcher_text,guard_path,context));shim.chmod(0o600)
+  g['install'](**context);I.comp=view;I.cost.update(counts);I.launcher=shim
+  stage='unchanged_B_two_GPU_processes';budget=min(PROTOCOL['maximum_run_b_seconds'],int(1600-(time.monotonic()-t0)));assert budget>=300
+  probabilities,logits,info,failed=ns['run_b'](I,'fitting32',selected,'train',budget,px=True);assert failed=={} and probabilities.shape==logits.shape==(32,12) and np.isfinite(probabilities).all() and np.isfinite(logits).all() and (probabilities>=0).all() and (probabilities<=1).all() and info['px_studies']==32 and info['px_unreadable_lines']['count']==0 and all(r['timed_out'] is False for r in info['receipts'])
+  np.savez_compressed(R/'probabilities.private.npz',uids=np.array(selected),probabilities=probabilities,logits=logits)
+  px=json.loads((ns['OUT']/'fitting32/px_hashes.json').read_text());assert set(px)==set(selected) and all(r.get('error') is None and not r.get('hash_error') for r in px.values())
+ signal.alarm(0)
+ files={}
+ for name in ['selection.private.json','probabilities.private.npz','original-private/fitting32/px_hashes.json','original-private/fitting32/fitting32_info.json']:
+  p=R/name;files[name]={'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+ assert sum(x['bytes'] for x in files.values())<PROTOCOL['retained_download_metadata_and_logits_cap_bytes']
+ receipt={'status':'actual_original_S6_B_only_fitting32_two_T4_scout_complete','protocol':PROTOCOL,'self_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'model_sha256':ns['B_MODEL']['sha256'],'anatomy_sha256':ns['ANATOMY_SHA256'],'source_tree_manifest_sha256':I.manifest_sha256,'env':env,'B_probe':stack,'studies':32,'series_counts':[costs[i][0] for i in positions],'elapsed_seconds':time.monotonic()-t0,'B_seconds':info['seconds'],'parts':info['parts'],'windows':sum(int(r['stats']['windows']) for r in info['receipts']),'failed':0,'files':files,'no_labels_reports_gold_or_parent_teacher_arrays_decoded':True,'no_submission_CSV_or_competition_entry':True,'hidden_full_scale_or_accuracy_claim':False}
+ (R/'accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
+except BaseException as e:
+ signal.alarm(0);(R/'failure.private.json').write_text(json.dumps({'stage':stage,'error_type':type(e).__name__,'reason':str(e)},indent=2)+'\n');print(json.dumps({'status':'source_fitting32_scout_failed_private_cause_retained','stage':stage,'error_type':type(e).__name__,'no_competition_entry':True}),flush=True);raise SystemExit(1)
+"""
+body=body.replace('\\\\n','\\n')
+source=body.replace('__PROTOCOL__',repr(protocol)).replace('__ORIGINAL__',repr(base64.b64encode(original).decode())).replace('__GUARD__',repr(guard));compile(source,'S6_B_only_fitting32_scout','exec');(L/'source.private.py').write_text(source);(L/'source.private.py').chmod(0o600);(L/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n');(L/'prepared.json').write_text(json.dumps({'status':'private_GPU_scout_source_prepared_not_admitted_or_dispatched','source_sha256':hashlib.sha256(source.encode()).hexdigest(),'original_source_sha256':hashlib.sha256(original).hexdigest(),'guard_sha256':hashlib.sha256(guard.encode()).hexdigest(),'no_clinical_case_IDs_embedded':True,'GPU_jobs_or_entries':0},indent=2)+'\n')

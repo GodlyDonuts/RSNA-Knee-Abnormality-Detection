@@ -1,0 +1,15 @@
+"""Descriptive two-lineage disagreement, with no labels or tuning."""
+import numpy as np
+TARGETS=('ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture')
+def midrank(x):
+ _,inverse,counts=np.unique(x,return_inverse=True,return_counts=True)
+ return (np.cumsum(counts)-(counts-1)/2)[inverse]/len(x)
+def summarize(a,b):
+ a=np.asarray(a,dtype=np.float64);b=np.asarray(b,dtype=np.float64)
+ if a.shape!=b.shape or a.ndim!=2 or a.shape[1]!=12 or not 3<=len(a)<=64 or not np.isfinite(a).all() or not np.isfinite(b).all() or min(a.min(),b.min())<0 or max(a.max(),b.max())>1:raise ValueError('Aligned finite bounded small-cohort twelve-target probabilities required')
+ n=len(a);u,v=np.triu_indices(n,1);out=[]
+ for j,name in enumerate(TARGETS):
+  x,y=a[:,j],b[:,j];rx,ry=midrank(x),midrank(y);cx,cy=rx-rx.mean(),ry-ry.mean();den=np.linalg.norm(cx)*np.linalg.norm(cy)
+  da,db=x[u]-x[v],y[u]-y[v];strict=(np.abs(da)>1e-12)&(np.abs(db)>1e-12);defined=int(strict.sum());gap=np.abs(x-y)
+  out.append({'target':name,'mean_absolute_probability_gap':float(gap.mean()),'median_absolute_probability_gap':float(np.median(gap)),'max_absolute_probability_gap':float(gap.max()),'fraction_gap_above_0_1':float((gap>.1).mean()),'fraction_gap_above_0_2':float((gap>.2).mean()),'strong_opposite_probability_cases':int((((x>=.8)&(y<=.2))|((y>=.8)&(x<=.2))).sum()),'rank_correlation':None if den==0 else float(np.dot(cx,cy)/den),'all_pairs':len(u),'strict_pairs':defined,'strict_order_discordant_pairs':int(((da*db<0)&strict).sum()),'strict_order_discordance':None if defined==0 else float(((da*db<0)&strict).sum()/defined)})
+ return {'studies':n,'targets':out,'source_exposed_fitting_cohort':True,'clinical_labels_or_AUC_used':False,'blend_or_target_weights_selected':False,'interpretation':'Descriptive diversity on eight fixed series-count quantiles; not clinical error, OOF, prevalence or accuracy evidence'}

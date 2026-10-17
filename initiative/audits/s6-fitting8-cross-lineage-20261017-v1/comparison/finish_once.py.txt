@@ -1,0 +1,23 @@
+"""One private CPU comparison, after the exact original classifier completes."""
+import hashlib,json,os,shlex,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;C=L.parent/'s6-fitting8-classifier-20261017-v1';owner=json.loads((C/'dispatch.intent.json').read_text())['PID'];proof=json.loads((L/'checked.json').read_text());frozen={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('program.py.txt','core.py.txt')};assert frozen['program.py.txt']==proof['program_sha256'] and frozen['core.py.txt']==proof['core_sha256'];start=time.monotonic();maximum=3*3600
+with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'original_CPU_classifier_PID':owner,'original_CPU_classifier_job':942806,'maximum_seconds':maximum,'maximum_new_CPU_jobs':1,'maximum_GPU_jobs_or_entries':0,'immutable_files':frozen,'automatic_retry':False},f,indent=2)
+def progress(phase,**kw):(L/'finish.progress.json').write_text(json.dumps({'PID':os.getpid(),'phase':phase,'elapsed_seconds':time.monotonic()-start,**kw},indent=2)+'\n')
+try:
+ while not (C/'accepted.json').exists():
+  assert time.monotonic()-start<maximum,'Finite CPU comparison wait expired'
+  if (C/'dispatch.result.json').exists():
+   outcome=json.loads((C/'dispatch.result.json').read_text());assert outcome['returncode']==0,'Original classifier has actual nonzero terminal; read-only reconciliation required'
+  os.kill(owner,0);command=subprocess.check_output(['ps','-p',str(owner),'-o','command='],text=True).strip();assert command.endswith('s6-fitting8-classifier-20261017-v1/run_once.py');progress('waiting_same_actual_CPU_classifier_without_reserving_resources');time.sleep(30)
+ accepted=json.loads((C/'accepted.json').read_text());assert accepted['status']=='actual_original_S6_fitting8_CPU_FP32_classifier_accepted' and accepted['studies']==8 and accepted['windows']==5372 and accepted['all_probabilities_finite'] is True
+ assert all(hashlib.sha256((L/n).read_bytes()).hexdigest()==h for n,h in frozen.items());program=(L/'program.py.txt').read_text();core=(L/'core.py.txt').read_text()
+ with (L/'compare.intent.json').open('x') as f:json.dump({'actual_CPU_classifier_job':accepted['CPU_job'],'immutable_files':frozen,'maximum_CPU_jobs':1,'no_mutation_retry':True},f,indent=2)
+ progress('one_private_CPU_summary_dispatch')
+ cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:03:00','--job-name=rsna-S6-fitting8-complementarity','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'core':core}),capture_output=True,text=True,timeout=350)
+ with (L/'compare.result.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Private comparison phase stopped; reconcile actual retained state before any mutation'
+ actual=json.loads(x.stdout);assert actual['status']=='actual_original_fitting8_cross_lineage_descriptive_summary_complete';(L/'accepted.json').write_text(json.dumps(actual,indent=2)+'\n');(L/'finish.result.json').write_text(json.dumps({'status':'actual_private_fitting8_summary_complete','actual':actual,'GPU_or_fitting_or_entries':0},indent=2)+'\n');progress('terminal_success');print(json.dumps(actual),flush=True)
+except BaseException as e:
+ (L/'finish.result.json').write_text(json.dumps({'status':'stopped_private_comparison_for_readonly_reconciliation','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise

@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 05:55 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 06:25 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -22,9 +22,9 @@ uniform16E1 **139137040v1 actually completed486 updates** and all5private object
 were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
 are private verified; uniformE2 139167076v1 is RUNNING**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
-actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 continues unchanged, last visible722.
-Expanded N3 is at3458/5184 finite updates/epoch11, with completed epochs1–10
-privately verified, under the original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
+actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
+139172537v1 is RUNNING. Expanded N3 has epochs1–12 privately fully verified,
+at least3888/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
 there is no demonstrated new gain or fixed-final result yet.
 [Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 
@@ -164,7 +164,8 @@ required an observer-only repair, not a GPU rerun. Remaining offline owner20978
 and one-entry owner20994 wait capacity/actual acceptance. No project S6 score
 exists yet. A distinct eight-fitting-study CPU input bridge139165316v1 completed; CPU942782
 collected once and verified5372windows/1,154,209,297bytes. Its new CPU classifier
-dispatch is not yet terminal, with no labels or accuracy claim.
+dispatch actually completed942806/1197.87seconds/5372windows/finite/zero fallback;
+CPU942957 then completed the label-free teacher comparison below.
 [Actual T4 recovery](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
 [fitting bridge](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Actual acceptance and next gate](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md). Prioritize unchanged reproduction and source-exposure
@@ -212,3 +213,27 @@ No private pixels/case IDs/clinical arrays/teacher predictions/weights.
 [One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
 Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
 mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
+
+## Current0.97-target mechanism: transfer ordering, not confidence gaps
+
+[Actual eight-study evidence](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md):
+S6/CoAtNet mean raw gaps8–39probability points coexist with rank correlations
+0.8095–0.9762,1–5reversed pairs out of28, and no strong0.8/0.2opposites.
+No labels/Gold/fitting/newCNN were used in that comparison. Both teachers exposed
+the cohort; eight deterministic cost quantiles cannot prove accuracy or prevalence.
+We therefore reject a raw-gap confidence gate for now.
+
+The new [ordinal-transport contrast](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md)
+uses fixed equal teacher ranks, then maps their consensus order onto CoAtNet's
+probability scale while preserving anatomical-view relative log-odds. It feeds
+the existing25%source/75%teacher objective in a fully trainable single CNN.
+Parent-only control preserves original target bytes; same input/order/compute,
+fixed3epochs, no Gold/per-target tuning. Nineteen synthetic numerical checks pass,
+including original loss/gradient identity; no actual GPU fitting or gain claimed.
+
+Sole scout24413/exec38637 owns a staged32study B-only throughput/CPU-parity check.
+It waits original S6 offline acceptance and fresh actual two-session/VM admission,
+maxone1800second session/zeroentries. Complete3887 teacher acquisition and a new
+trainer require actual full input/state/funding acceptance. Fixed equal-rank
+inference is already prepared separately. Continue healthy training and the
+original S6 entry independently. **0.97 is the goal;0.949 remains the result.**

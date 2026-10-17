@@ -1,6 +1,7 @@
 # RSNA Knee: current agent guide
 
-The owner wants competitive model improvement and a fully current GitHub handoff.
+The owner targets a **0.97 model** and a fully current GitHub handoff.
+Verified best remains0.949; a target is not a measured result.
 Implement directly: **Devin is unavailable**. Do not create issues or wait for
 Devin. Preserve healthy work while pursuing concrete, falsifiable experiments.
 Software tests, parameter count, model downloads and training loss are not score
@@ -36,8 +37,15 @@ historical release/plan documents now link back to the current guides.
   repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
   Sole reproduction20978 and entry20994 own the remaining offline run/one entry.
   H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
-  are privately byte verified; CPU classifier dispatch is not yet terminal. Never duplicate these originals. **0.950 remains external**;
+  are privately byte verified; CPU942806 now scored all eight/5372windows and
+  CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
+  sole finite owner24413, staged but awaiting original offline acceptance and
+  fresh GPU admission. Never duplicate these originals. **0.950 remains external**;
   there is no project S6 hidden score. Include both S6 and CoAtNet runtime.
+- Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the
+  eight cost quantiles. Do not equate raw gaps with clinical uncertainty. See
+  `initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md` for the
+  fixed ordinal-transport matched comparison, numerically prepared but not fitted.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.

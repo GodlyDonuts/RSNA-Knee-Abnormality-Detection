@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Prepared October 17, 2026; live reconciliation through 05:55 UTC.** Start here when
+**Prepared October 17, 2026; live reconciliation through 06:25 UTC.** Start here when
 proposing new work. [Current state](current-state.md) is the score/job authority;
 [research brief](research-brief.md) explains mechanisms and uncertainty;
 [execution handoff](codex-continuation.md) records active owners and exact identities.
@@ -17,7 +17,8 @@ proposing new work. [Current state](current-state.md) is the score/job authority
 - Full-parent adaptation is running on Kaggle; expanded own-model fitting is
   running on Newton. Neither has a final/new competition score. The matched
   importance-sampling production comparison has completed/private-verified uniformE1;
-  influenceE1 139154664v1 is now actually running.
+  influenceE1 139154664v1 is also complete/private verified; uniformE2 runs.
+  Whole94 E2 completed972 and is private verified; original E3 139172537v1 runs.
 - The earlier **two-slot** observation preceded the actual learnedE1 entry
   **57294905** (COMPLETE/**0.949**, noerror); refresh authoritative allowance. Regional
   submission 57291182 actually scored **0.948**; entry owners already cover
@@ -207,7 +208,7 @@ Uniform16 E1 actually completed486updates and all5objects are privately fully
 verified; influenceE1 also completed486 and all5objects were independently private
 verified at HFb09816181e2e79eb24563884af5c7ed0e1af40a5. UniformE2 139167076v1
 is RUNNING under resumed same owner97530. Expanded N3 original938284 is at
-3458/5184 finite updates,epoch11, with ten completed privately fully verified epochs.
+at least3888/5184 completed updates, with epochs1–12 privately fully verified.
 [Actual new original progress](../initiative/audits/research-progress-20261017-0550-v1/README.md). Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.
@@ -228,7 +229,8 @@ both wait actual capacity/acceptance, with zero S6 entries so far.
 [Exact T4/observer/quota evidence](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
 Distinct CPU fitting8 input139165316v1 now completed after a preserved earlier
 guard-contract failure; CPU942782 verified all5372windows/1,154,209,297bytes and
-the same fitting roster. Its new CPU classifier dispatch is not yet terminal.
+the same fitting roster. Its CPU942806 classifier now completed all5372windows;
+CPU942957 measured all12targets without labels or new inference.
 It uses a UID-only roster view with original geometry, not new targets. [Bridge protocol](../initiative/audits/s6-fitting8-uid-view-20261017-v1/README.md).
 [Exact source/runtime/gate proof](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
 Original full regression terminated successfully:4537passed/8skipped/exit0;
@@ -279,3 +281,20 @@ No private pixels/case IDs/clinical arrays/teacher predictions/weights.
 [One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
 Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
 mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
+
+## Owner target0.97: new measured cross-lineage direction
+
+[The actual eight-study screen](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
+found large score-scale shifts but closer ordering. Do not call those raw gaps
+calibrated uncertainty, clinical errors or independent OOF. Use this evidence
+when proposing confidence gating. A larger32-study B-only scout is staged and
+has sole finite owner24413/exec38637, not a GPU result at this snapshot.
+[Original admission and paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
+
+[The new matched full-encoder mechanism](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md)
+transports equal teacher ranks onto the parent score scale and keeps the existing
+pointwise optimizer practical. It differs from the completed frozen-feature
+weak-label ranking head. Nineteen numerical checks pass; complete full3887 S6
+teacher outputs, distinct immutable data binding, real recovery and funded GPU
+fitting remain absent. Do not call its preparation a model or improvement.
+Verified best0.949/own0.894 remain unchanged.

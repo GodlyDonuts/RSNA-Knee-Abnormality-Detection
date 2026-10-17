@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 05:55 UTC:**
+**Current entry points — verified October 17, 2026, 06:25 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -20,12 +20,20 @@ without improving the external reference. These are public leaderboard scores, n
 Whole-parent adaptation completed its first **486-update epoch**, privately fully
 verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
-Epoch2 continues with the original worker/checkpoint. Expanded own N3 fitting on
-2592studies runs on a Newton H100 at **3458/5184 finite updates, epoch11**, with
-**epochs1–10 privately verified**.
+Epoch2 now completed972updates/all5private objects; original final E3
+**139172537v1** is RUNNING. Expanded own N3 fitting on2592studies continues
+on its original Newton H100; **epochs1–12 privately verified**, at least3888/5184updates.
 Both matched uniform16E1 and influence16E1 completed486updates/all5private
 objects; original uniformE2 is now RUNNING. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
+
+**The owner targets0.97; best verified remains0.949.** Actual CPU inference
+on eight fitting MRIs found large raw teacher confidence gaps but much closer
+rankings. A fixed equal-rank blend and a single-model ordinal distillation
+contrast are prepared; the latter has19numerical contracts, no fitted result.
+The larger32-study scout has a sole finite owner and awaits actual admission.
+[Measured finding and limits](initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md),
+[matched mechanism](initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
 
 The [owner deadline program](initiative/research/owner-deadline-program-20261017-v1/README.md)
 prioritizes the distinct S6 ConvNeXt parent. Its original source/checkpoint/anatomy,

@@ -1,0 +1,21 @@
+"""CSV access boundary for unchanged original train-split inference."""
+import os,sys
+from pathlib import Path
+def install(view,original,scratch,outputs):
+ view,original,scratch,outputs=map(lambda p:Path(p).resolve(),(view,original,scratch,outputs));roster=view/'train.csv';metadata={original/'train_series.csv',original/'test_series.csv'}
+ def check(event,args):
+  if event=='open' and isinstance(args[0],(str,bytes,os.PathLike)):
+   p=Path(os.fsdecode(args[0])).resolve()
+   if p.suffix.lower()=='.csv' and not (p==roster or p in metadata or p.is_relative_to(outputs) or (p.name=='patients.csv' and p.is_relative_to(scratch))):raise PermissionError('CSV outside exact UID/metadata/private-output inference view')
+ sys.addaudithook(check)
+
+def instrument_launcher(text,guard_path,context):
+ import ast
+ tree=ast.parse(text);insert=0
+ for i,n in enumerate(tree.body):
+  if i==0 and isinstance(n,ast.Expr) and isinstance(n.value,ast.Constant) and isinstance(n.value.value,str):insert=n.end_lineno;continue
+  if isinstance(n,ast.ImportFrom) and n.module=='__future__':insert=n.end_lineno;continue
+  break
+ assert '_S6_csv_guard_runpy' not in text and '_S6_csv_guard_ns' not in text
+ prefix='import runpy as _S6_csv_guard_runpy\n_S6_csv_guard_ns=_S6_csv_guard_runpy.run_path('+repr(str(guard_path))+')\n_S6_csv_guard_ns["install"](**'+repr(context)+')\n'
+ lines=text.splitlines(keepends=True);result=''.join(lines[:insert])+prefix+''.join(lines[insert:]);compile(result,'guarded_original_launcher','exec');return result

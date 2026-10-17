@@ -1,0 +1,165 @@
+"""Independent synthetic contracts; no clinical records or model fitting."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from rsna.competitive.released_context import anchored_loss
+
+ROOT = Path(__file__).resolve().parent
+source = ROOT / "rank_transport.py.txt"
+loader = importlib.machinery.SourceFileLoader("candidate_rank_transport", str(source))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+module = importlib.util.module_from_spec(spec)
+loader.exec_module(module)
+rng = np.random.default_rng(20261017)
+a = rng.normal(size=(48, 2, 12)).astype(np.float32)
+b = rng.uniform(0.01, 0.99, size=(48, 12))
+passed = []
+
+
+def check(name, callback):
+    callback()
+    passed.append(name)
+
+
+def require(condition):
+    if not condition:
+        raise AssertionError("Independent transport contract failed")
+
+
+def reject(function):
+    try:
+        function()
+    except ValueError:
+        return
+    raise AssertionError("Invalid transport input was accepted")
+
+
+def treatment(x=a, y=b):
+    return module.build_targets(x, y, role="cross_lineage_equal_rank")
+
+
+control, control_receipt = module.build_targets(a, role="parent_only")
+t, receipt = treatment()
+check(
+    "parent_only_original_logits_byte_identical", lambda: require(control.tobytes() == a.tobytes())
+)
+check(
+    "fresh_nonalias_output",
+    lambda: require(not np.shares_memory(t, a) and not np.shares_memory(control, a)),
+)
+
+
+def control_loss():
+    z = torch.linspace(-2, 2, 24, dtype=torch.float32).reshape(2, 12).requires_grad_()
+    labels = torch.full_like(z, float("nan"))
+    masks = torch.zeros_like(z, dtype=torch.bool)
+    x = anchored_loss(z, torch.from_numpy(a[0]), labels, masks)
+    g1 = torch.autograd.grad(x, z)[0]
+    y = anchored_loss(z, torch.from_numpy(control[0]), labels, masks)
+    g2 = torch.autograd.grad(y, z)[0]
+    require(torch.equal(x, y) and torch.equal(g1, g2))
+
+
+check("original_anchored_loss_and_gradients_identical_in_control_with_masked_NaNs", control_loss)
+same, _ = treatment(a, module.sigmoid(a).mean(axis=1))
+check(
+    "second_teacher_same_order_gives_exact_parent_not_arbitrary_new_confidence",
+    lambda: require(np.array_equal(same, a)),
+)
+t_shift, _ = treatment(a, module.sigmoid(np.log(b / (1 - b)) + 3))
+check(
+    "second_teacher_strict_monotone_calibration_invariance",
+    lambda: require(np.array_equal(t, t_shift)),
+)
+order = rng.permutation(len(a))
+t_perm, _ = treatment(a[order], b[order])
+check(
+    "simultaneous_roster_permutation_equivariance",
+    lambda: require(np.array_equal(t_perm, t[order])),
+)
+check(
+    "anatomical_view_log_odds_difference_preserved",
+    lambda: require(np.max(np.abs((t[:, 0] - t[:, 1]) - (a[:, 0] - a[:, 1]))) < 2e-6),
+)
+
+
+def mean_matches():
+    p = module.sigmoid(a).mean(axis=1)
+    q = np.column_stack([module.transport_column(p[:, j], b[:, j]) for j in range(12)])
+    require(np.max(np.abs(module.sigmoid(t).mean(axis=1) - q)) < 2e-7)
+    require(np.max(np.abs(q.sum(axis=0) - p.sum(axis=0))) < 1e-12)
+
+
+check("actual_decoded_two_view_mean_matches_transport_and_column_sum", mean_matches)
+check(
+    "nontrivial_treatment_changes_targets",
+    lambda: require(receipt["target_cells_changed"] > 0 and not np.array_equal(t, a)),
+)
+
+
+def rank_ties():
+    # Independent hand example: perfect reversal cancels all ordinal preferences.
+    x = np.array([0.1, 0.3, 0.6, 0.9])
+    q = module.transport_column(x, np.array([0.8, 0.6, 0.2, 0.1]))
+    require(np.allclose(q, np.full(4, 0.475), atol=1e-15))
+    # A constant second teacher contains no ordering and must leave A alone.
+    require(np.array_equal(module.transport_column(x, np.full(4, 0.5)), x))
+    tied = np.array([0.1, 0.1, 0.7, 0.7])
+    require(np.array_equal(module.transport_column(tied, tied), tied))
+
+
+check("independent_hand_ties_reversal_and_uninformative_teacher", rank_ties)
+
+
+def strict_multiset():
+    # Consensus sum is tie-free in this hand ordering; exact score values survive.
+    x = np.array([0.8, 0.1, 0.4, 0.6])
+    y = np.array([0.2, 0.1, 0.3, 0.4])
+    q = module.transport_column(x, y)
+    require(np.array_equal(np.sort(q), np.sort(x)))
+    require(np.array_equal(q, np.array([0.6, 0.1, 0.4, 0.8])))
+
+
+check("independent_hand_consensus_order_and_exact_multiset_without_ties", strict_multiset)
+extreme = np.tile(np.linspace(-70, 70, len(a))[:, None, None], (1, 2, 12)).astype(np.float32)
+extreme[:, 1] += 2
+e, er = treatment(extreme, 1 - module.sigmoid(extreme).mean(axis=1))
+check(
+    "extreme_finite_logits_explicit_counted_endpoint_policy",
+    lambda: require(np.isfinite(e).all() and er["maximum_decoded_mean_probability_error"] < 2e-7),
+)
+check("mismatched_shapes_refused", lambda: reject(lambda: treatment(a, b[:-1])))
+bad = b.copy()
+bad[0, 0] = np.nan
+check("nonfinite_second_teacher_refused", lambda: reject(lambda: treatment(a, bad)))
+check("out_of_range_second_teacher_refused", lambda: reject(lambda: treatment(a, b + 2)))
+check(
+    "non_FP32_original_parent_refused", lambda: reject(lambda: treatment(a.astype(np.float64), b))
+)
+check("unversioned_role_refused", lambda: reject(lambda: module.build_targets(a, b, role="auto")))
+check(
+    "control_cannot_silently_consume_B",
+    lambda: reject(lambda: module.build_targets(a, b, role="parent_only")),
+)
+check("too_small_population_refused", lambda: reject(lambda: treatment(a[:1], b[:1])))
+
+record = {
+    "status": "ordinal_transport_numerical_contract_checked_not_trainer_or_accuracy_acceptance",
+    "version": module.VERSION,
+    "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+    "test_program_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    "passed": passed,
+    "tests": len(passed),
+    "synthetic_studies": 48,
+    "synthetic_treatment": receipt,
+    "actual_MRI_full_teacher_or_GPU_recovery_or_accuracy_claim": False,
+}
+(ROOT / "checked.json").write_text(json.dumps(record, indent=2) + "\n")
+print(json.dumps(record, indent=2))

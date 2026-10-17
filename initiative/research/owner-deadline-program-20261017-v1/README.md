@@ -90,7 +90,8 @@ actual as linked above; no project S6 hidden score exists at this observation.
 ## Later measured triage and actual execution
 
 Learned whole94E1 now has one actual code entry**57294905**, actual hidden score**0.949**, no demonstrated gain; uniform16E1 is complete/private verified, influenceE1 completed/private verified, uniformE2 is running, and
-expanded N3 has ten verified epochs/3458finite updates into epoch11. [Actual progress](../../audits/research-progress-20261017-0448-v1/README.md).
+expanded N3 has epochs1–12 privately verified/at least3888completed updates. Whole94E2
+completed972/all5private objects; original E3 139172537v1 runs. [Actual progress](../../audits/research-progress-20261017-0448-v1/README.md).
 The [existing boundary-policy screen](../../audits/frozen-series-boundary-screen-20261017-v1/README.md)
 found low boundary attention and smaller ordering sensitivity than count-matched
 interior removal across3887cases. Deprioritize a new boundary-only training arm.
@@ -103,3 +104,16 @@ The fixed equal-rank CoAtNet/S6 contrast is now
 without a new GPU dispatch or entry. Its original model/preprocessing code is
 unchanged; only blend weights/build metadata differ. It does not claim0.956
 or independent OOF, and waits original S6 hidden evidence and fresh admission.
+
+
+The owner's explicit target is now **0.97**, with actual best0.949 unchanged.
+[Actual CPU8 cross-lineage evidence](../../audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
+rejects interpreting raw probability gaps as calibrated clinical uncertainty.
+A [32-study source scout](../../audits/s6-fitting32-scout-preparation-20261017-v1/README.md)
+has a sole finite owner and awaits actual GPU admission. The
+[ordinal-transport full-encoder contrast](../../experiments/competitive-v1/s6-rank-transport-v1/README.md)
+is numerically prepared with19checks, not fitted. It keeps a bit-identical
+parent-only target control, transfers fixed equal-rank consensus onto the parent
+scale and reuses the existing source/teacher loss. Complete full3887 S6 targets,
+new data binding/recovery and funding are still required. These are falsifiable
+next experiments, not proof that0.97 or first place is attainable.

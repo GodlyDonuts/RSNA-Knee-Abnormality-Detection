@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Observed October 17, 2026, 05:55 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 06:25 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
@@ -23,7 +23,9 @@ original jobs, phase intents/results and private paths before a mutation.
 | Source-bound S6 remaining offline run | **20978 / 44859** | `s6-source-tree-admission-20261017-v1/source-bound-s6-finish.*` |
 | S6 one-entry waiter | **20994 / 20982** | `s6-original-entry-20261017-v1/source-bound-finish.*` |
 | Fitting8 UID-view CPU input | **TERMINAL20144 / 98465** | `s6-fitting8-uid-view-20261017-v2/finish.result.json`: COMPLETE/private verified |
-| Fitting8 original CPU classifier | **21630 / exec77108; CPU942806** | `s6-fitting8-classifier-20261017-v1/dispatch.*`; not yet terminal |
+| Fitting8 original CPU classifier | **TERMINAL21630 / exec77108; CPU942806** | Actual complete5372windows/finite/zero fallback; do not repeat |
+| Fitting8 cross-lineage comparison | **TERMINAL22634 / exec69221; CPU942957** | `s6-fitting8-complementarity-20261017-v1/accepted.json` |
+| Fitting32 B-only GPU scout | **24413 / exec38637** | `s6-fitting32-scout-preparation-20261017-v3/finish.*`; staged, waits original acceptance/admission |
 
 Verify these handles now. Earlier93163/93190/93205/93216/93228 and
 96918/96930/96942 and97546/97572 are terminal. Sampler93305 was deliberately stopped **only as a
@@ -70,8 +72,11 @@ values and byte equality everywhere else; even an unrelated comment is refused.
 One actual E2 push **139137922v1**, exact slug
 `godlydonuts/rsna-parent-whole94-full-e2-7cbc68dad857`, source
 7cbc68dad8571d332cd2d85fb08633283b814309f9887b6c9f3192633e4e73ca,
-is API **RUNNING**. It resumes exact E1 model/AdamW/LR/RNG/scaler at486; do not
-restart it. Later its original live Logs show both allocated T4s and722/1458
+actually **COMPLETED972updates** and all5private objects were independently
+verified by CPU942967 at HF51d5efae30b4efe820723c6147054fc90ac094c0. Do not repeat it.
+Original E3 **139172537v1**, source714f586c22e8103ec0deb1091b24226034abe7c3d298506cf084148a25492dad,
+`godlydonuts/rsna-parent-whole94-full-e3-714f586c22e8`, is now API RUNNING under
+same owner96833 and resumes972 unchanged. The following722cursor is historical. Later its original live Logs show both allocated T4s and722/1458
 finite updates, epoch2/batch236, loss0.5675485/grad1.5681736/scale1024.
 [Actual visible evidence](../initiative/audits/research-progress-20261017-0401-v1/later-visible-Kaggle-boundaries.json).
 This supersedes the prior blank-log observation without any source/job change. E3 must use the same replay/actual previous checkpoint at972.
@@ -174,8 +179,10 @@ immutable epochs need independent complete-state/private5object download proofs.
 
 Original H100 **938284** remains RUNNING on evc33,1GPU/2CPUs/32GiB/8h,
 sourcea1ca238526dad75b2a5cea46edba44fd95c71938;2592fit/1156outer/16epochs5184updates.
-Actual CPU942744 observed3458/5184 finite updates,epoch11; original publication
-proofs establish completed epochs1–10, all privately fully9object verified.
+The earlier CPU942744 cursor3458 is superseded by original completed E11/E12
+private nine-object proofs, at least3888/5184updates; epochs1–12 are preserved.
+Latest E11 HFecfd9686984aef550937e500c3f67fbdb46c7417 and E12
+HF8acff56937b8b06932f51bd42e2835250907ba6a; never repeat them.
 New E5HFed63b2d85e751949cf7bc0d5011d41dbc8954825 and E6HF7c1f26f5d9f44504eb1f55d85da2d14a3b8d9af5
 are original watcher publications, never repeat. [Actual proofs](../initiative/audits/research-progress-20261017-0401-v1/expanded-new-epoch-preservation.json).
 New E7HF6ff78b1107ff8d451896a1ac4ef75a2ccf99702d and
@@ -293,7 +300,9 @@ Nine local contracts and actual MRI input/decoded-byte/roster gates pass.
 Distinct twoCPU/zeroGPU classifier dispatch CPU942806/exec77108 now reuses the exact inputs,
 original model/runtime and same four CPU device/report replacements. Its private
 2MiB output fits existing16MiB controls; no extra pixel/weight copies or labels.
-It is not yet terminal and establishes no clinical/hidden accuracy.
+CPU942806 actually completed0:0, all8/5372windows in1197.87seconds/6.62GBRSS,
+finite8x1x12/zero fallback. CPU942957 then completed the original-label-free
+cross-lineage comparison. Neither establishes clinical/hidden accuracy.
 Fixture1.5GiB fits existing2GiB pool with public348312520B; metadata2MiB fits
 existing16MiB controls. The sole owner collects once directly to private33 and
 verifies compressed/decoded/selection bytes, never raw pixels/case IDs on Mac/Git/HF.
@@ -320,7 +329,8 @@ Earlier sourceb9dabf263075bc8b20a624eb36b2359efefa8577 is fully privately
 mirrored at HF0917971d00d1b58731930c00bba631e487e8cf70/all40objects/268191bytes,
 CPU942086, canonical lock and every re-download/size/SHA accepted. Never repeat.
 [Actual receipt](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
-Main's last visible722updates remains an older detailed optimizer observation.
+Main's722cursor is historical: E2 now completed972, original E3 is RUNNING.
+
 UniformE1 is now actually terminal and privately preserved; influenceE1 is active.
 Original owners and exact proofs above override those earlier progress snapshots.
 
@@ -366,3 +376,31 @@ No private pixels/case IDs/clinical arrays/teacher predictions/weights.
 [One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
 Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
 mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
+
+## Actual CPU8 result, bounded GPU32 owner and next numerical mechanism
+
+CPU942806 accepted root `/tmp/rsna-S6-checkpoint-admission-20261017-v1/CPU-fitting8-classifier-v1`,
+logits SHA59e73da6153c0a071bcb35d38fba88c6992ac12b915020cf4117433f47911c99.
+CPU942957 comparison root `CPU-fitting8-complementarity-v1` under the same S6root,
+private replay2482bytes/SHA986a9321ab45be72715419b22ba62ca90fcfeb498773e1e8f0ec92faa3f7da1f.
+Existing Ateacher targetSHA48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285
+was reused without labels/masks. Raw gaps8–39points/rho0.81–0.98 indicate score
+scales must be separated from order; no clinical conclusion. Never repeat the
+classifier or comparison. [Actual receipts](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md).
+
+CPU942920 staged immutable GPU32 scout source0573a2a1 in S6root/`GPU-fitting32-scout-v1`.
+Sole finite PID24413/exec38637/local`artifacts/s6-fitting32-scout-preparation-20261017-v3/finish_once.py`
+waits actual original S6 offline acceptance plus CPU8/fresh full VM budget/two-session
+capacity. Maximumone1800second private twoT4 run/oneprivate collection/zeroentries.
+Source slug`godlydonuts/rsna-s6-fit32-scout-0573a2a11a27`v1, no push at06:25snapshot.
+No automatic retries; existing intent requires read-only reconciliation. The32
+include original8 and use original B-only geometry/model/pooling plus actual CSV
+guards/spawn contract. Future12MiB plus controls fit original16MiB envelope.
+[Exact code, staging, tests and next parity checks](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
+
+The owner's0.97target now has a fixed ordinal-transport full-encoder comparison,
+[protocol and19numerical checks](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
+Its source is prepared locally only, not staged or trained. Complete3887 S6
+teacher outputs/admission, distinct target bundle, GPU recovery and new funding
+remain required. Do not change live numerical sources or old targetSHA. Keep
+the original S6 entry and prepared equal-rank inference moving separately.

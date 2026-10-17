@@ -1,0 +1,117 @@
+"""Fitting-only ordinal teacher transport; no I/O, labels, fitting or inference.
+
+The separate admission layer must bind identical complete fitting identities and
+original model/teacher receipts. These functions cannot establish source rights,
+unseen clinical performance or alignment from anonymous numerical arrays alone.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+VERSION = "cross_lineage_equal_rank_parent_scale_transport_v1"
+
+
+def sigmoid(x):
+    """Stable FP64 sigmoid for bounded original teacher logits."""
+    a = np.asarray(x, dtype=np.float64)
+    return np.exp(-np.logaddexp(0.0, -a))
+
+
+def midpoint_ranks(x):
+    """Exact tied midranks; no case-ID tiebreak or clinical interpretation."""
+    _, inverse, counts = np.unique(x, return_inverse=True, return_counts=True)
+    return (np.cumsum(counts) - (counts - 1) / 2)[inverse]
+
+
+def transport_column(parent_probability, second_probability):
+    """Order by fixed mean rank, express that order on the parent's score scale.
+
+    Assign the parent's sorted values to the equal-rank consensus order. Exact
+    consensus ties receive the mean of their occupied parent order statistics.
+    Without ties this preserves the complete parent score multiset; with ties
+    it preserves its sum, not its variance or clinical calibration. Rankings of
+    both teachers, never the second teacher's probability magnitudes, drive it.
+    """
+    consensus = midpoint_ranks(parent_probability) + midpoint_ranks(second_probability)
+    _, inverse, counts = np.unique(consensus, return_inverse=True, return_counts=True)
+    ordered = np.sort(parent_probability)
+    ends = np.cumsum(counts)
+    starts = ends - counts
+    levels = np.array([ordered[a:b].mean() for a, b in zip(starts, ends, strict=True)])
+    return levels[inverse]
+
+
+def build_targets(parent_view_logits, second_probabilities=None, *, role):
+    """Return fresh FP32 N,2,12 view targets and aggregate engineering metrics.
+
+    parent_only is byte-identical to the original parent targets. The treatment
+    applies one scalar logit shift per study/target to both anatomical views,
+    preserving their relative log-odds while matching their mean probability to
+    the transported ordinal target. This avoids a new pairwise-batch optimizer
+    and preserves the existing per-study source/teacher loss implementation.
+
+    A 1e-7 endpoint clamp is explicit and counted; it does not turn an empirical
+    rank into a probability of clinical disease. The wrapper must bind this
+    version and new target SHA; the old pinned target bundle must stay immutable.
+    """
+    a = np.asarray(parent_view_logits)
+    if (
+        a.dtype != np.float32
+        or a.ndim != 3
+        or a.shape[1:] != (2, 12)
+        or not 2 <= len(a) <= 5000
+        or not np.isfinite(a).all()
+        or np.abs(a).max() > 80
+        or role not in ("parent_only", "cross_lineage_equal_rank")
+    ):
+        raise ValueError("Finite original FP32 N,2,12 logits and explicit fixed role required")
+    if role == "parent_only":
+        if second_probabilities is not None:
+            raise ValueError("Parent-only control must not silently consume another teacher")
+        return a.copy(), {
+            "version": VERSION,
+            "role": role,
+            "studies": len(a),
+            "target_cells_changed": 0,
+            "parent_only_bit_identical": True,
+        }
+    b = np.asarray(second_probabilities)
+    if (
+        b.dtype.kind != "f"
+        or b.shape != (len(a), 12)
+        or not np.isfinite(b).all()
+        or b.min() < 0
+        or b.max() > 1
+    ):
+        raise ValueError("Complete aligned finite second-teacher N,12 probabilities required")
+    p = sigmoid(a).mean(axis=1)
+    q = np.column_stack([transport_column(p[:, j], b[:, j]) for j in range(12)])
+    changed = np.abs(q - p) > 2e-15
+    q_clamped = np.clip(q, 1e-7, 1 - 1e-7)
+    lo = -a.astype(np.float64).max(axis=1) - 40
+    hi = -a.astype(np.float64).min(axis=1) + 40
+    for _ in range(64):
+        mid = (lo + hi) / 2
+        below = sigmoid(a + mid[:, None]).mean(axis=1) < q_clamped
+        lo = np.where(below, mid, lo)
+        hi = np.where(below, hi, mid)
+    delta = (lo + hi) / 2
+    out = (a.astype(np.float64) + np.where(changed, delta, 0)[:, None]).astype(np.float32)
+    error = np.abs(sigmoid(out).mean(axis=1) - np.where(changed, q_clamped, p))
+    if not np.isfinite(out).all() or error.max() > 2e-7:
+        raise ValueError("Transported FP32 view targets failed numerical acceptance")
+    return out, {
+        "version": VERSION,
+        "role": role,
+        "studies": len(a),
+        "target_cells_changed": int(changed.sum()),
+        "endpoint_clamped_changed_cells": int(((q != q_clamped) & changed).sum()),
+        "maximum_decoded_mean_probability_error": float(error.max()),
+        "maximum_absolute_shared_logit_shift": float(np.abs(np.where(changed, delta, 0)).max()),
+        "unclamped_transport_preserves_per_target_probability_sum_max_error": float(
+            np.abs(q.sum(axis=0) - p.sum(axis=0)).max()
+        ),
+        "clinical_labels_or_validation_or_fitted_blend_weights_used": False,
+        "accuracy_or_full_teacher_admission_claim": False,
+    }
