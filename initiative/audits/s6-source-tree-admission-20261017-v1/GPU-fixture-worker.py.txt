@@ -1,0 +1,23 @@
+
+import contextlib,importlib.util,json,os,sys
+from pathlib import Path
+import numpy as np
+import torch
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'source-tree-v1';D=P/'GPU-fixture-v1';C=P/'CPU-MRI-v1/collected'
+torch.set_num_threads(2);torch.set_num_interop_threads(1)
+assert torch.cuda.is_available() and torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0)
+x=torch.ones(1,device='cuda');torch.cuda.synchronize();del x
+index=json.loads((C/'index.private.json').read_text());uids=[x['uid'] for x in index['records']];rows={x['uid']:x for x in index['records']}
+spec=importlib.util.spec_from_file_location('original_S6_fixture_launcher',R/'launcher.private.py');launch=importlib.util.module_from_spec(spec);spec.loader.exec_module(launch)
+class OriginalVerifiedFixtures(torch.utils.data.Dataset):
+ def __init__(self,data,split,ids,*args,**kwargs):
+  assert split=='test' and set(ids)<=set(uids);self.uids=list(ids)
+ def __len__(self):return len(self.uids)
+ def __getitem__(self,i):
+  uid=self.uids[i];row=rows[uid]
+  with np.load(C/row['file'],allow_pickle=False) as z:images=torch.from_numpy(z['images']);meta=torch.from_numpy(z['meta'])
+  return {'uid':uid,'error':None,'images':images,'meta':meta,'anchor':row['anchor'],'side':None,'seconds':[0.,0.,0.]}
+launch.CI.CStudies=OriginalVerifiedFixtures
+mode=sys.argv[1];assert mode in ('fp32','fp16');out=D/mode;assert not out.exists();out.mkdir(mode=0o700);assignment=D/'assignment.private.json';g=index['geometry']
+sys.argv=['original_compact_infer','--data',str(C),'--split','test','--code',str(R/'code/cloud_code'),'--models',str(P),'--arm','E_prior','--backbone',g['backbone'],'--size',str(g['size']),'--crop',str(g['crop']),'--views',g['views'],'--slices',str(g['slices']),'--phys-mm',str(g['phys_mm']),'--eval-stride',str(g['eval_stride']),'--anchor-weights',str(R/'anatomy.pt'),'--amp',mode,'--chunk',str(g['chunk']),'--workers','0','--assignment',str(assignment),'--output',str(out),'--tmp',str(out/'tmp-private'),'--dump-logits',str(out/'logits.private.json')]
+torch.cuda.reset_peak_memory_stats();launch.CI.main();torch.cuda.synchronize();(out/'GPU-peak.json').write_text(json.dumps({'GPU':torch.cuda.get_device_name(),'peak_allocated_bytes':torch.cuda.max_memory_allocated(),'total_VRAM_bytes':torch.cuda.get_device_properties(0).total_memory})+'\n')

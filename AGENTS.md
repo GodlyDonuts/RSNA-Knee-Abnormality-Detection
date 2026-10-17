@@ -30,7 +30,10 @@ historical release/plan documents now link back to the current guides.
 - Full-parent, sampled full-encoder and expanded N3 work is already owned and
   running. Inspect exact original owners before acting. A missing log/SSH link
   is observation loss, not terminal evidence or authority to restart a GPU.
-- New S6 checkpoint is acquired privately once and SHA/header verified. Its
+- New S6 checkpoint/source/anatomy are privately verified, and the unchanged
+  CPU stack loads strictly. Original CPU-only MRI gate139151928v1 completed;
+  its1586windows are privately fully verified. Original H100 classifier
+  probe942047 is pending; never duplicate either. Its
   reported **0.950 is external**, not a project inference/score result. The
   unchanged notebook runs both S6 and CoAtNet; include both in runtime estimates.
 - Released encoders exposed internal studies. Head-only cross-validation on

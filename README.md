@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 03:20 UTC:**
+**Current entry points — verified October 17, 2026, 04:15 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -19,22 +19,25 @@ without improving the external reference. These are public leaderboard scores, n
 
 Full adaptation completed its first **486-update epoch on both T4s**, privately
 preserved and independently verified. The learned checkpoint also passed 32-MRI
-qualification on both T4s with zero prediction difference. Epoch 2 is API RUNNING
+qualification on both T4s with zero prediction difference. Epoch 2 shows **682 of 1,458 actual finite updates**
 under the exact original worker/checkpoint. Expanded own-model fitting on 2,592
-studies is **running on a Newton H100**, at 1,394 of 5,184 updates / epoch 5; its
-first four checkpoints are privately verified. Neither has a new competition score.
+studies is **running on a Newton H100**, at 2,166 of 5,184 updates / epoch 7; its
+first six checkpoints are privately verified. Neither has a new competition score.
 
 The matched uniform-16 versus teacher-influence-16 full-encoder comparison now
-has its first uniform GPU session running; influence is not yet pushed. New
-optimizer logs for those Kaggle sessions are currently unavailable, so API status
-is not treated as a new-update proof. Capacity-aware inference has next-lane
+has its first uniform GPU session at **367 of 1,458 actual finite updates**;
+influence is not yet pushed. Both original Kaggle sessions now show allocated
+T4 headers and real optimizer records. Capacity-aware inference has next-lane
 priority after actual two-session admission. A fitting-only teacher mirror screen
 returned an intermediate result, without promoting another GPU arm.
 
 The [new owner research program and assessment](initiative/research/owner-deadline-program-20261017-v1/README.md)
 prioritize unchanged reproduction of the public S6 ConvNeXt. Its notebook and
 checkpoint/code manifests are now pinned, and the original checkpoint is privately
-downloaded and SHA/header verified. Its reported 0.950 has **not** yet been
+downloaded and SHA/header verified. The exact293-file source/anatomy bundle and
+strict CPU model-stack probe now pass. The original CPU-only Kaggle MRI gate
+completed all three public studies/1,586 windows, and the exact private inputs
+are verified on Newton. Bounded H100 classifier job942047 is queued. Its reported 0.950 has **not** yet been
 reproduced by us. The assessment corrects the proposed validation claims and
 maps the next experiments to completed controls.
 

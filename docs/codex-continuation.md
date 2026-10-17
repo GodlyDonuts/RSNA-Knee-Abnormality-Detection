@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Observed October 17, 2026, 03:20 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 04:15 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
@@ -63,11 +63,10 @@ One actual E2 push **139137922v1**, exact slug
 `godlydonuts/rsna-parent-whole94-full-e2-7cbc68dad857`, source
 7cbc68dad8571d332cd2d85fb08633283b814309f9887b6c9f3192633e4e73ca,
 is API **RUNNING**. It resumes exact E1 model/AdamW/LR/RNG/scaler at486; do not
-restart it. Newly resumed optimizer updates/allocated headers are not yet visible:
-live UI logs load without records and API log reads are blank/unavailable.
-This is observation loss, not terminal/failure/restart authority. Recheck the same
-identity; require actual progress>486 or the exact terminal receipt before claiming
-new learning. E3 must use the same replay/actual previous checkpoint at972.
+restart it. At04:01 its original live Logs show both allocated T4s and682/1458
+finite updates, epoch2/batch196, loss0.5351913/grad1.3402234/scale1024.
+[Actual visible evidence](../initiative/audits/research-progress-20261017-0401-v1/actual-Kaggle-progress.json).
+This supersedes the prior blank-log observation without any source/job change. E3 must use the same replay/actual previous checkpoint at972.
 
 Local coordinator `replay-program.py.txt`; owner
 `continue_with_actual_worker_replay_once.py`. Preservation root on evc39
@@ -120,8 +119,9 @@ Original uniformE1 **139137040v1**,
 `godlydonuts/rsna-u16-full-e1-8155b3803c5a`, source
 8155b3803c5a4ccd6646c21ead1a8a4eb6d0000ed84106b10befae9901f35081,
 is API RUNNING. First push passed the all-future funding check. Do not push it
-again or infer optimizer progress from API RUNNING. Its live log is also currently
-unavailable. InfluenceE1 remains unpushed. Fresh-process reconstruction of the
+again. Its04:01 live Logs show367/1458 actual finite updates, epoch1,
+loss0.5385191/grad1.6795369/scale1024 and both accepted allocated T4 headers.
+InfluenceE1 remains unpushed. Fresh-process reconstruction of the
 entire original uniform source was byte-identical, so it does not suffer the main
 initial proof-order mismatch.
 
@@ -150,13 +150,18 @@ immutable epochs need independent complete-state/private5object download proofs.
 
 Original H100 **938284** remains RUNNING on evc33,1GPU/2CPUs/32GiB/8h,
 sourcea1ca238526dad75b2a5cea46edba44fd95c71938;2592fit/1156outer/16epochs5184updates.
-Actual1394updates/epoch5 at03:20. Epochs1–4 are now privately fully9object verified.
+Actual2166updates/epoch7 at04:14UTC. Epochs1–6 are now privately fully9object verified.
+New E5HFed63b2d85e751949cf7bc0d5011d41dbc8954825 and E6HF7c1f26f5d9f44504eb1f55d85da2d14a3b8d9af5
+are original watcher publications, never repeat. [Actual proofs](../initiative/audits/research-progress-20261017-0401-v1/expanded-new-epoch-preservation.json).
 Watcher95408 owns later unattempted epochs. Root
 `/tmp/rsna-compact-expanded2592-production-20261016-v1`; control
 `/tmp/rsna-compact-expanded2592-engine-20261016-v1/production-control-v1`.
 Use only pinned `scripts/hf/dispatch_compact_expanded_epoch.py` SHA217bcdfbc18e8f21620f797189fd45516b4247e1675d09fc5e781ae34516582c.
 Do not mistake terminal CPU publications for missing jobs or duplicate the GPU.
-Original patch929938 remains pending and unchanged.
+Original patch929938 actually COMPLETED0:0/16:41 on evc40; CPU941861 read its
+original accepted complete-state/prediction full/stop1/resume terminal.
+[Engineering proof](../initiative/audits/research-progress-20261017-0401-v1/original-patch-recovery-terminal.json).
+Do not restart it, claim accuracy or launch a DINO production arm from this alone.
 
 CPU941335 screened only approved fitting UID/teacher arrays, no labels/masks/
 reports/pixels/weights/protected values. Actual1.288s result is **intermediate**:
@@ -183,7 +188,11 @@ Keep child repo imports explicit; a script-module import failure is not training
 Keep20GiB/5000shared-file reserves after all liabilities. Node33 required-free
 607456016323bytes includes32MiBimportance controls/future8MiB;
 add conservative336685909bytes of unused S6 envelope after its paid original
-checkpoint, for current required-free607792702232bytes before new work. original parent/
+checkpoint, plus512MiB isolated-runtime liability, plus2GiB private MRI fixtures
+and16MiB controls, for current conservative required-free**610493834008bytes**.
+The fresh MRI gate funding proved629572157440bytes actually free. Retained source/
+model/anatomy/runtime521578841bytes are already physical; unused liabilities
+are still conservatively carried, with no deletion credit. Original parent/
 serving controls retain their16MiB bounds. New CPU screens/metadata fit those
 existing bounds; no new shared cache/model copies or deletion credits.
 Node39 requirement689890867139 minus verified-paid cache38873651701 and verified
@@ -197,29 +206,68 @@ Prior small mirrors b34d69e5/source1a2e8204 (24objects) and b2ecca99/source9008e
 (8objects) are verified. This newer continuation/capacity/research milestone is
 separate; use its exact new receipt when published, never repeat old prefixes.
 Eighty focused regressions/Ruff6/mypy3 passed; full mypy108 also passes.
-Broad pytest status and unchanged global lint debt are in the current refresh
-audit; require its actual terminal receipt before claiming full-suite success.
+Original broad pytest actually terminated0 with4537passed/8skipped/2warnings,
+1967.51s. [Terminal proof](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
+The tested numerical rsna/scripts/tests bytes are unchanged. Known global lint debt remains.
 No accuracy claim follows software checks. The sampled-serving compiler remains preparation, without an actual
 sampled checkpoint or serving GPU acceptance. Protected clinical values remain
 unused; Stanford/KneeCoT are separate private research, not these scored weights.
 
-## New owner program: S6 source-only admission
+## Original S6 source/stack/MRI inputs accepted; one H100 probe queued
 
-Owner supplied a new deadline analysis. Read its [assessment](../initiative/research/owner-deadline-program-20261017-v1/README.md)
-and [actual public source admission](../initiative/audits/s6-public-source-20261017-v1/README.md).
-Public S6 notebook138285808v2/SHA6e87350d and Dataset12589750v3 small manifests
-are now locally pinned. The original200185003-byte checkpoint was acquired once
-on evc33 and SHA/header verified by original941506/941560/941578; source failure
-was only an assumed tensor-prefix assertion, reconciled on the same bytes.
-Read [the actual checkpoint proof](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md);
-never repeat acquisition. Root `/tmp/rsna-S6-checkpoint-admission-20261017-v1`,
-new512MiB private total envelope, zero shared growth. Carry unused remainder
-after paid200185003bytes alongside old node obligations; no GPU funding inferred.
-No S6 MRI/GPU or entry occurred. Unchanged reproduction is next; preserve current learned-E1 auxiliary-lane priority.
-Do not call head folds strict encoder OOF or promote another generic context
-arm without accounting for prior regional/context controls and source exposure.
+Public notebook138285808v2/SHA6e87350d, Dataset12589750v3 and original model
+SHA0c7297d5 remain pinned. Original CPU941872 completed all293 source members/
+2997162bytes and anatomy112496037bytes/SHA5904dd16; no successful acquisition was
+repeated. Source treeSHA6ecf60ce64bd305fd6a1695914b9fc4d22d2ad5a8875b9f89a13720f2ce21aea.
+Original source bodies/weights stay private on evc33 in
+`/tmp/rsna-S6-checkpoint-admission-20261017-v1`.
 
-## Latest Git/private mirror and still-active broad QA
+CPU941945 admitted a separate OpenCV4.12.0.88 headless sidecar, wheel
+SHA236c8df54a90f4d02076e6f9c1cc763d794542e886c576a6fee46ec8ff75a7a9,
+205139090retained bytes. Original active Torch2.14+cu130 was unchanged; reused
+N3 timm1.0.30 overlay `/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay`.
+CPU941960 passed the author's unchanged B_PROBE with finite V-Net1x4x128x128,
+strict50018284-parameter ConvNeXt state loading,11.8seconds/empty stderr.
+[Original source/runtime/stack receipts and preserved failures](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
+
+One distinct private offline **CPU-only** MRI input notebook139151928v1 is actually
+COMPLETE: `godlydonuts/rsna-s6-original-cpu-mri-e0e75ecc1202`, source
+`e0e75ecc12028d12d49b180490885f1f6822fb7964678a298cd2cb748ce569fa`.
+It completed original preparation/launcher/CStudies on all3publicMRIs,
+574/510/502windows, zero failures;152.7s preparation and2.88GB peakRSS. No GPU, classifier predictions, Dataset
+creation or competition entry. Canonical key `S6-original-CPU-MRI:<sourceSHA>`;
+node33 control `CPU-MRI-v1` under the S6 root. Local original artifacts:
+`artifacts/s6-source-tree-admission-20261017-v1/CPU-MRI-*`.
+
+SaveKernel succeeded once and its returned response/canonical pushed record
+persisted. The immediate observer failed only because its session response had
+no status key yet. CPU941995 reconciled exact source/private/offline/CPU/source
+mounts and actualRUNNING read-only. **Do not repeat the push or collection.** CPU942028 collected all348312520
+compressed bytes once, verified every size/SHA and decoded uint8/FP32 tensor hash,
+retaining files privately at `CPU-MRI-v1/collected`. Actual accepted receipt is
+in the current S6 audit; canonical record is reconciled to actual complete and
+private verified. The older observer asserts the pre-terminal pushed state and
+is historical, not a required next action. CPU input admission is not a both-T4
+or clinical result.
+
+Distinct bounded H100 classifier probe **942047** was submitted ONCE, PENDING
+for resources on evc33 at04:14. New control `GPU-fixture-v1` under the S6 root;
+oneGPU/twoCPU/16GiB/20min, no new weights/runtime/pixel copy. Exact worker
+SHAcc8959c6229ac049da604b79bd63a21411b5788661661695dfe4c91b1928b376,
+wrapperSHAa2fd56cf0ab685e358e1b72f5dedb265d547cfe6d05b37ae33c8a744e87d2337.
+It executes unchanged original classifier/pooling in fresh FP32/FP16 processes,
+substituting only a loader for the verified original MRI tensors; no preprocessing
+change, training or competition entry. Predeclared max probability error0.003;
+all3/1586windows must score with zero fallback. Inspect original actual start/
+stdout/stderr/accepted.json and Slurm before acting; never duplicate it. This is
+not T4 or GPU-anatomy/full-hidden-scale acceptance, even if it passes. Original
+unchanged full inference executes both CoAtNet and S6, even W_A0/W_B1; include
+both in nine-hour budget. Preserve learned-E1 serving priority and original two
+GPU lanes. New S6 Kaggle GPU notebook dispatch needs a compatible capacity ownership handoff or
+actual completion of current owners; do not let an unregistered GPU session
+cause another ambiguous capacity rejection.
+
+## Latest Git/private mirror and actual broad QA terminal
 
 Current source60ed92d3 was pushed and remote-verified, then fully privately
 mirrored at HFda34234c32cae097e6a04cd392a88f6e2c594373/all102objects/648152bytes.
@@ -227,9 +275,11 @@ Canonical shared lock and full re-download/size/SHA passed; never repeat. The
 large global archive manifest has an exact source Git-blob/byte/SHA proof in the
 small mirror; its complete body remains in Git. Receipt bookkeeping follows.
 
-Broad local pytest remains originalPID98767 / exec59875, log
-`artifacts/github-current-20261017-pytest.log`; inspect its actual terminal and
-record it once, never start a duplicate suite. Numerical source was unchanged
-after that run began. Full mypy108, focused80/Ruff6/mypy3 and archive/currentv2
-checks passed; whole-repo lint debt is known/unchanged and explicitly recorded.
+Original local pytest PID98767 / exec59875 actually finished exit0:
+4537passed,8skipped,2warnings in1967.51seconds. Its original log SHA is
+87f35fd8fb40d0503ec3a7401060ab93a7eb48ce788846b50c44e7e66c90c112;
+no duplicate suite was launched. Numerical source unchanged. Full mypy108,
+focused80/Ruff6/mypy3 and archive/currentv2 checks passed. Known unchanged
+global Ruff1327/format57 debt is preserved, not concealed by rewriting archives.
+[Actual terminal](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
 No clinical or new competition score follows these checks.

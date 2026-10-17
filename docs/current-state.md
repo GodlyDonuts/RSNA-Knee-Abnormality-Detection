@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 03:20 UTC.** This is the current-state entry point.
+**Observed through October 17, 2026, 04:15 UTC.** This is the current-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md) next. Dated documents and
 [previous snapshots](current-state.history-20261017-0146.md) preserve history;
@@ -34,10 +34,11 @@ confirms these recent outcomes and **3 submissions today / 2 live slots remainin
 at the latest saved account check. That allowance expires as an observation; query it again before a
 mutation. The canonical ledger agrees on the completed context result. The regional
 entry receipt and fresh API agree on submission 57291182: COMPLETE, score 0.948, no error.
-The later **03:20 owning-node observation** confirms expanded N3 at **1,394
-finite updates / epoch 5**, with empty stderr and four completed checkpoints
+The later **owning-node observation in this update** confirms expanded N3 at **2,166
+finite updates / epoch 7**, with empty stderr and six completed checkpoints
 privately fully verified. Epoch 4 is HF `e183899c0b2ea38adfe66c287713a872ce0effc9`,
-all nine objects. [Actual progress and preservation](../initiative/audits/github-current-state-refresh-20261017-v2/expanded-actual-progress.json).
+all nine objects. [Earlier progress](../initiative/audits/github-current-state-refresh-20261017-v2/expanded-actual-progress.json),
+[new actual progress and epoch5/6 preservation](../initiative/audits/research-progress-20261017-0401-v1/README.md).
 
 Original receipts: [external baseline](../initiative/audits/released0949-baseline-20261016-v1/actual-scored-canonical.json),
 [own N3 epoch 16](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json),
@@ -49,10 +50,10 @@ Do not resubmit their exact versions.
 
 | Work | Original identity | Latest actual evidence |
 |---|---|---|
-| Full licensed-parent adaptation | E1 139111324 v1; E2 **139137922 v1** | **E1 complete**, 486 updates and private verification; E2 API RUNNING, exact original worker/checkpoint resumed; new optimizer progress not yet externally observed |
-| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 1,394 of 5,184 finite updates / epoch 5 at 03:20; epochs 1–4 privately verified |
-| Uniform-16 versus influence-16 full-encoder comparison | Owner **97530**; uniform E1 **139137040 v1** | Original uniform production API RUNNING; newly allocated optimizer progress not yet visible; influence remains unpushed |
-| Patch-header research | Original Slurm 929938 | **PENDING (Priority)**; no accuracy result |
+| Full licensed-parent adaptation | E1 139111324 v1; E2 **139137922 v1** | **E1 complete**, 486 updates and private verification; E2 **682/1458 actual finite updates**, both T4s; exact worker/checkpoint resumed |
+| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 2,166 of 5,184 finite updates / epoch 7; epochs 1–6 privately verified |
+| Uniform-16 versus influence-16 full-encoder comparison | Owner **97530**; uniform E1 **139137040 v1** | Original uniform **367/1458 actual finite updates**, both T4s; influence remains unpushed |
+| Patch-header research | Original Slurm 929938 | **COMPLETED0:0**, exact full/stop1/resume engineering recovery passed; no accuracy result |
 | Sampled-epoch serving compiler | Committed preparation | Synthetic CPU/regression checks passed; **no actual serving GPU/public-MRI acceptance** |
 
 [Fresh Slurm/account/ledger observation](../initiative/audits/whole94-original-worker-continuation-20261017-v1/actual-current-observation.json).
@@ -69,8 +70,9 @@ The first continuation preparation exposed a proof-JSON key-order mismatch.
 Actual CPU941151 proved every metadata value/binding equal and replayed the
 **exact original worker bytes**, without changing numerical code, recipe or
 optimizer/RNG state. The one actual epoch-2 push is139137922v1/source7cbc68dad857.
-No completed GPU run was restarted. Live logs are presently unavailable/blank
-for E2 and uniform16; API RUNNING is not evidence of a new optimizer update.
+No completed GPU run was restarted. The later04:01 logs now show both allocated T4s and **682** main / **367** uniform
+finite updates. This supersedes the earlier blank-log observation.
+[Actual visible records](../initiative/audits/research-progress-20261017-0401-v1/actual-Kaggle-progress.json).
 
 The parent adaptation trains **all 73,136,096 parameters**, on **3,887 fitting
 studies**, with all **94 original windows**, effective batch 8 and a fixed
@@ -184,7 +186,7 @@ are archived verbatim with provenance. We verified the public S6 notebook
 checkpoint/code manifests from the public weight Dataset **12589750 v3**.
 The original **200,185,003-byte S6 checkpoint is now privately acquired once**
 and SHA-bound, with 362 finite tensors and a 12-target header independently
-reconciled. No S6 MRI/GPU execution or competition entry has occurred. Its
+reconciled. No accepted S6 MRI terminal, GPU execution or competition entry is claimed. Its
 reported **0.950 belongs to its author**, not this project's score table.
 [Actual source-only admission](../initiative/audits/s6-public-source-20261017-v1/README.md).
 [Actual checkpoint admission and preserved checker failure](../initiative/audits/s6-checkpoint-admission-20261017-v1/README.md).
@@ -282,3 +284,29 @@ are excluded; the global archive manifest has an exact Git-blob/SHA binding.
 [Actual mirror receipt](../initiative/audits/hf-whole94-e1-capacity-screen-20261017-v1/verified.json).
 Never repeat this or earlier verified prefixes. Final receipt/QA bookkeeping is
 later than the source revision mirrored.
+
+## Actual S6 source/stack acceptance and bounded MRI gate
+
+CPU941872 completed all293 exact original source members and the original anatomy
+checkpoint. CPU941960 passed the author's unchanged B_PROBE, using a separately
+installed, hash-pinned OpenCV sidecar and the existing admitted timm overlay.
+The anatomy forward is finite and the full50,018,284-parameter classifier loads
+strictly. No active training environment or source bytes changed.
+[Actual source, runtime and stack proofs](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md).
+
+A distinct private **CPU-only** Kaggle notebook139151928v1,
+`godlydonuts/rsna-s6-original-cpu-mri-e0e75ecc1202`, actually COMPLETED successfully. It
+reused unchanged original preparation/geometry/anatomy/window functions on all
+three public MRIs, checking1586window/metadata round trips with zero failures.
+No GPU, classifier predictions, new Dataset or competition entry was requested. One SaveKernel was
+accepted; an immediate missing-status observer error was reconciled read-only
+against its exact source/metadata/canonical row. Never repeat the push. Actual
+CPU942028 then collected348312520compressed bytes once and verified every
+file/tensor SHA privately. [Actual input proof](../initiative/audits/s6-source-tree-admission-20261017-v1/CPU-MRI-collected-verified.json).
+Bounded H100 FP32/FP16 classifier job942047 is submitted once and PENDING for
+resources on evc33. Both-T4/full-runtime and competition comparisons remain ahead.
+
+The original broad QA run has now actually finished: **4,537 passed, 8 skipped,
+2 warnings, exit0**,32:47. Code under rsna/scripts/tests is byte-identical to the
+tested source. [Original terminal proof](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
+Known unchanged archived/global lint debt remains recorded; no accuracy follows QA.

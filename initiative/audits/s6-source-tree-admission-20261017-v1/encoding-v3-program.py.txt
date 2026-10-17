@@ -1,0 +1,49 @@
+
+import ast,concurrent.futures,datetime,hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+from urllib.parse import quote
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'source-tree-v1';old=json.loads((R/'intent.json').read_text());assert old['CPU_job']=='941779' and (R/'terminal-failure.json').exists() and not (R/'verified.json').exists();state=subprocess.check_output(['sacct','-X','-j','941779','-n','-P','--format=State,ExitCode'],text=True).strip();assert state.startswith('FAILED|')
+assert subprocess.check_output(['sacct','-X','-j','941826','-n','-P','--format=State,ExitCode'],text=True).strip().startswith('FAILED|');assert not list((R/'URL-encoding-reconciliation-v1/requests').glob('*'));assert subprocess.check_output(['sacct','-X','-j','941846','-n','-P','--format=State,ExitCode'],text=True).strip().startswith('FAILED|');S=R/'URL-encoding-reconciliation-v3';assert not S.exists() and shutil.disk_usage('/tmp').free>607792702232;used=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());assert used+3*2997162+16*2**20<536870912;S.mkdir(mode=0o700);(S/'requests').mkdir(mode=0o700);(S/'intent.json').write_text(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'original_failed_intake':941779,'original_readonly_reconciliation':941826,'old_actual_terminal':state,'correction':'Encode complete filename path parameter with safe empty string','model_anatomy_extras_originals_reused':True,'GPU_or_competition_entry':False,'automatic_retry':False})+'\n')
+manifest=(R/'code_manifest.json').read_bytes();assert hashlib.sha256(manifest).hexdigest()=='b66c574b5c0c13ccaa49d1219d41a8781431166186ef83e78cab6a9ba6b02d22';m=json.loads(manifest);members=m['members'];source=(R/'original-source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()=='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+for name,n,sha in [('anatomy.pt',112496037,'5904dd16eb9a4fd7a1caf90ac977f8fe2ef364908598c23c209db3fe7fd1563e'),('s6_extras.bin',None,None)]:
+ ref=('heliosli/rsna-orthofoundation-fold0-epoch7-20261004' if name=='anatomy.pt' else 'nartaa/rsna-knee-s6fall-weights');proof=json.loads((R/'attempts'/(hashlib.sha256((ref+'/'+name).encode()).hexdigest()+'.json')).read_text());assert proof['complete_verified'] is True and (R/name).stat().st_size==proof['bytes']
+ if sha:assert proof['sha256']==sha and proof['bytes']==n
+pre='cloud_code/training/__init__.py';raw=v['preflight'].encode();assert len(raw)==members[pre]['bytes'] and hashlib.sha256(raw).hexdigest()==members[pre]['sha256'];p=R/'code'/pre;assert p.is_file() and p.read_bytes()==raw;(S/'preflight.json').write_text(json.dumps({'filename':pre,'sha256':members[pre]['sha256'],'bytes':len(raw),'already_originally_verified_HTTP200_no_second_request':True})+'\n')
+extra_name='cloud_code/training/vendor_runtime/monai060/monai/networks/layers/spatial_transforms.py';extra=v['extra_preflight'].encode();assert len(extra)==members[extra_name]['bytes'] and hashlib.sha256(extra).hexdigest()==members[extra_name]['sha256'];extra_p=R/'code'/extra_name;assert not extra_p.exists();extra_p.write_bytes(extra);extra_p.chmod(0o600);missing=[];reused=0
+for name,row in members.items():
+ p=R/'code'/name
+ if p.is_file():assert p.stat().st_size==row['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==row['sha256'];reused+=1;continue
+ key=hashlib.sha256(('heliosli/rsna-orthofoundation-fold0-epoch7-20261004/'+name).encode()).hexdigest();prior=R/'attempts'/(key+'.failure.json');assert not (R/'downloads'/(key+'.partial')).exists();assert not prior.exists() or json.loads(prior.read_text())['received_bytes']==0;missing.append((name,row))
+assert reused==221 and len(missing)==72
+def one(item):
+ name,row=item;key=hashlib.sha256(name.encode()).hexdigest();record=S/'requests'/(key+'.json');assert not record.exists();record.write_text(json.dumps({'filename':name,'request_started':True,'expected_bytes':row['bytes'],'expected_sha256':row['sha256'],'original_wrong_route_received_bytes':0})+'\n');part=S/'requests'/(key+'.partial');h=hashlib.sha256();n=0;status=None
+ try:
+  url='https://www.kaggle.com/api/v1/datasets/download/heliosli/rsna-orthofoundation-fold0-epoch7-20261004/'+quote(name,safe='')
+  with requests.get(url,params={'dataset_version_number':1},stream=True,timeout=(15,90)) as x:
+   status=x.status_code;x.raise_for_status()
+   with part.open('xb') as f:
+    os.fchmod(f.fileno(),0o600)
+    for b in x.iter_content(65536):
+     n+=len(b)
+     if n>row['bytes']:raise ValueError('Original member exceeds pinned byte size')
+     h.update(b);f.write(b)
+  assert n==row['bytes'] and h.hexdigest()==row['sha256'];p=R/'code'/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);assert not p.exists();part.rename(p);record.write_text(json.dumps({'filename':name,'bytes':n,'sha256':h.hexdigest(),'HTTP_status':status,'complete_verified':True})+'\n')
+ except BaseException as e:
+  (S/'requests'/(key+'.failure.json')).write_text(json.dumps({'filename':name,'HTTP_status':status,'received_bytes':n,'failure_type':type(e).__name__,'no_automatic_retry':True})+'\n');raise RuntimeError('Original encoded member stopped: '+name+' ['+type(e).__name__+']') from None
+try:
+ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+  todo=iter(missing);pending={pool.submit(one,next(todo)) for _ in range(4)}
+  while pending:
+   done,pending=concurrent.futures.wait(pending,return_when=concurrent.futures.FIRST_COMPLETED)
+   for f in done:
+    f.result()
+    try:item=next(todo)
+    except StopIteration:continue
+    pending.add(pool.submit(one,item))
+ actual={str(p.relative_to(R/'code')):p for p in (R/'code').rglob('*') if p.is_file()};assert set(actual)==set(members)
+ for name,p in actual.items():assert p.stat().st_size==members[name]['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==members[name]['sha256']
+ tree=ast.parse(source);table={n:ast.literal_eval(x.value) for x in tree.body if isinstance(x,ast.Assign) for n in [x.targets[0].id if isinstance(x.targets[0],ast.Name) else ''] if n in ('LAUNCHER','B_PROBE')};assert set(table)=={'LAUNCHER','B_PROBE'};(R/'launcher.private.py').write_text(table['LAUNCHER'].replace('__SRC__',repr(str(R/'code/heliosli'))).replace('__CODE__',repr(str(R/'code/cloud_code'))));(R/'probe.private.py').write_text(table['B_PROBE'])
+ out={**old,'status':'actual_original_293_member_S6_source_tree_and_anatomy_fully_verified','checked_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'reconciliation_CPU_job':os.environ['SLURM_JOB_ID'],'source_members':293,'source_bytes':2997162,'reused_members_without_HTTP':221,'corrected_missing_original_member_requests':72,'verified_transport_query':'dataset_version_number; exact member SHA is authoritative','anatomy_bytes':112496037,'anatomy_sha256':'5904dd16eb9a4fd7a1caf90ac977f8fe2ef364908598c23c209db3fe7fd1563e','model_anatomy_extras_download_not_repeated':True,'manifest_sha256':'b66c574b5c0c13ccaa49d1219d41a8781431166186ef83e78cab6a9ba6b02d22','source_tree_sha256':hashlib.sha256(json.dumps(members,sort_keys=True,separators=(',',':')).encode()).hexdigest(),'actual_total_private_retained_bytes':sum(p.stat().st_size for p in P.rglob('*') if p.is_file()),'model_stack_or_MRI_or_GPU_executed':False,'private_original_source_retained':True,'upstream_rights_retained_no_new_licence_grant':True};assert out['actual_total_private_retained_bytes']+8*2**20<536870912;(R/'verified.json').write_text(json.dumps(out,indent=2)+'\n');(S/'verified.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+except BaseException as e:
+ (S/'terminal-failure.json').write_text(json.dumps({'failure_type':type(e).__name__,'detail':str(e),'no_automatic_retry':True})+'\n');raise

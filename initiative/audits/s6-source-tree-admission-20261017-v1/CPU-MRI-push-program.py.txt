@@ -1,0 +1,40 @@
+
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'CPU-MRI-v1';assert not R.exists()
+stack=json.loads((P/'source-tree-v1/CPU-stack-v4/terminal.json').read_text());assert stack['status']=='actual_original_S6_CPU_stack_and_strict_model_load_accepted'
+required=608329573144+2*2**30+16*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=[x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415')][0]
+assert (int(row[2])-int(row[1]))*1024>20*2**30+4*2**20 and int(row[6])-int(row[5])>5008
+source=v['source'];sha=hashlib.sha256(source.encode()).hexdigest();assert sha==v['binding']['source_sha256']
+R.mkdir(mode=0o700);(R/'source.private.py').write_text(source);(R/'source.private.py').chmod(0o600)
+funding={'actual_node_free_bytes':free,'carried_required_free_bytes':608329573144,'new_private_fixture_cap_bytes':2*2**30,'new_private_controls_cap_bytes':16*2**20,'new_total_required_free_bytes':required,'no_deletion_credit':True,'private_only':True}
+(R/'funding.json').write_text(json.dumps(funding,indent=2)+'\n')
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('S6_CPU_input_workflow',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts';r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Canonical coordinator busy; no retry authority';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'S6_original_CPU_public_MRI','phase':'push','job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);slug='godlydonuts/rsna-s6-original-cpu-mri-'+sha[:12];key='S6-original-CPU-MRI:'+sha
+  assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+  absence=r.require_absent_kernel(slug)
+  request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-s6fall-weights','heliosli/rsna-orthofoundation-fold0-epoch7-20261004'],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[],'sessionTimeoutSeconds':3600,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+  record={'state':'S6_original_CPU_MRI_push_intent','slug':slug,'version':1,'source_sha256':sha,'request_sha256':w.object_hash(request),'absence':absence,'funding':funding,'CPU_job':os.environ['SLURM_JOB_ID'],'GPU':False,'competition_entry':False,'automatic_retry':False}
+  w.new_json(R/'push-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+  try:
+   response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(R/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+  except BaseException:
+   record['state']='S6_original_CPU_MRI_push_uncertain';db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit();retain=True;raise
+  record.update(state='S6_original_CPU_MRI_pushed',kernel_id=response['kernelId']);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),sha,'S6_original_CPU_public_MRI_pushed_once_no_GPU_or_entry'));db.commit()
+  actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];assert actual['blob']['source']==source and m.get('isPrivate') is True and m.get('enableInternet') is False and not m.get('enableGpu',False) and m.get('dockerImage')==request['dockerImage']
+  for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+  out={**record,'status':'one_original_S6_CPU_public_MRI_input_notebook_pushed_and_exact_source_metadata_verified','current_status':r.kernel('GetKernelSessionStatus',slug,1)['status'],'new_Dataset_or_weights_upload_or_competition_entry':False,'unchanged_live_training':True};w.new_json(R/'pushed.json',out);print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

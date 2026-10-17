@@ -1,0 +1,57 @@
+"""Prepare a bounded CPU-only input reproduction; no predictions or submission."""
+import ast
+import base64
+import hashlib
+import json
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+original = (L.parent / 's6-public-source-20261017-v1/source.extracted.py').read_bytes()
+assert hashlib.sha256(original).hexdigest() == '6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+template = r'''
+import base64,contextlib,hashlib,importlib.util,io,json,os,resource,signal,time
+from pathlib import Path
+os.environ.update(CUDA_VISIBLE_DEVICES='',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1')
+import numpy as np
+import torch
+assert not torch.cuda.is_available();torch.set_num_threads(2);torch.set_num_interop_threads(1)
+R=Path('/kaggle/working/S6-original-public-MRI-v1');assert not R.exists();R.mkdir(mode=0o700)
+raw=base64.b64decode(__ORIGINAL__,validate=True);assert hashlib.sha256(raw).hexdigest()=='6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe'
+original=R/'original.private.py';original.write_bytes(raw);original.chmod(0o600)
+namespace={'__name__':'original_S6_definitions_without_main','__file__':str(original)};exec(compile(raw,str(original),'exec'),namespace)
+namespace['OUT'].mkdir(parents=True,exist_ok=True);namespace['TMP'].mkdir(parents=True,exist_ok=True)
+with (R/'source-stack.private.log').open('x') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):
+ I=namespace['prepare_inputs']();assert I.test_ids==namespace['PUBLIC_TEST_IDS'] and len(I.test_ids)==3
+ stack=namespace['probe_b_stack'](I)
+ spec=importlib.util.spec_from_file_location('original_S6_CPU_MRI_launcher',I.launcher);launch=importlib.util.module_from_spec(spec);spec.loader.exec_module(launch)
+g=namespace['B_GEOMETRY'];assert g['backbone']=='convnext_small' and g['views']=='v4' and g['size']==320 and g['crop']==288 and g['phys_mm']==3.5 and g['slices']==3
+ds=launch.CI.CStudies(I.comp,'test',I.test_ids,R/'working-private',I.code,g['size'],eval_stride=g['eval_stride'],views=g['views'],slices=g['slices'],anchor_weights=I.anatomy,phys_mm=g['phys_mm'])
+def alarm(signum,frame):raise TimeoutError('Bounded original CPU MRI item timed out')
+signal.signal(signal.SIGALRM,alarm);rows=[];total=0;t0=time.perf_counter()
+for i in range(3):
+ signal.alarm(900)
+ with (R/'source-stack.private.log').open('a') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):item=ds[i]
+ signal.alarm(0);assert item['error'] is None and item.get('anchor') is not None
+ x=item['images'].numpy();m=item['meta'].numpy();assert x.dtype==np.uint8 and x.ndim==4 and tuple(x.shape[1:])==(3,320,320) and 0<len(x)<=3000
+ assert m.dtype==np.float32 and m.shape==(len(x),6) and np.isfinite(m).all()
+ assert x.nbytes+m.nbytes<1024**3 and total+x.nbytes+m.nbytes<2*1024**3
+ p=R/('study-%03d.npz'%i)
+ with p.open('xb') as f:np.savez_compressed(f,images=x,meta=m)
+ with np.load(p,allow_pickle=False) as z:assert np.array_equal(z['images'],x) and np.array_equal(z['meta'],m)
+ total+=p.stat().st_size;assert total<2*1024**3
+ row={'ordinal':i,'uid':item['uid'],'file':p.name,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'windows':len(x),'images_sha256':hashlib.sha256(x.tobytes()).hexdigest(),'meta_sha256':hashlib.sha256(m.tobytes()).hexdigest(),'raw_tensor_bytes':x.nbytes+m.nbytes,'anchor':item['anchor'],'seconds':item['seconds']};rows.append(row)
+ print(json.dumps({'status':'actual_original_S6_CPU_public_MRI_item_accepted','ordinal':i,'windows':len(x),'elapsed_seconds':time.perf_counter()-t0}),flush=True)
+ del x,m,item
+index=R/'index.private.json';index.write_text(json.dumps({'records':rows,'source_sha256':hashlib.sha256(raw).hexdigest(),'geometry':g},sort_keys=True,indent=2)+'\n')
+receipt={'status':'actual_original_S6_three_public_MRI_inputs_CPU_and_lossless_roundtrip_accepted','source_sha256':hashlib.sha256(raw).hexdigest(),'source_tree_manifest_sha256':I.manifest_sha256,'model_sha256':namespace['B_MODEL']['sha256'],'anatomy_sha256':namespace['ANATOMY_SHA256'],'studies':3,'windows':[r['windows'] for r in rows],'compressed_pixel_bytes':total,'index_bytes':index.stat().st_size,'index_sha256':hashlib.sha256(index.read_bytes()).hexdigest(),'geometry':g,'stack':stack,'files':[{k:r[k] for k in ('file','bytes','sha256')} for r in rows],'elapsed_seconds':time.perf_counter()-t0,'max_RSS_bytes':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*1024,'classifier_predictions':False,'GPU':False,'competition_submission':False,'labels_reports_or_protected_values_read':False,'original_source_functions_unchanged':True,'public_three_study_only':True}
+assert receipt['max_RSS_bytes']<27*1024**3
+Path('/kaggle/working/S6-original-public-MRI-accepted.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
+'''
+source = template.replace('__ORIGINAL__',repr(base64.b64encode(original).decode()))
+compile(source,'S6_original_CPU_MRI','exec')
+tree=ast.parse(source)
+assert sum(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='exec' for n in ast.walk(tree))==1
+assert source.count('source_directory=False')==0 and 'submission.csv' not in source
+out=L/'CPU-MRI-source.private.py';assert not out.exists();out.write_text(source)
+(L/'CPU-MRI-source-binding.json').write_text(json.dumps({'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'original_source_sha256':hashlib.sha256(original).hexdigest(),'CPU_only':True,'maximum_fixture_bytes':2*1024**3,'no_classifier_or_competition_entry':True,'compile_and_original_source_binding_checked':True},indent=2)+'\n')
+print((L/'CPU-MRI-source-binding.json').read_text())

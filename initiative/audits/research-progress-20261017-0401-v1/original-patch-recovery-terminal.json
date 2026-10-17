@@ -1,0 +1,182 @@
+{
+  "CPU_job": "941861",
+  "original_job": 929938,
+  "node": "evc40",
+  "terminal_sha256": "6e52a3314049ab1e0ef48dc8d9aed3c7f422638171e1d65f202928ce6e288242",
+  "accepted": true,
+  "source_start": {
+    "job_id": "929938",
+    "source_git": "bf46b70eea1216673aafb1b5d34e513247b4ef1c",
+    "GPU": "NVIDIA H100 PCIe",
+    "new_recovery_cap_bytes": 12884901888,
+    "new_control_cap_bytes": 8388608,
+    "required_free_bytes": 417575679939,
+    "runtime_correction": "matching_python312_headers_and_node_private_compiler_caches",
+    "numerical_source_unchanged": true,
+    "headers_rpm_sha256": "0b2b188bf7c920e92ff0f3952ad43100dce29d565dc2c27adea7b4d0dda34dd2",
+    "original_failed_job_preserved": 917543
+  },
+  "result": {
+    "status": "actual_matched_patch_focus_full_stop1_resume_recovery_accepted",
+    "arms": {
+      "control": {
+        "complete_state_sha256": "c140ed9cbf858661a465149b22022587bd368002078b382f644db694166c8946",
+        "checkpoint_sha256": "b1c2a3eff4d2ab0ca689e8f5607f743838aed4591def241f4e5828ad5e881f45",
+        "prediction_sha256": "1d72a3187d9bb5a08956a4d3da54abbacf2b190c0825596cbbfe145cf2ff4704",
+        "finite_updates": [
+          {
+            "encoder_gradient_norm": 0.03936778008937836,
+            "epoch": 0,
+            "gradient_norm": 0.9630772471427917,
+            "loss": 0.7136861085891724,
+            "observed_cells": 96.0,
+            "optimizer_steps": 1,
+            "update": 1
+          },
+          {
+            "epoch": 0,
+            "gradient_norm": 0.9623881578445435,
+            "loss": 0.6710622310638428,
+            "observed_cells": 96.0,
+            "optimizer_steps": 2,
+            "update": 2
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 0.5964779257774353,
+            "loss": 0.6155188083648682,
+            "observed_cells": 96.0,
+            "optimizer_steps": 3,
+            "update": 1
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 0.716566264629364,
+            "loss": 0.6198374032974243,
+            "observed_cells": 96.0,
+            "optimizer_steps": 4,
+            "update": 2
+          }
+        ],
+        "frozen_base_tensors": 417,
+        "exact_complete_state_history_and_prediction_recovery": true,
+        "learned_tensors": 249,
+        "encoder_learned_tensors": 240,
+        "encoder_learned_parameters": 10223616,
+        "patch_query_parameters": 12288,
+        "patch_query_rows_moved": 0,
+        "patch_query_abs_max": 0.0
+      },
+      "candidate": {
+        "complete_state_sha256": "aff870416825aa1fabc05f74ce43a525c180c896b3a545603a98422bd2ad40e2",
+        "checkpoint_sha256": "fe529ba33cd9bc328fc3ffd589eb270d64ea474e4d5a33320de9a3e851cc822d",
+        "prediction_sha256": "146d0e78a0832c009c9cc150b2ba6380b892796aec90f8acd338e0d0dc7ee51e",
+        "finite_updates": [
+          {
+            "encoder_gradient_norm": 0.03936778008937836,
+            "epoch": 0,
+            "gradient_norm": 0.9630773067474365,
+            "loss": 0.7136861085891724,
+            "observed_cells": 96.0,
+            "optimizer_steps": 1,
+            "update": 1
+          },
+          {
+            "epoch": 0,
+            "gradient_norm": 0.9623823761940002,
+            "loss": 0.6710593104362488,
+            "observed_cells": 96.0,
+            "optimizer_steps": 2,
+            "update": 2
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 0.5964710116386414,
+            "loss": 0.6155188083648682,
+            "observed_cells": 96.0,
+            "optimizer_steps": 3,
+            "update": 1
+          },
+          {
+            "epoch": 1,
+            "gradient_norm": 0.7165706157684326,
+            "loss": 0.6198471188545227,
+            "observed_cells": 96.0,
+            "optimizer_steps": 4,
+            "update": 2
+          }
+        ],
+        "frozen_base_tensors": 417,
+        "exact_complete_state_history_and_prediction_recovery": true,
+        "learned_tensors": 249,
+        "encoder_learned_tensors": 240,
+        "encoder_learned_parameters": 10223616,
+        "patch_query_parameters": 12288,
+        "patch_query_rows_moved": 12,
+        "patch_query_abs_max": 0.0007491446449421346
+      }
+    },
+    "first_update_versus_source_slot": {
+      "first_update_loss_equal": true,
+      "control_gradient_norm_bitwise_reference": false,
+      "control_gradient_norm_relative_difference": 6.188978221975874e-08,
+      "control_encoder_gradient_norm_bitwise_reference": true
+    },
+    "resources": {
+      "full_fit": {
+        "reference": {
+          "elapsed_seconds": 20.810752831981517,
+          "cuda_peak_memory_bytes": 1986231296
+        },
+        "control": {
+          "elapsed_seconds": 22.100778120046016,
+          "cuda_peak_memory_bytes": 1986427904
+        },
+        "candidate": {
+          "elapsed_seconds": 21.666832451010123,
+          "cuda_peak_memory_bytes": 1986427904
+        }
+      },
+      "phase_wall_seconds": {
+        "reference": {
+          "full": 179.33571007900173
+        },
+        "control": {
+          "full": 140.91349957004422,
+          "stop": 125.94239327899413,
+          "resume": 138.86600478598848
+        },
+        "candidate": {
+          "full": 140.43866429600166,
+          "stop": 124.02824533497915,
+          "resume": 139.16388307500165
+        }
+      },
+      "added_versus_source_slot": {
+        "control": {
+          "added_elapsed_seconds": 1.2900252880644985,
+          "elapsed_ratio": 1.0619884008271923,
+          "added_cuda_peak_memory_bytes": 196608
+        },
+        "candidate": {
+          "added_elapsed_seconds": 0.8560796190286055,
+          "elapsed_ratio": 1.0411364079877494,
+          "added_cuda_peak_memory_bytes": 196608
+        }
+      }
+    },
+    "source_manifest_sha256": "66607d2e8074c9b1f23459e47db8b8cf8c51c6cb242c283018919fcac1fdb0e4",
+    "recipe_sha256": {
+      "reference": "e2bfb43c4577dd78c13be3958e99c41ca250c9a3b7251236ddbff8a380fa99de",
+      "control": "efdca23d70f175b2aff79583e7ef1222b14e71453c1432af12828e9084b94c29",
+      "candidate": "b402ed54f7773a58dfd8774fda34c7a17f0963d022dd5c7109d5f1e7b930dae5"
+    },
+    "device": "cuda",
+    "GPUs_used_concurrently": 1,
+    "diagnostic_only": true,
+    "recipe_selection_evidence": false,
+    "clinical_accuracy_evidence": false,
+    "competition_submission": false
+  },
+  "no_checkpoint_rehash_or_GPU_or_scientific_change": true
+}

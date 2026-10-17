@@ -1,0 +1,22 @@
+
+import datetime,hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import numpy as np
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');R=P/'source-tree-v1';D=P/'GPU-fixture-v1';assert os.uname().nodename=='evc33'
+meta=json.loads((D/'staged.json').read_text());assert hashlib.sha256((D/'worker.py').read_bytes()).hexdigest()==meta['worker_sha256'];assert shutil.disk_usage('/tmp').free>610493834008
+accepted=json.loads((P/'CPU-MRI-v1/collected/verified.json').read_text());assert accepted['status']=='original_S6_three_public_MRI_CPU_inputs_collected_once_full_size_SHA_and_tensor_verified' and accepted['kernel_id']==139151928 and accepted['all_original_lossless_pixel_and_metadata_tensor_bytes_equal'] is True
+stack=json.loads((R/'CPU-stack-v4/terminal.json').read_text());assert stack['status']=='actual_original_S6_CPU_stack_and_strict_model_load_accepted' and (P/'E_prior_s42_fall.pt').stat().st_size==200185003
+import torch
+assert torch.cuda.is_available() and torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0);torch.ones(1,device='cuda');torch.cuda.synchronize()
+(D/'actual-start.json').write_text(json.dumps({'job_id':os.environ['SLURM_JOB_ID'],'GPU':torch.cuda.get_device_name(),'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),'metadata':meta,'engineering_only':True},indent=2)+'\n')
+index=json.loads((P/'CPU-MRI-v1/collected/index.private.json').read_text());uids=[r['uid'] for r in index['records']];(D/'assignment.private.json').write_text(json.dumps(uids)+'\n');proofs={};t0=time.perf_counter()
+env={k:v for k,v in os.environ.items() if not any(x in k.upper() for x in ('TOKEN','SECRET','PASSWORD','AUTHORIZATION'))};env.update(PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(P/'runtime-opencv-v1/site-packages')+':/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',HF_HOME=str(D/'hf-private'),TORCH_HOME=str(D/'torch-private'),XDG_CACHE_HOME=str(D/'cache-private'),OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1')
+for mode in ('fp32','fp16'):
+ with (D/(mode+'.stdout')).open('x') as out,(D/(mode+'.stderr')).open('x') as err:run=subprocess.run([sys.executable,'-B',str(D/'worker.py'),mode],stdin=subprocess.DEVNULL,stdout=out,stderr=err,env=env,cwd=D,timeout=600)
+ assert run.returncode==0,(mode,run.returncode)
+ p=D/mode/'receipt.json';v=json.loads(p.read_text());assert v['status']=='PASS' and v['studies']==v['scored']==3 and v['fallback']=={} and v['timed_out'] is False and v['amp']==mode and v['models']==['E_prior_s42_fall.pt'] and v['spatial_models']==1 and v['stats']['windows']==1586
+ for name,sha in v['sha256'].items():assert hashlib.sha256((R/'code/heliosli'/name).read_bytes()).hexdigest()==sha
+ logits=json.loads((D/mode/'logits.private.json').read_text());assert set(logits)==set(uids);z=np.asarray([logits[u] for u in uids],dtype=np.float64);assert np.isfinite(z).all() and z.shape==(3,1,12)
+ peak=json.loads((D/mode/'GPU-peak.json').read_text());assert peak['peak_allocated_bytes']<peak['total_VRAM_bytes'];proofs[mode]={'receipt_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'seconds':v['seconds'],'stats':v['stats'],'GPU':peak,'logit_shape':list(z.shape),'logits':z}
+a=proofs['fp32'].pop('logits');b=proofs['fp16'].pop('logits');sig=lambda z:1/(1+np.exp(-z));error=float(np.max(np.abs(sig(a)-sig(b))));assert error<=0.003,error
+out={'status':'actual_original_S6_verified_MRI_fixture_classifier_H100_FP32_FP16_accepted','job_id':os.environ['SLURM_JOB_ID'],'recorded_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'worker_sha256':meta['worker_sha256'],'original_source_sha256':accepted['original_source_sha256'],'model_sha256':stack['model_sha256'],'anatomy_sha256':stack['anatomy_sha256'],'original_CPU_MRI_kernel_id':139151928,'studies':3,'windows':1586,'maximum_probability_error_FP16_versus_FP32':error,'predeclared_probability_tolerance':0.003,'modes':proofs,'elapsed_seconds':time.perf_counter()-t0,'numerical_classifier_and_pooling_source_unchanged':True,'only_dataset_loader_replaced_with_preverified_original_tensors':True,'GPU_anatomy_preprocessing_or_T4_or_hidden_scale_acceptance':False,'competition_score_or_entry':False,'new_training_or_dataset_or_checkpoint':False};(D/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

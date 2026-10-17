@@ -1,0 +1,31 @@
+
+import datetime,hashlib,json,os,shutil,subprocess,sys,zipfile
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'runtime-opencv-v1';assert not D.exists()
+required=607792702232+512*2**20;free=shutil.disk_usage('/tmp').free;assert free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=[x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415')][0]
+assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+prior=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());assert prior<536870912
+D.mkdir(mode=0o700);w=v['wheel'];assert w['digests']['sha256']=='236c8df54a90f4d02076e6f9c1cc763d794542e886c576a6fee46ec8ff75a7a9' and w['size']==54023419
+intent={'CPU_job':os.environ['SLURM_JOB_ID'],'prior_required_free_bytes':607792702232,'new_peak_and_retained_envelope_bytes':512*2**20,'runtime_retained_cap_bytes':256*2**20,'required_free_bytes_before_dispatch':required,'actual_node_free_bytes':free,'original_S6_envelope_bytes':536870912,'existing_private_bytes':prior,'shared_growth_bytes_files':0,'active_torch_environment_modified':False,'wheel':{k:w[k] for k in ('filename','size','digests')},'automatic_retry':False}
+(D/'intent.json').write_text(json.dumps(intent,indent=2)+'\n');path=D/w['filename'];h=hashlib.sha256();n=0
+with requests.get(w['url'],stream=True,timeout=(15,120)) as response:
+ response.raise_for_status()
+ with path.open('xb') as f:
+  os.fchmod(f.fileno(),0o600)
+  for b in response.iter_content(1024*1024):
+   n+=len(b);assert n<=w['size'];f.write(b);h.update(b)
+assert n==w['size'] and h.hexdigest()==w['digests']['sha256']
+with zipfile.ZipFile(path) as z:unpacked=sum(x.file_size for x in z.infolist());assert n+2*unpacked+32*2**20<512*2**20
+site=D/'site-packages';env=dict(os.environ,PIP_DISABLE_PIP_VERSION_CHECK='1',PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1',TMPDIR=str(D))
+with (D/'install.stdout').open('x') as out,(D/'install.stderr').open('x') as err:
+ result=subprocess.run([sys.executable,'-B','-m','pip','install','--no-index','--no-deps','--no-compile','--no-cache-dir','--target',str(site),str(path)],stdout=out,stderr=err,env=env,stdin=subprocess.DEVNULL,timeout=180)
+assert result.returncode==0
+probe="import cv2,numpy,torch,json;assert cv2.__version__=='4.12.0';assert numpy.__version__.startswith('2.2.');print(json.dumps({'cv2':cv2.__version__,'cv2_file':cv2.__file__,'numpy':numpy.__version__,'torch':torch.__version__}))"
+check=subprocess.run([sys.executable,'-B','-c',probe],env=dict(env,PYTHONPATH=str(site),CUDA_VISIBLE_DEVICES=''),stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=120)
+(D/'import.stdout').write_text(check.stdout);(D/'import.stderr').write_text(check.stderr);assert check.returncode==0,check.stderr[-1500:]
+retained=sum(p.stat().st_size for p in D.rglob('*') if p.is_file());assert retained<256*2**20
+out={**intent,'status':'actual_isolated_OpenCV_wheel_size_SHA_install_and_CPU_import_accepted','recorded_UTC':datetime.datetime.now(datetime.timezone.utc).isoformat(),'actual_wheel_sha256':h.hexdigest(),'unpacked_wheel_bytes':unpacked,'actual_retained_runtime_bytes':retained,'versions':json.loads(check.stdout),'no_MRI_or_GPU_or_model_execution':True,'unchanged_original_source_and_live_training_environments':True}
+(D/'verified.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

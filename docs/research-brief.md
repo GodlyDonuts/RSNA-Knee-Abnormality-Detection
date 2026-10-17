@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 03:20 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 04:15 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -21,8 +21,9 @@ on both T4s and the exact continuation is API RUNNING. Expanded own-model fittin
 uniform-16 production139137040v1 is actually API RUNNING; influence remains
 unpushed. Whole-parent epoch1 completed486updates, is privately verified and
 passed both-T4 learned-model inference qualification. Epoch2 resumed the exact
-original worker/checkpoint as139137922v1. Newly resumed/sampled optimizer logs
-are not yet available; API RUNNING is not a new-update proof. None has a final new competition result yet.
+original worker/checkpoint as139137922v1. Actual04:01 logs now show **682/1458 whole94** and **367/1458 uniform16** finite
+updates, with both allocated T4s and exact original input admission. Expanded N3
+is at2166/5184,epoch7; all six completed epochs are privately verified. None has a final new competition result yet.
 
 The fresh [official Public leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json)
 shows first place **0.969** versus our **0.949**. A publicly shared 0.956 blend is not the
@@ -148,7 +149,12 @@ points to a distinct strong public parent and structured observation, rather
 than another generic backbone search. We actually pinned S6 notebook138285808v2
 and its small checkpoint/code manifests, then acquired the original checkpoint
 privately once with exact SHA and safe tensor-header verification. Its reported
-0.950 remains external; no project MRI/GPU inference occurred. Prioritize unchanged reproduction and source-exposure
+0.950 remains external. Its exact293-member source/anatomy and unchanged strict
+CPU stack now pass; private CPU-only Kaggle MRI gate139151928v1 completed all3 public studies/1586
+windows. CPU942028 fully verified original compressed inputs and their decoded
+bytes on Newton. Bounded H100 classifier probe942047 is queued; no GPU
+terminal or new score is claimed.
+[Actual acceptance and next gate](../initiative/audits/s6-source-tree-admission-20261017-v1/README.md). Prioritize unchanged reproduction and source-exposure
 accounting before teacher combination. Head-only folds on an already exposed
 encoder are not independent OOF; probability agreement is not clinical truth.
 The assessment retains source-DICOM physical crops and geometry/query mechanisms
