@@ -436,10 +436,14 @@ choose future ranking entries only after actual public acceptance, relevant
 outcomes and fresh daily allowance.
 
 
-Latest ranking/full-pixel/source milestone4952238a is privately fully re-downloaded/
-size/SHA verified at HFa9e666390b030b2b2c42c93f024115ed8395c73e:48objects302252bytes,
-CPU940064/canonical shared lock. No MRI/UIDs/labels/features/weights/prediction rows;
-never repeat prior prefixes. [Exact verification](../initiative/audits/hf-ranking-full-fit-T4-pixels-20261016-v1/verified.json).
+Latest distinct small milestone sourcea6c70b657110 is privately fully re-downloaded/
+size/SHA verified at HF117b0b51042e7b54412a3b8b46cf20e38c224320:62objects300619bytes,
+CPU940547/canonical shared lock. It preserves full384T4/MRI/entry proofs, actual
+context0.948, healthy293-update full fit and finalE3 entry control. No MRI/UIDs/
+labels/features/weights/individual prediction rows; never repeat this or prior
+verified mirrorHFa9e66639. Latest node33funding607422461891required bytes includes
+8MiBnew mirror controls and16MiBfield controls; no originals deleted.
+[Exact verified preservation](../initiative/audits/hf-licensed-field-T4-context-score-20261017-v1/verified.json).
 
 
 ## Verified full-field input mechanism, October17
