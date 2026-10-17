@@ -60,9 +60,8 @@ root `/tmp/rsna-compact-expanded2592-production-20261016-v1`, control
 Do not restart/duplicate. Distinct watcher observes this exact original, then uses
 `scripts/hf/dispatch_compact_expanded_epoch.py` only for completed unattempted
 original epochs. It checks original per-epoch intents/results and private paths;
-uncertain publication requires read-only reconciliation. Epoch1 exists; its
-publication watcher owns preservation. Do not infer private verification from the
-snapshot alone.
+uncertain publication requires read-only reconciliation. Epoch1 is now privately verified (all9objects), with the actual proof linked
+in the latest preservation section below. Watcher95408 owns later epochs.
 Old patch929938 remains pending; do not duplicate/displace healthy training.
 
 ## Matched IID16 full comparison
@@ -178,17 +177,20 @@ The docs refresh audit records fresh authenticated outcomes, read-only canonical
 ledger and actual expanded-job metadata. Do not treat old research archive
 "next" instructions or open branches as new launch authority.
 
-## Operational update after the 02:05 science snapshot
+## Latest preservation and documentation state
 
-Expanded publication observer93375 stopped on a direct-script `scripts.hf` import
-before any epoch1 intent or RPC. Exact absence/source/terminal proof was reviewed.
-Replacement95408/exec49302 sets repository PYTHONPATH and PYTHONNOUSERSITE only;
-original GPU938284 and publisher217bcdf remain unchanged. It passed original
-prechecks and dispatched first epoch1 CPU941066 ONCE, lastPENDING Priority.
-The existing publication intent now requires read-only reconciliation; do not
-repeat it. Private preservation is not yet verified. See
-[observer recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
+Expanded observer93375 stopped on direct-script `scripts.hf` import before an
+intent/credential/RPC. Exact absence/source/terminal proof was reviewed.
+Replacement95408/exec49302 fixes repository PYTHONPATH/PYTHONNOUSERSITE only;
+GPU938284 and publisher217bcdf remain unchanged. Its original CPU941066 COMPLETE:
+expanded epoch1 privately fully verified ONCE at
+HF490960b8a7be8114607da040028e1ffe1a19ae54/all9objects. Watcher95408 now
+verified_epochs=[1] and original938284 remains RUNNING. Never repeat epoch1.
+[Exact recovery and result](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
 
-GitHub research handoff source1a2e8204 privately fully verified ONCE at
+Distinct research-handoff source1a2e8204 privately fully verified ONCE at
 HFb34d69e5d815ec2bd8e799d1c52f91a7c9778b7b,24objects322098bytes,CPU941047.
-This following observer-recovery/receipt bookkeeping is later than that source.
+Observer-recovery source9008eced privately fully verified ONCE at
+HFb2ecca99b9b8ac2b0ac9e039eff99a922510ae5d,8objects35644bytes,CPU941076.
+This final epoch-preservation/receipt bookkeeping follows those publications;
+never repeat them. No private clinical arrays/pixels/weights were in the small mirrors.

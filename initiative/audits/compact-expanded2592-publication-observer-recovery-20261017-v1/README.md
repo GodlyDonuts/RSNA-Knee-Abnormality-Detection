@@ -21,3 +21,12 @@ and [actual-recovery.json](actual-recovery.json). Existing intent now requires
 read-only reconciliation if publication is uncertain; never repeat this dispatch.
 Use the original publisher and watcher to collect the later full download/hash
 proof. All numerical source, data, optimizer and original training remain unchanged.
+
+## Actual subsequent completion
+
+Original CPU941066 subsequently completed successfully. Expanded epoch1 is now
+privately preserved at HF `490960b8a7be8114607da040028e1ffe1a19ae54`; all **nine**
+objects were fully re-downloaded/size/SHA verified. See the
+[exact immutable result](actual-epoch1-private-verified.json). The live replacement
+watcher95408 has verified_epochs=[1] and continues observing the same original
+training job. Do not repeat epoch1. This is preservation, not an accuracy result.

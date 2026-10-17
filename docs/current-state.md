@@ -43,7 +43,7 @@ Do not resubmit their exact versions.
 | Work | Original identity | Latest actual evidence |
 |---|---|---|
 | Full licensed-parent adaptation | Kaggle 139111324 v1 | **RUNNING** on both T4s; 451 finite updates observed in epoch 1 of 3 |
-| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 333 of 5,184 updates, epoch 2; epoch 1 snapshot complete, preservation pending |
+| Expanded own N3 fitting | Slurm 938284, evc33 | **RUNNING**, one H100 / two CPUs; 333 of 5,184 updates, epoch 2; epoch 1 snapshot complete, now privately verified (later operational update below) |
 | Uniform-16 versus influence-16 full-encoder comparison | Finite owner 93305 | Inputs, recovery and storage accepted; uniform epoch 1 prepared; **GPU-budget wait, no production push** |
 | Patch-header research | Original Slurm 929938 | **PENDING (Priority)**; no accuracy result |
 | Sampled-epoch serving compiler | Committed preparation | Synthetic CPU/regression checks passed; **no actual serving GPU/public-MRI acceptance** |
@@ -180,7 +180,7 @@ records identities and intents. Preserve each completed epoch once. Keep large
 private assets on authorized cluster/Kaggle storage; credentials stay ignored and
 are streamed through stdin. Respect the funded 20 GiB / 5,000 shared-file reserves.
 
-Latest verified small mirrors: source `3d83115d` at private HF
+Earlier verified small mirrors: source `3d83115d` at private HF
 `5656db3fe39639bff57d7fcfc29d778c4022915f` (65 objects / 360,309 bytes), and the
 cleaned guide source `805974c0` at `6eaf98ff679cb4e9fc975c8b11c488a4ddb4990f`
 (4 objects / 28,890 bytes). Both were fully re-downloaded, size- and SHA-verified.
@@ -189,16 +189,25 @@ features, proposal tables or weights. This documentation refresh is later;
 [its audit](../initiative/audits/github-research-handoff-20261017-v1/README.md)
 separates fresh observations and source preparation from prior private mirrors.
 
-### Subsequent operational correction
+### Preservation update — October 17, 02:12 UTC
 
-The final observer check found expanded epoch-preservation watcher 93375 had
-stopped on a local module import **before any publication intent or RPC**. The
-training job and first checkpoint are intact. A distinct observer 95408 fixes
-only its child import environment; original publisher/source/data are unchanged.
-Its first original epoch-1 publication is CPU **941066**, queued once and not yet
-verified. [Exact failure, absence proof and recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
+The final check caught expanded preservation watcher 93375 failing on a local
+module import **before any publication intent or RPC**. Training and its snapshot
+were intact. Replacement **95408 / exec49302** fixes only the child import
+environment; original numerical source, publisher and GPU job are unchanged.
+Its first original publication, **CPU941066, completed successfully**: expanded
+epoch 1 is privately preserved at HF `490960b8a7be8114607da040028e1ffe1a19ae54`,
+all **nine objects** fully re-downloaded/size/SHA verified. Do not repeat it.
+The watcher continues on the same original job; this is preservation, not accuracy.
+[Failure and recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md),
+[actual epoch receipt](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/actual-epoch1-private-verified.json).
 
-The GitHub refresh at source `1a2e8204` is now fully private-HF verified at
-`b34d69e5d815ec2bd8e799d1c52f91a7c9778b7b`: 24 objects / 322,098 bytes, every
-size/SHA rechecked. [Exact mirror receipt](../initiative/audits/hf-github-research-handoff-20261017-v1/verified.json).
-The observer correction above is a later change than that mirrored source.
+| Latest distinct private small mirror | Verified scope |
+|---|---|
+| `b34d69e5d815ec2bd8e799d1c52f91a7c9778b7b` | Source `1a2e8204`, 24 objects / 322,098 bytes: research handoff, fresh observations and serving preparation |
+| `b2ecca99b9b8ac2b0ac9e039eff99a922510ae5d` | Source `9008eced`, eight objects / 35,644 bytes: observer recovery and preceding mirror receipt |
+
+Both used the canonical shared lock and full re-download/size/SHA checks, with
+no private pixels/clinical arrays/features/proposals/weights. The subsequent
+expanded epoch receipt above is covered by its original private checkpoint
+publication. This final receipt bookkeeping follows those verified sources.
