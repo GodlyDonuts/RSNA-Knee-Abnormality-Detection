@@ -220,7 +220,7 @@ zero competition entries and has not pushed an S6 GPU notebook at this check.
 Original full regression terminated successfully:4537passed/8skipped/exit0;
 no numerical source changed. Do not mistake that for clinical improvement.
 
-Latest distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
+Earlier distinct sourceb9dabf26 is now privately fully verified at HF0917971d,
 all40objects/268191bytes; current receipt bookkeeping follows that source.
 [Exact private proof](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
 UniformE1 is now terminal/private verified at HFc19961db; influenceE1 is active.
@@ -238,3 +238,13 @@ The existing within-series and edge-repeat notebooks are public-MRI accepted
 but unscored; do not recreate them. An improved source-DICOM representation or
 S6/CoAtNet complementary-error mechanism must address information this readout
 screen did not test, with actual runtime and source-exposure limits stated.
+
+
+Latest distinct private preservation: source**5b55c961** is fully verified at
+HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
+CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
+actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
+sole final-serving owners. No private pixels/clinical arrays/features/weights.
+[Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
+Never repeat this or earlier prefixes; this receipt bookkeeping is later than
+that mirrored source.

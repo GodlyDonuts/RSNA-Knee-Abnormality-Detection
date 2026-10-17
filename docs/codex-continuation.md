@@ -330,7 +330,7 @@ global Ruff1327/format57 debt is preserved, not concealed by rewriting archives.
 [Actual terminal](../initiative/audits/github-current-state-refresh-20261017-v2/full-regression-terminal.json).
 No clinical or new competition score follows these checks.
 
-Latest new sourceb9dabf263075bc8b20a624eb36b2359efefa8577 is fully privately
+Earlier sourceb9dabf263075bc8b20a624eb36b2359efefa8577 is fully privately
 mirrored at HF0917971d00d1b58731930c00bba631e487e8cf70/all40objects/268191bytes,
 CPU942086, canonical lock and every re-download/size/SHA accepted. Never repeat.
 [Actual receipt](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json).
@@ -350,3 +350,13 @@ versus0.321–1.511%same-count interior. Deprioritize another boundary-only trai
 arm; this is not AUC or new rendered triple inference. Existing qualified within-
 series/edge-repeat notebooks remain unscored; never duplicate them.
 [Protocol, executedprogram, fullaggregates and transport-binding](../initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
+
+
+Latest distinct private preservation: source**5b55c961** is fully verified at
+HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
+CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
+actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
+sole final-serving owners. No private pixels/clinical arrays/features/weights.
+[Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
+Never repeat this or earlier prefixes; this receipt bookkeeping is later than
+that mirrored source.

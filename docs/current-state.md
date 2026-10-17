@@ -209,4 +209,14 @@ Ruff1327/format57 debt is preserved; archive/currentv2 checks passed.
 These are engineering results, not accuracy. Current archive/index checks follow
 new receipts; [prior private sourceb9dabf26 mirror](../initiative/audits/hf-s6-original-mri-20261017-v1/verified.json)
 is fully verified at HF0917971d/all40objects268191bytes and must not be repeated.
-This newer milestone is not that old mirror; use its eventual distinct receipt.
+The newer milestone has its own verified receipt below; it is not that old mirror.
+
+
+Latest distinct private preservation: source**5b55c961** is fully verified at
+HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
+CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
+actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
+sole final-serving owners. No private pixels/clinical arrays/features/weights.
+[Exact one-time mirror](../initiative/audits/hf-parent0949-boundary-s6cpu-20261017-v1/README.md).
+Never repeat this or earlier prefixes; this receipt bookkeeping is later than
+that mirrored source.
