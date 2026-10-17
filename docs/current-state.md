@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 16:54 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 17:02 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -15,14 +15,22 @@ project public AUC remains **0.950**. The target has not been reached.
 Public AUC is not private-final performance or clinical accuracy.
 [Score receipts](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
 
-## Latest execution, October 17, 16:54 UTC
+## Latest execution, October 17, 17:02 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,421/1,458 finite updates** in its final epoch, on both
-T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
-E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
-CPU948213/all five objects. Never repeat either push or publication. Original
-matched-final scoring owner **78386** remains separate and live.
+comparison **completed all three epochs/1,458 finite updates**, fitting all
+**73,136,096 parameters** on3,887 studies. Original E3 **139256441 v1** completed
+at16:59UTC; model292872115B/SHA`17565527…`. Source990c8ded and actual two-T4/
+input/runtime bindings passed. Independent CPU948773 verified complete learned/
+AdamW/counter/both-rank RNG/scaler state and fully re-downloaded all five private
+objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
+epochs are now privately verified. Original owner **61037 finished successfully**;
+never restart it or repeat publication. Scoring owner **78386** remains live and
+has advanced the completed fixed-final comparisons. **Uniform qualification
+139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
+and original32-MRI/training-graph checks. CPU948784 prepared the completed label
+model. This is a GPU validation run, not a qualification pass or a hidden score.
+Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
 feature graph equality** and all **eight source compilations** (CPU948377).
@@ -43,6 +51,9 @@ full-CNN scorer's priority, then validates original94
 and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
 for actual previous hidden outcomes and fresh allowance. It reuses Dataset
 12661001v1 and the existing32MiB serving cap; no new training or weight copies.
+Its source3161acbe and actual dispatch are now privately fully verified at
+**HF37d2f1ef1fb65f0ff117cd9b0cb79b710731eb18**, CPU948743/22objects/158518B.
+Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
 The exact stronger reference **139199164 v2** is still Queued, unqualified and
@@ -80,7 +91,7 @@ full-encoder61037and matched-final scoring78386remain separate original owners.
 [Exact protocol](../initiative/experiments/competitive-v1/cached-full-study-factorial-v1/README.md)
 and [actual recovery/full/private proofs](../initiative/audits/cached-full-study-factorial-20261017-v1/README.md).
 
-## Full-encoder campaign: final epoch in progress
+## Full-encoder campaign: fixed-final training and preservation complete
 
 The **source-label comparison** is training all 73,136,096 parameters on the
 same 3,887 fitting studies as the completed uniform control. Source labels are
@@ -95,8 +106,8 @@ clinical ground truth.
 - **60358** finished successfully. **61037** independently verified and privately preserved epoch 1
   at **HF33d992cfa8157d8b6fd3cc1a547b80838b874b44** (CPU947422; all five objects
   re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now COMPLETE at972cumulative updates and privately verified at HFf5a74128…/CPU948213.
-  Exact source and private offline T4 metadata and independent complete-state/private verification passed. Original E3 is running as139256441v1. The fixed-final model
-  and its accuracy result are still pending. Scientific source remains
+  Exact source and private offline T4 metadata and independent complete-state/private verification passed. Original E3 is running as139256441v1. The fixed-final model is now complete and privately verified viaCPU948773/
+  HF56581aab…; its actual accuracy result remains pending. Scientific source remains
   `990c8ded` throughout the campaign.
 
 [Actual recovery, training and continuation](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
@@ -110,9 +121,10 @@ Do not repeat their training or preservation.
 Uniform/influence final inference sources are now prepared by **CPU946894**;
 **CPU946946** validated both actual preserved snapshots through their serving
 adapter. They retain original full94, two-view inference and reuse immutable
-notebook weights. They have **not** run their T4 qualification/public inference
-or received competition scores. New label-final serving helpers also remain
-prepared until the actual final model and private preservation exist.
+notebook weights. Uniform qualification **139267646v1** is now actually RUNNING; no accepted
+qualification/public output or new competition score exists yet. The label final
+model/private proof also completed, and CPU948784 prepared its serving source.
+Original scorer78386 continues these comparisons once each actual check passes.
 [Exact scoring preparation](../initiative/audits/matched-final-scoring-preparation-20261017-v1/README.md).
 
 The stronger public reference **139199164 v2** remains Queued on its actual

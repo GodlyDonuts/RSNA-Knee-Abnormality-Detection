@@ -60,3 +60,9 @@ Current numerical serving/training modules are byte unchanged from the actual
 4622passed/8skipped/2warning full regression. No new Dataset/GPU/entry is created
 by preparing these controls. The actual staged source and ready-wait admission are recorded here. Never
 duplicate an existing intent or treat this live wait as a GPU validation result.
+
+Exact source3161acbe4afbf5c687184b958815b6f312dc1c1a and actual staged/live
+owner receipts are privately preserved once at HF37d2f1ef1fb65f0ff117cd9b0cb79b710731eb18.
+CPU948743 fully re-downloaded/size/SHA verified22objects/158518bytes under the
+original shared lock and original32MiB/256MiB caps. No models, MRI, features,
+labels or prediction rows were mirrored. Never repeat this milestone.

@@ -1,19 +1,27 @@
 # Execution handoff
 
-**Actual October17,16:54UTC.** Target0.97; best measured0.950. Read
+**Actual October17,17:02UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
 entries, epochs or publications. Observation loss is not restart authority.
 
-## Latest execution, October 17, 16:54 UTC
+## Latest execution, October 17, 17:02 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,421/1,458 finite updates** in its final epoch, on both
-T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
-E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
-CPU948213/all five objects. Never repeat either push or publication. Original
-matched-final scoring owner **78386** remains separate and live.
+comparison **completed all three epochs/1,458 finite updates**, fitting all
+**73,136,096 parameters** on3,887 studies. Original E3 **139256441 v1** completed
+at16:59UTC; model292872115B/SHA`17565527…`. Source990c8ded and actual two-T4/
+input/runtime bindings passed. Independent CPU948773 verified complete learned/
+AdamW/counter/both-rank RNG/scaler state and fully re-downloaded all five private
+objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
+epochs are now privately verified. Original owner **61037 finished successfully**;
+never restart it or repeat publication. Scoring owner **78386** remains live and
+has advanced the completed fixed-final comparisons. **Uniform qualification
+139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
+and original32-MRI/training-graph checks. CPU948784 prepared the completed label
+model. This is a GPU validation run, not a qualification pass or a hidden score.
+Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
 feature graph equality** and all **eight source compilations** (CPU948377).
@@ -34,6 +42,9 @@ full-CNN scorer's priority, then validates original94
 and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
 for actual previous hidden outcomes and fresh allowance. It reuses Dataset
 12661001v1 and the existing32MiB serving cap; no new training or weight copies.
+Its source3161acbe and actual dispatch are now privately fully verified at
+**HF37d2f1ef1fb65f0ff117cd9b0cb79b710731eb18**, CPU948743/22objects/158518B.
+Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
 The exact stronger reference **139199164 v2** is still Queued, unqualified and
@@ -81,7 +92,7 @@ and [actual recovery/full/private proofs](../initiative/audits/cached-full-study
 | Exact0.958reference | **139199164v2**, readonly**47637** | OneUI Save&RunAll committed;Queued (official SDK default), unqualified/unscored |
 | Label-onlyGPUrecovery | **139230981v1**, read-only**60305** | COMPLETE/full recovery accepted13:01UTC; returned identity reconciled without repetition; observer root`s6-source-label-recovery-observer-20261017-v2` |
 | LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1COMPLETE139234107v1/486updates at14:21UTC; owner finished successfully, never restart |
-| LabelE1preservation/E2–3successor | **61037** | `s6-label-fixed3-followthrough-20261017-v2`; verifies/preserves completed E1 then each epoch before next resume |
+| LabelE1preservation/E2–3successor | **61037**, finished successfully | `s6-label-fixed3-followthrough-20261017-v2`; all3epochs/1458updates COMPLETE and independently/private verified; finalHF56581aab…; never restart |
 | Matched-final scoring | **78386** | `matched-final-scoring-coordinator-20261017-v1`; waiting actual labelE3/private proof, then up to3exact code entries with actual outcomes; sourcef25a17d7/privateHF276963b3 verified; never restart |
 | Independent S6CPU32 | **139205901v2**, terminal**40709** | ERRORafter completed32/32classifier; finalbyte/RSSguard failed; no rerun |
 | QueuedGPU32scout | 139210569v1 | Canceled once while queued/zerooutput, actualCANCEL_ACKNOWLEDGED;34237/34308 retired |
@@ -165,7 +176,7 @@ unused1800seconds explicitly retired. The capacity race occurred while its
 provisionalstate stopped ending`_pushed`; hold the account claim through future
 UI actions and actual registration so other owners cannot see a false free lane.
 
-## Fixed label-only experiment: actual CPU acceptance, no GPU pass yet
+## Historical label-only prelaunch admission (superseded by completed fixed3 above)
 
 PrivateS6targets Dataset**12653444v1**,
 `godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f`, already5objects fully verified.

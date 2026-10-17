@@ -1,16 +1,24 @@
 # Research brief
 
-**October17,16:54UTC.** Target0.97; actual best0.950. See
+**October17,17:02UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
-## Latest execution, October 17, 16:54 UTC
+## Latest execution, October 17, 17:02 UTC
 
 Best measured public AUC remains **0.950**, target **0.97**. The full-CNN label
-comparison has reached **1,421/1,458 finite updates** in its final epoch, on both
-T4s. Original E3 is **139256441 v1**, source `4b91d99a…`, owner **61037**.
-E2 is already privately fully verified at **HFf5a74128e5fb6375eb716bad373c6d9abaf1c1a7**,
-CPU948213/all five objects. Never repeat either push or publication. Original
-matched-final scoring owner **78386** remains separate and live.
+comparison **completed all three epochs/1,458 finite updates**, fitting all
+**73,136,096 parameters** on3,887 studies. Original E3 **139256441 v1** completed
+at16:59UTC; model292872115B/SHA`17565527…`. Source990c8ded and actual two-T4/
+input/runtime bindings passed. Independent CPU948773 verified complete learned/
+AdamW/counter/both-rank RNG/scaler state and fully re-downloaded all five private
+objects at **HF56581aab75bb3c7ebb1dc95e182a00f30198d556**. All three immutable
+epochs are now privately verified. Original owner **61037 finished successfully**;
+never restart it or repeat publication. Scoring owner **78386** remains live and
+has advanced the completed fixed-final comparisons. **Uniform qualification
+139267646 v1 is now RUNNING** on Kaggle; source`d48b9a2d…`, private/offline T4
+and original32-MRI/training-graph checks. CPU948784 prepared the completed label
+model. This is a GPU validation run, not a qualification pass or a hidden score.
+Do not repeat either source, GPU push or original scorer.
 
 The four completed label × coverage readouts now pass actual **32-study cached
 feature graph equality** and all **eight source compilations** (CPU948377).
@@ -31,6 +39,9 @@ full-CNN scorer's priority, then validates original94
 and S6-label94 heads, at most four private GPU pushes/two code entries, waiting
 for actual previous hidden outcomes and fresh allowance. It reuses Dataset
 12661001v1 and the existing32MiB serving cap; no new training or weight copies.
+Its source3161acbe and actual dispatch are now privately fully verified at
+**HF37d2f1ef1fb65f0ff117cd9b0cb79b710731eb18**, CPU948743/22objects/158518B.
+Do not repeat this mirror or owner10613.
 [Exact controls](../initiative/audits/cached-MIL-scoring-coordinator-20261017-v1/README.md).
 
 The exact stronger reference **139199164 v2** is still Queued, unqualified and

@@ -63,3 +63,13 @@ epoch terminal records, the exact original VM/capacity modules and both prepared
 final-model provenance/ledger bindings. No model bytes were rehashed or moved;
 noMRI, label or teacher arrays were read. This catches the future phase path and
 metadata prerequisites before the healthy label run ends, without running a GPU.
+
+Actual October17 17:03UTC: original labelE3 and all three private epochs completed
+(terminal/preservation receipts in the label epoch audit). CPU948784 then
+compiled/registered that exact final model for serving. Original scorer78386
+pushed one uniform qualification **139267646v1** at
+`godlydonuts/rsna-final-uniform-e3-qual-d48b9a2d11b0`, source
+`d48b9a2d11b0cca0d8b21f7fa434a448ff12cc28b040eab79bc4d8a0638a379a`.
+Exact source/runtime/inputs were checked; its actual worker is RUNNING.
+That is an actual GPU dispatch, not a qualification pass or hidden score.
+Do not repeat it or the owner. Label/influence remain later original candidates.
