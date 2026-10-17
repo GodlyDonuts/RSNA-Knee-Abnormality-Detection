@@ -10,4 +10,12 @@ Actual CPU936139 created Dataset **godlydonuts/rsna-context-head-e10-59ca63ca875
 
 Actual final-head qualification139054096/v1 COMPLETED on bothT4s:32original MRI feature cases/device, maximumCPU/GPU probability difference **1.1920928955078125e-7**, nonzero bounded correction0.46008795, peak14.07MB/device. No CNN rerun or CSV in qualification. Exact competition source **godlydonuts/rsna-context-e10-59ca63ca875e v1**, kernel139054287/sourcec9c7fdcff56393ac924b656f403879a2717b71dd4f5432d3954e9b195c2a3a18, was then pushed ONCE and COMPLETED full MRI/CSV acceptance in22.319seconds:3pairs complete,0head fallbacks/0empty studies; nonzero correction0.34920657.13columns/470CSVbytes/SHAfaa20e95a1779658237252388407eaf6d835679dd43e4dae5bca18d95496bede. It retains the parent global-rank output, so this three-example CSV can match other parent variants without proving identical hidden behavior. [Actual precision](qualification-actual-terminal.json), [actual MRI/CSV](competition-actual-terminal.json).
 
-Original finite62742 TERMINAL success; never restart it. CPU936185 authenticated16:10UTC allowance **5used/0available**, canonicalcontextstatecontext_competition_accepted/unsubmitted. A distinct finite single-entry owner33015 now waits until the next quota inspection atOctober17 00:03UTC, then verifies authoritative live allowance before one exact code entry and observes its actual hidden outcome. This is a next inspection, not a claim of server reset. It sleeps at most60seconds locally, occupies no waiting cluster/GPU resource, retries no mutation and has a20hour bound. Existing submit-when-allowed.intent/progress/result and canonical record must be inspected before any future action. No competition entry or hidden score exists yet.
+Original finite62742 is TERMINAL success; never restart it. The separate single-entry
+owner33015/PID54576 inspected authoritative allowance atOctober17 00:03UTC
+(0used/5available) and submitted exact context v1 ONCE at00:04UTC as **57287572**.
+[Accepted original entry](actual-submitted.json). Its actual hidden status/score/error
+are still unreported in the latest observation; null fields/zero bytes are not a
+failure or a score. [Timestamped observation](actual-hidden-observation.json).
+The original finite owner remains alive and observes the outcome. Never restart
+it, repeat the submission or upload the public three-row CSV. Subsequent useful
+comparisons retain their original spaced owners and fresh daily-allowance checks.

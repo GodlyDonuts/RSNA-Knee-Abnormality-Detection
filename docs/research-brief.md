@@ -286,7 +286,7 @@ for this exposed parent. CPU939476 staged the unchanged production sourcec68d875
 CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle.
 Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
 was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
-T4s, all73,136,096parameters trainable and **43finite optimizer updates** in epoch1
+T4s, all73,136,096parameters trainable and **195finite optimizer updates** in epoch1 (00:13UTC)
 at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
 [Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
 
@@ -331,8 +331,10 @@ Kaggle receipts cover every newly encoded case and both94-window tensor hashes,
 complete roster, zero decoding errors/empty cases, original source and whole-byte
 hashes. The production wrapper joins all3887indices to the exact target bundle
 before any GPU push; its loader also checks every accessed immutable member and
-rendered view. This is not a claim that the Newton replica has already passed.
-That independent backup continues in parallel and cannot hold the submission lock.
+rendered view. The original readiness preceded the independently completed Newton replica.
+That independent backup is now complete: all3887cases/4shards were independently
+replayed once; original collector80537 is terminalsuccess. It cannot hold the
+submission lock.
 
 Production preservation watcher80311/exec52344 is LIVE: each actual completed
 session triggers oneCPU/zeroGPU collection, independent full snapshot/model/
@@ -416,8 +418,8 @@ No mutation intent on quota waits; never restart the old84212 or repeat qualifie
 29focused math/recovery/export/compiler checks and Ruff/mypy6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
 [actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
 
-The original full CoAtNet139111324v1 independently continues on bothT4s,113finite
-updates last verified in epoch1. All four original lossless pixel caches are now
+The original full CoAtNet139111324v1 independently continues on bothT4s,195finite
+updates last verified in epoch1 atOctober17 00:13UTC (195/1458total). All four original lossless pixel caches are now
 also independently collected/replayed on Newton:3887studies,3.204MBprivate
 registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.
 Original collector80537 is TERMINALsuccess; never restart it or repeat transfers.
@@ -436,3 +438,15 @@ Latest ranking/full-pixel/source milestone4952238a is privately fully re-downloa
 size/SHA verified at HFa9e666390b030b2b2c42c93f024115ed8395c73e:48objects302252bytes,
 CPU940064/canonical shared lock. No MRI/UIDs/labels/features/weights/prediction rows;
 never repeat prior prefixes. [Exact verification](../initiative/audits/hf-ranking-full-fit-T4-pixels-20261016-v1/verified.json).
+
+
+## Verified full-field input mechanism, October17
+
+ActualCPU940198 COMPLETED0:0 on the original owning node:32admitted MRI studies,
+64views reproduced original320 input hashes exactly. Their unchanged central320
+values are bit-equal within full384 tensors, which retain44%more original image
+area.69.73%of sampled outer-band pixels were nonzero; this measures image content,
+not lesion coverage or clinical accuracy. No model/labels/GPU/new pixel archive.
+The384 learned-parameter/model/T4/runtime qualification is still to be implemented;
+no384 entry or gain exists. The original main full-model fit and existing entries
+remain unchanged. [Actual proof and limits](../initiative/audits/licensed-native-field-20261017-v1/README.md).

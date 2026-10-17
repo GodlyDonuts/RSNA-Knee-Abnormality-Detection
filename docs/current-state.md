@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 16, 2026, 23:48 UTC.** This is the current research entry point.
+**Checked October 17, 2026, 00:13 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -21,7 +21,10 @@ Epoch 12 is COMPLETE, no error, 381,602 output bytes and canonically reconciled.
 Epoch 16 is also COMPLETE, no error, 382,473 bytes and canonically reconciled at
 12:36 UTC. [Scored E16 receipt](../initiative/audits/compact-production-e016-kaggle-20261016-v1/actual-scored-canonical.json).
 The .894 does not establish parity with the external .949 or a hidden-private score.
-The authoritative 20:31 UTC allowance is **five submissions used, zero available**.
+Historical October16 20:31UTC allowance was five used/zero available. Fresh
+October17 00:03UTC allowance was zero used/five available, then exact context
+57287572 was accepted once at00:04UTC; hidden outcome remains pending_or_unknown.
+Do not infer current remaining allowance without a fresh account query.
 The original curve controller finished all three scheduled E8/E12/E16 submissions;
 never restart it, resubmit those exact versions or upload a public three-row CSV.
 A null score/zero bytes on an unreported submission does not establish failure.
@@ -137,7 +140,7 @@ Other users occupy evc39 GPUs; an earlier free-GPU observation is not a reservat
 
 Kaggle raw training-image access was already proved by the original 64-study T4
 benchmark (318.497 seconds, no unusable fallbacks, about 11.61 GB process RAM).
-A separate CPU-only probe measured four cores and20.94GBscratch. All four full-population CPU cache shards have completed; actual full-parent139111324v1 is training on bothT4s with43finite updates observed. [Capacity receipt](../initiative/audits/kaggle-CPU-training-capacity-20261016-v1/README.md).
+A separate CPU-only probe measured four cores and20.94GBscratch. All four full-population CPU cache shards have completed; actual full-parent139111324v1 is training on bothT4s with195finite updates observed atOctober17 00:13UTC. [Capacity receipt](../initiative/audits/kaggle-CPU-training-capacity-20261016-v1/README.md).
 
 ## Documentation and decisions
 
@@ -179,7 +182,7 @@ The exact bounded two-T4 feature pass139044146/v1 **COMPLETED all3,887studies** 
 
 The exact full engine2ee0cffe **COMPLETED as CPU936070**: all10epochs/2,430updates on3,887studies in430.943seconds,402,956FP32context parameters, batch16studies/two views. It preserves the licensed0.949parent and learns a bounded±0.5logit sequence correction;25%source/75%detached-parent anchoring. This is completed training, not a new accuracy result. The attributed parent was developed using our internal cohort/Gold58, so no independent internal OOF is claimed. Protected clinical values remain unused by us. [Exact engine/admission](../initiative/audits/released-context-head-engine-20261016-v1/README.md).
 
-The strict final exporter/serving compiler is implemented. CPU935892 passed actual32MRI nonzero-head serving math (maximum probability difference5.96e-8) and correctly rejected the diagnostic checkpoint as a deployablefinal. Actual final export/CPUreference passed. All10epochs+final+slimcomponent/license/source/runtime are now privately fully download/hash verified at HF81d542359d3c06435367c173a2b9a2947f561b1f (34objects/57.00MB). A pre-intent publication path-type error was corrected without repeating the fit; the original courier misleading success is preserved. Private final-head Dataset12636011v1 is fully6-object verified. Exact privateoffline qualification139054096/v1 **COMPLETED on bothT4s**, maximumCPU/GPU difference1.192e-7. FullMRI/CSV notebook139054287/v1 **COMPLETED in22.319seconds**,3pairs/zerohead fallbacks/zeroempty studies;13columns/470CSVbytes fully verified. Existingfinite62742 is terminalsuccess. One new finiteowner33015 waits for the next authoritative allowance inspection atOctober17 00:03UTC, then submits the exact acceptedversion ONCE and observes its actual hidden outcome. It occupies no waiting cluster/GPU resource and retries no mutation. No context entry/score exists at16:12UTC. [Actual deployment/nextentry](../initiative/audits/released-context-deployment-20261016-v1/README.md). [Fixed-final proof](../initiative/audits/released-context-fixed-final-20261016-v1/README.md). [Serving gate](../initiative/audits/released-context-serving-preparation-20261016-v1/README.md).
+The strict final exporter/serving compiler is implemented. CPU935892 passed actual32MRI nonzero-head serving math (maximum probability difference5.96e-8) and correctly rejected the diagnostic checkpoint as a deployablefinal. Actual final export/CPUreference passed. All10epochs+final+slimcomponent/license/source/runtime are now privately fully download/hash verified at HF81d542359d3c06435367c173a2b9a2947f561b1f (34objects/57.00MB). A pre-intent publication path-type error was corrected without repeating the fit; the original courier misleading success is preserved. Private final-head Dataset12636011v1 is fully6-object verified. Exact privateoffline qualification139054096/v1 **COMPLETED on bothT4s**, maximumCPU/GPU difference1.192e-7. FullMRI/CSV notebook139054287/v1 **COMPLETED in22.319seconds**,3pairs/zerohead fallbacks/zeroempty studies;13columns/470CSVbytes fully verified. Existingfinite62742 is terminalsuccess. Original finiteowner33015 submitted exact acceptedversion ONCE atOctober17 00:04UTC as57287572 after fresh authoritative allowance. It now observes the actual hidden outcome; no score or error is reported yet. It retries no mutation. No context accuracy gain is claimed. [Actual deployment/nextentry](../initiative/audits/released-context-deployment-20261016-v1/README.md). [Fixed-final proof](../initiative/audits/released-context-fixed-final-20261016-v1/README.md). [Serving gate](../initiative/audits/released-context-serving-preparation-20261016-v1/README.md).
 
 ## New measured sampling mechanism
 
@@ -363,7 +366,7 @@ for this exposed parent. CPU939476 staged the unchanged production sourcec68d875
 CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle.
 Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
 was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
-T4s, all73,136,096parameters trainable and **43finite optimizer updates** in epoch1
+T4s, all73,136,096parameters trainable and **195finite optimizer updates** in epoch1 (00:13UTC)
 at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
 [Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
 
@@ -408,8 +411,10 @@ Kaggle receipts cover every newly encoded case and both94-window tensor hashes,
 complete roster, zero decoding errors/empty cases, original source and whole-byte
 hashes. The production wrapper joins all3887indices to the exact target bundle
 before any GPU push; its loader also checks every accessed immutable member and
-rendered view. This is not a claim that the Newton replica has already passed.
-That independent backup continues in parallel and cannot hold the submission lock.
+rendered view. The original readiness preceded the independently completed Newton replica.
+That independent backup is now complete: all3887cases/4shards were independently
+replayed once; original collector80537 is terminalsuccess. It cannot hold the
+submission lock.
 
 Production preservation watcher80311/exec52344 is LIVE: each actual completed
 session triggers oneCPU/zeroGPU collection, independent full snapshot/model/
@@ -493,8 +498,8 @@ No mutation intent on quota waits; never restart the old84212 or repeat qualifie
 29focused math/recovery/export/compiler checks and Ruff/mypy6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
 [actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
 
-The original full CoAtNet139111324v1 independently continues on bothT4s,113finite
-updates last verified in epoch1. All four original lossless pixel caches are now
+The original full CoAtNet139111324v1 independently continues on bothT4s,195finite
+updates last verified in epoch1 atOctober17 00:13UTC (195/1458total). All four original lossless pixel caches are now
 also independently collected/replayed on Newton:3887studies,3.204MBprivate
 registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.
 Original collector80537 is TERMINALsuccess; never restart it or repeat transfers.
@@ -513,3 +518,15 @@ Latest ranking/full-pixel/source milestone4952238a is privately fully re-downloa
 size/SHA verified at HFa9e666390b030b2b2c42c93f024115ed8395c73e:48objects302252bytes,
 CPU940064/canonical shared lock. No MRI/UIDs/labels/features/weights/prediction rows;
 never repeat prior prefixes. [Exact verification](../initiative/audits/hf-ranking-full-fit-T4-pixels-20261016-v1/verified.json).
+
+
+## Verified full-field input mechanism, October17
+
+ActualCPU940198 COMPLETED0:0 on the original owning node:32admitted MRI studies,
+64views reproduced original320 input hashes exactly. Their unchanged central320
+values are bit-equal within full384 tensors, which retain44%more original image
+area.69.73%of sampled outer-band pixels were nonzero; this measures image content,
+not lesion coverage or clinical accuracy. No model/labels/GPU/new pixel archive.
+The384 learned-parameter/model/T4/runtime qualification is still to be implemented;
+no384 entry or gain exists. The original main full-model fit and existing entries
+remain unchanged. [Actual proof and limits](../initiative/audits/licensed-native-field-20261017-v1/README.md).

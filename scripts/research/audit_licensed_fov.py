@@ -15,6 +15,7 @@ import resource
 import tarfile
 import time
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -55,7 +56,10 @@ def audit(root, output, source_git):
     source = (directory / "source.private.py").read_text()
     if digest(source.encode()) != PRODUCER_SHA:
         raise ValueError("Exact original private CPU producer/renderer required")
-    ns = {"__name__": "private_fov_pixel_audit", "__file__": str(directory / "source.private.py")}
+    ns: dict[str, Any] = {
+        "__name__": "private_fov_pixel_audit",
+        "__file__": str(directory / "source.private.py"),
+    }
     exec(compile(source, "original_private_renderer", "exec"), ns)
     index = json.loads((directory / "collected/index.private.json").read_text())
     if digest((directory / "collected/index.private.json").read_bytes()) != (
