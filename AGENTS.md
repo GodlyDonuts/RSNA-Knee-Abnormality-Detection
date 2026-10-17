@@ -64,6 +64,10 @@ finite read-only public observer25736 is live; it has no push or entry authority
 [Actual recovery and exact original controls](initiative/audits/public0958-script-recovery-20261017-v1/README.md).
 Fresh authenticated allowance17:50UTC was **5 used / 0 available**;49total.
 Authenticated best remains entry57300990 COMPLETE/noerror0.950.
+The distinct source3f405412 milestone is privately fully verified at
+**HF657b411587c1291d134e41c3183d62e50276ba5a**, CPU949182/all38objects.
+[Private preservation](initiative/audits/hf-reference-script-recovery-20261017-v1/README.md);
+never repeat it.
 
 ## Read first
 
