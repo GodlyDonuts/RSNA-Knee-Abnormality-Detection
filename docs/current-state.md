@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 08:05 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 08:26 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -72,7 +72,9 @@ InfluenceE1 completed486 and all5objects are independently private verified;
 uniformE2 completed972/all5private objects and the same owner97530 now runs
 influenceE2 139181903v1.
 [New actual evidence](../initiative/audits/research-progress-20261017-0550-v1/README.md).
-The original GPU and watcher95408 remain healthy. Never repeat publications.
+The expanded GPU938284 and its watcher95408 are now terminal success; all16
+epochs are already privately verified. Preserve the still-running whole94 and
+matched-sampling originals. Never repeat completed publications.
 
 Whole94 E1 was independently complete-state verified and privately preserved
 at HF**d436986137570a9a4259a4b59981d261cffd2f20**, all5objects full download/size/SHA.
@@ -327,10 +329,12 @@ No private pixels/case IDs/clinical arrays/teacher predictions/weights.
 Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
 mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
 
-Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
-all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
-under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
-later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+Latest privately preserved source is **2dd2d304**, HF**ae38eccacf78fa224d455ee430c9929541e9a956**,
+all35small objects/249094bytes fully re-downloaded/size/SHA verified by CPU944294
+under the canonical shared lock. This includes the actual expanded fixed-final
+negative and original R7 controller admission. Never repeat. Guide/receipt
+bookkeeping follows that source. [Exact receipt](../initiative/audits/hf-r7-controller-expanded-final-20261017-v1/README.md).
+The earlier source9ef73d69/HF956d3087 mirror remains independently verified and immutable.
 
 ## Verified expanded final and original R7 execution,08:05UTC
 

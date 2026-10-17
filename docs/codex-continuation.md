@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Observed October 17, 2026, 08:05 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 08:26 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
@@ -188,7 +188,7 @@ The earlier cursors are superseded by actual completion of all5184updates.
 All16 immutable epochs are privately9object verified. CPU944038 completed the
 actual fixed-final state/roster/all12 paired comparison; weak macro0.91743158
 versus0.92092535 original, delta−0.00349377, interval crosses zero.
-Latest E11 HFecfd9686984aef550937e500c3f67fbdb46c7417 and E12
+Earlier E11 HFecfd9686984aef550937e500c3f67fbdb46c7417 and E12
 HF8acff56937b8b06932f51bd42e2835250907ba6a; never repeat them.
 New E5HFed63b2d85e751949cf7bc0d5011d41dbc8954825 and E6HF7c1f26f5d9f44504eb1f55d85da2d14a3b8d9af5
 are original watcher publications, never repeat. [Actual proofs](../initiative/audits/research-progress-20261017-0401-v1/expanded-new-epoch-preservation.json).
@@ -198,7 +198,8 @@ E8HFc467375f84833ada91ace9ec3c17b108868e5287 are fully verified, never repeat.
 New E9HF377adc987b3eaa0bacf48fb3c23a3a249865c49e and
 E10HF61258cdfe3ed8c4fa5ae6a9643bb2737d58394d7 are fully verified; never repeat.
 E14 HF8a4d745fb8dfb77e18662ed07837dc86bb69f5b8 is now fully9object verified.
-Watcher95408 owns only later unattempted15/16; never repeat1–14. Root
+Watcher95408 finished all16 and is TERMINAL_SUCCESS; never repeat any epoch.
+FinalE16 HF5625ed938ad2a9008ca620e0ae543e5a274372fe is fully9object verified. Root
 `/tmp/rsna-compact-expanded2592-production-20261016-v1`; control
 `/tmp/rsna-compact-expanded2592-engine-20261016-v1/production-control-v1`.
 Use only pinned `scripts/hf/dispatch_compact_expanded_epoch.py` SHA217bcdfbc18e8f21620f797189fd45516b4247e1675d09fc5e781ae34516582c.
@@ -494,10 +495,12 @@ Do not change or displace healthy original main/sampling/N3 jobs or duplicate
 S6 entry57300990. Public409.9s is only a three-study example, not hidden timing.
 [New actual S6 entry/uniformE2/expandedE15 proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
 
-Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
-all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
-under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
-later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+Latest privately preserved source is **2dd2d304**, HF**ae38eccacf78fa224d455ee430c9929541e9a956**,
+all35small objects/249094bytes fully re-downloaded/size/SHA verified by CPU944294
+under the canonical shared lock. This includes the actual expanded fixed-final
+negative and original R7 controller admission. Never repeat. Guide/receipt
+bookkeeping follows that source. [Exact receipt](../initiative/audits/hf-r7-controller-expanded-final-20261017-v1/README.md).
+The earlier source9ef73d69/HF956d3087 mirror remains independently verified and immutable.
 
 ## Verified expanded final and original R7 execution,08:05UTC
 

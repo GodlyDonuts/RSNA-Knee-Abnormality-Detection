@@ -277,10 +277,12 @@ observation-sampling contrast before attributing failure to insufficient epochs
 or adding another generic backbone. This is an open mechanism, not a new gate
 that blocks the currently ready comparisons or healthy training.
 
-Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
-all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
-under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
-later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
+Latest privately preserved source is **2dd2d304**, HF**ae38eccacf78fa224d455ee430c9929541e9a956**,
+all35small objects/249094bytes fully re-downloaded/size/SHA verified by CPU944294
+under the canonical shared lock. This includes the actual expanded fixed-final
+negative and original R7 controller admission. Never repeat. Guide/receipt
+bookkeeping follows that source. [Exact receipt](../initiative/audits/hf-r7-controller-expanded-final-20261017-v1/README.md).
+The earlier source9ef73d69/HF956d3087 mirror remains independently verified and immutable.
 
 ## Verified expanded final and original R7 execution,08:05UTC
 
