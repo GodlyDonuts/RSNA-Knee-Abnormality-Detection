@@ -382,7 +382,7 @@ original submits, stops on uncertainty, and never takes over a live owner.
 It currently calls no canonical phase. EntryOct19 00:30UTC/outcome10:30UTC.
 [Exact pins, original live owner and seven path tests](../initiative/audits/final-epoch3-next-allowance-20261017-v1/README.md).
 
-Latest verified private milestone: source**c1354577** at
+Earlier verified private milestone: source**c1354577** at
 HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
 CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
 S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
@@ -449,7 +449,7 @@ Later06:40UTC: expanded original epoch13 was privately fully9object verified;
 at least4212/5184completed updates at that dated observation, no final result. Original watcher95408 owns
 remaining14–16. Never repeat1–13.
 [Actual new proof](../initiative/audits/research-progress-20261017-0625-v1/actual-expanded-E13-private-verified.json).
-Latest repair source479dadaf is privately fully verified at HFd5585c1d383b658522501fb3df32aa41f4c4854e,
+Earlier repair source479dadaf is privately fully verified at HFd5585c1d383b658522501fb3df32aa41f4c4854e,
 all27smallobjects/148165bytes, CPU943230/shared lock/full re-download/size/SHA.
 [One-time receipt](../initiative/audits/hf-s6-scout-handoff-20261017-v1/README.md).
 Never repeat. This final receipt/E13 metadata bookkeeping is later than that mirror.
@@ -489,3 +489,8 @@ liabilities and actual two-session capacity. No R7 push or entry has occurred.
 Do not change or displace healthy original main/sampling/N3 jobs or duplicate
 S6 entry57300990. Public409.9s is only a three-study example, not hidden timing.
 [New actual S6 entry/uniformE2/expandedE15 proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
+
+Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
+all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
+under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
+later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).

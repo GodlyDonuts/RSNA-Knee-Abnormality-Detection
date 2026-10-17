@@ -315,7 +315,7 @@ collection942782 verified all5372windows/1,154,209,297bytes. Its CPU classifier
 was dispatched once (CPU942806/exec77108), with no terminal/score yet. Original input owner
 20144 is terminal success. [Exact later proof](../initiative/audits/s6-fitting8-uid-view-20261017-v1/actual-inputs-private-verified.json).
 
-Latest verified private milestone: source**c1354577** at
+Earlier verified private milestone: source**c1354577** at
 HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
 CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
 S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
@@ -324,3 +324,8 @@ No private pixels/case IDs/clinical arrays/teacher predictions/weights.
 [One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
 Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
 mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
+
+Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
+all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
+under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
+later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).

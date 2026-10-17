@@ -217,7 +217,7 @@ were selected from leaderboard feedback or exposed-encoder head folds.
 [Actual source and finite owner](../initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
 [Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
 
-Latest verified private milestone: source**c1354577** at
+Earlier verified private milestone: source**c1354577** at
 HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
 CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
 S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
@@ -275,3 +275,8 @@ not help, examine source-position/evidence coverage and the already-running
 observation-sampling contrast before attributing failure to insufficient epochs
 or adding another generic backbone. This is an open mechanism, not a new gate
 that blocks the currently ready comparisons or healthy training.
+
+Latest privately preserved source is **9ef73d69**, HF**956d308744db79371ae02dc03a9cf43971c36d21**,
+all60small objects/312744bytes fully re-downloaded/size/SHA verified by CPU943866
+under the canonical shared lock. Never repeat. This guide/receipt bookkeeping is
+later than that mirrored source. [Exact receipt](../initiative/audits/hf-r7-s6-progress-20261017-v1/README.md).
