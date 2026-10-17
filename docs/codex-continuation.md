@@ -25,7 +25,7 @@ original jobs, phase intents/results and private paths before a mutation.
 | Fitting8 UID-view CPU input | **TERMINAL20144 / 98465** | `s6-fitting8-uid-view-20261017-v2/finish.result.json`: COMPLETE/private verified |
 | Fitting8 original CPU classifier | **TERMINAL21630 / exec77108; CPU942806** | Actual complete5372windows/finite/zero fallback; do not repeat |
 | Fitting8 cross-lineage comparison | **TERMINAL22634 / exec69221; CPU942957** | `s6-fitting8-complementarity-20261017-v1/accepted.json` |
-| Fitting32 B-only GPU scout | **24413 / exec38637** | `s6-fitting32-scout-preparation-20261017-v3/finish.*`; staged, waits original acceptance/admission |
+| Fitting32 B-only GPU scout | **26454 / exec91663** | `s6-fitting32-scout-preparation-20261017-v4/finish.*`; staged, waits original acceptance/admission |
 
 Verify these handles now. Earlier93163/93190/93205/93216/93228 and
 96918/96930/96942 and97546/97572 are terminal. Sampler93305 was deliberately stopped **only as a
@@ -389,7 +389,7 @@ scales must be separated from order; no clinical conclusion. Never repeat the
 classifier or comparison. [Actual receipts](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md).
 
 CPU942920 staged immutable GPU32 scout source0573a2a1 in S6root/`GPU-fitting32-scout-v1`.
-Sole finite PID24413/exec38637/local`artifacts/s6-fitting32-scout-preparation-20261017-v3/finish_once.py`
+Sole finite PID26454/exec91663/local`artifacts/s6-fitting32-scout-preparation-20261017-v4/finish_once.py`
 waits actual original S6 offline acceptance plus CPU8/fresh full VM budget/two-session
 capacity. Maximumone1800second private twoT4 run/oneprivate collection/zeroentries.
 Source slug`godlydonuts/rsna-s6-fit32-scout-0573a2a11a27`v1, no push at06:25snapshot.
@@ -404,3 +404,25 @@ Its source is prepared locally only, not staged or trained. Complete3887 S6
 teacher outputs/admission, distinct target bundle, GPU recovery and new funding
 remain required. Do not change live numerical sources or old targetSHA. Keep
 the original S6 entry and prepared equal-rank inference moving separately.
+
+
+### Exact scout CPU-observer handoff, October17 06:38UTC
+
+Old24413 is TERMINAL. Inspection found that the original S6 entry coordinator
+advances its shared canonical record from public-accepted to submitted/scored;
+a single-state check could otherwise leave the research scout waiting forever.
+CPU943176 actually confirmed no scout record/push intent/response/collection
+and exact unchanged scientific source0573a2a1 before the old CPU observer stopped.
+No GPU, training, entry or scientific-source action was interrupted or repeated.
+New sole26454/exec91663/v4 phase accepts only the original exact offline receipt
+through its accepted/submitted/scored/hidden-failed states; uncertain-entry state
+does not fund a GPU. Fourteen actual state/binding checks pass; the original
+five-path finite transaction AST is identical. Fresh capacity/all obligations
+and maxone1800second session/zeroentries remain enforced. Do not restart24413.
+[Actual handoff/source/tests](../initiative/audits/s6-scout-monotone-handoff-20261017-v1/README.md).
+
+Source8233d900 is privately fully verified at HF7de2a28e8dbb4397d558a000fda6c1e439b0169d,
+all61smallobjects/286156bytes, CPU943157/canonical shared lock. No private arrays/
+pixels/case IDs/labels/weights. Never repeat this mirror.
+[Actual receipt](../initiative/audits/hf-s6-cross-lineage-rank-transport-20261017-v1/README.md).
+This handoff/receipt bookkeeping follows that mirrored source.

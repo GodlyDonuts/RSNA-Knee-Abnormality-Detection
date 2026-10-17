@@ -288,7 +288,7 @@ mirrored source. Numerical fitting/inference code in rsna/scripts/tests is uncha
 found large score-scale shifts but closer ordering. Do not call those raw gaps
 calibrated uncertainty, clinical errors or independent OOF. Use this evidence
 when proposing confidence gating. A larger32-study B-only scout is staged and
-has sole finite owner24413/exec38637, not a GPU result at this snapshot.
+has sole finite owner26454/exec91663, not a GPU result at this snapshot.
 [Original admission and paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
 
 [The new matched full-encoder mechanism](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md)

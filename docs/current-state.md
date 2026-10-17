@@ -176,13 +176,16 @@ state recovery/funding are still required. The original target bundle stays
 immutable. [Matched protocol/source/tests](../initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
 
 CPU942920 staged a distinct32fitting-study B-only scout, source0573a2a1, in
-existing controls. Sole finite PID24413/exec38637 waits original S6 offline
+existing controls. Sole finite PID26454/exec91663 waits original S6 offline
 acceptance and fresh canonical capacity/budget; **no GPU push yet at this
 observation**, zero entries. It contains the original eight and checks actual
 T4/CPU parity, full preparation/inference time and diversity before any full
 teacher acquisition. Never restart its original owner or stager.
 [Exact source, ten contracts and five owner paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
 The author's0.950 remains external; no project S6 hidden score exists yet.
+A later CPU-only handoff26454/v4 repaired a post-entry state wait without
+changing the staged scientific source or repeating a push.
+[Actual no-mutation reconciliation and14checks](../initiative/audits/s6-scout-monotone-handoff-20261017-v1/README.md).
 
 ## Completed fixed-final own-model comparisons
 

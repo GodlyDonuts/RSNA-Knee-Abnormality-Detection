@@ -39,7 +39,7 @@ historical release/plan documents now link back to the current guides.
   H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
   are privately byte verified; CPU942806 now scored all eight/5372windows and
   CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
-  sole finite owner24413, staged but awaiting original offline acceptance and
+  sole finite owner26454, staged but awaiting original offline acceptance and
   fresh GPU admission. Never duplicate these originals. **0.950 remains external**;
   there is no project S6 hidden score. Include both S6 and CoAtNet runtime.
 - Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the

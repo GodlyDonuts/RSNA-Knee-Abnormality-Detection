@@ -1,0 +1,49 @@
+"""Exercise only the pure actual-acceptance guard, never the coordinator."""
+import ast
+import copy
+import hashlib
+import json
+from pathlib import Path
+
+root = Path(__file__).resolve().parent
+source = (root / "run_phase_once.py").read_text()
+program = ast.literal_eval(next(n.value for n in ast.parse(source).body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "program" for t in n.targets)))
+tree = ast.parse(program)
+function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "accepted_original_offline_reference")
+namespace = {}
+exec(compile(ast.Module(body=[function], type_ignores=[]), "isolated_acceptance_guard", "exec"), namespace)
+admit = namespace[function.name]
+actual = {"status": "actual_original_S6_competition_two_T4_public_MRI_and_CSV_accepted", "source_sha256": "6e87350d5ae092b7a889546ca13517303523bc469f7e611ffe945913434d22fe", "model_sha256": "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12", "studies": 3, "columns": 13, "B_failed": 0, "env": {"n_gpu": 2}, "weights": {"A_0949": 0.0, "B_s6f0": 1.0}}
+reference = {"slug": "godlydonuts/rsna-s6-original-offline-6e87350d5ae0", "version": 1, "session_timeout_seconds": 32400, "source_sha256": actual["source_sha256"], "accepted": actual}
+states = ["S6_original_reproduction_competition_accepted", "S6_original_reproduction_submitted", "S6_original_reproduction_scored", "S6_original_reproduction_hidden_failed"]
+passed = []
+for state in states:
+    record = {"state": state, "competition": copy.deepcopy(reference)}
+    before = copy.deepcopy(record)
+    assert admit(record, copy.deepcopy(actual)) is True and record == before
+    passed.append(state + " preserves original actual public acceptance without mutation")
+for state in ["S6_original_reproduction_qualification_accepted", "S6_original_reproduction_code_entry_uncertain"]:
+    assert admit({"state": state}, None) is False
+    passed.append(state + " cannot fund GPU")
+for scope, key, value in [("reference", "version", 2), ("reference", "source_sha256", "0" * 64), ("reference", "session_timeout_seconds", 1800), ("accepted", "model_sha256", "0" * 64), ("accepted", "B_failed", 1), ("accepted", "columns", 12), ("accepted", "env", {"n_gpu": 1})]:
+    record = {"state": states[2], "competition": copy.deepcopy(reference)}
+    target = record["competition"] if scope == "reference" else record["competition"]["accepted"]
+    target[key] = value
+    try:
+        admit(record, copy.deepcopy(record["competition"]["accepted"]))
+    except ValueError:
+        passed.append(scope + " " + key + " mismatch refused")
+    else:
+        raise AssertionError("A pinned actual public acceptance was weakened")
+try:
+    admit({"state": states[2], "competition": copy.deepcopy(reference)}, {**actual, "columns": 12})
+except ValueError:
+    passed.append("retained original actual acceptance receipt mismatch refused")
+else:
+    raise AssertionError("An unequal actual receipt was admitted")
+calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "call" and len(n.args) >= 2 and isinstance(n.args[1], ast.Constant) and n.args[1].value == "SaveKernel"]
+assert len(calls) == 1 and "CreateCodeSubmission" not in program
+compile(source, "new_canonical_phase", "exec")
+record = {"status": "actual_public_acceptance_survives_original_entry_state_transitions_without_weakened_model_runtime_source_or_funding", "tests": len(passed), "passed": passed, "phase_sha256": hashlib.sha256(source.encode()).hexdigest(), "test_program_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "GPU_source_sha256": hashlib.sha256((root / "source.private.py").read_bytes()).hexdigest(), "GPU_source_slug_root_key_or_numerics_changed": False, "SaveKernel_call_sites": len(calls), "actual_GPU_or_entry_mutations": 0}
+(root / "monotone-acceptance-checked.json").write_text(json.dumps(record, indent=2) + "\n")
+print(json.dumps(record, indent=2))

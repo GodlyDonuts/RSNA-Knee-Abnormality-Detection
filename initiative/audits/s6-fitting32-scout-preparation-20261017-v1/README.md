@@ -62,3 +62,10 @@ engineering/descriptive outcomes, not clinical AUC or a runtime guarantee for
 all3887 fitting cases. Full teacher generation and a new trainer require an
 explicit subsequent recipe, complete original bindings and fresh funding. No
 full-cohort job or ordinal-distillation GPU fit is submitted by this owner.
+
+
+Later06:38UTC: original CPU observer24413 stopped only after CPU943176 proved
+no push/collection and exact unchanged staged source. Sole26454/exec91663/v4
+now recognizes the original accepted notebook after its entry state advances;
+[exact handoff and14checks](../s6-scout-monotone-handoff-20261017-v1/README.md).
+Original phase/owner files above preserve the06:25snapshot; do not restart24413.

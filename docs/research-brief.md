@@ -231,7 +231,7 @@ Parent-only control preserves original target bytes; same input/order/compute,
 fixed3epochs, no Gold/per-target tuning. Nineteen synthetic numerical checks pass,
 including original loss/gradient identity; no actual GPU fitting or gain claimed.
 
-Sole scout24413/exec38637 owns a staged32study B-only throughput/CPU-parity check.
+Sole scout26454/exec91663 owns a staged32study B-only throughput/CPU-parity check.
 It waits original S6 offline acceptance and fresh actual two-session/VM admission,
 maxone1800second session/zeroentries. Complete3887 teacher acquisition and a new
 trainer require actual full input/state/funding acceptance. Fixed equal-rank
