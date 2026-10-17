@@ -1,0 +1,33 @@
+"""Exact original fitting-roster density/cost census from metadata only."""
+import hashlib,json,os,shutil,sys,time
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');E=R/'throughplane-operator-probe-v1';assert E.is_dir() and not (E/'coverage.json').exists()
+CODE=R/'reader-engine-recovery-v2/code';assert len(v['source_files'])==118 and all(hashlib.sha256((CODE/n).read_bytes()).hexdigest()==h for n,h in v['source_files'].items())
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file());assert paid<3*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)
+assert sum(p.stat().st_size for p in E.rglob('*') if p.is_file())+2**20<2*2**20
+sys.path.insert(0,str(CODE));from rsna.data import select_series
+from rsna.competitive.criterion_geometry import within_series_relations
+original=json.loads((R/'admitted.json').read_text());uids=json.loads((R/'membership.private.json').read_text())['fitting'];assert len(uids)==2247 and hashlib.sha256(json.dumps(uids).encode()).hexdigest()=='850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74'
+binding=json.loads((Path(original['checkpoint']).parents[1]/'run.json').read_text())['binding'];series_path=Path(original['series_path']);assert hashlib.sha256(series_path.read_bytes()).hexdigest()==binding['release']['series_sha256']
+series=pd.read_csv(series_path);table={uid:f.sort_values('SeriesInstanceUID').to_dict('records') for uid,f in series.groupby('StudyInstanceUID')};cache=Path(original['native_cache'])
+totals={k:0 for k in ('series','raw_slices','selected16_slices','sparse_windows','dense_adjacent_windows','source_support_tuple_overlap','source_support_tuple_union','sparse_repeat_edges','dense_repeat_edges')};case_counts=[];oldproof=hashlib.sha256();oldgaps=[];newgaps=[];started=time.perf_counter()
+for uid in uids:
+ counts={k:0 for k in totals}
+ for entry in select_series(table[uid],6,False):
+  sid=entry['SeriesInstanceUID'];path=cache/'train_series'/uid/(sid+'.json');assert not path.is_symlink();raw=path.read_bytes();meta=json.loads(raw);assert (meta['study_uid'],meta['series_uid'],meta['side'])==(uid,sid,384)
+  n=meta['n_slices'];selected=np.linspace(0,n-1,min(16,n)).round().astype(np.int64);sparse=within_series_relations(meta,selected);dense=within_series_relations(meta,np.arange(n,dtype=np.int64))
+  overlap=sum(int(b==a+1 and c==b+1) for a,b,c in sparse.supports);sw,dw=len(sparse.supports),len(dense.supports)
+  values=(1,n,len(selected),sw,dw,overlap,sw+dw-overlap,len(sparse.repeat_edges),len(dense.repeat_edges))
+  for key,x in zip(totals,values,strict=True):counts[key]+=int(x);totals[key]+=int(x)
+  oldgaps.extend(sparse.repeat_gaps_mm.tolist());newgaps.extend(dense.repeat_gaps_mm.tolist());oldproof.update(json.dumps([uid,sid,hashlib.sha256(raw).hexdigest(),selected.tolist(),sparse.supports.tolist(),sparse.continuity_edges.tolist(),sparse.repeat_edges.tolist()],separators=(',',':')).encode())
+ assert counts['sparse_windows']>0;case_counts.append(counts)
+assert oldproof.hexdigest()=='f37db7c25476645e5beb7463f4c77085d47d1c160214a0c4e31f51dd333ecab4' and totals['series']==11639 and totals['sparse_windows']==162651 and totals['sparse_repeat_edges']==127734
+def quantile(values):return dict(zip(('min','q10','median','q90','max'),np.quantile(values,[0,.1,.5,.9,1]).tolist(),strict=True))
+out={'status':'actual_full2247_fitting_MRI_metadata_density_and_original_support_census_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'fitting_studies':2247,'fitting_uid_roster_sha256':'850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74','exact_original949445_fitting_metadata_support_proof_reproduced':oldproof.hexdigest(),'original_sparse_counts_match':True,'totals':totals,'selected16_fraction_of_original_selected_series_slices':totals['selected16_slices']/totals['raw_slices'],'dense_to_sparse_window_count_ratio':totals['dense_adjacent_windows']/totals['sparse_windows'],'union_to_sparse_source_support_count_ratio':totals['source_support_tuple_union']/totals['sparse_windows'],'per_study_dense_to_sparse_window_ratio':quantile([c['dense_adjacent_windows']/c['sparse_windows'] for c in case_counts]),'per_study_union_to_sparse_support_ratio':quantile([c['source_support_tuple_union']/c['sparse_windows'] for c in case_counts]),'sparse_disjoint_repeat_gap_mm':quantile(oldgaps),'dense_raw_disjoint_repeat_gap_mm':quantile(newgaps),'hypothetical_dense_FP32_full_map_cache_GiB':totals['dense_adjacent_windows']*1024*12*12*4/2**30,'per_study_dense_FP32_full_map_MiB':quantile([c['dense_adjacent_windows']*1024*12*12*4/2**20 for c in case_counts]),'elapsed_seconds':time.perf_counter()-started,'MRI_pixels_or_features_loaded':False,'labels_reports_or_protected_values_loaded':False,'existing_accepted_source_selection_masks_folds_or_live_training_changed':False,'new_dataset_cache_or_GPU_job_created':False,'source_support_union_not_input_tensor_equivalence_or_accepted_encoder_reuse':True,'throughput_prediction_or_accuracy_gain_claim':False,'scope':'Exact geometry/source counts for the existing2247 fitting studies and selected at-most6 series. Dense adjacent and original sparse triplets differ; support overlap alone does not admit a new pixel pipeline, encoder reuse, training recipe or serving runtime.'}
+text=json.dumps(out,indent=2,allow_nan=False)+'\n';assert len(text.encode())<2**20
+with (E/'coverage.json').open('x') as f:f.write(text);f.flush();os.fsync(f.fileno())
+print(json.dumps(out,allow_nan=False),flush=True)
