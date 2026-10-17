@@ -1,0 +1,42 @@
+"""Finite paired full-training owner; original immutable operations are never retried."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;ROOT=L.parents[1];start=time.monotonic();maximum=30*3600;files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('cloud.py.txt','run_phase_once.py','publish-program.py.txt','publish_epoch_once.py')};assert (L/'actual-dataset.json').exists() and (L/'actual-inputs.json').exists() and (L/'actual-funding.json').exists()
+with (L/'finish.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'immutable_files':files,'maximum_seconds':maximum,'maximum_GPU_sessions':6,'epochs_per_role':3,'studies_per_role':3887,'updates_per_role':1458,'maximum_GPU_seconds_each':6000,'maximum_private_epoch_publications':6,'competition_entries':0,'fresh_budget_preserves_every_original_unfinished_whole94_session':True,'automatic_mutation_retry':False},f,indent=2)
+def progress(phase,**extra):(L/'finish.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds):
+ until=time.monotonic()+seconds
+ while time.monotonic()<until:assert time.monotonic()-start<maximum;time.sleep(min(60,until-time.monotonic()))
+def call(phase,role,epoch):
+ for n,h in files.items():assert hashlib.sha256((L/n).read_bytes()).hexdigest()==h
+ for attempt in range(8):
+  progress('phase_'+phase,role=role,epoch=epoch,attempt=attempt);x=subprocess.run([sys.executable,str(L/'run_phase_once.py'),phase,role,str(epoch)],capture_output=True,text=True,timeout=1000)
+  name='child-'+str(len(list(L.glob('child-*.json'))))+'.json'
+  with (L/name).open('x') as f:json.dump({'phase':phase,'role':role,'epoch':epoch,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+  if x.returncode and phase=='status' and 'Canonical coordinator busy: preserve original state' in x.stdout:progress('readonly_status_busy_without_new_mutation',role=role,epoch=epoch);wait(60);continue
+  assert x.returncode==0,'Exact original phase stopped: reconcile actual intent/result read-only before another action';outer=json.loads(x.stdout);assert outer['returncode']==0;return json.loads(outer['stdout'])
+ raise RuntimeError('Repeated read-only claim contention: preserve all original states')
+try:
+ completed=[];initials={}
+ for epoch in (1,2,3):
+  for role in ('uniform','influence'):
+   prefix=role+'-epoch-'+str(epoch);prepared=call('prepare',role,epoch);assert prepared['status']=='one_matched_full3887_IID16_epoch_prepared';(L/(prefix+'-prepared.json')).write_text(json.dumps(prepared,indent=2)+'\n')
+   while True:
+    pushed=call('push',role,epoch)
+    if pushed['status']=='one_exact_matched_IID16_full_parent_epoch_pushed':break
+    assert pushed['status']=='waiting_actual_GPU_budget_without_mutation' and pushed['mutation_intent_created'] is False and pushed['GPU_reserved'] is False;progress('waiting_actual_GPU_budget_preserving_original_training',role=role,epoch=epoch,actual=pushed);wait(300)
+   (L/(prefix+'-pushed.json')).write_text(json.dumps(pushed,indent=2)+'\n');progress('one_exact_original_matched_epoch_pushed',actual=pushed);wait(120)
+   while True:
+    actual=call('status',role,epoch);progress('observed_same_original_matched_epoch',actual=actual);assert actual['status'] not in ('ERROR','CANCELLED'),'Actual original full epoch failed: no restart/next role'
+    if actual['status']=='COMPLETE':assert actual['receipt']['completed']==486*epoch;break
+    wait(180)
+   if epoch==1:
+    initials[role]=[d['initial_identity'] for d in actual['receipt']['devices']]
+    if role=='influence':assert initials['uniform']==initials['influence'],'Actual matched production initial model/allrankRNG must agree'
+   (L/(prefix+'-actual-accepted.json')).write_text(json.dumps(actual,indent=2)+'\n');progress('actual_epoch_complete_private_preservation_next',actual=actual)
+   x=subprocess.run([sys.executable,str(L/'publish_epoch_once.py'),role,str(epoch)],capture_output=True,text=True,timeout=1600)
+   with (L/('publish-child-'+prefix+'.json')).open('x') as f:json.dump({'role':role,'epoch':epoch,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+   assert x.returncode==0,'Original private publication stopped: reconcile exact prefix/intent, never retry';outer=json.loads(x.stdout);assert outer['returncode']==0;published=json.loads(outer['stdout']);assert published['status']=='actual_matched_IID16_parent_epoch_private_full_download_size_SHA_verified' and published['role']==role and published['epoch']==epoch;completed.append({'actual':actual,'publication':published});progress('actual_epoch_privately_full_download_hash_verified',role=role,epoch=epoch,publication=published)
+ result={'status':'both_matched_full3887_fixed3_IID16_roles_actual_complete_and_privately_verified','actual':completed,'identical_actual_initial_model_and_allrank_RNG':initials['uniform']==initials['influence'],'competition_entries':0,'clinical_or_competition_accuracy_claim':False};(L/'finish.result.json').write_text(json.dumps(result,indent=2)+'\n');progress('terminal_success');print(json.dumps(result),flush=True)
+except BaseException as e:
+ (L/'finish.result.json').write_text(json.dumps({'status':'stopped_original_matched_full_comparison_for_exact_readonly_reconciliation','error':type(e).__name__,'reason':str(e),'automatic_retry':False},indent=2)+'\n');raise

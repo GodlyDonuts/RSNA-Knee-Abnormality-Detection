@@ -643,3 +643,22 @@ Its paired preservation/serving/E1/E3 owners use observation-v2-* receipts and
 original exact coordinators; original old80039/80311/82392/82509/89000 and first
 reconnected owners are terminal, never restart. Verify current handles before
 action; do not repeat existing pushes, datasets, publications or entries.
+
+## Live verified owners — October17 01:46UTC
+
+Full whole94 actual415/1458updates/epoch1; expanded938284 actual45updates/empty
+stderr. Exact main continuation PID93163/exec31892, preservation93190/exec53027,
+serving93205/exec40537, E1entry93216/exec57462, E3entry93228/exec47734 are live,
+using observation-recovered-v2 / observation-v2-* receipts. Original/main-first
+reconnection owners are terminal; never restart. Expanded original watcher also
+stopped from socket loss before any publication; distinct
+watch_original_epochs_after_reconnection_once.py/exec85290 now watches actual
+938284 and all original epoch intents (no newGPU/repeated publication).
+
+Full sampled finiteowner93305/exec74012, immutable files in finish.intent.json,
+max30h/6sessions/6publications/zeroentries, nowactualbudgetwait. UniformE1 compiled
+with sourcea420bd2e after full Dataset/input/storage proofs, no GPU push. Fresh
+quota107092.916seconds vs115200required (all3original7h+all6new100min+1hreserve).
+It will recheck every5min; never repeat owner/prepare/push/Dataset/publication.
+Do not infer clinical gain from its engineering acceptance. Future actual epochs
+must use its strict sampled validator and separate publisher, not whole94 defaults.

@@ -1,6 +1,6 @@
 # Current project state
 
-**Checked October 17, 2026, 01:42 UTC.** This is the current research entry point.
+**Checked October 17, 2026, 01:46 UTC.** This is the current research entry point.
 Scores and job states below are verified observations; original receipts, Slurm
 and authenticated Kaggle resolve later changes. Historical observations are in
 [current-state history](current-state.history-20261016.md).
@@ -148,7 +148,7 @@ Other users occupy evc39 GPUs; an earlier free-GPU observation is not a reservat
 
 Kaggle raw training-image access was already proved by the original 64-study T4
 benchmark (318.497 seconds, no unusable fallbacks, about 11.61 GB process RAM).
-A separate CPU-only probe measured four cores and20.94GBscratch. All four full-population CPU cache shards have completed; actual full-parent139111324v1 is training on bothT4s with293finite updates observed in epoch1. [Capacity receipt](../initiative/audits/kaggle-CPU-training-capacity-20261016-v1/README.md).
+A separate CPU-only probe measured four cores and20.94GBscratch. All four full-population CPU cache shards have completed; actual full-parent139111324v1 is training on bothT4s with415finite updates observed in epoch1. [Capacity receipt](../initiative/audits/kaggle-CPU-training-capacity-20261016-v1/README.md).
 
 ## Documentation and decisions
 
@@ -598,3 +598,11 @@ proposal Dataset12644218v1 has all5objects fully download/hash verified ONCE.
 Full comparison coordinator and private epoch publisher are prepared; no sampled
 production GPU push yet. The full384 unchanged-weight Kaggle result is now
 COMPLETE0.948, below unchanged parent0.949. [Full sampling readiness and negatives](../initiative/audits/licensed-importance-full-comparison-20261017-v1/README.md).
+
+Expanded938284 has45actual optimizer updates and empty stderr, observed through
+its original running allocation. Its distinct observation-reconnected watcher
+preserves only new original epochs and never launches a GPU. Main139111324 has
+415/1458finite updates. New matched sampling owner93305/exec74012 is live; exact
+uniformE1 is prepared, no GPU push yet. Actual107092.916s allowance is below
+115200s required for all remaining original/comparison sessions plus1hour reserve;
+it waits without a GPU reservation or mutation intent, then rechecks automatically.

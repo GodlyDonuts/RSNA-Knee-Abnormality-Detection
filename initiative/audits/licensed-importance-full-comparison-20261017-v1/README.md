@@ -47,3 +47,14 @@ fixed proposal, recipe and actual recovery binding. Whole94 defaults are unchang
 and reject sampled receipts.36focused tests/Ruff3files/mypy2sources passed. Actual
 full-epoch acceptance, private preservation and clinical comparisons remain later
 work. No tiny diagnostic model may be submitted.
+
+The finite original comparison owner is now actually live (PID93305/exec74012),
+30hour bound, at most6GPU sessions and6private epoch publications/zero competition
+entries. Exact uniform epoch1 is prepared, but no GPU push was made: fresh quota
+provides107092.916seconds versus115200required for all3unfinished original7hour
+epochs, all6new100minute sessions and1hour reserve. It observes the same original
+coordinator/ledger and will dispatch only when the complete remaining budget fits.
+Original main139111324 remains actualRUNNING with415updates/1458, finite loss/
+gradients; original expanded938284 nowRUNNING with45realupdates/empty stderr.
+Their observation/publication/serving owners were reconciled after socket loss;
+no scientific run, GPU job or existing push was restarted.

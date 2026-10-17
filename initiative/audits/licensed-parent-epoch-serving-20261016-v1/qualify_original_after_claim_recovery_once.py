@@ -1,0 +1,35 @@
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+L=Path(__file__).resolve().parent;P=L.parent/'licensed-parent-whole94-production-20261016-v1';start=time.monotonic();maximum=36*3600;owner=json.loads((P/'observation-v2-preserve.intent.json').read_text())['PID'];files={n:hashlib.sha256((L/n).read_bytes()).hexdigest() for n in ('program.py.txt','run_serving_after_reconnection_once.py')};assert (L/'staged.json').exists()
+with (L/'observation-v2-serving.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'private_preservation_owner_PID':owner,'immutable_files':files,'maximum_seconds':maximum,'maximum_notebook_pushes':6,'competition_entries':0,'actual_full_epoch_and_private_whole_verification_before_GPU':True,'no_new_weight_Dataset_or_copy':True,'automatic_mutation_retry':False},f,indent=2)
+def progress(phase,**extra):(L/'observation-v2-serving.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**extra},indent=2)+'\n')
+def wait(seconds):
+ until=time.monotonic()+seconds
+ while time.monotonic()<until:assert time.monotonic()-start<maximum;time.sleep(min(60,max(.01,until-time.monotonic())))
+def run(phase,epoch,role='qualification'):
+ for n,h in files.items():assert hashlib.sha256((L/n).read_bytes()).hexdigest()==h
+ progress(phase,epoch=epoch,role=role);x=subprocess.run([sys.executable,str(L/'run_serving_after_reconnection_once.py'),phase,str(epoch),role],capture_output=True,text=True,timeout=1000)
+ with (L/('observation-v2-serving-child-'+str(len(list(L.glob('child-*.json'))))+'.json')).open('x') as f:json.dump({'phase':phase,'epoch':epoch,'role':role,'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+ assert x.returncode==0,'Original full-epoch qualification/public controller stopped; preserve exact state and reconcile read-only';outer=json.loads(x.stdout);assert outer['returncode']==0;return json.loads(outer['stdout'])
+try:
+ completed=[]
+ for epoch in (1,2,3):
+  while not (P/('epoch-'+str(epoch)+'-private-verified.json')).exists():
+   if (P/'observation-v2-preserve.result.json').exists():raise RuntimeError('Original epoch preservation stopped before this exact epoch; no duplicate dispatch')
+   os.kill(owner,0);assert 'preserve_original_after_claim_recovery_once.py' in subprocess.check_output(['ps','-p',str(owner),'-o','command='],text=True);progress('waiting_live_original_preservation_and_actual_epoch',epoch=epoch);wait(60)
+  prepared=run('prepare',epoch);assert prepared['status']=='one_actual_full_parent_epoch_serving_prepared'
+  for role in ('qualification','competition'):
+   while True:
+    pushed=run('push',epoch,role)
+    if pushed['status']=='one_full_parent_epoch_'+role+'_pushed':break
+    assert pushed['status']=='waiting_authoritative_GPU_VM_allowance_without_mutation' and pushed['mutation_intent_created'] is False;progress('waiting_fresh_authoritative_GPU_VM_allowance',actual=pushed);wait(300)
+   (L/('epoch-'+str(epoch)+'-'+role+'-pushed.json')).write_text(json.dumps(pushed,indent=2)+'\n');progress('one_original_epoch_notebook_pushed',actual=pushed);wait(90)
+   while True:
+    actual=run('status',epoch,role);assert actual['status'] not in ('ERROR','CANCELLED'),'Actual trained-epoch notebook failed; no competition entry or next push'
+    if actual['status']=='COMPLETE':assert 'receipt' in actual;break
+    progress('observed_original_epoch_notebook',actual=actual);wait(120)
+   (L/('epoch-'+str(epoch)+'-'+role+'-actual-accepted.json')).write_text(json.dumps(actual,indent=2)+'\n');progress('actual_original_epoch_notebook_accepted',actual=actual)
+  completed.append(actual)
+ result={'status':'all_three_actual_full_epochs_T4_precision_and_public_MRI_CSV_accepted','actual':completed,'competition_entries':0,'new_weight_Datasets_or_copies':0,'hidden_or_clinical_score_inferred':False};(L/'observation-v2-serving.result.json').write_text(json.dumps(result,indent=2)+'\n');progress('terminal_success');print(json.dumps(result),flush=True)
+except BaseException as e:
+ result={'status':'stopped_original_epoch_serving_controller_for_readonly_review','error_type':type(e).__name__,'reason':str(e),'automatic_retry':False};(L/'observation-v2-serving.result.json').write_text(json.dumps(result,indent=2)+'\n');raise
