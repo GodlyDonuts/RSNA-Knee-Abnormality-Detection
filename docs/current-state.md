@@ -31,27 +31,28 @@ spatial scout949626was PREEMPTED after26studies; recovery949735completed
 all32 and was independently accepted. Actual online engine950540 is accepted; full matched jobs950679/950680 are
 running on permitted evc40. Source/runtime are also admitted on evc33. No new accuracy claim.
 
-## Latest execution, October17 21:48UTC
+## Latest execution, October17 22:29UTC
 
 **Two full matched H100 runs are actually RUNNING:** aligned **950679** and
 randomized-link null **950680**, both on permitted physical2-H100 evc40, each
-1GPU/2CPUs. At21:48UTC aligned/null had337/337of843 finite updates. Full
+1GPU/2CPUs. The latest original observation has658/657of843 finite updates,
+both training epoch3. Full
 source **ee045885**/manifest3909bf50… and receipt48d047fb… bind the unchanged
 2247 fitting/1156 development split, fixed3epochs/effective8/281updates per epoch.
 No new accuracy or leaderboard gain is claimed. Best measured remains **0.950**
 (external S6 reproduction); own independent N3E16 is **0.894**. Target0.97 is unmet.
 
-**Both epoch1 snapshots completed281 updates and are privately fully verified**:
-aligned CPU951000/HFe1c1592f3d3f1e968991340a8f43cadcaac2e6d8 and null
-CPU951007/HF9c02d4c9b120635924caf69c79443d666c8ea948, each4objects/882941-byte
-complete head/optimizer/RNG checkpoint plus provenance. Do not repeat either
-publication. Both original GPU jobs are continuing into epoch2. No fixed-final
+**Both arms completed epochs1/2 and all four snapshots are privately fully verified**.
+The new epoch2 proofs are aligned CPU951241/HFd171fd362f891ada465b89d4be6a859fdf318e95
+and null CPU951251/HFdffd02bf1fb905e99d1c39fd4e68ffe7c6d761a3; each4objects,
+911293-byte complete head/optimizer/RNG checkpoint plus provenance. Epoch1
+proofs remain HFe1c1592f…/HF9c02d4c9…. Never repeat these publications. No fixed-final
 held-out evaluation or new score exists yet; preserve the original3epoch endpoint.
 Benchmark source7b764dfc/actual dispatch is separately all19-object privately
 fully download/size/SHA verified at HFa434cae3823baade2d2edbc69c1fdfe670c66e8c
 viaCPU950985, inside the cumulative8MiB source allowance. Do not repeat it.
 
-A separate bounded frozen-provider benchmark **950940 is PENDING(Resources)**
+A separate bounded frozen-provider benchmark **950940 is PENDING(Priority)**
 on prepared physical2-H100 evc33; CPU950938 admitted all32 original cases/
 168source metadata entries and the same118numerical modules. One2H100/4CPU/
 32GiB/15minute normalQOS job compares single/dual/dual/single encoding, with
@@ -109,7 +110,7 @@ CPU950645/950660 independently admitted the full rosters/labels/metadata on40/33
 CPU950671 submitted each full job once; never repeat dispatches or restart healthy
 jobs. Finite preservation owner **85548** is live for the six distinct immutable
 production epochs, using pinned CPU publisher91682e05…/shared privateHF lock,
-full re-download/size/SHA proofs and no uncertain automatic retry. The first two epoch1 publications are now verified; epochs2/3 remain in flight.
+full re-download/size/SHA proofs and no uncertain automatic retry. The first four epoch1/2 publications are verified; epoch3 remains in flight.
 Large inputs/checkpoints stay private.
 
 The expanded H100 authority supersedes the old two-node cap; physical4-/8-GPU
@@ -124,11 +125,11 @@ retirement applied twice. Fresh node/shared reserve governs each operation.
 **Kaggle in parallel:** finite successor **82637** is live; old78386/10613 stopped
 and must not restart. Both uniform and new-source-label fixed-final models have
 actually passed original32MRI qualification on bothT4s and exact3-study public
-runs (uniform139269448v1;label139295709v1). Influence qualification139297897v1 was
-pushed once and its actual outcome remains under observation. These are public
+runs (uniform139269448v1;label139295709v1). Influence qualification139297897v1 and exact public139299159v1 now also
+actually passed. All three fixed-final candidates are fully serving-qualified. These are public
 acceptances, not hidden scores. The canonical owner will enter the three models
 once each in order after fresh account allowance and actual prior hidden outcomes.
-Fresh21:10UTC GetSubmissionLimits reports5used/0available,49total, no unresolved
+Fresh22:22UTC GetSubmissionLimits reports5used/0available,49total, no unresolved
 entries; the null reset timestamp does not verify an exact reset time.
 Exact8-cell stronger-reference script **139271768v2** also actually completed its
 full original R6/2.5D public reader and CSV acceptance via CPU950205; this is not
@@ -140,6 +141,41 @@ full dispatch and watcher source **7bd2af74** is separately all56-object fully
 re-downloaded/size/SHA verified at HF67775579057b95716771bbe821adaecb37854a35
 via CPU950770, within the same cumulative8MiB source allowance; never repeat.
 [Exact controls, failures, full dispatch and preservation](../initiative/audits/spatial-reader-engine-20261017-v1/README.md).
+
+## New measured input finding and next mechanism, October17 22:29UTC
+
+Actual CPU951202 reproduced the full2247-fitting-study source proof: within the
+currently selected11639 series,16-slice selection retains185929/386846 original
+slices (48.06%). All2247 studies are used. Dense adjacent triplets would produce
+363568 versus162651 windows (2.235x), changing channel context as well as coverage.
+Original-plus-dense support union is513788 (3.159x); source tuple equality alone
+does not establish normalized-pixel equality or accepted encoder reuse. Sparse/
+dense disjoint-window gaps have medians20.0001/9.9000mm. No pixels/features,
+labels/reports or protected values were loaded. The hypothetical199.71GiB dense
+fitting-map cache is not funded. [Actual census and limitations](../initiative/audits/spatial-throughplane-information-20261017-v1/README.md).
+
+Distinct CPU951122 found absolute-normal-spacing multipliers0.5/2/4 leave all16
+fitting aligned/control operators bit equal; the in-plane positive control changes
+all16. The original graph already has offset1/offset3 topology and native-gap
+blocking. This is missing absolute-spacing conditioning, not proof that sensitivity
+would help or that all longitudinal information is absent.
+
+A separate [connected-witness path prototype](../initiative/research/connected-witness-paths-20261017-v1/README.md)
+is implemented and mathematically checked, **not trained or MRI-qualified**.
+It integrates variable-length latent spatial paths, permits focal one-window
+findings, uses physical gaps and an identical-marginal factorized control.
+Exhaustive path enumeration, nonuniform stationary measures, FP64 gradients,
+FP32 finite gradients and extreme-prior/zero-evidence checks passed. Its toy
+higher-order distinction is not an actual CNN/MRI collision or accuracy gain.
+The present fixed-reversible-joint assumption does not admit changing/directed
+MRI geometry. Proposed sparse/dense x physical/control fitting requires actual
+inputs/recovery/cost/funding; it does not change either live full training run.
+
+Fresh22:26UTC inventory found one unallocated permitted H100 on evc26; original
+950679/950680 occupy evc40 and950940 remains queued on prepared evc33. CPU951336
+confirmed evc26 has older runtimes but no prepared native/feature cache. No new
+training was reserved there. Physical4-/8-GPU nodes remain excluded; permission
+expansion does not imply those GPUs are currently allocated to this project.
 
 ## Prior execution, October 17, 19:17 UTC
 

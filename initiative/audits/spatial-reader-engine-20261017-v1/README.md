@@ -1,15 +1,19 @@
 # Full-map spatial reader: exact engine accepted and two full H100 fits running
 
-## Actual first production epochs, October17 21:48UTC
+## Actual production preservation, October17 22:29UTC
 
-Both original GPU jobs completed epoch1/281 updates and continue into epoch2.
-Each immutable complete checkpoint is882941bytes and all4private objects were
-fully re-downloaded/size/SHA verified once: aligned HFe1c1592f3d3f1e968991340a8f43cadcaac2e6d8
-viaCPU951000; null HF9c02d4c9b120635924caf69c79443d666c8ea948 viaCPU951007.
-[Aligned original proof](actual-full-aligned-epoch-001-private-verified.json),
-[null original proof](actual-full-null-epoch-001-private-verified.json).
-Do not repeat these publications. Sourceee045885 and the fixed3epoch/843update
-recipe are unchanged. No held-out final or new Kaggle score exists yet.
+Both original GPU jobs are RUNNING in epoch3; the latest finite original owner
+reports658/657of843 updates. All four completed epoch1/2 snapshots have been
+privately published once and every object fully re-downloaded/size/SHA verified.
+New epoch2 proofs: aligned CPU951241/HFd171fd362f891ada465b89d4be6a859fdf318e95,
+null CPU951251/HFdffd02bf1fb905e99d1c39fd4e68ffe7c6d761a3, each4objects/911293bytes.
+[Aligned epoch2](actual-full-aligned-epoch-002-private-verified.json),
+[null epoch2](actual-full-null-epoch-002-private-verified.json),
+[actual progress snapshot](actual-full-pair-epoch2-progress.json).
+Epoch1 proofs remain HFe1c1592f…/HF9c02d4c9…, each4objects/882941bytes.
+Do not repeat publications or alter the fixed3epoch endpoint. Final1156-study
+analysis waits for both actual terminal0exits and all six immutable epoch proofs.
+No new held-out or competition result exists yet.
 
 ## Actual current execution, October17 21:13UTC
 

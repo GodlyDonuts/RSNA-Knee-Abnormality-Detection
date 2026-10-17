@@ -2,7 +2,7 @@
 
 Current **October17 21:13UTC**: target0.97, actual best0.950. See the
 
-Latest: [both spatial-reader models completed epoch1 with private full checkpoint verification and continue training](audits/spatial-reader-engine-20261017-v1/README.md). The independent final-analysis follower is live; one bounded two-H100 encoding benchmark is queued on evc33. Best measured score remains0.950; no new held-out result yet. Earlier snapshots below are dated history.
+Latest: [both spatial readers are training epoch3; the first two epochs of each are privately fully verified](audits/spatial-reader-engine-20261017-v1/README.md). Final held-out analysis is queued behind the original fixed endpoint. The new source census and connected-witness mathematical prototype are recorded in the current guides. Best measured score remains0.950; no new accuracy result yet.
 [current-state guide](../docs/current-state.md), [research brief](../docs/research-brief.md),
 [research-agent handoff](../docs/research-agent-handoff.md) and
 [execution handoff](../docs/codex-continuation.md). Original receipts override dated
