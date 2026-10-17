@@ -96,3 +96,7 @@ clinical truth or predicted Kaggle AUC.
 The original detailed10:15UTC guide remains recoverable from
 [the preceding Git snapshot](https://github.com/GodlyDonuts/RSNA-Knee-Abnormality-Detection/blob/ca90fa5e347310dbbb35765e5dcc5c1b07e04910/docs/current-state.md); original receipts
 and archived source contracts are never replaced with new narratives.
+
+The source9c083a4b milestone is now privately mirrored/full37object download/SHA
+verified at HF7a14fc051d913b14b8e2895cc8db60fa6166e2ce.
+[Exact private preservation](../initiative/audits/hf-source-labels-exact0958-final3-20261017-v1/README.md).

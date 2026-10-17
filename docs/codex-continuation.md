@@ -140,8 +140,12 @@ Shared HF publication lock via pinned publisher
 SHA4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde.
 Never duplicate a verified private milestone. Most recent prior source8214808 is
 65object/full download verified at HF7da4f4a98799419746f9d9d0c7c9c4ec6b3d6293.
-Only distinct new small sanitized source/receipt changes need mirroring under
-its existing32MiB node33 control envelope and canonical lock.
+The new source9c083a4b is also privately verified at
+HF7a14fc051d913b14b8e2895cc8db60fa6166e2ce,37objects/183181bytes,CPU945916.
+Never repeat either mirror. [Actual proof](../initiative/audits/hf-source-labels-exact0958-final3-20261017-v1/README.md).
+Only later distinct new small source/receipt changes need mirroring under its
+existing32MiB node33 control envelope and canonical lock; actual prior controls
+were20546334bytes and8MiBfuture was preserved.
 
 Production rsna/scripts/tests are unchanged from the passing full4537tests/8skip
 run (artifactSHA87f35fd8fb40d0503ec3a7401060ab93a7eb48ce788846b50c44e7e66c90c112).
