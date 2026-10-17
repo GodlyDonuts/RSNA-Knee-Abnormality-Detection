@@ -270,3 +270,15 @@ Both used the canonical shared lock and full re-download/size/SHA checks, with
 no private pixels/clinical arrays/features/proposals/weights. The subsequent
 expanded epoch receipt above is covered by its original private checkpoint
 publication. This final receipt bookkeeping follows those verified sources.
+
+## Latest verified private research preservation
+
+Source `60ed92d3e3876a9e996076d6fff2451bcb1726ed` is privately mirrored at HF
+`da34234c32cae097e6a04cd392a88f6e2c594373`: **102 objects / 648,152 bytes**,
+all fully re-downloaded/size/SHA verified under the canonical shared lock. It
+covers the new current guides, original paper/assessment, source/checkpoint
+admission and actual run receipts. Large private weights/pixels/clinical arrays
+are excluded; the global archive manifest has an exact Git-blob/SHA binding.
+[Actual mirror receipt](../initiative/audits/hf-whole94-e1-capacity-screen-20261017-v1/verified.json).
+Never repeat this or earlier verified prefixes. Final receipt/QA bookkeeping is
+later than the source revision mirrored.

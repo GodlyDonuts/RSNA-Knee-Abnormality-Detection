@@ -218,3 +218,18 @@ after paid200185003bytes alongside old node obligations; no GPU funding inferred
 No S6 MRI/GPU or entry occurred. Unchanged reproduction is next; preserve current learned-E1 auxiliary-lane priority.
 Do not call head folds strict encoder OOF or promote another generic context
 arm without accounting for prior regional/context controls and source exposure.
+
+## Latest Git/private mirror and still-active broad QA
+
+Current source60ed92d3 was pushed and remote-verified, then fully privately
+mirrored at HFda34234c32cae097e6a04cd392a88f6e2c594373/all102objects/648152bytes.
+Canonical shared lock and full re-download/size/SHA passed; never repeat. The
+large global archive manifest has an exact source Git-blob/byte/SHA proof in the
+small mirror; its complete body remains in Git. Receipt bookkeeping follows.
+
+Broad local pytest remains originalPID98767 / exec59875, log
+`artifacts/github-current-20261017-pytest.log`; inspect its actual terminal and
+record it once, never start a duplicate suite. Numerical source was unchanged
+after that run began. Full mypy108, focused80/Ruff6/mypy3 and archive/currentv2
+checks passed; whole-repo lint debt is known/unchanged and explicitly recorded.
+No clinical or new competition score follows these checks.

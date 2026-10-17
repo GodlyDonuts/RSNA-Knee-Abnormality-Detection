@@ -189,3 +189,8 @@ Kaggle's actual two-session cap now has admission/expiring inference priority;
 old capacity-rejected private identity is quarantined, never retried. These are
 execution facts, not accuracy improvements. Read the current execution handoff
 before taking ownership of any live model or planning a conflicting GPU push.
+
+The [latest private mirror](../initiative/audits/hf-whole94-e1-capacity-screen-20261017-v1/verified.json)
+fully verifies source60ed92d3 at HFda34234c/all102smallobjects. This includes the
+original new paper, critical assessment and exact S6 checkpoint/source receipts.
+Current guide receipt bookkeeping can be later than that mirrored source.
