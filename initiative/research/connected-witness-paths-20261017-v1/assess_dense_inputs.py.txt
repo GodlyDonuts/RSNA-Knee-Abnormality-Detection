@@ -1,0 +1,103 @@
+"""Original32 CPU pixel/tensor/source audit; RAM-only, no clinical target reads."""
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import sys
+import time
+import types
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == 'evc40' and not os.environ.get('SLURM_JOB_GPUS')
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+code = R / 'variable-witness-engine-v1/code'
+assert len(v['original118']) == 118
+assert all(hashlib.sha256((code / 'core' / n).read_bytes()).hexdigest() == h for n, h in v['original118'].items())
+sys.path[:0] = [str(code / 'core'), str(code / 'mechanism')]
+module = types.ModuleType('dense_inputs')
+assert hashlib.sha256(v['source'].encode()).hexdigest() == v['source_sha256']
+exec(compile(v['source'], 'committed_dense_inputs.py', 'exec'), module.__dict__)
+import numpy as np
+import torch
+from rsna.competitive.neighbor_input import sample_neighbor_images
+from rsna.competitive.spatial_reader import build_plan
+from variable_source_chains import qualify_variable_chains
+torch.set_num_threads(1)
+assert str(torch.__version__) == '2.14.0+cu130'
+index_path = R / 'pilot-recovery-v2-accepted.json'
+assert hashlib.sha256(index_path.read_bytes()).hexdigest() == 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+rows = json.loads(index_path.read_text())['private_records']
+membership = json.loads((R / 'membership.private.json').read_text())
+assert len(rows) == 32
+totals = {role: {'studies': 0, 'series': 0, 'source_slices': 0, 'sparse_windows': 0, 'dense_windows': 0,
+                 'dense_qualified_windows': 0, 'dense_unsupported_windows': 0, 'dense_chains': 0,
+                 'dense_repeat_edges': 0} for role in ('fitting', 'outer')}
+digest = hashlib.sha256()
+started = time.monotonic()
+for role in totals:
+    cases = [r for r in rows if r['role'] == role]
+    assert [r['study_uid'] for r in cases] == membership[role][:16]
+    for record in cases:
+        uid = record['study_uid']
+        total = totals[role]
+        total['studies'] += 1
+        graphs, window_parts = [], []
+        for old_graph in record['source_graphs']:
+            sid, slot = old_graph['series_uid'], old_graph['slot']
+            path = Path('/tmp/rsna-final-public-source-fit-evc40-20261013-v1/cache/train_series') / uid / (sid + '.npz')
+            assert not path.is_symlink() and not path.with_suffix('.json').is_symlink()
+            raw_meta = path.with_suffix('.json').read_bytes()
+            meta_sha = hashlib.sha256(raw_meta).hexdigest()
+            assert meta_sha == old_graph['source_metadata_sha256']
+            meta = json.loads(raw_meta)
+            assert (meta['study_uid'], meta['series_uid'], meta['side']) == (uid, sid, 384)
+            raw = path.read_bytes()
+            assert len(raw) == meta['cache_bytes'] and hashlib.sha256(raw).hexdigest() == meta['cache_sha256']
+            with np.load(io.BytesIO(raw), allow_pickle=False) as archive:
+                volume = archive['volume']
+            del raw
+            total['series'] += 1
+            total['source_slices'] += meta['n_slices']
+            for sampling in ('sparse16', 'dense'):
+                graph, windows = module.source_plan(meta, sampling=sampling, slot=slot, metadata_sha256=meta_sha)
+                if sampling == 'sparse16':
+                    assert graph == old_graph, 'Sparse source graph differs from original accepted input'
+                else:
+                    graphs.append(graph)
+                    window_parts.append(windows)
+                total['sparse_windows' if sampling == 'sparse16' else 'dense_windows'] += len(windows)
+                # Independently normalize the complete original slice selection,
+                # then assemble reference windows. Never allocate all triplets.
+                selected = np.asarray(graph['selected_source_indices'], dtype=np.int64)
+                reference = sample_neighbor_images(volume, meta, selected, 384, None)[:, 0]
+                consumed = 0
+                for first, supports, images in module.tensor_chunks(volume, meta, sampling=sampling, side=384, chunk_size=12):
+                    assert first == consumed and images.dtype == torch.float32 and len(images) <= 12
+                    expected = torch.stack([reference[j:j+3] for j in range(first, first+len(images))])
+                    assert torch.equal(images, expected), 'Actual normalized MRI input differs'
+                    assert supports.tolist() == graph['supports'][first:first+len(images)]
+                    digest.update(images.numpy().tobytes())
+                    consumed += len(images)
+                assert consumed == len(windows)
+                del reference
+            del volume
+        windows = np.concatenate(window_parts)
+        plan = build_plan(graphs, windows, (1024, 12, 12), seed=20261017)
+        paths, accounting = qualify_variable_chains(graphs, windows, plan)
+        total['dense_qualified_windows'] += accounting['qualified_windows']
+        total['dense_unsupported_windows'] += accounting['unsupported_windows']
+        total['dense_chains'] += accounting['chains']
+        total['dense_repeat_edges'] += accounting['qualified_repeat_edges']
+        del plan, paths
+out = {'status': 'actual_original32_sparse_dense_native_pixel_tensor_and_source_assessment_completed',
+       'CPU_job': os.environ['SLURM_JOB_ID'], 'source_git': v['source_git'], 'source_sha256': v['source_sha256'],
+       'program_sha256': v['program_sha256'], 'totals': totals, 'elapsed_seconds': time.monotonic()-started,
+       'all_sparse_graphs_exact_original_accepted_graphs': True,
+       'all_sparse_dense_chunk_tensors_exact_independent_whole_slice_reference': True,
+       'complete32_ordered_normalized_tensor_stream_sha256': digest.hexdigest(),
+       'all_dense_windows_source_accounted': all(t['dense_qualified_windows']+t['dense_unsupported_windows']==t['dense_windows'] for t in totals.values()),
+       'dense_all_supported': all(t['dense_unsupported_windows']==0 for t in totals.values()),
+       'labels_reports_or_clinical_targets_read': False, 'new_node_or_shared_files_bytes': 0,
+       'encoder_GPU_training_or_accuracy_acceptance': False}
+print(json.dumps(out, allow_nan=False), flush=True)

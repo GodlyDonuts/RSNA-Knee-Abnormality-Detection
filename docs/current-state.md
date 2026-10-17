@@ -1,5 +1,17 @@
 # Current project state
 
+## Current sequence-reader execution
+
+Actual CPU951824 admitted all32 original1024x12x12 cached MRI inputs and the
+new variable-path reader. Distinct1H100/twoCPU recovery951853 was submitted once
+on physical2-H100 evc40; latest actual state PENDING(Priority), not a production
+fit or accuracy pass. Preserve its original intent/job. The completed first
+reader's weak-label gain remains uncertain; do not expand that unchanged recipe.
+New streamed dense inputs are implemented and162 synthetic reference checks
+passed; original32 CPU pixel/tensor admission is next. No dense model is trained.
+See the [current mechanism and receipts](../initiative/research/connected-witness-paths-20261017-v1/README.md).
+
+
 **Verified October17,2026,21:13UTC. Target0.97; actual best0.950.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 

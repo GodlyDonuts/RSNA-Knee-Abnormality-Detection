@@ -1,5 +1,17 @@
 # RSNA Knee: current agent guide
 
+## Current sequence-reader execution
+
+Actual CPU951824 admitted all32 original1024x12x12 cached MRI inputs and the
+new variable-path reader. Distinct1H100/twoCPU recovery951853 was submitted once
+on physical2-H100 evc40; latest actual state PENDING(Priority), not a production
+fit or accuracy pass. Preserve its original intent/job. The completed first
+reader's weak-label gain remains uncertain; do not expand that unchanged recipe.
+New streamed dense inputs are implemented and162 synthetic reference checks
+passed; original32 CPU pixel/tensor admission is next. No dense model is trained.
+See the [current mechanism and receipts](initiative/research/connected-witness-paths-20261017-v1/README.md).
+
+
 The owner targets a **0.97 model** and a fully current GitHub handoff.
 Verified best is now0.950; a target is not a measured result.
 Implement directly: **Devin is unavailable**. Do not create issues or wait for

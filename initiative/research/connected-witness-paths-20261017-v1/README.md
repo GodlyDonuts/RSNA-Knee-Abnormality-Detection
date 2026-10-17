@@ -138,8 +138,12 @@ Existing staging intent/root forbids repeating a copy; reconcile read-only.
 Only after actual fixture and source/input/runtime admission, run one bounded
 H100 full/stop/resume recovery on16 fitting plus16 prediction-only original
 cases,2epochs/4updates. This is engineering, not a model to submit or an accuracy
-experiment. No such GPU job is staged or submitted yet. The existing full paired
-reader jobs and their original final analysis remain unchanged.
+experiment. Actual CPU951824 has now admitted all32 full1024x12x12 cached inputs, source
+bindings and zero-start parent equality. Distinct1H100/twoCPU recovery951853
+was submitted once on permitted physical2-H100 evc40 and is PENDING(Priority).
+It is a bounded4-update engineering check, not a production accuracy fit.
+[Exact original dispatch](actual-real-GPU-submitted.json). The completed original
+paired reader jobs and their final analysis remain unchanged.
 
 The original paired experiment is now complete: internal aligned0.9222304,
 null0.9211719, parent0.9205878 on1156 weak-label studies. Geometry delta+0.0010585
@@ -205,3 +209,25 @@ Promotion requires fixed-final improvement over both the appropriate parent
 and matched control, all12 targets with paired whole-component uncertainty,
 then replication on a matched seed/fold and actual offline T4 runtime acceptance.
 There is no measured MRI, clinical or Kaggle gain from this prototype.
+
+## Streamed dense inputs: implementation and next actual check
+
+`dense_inputs.py` now implements sparse16 and every-source-slice triplets with
+the original uint16 normalization and grayscale resize, in bounded12-window
+chunks. No dense image/map cache is created. Source supports, chronology and
+all image windows are retained; the unchanged native-gap rule blocks physical
+path edges without dropping images. Within each selected series, dense coverage
+also changes RGB channel context. Earlier `compact_source_neighbors` work only
+changed donors at the same original selected centers; this new path expands
+centers as well and is not claimed as a novel adjacent-triplet idea.
+
+162 synthetic tensor-reference/chunk checks passed at multiple counts and
+resize sizes, including short/focal inputs and sparse/dense equality below17
+slices, plus native-gap/path accounting and six invalid-source/input refusals.
+[Exact result](synthetic-dense-inputs.json). These are not original MRI acceptance.
+The distinct `assess_dense_once.py.txt` coordinator is prepared for one CPU
+RAM-only audit on the32 original engineering studies: metadata/cache hashes,
+exact original sparse graphs, complete independent normalized-slice tensor
+reference and dense varying-path accounting. It does not read clinical targets,
+instantiate an encoder or fund dense model training. Original intent/receipt
+determines whether it actually ran.

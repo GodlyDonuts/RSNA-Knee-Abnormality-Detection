@@ -1,5 +1,17 @@
 # Execution handoff
 
+## Current sequence-reader execution
+
+Actual CPU951824 admitted all32 original1024x12x12 cached MRI inputs and the
+new variable-path reader. Distinct1H100/twoCPU recovery951853 was submitted once
+on physical2-H100 evc40; latest actual state PENDING(Priority), not a production
+fit or accuracy pass. Preserve its original intent/job. The completed first
+reader's weak-label gain remains uncertain; do not expand that unchanged recipe.
+New streamed dense inputs are implemented and162 synthetic reference checks
+passed; original32 CPU pixel/tensor admission is next. No dense model is trained.
+See the [current mechanism and receipts](../initiative/research/connected-witness-paths-20261017-v1/README.md).
+
+
 **Actual October17,21:13UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
