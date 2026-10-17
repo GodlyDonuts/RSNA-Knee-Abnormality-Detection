@@ -1,0 +1,7 @@
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+L=Path(__file__).resolve().parent;phase=sys.argv[1];assert phase in ('eligibility','submit','outcome');program=(L/'entry3-program.py.txt').read_text();compile(program,'original_full_parent_epoch3_code_entry','exec');E=Path('.env');assert E.stat().st_mode&0o077==0;values={k.strip():val.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,val in [line.partition('=')] if sep}
+if phase=='submit':
+ with (L/'entry3-submit.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'maximum_entries':1,'version':1,'fileName':'submission.csv','automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=normal','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:15:00','--job-name=rsna-full-epoch3-code-'+phase,'env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program];x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'phase':phase,'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=950);out={'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr};(L/('entry3-'+phase+'-result-'+str(len(list(L.glob('entry3-'+phase+'-result-*.json'))))+'.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+if x.returncode:raise SystemExit(1)
