@@ -208,7 +208,7 @@ Uniform16 E1 actually completed486updates and all5objects are privately fully
 verified; influenceE1 also completed486 and all5objects were independently private
 verified at HFb09816181e2e79eb24563884af5c7ed0e1af40a5. UniformE2 139167076v1
 is RUNNING under resumed same owner97530. Expanded N3 original938284 is at
-at least3888/5184 completed updates, with epochs1–12 privately fully verified.
+at least4212/5184 completed updates, with epochs1–13 privately fully verified.
 [Actual new original progress](../initiative/audits/research-progress-20261017-0550-v1/README.md). Original patch929938 actually
 completed0:0 with exact complete-state/prediction full/stop1/resume recovery;
 it is not a clinical result or a new production dispatch.

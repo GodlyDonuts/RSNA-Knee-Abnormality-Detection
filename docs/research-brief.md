@@ -23,8 +23,8 @@ were fully verified. **InfluenceE1 139154664v1 also completed486 and all5objects
 are private verified; uniformE2 139167076v1 is RUNNING**. Whole-parentE1 passed
 bothT4 qualification/public acceptance and was submitted once**57294905**;
 actual hidden terminal is **COMPLETE/0.949**, matching the parent without a gain. E2 now completed972/all5private objects verified; original E3
-139172537v1 is RUNNING. Expanded N3 has epochs1–12 privately fully verified,
-at least3888/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
+139172537v1 is RUNNING. Expanded N3 has epochs1–13 privately fully verified,
+at least4212/5184completed updates, under its original healthy H100 job. The learned whole94E1 now actually scored0.949, matching the external parent;
 there is no demonstrated new gain or fixed-final result yet.
 [Actual progression, entry and preservation](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 

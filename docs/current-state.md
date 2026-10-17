@@ -49,7 +49,7 @@ Do not resubmit those exact versions.
 | Work | Original identity | Latest verified state |
 |---|---|---|
 | Whole94 licensed-parent adaptation | E2 **139137922v1**; final E3 **139172537v1** | E2 COMPLETE972/all5private objects verified; original E3 API RUNNING/configured twoT4s |
-| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **epochs1–12 privately verified**, at least3888/5184 completed updates |
+| Expanded own N3 | Slurm**938284**, evc33 | RUNNING1H100/2CPU/8h limit; **epochs1–13 privately verified**, at least4212/5184 completed updates |
 | Uniform16 full-encoder control | E1**139137040v1** | **E1 complete486**, whole state verified; all5private objects HFc19961db0f377086b4a2fd12f6ec477213a1da7d |
 | Influence16 full-encoder contrast | E1**139154664v1** | **E1 complete486/all5private objects verified**; original owner97530 now runs uniformE2**139167076v1** |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
@@ -59,8 +59,8 @@ Do not resubmit those exact versions.
 [earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
 E2 now actually completed972updates and CPU942967 verified all5private objects
 at HF51d5efae30b4efe820723c6147054fc90ac094c0. Original E3 is RUNNING.
-Expanded E11/E12 are now privately fully9object verified each, establishing
-at least3888completed updates; the older3458cursor is superseded.
+Expanded E11/E12/E13 are now privately fully9object verified each, establishing
+at least4212completed updates; the older3458cursor is superseded.
 [New actual terminals and originals](../initiative/audits/research-progress-20261017-0625-v1/README.md).
 InfluenceE1 completed486 and all5objects are independently private verified;
 uniformE2 is now API RUNNING under the resumed same owner97530.

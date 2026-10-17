@@ -179,8 +179,8 @@ immutable epochs need independent complete-state/private5object download proofs.
 
 Original H100 **938284** remains RUNNING on evc33,1GPU/2CPUs/32GiB/8h,
 sourcea1ca238526dad75b2a5cea46edba44fd95c71938;2592fit/1156outer/16epochs5184updates.
-The earlier CPU942744 cursor3458 is superseded by original completed E11/E12
-private nine-object proofs, at least3888/5184updates; epochs1–12 are preserved.
+The earlier CPU942744 cursor3458 is superseded by original completed E11/E12/E13
+private nine-object proofs, at least4212/5184updates; epochs1–13 are preserved.
 Latest E11 HFecfd9686984aef550937e500c3f67fbdb46c7417 and E12
 HF8acff56937b8b06932f51bd42e2835250907ba6a; never repeat them.
 New E5HFed63b2d85e751949cf7bc0d5011d41dbc8954825 and E6HF7c1f26f5d9f44504eb1f55d85da2d14a3b8d9af5
@@ -426,3 +426,23 @@ all61smallobjects/286156bytes, CPU943157/canonical shared lock. No private array
 pixels/case IDs/labels/weights. Never repeat this mirror.
 [Actual receipt](../initiative/audits/hf-s6-cross-lineage-rank-transport-20261017-v1/README.md).
 This handoff/receipt bookkeeping follows that mirrored source.
+
+
+Later06:40UTC: expanded original epoch13 is also privately fully9object verified;
+at least4212/5184completed updates, no final result. Original watcher95408 owns
+remaining14–16. Never repeat1–13.
+[Actual new proof](../initiative/audits/research-progress-20261017-0625-v1/actual-expanded-E13-private-verified.json).
+Latest repair source479dadaf is privately fully verified at HFd5585c1d383b658522501fb3df32aa41f4c4854e,
+all27smallobjects/148165bytes, CPU943230/shared lock/full re-download/size/SHA.
+[One-time receipt](../initiative/audits/hf-s6-scout-handoff-20261017-v1/README.md).
+Never repeat. This final receipt/E13 metadata bookkeeping is later than that mirror.
+
+For future full3887 S6 teacher acquisition, explicitly fund a bounded streaming/
+chunked worker after actual32 throughput/parity. Do not extrapolate eight/32
+fixtures into an all-cohort scratch cache or copy all rendered windows toNewton.
+Retain only private outputs/metadata, cap newly owned intermediate bytes before
+write, and preserve original fixtures/archives. When938284 and original942047
+actually finish, inspect whether existing node33 runtime/assets can support the
+next accepted H100 work; do not wait for Kaggle if an admitted existing path is
+available. New whole-cohort source, funding and actual input/gradient/recovery
+acceptance are still required; no such fit or transfer has been dispatched.

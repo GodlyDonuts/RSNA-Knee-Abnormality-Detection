@@ -22,7 +22,7 @@ verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
 Epoch2 now completed972updates/all5private objects; original final E3
 **139172537v1** is RUNNING. Expanded own N3 fitting on2592studies continues
-on its original Newton H100; **epochs1–12 privately verified**, at least3888/5184updates.
+on its original Newton H100; **epochs1–13 privately verified**, at least4212/5184updates.
 Both matched uniform16E1 and influence16E1 completed486updates/all5private
 objects; original uniformE2 is now RUNNING. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).

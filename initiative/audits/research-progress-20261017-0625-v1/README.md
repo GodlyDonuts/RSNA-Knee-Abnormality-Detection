@@ -38,3 +38,9 @@ is staged/owned but not GPU-executed at this snapshot; the
 [ordinal transport](../../experiments/competitive-v1/s6-rank-transport-v1/README.md)
 has numerical preparation only. No new disease score is claimed. Target0.97,
 verified best0.949, independently trained best0.894 remain distinct.
+
+
+Later06:40UTC: original watcher additionally preserved epoch13, all9objects
+fully privately verified. [Exact new proof](actual-expanded-E13-private-verified.json).
+This establishes4212/5184completed updates; earlier E11/E12 text is the06:25snapshot.
+No final metric exists, and the healthy original GPU remains untouched.
