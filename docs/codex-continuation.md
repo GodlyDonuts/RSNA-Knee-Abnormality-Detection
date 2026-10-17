@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Actual October17,13:48UTC.** Target0.97; best measured0.950. Read
+**Actual October17,14:21UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
@@ -15,8 +15,8 @@ entries, epochs or publications. Observation loss is not restart authority.
 | Influence16final | **139220032v1**, terminal**34538** | Complete1458/all3epochs private verified; same sampling root`session-status-finish.*` |
 | Exact0.958reference | **139199164v2**, readonly**47637** | OneUI Save&RunAll committed;Queued/APIstatusunknown, unqualified/unscored |
 | Label-onlyGPUrecovery | **139230981v1**, read-only**60305** | COMPLETE/full recovery accepted13:01UTC; returned identity reconciled without repetition; observer root`s6-source-label-recovery-observer-20261017-v2` |
-| LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1actuallyRUNNING139234107v1 at13:07UTC; owns first epoch only |
-| LabelE1preservation/E2–3successor | **61037** | `s6-label-fixed3-followthrough-20261017-v2`; waits actual E1 then fully privately verifies each epoch before next resume |
+| LabelE1owner | **60358** | `s6-label-first-followthrough-20261017-v2`; actual recovery passed; E1COMPLETE139234107v1/486updates at14:21UTC; owner finished successfully, never restart |
+| LabelE1preservation/E2–3successor | **61037** | `s6-label-fixed3-followthrough-20261017-v2`; verifies/preserves completed E1 then each epoch before next resume |
 | Independent S6CPU32 | **139205901v2**, terminal**40709** | ERRORafter completed32/32classifier; finalbyte/RSSguard failed; no rerun |
 | QueuedGPU32scout | 139210569v1 | Canceled once while queued/zerooutput, actualCANCEL_ACKNOWLEDGED;34237/34308 retired |
 | Old finalE3serving/entry | old17301/17317/28090 | Stopped after explicit capacity rejection; exact ambiguous qualification identity quarantined |
@@ -211,8 +211,8 @@ string, no learned state or scientific binding. Three adverse publication-check
 groups pass on a synthetic state. Original first owner59829 stopped before any
 prepare intent when the old recovery observer stopped on its returned identity.
 Replacement **60358** uses the same frozen first coordinatorc59e0e4e… and original
-source pin990c8ded. Actual60305acceptance passed; E1actuallyRUNNING139234107v1 at13:07UTC;
-local`artifacts/s6-label-first-followthrough-20261017-v2/finish.*`. It alone ownsE1.
+source pin990c8ded. Actual60305acceptance passed; E1actuallyCOMPLETE139234107v1/486updates at14:21UTC;
+local`artifacts/s6-label-first-followthrough-20261017-v2/finish.*`. It finished successfully; never restart.
 
 Finite successor **61037** is already waiting at
 `artifacts/s6-label-fixed3-followthrough-20261017-v2/finish.*`. It independently
@@ -248,13 +248,13 @@ not its stopped finite owner. The published source pin is990c8ded throughout all
 three segments; later documentation/logistics commits must not change the worker.
 Actual E1sourceabfc460b…/workerabcf2ca3… compiled atCPU946779 and was pushed
 once byCPU946781 as139234107v1, slug`godlydonuts/rsna-s6-label-u16-e1-abfc460b8ede`.
-Actual13:07UTCstatus isRUNNING, exact source/runtime/allinput metadata verified;
-no completed full epoch or accuracy gain is claimed. This is the full3887study/486update first segment, not a diagnostic.
+Actual14:21UTCstatus isCOMPLETE,486updates and exact source/runtime/allinput
+metadata/model/optimizer receipt verified; no fixed-final3or accuracy gain yet. This is the full3887study/486update first segment, not a diagnostic.
 
 Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
 verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
 Current60358/61037 reuse its fulfilled source pin; actual label GPU recovery
-has now passed; current60358owns the actual compiled E1. Original59829must never restart.
+has now passed; 60358finished the actual compiled E1;61037owns preservation and E2/E3. Original59829must never restart.
 [Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).
 
 The active full-label campaign/recovery and all completed sampling receipts are
@@ -263,10 +263,9 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **258finite optimizer updates**, both
+Actual live Kaggle logs now also verify **486finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
-trainable on the3887study label-only E1. This is real optimization progress,
-not a completed epoch or an accuracy gain.
+trainable on the3887study label-only E1. Epoch1is actually complete; fixed-final3and an accuracy result remain pending.
 
 ## Completed matched models: prepared scoring, no GPU dispatch
 
@@ -308,3 +307,18 @@ Latest distinct source**86cfc7b6** is privately preserved at
 re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
 label-serving helper hashes now bind published main86cfc7b6; this supplies code
 provenance, not final-model or T4admission. [Exact preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
+
+CPU947337staged one new matched-final scoring coordinator; actualCPU947372
+refused the unfinished treatment before anyGPUintent. It will wait original
+61037final/private proof, then qualify/public-run the uniform, label and influence
+E3models and enter only exact accepted versions under fresh allowance. A ready
+entry need not wait for unrelated qualification; actual previous hidden score
+is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
+owner, not yet armed at this receipt. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+
+**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
+modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
+HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
+and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
+epoch1publication or either GPU push.
+No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).

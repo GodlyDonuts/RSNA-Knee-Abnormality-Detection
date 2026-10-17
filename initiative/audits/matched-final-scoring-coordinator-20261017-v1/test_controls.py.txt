@@ -1,0 +1,263 @@
+"""Synthetic transport/admission tests, never a model or hardware acceptance."""
+import contextlib
+import hashlib
+import importlib.util
+import json
+import sqlite3
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = Path(__file__).with_name('program.py.txt')
+ns = {'__name__': 'synthetic_scoring_control_tests'}
+exec(compile(SCRIPT.read_text(), str(SCRIPT), 'exec'), ns)
+
+spec = importlib.util.spec_from_file_location('actual_workflow_for_pure_outcomes', ROOT / 'scripts/kaggle/workflow.py')
+workflow = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(workflow)
+
+
+@pytest.fixture
+def control(tmp_path, monkeypatch):
+    state = {'capacity': True, 'quota_used': '1000s', 'save': 'ok', 'calls': [],
+             'account': {'entered': True, 'checked_at': workflow.utcnow(), 'num_today': 5, 'num_allowed_now': 0},
+             'submissions': [{'ref': 57300990, 'status': 'COMPLETE', 'publicScore': .95, 'description': 'prior'}]}
+    P = tmp_path / 'parent'; R = P / 'serving'; M = R / 'single'; S = R / 'code'
+    M.mkdir(parents=True); S.mkdir()
+    (R / 'label-scope-template-v1').mkdir()
+    (R / 'label-scope-template-v1/accepted.json').write_text(json.dumps({'CPU_job': '947129', 'source_files': {}}))
+    (R / 'prepared.json').write_text(json.dumps({'CPU_job': '946894', 'source_files': {}, 'columns': [], 'expected_public_roster_sha256': 'fixture-roster'}))
+    (M / 'program.py.txt').write_text('fixture-frozen-control')
+    (M / 'accepted.json').write_text(json.dumps({'code_source_git': ns['CODE_SOURCE']}))
+    db = sqlite3.connect(':memory:')
+    db.executescript('CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT);CREATE TABLE events(at TEXT,sha TEXT,event TEXT);CREATE TABLE entries(record TEXT);')
+    db.execute('INSERT INTO meta VALUES(?,?)', (ns['REFERENCE_KEY'], json.dumps({'state': 'public0958_UI_current_container_pushed'})))
+    row = None
+    for i, candidate in enumerate(ns['CANDIDATES']):
+        D = R / candidate; D.mkdir()
+        model = hashlib.sha256(candidate.encode()).hexdigest()
+        base = {'epoch': 3, 'model_sha256': model, 'training': {'role': 'uniform' if candidate == 'label' else candidate,
+            'slug': 'fixture/trained', 'source_sha256': 'f'*64, 'receipt': {'completed': 1458, 'fixed_final_complete': True}},
+            'publication': {'status': 'actual_S6_label_epoch_private_full_download_size_SHA_verified'}, 'prepared': {}}
+        for mode in ('qualification', 'competition'):
+            text = candidate + '-accepted-fixture-source-' + mode
+            (D / (mode + '.private.py')).write_text(text)
+            base['prepared'][mode] = {'source_sha256': hashlib.sha256(text.encode()).hexdigest()}
+        (D / 'prepared.json').write_text(json.dumps(base))
+        row = {**base, 'state': 'importance_epoch_serving_prepared'}
+        db.execute('INSERT INTO meta VALUES(?,?)', ('licensed-parent-full-epoch-serving:' + model, json.dumps(row)))
+    whole = tmp_path / 'whole'
+    for e in (1, 2, 3):
+        d = whole / ('segment-' + str(e)); d.mkdir(parents=True)
+        (d / 'actual-accepted.json').write_text(json.dumps({'status': 'COMPLETE', 'receipt': {'completed': 486 * e}}))
+        for candidate in ('uniform', 'influence'):
+            d = P / 'full-comparison' / (candidate + '-epoch-' + str(e)); d.mkdir(parents=True)
+            (d / 'actual-accepted.json').write_text(json.dumps({'status': 'COMPLETE', 'receipt': {'completed': 486 * e}}))
+    contract = tmp_path / 'contract.py.txt'
+    contract.write_bytes((ROOT / 'initiative/experiments/competitive-v1/s6-source-label-contrast-v1/recovery_contract.py.txt').read_bytes())
+    claim = tmp_path / 'claim'
+    cap = tmp_path / 'cap.py'; cap.write_text('fixture capacity source')
+    original_Path = Path
+    def remap(path):
+        value = str(path)
+        if value.endswith('/coordinator-claim'): return claim
+        if value.endswith('/GPU-admission-v1/gpu_capacity.py'): return cap
+        if value.endswith('/production-template-v1/recovery_contract.py.txt'): return contract
+        if value == '/tmp/rsna-licensed-parent-whole94-production-20261016-v1': return whole
+        return original_Path(path)
+    monkeypatch.setitem(ns, 'Path', remap)
+    for n, value in [('P', P), ('R', R), ('M', M), ('S', S)]: monkeypatch.setitem(ns, n, value)
+    monkeypatch.setitem(ns, 'bounds', lambda extra=0: None)
+    old_sha = ns['sha']
+    monkeypatch.setitem(ns, 'sha', lambda p: '0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2' if p == cap else old_sha(p))
+    monkeypatch.setenv('SLURM_JOB_ID', 'fixture-CPU')
+
+    def store(path, value):
+        with path.open('x') as f: json.dump(value, f)
+    class FakeRemote:
+        def call(self, service, method, body):
+            state['calls'].append((method, body))
+            if method == 'IntrospectToken': return {'active': True, 'username': 'godlydonuts'}
+            if method == 'GetAcceleratorQuotaStatistics': return {'gpuQuota': {'timeUsed': state['quota_used'], 'timeReserved': '0s', 'totalTimeAllowed': '162000s', 'minimumTimeAllowed': '108000s', 'isPayToScaleEnabled': True}}
+            if method == 'SaveKernel':
+                if state['save'] == 'exception': raise TimeoutError('fixture uncertain SaveKernel')
+                if state['save'] == 'rejected': return {'error': 'Maximum batch GPU session count of 2 reached.'}
+                return {'ref': '/code/' + body['slug'], 'versionNumber': 1, 'kernelId': 999}
+            raise AssertionError(method)
+        def require_absent_kernel(self, slug): return {'absent': True}
+        def kernel(self, method, slug, version):
+            if method == 'GetKernelSessionStatus': return {'status': 'COMPLETE'}
+            candidate = state.get('candidate', 'uniform'); mode = 'competition'
+            D = R / candidate; base = json.loads((D/'prepared.json').read_text()); text=(D/(mode+'.private.py')).read_text()
+            request = ns['request_for'](candidate, mode, base, text)
+            return {'metadata': request, 'blob': {'source': text}}
+        def output_json(self, slug, version, name): return {'CSV_sha256': 'fixture-CSV'}
+        def account(self): return state['account']
+        def submissions(self): return state['submissions']
+        def competition(self, method, body):
+            state['calls'].append((method, body)); assert method == 'CreateCodeSubmission'
+            if state.get('submit_exception'): raise TimeoutError('fixture uncertain CreateCodeSubmission')
+            return {'ref': 998}
+    @contextlib.contextmanager
+    def ledger(*args): yield db
+    w = SimpleNamespace(Remote=FakeRemote, ledger=ledger, verify_account=lambda *args: None,
+        new_json=store, object_hash=lambda v: hashlib.sha256(json.dumps(v,sort_keys=True).encode()).hexdigest(),
+        utcnow=workflow.utcnow, allowance=workflow.allowance, submission_outcome=workflow.submission_outcome)
+    monkeypatch.setitem(ns, 'load', lambda name, path: SimpleNamespace(admission=lambda *args, **kwargs: {'available': state['capacity']}) if path == cap else w)
+    payload = {'phase': 'push', 'candidate': 'uniform', 'mode': 'qualification', 'token': 'fixture-token',
+               'program_sha256': hashlib.sha256(b'fixture-frozen-control').hexdigest()}
+    def get(candidate='uniform'):
+        key='licensed-parent-full-epoch-serving:'+hashlib.sha256(candidate.encode()).hexdigest()
+        return key, json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0])
+    def save_row(candidate, row):
+        key,_=get(candidate);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row),key));db.commit()
+    def accepted_entry(candidate='uniform'):
+        state['candidate']=candidate;D=R/candidate;key,row=get(candidate);base=json.loads((D/'prepared.json').read_text());text=(D/'competition.private.py').read_text();request=ns['request_for'](candidate,'competition',base,text)
+        row.update(state='full_parent_epoch_competition_accepted',competition={'source_sha256':base['prepared']['competition']['source_sha256'],'kernel_id':999,'slug':request['slug'],'receipt':{'CSV_sha256':'fixture-CSV'}});save_row(candidate,row)
+        (D/'competition-actual-accepted.json').write_text(json.dumps({'receipt':row['competition']['receipt'],'CSV_verified_in_RAM':{'test_roster_sha256':'fixture-roster'}}))
+        return {**payload,'candidate':candidate,'mode':'competition'}
+    return SimpleNamespace(ns=ns,state=state,R=R,P=P,M=M,claim=claim,db=db,payload=payload,get=get,save=save_row,accepted_entry=accepted_entry,whole=whole)
+
+
+def mutations(control):
+    return [x for x in control.state['calls'] if x[0] in ('SaveKernel','CreateCodeSubmission')]
+
+
+def test_original_label_fit_must_finish_before_any_new_GPU(control):
+    (control.R/'label/prepared.json').unlink()
+    with pytest.raises(FileNotFoundError): control.ns['execute'](control.payload)
+    assert mutations(control)==[] and not control.claim.exists()
+
+
+def test_busy_claim_does_not_enter_phase_or_mutate(control):
+    control.claim.mkdir()
+    assert control.ns['execute'](control.payload)['status']=='waiting_existing_canonical_claim_no_mutation'
+    assert mutations(control)==[]
+
+
+@pytest.mark.parametrize('gate',['capacity','budget','missing_prior_complete'])
+def test_missing_resource_or_original_completion_never_creates_intent(control,gate):
+    if gate=='capacity':control.state['capacity']=False
+    elif gate=='budget':control.state['quota_used']='161000s'
+    else:(control.whole/'segment-2/actual-accepted.json').unlink()
+    if gate=='missing_prior_complete':
+        with pytest.raises(FileNotFoundError):control.ns['execute'](control.payload)
+    else:assert control.ns['execute'](control.payload)['status'].startswith('waiting_actual_capacity_or_current_complete_VM_caps')
+    assert mutations(control)==[] and not(control.R/'uniform/qualification-push-intent.json').exists()
+
+
+def test_one_GPU_push_then_duplicate_is_refused(control):
+    out=control.ns['execute'](control.payload);assert out['status']=='one_exact_matched_final_qualification_pushed'
+    with pytest.raises(AssertionError):control.ns['execute'](control.payload)
+    assert len(mutations(control))==1 and not control.claim.exists()
+
+
+@pytest.mark.parametrize('response',['exception','rejected'])
+def test_uncertain_or_rejected_Save_retains_claim_and_no_retry(control,response):
+    control.state['save']=response
+    with pytest.raises((TimeoutError,AssertionError)):control.ns['execute'](control.payload)
+    assert control.claim.exists() and control.get()[1]['state']=='full_parent_epoch_qualification_push_uncertain'
+    assert control.ns['execute'](control.payload)['status']=='waiting_existing_canonical_claim_no_mutation'
+    assert len(mutations(control))==1
+
+
+def test_zero_live_slots_never_submits(control):
+    v=control.accepted_entry();v['phase']='submit'
+    with pytest.raises(AssertionError):control.ns['execute'](v)
+    assert mutations(control)==[] and not(control.R/'uniform/entry-submit-intent.json').exists()
+
+
+def test_one_exact_code_entry_and_duplicate_refused(control):
+    v=control.accepted_entry();v['phase']='submit';control.state['account'].update(num_today=0,num_allowed_now=5)
+    out=control.ns['execute'](v);assert out['submission_id']==998 and out['public_CSV_uploaded'] is False
+    with pytest.raises(AssertionError):control.ns['execute'](v)
+    calls=mutations(control);assert len(calls)==1 and calls[0][0]=='CreateCodeSubmission'
+    assert calls[0][1]['fileName']=='submission.csv' and calls[0][1]['kernelVersion']==1
+
+
+def test_uncertain_entry_holds_claim(control):
+    v=control.accepted_entry();v['phase']='submit';control.state['account'].update(num_today=0,num_allowed_now=5);control.state['submit_exception']=True
+    with pytest.raises(TimeoutError):control.ns['execute'](v)
+    assert control.claim.exists() and control.get()[1]['state']=='full_parent_epoch_submit_uncertain'
+    assert control.ns['execute'](v)['status']=='waiting_existing_canonical_claim_no_mutation' and len(mutations(control))==1
+
+
+@pytest.mark.parametrize('prior',['failed','pending','scored'])
+def test_next_model_waits_for_actual_previous_score(control,prior):
+    v=control.accepted_entry('label');v['phase']='eligibility';control.state['account'].update(num_today=0,num_allowed_now=5)
+    key,row=control.get();row['submission_id']=42;control.save('uniform',row)
+    old={'ref':42,'status':'COMPLETE' if prior!='pending' else 'RUNNING'}
+    if prior=='scored':old['publicScore']=.95
+    if prior=='failed':old['errorDescription']='fixture hidden error'
+    control.state['submissions']=[old]
+    if prior=='failed':
+        with pytest.raises(AssertionError):control.ns['execute'](v)
+    else:assert control.ns['execute'](v)['fresh']['eligible']==(prior=='scored')
+    assert mutations(control)==[]
+
+
+def test_pending_hidden_result_is_not_a_score(control):
+    v=control.accepted_entry();v['phase']='outcome';key,row=control.get();row.update(state='full_parent_epoch_submitted',submission_id=998);control.save('uniform',row)
+    control.state['submissions']=[{'ref':998,'status':'RUNNING'}]
+    out=control.ns['execute'](v);assert out['outcome']=='pending_or_unknown' and out['public_score'] is None
+    assert control.get()[1]['state']=='full_parent_epoch_submitted' and mutations(control)==[]
+
+
+def test_public_request_has_full_nine_hour_offline_T4_limit(control):
+    base=json.loads((control.R/'uniform/prepared.json').read_text());text=(control.R/'uniform/competition.private.py').read_text();r=control.ns['request_for']('uniform','competition',base,text)
+    assert r['sessionTimeoutSeconds']==32400 and r['enableInternet'] is False
+    assert r['machineShape']=='NvidiaTeslaT4' and r['kernelDataSources']==['fixture/trained']
+    assert r['competitionDataSources']==['rsna-knee-abnormality-detection'] and r['datasetDataSources']==[]
+
+
+@pytest.fixture
+def entry_runner():
+    import ast
+    source=Path(__file__).with_name('finish_once.py').read_text()
+    fn=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='advance_entry')
+    calls=[];writes=[];responses={};g={'CANDIDATES':('uniform','label','influence'),'ready':set(),'submitted':{},'scored':[],
+        'once':lambda name,value:writes.append(name),'json':json}
+    def call(phase,candidate,mode):
+        calls.append((phase,candidate));return responses[(phase,candidate)]
+    g['run_claim_phase']=call;exec(compile(ast.Module(body=[fn],type_ignores=[]),'entry_scheduling_fixture','exec'),g)
+    return SimpleNamespace(g=g,calls=calls,writes=writes,responses=responses,run=g['advance_entry'])
+
+
+def test_no_entry_for_unqualified_candidate(entry_runner):
+    assert entry_runner.run() is False and entry_runner.calls==[]
+
+
+def test_ready_candidate_zero_slots_does_not_hold_future_GPU_work(entry_runner):
+    e=entry_runner;e.g['ready'].add('uniform');e.responses[('eligibility','uniform')]={'status':'actual_matched_final_entry_eligibility','fresh':{'eligible':False}}
+    assert e.run() is False and e.writes==[] and e.calls==[('eligibility','uniform')]
+
+
+def test_ready_candidate_is_submitted_before_other_candidates_are_ready(entry_runner):
+    e=entry_runner;e.g['ready'].add('uniform');e.responses[('eligibility','uniform')]={'status':'actual_matched_final_entry_eligibility','fresh':{'eligible':True}}
+    e.responses[('submit','uniform')]={'status':'one_exact_matched_final_code_entry_accepted','submission_id':123}
+    assert e.run() is True and e.g['submitted']=={'uniform':123}
+    assert e.calls==[('eligibility','uniform'),('submit','uniform')]
+    assert not any('label' in name for name in e.writes)
+
+
+def test_pending_submission_is_only_observed_not_duplicated(entry_runner):
+    e=entry_runner;e.g['ready'].update(('uniform','label'));e.g['submitted']['uniform']=123
+    e.responses[('outcome','uniform')]={'status':'actual_matched_final_hidden_outcome','outcome':'pending_or_unknown'}
+    assert e.run() is False and e.run() is False
+    assert e.calls==[('outcome','uniform'),('outcome','uniform')] and e.writes==[]
+
+
+def test_actual_score_advances_next_candidate(entry_runner):
+    e=entry_runner;e.g['ready'].add('uniform');e.g['submitted']['uniform']=123
+    e.responses[('outcome','uniform')]={'status':'actual_matched_final_hidden_outcome','outcome':'scored','public_score':.95}
+    assert e.run() is True and e.g['scored']==['uniform']
+    assert e.run() is False and e.calls==[('outcome','uniform')]
+
+
+def test_actual_hidden_failure_stops_remaining_entries(entry_runner):
+    e=entry_runner;e.g['ready'].update(('uniform','label'));e.g['submitted']['uniform']=123
+    e.responses[('outcome','uniform')]={'status':'actual_matched_final_hidden_outcome','outcome':'failed'}
+    with pytest.raises(RuntimeError):e.run()
+    assert e.g['scored']==[] and e.calls==[('outcome','uniform')]

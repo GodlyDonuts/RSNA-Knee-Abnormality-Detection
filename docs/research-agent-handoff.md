@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Verified October17,2026,13:48UTC. Target0.97; actual best0.950.** Read
+**Verified October17,2026,14:21UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
@@ -35,7 +35,7 @@ engineering checks with accuracy.
   checks. Actual CPU946080 additionally verified32real original arrays and
   compiled the GPU recovery;7compiler/5contract groups pass. Single finite
   GPU139230981v1 completed/full recovery accepted13:01UTC;60305finished.
-  Owners60358/61037 now own fixed3label fitting/preservation. E1pushed139234107v1; no completed full fit/score. Neither label source is
+  Owners60358/61037 now own fixed3label fitting/preservation. E1completed139234107v1/486updates; fixed-final3fit/score pending. Neither label source is
   clinical truth.
 - Fresh10:54UTC allowance5used/0available. Existing GPU/entry/publication owners
   retain ownership. Old unstarted equal-rank27596 and R7owner31309 are retired
@@ -45,8 +45,8 @@ engineering checks with accuracy.
   clinical values to tune these experiments.
 
 
-Actual label recovery passed and full3887study E1is running as139234107v1,
-with finite optimizer progress. All13numerical modules remain unchanged.
+Actual label recovery passed; full3887study E1completed as139234107v1 with
+486finite updates. Independent private verification precedes E2/E3. All13numerical modules remain unchanged.
 Completed uniform/influence final models now have exact CPU serving preparation
 and actual snapshot validation, while T4qualification and scores remain absent.
 The new label-final serving path requires actual completed3/1458 and private
@@ -149,13 +149,27 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **258finite optimizer updates**, both
+Actual live Kaggle logs now also verify **486finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
-trainable on the3887study label-only E1. This is real optimization progress,
-not a completed epoch or an accuracy gain.
+trainable on the3887study label-only E1. Epoch1is actually complete; fixed-final3and an accuracy result remain pending.
 
 Latest distinct source**86cfc7b6** is privately preserved at
 **HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
 re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
 label-serving helper hashes now bind published main86cfc7b6; this supplies code
 provenance, not final-model or T4admission. [Exact preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
+
+CPU947337staged one new matched-final scoring coordinator; actualCPU947372
+refused the unfinished treatment before anyGPUintent. It will wait original
+61037final/private proof, then qualify/public-run the uniform, label and influence
+E3models and enter only exact accepted versions under fresh allowance. A ready
+entry need not wait for unrelated qualification; actual previous hidden score
+is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
+owner, not yet armed at this receipt. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+
+**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
+modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
+HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
+and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
+epoch1publication or either GPU push.
+No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).

@@ -1,6 +1,6 @@
 # Research brief
 
-**October17,13:48UTC.** Target0.97; actual best0.950. See
+**October17,14:21UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
 ## What we are testing now
@@ -82,8 +82,8 @@ an observed speedup. The matched source-label arm keeps this uniform recipe and
 changes only target values. No tiny engineering model is competition-eligible.
 
 
-Actual label recovery passed and full3887study E1is running as139234107v1,
-with finite optimizer progress. All13numerical modules remain unchanged.
+Actual label recovery passed; full3887study E1completed as139234107v1 with
+486finite updates. Independent private verification precedes E2/E3. All13numerical modules remain unchanged.
 Completed uniform/influence final models now have exact CPU serving preparation
 and actual snapshot validation, while T4qualification and scores remain absent.
 The new label-final serving path requires actual completed3/1458 and private
@@ -122,3 +122,18 @@ Latest distinct source**86cfc7b6** is privately preserved at
 re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
 label-serving helper hashes now bind published main86cfc7b6; this supplies code
 provenance, not final-model or T4admission. [Exact preservation receipt](../initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
+
+CPU947337staged one new matched-final scoring coordinator; actualCPU947372
+refused the unfinished treatment before anyGPUintent. It will wait original
+61037final/private proof, then qualify/public-run the uniform, label and influence
+E3models and enter only exact accepted versions under fresh allowance. A ready
+entry need not wait for unrelated qualification; actual previous hidden score
+is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
+owner, not yet armed at this receipt. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+
+**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
+modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
+HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
+and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
+epoch1publication or either GPU push.
+No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).

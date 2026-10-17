@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 13:48 UTC.** Our target is **0.97**. Best measured
+**Verified October 17, 2026, 14:28 UTC.** Our target is **0.97**. Best measured
 project public AUC remains **0.950**. The target has not been reached.
 
 | Candidate | Submission | Public AUC | What was demonstrated |
@@ -23,13 +23,17 @@ the only scientific change: images, masks, teacher, sampling, optimizer and the
 fixed three-epoch/1,458-update recipe remain matched. Neither label source is
 clinical ground truth.
 
-- **139234107 v1** is RUNNING on two T4s. Exact source/runtime/inputs were
-  verified; live logs already showed 258 finite optimizer updates.
+- **139234107 v1** completed epoch 1: **486 finite updates** on two T4s.
+  Exact source/runtime/inputs and the completed model/optimizer receipt passed.
 - Its actual GPU recovery **139230981 v1** passed complete old-control replay,
   both-label full/stop/resume state equality and prediction-byte equality.
-- **60358** owns epoch 1. **61037** verifies and privately preserves each completed
-  epoch before resuming epochs 2/3. No completed treatment epoch or new score
-  is claimed. Scientific source remains `990c8ded` throughout the campaign.
+- **60358** finished successfully. **61037** independently verified and privately preserved epoch 1
+  at **HF33d992cfa8157d8b6fd3cc1a547b80838b874b44** (CPU947422; all five objects
+  re-downloaded/size/SHA verified), and resumed epoch 2 once as **139245643 v1**, now RUNNING.
+  Exact source and private offline T4 metadata passed; live optimizer progress
+  for epoch 2 is not yet claimed. The fixed-final model
+  and its accuracy result are still pending. Scientific source remains
+  `990c8ded` throughout the campaign.
 
 [Actual recovery, training and continuation](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 
@@ -89,3 +93,17 @@ and [research-agent handoff](research-agent-handoff.md). Accepted masks/folds an
 protected gold/confirmation remain unchanged. Released encoders saw internal
 studies; head CV on their features is not independent whole-model OOF. Negative
 results and original evidence remain in the research archive.
+
+CPU947337staged one new matched-final scoring coordinator; actualCPU947372
+refused the unfinished treatment before anyGPUintent. It will wait original
+61037final/private proof, then qualify/public-run the uniform, label and influence
+E3models and enter only exact accepted versions under fresh allowance. A ready
+entry need not wait for unrelated qualification; actual previous hidden score
+is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
+owner, not yet armed at this receipt. [Exact coordinator](../initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+
+**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
+modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
+HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
+and is preparing E2. Do not repeat epoch1publication.
+No fixed-final or new score yet. [Actual epoch records](../initiative/audits/s6-label-full-epochs-20261017-v1/README.md).

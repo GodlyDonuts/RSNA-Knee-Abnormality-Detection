@@ -1,0 +1,151 @@
+"""Finite owner: score completed matched finals once after healthy label training."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+UPSTREAM = ROOT / 'artifacts/s6-label-fixed3-followthrough-20261017-v2'
+start = time.monotonic()
+maximum = 20 * 3600
+frozen = {n: hashlib.sha256((L / n).read_bytes()).hexdigest()
+          for n in ('coordinate.py', 'program.py.txt', 'staged.json', 'finish_once.py', 'test_controls.py')}
+assert json.loads((L / 'staged.json').read_text())['program_sha256'] == frozen['program.py.txt']
+source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+archive = 'initiative/audits/matched-final-scoring-coordinator-20261017-v1/'
+assert hashlib.sha256(subprocess.check_output(['git', 'show', source + ':' + archive + 'program.py.txt'], cwd=ROOT)).hexdigest() == frozen['program.py.txt']
+for original in ('coordinate.py', 'finish_once.py', 'test_controls.py'):
+    assert hashlib.sha256(subprocess.check_output(['git', 'show', source + ':' + archive + original + '.txt'], cwd=ROOT)).hexdigest() == frozen[original]
+milestone = json.loads((ROOT / 'artifacts/hf-matched-final-scoring-ready-20261017-v1/verified.json').read_text())
+assert milestone['source_git'] == source and milestone['status'] == 'matched_final_scoring_ready_private_download_size_SHA_verified'
+with (L / 'finish.intent.json').open('x') as f:
+    json.dump({'PID': os.getpid(), 'started_at_unix': time.time(), 'maximum_wall_seconds': maximum,
+        'original_label_owner': 61037, 'controller_source_git': source, 'serving_source_git': '86cfc7b673b11ca9440db312a90507b0097b1be1',
+        'immutable_files': frozen, 'candidates': ['uniform', 'label', 'influence'],
+        'maximum_new_GPU_pushes': 6, 'maximum_new_entries': 3,
+        'no_GPU_until_actual_label3_and_private_proof': True,
+        'new_weight_dataset_or_model_copy': False, 'automatic_uncertain_retry': False}, f, indent=2)
+
+
+def record(value, terminal=False):
+    out = {'PID': os.getpid(), 'elapsed_seconds': time.monotonic() - start, **value}
+    (L / ('finish.result.json' if terminal else 'finish.progress.json')).write_text(json.dumps(out, indent=2) + '\n')
+    print(json.dumps(out), flush=True)
+
+
+def wait(seconds):
+    if time.monotonic() - start + seconds >= maximum:
+        raise TimeoutError('Finite observation expired; preserve all existing live kernels and exact intents')
+    time.sleep(seconds)
+
+
+def call(phase, candidate='uniform', mode='qualification'):
+    assert all(hashlib.sha256((L / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    if time.monotonic() - start >= maximum:
+        raise TimeoutError('Finite owner expired; no additional phase')
+    p = subprocess.run([sys.executable, str(L / 'coordinate.py'), phase, candidate, mode],
+        cwd=ROOT, capture_output=True, text=True, timeout=750)
+    if p.returncode:
+        raise RuntimeError(json.dumps({'phase': phase, 'candidate': candidate, 'mode': mode,
+            'returncode': p.returncode, 'stderr': p.stderr[-2200:], 'preserve_original_intents_no_retry': True}))
+    out = json.loads(p.stdout)
+    record({'phase': phase, 'candidate': candidate, 'mode': mode, 'actual': out})
+    return out
+
+
+def once(name, value):
+    with (L / name).open('x') as f: json.dump(value, f, indent=2)
+
+
+def run_claim_phase(phase, candidate='uniform', mode='qualification'):
+    while True:
+        result = call(phase, candidate, mode)
+        if result['status'] != 'waiting_existing_canonical_claim_no_mutation': return result
+        wait(120)
+
+
+CANDIDATES = ('uniform', 'label', 'influence')
+ready = set()
+submitted = {}
+scored = []
+
+
+def advance_entry():
+    """Submit ready comparisons promptly; wait for each actual prior score."""
+    if len(scored) == len(CANDIDATES):
+        return False
+    candidate = CANDIDATES[len(scored)]
+    if candidate in submitted:
+        result = run_claim_phase('outcome', candidate, 'competition')
+        assert result['status'] == 'actual_matched_final_hidden_outcome'
+        if result['outcome'] == 'failed':
+            raise RuntimeError('Actual hidden failure; stop remaining entries: ' + json.dumps(result))
+        if result['outcome'] == 'scored':
+            once(candidate + '-actual-scored.json', result)
+            scored.append(candidate)
+            return True
+        return False
+    if candidate not in ready:
+        return False
+    result = run_claim_phase('eligibility', candidate, 'competition')
+    assert result['status'] == 'actual_matched_final_entry_eligibility'
+    if not result['fresh']['eligible']:
+        return False
+    once(candidate + '-submit.intent.json', {'candidate': candidate, 'actual_serving_accepted': True,
+        'fresh_eligibility': result['fresh'], 'maximum_code_entries': 1})
+    result = run_claim_phase('submit', candidate, 'competition')
+    assert result['status'] == 'one_exact_matched_final_code_entry_accepted'
+    once(candidate + '-actual-submitted.json', result)
+    submitted[candidate] = result['submission_id']
+    return True
+
+
+try:
+    required = [UPSTREAM / 'epoch-3-actual-accepted.json', UPSTREAM / 'epoch-3-private-verified.json']
+    while not all(p.exists() for p in required):
+        owner = subprocess.run(['ps', '-p', '61037', '-o', 'command='], capture_output=True, text=True)
+        if owner.returncode or 's6-label-fixed3-followthrough-20261017-v2/finish_once.py' not in owner.stdout:
+            raise RuntimeError('Original label owner is no longer live without complete final/private proof; inspect originals, never restart')
+        record({'phase': 'waiting_actual_label_fixed_final_and_original_live_preserver', 'original_live_owner': 61037, 'new_GPU_or_entry': False})
+        wait(120)
+    once('label-prepare.intent.json', {'actual_final_and_private_proof': True, 'no_training_changes': True})
+    result = run_claim_phase('prepare_label', 'label')
+    assert result['status'] == 'actual_completed_privately_preserved_label_final_scoring_prepared'
+    once('label-prepared.json', result)
+    # Prepare inference while today's entry slots may be exhausted. No hidden
+    # entry happens until its own serving proofs and fresh live allowance exist.
+    for candidate in ('uniform', 'label', 'influence'):
+        for mode in ('qualification', 'competition'):
+            once(candidate + '-' + mode + '-push.intent.json', {'candidate': candidate, 'mode': mode, 'maximum_GPU_pushes': 1})
+            while True:
+                result = run_claim_phase('push', candidate, mode)
+                if result['status'] != 'waiting_actual_capacity_or_current_complete_VM_caps_no_mutation': break
+                advance_entry()
+                wait(180)
+            assert result['status'] == 'one_exact_matched_final_' + mode + '_pushed'
+            once(candidate + '-' + mode + '-pushed.json', result)
+            while True:
+                result = run_claim_phase('status', candidate, mode)
+                if result['status'] == 'COMPLETE': break
+                if result['status'] in ('ERROR', 'CANCELLED', 'CANCEL_ACKNOWLEDGED'):
+                    raise RuntimeError('Actual serving terminal failure: ' + json.dumps(result))
+                assert result['status'] in (None, 'RUNNING', 'QUEUED', 'INITIALIZING', 'STARTING', 'UNKNOWN')
+                advance_entry()
+                wait(180)
+            assert 'receipt' in result
+            once(candidate + '-' + mode + '-actual-accepted.json', result)
+            if mode == 'competition':
+                ready.add(candidate)
+                advance_entry()
+    while len(scored) < len(CANDIDATES):
+        if not advance_entry():
+            wait(300)
+    record({'status': 'three_exact_matched_finals_actually_scored', 'maximum_entries': 3}, terminal=True)
+except BaseException as exc:
+    record({'status': 'finite_scoring_owner_stopped_preserve_originals', 'reason': str(exc),
+        'no_uncertain_mutation_retry': True, 'no_existing_GPU_canceled_or_restarted': True}, terminal=True)
+    raise

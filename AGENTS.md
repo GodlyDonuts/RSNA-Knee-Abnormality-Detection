@@ -22,7 +22,7 @@ preserved verbatim at `docs/AGENTS.history-20261017.md`; its old scores,
 pending/running snapshots and next-action instructions are historical. Other
 historical release/plan documents now link back to the current guides.
 
-## Current scientific distinctions, October17 13:48UTC
+## Current scientific distinctions, October17 14:21UTC
 
 - Target0.97; actual best**0.950**, S6entry57300990 COMPLETE/noerror. This
   reproduces external weights/inference. Own independent N3E16 scored0.894;
@@ -51,9 +51,9 @@ historical release/plan documents now link back to the current guides.
 - Recovery observer**60305** finished with actual complete acceptance. Original fitter
   59829 stopped before any prepare intent; replacement**60358** owns one first486-update epoch after that actual
   GPU acceptance. Source990c8ded is published
-  and pinned for the entire fixed3campaign. E1is actuallyRUNNING as139234107v1; source/runtime/inputs and real finite
-  optimizer updates are verified. The scientific recipe remains unchanged.
-- Finite successor**61037** waits60358's actual E1, independently verifies and
+  and pinned for the entire fixed3campaign. E1actuallyCOMPLETED as139234107v1 with486finite updates; source/runtime/inputs
+  and immutable model/optimizer receipts passed. The scientific recipe remains unchanged.
+- Finite successor**61037** now independently verifies and
   privately preserves it, then may resume/preserve E2/E3, retaining the exact
   optimizer/RNG/source and3epoch/1458update recipe. Each push needs fresh actual
   capacity/VM/storage. Same4GiB+16MiB cap; uncertain intents stop. NoDataset or
@@ -165,13 +165,27 @@ all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
 01bda353. Never repeat that milestone.
 [Exact private preservation](initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
 
-Actual live Kaggle logs now also verify **258finite optimizer updates**, both
+Actual live Kaggle logs now also verify **486finite optimizer updates**, both
 allocatedTeslaT4ranks, original inputs accepted and all73,136,096parameters
-trainable on the3887study label-only E1. This is real optimization progress,
-not a completed epoch or an accuracy gain.
+trainable on the3887study label-only E1. Epoch1is actually complete; fixed-final3and an accuracy result remain pending.
 
 Latest distinct source**86cfc7b6** is privately preserved at
 **HFe1820fb6300e5e279d8061c8bce840d2cc2a8e4d**,29objects/130776bytes fully
 re-downloaded/size/SHA verified viaCPU947235. Do not repeat. The exact current
 label-serving helper hashes now bind published main86cfc7b6; this supplies code
 provenance, not final-model or T4admission. [Exact preservation receipt](initiative/audits/hf-matched-final-serving-20261017-v1/README.md).
+
+CPU947337staged one new matched-final scoring coordinator; actualCPU947372
+refused the unfinished treatment before anyGPUintent. It will wait original
+61037final/private proof, then qualify/public-run the uniform, label and influence
+E3models and enter only exact accepted versions under fresh allowance. A ready
+entry need not wait for unrelated qualification; actual previous hidden score
+is required before the next entry. Maximum6GPU pushes/3entries,20hour finite
+owner, not yet armed at this receipt. [Exact coordinator](initiative/audits/matched-final-scoring-coordinator-20261017-v1/README.md).
+
+**14:21UTC actual epoch1 terminal:**139234107v1 COMPLETE,486finite updates,
+modelSHAe78824b3…/292872115bytes; original60358finished. Existing61037completed full-state/private verification at
+HF33d992cfa8157d8b6fd3cc1a547b80838b874b44 viaCPU947422/all5objects verified,
+and E2is now RUNNING as139245643v1/source6882d479… at14:28UTC. Do not repeat
+epoch1publication or either GPU push.
+No fixed-final or new score yet. [Actual epoch records](initiative/audits/s6-label-full-epochs-20261017-v1/README.md).

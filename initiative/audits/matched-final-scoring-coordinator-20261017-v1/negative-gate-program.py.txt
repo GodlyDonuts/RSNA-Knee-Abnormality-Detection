@@ -1,0 +1,16 @@
+
+import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1');M=R/'single-scoring-coordinator-v1';source=(M/'program.py.txt').read_text();assert hashlib.sha256(source.encode()).hexdigest()==v['program_sha256'] and not(R/'label/prepared.json').exists();ns={'__name__':'actual_CPU_unfinished_label_negative_admission'};exec(compile(source,'staged_original_scoring_coordinator','exec'),ns)
+import requests
+original=requests.Session.post;methods=[]
+def read_only(session,url,*args,**kwargs):
+ method=url.rsplit('/',1)[-1];assert method=='IntrospectToken','No mutating or inference API is permitted by this negative check';methods.append(method);return original(session,url,*args,**kwargs)
+requests.Session.post=read_only
+try:
+ try:out=ns['execute'](v)
+ except FileNotFoundError as error:
+  assert str(error.filename).endswith('/final-matched-serving-v1/label/prepared.json');out={'status':'actual_CPU_scoring_refused_unfinished_label_final_before_any_GPU_intent','CPU_job':os.environ['SLURM_JOB_ID'],'program_sha256':v['program_sha256'],'actual_API_methods':methods,'mutating_API_methods_permitted':False,'new_GPU_dataset_entry_model_or_pixel_transfers':0,'original_label_training_changed':False};target=M/'actual-unfinished-label-refusal.json';assert not target.exists();target.write_text(json.dumps(out,indent=2)+'\n');target.chmod(0o600)
+ else:assert out['status']=='waiting_existing_canonical_claim_no_mutation'
+ print(json.dumps(out),flush=True)
+finally:requests.Session.post=original
