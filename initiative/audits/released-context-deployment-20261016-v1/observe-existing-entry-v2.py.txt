@@ -1,0 +1,27 @@
+"""Recover only observation of the original accepted entry. Cannot submit anything."""
+import hashlib,json,os,subprocess,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+L=Path(__file__).resolve().parent;source=L/'run_phase_once.py';program=L/'cloud.py.txt';old=json.loads((L/'submit-when-allowed-result.json').read_text());assert old['status']=='stopped_for_original_context_submission_review';failure=json.loads((L/'outcome-result-3.json').read_text());assert failure['returncode']!=0 and 'FileExistsError' in failure['stderr'] and 'coordinator-claim' in failure['stderr'];assert subprocess.run(['ps','-p','54576','-o','command='],capture_output=True).returncode!=0
+entry=json.loads((L/'actual-submitted.json').read_text());assert entry['submission_id']==57287572 and entry['version']==1
+hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (source,program)};deadline=datetime.fromisoformat('2026-10-18T10:00:00+00:00').timestamp()
+with (L/'existing-entry-observer-v2.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'original_submission_id':57287572,'old_owner_actual_terminal':True,'old_failure':'read-only outcome could not acquire busy canonical claim','maximum_new_submissions':0,'maximum_notebook_pushes':0,'phases':['outcome'],'immutable_files':hashes,'deadline_UTC':'2026-10-18T10:00:00+00:00','original_stopped_result_preserved':True},f,indent=2)
+def progress(phase,**extra):(L/'existing-entry-observer-v2.progress.json').write_text(json.dumps({'phase':phase,'PID':os.getpid(),'UTC':datetime.now(timezone.utc).isoformat(),**extra},indent=2)+'\n')
+def wait(seconds):
+ end=min(deadline,time.time()+seconds)
+ while time.time()<end:time.sleep(min(60,end-time.time()))
+try:
+ while time.time()<deadline:
+  for name,h in hashes.items():assert hashlib.sha256((L/name).read_bytes()).hexdigest()==h
+  progress('reading_actual_existing_entry_only')
+  x=subprocess.run([sys.executable,str(source),'outcome'],capture_output=True,text=True,timeout=700,env={**os.environ,'PYTHONPATH':str(L.parents[1]),'PYTHONNOUSERSITE':'1'})
+  child=L/('observer-v2-child-'+str(len(list(L.glob('observer-v2-child-*.json'))))+'.json');child.write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+  if x.returncode:
+   progress('read_only_observation_retry_wait',error_type='read_only_claim_transport_or_response_failure',no_submission_retry=True);wait(120);continue
+  courier=json.loads(x.stdout);assert courier['returncode']==0;actual=json.loads(courier['stdout'])['actual_submission'];assert actual['ref']==57287572
+  if actual.get('status')=='COMPLETE' and (actual.get('publicScore') is not None or actual.get('errorDescription')):
+   result={'status':'actual_original_context_hidden_terminal_recovered_readonly','actual_submission':actual,'original_submission_id':57287572,'new_submissions':0,'new_notebook_pushes':0};break
+  progress('existing_submission_pending_or_unknown',actual_submission=actual);wait(300)
+ else:result={'status':'finite_existing_context_observation_expired_pending_or_unknown','original_submission_id':57287572,'new_submissions':0}
+except BaseException as e:result={'status':'existing_context_observer_stopped_for_readonly_review','error_type':type(e).__name__,'reason':str(e),'new_submissions':0}
+(L/'existing-entry-observer-v2.result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)

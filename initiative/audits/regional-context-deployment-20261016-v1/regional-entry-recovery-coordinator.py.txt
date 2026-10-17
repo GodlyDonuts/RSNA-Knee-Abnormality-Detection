@@ -1,0 +1,88 @@
+import hashlib,importlib.util,json,os,shutil,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];role=v.get('role');roles=('global_repeat','regional');assert phase in ('dataset','qualification-push','qualification-status','competition-push','competition-status','submit','outcome') and (phase=='dataset' or role in roles)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');assert shutil.disk_usage('/tmp').free>605669242819
+R=Path('/tmp/rsna-regional-context-deployment-20261016-v1');S=Path('/tmp/rsna-regional-context-serving-20261016-v1');F=Path('/tmp/rsna-regional-context-production-20261016-v1');E=Path('/tmp/rsna-regional-context-engine-20261016-v2');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');sha_file=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();prepared={}
+for r in roles:
+ a=json.loads((S/r/'prepared.json').read_text());assert a['status']=='actual_full3887_fixed10_spatial_component_CPU_prepared' and a['role']==r and a['CPU_readout_max_error_vs_original_batched_graph']<=1e-5;component=a['component'];assert component['epoch']==10 and component['completed_updates']==2430 and component['population']==3887;prepared[r]=a
+identity={r:{'component':a['component']['component_sha256'],'reference':a['reference_sha256']} for r,a in prepared.items()};joint=hashlib.sha256(json.dumps(identity,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+def module(name):
+ expected={'workflow':'2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900','publication':'e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336'};assert sha_file(C/(name+'.py'))==expected[name]
+ spec=importlib.util.spec_from_file_location('spatial_cloud_'+name,C/(name+'.py'));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow');p=module('publication');import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts';r.username='godlydonuts'
+assert phase in ('submit','outcome') and role=='regional','This recovery may only submit/observe the original accepted regional version'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Existing canonical coordinator still busy';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'matched_spatial_fixed_final_deployment','phase':phase,'role':role,'job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);weight='7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef';parent=w.read_entry(db,weight);parent_hash=w.object_hash(parent);assert parent['remote_outcome']=='scored' and parent['public_score']=='0.949';key='licensed-spatial-pair:'+joint
+  def save(record):
+   db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES (?,?,?)',(w.utcnow(),joint,record['state']));db.commit()
+  if phase=='dataset':
+   assert not R.exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None;R.mkdir(mode=0o700);(R/'original-cloud-control.py.txt').write_text(v['program']);D=R/'dataset';U=R/'upload';D.mkdir(mode=0o700);U.mkdir(mode=0o700)
+   raw=[q for r0 in roles for q in (F/r0/'fit').rglob('*.pt')];engineering=list((E/'recovery').rglob('*.pt'));assert len(raw)==22 and len(engineering)==6 and all(q.stat().st_size<=17*2**20 for q in raw)
+   for r0 in roles:assert json.loads((F/r0/'publication/verified.json').read_text())['status']=='all10_matched_regional_role_epochs_private_full_download_size_SHA_verified'
+   raw_bytes=sum(q.stat().st_size for q in raw);engineering_bytes=sum(q.stat().st_size for q in engineering);peak=raw_bytes+engineering_bytes+(16+16+17)*2**20;assert peak<=512*2**20
+   w.new_json(R/'zip-funding.json',{'original_head_envelope_bytes':512*2**20,'actual_all22_immutable_paid_raw_bytes':raw_bytes,'actual_all6_engineering_raw_bytes':engineering_bytes,'components_refs_bound_bytes':16*2**20,'new_single_dataset_ZIP_bound_bytes':16*2**20,'single_verification_copy_bound_bytes':17*2**20,'new_peak_bound_bytes':peak,'private_all20_epoch_proofs_exist':True,'no_original_deleted_or_deletion_credit':True,'all_prior_node_required_free_bytes':605669242819,'actual_free_bytes':shutil.disk_usage('/tmp').free})
+   for r0,a in prepared.items():
+    cs=a['component']['component_sha256'];rs=a['reference_sha256'];names=['spatial-'+r0+'-e10-'+cs[:12]+'.pt','spatial-'+r0+'-cpu-reference-'+rs[:12]+'.npy']
+    for name in names:os.link(S/r0/name,D/name)
+    assert sha_file(D/names[0])==cs and sha_file(D/names[1])==rs;os.link(S/r0/'component.json',D/('spatial-'+r0+'-component.json'))
+   assert sha_file(S/roles[0]/'source-permission.txt')==sha_file(S/roles[1]/'source-permission.txt');os.link(S/roles[0]/'source-permission.txt',D/'source-permission.txt')
+   (D/'README.md').write_text('PRIVATE matched spatial-feature adaptation. Attributed nartaa licensed public CoAtNet Dataset nartaa/rsna-knee-publication-swa-weights-20261007 ID12431568v1; unchanged frozen parent. Source/adaptation/noncommercial permission and upstream OAI exposure in source-permission.txt. Same8192-input graph for global_repeat and regional,3887fitting/10epochs2430updates, source25%teacher75%, limit0.5logit. Tiny32x12references are anonymous model probabilities for numerical qualification only, no labels/identifiers/features/images. No independent internal OOF or clinical accuracy claim. All20immutable epochs privately preserved; new models unscored. Keep private.\n')
+   files={q.name:{'bytes':q.stat().st_size,'sha256':sha_file(q)} for q in D.iterdir()};w.new_json(D/'bundle-manifest.json',{'kind':'matched_fixed_final_spatial_components_v1','roles':identity,'files':files,'pair_sha256':joint});files['bundle-manifest.json']={'bytes':(D/'bundle-manifest.json').stat().st_size,'sha256':sha_file(D/'bundle-manifest.json')};archive=p.build_zip(D,files,U/'bundle.zip');assert archive['bytes']<16*2**20
+   slug='godlydonuts/rsna-spatial-heads-'+joint[:12];absence=p.require_absent(r,slug);record={'state':'spatial_dataset_create_intent','pair_sha256':joint,'identity':identity,'prepared':prepared,'dataset_slug':slug,'files':files,'archive':archive,'absence':absence,'roles':{r0:{'state':'not_pushed'} for r0 in roles},'automatic_retry':False};w.new_json(R/'dataset-create-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES (?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+   try:response=p.sdk_create_once(v['token'],slug,'RSNA matched spatial heads '+joint[:12],U);w.new_json(R/'dataset-create-response.json',response)
+   except BaseException:record['state']='spatial_dataset_create_uncertain';save(record);retain=True;raise
+   record['state']='spatial_dataset_create_returned';save(record);started=time.monotonic()
+   while True:
+    try:meta=p.metadata(r,slug);mapping=p.map_members(p.list_files(r,slug),files);break
+    except (ValueError,w.RemoteError):
+     if time.monotonic()-started>300:raise
+     time.sleep(10)
+   verified={name:p.stream_file(r,slug,remote,files[name]) for name,remote in mapping.items()};assert p.metadata(r,slug)==meta;out={'status':'private_matched_spatial_Dataset_all_objects_full_download_size_SHA_verified','dataset':meta,'pair_sha256':joint,'roles':identity,'files':verified,'objects':len(verified),'new_shared_bytes_files':0};w.new_json(R/'dataset-verified.json',out);record.update(state='spatial_dataset_fully_verified',dataset=meta,dataset_verified=out);save(record)
+  else:
+   record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['identity']==identity and record['dataset_verified']['pair_sha256']==joint;ds=record['dataset'];assert p.metadata(r,ds['slug'])==ds;entry=record['roles'][role];a=prepared[role];cs=a['component']['component_sha256'];rs=a['reference_sha256'];step='qualification' if phase.startswith('qualification') else 'competition';source=(S/role/(step+'.py')).read_text();binding=a['compiled'][step];source_sha=binding['source_sha256'];assert hashlib.sha256(source.encode()).hexdigest()==source_sha
+   slug='godlydonuts/rsna-spatial-'+role.replace('_','-')+'-'+('precision' if step=='qualification' else 'e10')+'-'+cs[:12];D=R/role/step
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007',ds['slug']],'competitionDataSources':[] if step=='qualification' else ['rsna-knee-abnormality-detection'],'kernelDataSources':['godlydonuts/rsna-regional-features-511654eced21'] if step=='qualification' else [],'sessionTimeoutSeconds':900 if step=='qualification' else 32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   if phase.endswith('-push'):
+    assert not D.exists()
+    if step=='qualification':assert entry['state']=='not_pushed'
+    else:assert entry['state']=='qualification_accepted' and entry['qualification']['receipt']['component_sha256']==cs
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda s:float(s.removesuffix('s'));assert min(secs(quota['totalTimeAllowed']),secs(quota['minimumTimeAllowed']))-secs(quota['timeUsed'])-secs(quota['timeReserved'])>=2*request['sessionTimeoutSeconds'];absence=r.require_absent_kernel(slug);D.mkdir(parents=True,mode=0o700);w.new_json(D/'push-intent.json',{'slug':slug,'version':1,'source_sha256':source_sha,'component_sha256':cs,'role':role,'request_sha256':w.object_hash(request),'absence':absence,'GPU_quota':quota,'automatic_retry':False});entry['state']=step+'_push_intent';record['state']='spatial_'+role+'_'+entry['state'];save(record)
+    try:response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:entry['state']=step+'_push_uncertain';record['state']='spatial_'+role+'_'+entry['state'];save(record);retain=True;raise
+    entry[step]={'slug':slug,'version':1,'kernel_id':response['kernelId'],'source_sha256':source_sha};entry['state']=step+'_pushed';record['state']='spatial_'+role+'_'+entry['state'];save(record);out={'status':'one_exact_spatial_'+step+'_pushed','role':role,'component_sha256':cs,**entry[step],'competition_submission':False}
+   else:
+    assert entry[step]['slug']==slug and entry[step]['version']==1;actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+    for name in ('isPrivate','enableInternet','machineShape','dockerImage'):assert m.get(name)==request[name]
+    for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(m.get(name,[]))==sorted(request[name])
+    state=r.kernel('GetKernelSessionStatus',slug,1)['status'];out={'status':state,'role':role,'step':step,'slug':slug,'version':1,'component_sha256':cs,'competition_submission':False}
+    if phase.endswith('-status') and state in ('ERROR','CANCELLED') and not (D/'terminal.json').exists():w.new_json(D/'terminal.json',out);entry['state']=step+'_failed';record['state']='spatial_'+role+'_'+entry['state'];save(record)
+    if phase.endswith('-status') and state=='COMPLETE':
+     receipt=r.output_json(slug,1,'spatial-head-precision-accepted.json' if step=='qualification' else 'spatial-MRI-accepted.json');assert receipt['role']==role and receipt['component_sha256']==cs
+     if step=='qualification':assert receipt['status']=='fixed_final_spatial_head_actual_twoT4_precision_accepted' and receipt['CPU_reference_sha256']==rs and receipt['original_feature_index_sha256']=='280b3d04e4506a1fc0771280a16a6c1a9fe6ae3455ffdac8fbbc048f2a343481' and len(receipt['devices'])==2 and all('T4' in q['name'] and q['max_CPU_GPU_probability_error']<=1e-5 and q['original_MRI_feature_studies']==32 and q['max_abs_nonzero_correction']>1e-8 for q in receipt['devices'])
+     else:
+      assert receipt['status']=='fixed_final_spatial_MRI_CSV_complete' and receipt['completed_training_updates']==2430 and receipt['fitted_studies']==3887 and receipt['studies']==3 and receipt['counts']=={'pairs_started':3,'pairs_completed':3,'head_fallbacks':0,'empty_studies':0}
+      import types
+      helper=types.ModuleType('spatial_csv');exec(compile(v['csv_helper'],'spatial_output_csv','exec'),helper.__dict__);checked=helper.verify_csv(helper.download_csv(r,slug,1),v['columns'],v['expected_roster_sha256']);assert checked['CSV_sha256']==receipt['CSV_sha256'];out['CSV_verified']=checked
+     out['receipt']=receipt
+     if not (D/'terminal.json').exists():w.new_json(D/'terminal.json',out);entry[step]['receipt']=receipt;entry['state']=step+'_accepted';record['state']='spatial_'+role+'_'+entry['state'];save(record)
+    if phase=='submit':
+     assert state=='COMPLETE' and entry['state']=='competition_accepted' and not (D/'submit-intent.json').exists();assert r.output_json(slug,1,'spatial-MRI-accepted.json')==entry['competition']['receipt'];account=r.account();slots=w.allowance(db,account);assert slots>0;description='rsna-matched-spatial-'+role+':'+cs;assert not [q for q in r.submissions() if q.get('description')==description];w.new_json(D/'submit-intent.json',{'component_sha256':cs,'role':role,'description':description,'account':account,'fresh_allowance':slots,'version':1,'slug':slug});entry['state']='submit_intent';record['state']='spatial_'+role+'_submit_intent';save(record)
+     try:owner,name=slug.split('/');response=r.competition('CreateCodeSubmission',{'fileName':'submission.csv','kernelOwner':owner,'kernelSlug':name,'kernelVersion':1,'submissionDescription':description});w.new_json(D/'submit-response.json',response);assert type(response.get('ref')) is int and response['ref']>0
+     except BaseException:entry['state']='submit_uncertain';record['state']='spatial_'+role+'_submit_uncertain';save(record);retain=True;raise
+     entry.update(state='submitted',submission_id=response['ref']);record['state']='spatial_'+role+'_submitted';save(record);out={'status':'one_fixed_final_spatial_code_submission_accepted','submission_id':response['ref'],'role':role,'component_sha256':cs,'slug':slug,'version':1,'competition_submission':True}
+    if phase=='outcome':
+     assert entry['state'] in ('submitted','scored','hidden_failed');matches=[q for q in r.submissions() if q['ref']==entry['submission_id']];assert len(matches)==1;found=matches[0];out['actual_submission']={k:found.get(k) for k in ('ref','status','publicScore','errorDescription','totalBytes')}
+     if found.get('status')=='COMPLETE' and found.get('publicScore') is not None:assert not found.get('errorDescription');entry.update(state='scored',public_score=found['publicScore']);record['state']='spatial_'+role+'_scored';save(record)
+     elif found.get('status')=='COMPLETE' and found.get('errorDescription'):entry.update(state='hidden_failed',error=found['errorDescription']);record['state']='spatial_'+role+'_hidden_failed';save(record)
+  assert w.object_hash(w.read_entry(db,weight))==parent_hash
+ print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

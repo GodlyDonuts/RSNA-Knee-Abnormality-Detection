@@ -11,11 +11,15 @@ Actual CPU936139 created Dataset **godlydonuts/rsna-context-head-e10-59ca63ca875
 Actual final-head qualification139054096/v1 COMPLETED on bothT4s:32original MRI feature cases/device, maximumCPU/GPU probability difference **1.1920928955078125e-7**, nonzero bounded correction0.46008795, peak14.07MB/device. No CNN rerun or CSV in qualification. Exact competition source **godlydonuts/rsna-context-e10-59ca63ca875e v1**, kernel139054287/sourcec9c7fdcff56393ac924b656f403879a2717b71dd4f5432d3954e9b195c2a3a18, was then pushed ONCE and COMPLETED full MRI/CSV acceptance in22.319seconds:3pairs complete,0head fallbacks/0empty studies; nonzero correction0.34920657.13columns/470CSVbytes/SHAfaa20e95a1779658237252388407eaf6d835679dd43e4dae5bca18d95496bede. It retains the parent global-rank output, so this three-example CSV can match other parent variants without proving identical hidden behavior. [Actual precision](qualification-actual-terminal.json), [actual MRI/CSV](competition-actual-terminal.json).
 
 Original finite62742 is TERMINAL success; never restart it. The separate single-entry
-owner33015/PID54576 inspected authoritative allowance atOctober17 00:03UTC
-(0used/5available) and submitted exact context v1 ONCE at00:04UTC as **57287572**.
-[Accepted original entry](actual-submitted.json). Its actual hidden status/score/error
-are still unreported in the latest observation; null fields/zero bytes are not a
-failure or a score. [Timestamped observation](actual-hidden-observation.json).
-The original finite owner remains alive and observes the outcome. Never restart
-it, repeat the submission or upload the public three-row CSV. Subsequent useful
-comparisons retain their original spaced owners and fresh daily-allowance checks.
+owner33015/PID54576 submitted exact context v1 ONCE as57287572 atOctober17 00:04UTC
+after fresh authoritative0used/5available. Its read-only outcome step later hit a
+busy atomic claim and stopped; that is an observation failure, not a notebook or
+submission failure. Both original stopped receipts are preserved. A distinct
+read-only observer with an explicit project import path, no new entries/pushes,
+reconciled the actual result: **COMPLETE,0.948,no error,247103output bytes**.
+[Actual scored receipt](actual-scored-recovered.json). This is below the unchanged
+0.949parent point score; do not promote it as an improvement. Original context
+submission is never repeated. The prior waiting spatial/confidence owners also
+stopped on the dependency and did not submit. Only the original accepted
+regional comparison is admitted to a new single-entry recovery owner; global
+repeat and confidence remain prepared/unsubmitted rather than blindly resumed.

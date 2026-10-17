@@ -286,7 +286,7 @@ for this exposed parent. CPU939476 staged the unchanged production sourcec68d875
 CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle.
 Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
 was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
-T4s, all73,136,096parameters trainable and **195finite optimizer updates** in epoch1 (00:13UTC)
+T4s, all73,136,096parameters trainable and **259finite optimizer updates** in epoch1 (latest visible log)
 at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
 [Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
 
@@ -418,8 +418,8 @@ No mutation intent on quota waits; never restart the old84212 or repeat qualifie
 29focused math/recovery/export/compiler checks and Ruff/mypy6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
 [actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
 
-The original full CoAtNet139111324v1 independently continues on bothT4s,195finite
-updates last verified in epoch1 atOctober17 00:13UTC (195/1458total). All four original lossless pixel caches are now
+The original full CoAtNet139111324v1 independently continues on bothT4s,259finite
+updates last verified in epoch1 (259/1458total;53.3%of epoch1). All four original lossless pixel caches are now
 also independently collected/replayed on Newton:3887studies,3.204MBprivate
 registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.
 Original collector80537 is TERMINALsuccess; never restart it or repeat transfers.
@@ -447,6 +447,24 @@ ActualCPU940198 COMPLETED0:0 on the original owning node:32admitted MRI studies,
 values are bit-equal within full384 tensors, which retain44%more original image
 area.69.73%of sampled outer-band pixels were nonzero; this measures image content,
 not lesion coverage or clinical accuracy. No model/labels/GPU/new pixel archive.
-The384 learned-parameter/model/T4/runtime qualification is still to be implemented;
-no384 entry or gain exists. The original main full-model fit and existing entries
+Actual privateT4 qualification139126353v1 COMPLETED: all learned parameter
+values identical at320/384, both32-case inputs exact, cross-GPU384outputs equal,
+control error0.00024855, peak1.934GB/device. The new public source21439b154382 is
+prepared with unchanged weights/bounded MRI serving; public acceptance and a
+hidden score remain unobserved. No384 accuracy gain exists. The original main full-model fit and existing entries
 remain unchanged. [Actual proof and limits](../initiative/audits/licensed-native-field-20261017-v1/README.md).
+
+
+## Current outcome and next comparisons
+
+Context57287572 actually scored **0.948**, below unchanged attributed parent0.949;
+no improvement established, keep the parent as reference. Its failed read-only
+observer and two dependent waiting entry owners are preserved as operational
+failures, not ML/submission failures. New exact regional-only recovery uses the
+original accepted v1 model/source and fresh account allowance from02:00UTC;
+global-repeat/confidence remain unsubmitted, not active owners. Full-field384
+public/one-entry continuation is separately prepared with actual both-T4 proof
+and conservative primary-training/optional-session funding. Original main
+139111324v1 and preservation/epoch-serving/single-entry owners stay healthy.
+No change to their scientific recipe. [Actual score/recovery](../initiative/audits/released-context-deployment-20261016-v1/README.md),
+[field proof and exact public source](../initiative/audits/licensed-native-field-20261017-v1/README.md).
