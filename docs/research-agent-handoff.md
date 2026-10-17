@@ -1,6 +1,6 @@
 # Research-agent handoff
 
-**Verified October17,2026,12:25UTC. Target0.97; actual best0.950.** Read
+**Verified October17,2026,13:08UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
 Implement directly: Devin is unavailable. Do not equate audit counts or passing
@@ -17,13 +17,14 @@ engineering checks with accuracy.
 - Whole94 **finished all1458updates**; all3epochs privately fully verified.
   Old finalE3qualification was rejected on capacity; the ambiguous identity is
   quarantined and old serving/entry controllers stopped. Uniform16E3 completed
-  all1458updates/all3private epochs; influence16final139220032v1 is RUNNING.
+  all1458updates/all3private epochs; influence16final139220032v1 also completed
+  1458/all3private verified, finalHF37abff1d…/CPU946686. No sampled score exists.
 - Expanded ownN3 completed16epochs/5184updates/allprivate verified; weak-final
   macro0.91743158 versus0.92092535 has no established gain. It changes both
   data and updates, so is not a data-only causal comparison.
 - Public0.958 reference ran all8unchanged cells in one separate interactive
   twoT4session and passed final3×13CSV/roster/finite/hash checks. VM stopped.
-  Our139199164v2 is now committed once/Starting/APIunknown, but unqualified and
+  Our139199164v2 is now committed once/Queued/APIunknown, but unqualified and
   unscored. Kaggle changed Docker; never claim original-runtime equality. Do not
   report0.958 as our measured score or submit source-onlyv1.
 - Its **R6 input must remain Datasetv1**: v2 replaced it with R7 weights under
@@ -33,7 +34,8 @@ engineering checks with accuracy.
   actual full-array/private-Dataset/storage admission and32CPU engineering
   checks. Actual CPU946080 additionally verified32real original arrays and
   compiled the GPU recovery;7compiler/5contract groups pass. Single finite
-  owner46281 waits capacity, no GPU recovery/fit/score. Neither label source is
+  GPU139230981v1 completed/full recovery accepted13:01UTC;60305finished.
+  Owners60358/61037 now own fixed3label fitting/preservation. E1pushed139234107v1; no completed full fit/score. Neither label source is
   clinical truth.
 - Fresh10:54UTC allowance5used/0available. Existing GPU/entry/publication owners
   retain ownership. Old unstarted equal-rank27596 and R7owner31309 are retired
@@ -134,6 +136,8 @@ failure. No new model score exists. Do not resurrect stale owners from earlier t
 
 Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
 verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
-First-epoch owner59829's published source pin is fulfilled; it still waits actual
-label GPU recovery and has not built/pushed a production epoch.
+Its source pin990c8ded remains fulfilled for current60358/61037. Original59829
+stopped before any prepare intent; never restart it. Actual recovery139230981
+passed at13:01UTC, and the complete fixed3continuation is owned without a second recovery
+push. [Actual identities and controls](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 [Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).

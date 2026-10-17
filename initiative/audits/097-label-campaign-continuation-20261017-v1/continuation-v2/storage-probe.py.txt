@@ -1,0 +1,65 @@
+import json, os, shutil, subprocess, time
+from pathlib import Path
+
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+C = Path("/tmp/rsna-licensed-parent-pixels-full-20261016-v1")
+paid_cache = 0
+for p in C.glob("shard-*/collected/verified.json"):
+    v = json.loads(p.read_text())
+    assert (p.parent / "pixels.tar").stat().st_size == v["archive_bytes"] and (
+        p.parent / "index.private.json"
+    ).stat().st_size == v["index_bytes"]
+    paid_cache += v["archive_bytes"] + v["index_bytes"]
+paid_whole = sum(
+    json.loads(p.read_text())["retained_original_bytes"]
+    for p in Path("/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1").glob(
+        "epoch-*/verified.json"
+    )
+)
+paid_sampled = sum(
+    json.loads(p.read_text())["retained_original_bytes"]
+    for p in Path("/tmp/rsna-licensed-importance-full-epochs-20261017-v1").glob(
+        "*/epoch-*/verified.json"
+    )
+)
+R = Path("/tmp/rsna-S6-source-label-epochs-20261017-v1")
+f = json.loads((R / "funding-admitted.json").read_text())
+assert (
+    f["CPU_job"] == "945706"
+    and f["new_checkpoint_publication_cap_bytes"] == 4 * 2**30
+    and f["new_control_cap_bytes"] == 16 * 2**20
+)
+paid_label = sum(json.loads(p.read_text())['retained_original_bytes'] for p in R.glob('epoch-*/verified.json'))
+required = (
+    689890867139
+    - paid_cache
+    - paid_whole
+    + 12 * 2**30
+    + 16 * 2**20
+    - paid_sampled
+    + 4 * 2**30
+    + 16 * 2**20
+    - paid_label
+)
+free = shutil.disk_usage("/tmp").free
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+row = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+shared = (int(row[2]) - int(row[1])) * 1024
+files = int(row[6]) - int(row[5])
+assert free > required and shared > 20 * 2**30 and files > 5000
+print(
+    json.dumps(
+        {
+            "status": "fresh_original_and_S6_label_first_epoch_storage_liabilities_fit",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "checked_unix": time.time(),
+            "node39_free_bytes": free,
+            "required_after_all_original_and_S6_liabilities_bytes": required,
+            "shared_free_bytes": shared,
+            "shared_free_files": files,
+            "new_node39_bytes_written": 0,
+            "new_shared_bytes_files": 0,
+        }
+    ),
+    flush=True,
+)

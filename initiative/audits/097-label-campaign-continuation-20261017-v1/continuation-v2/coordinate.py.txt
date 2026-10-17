@@ -1,0 +1,119 @@
+"""Advance only E2/E3 of the original label-only fixed3 campaign."""
+
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+phase = sys.argv[1]
+epoch = int(sys.argv[2])
+assert phase in ("prepare", "push", "status") and epoch in (2, 3)
+first = ROOT / "artifacts/s6-label-first-production-20261017-v1"
+pin = json.loads((first / "source-pin.json").read_text())
+assert pin["source_git"] == "990c8ded67d8158fc57fb1ce6c1a2a8bff9a7612" and pin["published_main"]
+recovery = json.loads(
+    (ROOT / "artifacts/s6-source-label-recovery-20261017-v1/actual-accepted.json").read_text()
+)
+assert (
+    recovery["status"] == "COMPLETE"
+    and recovery["accepted"]["status"] == "actual_fixed_label_only_GPU_recovery_accepted"
+)
+previous = json.loads((L / f"epoch-{epoch - 1}-private-verified.json").read_text())
+assert previous["status"] == "actual_S6_label_epoch_private_full_download_size_SHA_verified"
+assert previous["epoch"] == epoch - 1 and previous["completed"] == 486 * (epoch - 1)
+assert previous["independent_CPU_state_verification"][
+    "actual_S6_label_bytes_and_original_teacher_mask_binding_exact"
+]
+E = ROOT / ".env"
+assert E.stat().st_mode & 0o077 == 0
+creds = {
+    k.strip(): v.strip().strip("\"'")
+    for line in E.read_text().splitlines()
+    for k, sep, v in [line.partition("=")]
+    if sep
+}
+
+
+def run(node, code, payload, name, mem="2G", seconds=510):
+    cmd = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=" + node,
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=" + mem,
+        "--time=00:07:00",
+        "--job-name=" + name,
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+        "-B",
+        "-c",
+        code,
+    ]
+    p = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(cmd),
+        ],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        timeout=seconds,
+    )
+    (L / f"epoch-{epoch}-{phase}-{name}-{time.time_ns()}.json").write_text(
+        json.dumps({"returncode": p.returncode, "stdout": p.stdout, "stderr": p.stderr}, indent=2)
+        + "\n"
+    )
+    assert p.returncode == 0, p.stderr[-2000:]
+    return json.loads(p.stdout)
+
+
+storage = None
+if phase == "push":
+    probe = (L / "storage-probe.py.txt").read_text()
+    storage = run("evc39", probe, {}, "rsna-S6-label-resume-storage", "1G")
+prefix = (
+    (ROOT / "artifacts/public0958-reference-20261017-v1/UI-reconcile-program.py.txt")
+    .read_text()
+    .split("claim=Path(", 1)[0]
+)
+program = prefix + (L / "cloud-program.py.txt").read_text()
+compile(program, "same_original_S6_label_epoch_continuation", "exec")
+out = run(
+    "evc33",
+    program,
+    {
+        "token": creds["KAGGLE_API_TOKEN"],
+        "phase": phase,
+        "epoch": epoch,
+        "source_git": pin["source_git"],
+        "recovery": recovery,
+        "previous_verified": previous,
+        "storage": storage,
+    },
+    "rsna-S6-label-e" + str(epoch) + "-" + phase,
+)
+if out["status"] == "actual_GPU_recovery_gated_continuation_label_epoch_prepared":
+    with (L / f"epoch-{epoch}-prepared.json").open("x") as f:
+        json.dump(out, f, indent=2)
+if out["status"] == "one_actual_recovery_gated_S6_label_continuation_epoch_pushed":
+    with (L / f"epoch-{epoch}-pushed.json").open("x") as f:
+        json.dump(out, f, indent=2)
+if out["status"] == "COMPLETE":
+    with (L / f"epoch-{epoch}-actual-accepted.json").open("x") as f:
+        json.dump(out, f, indent=2)
+print(json.dumps(out), flush=True)

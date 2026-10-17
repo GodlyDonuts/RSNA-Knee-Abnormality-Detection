@@ -1,0 +1,383 @@
+import time
+
+phase = v["phase"]
+epoch = v["epoch"]
+assert type(epoch) is int and epoch in (2, 3)
+R = Path("/tmp/rsna-S6-training-release-20261017-v1")
+T = R / "production-template-v1"
+D = R / "full-fitting-v1" / ("epoch-" + str(epoch))
+previous_dir = R / "full-fitting-v1" / ("epoch-" + str(epoch - 1))
+previous_actual = json.loads((previous_dir / "actual-accepted.json").read_text())
+previous_verified = v["previous_verified"]
+assert (
+    previous_actual["status"] == "COMPLETE"
+    and previous_actual["epoch"] == epoch - 1
+    and previous_verified["status"]
+    == "actual_S6_label_epoch_private_full_download_size_SHA_verified"
+    and previous_verified["epoch"] == epoch - 1
+    and previous_verified["original_Kaggle_kernel"] == previous_actual["kernel_id"]
+    and previous_verified["original_source_sha256"] == previous_actual["source_sha256"]
+)
+gate = json.loads((T / "CPU-admitted.json").read_text())
+assert (
+    gate["CPU_job"] == "946417"
+    and gate["all13_original_numerical_modules_byte_unchanged"]
+    and gate["actual3887_UID_order_old_new_labels_masks_teacher_arrays_and_hashes_verified"]
+)
+compiler = T / "production.py.txt"
+assert (
+    hashlib.sha256(compiler.read_bytes()).hexdigest()
+    == "9e6a7a3dde3a875aa69936392ba7e5fae9ad39dcd700661dfaf2bec313821c2d"
+)
+ns = {"__file__": str(compiler)}
+exec(compile(compiler.read_text(), "actual_GPU_gated_fixed3_label_compiler", "exec"), ns)
+assert (
+    sum(p.stat().st_size for p in R.rglob("*") if p.is_file()) + 3 * 2**20 < 16 * 2**20
+    and shutil.disk_usage("/tmp").free > 611754508347
+)
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+deadline = time.monotonic() + 60
+while True:
+    try:
+        claim.mkdir(mode=0o700)
+        break
+    except FileExistsError:
+        if time.monotonic() > deadline:
+            print(json.dumps({"status": "waiting_original_account_claim_no_mutation"}), flush=True)
+            raise SystemExit(0)
+        time.sleep(3)
+owner = {
+    "kind": "S6_label_only_fixed3_continuation_epoch",
+    "epoch": epoch,
+    "phase": phase,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        k = "licensed-importance-full-fit:S6-label-recovery:" + ns["RECOVERY_SOURCE"]
+        rec = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (k,)).fetchone()[0])
+        assert (
+            rec["state"] == "S6_label_recovery_actual_accepted" and rec["actual"] == v["recovery"]
+        )
+        if phase == "prepare":
+            assert not D.exists()
+            F = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison")
+            G = R / "source-label-recovery-v1"
+            source, binding = ns["build"](
+                (F / "uniform-epoch-1/source.private.py").read_text(),
+                (G / "source_overlay.py.txt").read_text(),
+                (G / "sampled_fit.py.txt").read_text(),
+                v["recovery"],
+                v["source_git"],
+                epoch,
+                previous=previous_actual["receipt"],
+            )
+            sha = hashlib.sha256(source.encode()).hexdigest()
+            slug = "godlydonuts/rsna-s6-label-u16-e" + str(epoch) + "-" + sha[:12]
+            key = "licensed-importance-full-fit:S6-label-full:" + sha
+            assert db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone() is None
+            D.mkdir(mode=0o700, parents=True)
+            (D / "source.private.py").write_text(source)
+            (D / "source.private.py").chmod(0o600)
+            record = {
+                "state": "S6_label_full_prepared",
+                "source_sha256": sha,
+                "slug": slug,
+                "version": 1,
+                "epoch": epoch,
+                "binding": binding,
+                "source_git": v["source_git"],
+                "actual_label_recovery_kernel": v["recovery"]["kernel_id"],
+                "fixed_total_epochs": 3,
+                "fixed_total_updates": 1458,
+                "epoch_target_updates": 486 * epoch,
+                "previous_private_revision": previous_verified["revision"],
+                "future_three_epoch_funding_not_retired": True,
+                "competition_entry": False,
+            }
+            w.new_json(D / "prepared.json", record)
+            db.execute(
+                "INSERT INTO meta(key,value) VALUES(?,?)", (key, json.dumps(record, sort_keys=True))
+            )
+            db.commit()
+            out = {
+                "status": "actual_GPU_recovery_gated_continuation_label_epoch_prepared",
+                "prepared": record,
+                "new_GPU_or_entry": False,
+            }
+        else:
+            prepared = json.loads((D / "prepared.json").read_text())
+            sha = prepared["source_sha256"]
+            slug = prepared["slug"]
+            key = "licensed-importance-full-fit:S6-label-full:" + sha
+            row = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+            source = (D / "source.private.py").read_text()
+            assert hashlib.sha256(source.encode()).hexdigest() == sha
+            F = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison")
+            original = Path("/tmp/rsna-licensed-parent-whole94-production-20261016-v1")
+            proofs = json.loads((original / "actual-original-Kaggle-inputs.json").read_text())[
+                "proofs"
+            ]
+            proposal = json.loads((F / "dataset-verified.json").read_text())
+            deps = [
+                "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+                *[
+                    "godlydonuts/rsna-parent-pixels-full-s" + str(i) + "-" + p["source_sha256"][:12]
+                    for i, p in enumerate(proofs)
+                ],
+            ]
+            deps.append(previous_actual["slug"])
+            request = {
+                "slug": slug,
+                "newTitle": slug.split("/")[1].replace("-", " "),
+                "text": source,
+                "language": "python",
+                "kernelType": "script",
+                "isPrivate": True,
+                "enableGpu": True,
+                "machineShape": "NvidiaTeslaT4",
+                "enableInternet": False,
+                "datasetDataSources": [
+                    "nartaa/rsna-knee-publication-swa-weights-20261007",
+                    "godlydonuts/rsna-parent-fit-targets-48b4485f03b6",
+                    proposal["dataset"]["slug"],
+                    "godlydonuts/rsna-s6-fit-labels-5e34bbf40f4f",
+                ],
+                "kernelDataSources": deps,
+                "competitionDataSources": [],
+                "sessionTimeoutSeconds": 6000,
+                "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                "dockerImagePinningType": "original",
+            }
+
+            def save():
+                db.execute(
+                    "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+                )
+                db.commit()
+
+            if phase == "push":
+                assert (
+                    row["state"] == "S6_label_full_prepared"
+                    and not (D / "push-intent.json").exists()
+                ), "Existing actual or uncertain intent must be reconciled read-only, never retried"
+                p = Path(
+                    "/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py"
+                )
+                assert (
+                    hashlib.sha256(p.read_bytes()).hexdigest()
+                    == "0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2"
+                )
+                spec = importlib.util.spec_from_file_location(
+                    "unchanged_actual_label_first_epoch_capacity", p
+                )
+                cap = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(cap)
+                capacity = cap.admission(db, r, caller="sampling")
+                contract = {}
+                exec(
+                    compile(
+                        (T / "recovery_contract.py.txt").read_text(),
+                        "exact_label_VM_forecast",
+                        "exec",
+                    ),
+                    contract,
+                )
+                assert (
+                    hashlib.sha256((T / "recovery_contract.py.txt").read_bytes()).hexdigest()
+                    == ns["CONTRACT_SHA"]
+                )
+                main = sum(
+                    25200
+                    for e in (1, 2, 3)
+                    if not (original / ("segment-" + str(e)) / "actual-accepted.json").exists()
+                )
+                sampling = sum(
+                    6000
+                    for role in ("uniform", "influence")
+                    for e in (1, 2, 3)
+                    if not (F / (role + "-epoch-" + str(e)) / "actual-accepted.json").exists()
+                )
+                reference = json.loads(
+                    db.execute(
+                        "SELECT value FROM meta WHERE key=?",
+                        (
+                            "public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f",
+                        ),
+                    ).fetchone()[0]
+                )
+                quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})[
+                    "gpuQuota"
+                ]
+                funding = contract["budget"](
+                    quota,
+                    original_main=main,
+                    original_sampling=sampling,
+                    reference_unfinished=reference["state"]
+                    not in (
+                        "public0958_UI_current_container_accepted",
+                        "public0958_UI_current_container_failed",
+                    ),
+                    blend_unfinished=False,
+                    scout_unfinished=False,
+                )
+                funding["required_all_future_VM_seconds"] -= 1800 + (epoch - 1) * 6000
+                funding["completed_privately_verified_label_epochs_retired_seconds"] = (
+                    epoch - 1
+                ) * 6000
+                funding["actual_completed_recovery_cap_retired_seconds"] = 1800
+                funding["allowed"] = (
+                    funding["available_VM_seconds"] >= funding["required_all_future_VM_seconds"]
+                )
+                storage = v["storage"]
+                fresh = (
+                    storage["status"]
+                    == "fresh_original_and_S6_label_first_epoch_storage_liabilities_fit"
+                    and 0 <= time.time() - storage["checked_unix"] < 180
+                )
+                if not capacity["available"] or not funding["allowed"] or not fresh:
+                    out = {
+                        "status": "waiting_actual_capacity_all_future_VM_or_fresh_storage_no_mutation",
+                        "capacity": capacity,
+                        "funding": funding,
+                        "storage_fresh": fresh,
+                        "push_intent_created": False,
+                    }
+                else:
+                    for ref in deps:
+                        assert (
+                            r.kernel("GetKernelSessionStatus", ref, 1).get("status") == "COMPLETE"
+                        )
+                    assert (
+                        r.kernel("GetKernelSessionStatus", v["recovery"]["slug"], 1).get("status")
+                        == "COMPLETE"
+                    )
+                    absence = r.require_absent_kernel(slug)
+                    assert 0 <= time.time() - storage["checked_unix"] < 180, (
+                        "No intent before refreshed storage admission"
+                    )
+                    intent = {
+                        "source_sha256": sha,
+                        "slug": slug,
+                        "version": 1,
+                        "request_sha256": w.object_hash(request),
+                        "absence": absence,
+                        "capacity": capacity,
+                        "funding": funding,
+                        "fresh_node39_storage": storage,
+                        "maximum_VM_seconds": 6000,
+                        "maximum_pushes": 1,
+                        "full_fit_not_diagnostic": True,
+                        "fixed_three_epoch_recipe_preserved": True,
+                        "no_competition_entry": True,
+                        "automatic_retry": False,
+                    }
+                    w.new_json(D / "push-intent.json", intent)
+                    row.update(state="S6_label_full_push_intent", push=intent)
+                    save()
+                    try:
+                        response = r.call("kernels.KernelsApiService", "SaveKernel", request)
+                        w.new_json(D / "push-response.json", response)
+                        assert (
+                            response.get("ref") == "/code/" + slug
+                            and response.get("versionNumber") == 1
+                            and not response.get("error")
+                        )
+                    except BaseException:
+                        row["state"] = "S6_label_full_push_uncertain"
+                        save()
+                        retain = True
+                        raise
+                    row.update(state="S6_label_full_pushed", kernel_id=response["kernelId"])
+                    save()
+                    out = {
+                        "status": "one_actual_recovery_gated_S6_label_continuation_epoch_pushed",
+                        "at_UTC": w.utcnow(),
+                        "CPU_job": os.environ["SLURM_JOB_ID"],
+                        "kernel_id": response["kernelId"],
+                        "slug": slug,
+                        "version": 1,
+                        "source_sha256": sha,
+                        "fixed_total_epochs": 3,
+                        "fixed_total_updates": 1458,
+                        "epoch": epoch,
+                        "epoch_target": 486 * epoch,
+                        "actual_label_recovery_kernel": v["recovery"]["kernel_id"],
+                        "same_original_uniform_recipe_only_labels_changed": True,
+                        "competition_entry": False,
+                    }
+                    w.new_json(D / "pushed.json", out)
+            else:
+                assert row["state"] not in (
+                    "S6_label_full_push_uncertain",
+                    "S6_label_full_push_intent",
+                )
+                actual = r.kernel("GetKernel", slug, 1)
+                m = actual["metadata"]
+                assert actual["blob"]["source"] == source
+                for n in (
+                    "isPrivate",
+                    "enableGpu",
+                    "enableInternet",
+                    "machineShape",
+                    "dockerImage",
+                    "kernelType",
+                ):
+                    assert m[n] == request[n]
+                for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                    assert sorted(m.get(n, [])) == sorted(request[n])
+                state = r.kernel("GetKernelSessionStatus", slug, 1).get("status")
+                out = {
+                    "status": state,
+                    "at_UTC": w.utcnow(),
+                    "kernel_id": row["kernel_id"],
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "epoch": epoch,
+                    "role": "uniform",
+                    "competition_entry": False,
+                }
+                if state == "COMPLETE":
+                    receipt = r.output_json(
+                        slug, 1, "licensed-importance-full-session-accepted.json"
+                    )
+                    assert (
+                        receipt["status"]
+                        == "actual_S6_label_only_uniform16_full_parent_epoch_session_complete"
+                        and receipt["completed"] == 486 * epoch
+                        and receipt["total"] == 1458
+                        and receipt["segment"] == epoch
+                        and receipt["binding"] == prepared["binding"]["binding"]
+                        and receipt["worker_sha256"] == prepared["binding"]["worker_sha256"]
+                        and receipt["fixed_final_complete"] == (epoch == 3)
+                        and len(receipt["devices"]) == 2
+                        and all(
+                            d["GPU"] == "Tesla T4"
+                            and d["completed"] == 486 * epoch
+                            and d["all_BN_buffers_equal_parent"]
+                            and d["trainable_parameters"] == 73136096
+                            for d in receipt["devices"]
+                        )
+                    )
+                    out["receipt"] = receipt
+                    if not (D / "actual-accepted.json").exists():
+                        w.new_json(D / "actual-accepted.json", out)
+                        row.update(state="S6_label_full_actual_complete", receipt=receipt)
+                        save()
+                elif state in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+                    if not (D / "actual-failed.json").exists():
+                        w.new_json(D / "actual-failed.json", out)
+                        row.update(state="S6_label_full_actual_failed", actual=out)
+                        save()
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()

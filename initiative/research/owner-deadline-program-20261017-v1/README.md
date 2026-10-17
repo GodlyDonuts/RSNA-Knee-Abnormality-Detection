@@ -5,13 +5,14 @@ Received October 17, 2026. [Original](original.md) is preserved verbatim with
 are not repository evidence links. Proposed gains and wall times are planning
 assumptions; they are not measured results or a promise of first place.
 
-**Latest actual execution, October17 12:02UTC:** S6entry57300990 remains0.950.
-Whole94 and uniform16 each finished all1458updates/all3private epochs verified;
-influence16final139220032v1 is RUNNING. Exact public0.958copy139199164v2 is
-committed once/Starting, unqualified/unscored; its Docker changed duringSave.
-A real-payload source-label GPU recovery is compiled/CPU-admitted, and sole finite
-owner46281 waits batch capacity after all-future funding passed. No new accuracy
-result exists. [Original current receipts](../../audits/lockin-097-execution-20261017-v2/README.md).
+**Latest actual execution, October17 13:08UTC:** S6entry57300990 remains0.950.
+Whole94, uniform16 and influence16 each completed1458updates/all3private epochs;
+influencefinalHF37abff1d…/CPU946686. Exact public0.958copy139199164v2 remains
+Starting/APIabsent, unqualified/unscored. One actual source-label GPU recovery
+139230981v1 completed/full recovery accepted under verified returned title-derived identity; no duplicate
+push. Read-only60305 and first-epoch60358 plus successor61037 connect actual
+recovery to fixed3training/private preservation. E1pushed139234107v1; no completed full fit or new score
+is claimed. [Actual continuation](../../audits/097-label-campaign-continuation-20261017-v1/README.md).
 All decisions/triage below are dated historical progression; current guides and
 actual original receipts govern execution, not stale pending states below.
 

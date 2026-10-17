@@ -1,0 +1,108 @@
+"""Exercise the exact admission program with synthetic filesystem/quota facts."""
+
+import builtins
+import contextlib
+import io
+import json
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+
+HERE = Path(__file__).resolve().parent
+source = (HERE / "storage-probe.py.txt").read_text()
+checks = []
+
+
+def run(free=10**15, shared_files=10000, funding_job="945706"):
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+
+        def fake_path(name):
+            return root / str(name).lstrip("/")
+
+        funding = fake_path("/tmp/rsna-S6-source-label-epochs-20261017-v1")
+        funding.mkdir(parents=True)
+        (funding / "funding-admitted.json").write_text(
+            json.dumps(
+                {
+                    "CPU_job": funding_job,
+                    "new_checkpoint_publication_cap_bytes": 4 * 2**30,
+                    "new_control_cap_bytes": 16 * 2**20,
+                }
+            )
+        )
+        for path, value in [("epoch-001/verified.json", 101), ("epoch-002/verified.json", 211)]:
+            p = funding / path
+            p.parent.mkdir()
+            p.write_text(json.dumps({"retained_original_bytes": value}))
+        a = fake_path(
+            "/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1/epoch-003/verified.json"
+        )
+        a.parent.mkdir(parents=True)
+        a.write_text(json.dumps({"retained_original_bytes": 41}))
+        b = fake_path(
+            "/tmp/rsna-licensed-importance-full-epochs-20261017-v1/uniform/epoch-003/verified.json"
+        )
+        b.parent.mkdir(parents=True)
+        b.write_text(json.dumps({"retained_original_bytes": 73}))
+        prior = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+        modules = {
+            "pathlib": SimpleNamespace(Path=fake_path),
+            "os": SimpleNamespace(
+                uname=lambda: SimpleNamespace(nodename="evc39"),
+                environ={"SLURM_JOB_ID": "synthetic-no-job"},
+            ),
+            "shutil": SimpleNamespace(disk_usage=lambda _: SimpleNamespace(free=free)),
+            "subprocess": SimpleNamespace(
+                check_output=lambda *a, **kw: (
+                    f"/home/sa305415 100 200000000 0 0 50 {shared_files} 0\n"
+                )
+            ),
+        }
+        original_import = builtins.__import__
+
+        def import_module(name, *a, **kw):
+            return modules[name] if name in modules else original_import(name, *a, **kw)
+
+        output = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(output):
+                exec(
+                    compile(source, "actual_continuation_storage_admission", "exec"),
+                    {"__builtins__": {**vars(builtins), "__import__": import_module}},
+                )
+        finally:
+            assert prior == {
+                str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()
+            }, "Admission must not write any file"
+        return json.loads(output.getvalue())
+
+
+result = run()
+expected = 689890867139 - 41 + 12 * 2**30 + 16 * 2**20 - 73 + 4 * 2**30 + 16 * 2**20 - 101 - 211
+assert result["required_after_all_original_and_S6_liabilities_bytes"] == expected
+checks.append("exact_original_and_label_future_liabilities_paid_only_once")
+for kwargs in [{"free": expected - 1}, {"shared_files": 5050}, {"funding_job": "unadmitted"}]:
+    try:
+        run(**kwargs)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Adverse reserve/funding condition was admitted")
+checks.extend(
+    [
+        "actual_low_node_free_refused_before_write",
+        "actual_shared_file_reserve_refused_before_write",
+        "unadmitted_source_funding_refused_before_write",
+    ]
+)
+print(
+    json.dumps(
+        {
+            "status": "exact_storage_program_four_synthetic_adverse_checks_passed",
+            "checks": checks,
+            "new_remote_or_GPU_actions": 0,
+            "actual_capacity_or_accuracy_claim": False,
+        }
+    )
+)

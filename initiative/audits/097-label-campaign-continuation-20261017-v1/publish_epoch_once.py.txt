@@ -1,0 +1,132 @@
+"""One original completed label-only epoch; private full-state proof and preservation."""
+
+import hashlib
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+epoch = int(sys.argv[1])
+assert 1 <= epoch <= 3
+original = (
+    (ROOT / "artifacts/s6-label-first-production-20261017-v1/actual-accepted.json")
+    if epoch == 1
+    else L / f"epoch-{epoch}-actual-accepted.json"
+)
+actual = json.loads(original.read_text())
+assert actual["status"] == "COMPLETE" and actual["epoch"] == epoch
+science = actual["receipt"]["binding"]["source_git"]
+assert science == "990c8ded67d8158fc57fb1ce6c1a2a8bff9a7612"
+base = "initiative/experiments/competitive-v1/s6-source-label-contrast-v1/"
+
+
+def git_file(name):
+    return subprocess.check_output(["git", "show", science + ":" + name], cwd=ROOT, text=True)
+
+
+validator = git_file(base + "epoch_verify.py.txt")
+modules = {
+    n: git_file(n)
+    for n in (
+        "rsna/competitive/licensed_parent_epoch.py",
+        "rsna/competitive/licensed_importance_epoch.py",
+    )
+}
+helper = {
+    "s6_labels/source_overlay.py.txt": base + "source_overlay.py.txt",
+    "s6_labels/sampled_fit.py.txt": base + "sampled_fit.py.txt",
+}
+files = {
+    n: git_file(helper.get(n, n)) for n in actual["receipt"]["binding"]["source_module_sha256"]
+}
+assert all(
+    hashlib.sha256(s.encode()).hexdigest()
+    == actual["receipt"]["binding"]["source_module_sha256"][n]
+    for n, s in files.items()
+)
+program = (L / "publish-program.py.txt").read_text()
+compile(program, "private_S6_label_epoch_preservation", "exec")
+E = ROOT / ".env"
+assert E.stat().st_mode & 0o077 == 0
+creds = {
+    k.strip(): v.strip().strip("\"'")
+    for line in E.read_text().splitlines()
+    for k, sep, v in [line.partition("=")]
+    if sep
+}
+with (L / f"epoch-{epoch}-publication.intent.json").open("x") as f:
+    json.dump(
+        {
+            "epoch": epoch,
+            "original_kernel": actual["kernel_id"],
+            "source_git": science,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "validator_sha256": hashlib.sha256(validator.encode()).hexdigest(),
+            "maximum_checkpoint_publication_campaign_bytes": 4 * 2**30,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+cmd = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=6G",
+    "--time=00:25:00",
+    "--job-name=rsna-S6-label-e" + str(epoch) + "-private-preserve",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "CUDA_VISIBLE_DEVICES=",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    program,
+]
+p = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(cmd),
+    ],
+    input=json.dumps(
+        {
+            "actual": actual,
+            "validator_source": validator,
+            "validator_modules": modules,
+            "validator_sha256": hashlib.sha256(validator.encode()).hexdigest(),
+            "validator_git": science,
+            "own_files": files,
+            "kaggle_token": creds["KAGGLE_API_TOKEN"],
+            "hf_token": creds["HF_TOKEN"],
+        }
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1550,
+)
+(L / f"epoch-{epoch}-publication.result.json").write_text(
+    json.dumps({"returncode": p.returncode, "stdout": p.stdout, "stderr": p.stderr}, indent=2)
+    + "\n"
+)
+assert p.returncode == 0, p.stderr[-2200:]
+out = json.loads(p.stdout)
+with (L / f"epoch-{epoch}-private-verified.json").open("x") as f:
+    json.dump(out, f, indent=2)
+print(json.dumps(out), flush=True)

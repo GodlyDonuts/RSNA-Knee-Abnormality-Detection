@@ -1,0 +1,215 @@
+{
+  "status": "COMPLETE",
+  "kernel_id": 139230981,
+  "slug": "godlydonuts/rsna-private-fixed-source-label-recovery",
+  "version": 1,
+  "source_sha256": "0a6f6c5679011625f3fd0098aa8a6b5c37120de7e02a0f5d9fe09d4ee975b9de",
+  "at_UTC": "2026-10-17T13:01:31.401494+00:00",
+  "diagnostic_only": true,
+  "new_Datasets_fits_or_entries": 0,
+  "accepted": {
+    "status": "actual_fixed_label_only_GPU_recovery_accepted",
+    "production_admitted": false,
+    "competition_entry": false
+  },
+  "receipt": {
+    "all_retained_bytes": 5856513258,
+    "clinical_or_competition_accuracy_claim": false,
+    "competition_entry": false,
+    "disjoint_engineering_studies": 16,
+    "distinct_final_learned_tensors": 411,
+    "elapsed_seconds": 500.85171771299997,
+    "epochs": 2,
+    "fit_studies": 16,
+    "full_inference_windows": 94,
+    "full_production_fit_dispatched": false,
+    "original_control_complete_state_and_predictions_exact_except_label_binding": true,
+    "original_recovery_source_sha256": "a01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554",
+    "phases": [
+      {
+        "elapsed_seconds": 114.95752184799994,
+        "phase": "full",
+        "role": "original_source"
+      },
+      {
+        "elapsed_seconds": 151.6178240260001,
+        "phase": "stop",
+        "role": "original_source"
+      },
+      {
+        "elapsed_seconds": 250.43067179700006,
+        "phase": "resume",
+        "role": "original_source"
+      },
+      {
+        "elapsed_seconds": 354.30284421500005,
+        "phase": "full",
+        "role": "released_S6_source"
+      },
+      {
+        "elapsed_seconds": 390.963361522,
+        "phase": "stop",
+        "role": "released_S6_source"
+      },
+      {
+        "elapsed_seconds": 488.62889644000006,
+        "phase": "resume",
+        "role": "released_S6_source"
+      }
+    ],
+    "private_target_sha256": "87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834",
+    "released_S6_target_sha256": "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9",
+    "roles": {
+      "original_source": {
+        "actual_original_accepted_control_complete_state_and_predictions_exact_except_label_binding": true,
+        "all16_full94_two_view_prediction_bytes_equal": true,
+        "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal": true,
+        "devices": [
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 85.2009037580001,
+            "finite_updates": 4,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 0,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          },
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 85.178437971,
+            "finite_updates": 4,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 1,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          }
+        ],
+        "finite_updates": 4,
+        "label_binding": {
+          "diagnostic_only": true,
+          "mask_array_sha256": "f612f8ec8c834489358aacb9f1771b9ee52f13679a98de0fed079fd6a5c94431",
+          "new_label_array_sha256": "62b4c0dec9e1c508e970ce377fcf5796bdc8df5082166526044f5dad148b1da8",
+          "original_label_array_sha256": "62b4c0dec9e1c508e970ce377fcf5796bdc8df5082166526044f5dad148b1da8",
+          "original_target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+          "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+          "parent_teacher_array_sha256": "be86a295b35018317100fea7b2ed6a1587aa7de60c99d374402c8a567e10d4b6",
+          "population": 16,
+          "population_sha256": "491611fde4954ad2d29b486b711fc66fe7bb99ddf8c001ae3687d247978ddc99",
+          "released_S6_raw_source_sha256": null,
+          "role": "original_source",
+          "target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+          "version": "fixed_S6_source_label_only_overlay_v1"
+        },
+        "prediction_SHA": "dac71137a4fd02403ccf3bc6a46268252d1e75087f5c27e54c3a2686eacc2618",
+        "proposal_SHA": "dc6cb876857f8e8d000ae816ea967952d4e1d4019a8c3aac7592b2a0298f691a"
+      },
+      "released_S6_source": {
+        "all16_full94_two_view_prediction_bytes_equal": true,
+        "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal": true,
+        "devices": [
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 85.92571011399991,
+            "finite_updates": 4,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 0,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          },
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 86.08741175799992,
+            "finite_updates": 4,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 1,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          }
+        ],
+        "finite_updates": 4,
+        "label_binding": {
+          "diagnostic_only": true,
+          "mask_array_sha256": "f612f8ec8c834489358aacb9f1771b9ee52f13679a98de0fed079fd6a5c94431",
+          "new_label_array_sha256": "3474c981d3788f7ecff10ae4e1ec16ec0122a722789d5a372e02c1fdf3cf5b2e",
+          "original_label_array_sha256": "62b4c0dec9e1c508e970ce377fcf5796bdc8df5082166526044f5dad148b1da8",
+          "original_target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+          "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+          "parent_teacher_array_sha256": "be86a295b35018317100fea7b2ed6a1587aa7de60c99d374402c8a567e10d4b6",
+          "population": 16,
+          "population_sha256": "491611fde4954ad2d29b486b711fc66fe7bb99ddf8c001ae3687d247978ddc99",
+          "released_S6_raw_source_sha256": "8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6",
+          "role": "released_S6_source",
+          "target_file_sha256": "5e34bbf40f4f5b21638d2a1dad853912dee98533964a5236a8f5328bd3d388a9",
+          "version": "fixed_S6_source_label_only_overlay_v1"
+        },
+        "prediction_SHA": "4671aa3ee21b79c589b21d0c5b377e05c5ef5ddfecd42ffaf4203a7fd5e569d9",
+        "proposal_SHA": "dc6cb876857f8e8d000ae816ea967952d4e1d4019a8c3aac7592b2a0298f691a"
+      }
+    },
+    "same_initial_complete_model_and_allrank_RNG_between_roles_and_original": true,
+    "sampled_windows": 16,
+    "source_mode": "diagnostic_only_not_competition_model",
+    "source_module_sha256": {
+      "rsna/competitive/checkpoint.py": "a70ef871e200bac89e4f071d9394ce8b0abc1c2ba0017eaba3692d25dde31e21",
+      "rsna/competitive/licensed_full_bag.py": "74a4e19eb37570f66754fa3b4d8e2e117fadb7cc91c61345efc4e962cbf3983f",
+      "rsna/competitive/licensed_importance.py": "fc3fcedfc52fc922b82f7cb8e2034b6d7526d65c536c2ae8163aa8de1d3dafe4",
+      "rsna/competitive/licensed_importance_train.py": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+      "rsna/competitive/licensed_parent_train.py": "cf238d9154806a51cd92c80a61e39ca344ef865558305db51cbfdc86f89eeec0",
+      "rsna/competitive/mil_sampling.py": "f04b4e9ff0874d1809742fed4b9fafc57e77255a9908e2d56c7fdf8203a0a54e",
+      "rsna/competitive/released_context.py": "4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9",
+      "rsna/competitive/released_context_infer.py": "4dbeb46a3e647a840047e6cede75328a9945a57ec2db4261250d03e28452cc34",
+      "rsna/competitive/released_context_train.py": "5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f",
+      "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+      "s6_labels/sampled_fit.py.txt": "5621ee32f127c58d9e38b78fa2edb51e8f45f8cfb2e03da1511e4130a6794fbd",
+      "s6_labels/source_overlay.py.txt": "f6414308fd4506cf2719980e5657ec2c038e996a6bc5651710b48b002bca01f5"
+    },
+    "status": "actual_S6_label_only_uniform16_twoT4_MRI_recovery_accepted",
+    "updates_per_role": 4,
+    "worker_source_sha256": "7b7a1bf3e5a8860a68067d023b2c63b39fc09169b5c626ca769f13b6e238037c",
+    "world_size": 2
+  }
+}

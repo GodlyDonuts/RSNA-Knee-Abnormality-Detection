@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 12:43 UTC.** The owner targets **0.97**. Best actual
+**Verified October 17, 2026, 13:08 UTC.** The owner targets **0.97**. Best actual
 project public AUC remains **0.950**; the target has not been reached. Read the
 [research brief](research-brief.md), [execution handoff](codex-continuation.md)
 and [research-agent handoff](research-agent-handoff.md). Original receipts and
@@ -28,14 +28,16 @@ leaderboard first place was0.969; no current leading method is inferred.
 its complete learned state and privately preserved all5final objects at
 HFf47a884610cb9dc930827ba539ee3fcc77a4b050. Whole94 also finished all3epochs;
 all six immutable epochs are fully verified and must not be republished. Influence
-sampling is now in its final epoch, exact139220032v1 actuallyRUNNING. Completion
-is not a measured accuracy improvement.
+139220032v1 also finished1458; CPU946686 privately verified all5final objects at
+HF37abff1d3c521533738d6036f0d825d0c82e51ee. Both sampling roles/all6epochs are
+complete/private verified; original34538 finished successfully. Completion is
+not a measured accuracy improvement.
 
 **The stronger public reference now has one committed v2.** Notebook139199164
 has8unchanged code cells, private/offline/twoT4, with originalR6Datasetv1 retained.
 Kaggle changed Docker duringSave&RunAll; CPU946191 recorded the difference and
 requires actual committed-runtime/input/output acceptance. Latest API status is
-absent and UI saysStarting. Prior interactive success is separate; this is not
+absent; actual v2logs now explicitly showQueued/twoT4/output0B. Prior interactive success is separate; this is not
 our0.958score. Never submit source-onlyv1 or duplicate the newSave.
 
 **The source-label test now has a real-payload GPU recovery compiled and CPU-
@@ -44,10 +46,23 @@ New source0a6f6c567901… preserves all original numerical modules and tests com
 old-control replay plus both-label-role full/stop1/resume. Seven compiler checks
 and five contract groups pass. The fixed treatment uses the same3887studies,
 uniform16draws, inputs, teacher, objective and optimizer, changing only source labels.
-Single finite owner46281 waits capacity and may push this one diagnostic only;
-no treatment GPU recovery or fit has run. Fresh12:02VMfunding passed110405.97
-available/66000required, including all old commitments and the24000second label
-campaign. Dataset12653444v1 and4GiB+16MiB storage funding are already verified.
+The one actual recovery139230981v1 completed and passed at13:01UTC. Kaggle created it under its
+title-derived slug`godlydonuts/rsna-private-fixed-source-label-recovery`; original
+CPU946629 failed only the returned-reference assertion. CPU946659 verified the
+actual source/runtime/inputs;946681 registered it without repetition. Read-only
+60305 finished after complete state/prediction acceptance. Both labels replayed
+full/stop/resume exactly;411learned tensors differ across roles. This is an
+engineering pass, not accuracy. Actual E1was pushed once as139234107v1 at13:04UTC, full3887studies/486updates
+for segment1of3; no completed full fit or new score is claimed.
+Dataset12653444v1 and4GiB+16MiB storage funding are already verified.
+
+**The complete label-training follow-through is now owned.** First owner60358
+owns E1after actual recovery; distinct successor61037 waits that actual E1,
+fully verifies/preserves it privately, then advances exact E2/E3. Source990c8ded,
+3887studies, original optimizer/RNG/LR and fixed1458updates remain unchanged.
+Fresh capacity/VM/storage precede each push; uncertainty stops. NoDataset or
+competition-entry path exists. Original46281/59829 stopped; never restart them.
+[Original recovery identity and continuation](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 
 The zero-output GPU32scout was canceled once; it isCANCEL_ACKNOWLEDGED, and its
 CPU owners retired. During that transition an old capacity race caused the
@@ -73,10 +88,11 @@ observer**47637** is active; it cannot push, run or submit another model.
 |---|---|---|
 | Whole94 fixed3 | 139172537v1 | Complete1458; all3private epochs verified |
 | UniformIID16 fixed3 | 139192503v1 | Complete1458; all3private epochs verified |
-| InfluenceIID16 final | **139220032v1**, sole34538 | RUNNING; first2epochs already private verified |
-| Exact public0.958 reference | **139199164v2** | Save&RunAll committed once;Starting/unknown, no acceptance/entry |
-| Source-label recovery | **46281** finite CPU owner | Funding passed; waits one free batch lane; no push intent yet |
-| First-label-epoch follow-through | **59829** finite CPU owner | Published source990c8ded pinned; waits actual recovery; may admit one first epoch only, no entry/publishing/E2 authority |
+| InfluenceIID16 final | **139220032v1**, terminal34538 | Complete1458; all3epochs private verified |
+| Exact public0.958 reference | **139199164v2** | Save&RunAll committed once;actualv2logsQueued/APIunknown, no acceptance/entry |
+| Source-label recovery | **139230981v1**, read-only60305 | COMPLETE/full recovery accepted; no duplicate push |
+| First-label-epoch follow-through | **60358** finite CPU owner | Source990c8ded pinned; actual recovery passed; E1actuallyRUNNING139234107v1, exact source/runtime/inputs verified13:07UTC |
+| Fixed3label successor | **61037** finite CPU owner | Waits actual E1; private verifies/preserves1–3 and may resume2/3; no entry |
 | S6 CPU32 scout | **139205901v2**,40709 | Existing CPU run alive; no new MRI result collected |
 | S6 GPU32 scout | 139210569v1 | Canceled while queued/zerooutput;34237/34308 retired |
 | Old finalE3serving/entry | old17301/17317/28090 | Stopped; rejected qualification identity quarantined |
@@ -114,6 +130,6 @@ verified at HF7a14fc051d913b14b8e2895cc8db60fa6166e2ce.
 
 Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
 verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
-First-epoch owner59829's published source pin is fulfilled; it still waits actual
-label GPU recovery and has not built/pushed a production epoch.
+The published source pin remains990c8ded through all3label epochs. Original59829
+stopped with no prepare intent; current60358/61037 own the actual follow-through.
 [Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).

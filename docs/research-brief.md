@@ -1,6 +1,6 @@
 # Research brief
 
-**October17,12:25UTC.** Target0.97; actual best0.950. See
+**October17,13:08UTC.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
 ## What we are testing now
@@ -9,7 +9,7 @@ First reproduce the exact stronger public reference before changing it. The
 public0.958 ensemble completed our unchanged8cell interactive two-T4 run:
 CoAtNet384/224, four-foldR6v1 with physical/extent/state information and fluid/
 state stackers, then a three-checkpoint2.5D reader. FinalCSV checks passed;
-committed v2 is Starting/unknown, with no acceptance or hidden score. Kaggle
+committed v2 is Queued/APIunknown, with no acceptance or hidden score. Kaggle
 changed its Docker; exact source and actual runtime acceptance remain separate. These are jointly different
 mechanisms, not evidence that resolution or a particular fold alone causes a gain.
 [Actual qualification](../initiative/audits/public0958-reference-20261017-v1/interactive-v1/README.md).
@@ -22,14 +22,17 @@ parent supervision/optimizer/1458updates, replacing only source labels. It
 matches the existing uniform control, avoiding a slower second whole94 arm.
 Real full-array/private Dataset proofs and32synthetic CPU engine checks passed.
 CPU946080 also compiled the distinct GPU recovery and verified32real original
-feature/target arrays;7compiler/5contract groups pass. Sole finite owner46281
-waits capacity; actual treatment GPU recovery/fitting remain absent.
+feature/target arrays;7compiler/5contract groups pass. Actual139230981v1 completed/full recovery accepted13:01UTC,
+source/runtime/inputs verified under its returned title-derived identity, without
+a second push. Complete recovery passed, no full fit or score yet. Owners60358/61037
+connect actual acceptance to the entire fixed3label campaign and private epochs.
 [Protocol and original evidence](../initiative/experiments/competitive-v1/s6-source-label-contrast-v1/README.md).
 
 Third finish evaluating the owned learned checkpoints. Whole94 completed all
 3epochs/1458updates and privately verified all epochs. The original E3qualification push was rejected on capacity and its ambiguous
 identity quarantined; old serving/entry controllers stopped. Uniform16 completed
-all1458updates/all3private epochs verified; influence16final139220032v1 is RUNNING.
+all1458updates/all3private epochs verified; influence16final139220032v1 also
+completed1458/all3private epochs, finalHF37abff1d…. Original34538 finished.
 Their actual scores may be positive or negative; completion is not improvement.
 
 ## Why the score gap is not just compute

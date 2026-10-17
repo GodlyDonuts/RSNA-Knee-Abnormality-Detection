@@ -1,0 +1,159 @@
+"""One finite successor: preserve E1, then resume/preserve E2/E3, no entry."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+ROOT = L.parents[1]
+first = ROOT / "artifacts/s6-label-first-production-20261017-v1"
+first_owner = ROOT / "artifacts/s6-label-first-followthrough-20261017-v2"
+start = time.monotonic()
+maximum = 14 * 3600
+frozen = {
+    n: hashlib.sha256((L / n).read_bytes()).hexdigest()
+    for n in (
+        "coordinate.py",
+        "cloud-program.py.txt",
+        "publish_epoch_once.py",
+        "publish-program.py.txt",
+        "storage-probe.py.txt",
+    )
+}
+with (L / "finish.intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "started_at_unix": time.time(),
+            "maximum_seconds": maximum,
+            "source_git": "990c8ded67d8158fc57fb1ce6c1a2a8bff9a7612",
+            "first_epoch_owner": 60358,
+            "maximum_continuation_GPU_pushes": 2,
+            "continuation_epochs": [2, 3],
+            "maximum_each_VM_seconds": 6000,
+            "private_epoch_publications": [1, 2, 3],
+            "maximum_source_label_retained_bytes": 4 * 2**30,
+            "fixed_total_updates": 1458,
+            "new_dataset_or_competition_entries": 0,
+            "automatic_retry_uncertain_mutation": False,
+            "immutable_files": frozen,
+        },
+        f,
+        indent=2,
+    )
+
+
+def record(value, terminal=False):
+    out = {"PID": os.getpid(), "elapsed_seconds": time.monotonic() - start, **value}
+    (L / ("finish.result.json" if terminal else "finish.progress.json")).write_text(
+        json.dumps(out, indent=2) + "\n"
+    )
+    print(json.dumps(out), flush=True)
+
+
+def run(script, *args, timeout=850):
+    assert all(hashlib.sha256((L / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    p = subprocess.run(
+        [sys.executable, str(L / script), *map(str, args)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if p.returncode:
+        raise RuntimeError(
+            json.dumps(
+                {
+                    "script": script,
+                    "args": args,
+                    "returncode": p.returncode,
+                    "stderr": p.stderr[-2400:],
+                }
+            )
+        )
+    return json.loads(p.stdout)
+
+
+def checktime():
+    if time.monotonic() - start >= maximum:
+        raise TimeoutError("Finite successor expired; preserve existing GPU and all intents")
+
+
+try:
+    while not (first / "actual-accepted.json").exists():
+        checktime()
+        if (first_owner / "finish.result.json").exists():
+            raise RuntimeError(
+                "First owner terminal without actual accepted E1; no successor mutation"
+            )
+        record({"phase": "waiting_existing_first_epoch_owner", "new_GPU_or_entry": False})
+        time.sleep(120)
+    for epoch in (1, 2, 3):
+        checktime()
+        if epoch > 1:
+            with (L / f"epoch-{epoch}-prepare.intent.json").open("x") as f:
+                json.dump({"epoch": epoch, "previous_private_verification_required": True}, f)
+            while True:
+                checktime()
+                out = run("coordinate.py", "prepare", epoch)
+                record({"phase": "prepare", "epoch": epoch, "actual": out})
+                if out["status"] == "actual_GPU_recovery_gated_continuation_label_epoch_prepared":
+                    break
+                assert out["status"] == "waiting_original_account_claim_no_mutation"
+                time.sleep(120)
+            while True:
+                checktime()
+                out = run("coordinate.py", "push", epoch)
+                record({"phase": "push", "epoch": epoch, "actual": out})
+                if out["status"] == "one_actual_recovery_gated_S6_label_continuation_epoch_pushed":
+                    break
+                assert out["status"] in (
+                    "waiting_original_account_claim_no_mutation",
+                    "waiting_actual_capacity_all_future_VM_or_fresh_storage_no_mutation",
+                )
+                time.sleep(180)
+            while True:
+                checktime()
+                out = run("coordinate.py", "status", epoch)
+                record({"phase": "status", "epoch": epoch, "actual": out})
+                if out["status"] == "COMPLETE":
+                    break
+                if out["status"] in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+                    raise RuntimeError("Original continuation GPU terminal " + str(out))
+                assert out["status"] in (
+                    None,
+                    "RUNNING",
+                    "QUEUED",
+                    "INITIALIZING",
+                    "STARTING",
+                    "waiting_original_account_claim_no_mutation",
+                )
+                time.sleep(180)
+        out = run("publish_epoch_once.py", epoch, timeout=1600)
+        record({"phase": "actual_complete_epoch_private_verified", "epoch": epoch, "actual": out})
+        assert (
+            out["status"] == "actual_S6_label_epoch_private_full_download_size_SHA_verified"
+            and out["completed"] == 486 * epoch
+        )
+    record(
+        {
+            "status": "fixed3_label_only_training_1458_updates_all_three_epochs_private_verified",
+            "new_competition_entries": 0,
+            "clinical_or_Kaggle_accuracy_claim": False,
+        },
+        True,
+    )
+except BaseException as error:
+    record(
+        {
+            "status": "stopped_preserve_original_label_GPU_and_all_intents",
+            "error": str(error),
+            "automatic_retry_or_competition_entry": False,
+        },
+        True,
+    )
+    raise

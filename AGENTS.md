@@ -22,18 +22,18 @@ preserved verbatim at `docs/AGENTS.history-20261017.md`; its old scores,
 pending/running snapshots and next-action instructions are historical. Other
 historical release/plan documents now link back to the current guides.
 
-## Current scientific distinctions, October17 12:02UTC
+## Current scientific distinctions, October17 13:08UTC
 
 - Target0.97; actual best**0.950**, S6entry57300990 COMPLETE/noerror. This
   reproduces external weights/inference. Own independent N3E16 scored0.894;
   CoAtNet0.949; context/regional/full-field each0.948. No new score is claimed.
-- Whole94 and uniformIID16 each completed all3epochs/1458updates; all their
-  immutable checkpoints are privately fully verified. UniformfinalHFf47a8846…,
-  modelSHAed35463c…. Never republish them. InfluenceE3**139220032v1** is RUNNING,
-  under original observer34538. Preserve its healthy source/recipe/owner.
+- Whole94, uniformIID16 and influenceIID16 each completed all3epochs/1458updates;
+  every immutable checkpoint is privately fully verified. Influencefinal
+  HF37abff1d…/CPU946686/modelSHAf6a2007e…; original34538 finished successfully.
+  Never repeat their training or preservation. No sampled accuracy gain exists.
 - Exact public0.958 copy**139199164v2** was committed once viaUI Save&RunAll;
   all8code cells are exact, but Kaggle changed its Docker to2757e0c7…. It is
-  Starting/APIstatusunknown and **unqualified/unscored**. Prior interactive
+  Queued/APIstatusunknown and **unqualified/unscored**. Prior interactive
   success is separate. Require actual committed full-stage/input/output checks.
   Keep R6Datasetv1;v2 contains different R7 weights under identical filenames.
   Never submit source-onlyv1 or repeat theSave/push.
@@ -43,15 +43,21 @@ historical release/plan documents now link back to the current guides.
   12653444v1 already all5object private/hashverified; storageCPU945706 already
   funded4GiB+16MiB. Actual CPU946080 compiled a separate GPU recovery source and
   verified32original real feature/label/mask/teacher arrays. Seven compiler and
-  five contract check groups pass; **actual GPU recovery/fitting remain absent**.
-- Single finite label-recovery owner**46281** waits fresh all-future VM funding
-  and actual two-batch-lane capacity, may push one diagnostic then observe, no
-  production/entry authority. At12:02funding passed110405.97/66000seconds;
-  influenceE3 plus unknown referencev2 occupied both lanes. Never duplicate it.
-- Distinct finite first-epoch owner**59829** waits actual label-GPU recovery and
-  a published-main source pin, then fresh capacity/VM/storage before at most
-  one486-update epoch of the fixed3recipe. No full epoch is built or submitted
-  yet; it cannot publish, submit or advanceE2. Never duplicate either owner.
+  five contract check groups pass. The one actual GPU recovery**139230981v1**
+  actuallyCOMPLETED and passed the full recovery contract at13:01UTC under returned slug`godlydonuts/rsna-private-fixed-source-label-recovery`.
+  CPU946659 verified source/runtime/inputs;946681 registered the title-derived
+  identity without anotherSave. Original46281 stopped on a reference assertion,
+  not a GPU failure. Never retry the old advisory slug or duplicate this GPU.
+- Read-only recovery observer**60305** watches that existing run. Original fitter
+  59829 stopped before any prepare intent; replacement**60358** owns one first486-update epoch after that actual
+  GPU acceptance. Source990c8ded is published
+  and pinned for the entire fixed3campaign. Actual E1is actuallyRUNNING as139234107v1; exactsource/runtime/inputs verified13:07UTC.
+- Finite successor**61037** waits60358's actual E1, independently verifies and
+  privately preserves it, then may resume/preserve E2/E3, retaining the exact
+  optimizer/RNG/source and3epoch/1458update recipe. Each push needs fresh actual
+  capacity/VM/storage. Same4GiB+16MiB cap; uncertain intents stop. NoDataset or
+  entry authority. Do not duplicate either owner. Read the
+  [actual continuation](initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 - Queued/zero-output scout139210569v1 is actuallyCANCEL_ACKNOWLEDGED; old
   observers34237/34308 retired. Independent CPU32**139205901v2/40709** remains
   alive. A provisional-state capacity race caused finalE3qualification push
