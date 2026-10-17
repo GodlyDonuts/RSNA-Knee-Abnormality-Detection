@@ -1,0 +1,71 @@
+"""Finite successor after actual82637 auth-only stop; reuse all original phases."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+ROOT=Path.cwd();OLD=ROOT/'artifacts/matched-final-scoring-recovery-20261017-v2'
+L=ROOT/'artifacts/matched-final-scoring-owner-recovery-20261018-v3'
+L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'intent.json').exists()
+old_terminal=json.loads((OLD/'finish.result.json').read_text())
+assert old_terminal['PID']==82637 and old_terminal['status']=='finite_successor_stopped_preserve_all_originals'
+assert 'Permission denied' in old_terminal['reason'] and 'eligibility' in old_terminal['reason']
+assert subprocess.run(['ps','-p','82637','-o','command='],capture_output=True).returncode!=0
+CANDIDATES=('uniform','label','influence')
+receipts={c:json.loads((OLD/(c+'-competition-actual-accepted.json')).read_text()) for c in CANDIDATES}
+assert all(r['status']=='COMPLETE' and 'receipt' in r for r in receipts.values())
+assert not any((OLD/(c+'-submit.intent.json')).exists() or (OLD/(c+'-actual-submitted.json')).exists() for c in CANDIDATES)
+frozen={name:hashlib.sha256((OLD/name).read_bytes()).hexdigest() for name in ('coordinate.py','program.py.txt','source-binding.json')}
+with (L/'intent.json').open('x') as f:
+    json.dump({'PID':os.getpid(),'previous_actual_terminal':old_terminal,'original_coordinator_sha256':frozen,
+               'maximum_new_entries':3,'maximum_new_GPU_pushes_or_Datasets':0,
+               'fresh_canonical_account_allowance_and_claim_required':True,
+               'actual_previous_hidden_outcome_required_before_next':True,
+               'automatic_uncertain_mutation_retry':False},f,indent=2)
+start=time.monotonic();limit=20*3600
+def record(value,terminal=False):
+    out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value}
+    (L/('result.json' if terminal else 'progress.json')).write_text(json.dumps(out,indent=2)+'\n')
+    print(json.dumps(out),flush=True)
+def wait(seconds=120):
+    assert time.monotonic()-start+seconds<limit,'Finite owner expired, preserve originals'
+    time.sleep(seconds)
+def call(phase,candidate):
+    assert all(hashlib.sha256((OLD/n).read_bytes()).hexdigest()==h for n,h in frozen.items())
+    x=subprocess.run([sys.executable,str(OLD/'coordinate.py'),phase,candidate,'competition'],cwd=ROOT,capture_output=True,text=True,timeout=500)
+    (L/(phase+'-'+candidate+'-'+str(time.time_ns())+'.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+    assert x.returncode==0,'Original canonical call failed/uncertain; never retry a mutation: '+x.stderr[-1500:]
+    out=json.loads(x.stdout);record({'phase':phase,'candidate':candidate,'actual':out});return out
+try:
+    scored=[]
+    for candidate in CANDIDATES:
+        while True:
+            out=call('eligibility',candidate)
+            if out['status']=='waiting_existing_canonical_claim_no_mutation':wait();continue
+            assert out['status']=='actual_matched_final_entry_eligibility'
+            if out['fresh']['eligible']:break
+            wait()
+        with (L/(candidate+'-submit.intent.json')).open('x') as f:
+            json.dump({'original_public_acceptance':receipts[candidate],'fresh':out['fresh'],'maximum_mutations':1},f,indent=2)
+        # A canonical-claim race may refuse without mutation. Stop and reconcile
+        # rather than repeating this uncertain submit phase.
+        out=call('submit',candidate)
+        assert out['status']=='one_exact_matched_final_code_entry_accepted'
+        (L/(candidate+'-actual-submitted.json')).write_text(json.dumps(out,indent=2)+'\n')
+        while True:
+            result=call('outcome',candidate)
+            if result['status']=='waiting_existing_canonical_claim_no_mutation':wait();continue
+            assert result['status']=='actual_matched_final_hidden_outcome'
+            assert result['outcome']!='failed','Actual hidden failure stops subsequent entries'
+            if result['outcome']=='scored':
+                (L/(candidate+'-actual-scored.json')).write_text(json.dumps(result,indent=2)+'\n')
+                scored.append(candidate);break
+            wait()
+    record({'status':'three_original_fixed_finals_actually_scored','candidates':scored},True)
+except BaseException as error:
+    record({'status':'finite_original_phase_successor_stopped_preserve_all_intents','reason':str(error),'no_uncertain_retry':True},True)
+    raise
