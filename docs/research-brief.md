@@ -42,6 +42,11 @@ passed. This is analysis acceptance, not a new reader result. Its2MiB source/
 output subcap stays inside originalCPU8MiB/reader512MiB/node3GiB with fresh reserve.
 [Exact independent readout](../initiative/audits/spatial-reader-fixed-final-20261017-v1/README.md).
 
+Its exact source79a4255e and actual admission/follower receipts are privately
+all22-object fully download/size/SHA verified at
+HFc11f1aeacf10ab424d24fa654500aa76c64802a7 viaCPU950851, within the same cumulative
+8MiB source cap. Never repeat; no new reader accuracy result is implied.
+
 The new reader learns from the original **full1024×12×12 pre-pooling maps** of
 frozen N3E16: learned1024→64 projection,12 evidence channels, shared image/nuisance
 paths and within-acquisition spatial co-support, zero-start **unbounded** residual.

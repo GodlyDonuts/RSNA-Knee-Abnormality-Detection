@@ -13,3 +13,9 @@ calling it preserved. Existing intents require read-only reconciliation.
 
 The observer is admitted and waiting for original fitting/preservation; no
 actual new reader evaluation or accuracy gain is represented by this milestone.
+
+Actual CPU950851 fully privately preserved source79a4255edb4f6e137f6b13ed2c6ed100c435c4f5
+at HFc11f1aeacf10ab424d24fa654500aa76c64802a7: all22distinct objects/213575bytes
+fully re-downloaded/size/SHA verified. Prior roots account for992448paid bytes;
+this new delta remains inside their original cumulative8MiB source cap.
+[Actual original receipt](verified.json). Never repeat this mutation.
