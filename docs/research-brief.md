@@ -1,6 +1,6 @@
 # Research brief
 
-**October 17, 2026, 05:50 UTC.** Read [current state](current-state.md) for actual
+**October 17, 2026, 05:55 UTC.** Read [current state](current-state.md) for actual
 scores/jobs and the [research-agent handoff](research-agent-handoff.md) for evidence,
 open questions and source paths. [Earlier snapshots](research-brief.history-20261017-0146.md)
 remain historical evidence, not simultaneous current facts.
@@ -202,3 +202,13 @@ fallback contracts, and preserves original inference. No GPU/entry/funding is
 claimed. Evaluate after the original S6 hidden outcome and fresh resource/public
 acceptance; no leaderboard-tuned weights or exposed-encoder OOF claim.
 [Exact preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
+
+Latest verified private milestone: source**c1354577** at
+HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
+CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
+S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
+classifier dispatch, fixed blend preparation and new original epoch proofs.
+No private pixels/case IDs/clinical arrays/teacher predictions/weights.
+[One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
+Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
+mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.

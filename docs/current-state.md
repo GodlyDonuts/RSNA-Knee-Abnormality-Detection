@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 05:50 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 05:55 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -224,7 +224,7 @@ is fully verified at HF0917971d/all40objects268191bytes and must not be repeated
 The newer milestone has its own verified receipt below; it is not that old mirror.
 
 
-Latest distinct private preservation: source**5b55c961** is fully verified at
+Earlier distinct private preservation: source**5b55c961** is fully verified at
 HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
 CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
 actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
@@ -244,3 +244,13 @@ Later05:55UTC input milestone: fitting8CPU139165316v1 completed and private
 collection942782 verified all5372windows/1,154,209,297bytes. Its CPU classifier
 was dispatched once (CPU942806/exec77108), with no terminal/score yet. Original input owner
 20144 is terminal success. [Exact later proof](../initiative/audits/s6-fitting8-uid-view-20261017-v1/actual-inputs-private-verified.json).
+
+Latest verified private milestone: source**c1354577** at
+HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
+CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
+S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
+classifier dispatch, fixed blend preparation and new original epoch proofs.
+No private pixels/case IDs/clinical arrays/teacher predictions/weights.
+[One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
+Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
+mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.

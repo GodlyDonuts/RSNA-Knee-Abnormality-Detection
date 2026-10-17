@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Observed October 17, 2026, 05:50 UTC.** Keep the model-improvement goal active.
+**Observed October 17, 2026, 05:55 UTC.** Keep the model-improvement goal active.
 Implement directly; Devin is unavailable. Read [current state](current-state.md),
 [research brief](research-brief.md) and [research-agent handoff](research-agent-handoff.md).
 Original receipts and current processes override dated archive narratives.
@@ -338,7 +338,7 @@ series/edge-repeat notebooks remain unscored; never duplicate them.
 [Protocol, executedprogram, fullaggregates and transport-binding](../initiative/audits/frozen-series-boundary-screen-20261017-v1/README.md).
 
 
-Latest distinct private preservation: source**5b55c961** is fully verified at
+Earlier distinct private preservation: source**5b55c961** is fully verified at
 HF**feb3100aa7b418db9bfed48cc869c710288d1e38**, all46smallobjects/207863bytes,
 CPU942389/canonical shared lock/full re-download-size-SHA. This includes the
 actual learnedE1 **0.949**, new boundary/S6 CPU results, original epoch proofs and
@@ -356,3 +356,13 @@ original S6. No new GPU/funding/entry intent exists. Do not confuse this with
 original S6 owner20978 or submit before fresh resource admission, exact offline
 public acceptance and the original S6 hidden outcome.
 [Original preparation](../initiative/audits/s6-equalrank-preparation-20261017-v1/README.md).
+
+Latest verified private milestone: source**c1354577** at
+HF**b67956eda6cda255da7c190c3eda5806d3238d63**, all58objects/238462bytes,
+CPU942819/canonical shared lock/full re-download-size-SHA. This includes actual
+S6 T4 acceptance, corrected grant accounting, fitting8 input acceptance and CPU
+classifier dispatch, fixed blend preparation and new original epoch proofs.
+No private pixels/case IDs/clinical arrays/teacher predictions/weights.
+[One-time receipt](../initiative/audits/hf-s6-actual-t4-fitting8-20261017-v1/README.md).
+Never repeat this or earlier verified prefixes; receipt bookkeeping follows the
+mirrored source. Numerical fitting/inference code in rsna/scripts/tests is unchanged.
