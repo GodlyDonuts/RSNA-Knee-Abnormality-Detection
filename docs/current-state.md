@@ -1,6 +1,6 @@
 # Current project state
 
-**Observed through October 17, 2026, 08:40 UTC.** This is the live-state entry point.
+**Observed through October 17, 2026, 09:32 UTC.** This is the live-state entry point.
 Read the [research brief](research-brief.md), [research-agent handoff](research-agent-handoff.md)
 and [execution handoff](codex-continuation.md). Original receipts and fresh actual
 state override dated narratives. Historical evidence remains in Git and the
@@ -10,6 +10,7 @@ state override dated narratives. Historical evidence remains in Git and the
 
 | Candidate | Submission | Public AUC | What it establishes |
 |---|---:|---:|---|
+| Released S6, exact offline inference | **57300990** | **0.950** | Actual COMPLETE/noerror; reproduced external weights/inference |
 | Author-trained nartaa CoAtNet, unchanged inference | 57258866 | **0.949** | Reproduced external weights/inference, not our training |
 | Our independently MRI-trained N3, E4 / E8 / E12 / E16 | 57256756 / 57259376 / 57262392 / 57265916 | 0.821 / 0.869 / 0.890 / **0.894** | Own MRI training improved with epochs |
 | Licensed parent + our sequence-context E10 head | 57287572 | 0.948 | No gain over unchanged parent |
@@ -22,7 +23,7 @@ These are public leaderboard AUCs, not clinical accuracy or private-final scores
 **We did not train the 0.949 model from scratch.** Our N3 started from general
 ImageNet pretraining; learned-parent adaptation is a distinct third category.
 The latest saved official Public leaderboard is **0.969 first**, leaving a
-0.020 gap. Shared0.950 solos/0.956 blends are catch-up targets, not the frontier;
+0.019 gap to our latest0.950. Public0.958 blends are catch-up targets, not the frontier;
 the leader's method/private score is unknown.
 [Leaderboard observation](../initiative/audits/github-current-state-refresh-20261017-v2/actual-public-leaderboard.json).
 
@@ -37,7 +38,7 @@ or the quarantined unsuffixed capacity-rejected slug.
 [Actual public acceptance, entry and hidden scored terminal](../initiative/audits/research-progress-20261017-0448-v1/README.md).
 Authenticated GetSubmissionLimits at06:50UTC reported four used/one available.
 The subsequent S6 exact code entry57300990 was accepted once; its hidden result
-is still unreported. That dated allowance is not an available-slot guarantee. Obtain fresh allowance before every
+is now COMPLETE/0.950/noerror. That dated allowance is not an available-slot guarantee. Obtain fresh allowance before every
 entry, maximum five/day. Original final E3 is owned; a guarded next-allowance
 standby cannot act while its first owner is live or repeat an entry.
 [Exact allowance and staged comparison](../initiative/audits/s6-equalrank-deployment-20261017-v1/actual-staged.json).
@@ -57,7 +58,7 @@ Do not resubmit those exact versions.
 | Uniform16 full-encoder control | E3**139192503v1** | **E2 complete972/all5private objects verified**; original E3 is UI QUEUED, no optimizer claim yet |
 | Influence16 full-encoder contrast | E2**139181903v1** | **E2 complete972/all5private objects verified**, HFde388a6e4ee800a0835c1d82f13fea94e903653f |
 | Original patch recovery | Slurm929938 | COMPLETED0:0, full/stop1/resume engineering equality; not accuracy |
-| S6 unchanged-source reproduction | Offline**139181157v1**, code entry**57300990** | **Public run COMPLETE233s/twoT4/zero fallback**; exact entry accepted, hidden score pending |
+| S6 unchanged-source reproduction | Offline**139181157v1**, code entry**57300990** | **Public run COMPLETE233s/twoT4/zero fallback**; exact hidden entry COMPLETE/0.950/noerror |
 
 [New original epoch/publication/push evidence](../initiative/audits/research-progress-20261017-0448-v1/README.md),
 [earlier optimizer and patch terminals](../initiative/audits/research-progress-20261017-0401-v1/README.md).
@@ -163,8 +164,8 @@ not just its30h minimum. Used/reserved time, all future training, serving reserv
 and actual two-session limit still govern. No billing/account setting changed.
 Original offline-run owner **20978/44859 reached terminal success** after exact
 notebook139181157v1 completed233seconds/threeMRI/zero fallback. Sole entry owner
-**20994/20982 accepted exact code submission57300990 once** and continues its
-hidden observation. Its status/score are still null at the latest receipt. The
+**20994/20982 accepted exact code submission57300990 once** and finished its
+hidden observation. It actually completed at0.950 with no error/247475bytes. The
 public CSV was not uploaded. Original H100942047 remains pending; never duplicate
 S6 or infer its hidden score from either public run.
 [Exact acceptance, quota correction and owners](../initiative/audits/s6-original-t4-recovery-20261017-v1/README.md).
@@ -179,7 +180,7 @@ These are descriptive exposed-cohort cost quantiles, not clinical AUC or OOF.
 **Do not use raw probability gaps as a calibrated clinical uncertainty gate.**
 [Actual classifier and all12targets](../initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md).
 
-**Target0.97; verified best0.949.** The next fixed mechanism transports equal
+**Target0.97; verified best0.950.** The next fixed mechanism transports equal
 teacher ranks onto the parent score scale and shifts its two view logits together,
 then reuses the full-encoder source/teacher loss. The matched control keeps parent
 targets bit-identical. Nineteen target-builder contracts pass. The new explicit data overlay additionally
@@ -198,7 +199,7 @@ observation**, zero entries. It contains the original eight and checks actual
 T4/CPU parity, full preparation/inference time and diversity before any full
 teacher acquisition. Never restart its original owner or stager.
 [Exact source, ten contracts and five owner paths](../initiative/audits/s6-fitting32-scout-preparation-20261017-v1/README.md).
-The author's0.950 remains external; no project S6 hidden score exists yet.
+The original entry57300990 has since actually scored0.950/noerror; do not repeat it.
 A later CPU-only handoff26454/v4 repaired a post-entry state wait without
 changing the staged scientific source or repeating a push.
 [Actual no-mutation reconciliation and14checks](../initiative/audits/s6-scout-monotone-handoff-20261017-v1/README.md).
@@ -233,8 +234,9 @@ CoAtNet. Seven embedded module SHAs match the exact manifest. CPU943797 acquired
 all8 model/sidecar objects886809309bytes once; CPU943811 reconciled an observer-only
 duplicated-reserve assertion using existing full-byte proofs, without repeating
 any download/hash/header read. Originals remain private. CPU943843 staged the original Notebook/asset binding in the canonical ledger;
-sole finite owner31309 now owns one offline run/entry, awaiting fresh capacity/funding; no R7 GPU/push/entry or new project score exists. Reproduce the unchanged complete reference next under
-fresh actual session/future funding, while original work continues.
+original finite owner31309 was subsequently retired before any push, after actual absence/
+canonical prepared-state review. Its source/assets remain intact. Its32,400-second
+reservation now prioritizes the exact public0.958 reference, preserving healthy work.
 [Actual pins, mechanisms and limits](../initiative/audits/r7-public-reference-admission-20261017-v1/README.md),
 [latest entry/training proofs](../initiative/audits/research-progress-20261017-0735-v1/README.md).
 
@@ -348,38 +350,56 @@ N3 reference; no best-epoch selection or class splicing.
 [Exact final/model/roster/all12target evidence](../initiative/audits/compact-expanded2592-fixed-final-20261017-v1/README.md).
 
 R7 actual CPU943957 admitted43pure guards and the unchanged native source/assets.
-**Sole finite owner31309** now handles one offline run and one exact code entry,
-then the actual hidden outcome. It waits the currently occupied two-session GPU
-capacity and full prior main/sampling/blend/scout/serving budget, reserving no GPU
-while prerequisites are missing. The numerical Notebook cells are unchanged;
+**Original finite owner31309 is now TERMINAL_DEPRIORITIZED before any push**,
+with actual no-intent/no-response/public-slug absence proof. Its reservation moves
+to the exact public0.958 reference; all source/assets and sibling obligations remain.
+No GPU job was cancelled. The numerical Notebook cells are unchanged;
 all4fold graphs, physical/source assets, bothT4s, zero public whole-lineage
 fallback and a strict three-MRI/13-column CSV are required.
 [Actual admission, source, seven ownership paths and bounds](../initiative/audits/r7-original-reproduction-20261017-v1/README.md).
 
 
-## Latest08:40UTC execution and scout follow-through
+## Latest09:32UTC result, reference and research work
 
-Original influenceE2 **139181903v1** completed972finite updates; CPU944360 privately
-fully verified all5objects at **HFde388a6e4ee800a0835c1d82f13fea94e903653f**.
-Never repeat them. Original uniformE3 **139192503v1** was pushed once and the
-actual authenticated UI shows **QUEUED / twoT4s /0B**. An empty API status is
-unknown, not GPU failure. Sole recovered CPU observer**34538** preserves that
-same source/run and all prior verified epochs; old97530 is terminal.
-[Actual originals, reversible status-only repair and controls](../initiative/audits/iid16-session-status-recovery-20261017-v1/README.md).
+**S6 code submission57300990 actually scored0.950**, COMPLETE/noerror,
+247475outputbytes. Its original observer20994 is terminal success; never repeat
+it. Best independent MRI-trained N3 remains0.894. Target0.97 remains unachieved.
+[Actual terminal](../initiative/audits/s6-actual0950-result-20261017-v1/README.md).
 
-Original S6 scout26454 also stopped before any push because it incorrectly
-expected the old B-only CPU reference to mount an extra unused A dataset.
-Read-only CPU944394 verified exact old3mounts/candidate absence/no mutation.
-Sole recovered**34237/v5** uses the unchanged source/model/candidate and correct
-reference metadata, waiting fresh capacity; never restart26454 or stage again.
-[Exact pre-push proof and source diff](../initiative/audits/s6-scout-mount-recovery-20261017-v1/README.md).
-Independent CPU follow-through**34308** now waits that same original completion.
-It enforces exact old8 image/meta bytes, original0.003FP16/FP32 precision, all32
-outputs/windows, measured time and all12descriptive rank summaries.22pure input/
-precision/timing guards and7finite paths passed; no actual scout/full teacher/
-MRI training result is claimed. [Source, scope and caps](../initiative/audits/s6-fitting32-acceptance-20261017-v1/README.md).
+The scored public Helios359117069v6 displays0.958. All8code cells now match our
+private source-only **139199164v1**, `godlydonuts/rsna-public0958-native-300b34417bc1`.
+Its original R6 dataset is **pinned to version1**, manifest6508ce69; version2
+silently replaces it with different R7 weights and fails the source bundle check.
+Internet is off/original October2 Docker retained/twoT4 configured/private. The
+Quick Save conversion completed, **not MRI inference**. Do not submit v1. Do not
+use SDK SaveKernel with unversioned datasets: it would lose the old R6 pin.
+Next one UI Save & Run All of the existing same draft requires fresh canonical
+intent, all-future VM funding and actual two-session admission, followed by exact
+actual public output acceptance before a code entry under fresh daily allowance.
+[Exact source/input proofs and next action](../initiative/audits/public0958-reference-20261017-v1/README.md).
 
-R7 owner31309 now has sufficient fresh future VM funding at the latest actual
-check, but the actual two-session lane remains occupied by mainE3 and queuedU3.
-It reserves no extra GPU. S6 entry57300990 still has null hidden status/score.
-Best verified0.949/target0.97 are unchanged; published R7 0.956 remains external.
+CPU944959 verified the older0.956 R7 owner31309 had no push/entry intent/response
+or public slug, then retired only that CPU observer. No GPU job was cancelled;
+all8original objects/source remain private. Its32,400-second future reservation
+moves to0.958 without changing healthy main/sampling or other liabilities.
+
+Original whole94E3 remains running; uniformE3 remains UI QUEUED/APIstatusnull.
+Recovered CPU observer34538 preserves the same run; original97530 is terminal.
+InfluenceE2 is complete972/all5objects privately download/size/SHA verified at
+HFde388a6e4ee800a0835c1d82f13fea94e903653f. Scout34237 waits actual capacity;
+independent CPU follow-through34308 waits its actual complete/preserved32study
+result. Do not duplicate any original or infer optimizer progress from queueing.
+
+New CPU944634 accepted the full3887study/21429series cost-balanced metadata
+partition plans, with21assembly/negative checks. Exact private112751byte plan
+SHAa4038380 stays on evc33. Every raw prediction group must complete before global
+ranking/transport; ranks within separate shards would change the scientific
+objective. No full teacher producer/GPU/funding/training has been admitted.
+Actual32study precision/cost acceptance comes first.
+[Exact full-cohort preparation and limits](../initiative/audits/s6-fullteacher-cohort-plan-20261017-v1/README.md).
+
+Earlier08:40 evidence remains in the original recovery audits. Exact original
+private preservation HF9fcf3f30d3766e40e9c931adb7f03ea0162f6f02 covers48small
+objects; never repeat it. Current new reference/result/cohort receipts await their
+distinct small-milestone mirror; no source weights, clinical rows or raw private
+assignment IDs are published.

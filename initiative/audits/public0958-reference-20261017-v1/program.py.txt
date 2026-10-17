@@ -1,0 +1,26 @@
+
+import ast,hashlib,importlib.util,json,os,re,shutil,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=P/'full-comparison/public0958-reference-v1';assert not D.exists() and shutil.disk_usage('/tmp').free>611754508347;controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());assert controls+8*2**20+2*2**20<32*2**20
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('public0958_source_readonly',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+slug='heliosli/this-is-best-public-dataset-new-version-0-9586';value=r.kernel('GetKernel',slug,6);source=value['blob']['source'];raw=source.encode();assert 0<len(raw)<2**20
+notebook=json.loads(source);assert notebook['nbformat']==4 and isinstance(notebook['cells'],list);cells=[''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in notebook['cells'] if c['cell_type']=='code'];assert cells
+metadata=value['metadata'];assert metadata.get('isPrivate') is False
+D.mkdir(mode=0o700);source_path=D/'original-v6.private.ipynb';source_path.write_bytes(raw);source_path.chmod(0o600)
+details={k:val for k,val in metadata.items() if k in ('id','kernelId','title','currentVersionNumber','versionNumber','scriptVersionId','kernelVersionId','licenseName','license','datasetDataSources','competitionDataSources','kernelDataSources','enableGpu','enableInternet','machineShape','dockerImage','kernelType','language')}
+(D/'metadata.private.json').write_text(json.dumps(metadata,indent=2)+'\n');(D/'metadata.private.json').chmod(0o600)
+assignments=[]
+for ci,text in enumerate(cells):
+ clean='\n'.join(line for line in text.splitlines() if not line.lstrip().startswith(('%','!')))
+ try:tree=ast.parse(clean)
+ except SyntaxError:continue
+ for node in ast.walk(tree):
+  if not isinstance(node,ast.Assign):continue
+  try:literal=ast.literal_eval(node.value)
+  except (ValueError,TypeError):continue
+  names=[ast.unparse(t) for t in node.targets];encoded=json.dumps(literal,default=str)
+  if len(encoded)<600 and any(any(k in n.lower() for k in ('weight','blend','model','crop','size','arm','view','stride','budget','tta','source','path','checkpoint')) for n in names):assignments.append({'cell':ci,'targets':names,'value':literal})
+out={'status':'new_external_public0958_scored_v6_source_pinned_without_GPU_or_weights','CPU_job':os.environ['SLURM_JOB_ID'],'slug':slug,'requested_version':6,'visible_scored_script_version_ID':359117069,'visible_displayed_score':0.958,'title_claim_0_9586_not_extra_score_evidence':True,'actual_metadata_keys':sorted(metadata),'metadata':details,'source_bytes':len(raw),'source_sha256':hashlib.sha256(raw).hexdigest(),'code_cell_sequence_sha256':hashlib.sha256(json.dumps(cells,ensure_ascii=False,separators=(',',':')).encode()).hexdigest(),'code_cells':len(cells),'small_literal_source_assignments':assignments,'private_source_not_mirrored':True,'existing_control_bytes':controls,'maximum_new_control_bytes':2*2**20,'existing_future_controls_preserved_bytes':8*2**20,'new_shared_byte_file_liability':0,'new_GPU_Dataset_entry_or_weight_mutations':0,'project_score_claim':False};(D/'source-pinned.json').write_text(json.dumps(out,indent=2)+'\n');assert sum(p.stat().st_size for p in D.iterdir())<2*2**20;print(json.dumps(out),flush=True)

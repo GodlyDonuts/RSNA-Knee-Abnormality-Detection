@@ -1,6 +1,12 @@
 # Complete initiative record
 
-Latest08:40UTC: [original sampling E2 preservation/E3 queued-observer recovery](audits/iid16-session-status-recovery-20261017-v1/README.md),
+Latest09:32UTC: **[S6 actually scored0.950](audits/s6-actual0950-result-20261017-v1/README.md)**,
+[exact public0.958 source-only copy with required old R6v1 input](audits/public0958-reference-20261017-v1/README.md),
+and [full3887study global-teacher assembly preparation](audits/s6-fullteacher-cohort-plan-20261017-v1/README.md).
+Target0.97 is open;0.958 has not been reproduced/scored by the project yet.
+
+
+Earlier08:40UTC: [original sampling E2 preservation/E3 queued-observer recovery](audits/iid16-session-status-recovery-20261017-v1/README.md),
 [S6 scout metadata recovery](audits/s6-scout-mount-recovery-20261017-v1/README.md), and
 [the independent fixed32 follow-through](audits/s6-fitting32-acceptance-20261017-v1/README.md).
 These advance original execution, not a new score.
@@ -13,7 +19,7 @@ Latest actual evidence: [S6 exact code entry57300990, uniformE2 and expandedE15]
 [public0.956 R7 source/manifest/private weights](audits/r7-public-reference-admission-20261017-v1/README.md),
 [fixed equal-rank deployment](audits/s6-equalrank-deployment-20261017-v1/README.md),
 and [ordinal-target data path](experiments/competitive-v1/s6-rank-transport-v1/data-path/README.md).
-Target0.97 remains distinct from verified best0.949.
+Target0.97 remains distinct from verified best0.950.
 
 The [October 17 owner program and critical assessment](research/owner-deadline-program-20261017-v1/README.md)
 and [actual S6 source-only admission](audits/s6-public-source-20261017-v1/README.md)

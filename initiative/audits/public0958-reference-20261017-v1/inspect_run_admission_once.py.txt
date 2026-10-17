@@ -1,0 +1,35 @@
+"""Read current VM and occupied sessions; reserve a UI run only if actually free."""
+import ast
+import hashlib
+import json
+import shlex
+import subprocess
+import textwrap
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'run-admission.intent.json').exists()
+previous=ast.parse((L/'reconcile_ui_saved_once.py').read_text())
+original=next(ast.literal_eval(n.value) for n in previous.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='program' for t in n.targets))
+prefix=original.split("claim=Path(",1)[0]
+r7=Path('artifacts/r7-original-reproduction-20261017-v1/program.py.txt').read_text()
+liabilities=textwrap.dedent(r7[r7.index("                main = Path("):r7.index("                if not funding['allowed']")])
+program=prefix+'''import time
+bc={};exec(compile(v['budget_contract'],'unchanged_all_future_VM_budget','exec'),bc);budget=bc['budget']
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'exact0958_source_UI_run_admission','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['state']=='public0958_exact_UI_source_only_v1_prepared' and record['replacement_funding']['reassigned_future_inference_VM_seconds']==32400
+  actual=r.kernel('GetKernel',slug,1);assert actual['metadata']['id']==139199164 and actual['metadata']['isPrivate'] is True and not actual['metadata'].get('enableInternet',False)
+'''+textwrap.indent(liabilities,'  ')+'''
+  account=r.account();ready=funding['allowed'] and capacity['available']
+  out={'status':'ready_for_one_UI_SaveAndRun_existing_draft' if ready else 'waiting_actual_two_session_capacity_or_all_future_funding_no_GPU_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'checked_at_UTC':w.utcnow(),'canonical_key':key,'existing_source_only_kernel_id':139199164,'source_only_version':1,'next_maximum_MRI_run_versions':1,'next_version_expected':2,'required_original_R6_dataset_version':1,'code_cells_sha256':record['code_cells_sha256'],'source_only_v1_not_submission_eligible':True,'funding':funding,'actual_capacity':capacity,'fresh_actual_account':account,'automatic_GPU_or_entry_calls':0,'no_model_pixel_weight_Dataset_transfers':True}
+  if ready:
+   assert not (D/'UI-run-intent.json').exists();out['UI_commit_deadline_unix']=time.time()+180;w.new_json(D/'UI-run-intent.json',out);record['state']='public0958_exact_UI_run_intent';record['run_intent']=out;db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['code_cells_sha256'],record['state']));db.commit()
+  print(json.dumps(out),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program,'unchanged_all_future_funding_and_actual_capacity_read','exec');(L/'run-admission-program.py.txt').write_text(program)
+contract=Path('artifacts/r7-original-reproduction-20261017-v1/contract.py.txt').read_text();e=Path('.env');assert e.stat().st_mode&0o077==0;values={k.strip():v.strip().strip('\"\'') for line in e.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+with (L/'run-admission.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'reuse_original_all_future_VM_budget_contract_sha256':hashlib.sha256(contract.encode()).hexdigest(),'no_automatic_GPU_run_or_entry':True,'UI_run_intent_only_if_ready_then_180seconds_expiry':True,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:04:00','--job-name=rsna-public0958-run-admission','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['KAGGLE_API_TOKEN'],'budget_contract':contract}),capture_output=True,text=True,timeout=300);(L/'run-admission.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-1800:];out=json.loads(x.stdout);(L/'run-admission.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

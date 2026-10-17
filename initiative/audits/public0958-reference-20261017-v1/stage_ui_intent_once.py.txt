@@ -1,0 +1,36 @@
+"""Reserve one source-bound UI fork; no GPU run or competition entry."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+L=Path(__file__).resolve().parent
+assert not (L/'UI-fork.intent.json').exists()
+program=r'''
+import hashlib,importlib.util,json,os,sys,shutil
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('unchanged_public0958_UI_intent',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+D=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1');p=json.loads((D/'source-pinned.json').read_text());assert p['scored_UI_code_cells_sha256']=='300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'source_bound_public0958_UI_fork_reservation','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+  slug='godlydonuts/rsna-public0958-native-300b34417bc1';absence=r.require_absent_kernel(slug)
+  out={'status':'one_exact_scored_v6_UI_fork_reserved_canonically_without_GPU_or_entry','CPU_job':os.environ['SLURM_JOB_ID'],'canonical_key':key,'state':'public0958_UI_fork_intent','desired_slug':slug,'source_author_slug':p['slug'],'source_version':6,'source_scriptVersionId':359117069,'source_UI_notebook_sha256':p['scored_UI_source_sha256'],'code_cells_sha256':p['scored_UI_code_cells_sha256'],'required_R6_dataset':'heliosli/rsna-knee-r6-frozen-fe055406','required_R6_dataset_version':1,'required_R6_manifest_sha256':'6508ce6921eda986c885b2226fa55dd4d2aa8e5fc570b4c007c9a60c05bfc648','current_R6_version2_is_different_R7_bundle':True,'maximum_UI_forks':1,'new_GPU_or_entry_mutations':0,'automatic_retry':False,'absence_proof':absence}
+  assert shutil.disk_usage('/tmp').free>611754508347
+  w.new_json(D/'UI-fork-intent.json',out);db.execute('INSERT INTO meta VALUES(?,?)',(key,json.dumps(out,sort_keys=True)));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),p['scored_UI_code_cells_sha256'],out['state']));db.commit();print(json.dumps(out),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+'''
+compile(program,'source_bound_UI_fork_intent','exec');(L/'UI-fork-intent-program.py.txt').write_text(program)
+e=Path('.env');assert e.stat().st_mode&0o077==0
+values={k.strip():v.strip().strip('\"\'') for line in e.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+with (L/'UI-fork.intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'one_source_bound_UI_fork_no_GPU_or_entry':True,'automatic_retry':False},f,indent=2)
+cmd=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:04:00','--job-name=rsna-public0958-UI-intent','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(cmd)],input=json.dumps({'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=300)
+(L/'UI-fork.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-1500:]
+out=json.loads(x.stdout);(L/'UI-fork-reserved.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

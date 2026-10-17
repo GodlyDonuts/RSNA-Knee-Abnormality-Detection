@@ -1,0 +1,72 @@
+"""Private fixed-cohort partitioning and complete raw-probability assembly.
+
+No model, pixels, labels, ranking, cloud API or training is run by this module.
+Actual source/receipt/rights/hardware/funding admission belongs to the producer.
+"""
+
+import hashlib
+import heapq
+import json
+
+import numpy as np
+
+POPULATION_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+
+
+def population(uids):
+    if (not isinstance(uids, list) or len(uids) != 3887
+            or any(not isinstance(u, str) or not u for u in uids)
+            or uids != sorted(set(uids))
+            or hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest() != POPULATION_SHA):
+        raise ValueError("Exact original ordered3887 fitting identities required")
+
+
+def partition(uids, series_counts, groups):
+    """Largest-series-count-first balancing; no clinical or model-score selection."""
+    population(uids)
+    if (type(groups) is not int or not 1 <= groups <= 8
+            or not isinstance(series_counts, dict) or set(series_counts) != set(uids)
+            or any(type(v) is not int or not 1 <= v < 2**31 for v in series_counts.values())):
+        raise ValueError("Explicit1..8 groups and complete positive integer source costs required")
+    queue = [(0, 0, g) for g in range(groups)]
+    heapq.heapify(queue)
+    assignment = np.empty(len(uids), dtype=np.uint8)
+    for index in sorted(range(len(uids)), key=lambda i: (-series_counts[uids[i]], uids[i])):
+        cost, count, g = heapq.heappop(queue)
+        assignment[index] = g
+        heapq.heappush(queue, (cost + series_counts[uids[index]], count + 1, g))
+    assert set(assignment.tolist()) == set(range(groups))
+    return assignment
+
+
+def assemble(uids, assignment, chunks):
+    """Return original-order B probabilities only after every group is complete.
+
+    Never compute ranks or transport within a chunk. The later global target
+    builder consumes the complete matrix. No missing/fallback row is imputed.
+    The outer admission must verify the producer/collection/receipt hashes.
+    """
+    population(uids)
+    if (not isinstance(assignment, np.ndarray) or assignment.dtype != np.uint8
+            or assignment.shape != (3887,) or not isinstance(chunks, dict)):
+        raise ValueError("Exact immutable per-study assignment and complete chunk mapping required")
+    groups = int(assignment.max()) + 1
+    if not 1 <= groups <= 8 or set(assignment.tolist()) != set(range(groups)):
+        raise ValueError("Contiguous nonempty bounded group identities required")
+    if (any(type(g) is not int for g in chunks) or set(chunks) != set(range(groups))):
+        raise ValueError("Every original group exactly once required")
+    by_uid = {}
+    for g in range(groups):
+        chunk = chunks[g]
+        if not isinstance(chunk, dict) or set(chunk) != {"uids", "probabilities"}:
+            raise ValueError("Raw aligned original-source probabilities required, never chunk ranks")
+        expected = [u for u, group in zip(uids, assignment) if int(group) == g]
+        values = chunk["probabilities"]
+        if (not isinstance(chunk["uids"], list) or chunk["uids"] != expected
+                or not isinstance(values, np.ndarray) or values.dtype not in (np.float32, np.float64)
+                or values.shape != (len(expected), 12) or not np.isfinite(values).all()
+                or (values < 0).any() or (values > 1).any()):
+            raise ValueError("Complete finite non-imputed group rows in original order required")
+        by_uid.update(zip(expected, values.astype(np.float64, copy=False)))
+    assert len(by_uid) == 3887 and set(by_uid) == set(uids)
+    return np.stack([by_uid[u] for u in uids])

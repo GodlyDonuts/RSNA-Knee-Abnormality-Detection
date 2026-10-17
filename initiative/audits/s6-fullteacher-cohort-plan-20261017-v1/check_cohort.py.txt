@@ -1,0 +1,71 @@
+"""Whole-cohort partition and assembly contracts, not source-model acceptance."""
+import copy
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+
+import numpy as np
+
+L = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location('fixed_teacher_population', L / 'cohort.py')
+core = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(core)
+real_sha = core.POPULATION_SHA
+uids = [f"engineering-{i:04}" for i in range(3887)]
+core.POPULATION_SHA = hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+costs = {u: 1 + i % 37 for i, u in enumerate(uids)}
+original = np.linspace(.001, .999, 3887 * 12).reshape(3887, 12)
+checks = []
+for groups in range(1, 9):
+    assignment = core.partition(uids, costs, groups)
+    assert np.array_equal(assignment, core.partition(uids, dict(reversed(list(costs.items()))), groups))
+    chunks = {g: {"uids": [u for u, a in zip(uids, assignment) if a == g],
+                  "probabilities": original[assignment == g].copy()} for g in range(groups)}
+    recovered = core.assemble(uids, assignment, dict(reversed(list(chunks.items()))))
+    assert np.array_equal(recovered, original)
+    assert not np.shares_memory(recovered, original)
+    observed = [sum(costs[u] for u, a in zip(uids, assignment) if a == g) for g in range(groups)]
+    assert max(observed) - min(observed) <= max(costs.values())
+    checks.append(f"{groups} groups: complete/disjoint/deterministic/balanced/exact raw assembly independent of arrival order")
+
+
+def reject(name, action):
+    try:
+        action()
+    except (ValueError, TypeError):
+        checks.append(name)
+    else:
+        raise AssertionError(name)
+
+
+reject('missing fitting identity', lambda: core.partition(uids[:-1], costs, 2))
+reject('source cost missing', lambda: core.partition(uids, {k: v for k, v in costs.items() if k != uids[0]}, 2))
+reject('negative source cost', lambda: core.partition(uids, {**costs, uids[0]: -1}, 2))
+reject('boolean source cost', lambda: core.partition(uids, {**costs, uids[0]: True}, 2))
+reject('unfunded group-range expansion', lambda: core.partition(uids, costs, 9))
+assignment = core.partition(uids, costs, 2)
+chunks = {g: {"uids": [u for u, a in zip(uids, assignment) if a == g],
+              "probabilities": original[assignment == g].copy()} for g in range(2)}
+reject('missing group cannot become a full teacher', lambda: core.assemble(uids, assignment, {0: chunks[0]}))
+reject('extra group refused', lambda: core.assemble(uids, assignment, {**chunks, 2: chunks[0]}))
+reject('non-probability rank field refused', lambda: core.assemble(uids, assignment, {0: {**chunks[0], 'ranks': 1}, 1: chunks[1]}))
+bad = copy.deepcopy(chunks)
+bad[0]['uids'].reverse()
+reject('rows silently reordered refused', lambda: core.assemble(uids, assignment, bad))
+bad = copy.deepcopy(chunks)
+bad[0]['probabilities'][0, 0] = np.nan
+reject('missing prediction cannot be imputed', lambda: core.assemble(uids, assignment, bad))
+bad = copy.deepcopy(chunks)
+bad[0]['probabilities'][0, 0] = 1.1
+reject('unbounded score refused', lambda: core.assemble(uids, assignment, bad))
+bad = copy.deepcopy(chunks)
+bad[0]['probabilities'] = bad[0]['probabilities'][:, :11]
+reject('all12 targets required', lambda: core.assemble(uids, assignment, bad))
+core.POPULATION_SHA = real_sha
+reject('synthetic cohort cannot acquire production authority', lambda: core.partition(uids, costs, 2))
+out = {'status': 'complete_cohort_partition_and_raw_assembly_contracts_passed', 'count': len(checks),
+       'checks': checks, 'core_sha256': hashlib.sha256((L / 'cohort.py').read_bytes()).hexdigest(),
+       'source_or_teacher_predictions_generated': False, 'actual_full_teacher_training_or_GPU_admitted': False}
+(L / 'checked.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out))

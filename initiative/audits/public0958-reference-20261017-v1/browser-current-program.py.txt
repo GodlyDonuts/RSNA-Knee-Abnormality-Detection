@@ -1,0 +1,29 @@
+
+import ast,hashlib,importlib.util,json,os,shutil,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=P/'full-comparison/public0958-reference-v1';assert not D.exists() and shutil.disk_usage('/tmp').free>611754508347;used=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());assert used+8*2**20+2*2**20<32*2**20
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';sp=importlib.util.spec_from_file_location('public0958_current_source_only',W);w=importlib.util.module_from_spec(sp);sp.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+slug='heliosli/this-is-best-public-dataset-new-version-0-9586';body={'userName':'heliosli','kernelSlug':slug.split('/')[1]};value=r.call('kernels.KernelsApiService','GetKernel',body);m=value['metadata'];assert m['currentVersionNumber']==7 and m['isPrivate'] is False
+browser=v['browser'];assert hashlib.sha256(browser.encode()).hexdigest()=='fac1723c32de2d27f59e10ebca7102327bb33346117a3fec3a58937ecf2d3a0e';current=value['blob']['source'];assert len(browser.encode())+len(current.encode())<1900000
+def cells(text):
+ n=json.loads(text);assert n['nbformat']==4;return [''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in n['cells'] if c['cell_type']=='code']
+a,b=cells(browser),cells(current);digest=lambda x:hashlib.sha256(json.dumps(x,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+assert r.call('kernels.KernelsApiService','GetKernel',body)['metadata']['currentVersionNumber']==7
+D.mkdir(mode=0o700)
+for name,text in [('scored-UI-v6.private.ipynb',browser),('current-API-v7.private.ipynb',current),('current-API-v7-metadata.private.json',json.dumps(m,indent=2)+'\n')]:
+ p=D/name;p.write_text(text);p.chmod(0o600)
+summary=[]
+for ci,text in enumerate(a):
+ text='\n'.join(line for line in text.splitlines() if not line.lstrip().startswith(('%','!')))
+ try:tree=ast.parse(text)
+ except SyntaxError:continue
+ for n in ast.walk(tree):
+  if not isinstance(n,ast.Assign):continue
+  try:x=ast.literal_eval(n.value)
+  except (ValueError,TypeError):continue
+  names=[ast.unparse(t) for t in n.targets];size=len(json.dumps(x,default=str))
+  if size<600 and any(any(k in name.lower() for k in ('weight','blend','model','crop','size','arm','view','stride','budget','tta','checkpoint','bundle')) for name in names):summary.append({'cell':ci,'targets':names,'value':x})
+nb=json.loads(browser);out={'status':'scored_UI_v6_and_distinct_current_API_v7_privately_pinned','CPU_job':os.environ['SLURM_JOB_ID'],'slug':slug,'scored_version_observed_UI':6,'scored_scriptVersionId_observed_UI':359117069,'displayed_external_score':0.958,'current_API_version':7,'same_code_cells_v6_v7':a==b,'scored_UI_source_bytes':len(browser.encode()),'scored_UI_source_sha256':hashlib.sha256(browser.encode()).hexdigest(),'scored_UI_code_cells_sha256':digest(a),'current_API_source_bytes':len(current.encode()),'current_API_source_sha256':hashlib.sha256(current.encode()).hexdigest(),'current_API_code_cells_sha256':digest(b),'API_metadata_source_lists':{k:m.get(k) for k in ('datasetDataSources','kernelDataSources','competitionDataSources','licenseName','kernelType','machineShape','enableGpu','enableInternet')},'scored_UI_export_dataset_version_IDs':[x['sourceId'] for x in nb['metadata']['kaggle']['dataSources'] if x['sourceType']=='datasetVersion'],'scored_UI_export_kernel_version_IDs':[x['sourceId'] for x in nb['metadata']['kaggle']['dataSources'] if x['sourceType']=='kernelVersion'],'export_execution_duration':nb['metadata'].get('papermill',{}).get('duration'),'small_literal_assignments':summary,'maximum_new_controls_bytes':2*2**20,'prior_controls_bytes':used,'future_controls_preserved_bytes':8*2**20,'Kaggle_GPU_Dataset_entry_or_weight_mutations':0,'project_0_958_or_0_97_score_claim':False};(D/'source-pinned.json').write_text(json.dumps(out,indent=2)+'\n');assert sum(p.stat().st_size for p in D.iterdir())<2*2**20;print(json.dumps(out),flush=True)

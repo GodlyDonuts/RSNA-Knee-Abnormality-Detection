@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Current entry points — verified October 17, 2026, 08:05 UTC:**
+**Current entry points — verified October 17, 2026, 09:32 UTC:**
 
 - [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
@@ -17,6 +17,17 @@ we did not train that model from scratch. Our sequence-context head and full-384
 inference-field experiments, plus the regional spatial head, each scored 0.948
 without improving the external reference. These are public leaderboard scores, not final private or clinical results.
 
+The released S6 reproduction has now actually scored **0.950**, code entry
+**57300990 COMPLETE/noerror**. This is the current best project public result,
+not our from-scratch training. [Exact terminal](initiative/audits/s6-actual0950-result-20261017-v1/README.md).
+
+The exact public0.958 source is now private source-only139199164v1. Its required
+R6 input is pinned to version1; currentversion2 contains different R7 weights.
+Eight code cells match the scored source. No MRI inference or competition entry
+has run for that copy; do not submit the Quick Save. The older unstarted0.956
+reference's reservation was reassigned, with healthy training left unchanged.
+[Actual source/input binding](initiative/audits/public0958-reference-20261017-v1/README.md).
+
 Whole-parent adaptation completed its first **486-update epoch**, privately fully
 verified, then passed32MRI/twoT4 qualification and the exact public MRI run.
 Its code entry **57294905 completed at0.949**, matching the parent without a gain.
@@ -28,14 +39,14 @@ Both matched uniform16E1 and influence16E1 completed486updates/all5private
 objects; uniformE2 and influenceE2 each completed972/all5private objects. Original uniformE3 is queued; the same numerical fit is preserved. No new scored learned-model gain is claimed.
 [Actual entries, epochs and final-serving ownership](initiative/audits/research-progress-20261017-0448-v1/README.md).
 
-**The owner targets0.97; best verified remains0.949.** Actual CPU inference
+**The owner targets0.97; best verified is now0.950.** Actual CPU inference
 on eight fitting MRIs found large raw teacher confidence gaps but much closer
 rankings. A fixed equal-rank blend and a single-model ordinal distillation
 contrast are prepared; the latter has19target contracts plus17actual synthetic CPU training/recovery
 checks for its separate target data path, no full MRI fit or gain.
 The larger32-study scout has a sole finite owner and awaits actual admission.
-The fixed blend is actually staged/owned and waits S6 scoring. Original S6 code
-entry57300990 was accepted once; its hidden score is pending. Every next entry
+The fixed blend is staged/owned; its prior-S6-score gate now passes. Original S6 code
+entry57300990 completed at0.950/noerror. Every next entry
 refreshes authoritative allowance. [Exact staged blend](initiative/audits/s6-equalrank-deployment-20261017-v1/README.md).
 [Measured finding and limits](initiative/audits/s6-fitting8-cross-lineage-20261017-v1/README.md),
 [matched mechanism](initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md).
@@ -47,8 +58,8 @@ Original T4 qualification**139165932v1 actually completed in156.6seconds** on
 both T4s, three MRIs, finite13-column output and zero S6 fallback. The exact
 source was unchanged; our observer was repaired to account for its stale embedded
 build ID. The distinct offline139181157v1 also completed233seconds, and its exact code
-submission **57300990 is accepted once, hidden score pending**. Its
-author-reported0.950 is **not our project hidden score**.
+submission **57300990 actually completed at0.950/noerror**. It reproduces the
+released S6 model; this is a project public score, not our from-scratch training.
 [Actual T4 acceptance and owned continuation](initiative/audits/s6-original-t4-recovery-20261017-v1/README.md),
 [new original training progress](initiative/audits/research-progress-20261017-0550-v1/README.md).
 

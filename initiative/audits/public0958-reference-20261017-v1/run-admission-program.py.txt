@@ -1,0 +1,53 @@
+
+import hashlib,importlib.util,json,os,sys,shutil
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('unchanged_public0958_UI_reconcile',W);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+D=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1');key='public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f';slug='godlydonuts/rsna-public0958-native-300b34417bc1'
+import time
+bc={};exec(compile(v['budget_contract'],'unchanged_all_future_VM_budget','exec'),bc);budget=bc['budget']
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');claim.mkdir(mode=0o700);w.new_json(claim/'owner.json',{'kind':'exact0958_source_UI_run_admission','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);record=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert record['state']=='public0958_exact_UI_source_only_v1_prepared' and record['replacement_funding']['reassigned_future_inference_VM_seconds']==32400
+  actual=r.kernel('GetKernel',slug,1);assert actual['metadata']['id']==139199164 and actual['metadata']['isPrivate'] is True and not actual['metadata'].get('enableInternet',False)
+  main = Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')
+  sampled = Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison')
+  unfinished = known_reserved = 0
+  for e in (1, 2, 3):
+      E = main / ('segment-' + str(e))
+      assert not (E / 'actual-failed.json').exists()
+      if not (E / 'actual-accepted.json').exists():
+          unfinished += 25200
+          if (E / 'push-response.json').exists():
+              old = json.loads((E / 'push-intent.json').read_text())
+              status = r.kernel('GetKernelSessionStatus', old['slug'], 1).get('status')
+              assert status not in ('ERROR', 'CANCELLED')
+              if status != 'COMPLETE':
+                  known_reserved += 25200
+  sampling = sum(6000 for role in ('uniform', 'influence') for e in (1, 2, 3) if not (sampled / (role + '-epoch-' + str(e)) / 'actual-accepted.json').exists())
+  blend_row = db.execute('SELECT value FROM meta WHERE key=?', ('licensed-parent-full-epoch-serving:S6-equalrank:46a9688309973ca405fb37b854ac110f3ca29752d9ac5f3588e62d868a799bac',)).fetchone()
+  assert blend_row is not None
+  blend_state = json.loads(blend_row[0])['state']
+  blend_unfinished = blend_state not in ('S6_equalrank_public_accepted', 'S6_equalrank_submitted', 'S6_equalrank_scored', 'S6_equalrank_hidden_failed', 'S6_equalrank_public_failed')
+  scout_row = db.execute('SELECT value FROM meta WHERE key=?', ('licensed-parent-full-epoch-serving:S6-source-fitting32:0573a2a11a276ec642a1ef18ee88722cf8068ef56fecfaa06226ae2216cf07bf',)).fetchone()
+  assert scout_row is not None
+  scout_unfinished = json.loads(scout_row[0])['state'] not in ('S6_fitting32_scout_actual_accepted', 'S6_fitting32_scout_collected_verified')
+  quota = r.call('kernels.KernelsApiService', 'GetAcceleratorQuotaStatistics', {})['gpuQuota']
+  funding = budget(quota, unfinished_main=unfinished, known_main_reserved=known_reserved, unfinished_sampling=sampling, blend_unfinished=blend_unfinished, scout_unfinished=scout_unfinished)
+  C = Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py')
+  assert hashlib.sha256(C.read_bytes()).hexdigest() == '0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2'
+  sp = importlib.util.spec_from_file_location('unchanged_capacity_R7', C)
+  capacity_module = importlib.util.module_from_spec(sp)
+  sp.loader.exec_module(capacity_module)
+  capacity = capacity_module.admission(db, r, caller='serving')
+
+  account=r.account();ready=funding['allowed'] and capacity['available']
+  out={'status':'ready_for_one_UI_SaveAndRun_existing_draft' if ready else 'waiting_actual_two_session_capacity_or_all_future_funding_no_GPU_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'checked_at_UTC':w.utcnow(),'canonical_key':key,'existing_source_only_kernel_id':139199164,'source_only_version':1,'next_maximum_MRI_run_versions':1,'next_version_expected':2,'required_original_R6_dataset_version':1,'code_cells_sha256':record['code_cells_sha256'],'source_only_v1_not_submission_eligible':True,'funding':funding,'actual_capacity':capacity,'fresh_actual_account':account,'automatic_GPU_or_entry_calls':0,'no_model_pixel_weight_Dataset_transfers':True}
+  if ready:
+   assert not (D/'UI-run-intent.json').exists();out['UI_commit_deadline_unix']=time.time()+180;w.new_json(D/'UI-run-intent.json',out);record['state']='public0958_exact_UI_run_intent';record['run_intent']=out;db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)',(w.utcnow(),record['code_cells_sha256'],record['state']));db.commit()
+  print(json.dumps(out),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()

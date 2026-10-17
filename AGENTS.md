@@ -1,7 +1,7 @@
 # RSNA Knee: current agent guide
 
 The owner targets a **0.97 model** and a fully current GitHub handoff.
-Verified best remains0.949; a target is not a measured result.
+Verified best is now0.950; a target is not a measured result.
 Implement directly: **Devin is unavailable**. Do not create issues or wait for
 Devin. Preserve healthy work while pursuing concrete, falsifiable experiments.
 Software tests, parameter count, model downloads and training loss are not score
@@ -25,8 +25,9 @@ historical release/plan documents now link back to the current guides.
 ## Current scientific distinctions
 
 - Best independently MRI-trained model: N3 CoAtNet E16, public AUC **0.894**.
-- Best reproduced external checkpoint: nartaa CoAtNet, **0.949**. We reproduced
-  inference, not its full training. Context/regional/full-field variants scored
+- Best reproduced external checkpoint: S6, **0.950**, original entry57300990
+  COMPLETE/noerror; nartaa CoAtNet remains0.949. We reproduced inference, not full
+  source training. Context/regional/full-field variants scored
   **0.948**; none establishes an improvement.
 - Full-parent and sampled full-encoder work remain owned/running. Expanded
   N3 completed0:0/5184updates; fixed-final weak macro0.91743 versus0.92093
@@ -38,12 +39,12 @@ historical release/plan documents now link back to the current guides.
   A stale author embedded build ID stopped only our observer; the exact-source
   repair is in `initiative/audits/s6-original-t4-recovery-20261017-v1/README.md`.
   Original offline139181157v1 also completed233seconds with the same checks;
-  sole entry20994 accepted code submission57300990 once and observes its hidden result.
+  sole entry20994 accepted code submission57300990 once and observed COMPLETE/0.950/noerror.
   H100942047 is still pending; distinct CPU fitting8 input139165316v1 completed and all5372windows
   are privately byte verified; CPU942806 now scored all eight/5372windows and
   CPU942957 completed a label-free cross-lineage screen. A 32-study scout has
-  sole recovered finite owner34237, staged and awaiting fresh two-session GPU admission; original offline acceptance passed. CPU follow-through34308 waits actual completion for input/precision/cost checks. Never duplicate these originals. **0.950 remains external**;
-  there is no project S6 hidden score at this observation. Include both S6 and CoAtNet runtime.
+  sole recovered finite owner34237, staged and awaiting fresh two-session GPU admission; original offline acceptance passed. CPU follow-through34308 waits actual completion for input/precision/cost checks. Never duplicate these originals. The reproduced0.950 is now actual;
+  observer20994 is terminal success. Include both S6 and CoAtNet runtime.
 - Raw S6/CoAtNet confidence gaps are large while ranks are much closer on the
   eight cost quantiles. Do not equate raw gaps with clinical uncertainty. See
   `initiative/experiments/competitive-v1/s6-rank-transport-v1/README.md` for the
@@ -53,14 +54,21 @@ historical release/plan documents now link back to the current guides.
   139192503v1 is QUEUED; recovered CPU observer34538 treats missing API status
   as unknown. Never restart the original GPU. Current guide has exact receipts.
 - Fixed equal-rank deployment has sole owner27596; CPU943330 staged it once.
-  It waits actual S6 scoring, fresh GPU funding/capacity and fresh daily allowance.
+  The S6 scoring gate now passes; fresh GPU funding/capacity and daily allowance remain.
   FinalE3 follow-on28090 waits original17317 terminal zero-entry expiry only;
   neither can duplicate the original submission. Current execution guide has pins.
 - Original public0.956 R7+CoAtNet source and all8 R7 weight/sidecar objects
   are privately pinned/size/SHA/header verified. Fourfold R7 adds denser physical
   inputs and state/extent supervision; no individual causal gain is established.
   Read `initiative/audits/r7-public-reference-admission-20261017-v1/README.md`.
-  Sole finite owner31309 now waits fresh full future funding/capacity; no R7 GPU/entry exists yet. Preserve the original S6 entry and healthy training.
+  Old finite owner31309 is retired with no push/entry after CPU944959 proof; source/
+  assets remain intact. Its reservation now funds the exact public0.958 reference.
+- Exact public0.958 native copy139199164v1 is source-only Quick Save: all8code
+  cells equal, private/offline/originalDocker/twoT4, **R6 dataset pinned version1**.
+  Version2 serves different R7 weights under identical names. No MRI run/entry
+  exists. Read `initiative/audits/public0958-reference-20261017-v1/README.md`;
+  fresh canonical funding/capacity admission before one existing-draft UI commit.
+  Never submit source-only v1 or push unversioned inputs through the SDK.
 - Released encoders exposed internal studies. Head-only cross-validation on
   their features is not independent whole-model OOF. Protected clinical values
   remain unused by us; weak-label agreement is not clinical truth.

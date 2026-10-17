@@ -1,0 +1,60 @@
+"""One CPU fixed-roster plan, not teacher acquisition or GPU funding."""
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+L = Path(__file__).resolve().parent
+assert not (L / 'dispatch.intent.json').exists()
+checked = json.loads((L / 'checked.json').read_text())
+core = (L / 'cohort.py').read_text()
+assert checked['count'] == 21 and hashlib.sha256(core.encode()).hexdigest() == checked['core_sha256']
+program = r'''
+import ast,hashlib,json,os,shutil,sys
+from pathlib import Path
+import numpy as np
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'full-teacher-cohort-plan-v1';assert not D.exists() and shutil.disk_usage('/tmp').free>610493834008
+paid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected'];controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in paid) and p.suffix not in ('.pt','.whl'))
+assert controls+11*2**20+2**20<16*2**20,'Existing16MiB controls and11MiB future obligation remain funded after new1MiB cap'
+C=P/'CPU-fitting8-UID-view-v2/collected';old=json.loads((C/'verified.json').read_text());assert old['all_original_lossless_inputs_and_fitting_roster_equal'] is True and old['kernel_id']==139165316
+path=C/'selection.private.json';assert hashlib.sha256(path.read_bytes()).hexdigest()==old['receipt']['selection_sha256'];selection=json.loads(path.read_text());uids=selection['ordered_fitting_uids'];counts=dict(selection['series_counts'])
+T=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert T.stat().st_size==483656 and hashlib.sha256(T.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(T,allow_pickle=False) as z:
+ assert set(z.files)=={'uids','labels','masks','parent_logits'} and z['uids'].tolist()==uids
+ns={};assert hashlib.sha256(v['core'].encode()).hexdigest()==v['checked']['core_sha256'];exec(compile(v['core'],'actual_private_fitting_cohort_partition','exec'),ns)
+source_root=P/'source-tree-v1';matches=[p for p in source_root.rglob('compact_infer.py') if hashlib.sha256(p.read_bytes()).hexdigest()=='34f433fe72b732543813165c3397ec80cef01b0d49b25b7b22668714f0b0ef4a'];assert len(matches)==1
+tree=ast.parse(matches[0].read_text());cls=[n for n in ast.walk(tree) if isinstance(n,ast.ClassDef) and n.name=='CStudies'];assert len(cls)==1
+cleanup={}
+for name in ('__getitem__','rows'):
+ methods=[n for n in cls[0].body if isinstance(n,ast.FunctionDef) and n.name==name];assert len(methods)==1
+ final_calls=[c for n in ast.walk(methods[0]) if isinstance(n,ast.Try) for f in n.finalbody for c in ast.walk(f) if isinstance(c,ast.Call)]
+ found=[n for n in final_calls if ast.unparse(n.func)=='shutil.rmtree' and len(n.args)==1 and isinstance(n.args[0],ast.Name) and n.args[0].id=='work' and any(k.arg=='ignore_errors' and isinstance(k.value,ast.Constant) and k.value.value is True for k in n.keywords)]
+ assert len(found)==1;cleanup[name]={'per_study_work_removed_in_finally':True}
+loaders=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and ast.unparse(n.func).endswith('DataLoader')];assert any(any(k.arg=='persistent_workers' and isinstance(k.value,ast.Constant) and k.value.value is False for k in n.keywords) for n in loaders)
+summary=[];plans=[]
+for k in range(1,9):
+ assignment=ns['partition'](uids,counts,k);plans.append(assignment);groups=[]
+ for g in range(k):
+  chosen=[u for u,a in zip(uids,assignment) if int(a)==g];groups.append({'group':g,'studies':len(chosen),'series':sum(counts[u] for u in chosen),'ordered_UID_sha256':hashlib.sha256(json.dumps(chosen,separators=(',',':')).encode()).hexdigest()})
+ assert sum(r['studies'] for r in groups)==3887 and sum(r['series'] for r in groups)==sum(counts.values())
+ summary.append({'groups':k,'assignment_array_sha256':hashlib.sha256(assignment.tobytes()).hexdigest(),'buckets':groups})
+D.mkdir(mode=0o700);(D/'cohort.py').write_text(v['core']);(D/'cohort.py').chmod(0o600)
+F=D/'assignments.private.npz';np.savez_compressed(F,uids=np.array(uids),assignments=np.stack(plans));F.chmod(0o600)
+with np.load(F,allow_pickle=False) as z:assert set(z.files)=={'uids','assignments'} and z['uids'].tolist()==uids and np.array_equal(z['assignments'],np.stack(plans))
+out={'status':'actual_full3887_fitting_metadata_partition_plan_CPU_accepted_without_teacher_or_GPU','CPU_job':os.environ['SLURM_JOB_ID'],'population':3887,'population_sha256':ns['POPULATION_SHA'],'original_selection_sha256':old['receipt']['selection_sha256'],'core_sha256':v['checked']['core_sha256'],'plans':summary,'private_assignment_bytes':F.stat().st_size,'private_assignment_sha256':hashlib.sha256(F.read_bytes()).hexdigest(),'original_compact_infer_sha256':'34f433fe72b732543813165c3397ec80cef01b0d49b25b7b22668714f0b0ef4a','original_source_AST':{'study_temp_cleanup':cleanup,'DataLoader_persistent_workers_false_present':True,'MRI_forward_decode_or_pixel_copy_run':False,'does_not_prove_full_scale_RAM_or_runtime_bound':True},'global_assembly_required_before_any_rank_transport':True,'source_labels_masks_reports_gold_or_teacher_arrays_decoded':False,'existing_control_bytes':controls,'maximum_new_retained_bytes':2**20,'existing_future_controls_preserved_bytes':11*2**20,'new_shared_byte_file_liability':0,'full_teacher_producer_GPU_funding_or_dispatch_admitted':False,'clinical_accuracy_or_Kaggle_score_claim':False};(D/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');assert sum(p.stat().st_size for p in D.iterdir() if p.is_file())<2**20;print(json.dumps(out),flush=True)
+'''
+compile(program, 'one_actual_fixed_fitting_cohort_plan', 'exec')
+(L / 'program.py.txt').write_text(program)
+with (L / 'dispatch.intent.json').open('x') as f:
+    json.dump({'program_sha256': hashlib.sha256(program.encode()).hexdigest(), 'core_sha256': checked['core_sha256'],
+               'one_CPU_zero_GPU': True, 'maximum_retained_bytes': 2**20, 'automatic_retry': False,
+               'new_images_models_inference_training_or_entries': 0}, f, indent=2)
+cmd = ['srun', '--account=skattel', '--partition=preemptable', '--qos=preemptable', '--nodelist=evc33', '--ntasks=1', '--cpus-per-task=1', '--gres=none', '--mem=1G', '--time=00:03:00', '--job-name=rsna-S6-full-cohort-plan', 'env', 'PYTHONNOUSERSITE=1', 'PYTHONDONTWRITEBYTECODE=1', 'OMP_NUM_THREADS=1', 'OPENBLAS_NUM_THREADS=1', '/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python', '-B', '-c', program]
+x = subprocess.run(['ssh', '-S', '/tmp/rsna-research-20261001-stable.sock', '-o', 'BatchMode=yes', 'newton', shlex.join(cmd)], input=json.dumps({'core': core, 'checked': checked}), capture_output=True, text=True, timeout=400)
+(L / 'dispatch.result.json').write_text(json.dumps({'returncode': x.returncode, 'stdout': x.stdout, 'stderr': x.stderr}, indent=2) + '\n')
+assert x.returncode == 0, x.stderr[-2500:]
+out = json.loads(x.stdout)
+(L / 'accepted.json').write_text(json.dumps(out, indent=2) + '\n')
+print(json.dumps(out), flush=True)

@@ -1,0 +1,26 @@
+
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+import requests
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+D=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/public0958-reference-v1');R=D/'small-manifests-v1';assert not R.exists() and shutil.disk_usage('/tmp').free>611754508347
+inventory=json.loads((D/'assets-inventory.json').read_text());rows={r['slug']:r for r in inventory['datasets']};assert rows['heliosli/rsna-knee-r6-frozen-fe055406']['metadata']['currentVersionNumber']==2
+R.mkdir(mode=0o700);data={};records={}
+for slug,name in [('heliosli/rsna-knee-r6-frozen-fe055406','manifest.json'),('nartaa/rsna-knee-publication-swa-weights-20261007','checkpoint-manifest.json')]:
+ row=rows[slug];size=row['files'][name];assert 0<size<131072;response=requests.get('https://www.kaggle.com/api/v1/datasets/download/'+slug+'/'+name,params={'dataset_version_number':row['metadata']['currentVersionNumber']},stream=True,timeout=(15,90));assert response.status_code==200
+ raw=bytearray()
+ try:
+  for b in response.iter_content(32768):raw.extend(b);assert len(raw)<=size
+ finally:response.close()
+ assert len(raw)==size;obj=json.loads(raw);key='R6' if name=='manifest.json' else 'CoAtNet';p=R/(key+'.original.json');p.write_bytes(raw);p.chmod(0o600);data[key]=obj;records[key]={'dataset':slug,'version':row['metadata']['currentVersionNumber'],'name':name,'bytes':size,'sha256':hashlib.sha256(raw).hexdigest()}
+assert data['R6']['bundle_id']=='fe055406fad6a12f'
+oldroot=Path('/tmp/rsna-R7-checkpoint-admission-20261017-v1');old=json.loads((oldroot/'verified.json').read_text());reuse=[];new=[]
+for name,expected in data['R6']['sha256'].items():
+ size=rows['heliosli/rsna-knee-r6-frozen-fe055406']['files'][name]
+ if name in old['files'] and old['files'][name]['sha256']==expected and old['files'][name]['bytes']==size:
+  stat=(oldroot/name).stat();assert stat.st_size==size and stat.st_mtime_ns==old['files'][name]['original_stat_mtime_ns'];reuse.append({'name':name,'bytes':size,'sha256':expected,'original_whole_byte_and_header_proof_reused':True})
+ else:new.append({'name':name,'bytes':size,'sha256':expected})
+source=json.loads((D/'scored-UI-v6.private.ipynb').read_text());cells=[''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in source['cells'] if c['cell_type']=='code']
+import ast
+tree=ast.parse(cells[-1]);files=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(a,ast.Name) and a.id=='_PB_FILES' for a in n.targets));sha=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(a,ast.Name) and a.id=='_PB_SHA' for a in n.targets));assert set(files)==set(sha)=={'preprocess.py','knee.py','infer.py'} and all(hashlib.sha256(t.encode()).hexdigest()==sha[n] for n,t in files.items())
+summary={'status':'new0958_manifest_reuse_and_embedded_reader_source_review_complete','CPU_job':os.environ['SLURM_JOB_ID'],'small_manifest_files':records,'R6_manifest':data['R6'],'CoAtNet_manifest':data['CoAtNet'],'R6_reusable_original_R7_objects':reuse,'R6_distinct_required_objects':new,'R6_reusable_bytes':sum(x['bytes'] for x in reuse),'R6_new_required_bytes':sum(x['bytes'] for x in new),'reader_embedded_source_SHA':sha,'additional_reader_weight_names':['cnxt_v0_fold0.pt','cnxt_v0_fold1.pt','cnxt_v0_fold2.pt'],'additional_reader_weight_bytes':3*123035271,'additional_CoAtNet224_weight_sha256':'3394fdd7e668286956e85af2554bef0386df5cd79d1c1af223b095c828b815d6','additional_CoAtNet224_weight_bytes':292842755,'new_large_asset_downloads_or_duplicate_hashes':0,'new_GPU_Dataset_or_entry_mutations':0};(R/'review.json').write_text(json.dumps(summary,indent=2)+'\n');assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<2*2**20;print(json.dumps(summary),flush=True)
