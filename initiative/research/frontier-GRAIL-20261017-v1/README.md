@@ -138,3 +138,28 @@ admission and a one-time dispatch remain required. Full extraction and residual
 training are not yet dispatched; the scout has no full-cache mode. Measured
 spatial dimensions/cost must precede a separate full representation admission. This gate measures fidelity, throughput and
 actual representation availability before spending a full-run budget.
+
+## Actual scout / terminal-aware recovery
+
+Original GPU949626ran on one H100 of the physical2-H100 evc33node, then was
+PREEMPTED0:15 after91seconds, Requeue0/Restarts0. It completed26/32studies and
+1,912windows in the last62.52-second progress record. CPU949734subsequently
+fully SHA/CRC/array-verified all26complete files: actual original maps are
+**1024x12x12 FP32**, retained with full pooled embeddings and base logits.
+No new complete-scout, geometry-registration or accuracy acceptance exists.
+
+Distinct published-source recovery **949735** was submitted ONCE under normal
+QOS on evc33, last PENDING for its H100. It reuses all26verified completed
+forwards, checks unchanged base repooling and runs only six missing encodings.
+No duplicate original pilot or changed scientific recipe. Its private per-case
+records are durable to future interruption. Keep original source/head/runtime,
+3GiBcap and512MiBfuture head/publication reserve unchanged. The earlier CPU
+949712guard failed before reads/staging/GPU dispatch because squeue treats an
+aged terminal ID as an error; distinct v3 uses the original sacct terminal and
+full live account ID list. The numerical recovery worker was unchanged.
+
+[Original dispatch](actual-feature-pilot-submitted.json),
+[exact distinct recovery](actual-feature-recovery-v3-submitted.json),
+[preserved original CPU stop](original-recovery-CPU-stop.json). Do not repeat
+either GPU dispatch or re-encode completed cases. Broader owner GPU permission
+excludes physical4/8-GPU nodes and allows useful distinct work on1/2-H100 nodes.

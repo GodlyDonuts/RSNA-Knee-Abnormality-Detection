@@ -56,7 +56,10 @@ and127734/66237disjoint-support repeat edges are bound without pixel or clinical
 target reads. Their median separation is about20mm: this is NOT literal adjacent-
 image clinical evidence. All17671selected series lack cached FrameOfReferenceUID
 and SliceThickness. Cross-plane registration and lesion volume remain unproved.
-A separately funded frozen-feature pilot is prepared, **not yet submitted**;
+Original frozen spatial-feature scout949626was PREEMPTED after26/32studies;
+CPU949734fully verified all26files/1,912windows and actual1024x12x12maps.
+Distinct normalQOSrecovery949735is PENDING; it reuses26completed forwards and
+encodes only six missing cases. Full32study scout acceptance is absent;
 require its actual source/roster/base-logit/device/throughput acceptance before
 one full cache pass or aligned/sham fitting. Reuse original N3E16/native bytes.
 
@@ -65,7 +68,8 @@ changes the scout: retain actual N3 **pre-pooling spatial maps**, not merely
 window embeddings. The actual regional operator has a reproduced location
 collision; the new centered co-support and weighted-marginal/exact-support null
 have nine focused tests. These establish representation/math, not MRI gain.
-The bounded32-study H100scout is source-prepared, not yet submitted. It records
+The bounded32-study H100scout completed26cases before Slurm preemption;
+normalQOSrecovery949735is pending and reuses those26verified forwards. It records
 actual dimensions, original letterbox/source geometry, base-logit fidelity and
 cost. No full spatial cache or fit is admitted. Cross-acquisition geometry is
 unqualified; cached frame/thickness fields are absent. Existing longitudinal
@@ -89,7 +93,8 @@ unchanged. All46focused new cases and115-module mypy passed; current v2coverage 
 Initial fullsuite had4660pass/4fail/6skip: one child lackedPYTHONPATH and
 three bound source edits made during replay. The same four isolated cases now
 pass; a new complete suite freezes and checks all numerical sources. Global
-1327lint/57format debt is unchanged. Source publication is in progress.
+1327lint/57format debt is unchanged. Numerical source and actual diagnostics are published on main; distinct
+private small-milestone verification is pending. Full-source QA is still running.
 
 ## Completed CPU research: labels × whole-study coverage
 

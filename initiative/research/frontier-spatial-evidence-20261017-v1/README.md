@@ -112,3 +112,18 @@ Current best remains externally reproduced0.950; own N3E16 is0.894. The new
 spatial reader has **no trained result or competition score**. A 0.950→0.970
 move requires40% net reduction in macro ranking-error mass; this is the target,
 not an expected gain established by the memo.
+
+## Actual progress after the original source publication
+
+The original H100 scout was scheduler-preempted after26complete MRIstudies,
+not rejected for input/numerical failure. Actual maps are1024x12x12, unlike the
+released-parent10x10 example. Owning CPU949734fully verified all26original
+files/1,912windows. A separate normalQOS continuation949735is PENDING and
+reuses those completed forwards, with only six new encodings authorized.
+The full spatial fit and an accuracy gain remain unobserved.
+
+The [actual source-domain audit](../../audits/N3-fixed-source-domain-20261017-v1/README.md)
+also completed, reconstructing existing0.9209253491internal AUC exactly across
+12manufacturers/42manufacturer-model domains. Common-target within-domain
+discrimination did not broadly collapse; sparse-target differences remain
+uncertain. This is one fixed model, not an independent comparison or a gain.
