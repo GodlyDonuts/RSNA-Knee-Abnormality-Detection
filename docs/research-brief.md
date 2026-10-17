@@ -9,8 +9,9 @@ status. This brief records conclusions; it is not another execution log.
 Fresh authenticated [public leaderboard](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection/leaderboard)
 reference on October16 is **0.968** at first place. Our licensed0.949 baseline
 is still0.019 below that public reference; own0.894 is0.074 below. Neither is
-a winning result or a private-leaderboard guarantee. The new context path aims
-to improve the strong foundation; its engineering pass is not an accuracy gain.
+a winning result or a private-leaderboard guarantee. Our context head actually scored0.948, below unchanged0.949; no gain established.
+The full384field entry57289392 is pending/unknown, not a score. Full-model
+fine-tuning is healthy at293/1458updates; E1/E3 comparisons are installed.
 
 The attributed author-trained model scored **0.949** on Kaggle. Our own CoAtNet
 epoch 16 scored **0.894**, following epochs 4/8/12 at **0.821/0.869/0.890** and
@@ -177,8 +178,7 @@ Do not repeat this prefix or earlier verified milestones.
 CPU936870 verified the actual final context head on old/new globals from32MRIcases:
 max mean-TTA probability drift0.0001293 (parent0.0001238), within the existing
 0.003precision bound. No newCNN/GPU/labels/fitting; cause of cross-run feature drift
-and full-population bound remain unproven. Scheduled accepted context entry is
-unchanged. [Actual targeted check](../initiative/audits/context-cross-cache-numerics-20261016-v1/README.md).
+and full-population bound remain unproven. Context was submitted once and actually scored0.948, below unchanged parent0.949. [Actual targeted check](../initiative/audits/context-cross-cache-numerics-20261016-v1/README.md).
 Neighbor fixed-final sourcea44f476a and10smallobjects are private-HF fully verified
 ONCE at fd2b776e0bc977cdac4dc7730d2e894d1bfbfb32 (CPU936842).
 [Verified preservation](../initiative/audits/hf-neighbor-fixed-final-20261016-v1/verified.json).
@@ -210,9 +210,9 @@ Never repeat this prefix or preceding verified mirrors.
 Both actual final spatial components have now passed twoT4precision against32MRI
 feature references (max1.192e-7) and exact3study public MRI/CSV execution in26–28s,
 with zero fallback/empty studies. Private combined Dataset12639590v1 is fully
-verified. No hidden entry/score exists yet; today5slots are alreadyused. The original
-context owner plus new outcome-aware spaced entry queue test the exact accepted
-versions after fresh live allowance, preserving failures and negative scores.
+verified. Neither spatial head has a hidden score. The distinct regional-only owner87869
+is live for02:00UTC after actual prior outcomes/fresh allowance. The original
+context scored0.948; old spatial/confidence owners stopped before any entry.
 [Actual deployment](../initiative/audits/regional-context-deployment-20261016-v1/README.md).
 
 A distinct next supervision hypothesis remains untested: the provided source
@@ -286,7 +286,7 @@ for this exposed parent. CPU939476 staged the unchanged production sourcec68d875
 CPU939655 joined all3887ordered fitting UIDs to the exact accepted target bundle.
 Original **139111324v1**,godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138,
 was pushed ONCE and is actually RUNNING. Authenticated live logs show BOTH Tesla
-T4s, all73,136,096parameters trainable and **259finite optimizer updates** in epoch1 (latest visible log)
+T4s, all73,136,096parameters trainable and **293finite optimizer updates** in epoch1 (latest visible log)
 at23:10UTC. No epoch is complete and no new accuracy/competition score exists.
 [Actual live optimizer proof](../initiative/audits/licensed-parent-whole94-production-20261016-v1/actual-live-training-UI-43.json).
 
@@ -367,8 +367,10 @@ private complete-model preservation and bothT4/publicMRI/CSV acceptance, the
 original context comparison's actual scored outcome, no unresolved entries and
 fresh authoritative daily allowance. It sends the exact code notebook ONCE,
 then observes its actual hidden outcome. Maximum one entry; no three-row CSV
-upload, diagnostic model or uncertain-mutation retry. The existing spaced head
-comparisons remain unchanged. Inspect each original intent/result before action.
+upload, diagnostic model or uncertain-mutation retry. The old head-entry owners are terminal; the distinct regional-only owner is
+live. Separate fixed-final E3 owner89000 can send one exact final entry only
+after completed/preserved/qualified E3 and the actual E1 score. Inspect original
+intents/results before action.
 [Actual stage, owners and source](../initiative/audits/licensed-parent-epoch-serving-20261016-v1/README.md).
 
 
@@ -418,8 +420,8 @@ No mutation intent on quota waits; never restart the old84212 or repeat qualifie
 29focused math/recovery/export/compiler checks and Ruff/mypy6sources passed. [Protocol and primary papers](../initiative/experiments/competitive-v1/source-ranking-context-v1/README.md),
 [actual original proofs/owners/funding](../initiative/audits/source-ranking-context-20261016-v1/README.md).
 
-The original full CoAtNet139111324v1 independently continues on bothT4s,259finite
-updates last verified in epoch1 (259/1458total;53.3%of epoch1). All four original lossless pixel caches are now
+The original full CoAtNet139111324v1 independently continues on bothT4s,293finite
+updates last verified in epoch1 (293/1458total;60.3%of epoch1). All four original lossless pixel caches are now
 also independently collected/replayed on Newton:3887studies,3.204MBprivate
 registry SHA8cc5c194d4795f6ab574c28b2cf8eed510c5f92fc6b5baff63049d16323fb1df.
 Original collector80537 is TERMINALsuccess; never restart it or repeat transfers.
@@ -429,9 +431,9 @@ errors/empty cases; all pixels/masks/two-view94-window hashes match.
 The rank experiment actually funded all prior607095306179required bytes plus
 new256MiBcheckpoint/publication+32MiBcontrols, leaving25.494GB after liabilities.
 Raw retained checkpoints138,599,668bytes stay private. No deletion credit or
-shared growth. Both existing main training and all prior entry owners remain
-unchanged; choose future exact ranking entries only after actual acceptance and
-relevant outcomes/fresh daily allowance.
+shared growth. Main training stays unchanged. Old head-entry observation failures are preserved;
+choose future ranking entries only after actual public acceptance, relevant
+outcomes and fresh daily allowance.
 
 
 Latest ranking/full-pixel/source milestone4952238a is privately fully re-downloaded/
@@ -449,10 +451,13 @@ area.69.73%of sampled outer-band pixels were nonzero; this measures image conten
 not lesion coverage or clinical accuracy. No model/labels/GPU/new pixel archive.
 Actual privateT4 qualification139126353v1 COMPLETED: all learned parameter
 values identical at320/384, both32-case inputs exact, cross-GPU384outputs equal,
-control error0.00024855, peak1.934GB/device. The new public source21439b154382 is
-prepared with unchanged weights/bounded MRI serving; public acceptance and a
-hidden score remain unobserved. No384 accuracy gain exists. The original main full-model fit and existing entries
-remain unchanged. [Actual proof and limits](../initiative/audits/licensed-native-field-20261017-v1/README.md).
+control error0.00024855, peak1.934GB/device. Exact privateoffline public139128447v1
+COMPLETED in23.372s/3studies/zero pair failures/13columns470CSVbytes, fully verified.
+The same exact source21439b154382 was submittedONCE as57289392 at00:50UTC; actual
+hidden status/score remain unreported at00:53UTC. Owner88168 observes it. The
+public ceiling is7h, retaining all unfinished main7h sessions plus1h reserve;
+measured throughput estimate6925.6s is not a hidden runtime guarantee.
+No384 accuracy gain exists. Original main full-model training stays unchanged. [Actual proof and limits](../initiative/audits/licensed-native-field-20261017-v1/README.md).
 
 
 ## Current outcome and next comparisons
@@ -463,8 +468,12 @@ observer and two dependent waiting entry owners are preserved as operational
 failures, not ML/submission failures. New exact regional-only recovery uses the
 original accepted v1 model/source and fresh account allowance from02:00UTC;
 global-repeat/confidence remain unsubmitted, not active owners. Full-field384
-public/one-entry continuation is separately prepared with actual both-T4 proof
-and conservative primary-training/optional-session funding. Original main
-139111324v1 and preservation/epoch-serving/single-entry owners stay healthy.
-No change to their scientific recipe. [Actual score/recovery](../initiative/audits/released-context-deployment-20261016-v1/README.md),
+public139128447v1 has actual MRI/CSV acceptance and its ONE entry57289392 is
+pending/unknown. Main139111324v1 has293/1458finite updates in epoch1; training
+80039/preservation80311/serving82392/E1-entry82509 remain healthy.
+Distinct E3-entry89000/exec38366 is LIVE, waiting actual fixed-final private
+preservation, bothT4/public acceptance, E1 actual score and fresh allowance.
+Today's plan is context,field,regional,E1,E3; only context/field are submitted.
+There is no guarantee unready candidates finish within the daily window, and no
+unqualified duplicate will fill a slot. No scientific recipe changed. [Actual score/recovery](../initiative/audits/released-context-deployment-20261016-v1/README.md),
 [field proof and exact public source](../initiative/audits/licensed-native-field-20261017-v1/README.md).

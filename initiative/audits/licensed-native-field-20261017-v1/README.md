@@ -13,10 +13,10 @@ The independent full3887-case pixel backup is already complete and was not
 repeated. The local follow-up only annotates the dynamic renderer namespace for
 mypy; the submitted cfd5990f numerical program remains unchanged.
 
-Next test is strict unchanged-weight384 model compatibility and actual T4
-input/control precision, runtime and memory. No384 model forward, public run,
-competition submission or clinical accuracy result exists yet. Retaining the
-field may hurt through irrelevant context or altered relative-position grids.
+Actual unchanged-weight384 compatibility, T4 input/control precision and public
+MRI/CSV acceptance have now passed; submission57289392 was accepted once. Its
+hidden outcome is pending/unknown. Retaining the field may hurt through irrelevant
+context or altered relative-position grids; no384 accuracy gain is established.
 [Prospective protocol](../../experiments/competitive-v1/licensed-native-field-v1/README.md).
 
 Read-only accelerator review also found idle evc105 H200 hardware, but its short/
@@ -52,14 +52,35 @@ full384field, bounded2CPU/fourpendingtasks/twoqueuedstudies, and binds the exact
 learned graph digest again at model load. Separate CPU-process decode errors are
 logged by type rather than falsely counted in the parent process; GPU-empty
 views/pair failures are aggregated and must be zero in the three-study acceptance.
-Sixteen focused compiler/refusal checks/Ruff/mypy3sources pass. This is not
-public MRI acceptance or a competition score.
+Sixteen focused compiler/refusal checks/Ruff/mypy3sources pass. Those software checks are not accuracy evidence; actual public acceptance is
+recorded below and remains distinct from the hidden score.
 
-The finite public/ONE-entry controller is prepared: it reserves7h for EVERY
+The finite public/ONE-entry v2 controller is LIVE as88168: it reserves7h for EVERY
 unfinished primary full-model epoch plus1h, includes any actual still-running
-ranking/full-epoch inference sessions conservatively, and funds its own9hpublic
-timeout before a push. Public source/title/return/version, full MRI CSV/13columns/
+ranking/full-epoch inference sessions conservatively, and funded its own7hpublic
+timeout before its one actual push. Public source/title/return/version, full MRI CSV/13columns/
 roster/hash/no public fallback must pass before fresh daily allowance and actual
 prior scored context permit one code submission. No Dataset/weight upload or
 public three-row CSV upload. New public controls have8MiB on evc33, added to
 qualification8MiB; prior node and shared reserves/obligations remain carried.
+
+
+Actual public notebook139128447v1, godlydonuts/rsna-field384-21439b154382,
+COMPLETED its three-study MRI-only run in23.372seconds, zero empty views or pair
+failures. All2models loaded the exact learned graph;470-byte/13-column CSV and
+test.csv roster/hash independently verified in RAM. This is public-example
+acceptance, not hidden accuracy or a full hidden-runtime proof.
+
+Actual fresh eligibility at00:49UTC found one used/four available entries and no
+unresolved prior submissions; original context57287572 was actually0.948. The
+single canonical coordinator then submitted this exact v1 ONCE as **57289392**
+at00:50UTC. At00:53UTC status/score/error remainednull/zero output, classified
+pending_or_unknown, not failure or a score. Existing88168 observes that same entry;
+never submit it again or upload the three-row CSV.
+
+The old9h public waiting owner87851 was stopped only while idle, before any push
+intent or child. The distinct v2 seven-hour ceiling retains all primary training
+funding. It is supported by measured feature throughput scaled by1.5467 for384:
+estimated6925.6seconds, with3.64x margin inside7h. This is not a hidden-population
+or DICOM decoding guarantee. Both original controls/decision receipts remain.
+Owner chose to continue with current access; no H200 account request remains pending.

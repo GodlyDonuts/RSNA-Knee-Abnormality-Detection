@@ -49,11 +49,12 @@ conditional path, not an actual entry or accuracy result. Exact source and owner
 receipts are retained here without credentials or private patient/model arrays.
 
 
-A separate fixed-final epoch3 single-entry path is now prepared. It leaves original
+A separate fixed-final epoch3 single-entry path is now LIVE as PID89000/exec38366. It leaves original
 E1 owner82509 untouched and cannot act until actual full3/1458-update training,
 complete private preservation, both-T4 precision and exact public MRI/CSV acceptance.
 It additionally requires the E1 actual hidden score, no unresolved account entries,
 and fresh allowance. It changes no learned weights, public source, GPU recipe or
 Dataset; maximumONE code entry beforeOctober17 23:30UTC, actual hidden observation
 untilOctober18 10:00UTC. All small metadata fit the existing16MiB controls cap.
-This is preparation, not a completed epoch, submission or accuracy improvement.
+Its live state is waiting for original epoch3 qualification; no entry has been made.
+This is an installed path, not a completed epoch or accuracy improvement.
