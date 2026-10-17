@@ -1,76 +1,43 @@
 # RSNA Knee Abnormality Detection
 
-Reproducible report annotation, DICOM auditing, study-level training, and offline
-Kaggle inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
+Study-level MRI classification, data auditing, research experiments and offline
+inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Start with [current state](docs/current-state.md)** for timestamped actual scores,
-training jobs, model/data recipe and what is still untested. The
-[research brief](docs/research-brief.md) explains findings and limitations;
-[execution handoff](docs/codex-continuation.md) contains exact continuation bindings.
+**Current entry points — verified October 17, 2026, 02:05 UTC:**
 
-At the **October 16, 23:10 UTC** check, our own CoAtNet epoch 16 scored
-**0.894**, following epochs 4/8/12 at 0.821/0.869/0.890. The reproduced external
-author-trained model scored **0.949**; that is an attributed baseline, not our
-training improvement. Both matched CNN challengers completed. Positive weighting
-reached 0.9239 versus 0.9209 internal weak-label AUC, but the paired interval
-includes zero; the neighbor and late-average comparisons also established no
-primary gain. Keep the original N3 epoch 16 as our own-model default.
+- [Current state](docs/current-state.md): actual scores, live jobs, data/model recipes and unfinished work.
+- [Research brief](docs/research-brief.md): mechanisms, measured findings and negative results.
+- [Research-agent handoff](docs/research-agent-handoff.md): evidence map, exact assets, open questions and prior work to avoid repeating.
+- [Execution handoff](docs/codex-continuation.md): original job/source/output bindings and live owners.
 
-The licensed-parent sequence head and both matched spatial-information heads
-completed **3,887-study, 10-epoch fits**. Every immutable checkpoint is privately
-preserved and fully re-downloaded/hash verified. All three final candidates passed
-actual two-T4 numerical checks and their exact three-study public MRI/CSV path,
-with zero fallback or empty studies. The two spatial variants took about 26–28
-seconds for those **public examples**, not the hidden test. They have no competition
-score yet. All five of today's slots are used; outcome-aware entry owners will
-use fresh allowance and spaced next-window comparisons. A separate full CNN fit
-on 2,592 studies is queued after successful actual H100 recovery. A new matched
-source-confidence contrast also completed both full ten-epoch fits and preserved
-all 20 checkpoints. Its complete uniform control reproduces the original model
-and predictions exactly; the distinct confidence candidate also passed both-T4 precision and
-three-study public MRI acceptance and has a spaced fourth entry owner. No new competition gain is claimed.
+Our **best independently MRI-trained model is N3 CoAtNet epoch 16, public AUC
+0.894**, following 0.821 / 0.869 / 0.890 at epochs 4 / 8 / 12. We also reproduced
+**0.949 using nartaa's released MRI-trained weights and unchanged inference**;
+we did not train that model from scratch. Our sequence-context head and full-384
+inference-field experiments both scored 0.948, without improving the external
+reference. These are public leaderboard scores, not final private or clinical results.
 
-The current label blend has only 28 of 46,644 cells exactly 0.5, so those cells
-alone cannot explain the gap. Fractional confidence changes the supervision more
-broadly. [Actual contrast and source-semantics finding](initiative/audits/source-confidence-context-20261016-v1/README.md).
+Full adaptation of all 73.1M parent parameters is **running on Kaggle's two T4s**
+on 3,887 studies, with 451 finite updates observed. Expanded own-model fitting on
+2,592 studies is **running on a Newton H100**, at 333 of 5,184 updates, with epoch 1 complete. Neither has
+a final/new score. The matched uniform-16 / teacher-influence-16 full-encoder
+comparison has actual input/GPU-recovery/storage acceptance but is waiting for
+GPU budget; no production push has occurred. Prepared serving code is explicitly
+separate from actual GPU/public-MRI acceptance.
 
-The next full-encoder direction starts from the licensed MRI-trained0.949
-foundation. Both actual two-T4 recovery paths passed, including complete state
-and prediction equality. The new whole-study path trains all94windows together
-with all73.1Mparameters trainable, using **5.97GBpeak/GPU**, versus7.60GBfor the
-sampled12-window path. This is an engineering result, not an accuracy gain.
-All four full-population CPU cache shards have completed with zero decode errors
-or empty studies. Full production139111324v1 is now **RUNNING on both T4s**:
-3,887studies, all94windows, all73,136,096parameters trainable, **43finite updates**
-observed in epoch1. The fixed three-epoch schedule carries optimizer/RNG state
-between bounded sessions. No epoch is complete and this adaptation has no score
-yet. Completed-epoch preservation and exact inference/submission owners are live.
-[Actual training and proof](initiative/audits/licensed-parent-whole94-production-20261016-v1/README.md).
+The current guides distinguish completed training, weak-label evaluation,
+competition scores and preparation. They preserve failed and near-null experiments,
+including source-neighbor channels, positive weighting, late averaging, context
+and field changes. The full [research archive](docs/research-watch/README.md) and
+[initiative evidence](initiative/README.md) retain original dated findings; those
+old status snapshots are not live job or submission instructions.
 
-A separate study-pair ranking head completed all3,887studies/10epochs/2,430updates
-on one CPU, with all10checkpoints privately verified. Its strict final inference
-export matches the trained graph on32MRI feature cases; actual Kaggle precision
-qualification139119567v1 has passed on bothT4s, with no accuracy score yet. The full image-encoder
-fit continues independently. [Actual ranking experiment](initiative/audits/source-ranking-context-20261016-v1/README.md).
-
-The fixed importance proposal reduced frozen-teacher approximation MSE 45.6%
-on 3,887 fitting studies. This is evidence about training exposure, **not disease
-accuracy**. Exact versions, provenance, negative findings, uncertainty and remaining
-work are in the current guides. Root implements directly; Devin is unavailable.
-
-**Start with [the initiative archive](initiative/README.md) and
-[the continuation guide](docs/continuation.md).** GitHub contains source reports,
-metadata, blinded batch inputs, actual agent annotations/reviews, provenance,
-inventories, audit evidence, decisions, and recovery instructions alongside the
-code. [GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data)
-holds the large DICOMs, caches, model weights, and mirrored versioned releases.
-Credentials and temporary authenticated URLs must stay outside both repositories.
-
-Continue from `main`; the owner authorized direct main integration and both
-earlier PRs are integrated. `initiative/reviews-v2/index.json` records current
-review coverage. Run `python -m rsna.archive` to verify preserved file identities
-and `python -m rsna.review_progress` with the v2 paths in the continuation guide
-to check the current review run.
+Source code, sanitized audit receipts and documentation are maintained on `main`.
+Large private assets and verified checkpoint publications are referenced through
+[GodlyDonuts/RSNA-Data](https://huggingface.co/datasets/GodlyDonuts/RSNA-Data) and exact
+owning-node receipts. Private clinical records, credentials and temporary signed
+URLs must not be added to new research publications. Implement directly; Devin
+is unavailable. Update current guides in place after material changes.
 
 ## Historical report-supervision release
 

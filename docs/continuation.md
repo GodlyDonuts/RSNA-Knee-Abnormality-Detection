@@ -1,3 +1,8 @@
+> **Historical recovery guide.** Use [current state](current-state.md),
+> [research-agent handoff](research-agent-handoff.md) and
+> [current execution handoff](codex-continuation.md). Do not follow the old branch,
+> Devin or launch instructions below as current work. They preserve the originating run.
+
 # Continue from a new session
 
 This file preserves the originating session's recovery instructions. PR #1 has

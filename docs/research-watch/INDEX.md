@@ -3,7 +3,7 @@
 All linked files contain full research content or machine-readable supporting metadata, not summary substitutes.
 
 - [2026-10-15-late-findings.md](2026-10-15-late-findings.md) (12,360 bytes)
-- [README.md](README.md) (3,885 bytes)
+- [README.md](README.md) (4,584 bytes)
 - [SCOPE.md](SCOPE.md) (2,614 bytes)
 - [additional/privileged_report_distillation_review-docx-full-text.txt](additional/privileged_report_distillation_review-docx-full-text.txt) (16,430 bytes)
 - [additional/privileged_report_distillation_review.md](additional/privileged_report_distillation_review.md) (16,937 bytes)

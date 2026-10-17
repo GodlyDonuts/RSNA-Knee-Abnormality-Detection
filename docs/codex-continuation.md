@@ -1,7 +1,8 @@
 # Execution handoff
 
-**Checked October17,2026,01:46UTC.** Root implements directly; Devin unavailable.
-Read [current state](current-state.md), [research brief](research-brief.md), and
+**Checked October17,2026,02:05UTC.** Root implements directly; Devin unavailable.
+Read [current state](current-state.md), [research brief](research-brief.md),
+[research-agent handoff](research-agent-handoff.md), and
 exact original audits. [Earlier full handoff](codex-continuation.history-20261017-0146.md)
 is historical, not mutation authority. Keep the broad model-improvement goal active.
 
@@ -19,7 +20,7 @@ Read actual processes/jobs before actions; dead observer does not mean dead GPU.
 | Whole94 E1 entry | 93216 / 57462 | `entry-observation-v2-finish.*` |
 | Whole94 E3 entry | 93228 / 47734 | `entry3-observation-v2-finish.*` |
 | Matched IID16 full fit | 93305 / 74012 | `finish.*` in full-comparison artifacts |
-| Expanded original epoch watcher | see new intent / 85290 | `reconnected-expanded2592-publication-watcher*` |
+| Expanded original epoch watcher | 93375 / 85290 | `reconnected-expanded2592-publication-watcher*` |
 | Regional one-entry owner | 87869 / 67752 | `regional-recovery.*` |
 
 Verify these handles now before relying on them. Old80039/80311/82392/82509/89000,
@@ -32,7 +33,7 @@ existing push/entry/publication intents and immutable scientific sources.
 
 Kaggle **139111324v1**, `godlydonuts/rsna-parent-whole94-full-e1-50b5a0d9c138`,
 source50b5a0d9c138abb7694f5aac29d6d1b736286a0806b2a2b58d5155d0a61ecafd.
-ActualRUNNING, bothT4s,415/1458updates/epoch1, finite progress. Science
+ActualRUNNING, bothT4s,451/1458updates/epoch1 (latest numerical log), finite progress. Science
 c68d8752bd6b692babe971f08ca4b4590aa35db5, full3887/3epochs/effective8/all94,
 73,136,096trainable. Three exact sessions stop486/972/1458; never push E1 again.
 
@@ -52,14 +53,16 @@ outcomes. Never upload a public3rowCSV.
 ## Expanded own N3
 
 Original Slurm **938284RUNNING evc33**,1H100/2CPUs/32GiB/8h, allocated01:39UTC,
-45realupdates observed, empty stderr. Sourcea1ca238526dad75b2a5cea46edba44fd95c71938;
+333realupdates/epoch2 observed; epoch1 snapshot complete. Sourcea1ca238526dad75b2a5cea46edba44fd95c71938;
 root `/tmp/rsna-compact-expanded2592-production-20261016-v1`, control
 `/tmp/rsna-compact-expanded2592-engine-20261016-v1/production-control-v1`.
 2592fit/1156outer,16epochs/5184updates, original H100recovery933382 accepted.
 Do not restart/duplicate. Distinct watcher observes this exact original, then uses
 `scripts/hf/dispatch_compact_expanded_epoch.py` only for completed unattempted
 original epochs. It checks original per-epoch intents/results and private paths;
-uncertain publication requires read-only reconciliation. No new epoch yet.
+uncertain publication requires read-only reconciliation. Epoch1 exists; its
+publication watcher owns preservation. Do not infer private verification from the
+snapshot alone.
 Old patch929938 remains pending; do not duplicate/displace healthy training.
 
 ## Matched IID16 full comparison
@@ -114,7 +117,8 @@ SHA2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900;
 publication helpere426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336.
 SaveKernel derives slug from title; compare returned ref/version/source. Never
 repeat uncertain Dataset/notebook/entry/job/transfer/publication. Fresh actual
-account allowance governs max5daily, never dated counts. Current actual scores
+account allowance governs max5daily, never dated counts. At02:05UTC actual3today/2slots;
+regional57291182 submitted once and hiddenstatus/score null. Current actual scores
 and today's context/field/regional/E1/E3 plan are in current-state.md.
 
 Systempython3 on Newton is3.6. Use explicit managementCPython3.12
@@ -160,3 +164,16 @@ Clean current guides source805974c04a25623d11221231157b1966bb72f3ec privately
 fully verified ONCE at HF6eaf98ff679cb4e9fc975c8b11c488a4ddb4990f,CPU940927,
 4objects/28890bytes, prefixmilestones/current-research-guides-20261017-805974c04a25-v1.
 This receipt-only bookkeeping follows that mirror; never repeat either prefix.
+
+## Research-agent documentation refresh
+
+Current [research-agent handoff](research-agent-handoff.md) maps exact recipes,
+negative findings, source exposure, historical research and open PR metadata.
+Main-source serving preparation `b0314495` adds strict role/proposal-bound sampled
+checkpoint inference. Forty focused synthetic/regression tests, Ruff4/mypy2 passed;
+**actual sampled serving GPU/public-MRI acceptance remains absent**. It has no
+new cloud push or entry owner. Original whole94 numerical/serving code is unchanged.
+See `initiative/audits/licensed-importance-serving-preparation-20261017-v1`.
+The docs refresh audit records fresh authenticated outcomes, read-only canonical
+ledger and actual expanded-job metadata. Do not treat old research archive
+"next" instructions or open branches as new launch authority.

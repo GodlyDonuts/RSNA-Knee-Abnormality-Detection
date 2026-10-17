@@ -1,3 +1,10 @@
+> **Historical research archive.** Live scores, jobs and current mechanisms are in
+> [current state](../current-state.md) and the [research-agent handoff](../research-agent-handoff.md).
+> The October 15 status and N3 proposal below have been superseded: N3 epoch 16
+> actually scored 0.894; the attributed external parent scored 0.949. Read the
+> [October 16 source-contract correction](additional/rsna-public-training-contract-update-2026-10-16.md).
+> Preserve the original reports; do not execute their historical “next” instructions.
+
 # RSNA Research Watch full research archive
 
 This collection preserves the complete available research reports, proposal text, experiment-ledger reviews, public-source analyses, provenance registers, metadata inventories and synthetic-only checks assembled through October 15, 2026. It is a research archive, not a declaration that every proposal was implemented or every inventory entry was inspected in full.

@@ -1,6 +1,17 @@
 # Complete initiative record
 
-Latest verified solo Kaggle result (October 13): **0.854**, entry **57128606**, using the RSNA-only full-public-supervision native384 rank32 model at its fixed final epoch 10. Earlier solo best was 0.804; fitting scope and recipe differ, so this is a leaderboard improvement rather than a controlled causal comparison. See [the exact result receipt](audits/kaggle-publicsource-e10-ebeb3c394286-v1/actual-scored-outcome.json). The matched second-seed repeat continues; no repeat result is available yet.
+**Current state is maintained in the [current-state guide](../docs/current-state.md),
+[research brief](../docs/research-brief.md) and [research-agent handoff](../docs/research-agent-handoff.md).**
+As of October 17, 2026, 02:05 UTC, our own N3 epoch 16 scored 0.894; the attributed
+external nartaa baseline scored 0.949. Full-parent and expanded-own-model training
+are running. Use those current guides and original receipts for live status.
+
+## Historical releases and training narrative
+
+The narrative below is retained as historical evidence. Its “latest,” “next,”
+queue, quota and pending statements describe their original dates, not current
+execution. The 0.854 October 13 result was superseded by later own-model results;
+it is not today's best score.
 
 This folder contains actual data and evidence, not only links to a previous
 session. A new agent can recover the report-review work and source inventory
