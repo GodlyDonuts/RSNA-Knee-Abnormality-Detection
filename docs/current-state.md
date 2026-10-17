@@ -133,3 +133,9 @@ verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
 The published source pin remains990c8ded through all3label epochs. Original59829
 stopped with no prepare intent; current60358/61037 own the actual follow-through.
 [Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).
+
+The active full-label campaign/recovery and all completed sampling receipts are
+now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
+all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
+01bda353. Never repeat that milestone.
+[Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).

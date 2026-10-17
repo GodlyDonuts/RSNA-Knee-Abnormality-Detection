@@ -156,3 +156,9 @@ Run meaningful focused checks for changed numerical code and retain actual
 results. Check guide links, source pins and secret/large-artifact exclusions
 before publication. Tests and checkpoint preservation establish operability,
 not MRI accuracy.
+
+The active full-label campaign/recovery and all completed sampling receipts are
+now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
+all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
+01bda353. Never repeat that milestone.
+[Exact private preservation](initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).

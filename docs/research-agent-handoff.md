@@ -141,3 +141,9 @@ stopped before any prepare intent; never restart it. Actual recovery139230981
 passed at13:01UTC, and the complete fixed3continuation is owned without a second recovery
 push. [Actual identities and controls](../initiative/audits/097-label-campaign-continuation-20261017-v1/README.md).
 [Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).
+
+The active full-label campaign/recovery and all completed sampling receipts are
+now privately preserved at **HF6795cebc6623fb5fab9c3d6ffde3dc2fbd4303c2**,
+all43objects/229470bytes fully downloaded/size/SHA verified viaCPU946820, source
+01bda353. Never repeat that milestone.
+[Exact private preservation](../initiative/audits/hf-097-label-full-campaign-20261017-v1/README.md).
