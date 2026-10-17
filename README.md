@@ -3,7 +3,7 @@
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
-**Verified October17,2026,12:25UTC. Target:0.97; best actual:0.950.**
+**Verified October17,2026,12:43UTC. Target:0.97; best actual:0.950.**
 
 - [Current state](docs/current-state.md): actual scores, training and unfinished work.
 - [Research brief](docs/research-brief.md): mechanisms, measured findings and negatives.

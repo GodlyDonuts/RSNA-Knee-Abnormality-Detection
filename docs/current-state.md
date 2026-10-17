@@ -1,6 +1,6 @@
 # Current project state
 
-**Verified October 17, 2026, 12:25 UTC.** The owner targets **0.97**. Best actual
+**Verified October 17, 2026, 12:43 UTC.** The owner targets **0.97**. Best actual
 project public AUC remains **0.950**; the target has not been reached. Read the
 [research brief](research-brief.md), [execution handoff](codex-continuation.md)
 and [research-agent handoff](research-agent-handoff.md). Original receipts and
@@ -76,7 +76,7 @@ observer**47637** is active; it cannot push, run or submit another model.
 | InfluenceIID16 final | **139220032v1**, sole34538 | RUNNING; first2epochs already private verified |
 | Exact public0.958 reference | **139199164v2** | Save&RunAll committed once;Starting/unknown, no acceptance/entry |
 | Source-label recovery | **46281** finite CPU owner | Funding passed; waits one free batch lane; no push intent yet |
-| First-label-epoch follow-through | **59829** finite CPU owner | Waits actual recovery and published source pin; may admit one first epoch only, no entry/publishing/E2 authority |
+| First-label-epoch follow-through | **59829** finite CPU owner | Published source990c8ded pinned; waits actual recovery; may admit one first epoch only, no entry/publishing/E2 authority |
 | S6 CPU32 scout | **139205901v2**,40709 | Existing CPU run alive; no new MRI result collected |
 | S6 GPU32 scout | 139210569v1 | Canceled while queued/zerooutput;34237/34308 retired |
 | Old finalE3serving/entry | old17301/17317/28090 | Stopped; rejected qualification identity quarantined |
@@ -111,3 +111,9 @@ and archived source contracts are never replaced with new narratives.
 The source9c083a4b milestone is now privately mirrored/full37object download/SHA
 verified at HF7a14fc051d913b14b8e2895cc8db60fa6166e2ce.
 [Exact private preservation](../initiative/audits/hf-source-labels-exact0958-final3-20261017-v1/README.md).
+
+Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
+verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
+First-epoch owner59829's published source pin is fulfilled; it still waits actual
+label GPU recovery and has not built/pushed a production epoch.
+[Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).

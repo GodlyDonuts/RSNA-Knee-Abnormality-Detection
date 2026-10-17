@@ -1,6 +1,6 @@
 # Execution handoff
 
-**Actual October17,12:25UTC.** Target0.97; best measured0.950. Read
+**Actual October17,12:43UTC.** Target0.97; best measured0.950. Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [original new receipts](../initiative/audits/lockin-097-execution-20261017-v2/README.md).
 Implement directly; Devin is unavailable. Never duplicate jobs, Datasets, pushes,
@@ -227,3 +227,9 @@ its wait. Create that one source pin only after the current verified milestone
 is committed/pushed; retain its value for the full fixed3campaign. Future epoch
 compiler/source must stay stable across resumes. No source pin or executable epoch
 existed at this preparation snapshot; do not start another first-epoch owner.
+
+Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
+verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
+First-epoch owner59829's published source pin is fulfilled; it still waits actual
+label GPU recovery and has not built/pushed a production epoch.
+[Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).

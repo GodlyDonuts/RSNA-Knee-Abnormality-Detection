@@ -131,3 +131,9 @@ Latest [original execution receipts](../initiative/audits/lockin-097-execution-2
 include uniform final preservation, the one committed v2, runtime difference,
 source-label CPU recovery admission, finite ownership and the reconciled capacity
 failure. No new model score exists. Do not resurrect stale owners from earlier text.
+
+Source**990c8ded** is now privately preserved/full55object re-download/size/SHA
+verified at **HF87f90d27ac04bd6312efb1e713a88caad1048e24**, CPU946618.
+First-epoch owner59829's published source pin is fulfilled; it still waits actual
+label GPU recovery and has not built/pushed a production epoch.
+[Exact private milestone and fixed source pin](../initiative/audits/hf-097-execution-v2-20261017-v1/README.md).
