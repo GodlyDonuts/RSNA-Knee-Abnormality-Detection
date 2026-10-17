@@ -127,3 +127,21 @@ also completed, reconstructing existing0.9209253491internal AUC exactly across
 12manufacturers/42manufacturer-model domains. Common-target within-domain
 discrimination did not broadly collapse; sparse-target differences remain
 uncertain. This is one fixed model, not an independent comparison or a gain.
+
+## Actual acceptance and next design
+
+NormalQOS H100recovery949735completed0:0 in51seconds. Owning CPU949785
+independently collected the exact original terminal: **32studies/2,345windows**,
+26completed forwards reused and six new, maps1024x12x12FP32, **zero maximum
+base-logit repooling error**,1,311,275,207retained feature bytes and2.614GBpeak
+GPUallocation. The measured recovery worker elapsed21.46seconds includes reuse,
+so it is not an all-new-study throughput estimate. No training or score gain.
+
+[Actual accepted scout](../frontier-GRAIL-20261017-v1/actual-spatial-scout-accepted.json)
+and [next experiment decision](next-experiment-decision.json). The whole cohort's
+raw spatial maps would require135.67GiB; a fixed64-channelFP16sketch would be
+4.24GiB, with unproved information loss. Neither full cache is admitted. The
+selected next design learns a projection on full maps online, using the frozen
+original encoder; it exchanges H100compute for bounded storage. The actual
+real-engine recovery/online-provider acceptance and full matched fit are still
+required. This is a concrete design decision, not a trained spatial model.

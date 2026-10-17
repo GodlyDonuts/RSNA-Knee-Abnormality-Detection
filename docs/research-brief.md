@@ -1,6 +1,6 @@
 # Research brief
 
-**Verified October17,2026,18:50UTC. Target0.97; actual best0.950.** Target0.97; actual best0.950. See
+**Verified October17,2026,19:17UTC. Target0.97; actual best0.950.** Target0.97; actual best0.950. See
 [current state](current-state.md) for measured scores and original live owners.
 
 ## Compute authorization, October17
@@ -18,7 +18,7 @@ before moving an inference/trainer to another node. The first
 spatial scout949626was actually PREEMPTED after91seconds, preserving26/32studies
 and1912windows. No full scout acceptance or new accuracy is claimed.
 
-## Latest execution, October 17, 18:50 UTC
+## Latest execution, October 17, 19:17 UTC
 
 Best measured public AUC remains **0.950**, reproduced S6 entry57300990;
 own independently MRI-trained N3E16 is **0.894**. Target0.97 is unachieved.
@@ -30,10 +30,10 @@ no actual public acceptance/hidden score. Preserve their original intents.
 Latest authenticated allowance17:50UTC was5used/0available; refresh before entries.
 
 The [new owner frontier memo](../initiative/research/frontier-GRAIL-20261017-v1/README.md)
-is preserved verbatim and assessed against actual source evidence. Next research
-priority is **criterion-relational residual learning**, with an aligned/sham
-control sharing original images, encoder, targets, parameter graph, histogram,
-metadata and compute. The zero-initialized branch now implements distinct-source
+is preserved verbatim and assessed against actual source evidence. The primary new bet is **spatial joint evidence before pooling**, with
+an aligned/coupling-null comparison sharing images, encoder, targets, initial
+parameters, weighted marginals/support, nuisance metadata and compute. The
+pooled-window GRAIL prototype remains separate and is not a spatial test. The zero-initialized branch now implements distinct-source
 corroboration, physical-gap-weighted continuity/variation and common nuisance
 inputs. It is implemented/local-tested, **not trained or accuracy-validated**.
 Do not silently turn Gold58 into meta-training or claim released-encoder head CV
@@ -56,10 +56,10 @@ and127734/66237disjoint-support repeat edges are bound without pixel or clinical
 target reads. Their median separation is about20mm: this is NOT literal adjacent-
 image clinical evidence. All17671selected series lack cached FrameOfReferenceUID
 and SliceThickness. Cross-plane registration and lesion volume remain unproved.
-Original frozen spatial-feature scout949626was PREEMPTED after26/32studies;
-CPU949734fully verified all26files/1,912windows and actual1024x12x12maps.
-Distinct normalQOSrecovery949735is PENDING; it reuses26completed forwards and
-encodes only six missing cases. Full32study scout acceptance is absent;
+Original scout949626was PREEMPTED after26studies; normalQOSrecovery949735
+then COMPLETED0:0. CPU949785collected the accepted32studies/2,345windows,
+26forwards reused/six new, full1024x12x12maps and zero base-logit error.
+No reader training or score gain is yet established;
 require its actual source/roster/base-logit/device/throughput acceptance before
 one full cache pass or aligned/sham fitting. Reuse original N3E16/native bytes.
 
@@ -68,8 +68,8 @@ changes the scout: retain actual N3 **pre-pooling spatial maps**, not merely
 window embeddings. The actual regional operator has a reproduced location
 collision; the new centered co-support and weighted-marginal/exact-support null
 have nine focused tests. These establish representation/math, not MRI gain.
-The bounded32-study H100scout completed26cases before Slurm preemption;
-normalQOSrecovery949735is pending and reuses those26verified forwards. It records
+The bounded32-study H100scout is now accepted via949735/CPU949785,
+with zero base-logit error and all full spatial maps retained. It records
 actual dimensions, original letterbox/source geometry, base-logit fidelity and
 cost. No full spatial cache or fit is admitted. Cross-acquisition geometry is
 unqualified; cached frame/thickness fields are absent. Existing longitudinal
@@ -83,6 +83,13 @@ lateralOA.7981vs.8349and effusion.9042vs.9159each have only9positive exams.
 Only2.3–10%of target pairs are within manufacturer/model. This is descriptive,
 not a causal scanner diagnosis or new validation. [Original results/limits](../initiative/audits/N3-fixed-source-domain-20261017-v1/README.md).
 
+The [next spatial experiment](../initiative/research/frontier-spatial-evidence-20261017-v1/next-experiment-decision.json)
+uses full maps online with a frozen encoder and learned reader projection. The
+full raw cache would be135.67GiB; neither it nor a fixed64-channel sketch is
+admitted. Keep512MiBhead/publication reserve and qualify one exact real
+full/stop1/resume engine plus online provider before the proposed two-arm
+3epoch/843update fits. No new trainer or full production job is submitted.
+
 **Original GPU942047 actually completed0:0** and passed the three-MRI S6 H100
 FP32/FP16 fixture:1586windows, maximum probability gap0.0003156333. This replaces
 old pending snapshots; it does not qualify GPU anatomy preprocessing, a trainer
@@ -94,7 +101,10 @@ Initial fullsuite had4660pass/4fail/6skip: one child lackedPYTHONPATH and
 three bound source edits made during replay. The same four isolated cases now
 pass; a new complete suite freezes and checks all numerical sources. Global
 1327lint/57format debt is unchanged. Numerical source and actual diagnostics are published on main; distinct
-private small-milestone verification is pending. Full-source QA is still running.
+private source40c79242was fully67-object download/size/SHAverified at
+HF6cae5d110c4b9c96a34a96484cc68b7ecfe5b6c8; never repeat it. Fresh source-frozen full QA completed **4695passed/6skipped**; all115numerical
+source hashes remained unchanged. Mypy115passed and46focused checks passed;
+global1327lint/57format debt remains unchanged. No accuracy claim from QA.
 
 ## Completed CPU research: labels × whole-study coverage
 

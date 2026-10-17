@@ -1,12 +1,17 @@
-# Distinct frontier source preservation
+# Actual frontier source preservation
 
-This prepared coordinator preserves only the new Git source and sanitized small
-receipts since the last verified source3f405412. It has not yet been executed.
-It uses the canonical shared HF lock and a distinct4MiB subcap inside the original
-node33 P256MiB allowance, retaining16MiB other small controls and all original
-liabilities. Full re-download/size/SHA of every object is required. Original MRI,
-clinical rows, private features/source-identity arrays and weights are excluded.
-The global archive manifest is bound by exact Git blob/size/SHA.
+CPU949773fully re-downloaded/size/SHAverified all67objects/1,246,500bytes from
+source40c792422f1daba1f59920e60fd126d98f6f3ee1 at private
+HF6cae5d110c4b9c96a34a96484cc68b7ecfe5b6c8 under the canonical shared lock.
+Never repeat this publication. It includes actual fitting-response/domain/
+geometry observations and source/protocol/H100-expansion milestones through
+40c79242, before the later independent scout-terminal collection.
 
-No actual private preservation is claimed until verified.json exists. Never
-repeat a dispatch with an intent or an uncertain remote/private path.
+The distinct4MiB subcap remains inside the original256MiB node-private envelope;
+16MiB other controls,3MiB domain obligations and the separate3GiB scout unpaid
+liability remain funded. All data are sanitized source/aggregate receipts.
+No MRI, private identity/feature/prediction rows or weights were published.
+
+[Exact proof](verified.json), [one intent](publish.intent.json),
+[source publisher](program.py.txt). Later receipt integration is separate from
+its own earlier immutable source snapshot.
