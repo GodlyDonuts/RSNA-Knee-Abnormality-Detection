@@ -188,3 +188,17 @@ They contain sanitized source/receipts, not private pixels, clinical arrays,
 features, proposal tables or weights. This documentation refresh is later;
 [its audit](../initiative/audits/github-research-handoff-20261017-v1/README.md)
 separates fresh observations and source preparation from prior private mirrors.
+
+### Subsequent operational correction
+
+The final observer check found expanded epoch-preservation watcher 93375 had
+stopped on a local module import **before any publication intent or RPC**. The
+training job and first checkpoint are intact. A distinct observer 95408 fixes
+only its child import environment; original publisher/source/data are unchanged.
+Its first original epoch-1 publication is CPU **941066**, queued once and not yet
+verified. [Exact failure, absence proof and recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
+
+The GitHub refresh at source `1a2e8204` is now fully private-HF verified at
+`b34d69e5d815ec2bd8e799d1c52f91a7c9778b7b`: 24 objects / 322,098 bytes, every
+size/SHA rechecked. [Exact mirror receipt](../initiative/audits/hf-github-research-handoff-20261017-v1/verified.json).
+The observer correction above is a later change than that mirrored source.

@@ -20,7 +20,7 @@ Read actual processes/jobs before actions; dead observer does not mean dead GPU.
 | Whole94 E1 entry | 93216 / 57462 | `entry-observation-v2-finish.*` |
 | Whole94 E3 entry | 93228 / 47734 | `entry3-observation-v2-finish.*` |
 | Matched IID16 full fit | 93305 / 74012 | `finish.*` in full-comparison artifacts |
-| Expanded original epoch watcher | 93375 / 85290 | `reconnected-expanded2592-publication-watcher*` |
+| Expanded original epoch watcher | 95408 / 49302 | `imports-recovered-expanded2592-publication-watcher*` |
 | Regional one-entry owner | 87869 / 67752 | `regional-recovery.*` |
 
 Verify these handles now before relying on them. Old80039/80311/82392/82509/89000,
@@ -177,3 +177,18 @@ See `initiative/audits/licensed-importance-serving-preparation-20261017-v1`.
 The docs refresh audit records fresh authenticated outcomes, read-only canonical
 ledger and actual expanded-job metadata. Do not treat old research archive
 "next" instructions or open branches as new launch authority.
+
+## Operational update after the 02:05 science snapshot
+
+Expanded publication observer93375 stopped on a direct-script `scripts.hf` import
+before any epoch1 intent or RPC. Exact absence/source/terminal proof was reviewed.
+Replacement95408/exec49302 sets repository PYTHONPATH and PYTHONNOUSERSITE only;
+original GPU938284 and publisher217bcdf remain unchanged. It passed original
+prechecks and dispatched first epoch1 CPU941066 ONCE, lastPENDING Priority.
+The existing publication intent now requires read-only reconciliation; do not
+repeat it. Private preservation is not yet verified. See
+[observer recovery](../initiative/audits/compact-expanded2592-publication-observer-recovery-20261017-v1/README.md).
+
+GitHub research handoff source1a2e8204 privately fully verified ONCE at
+HFb34d69e5d815ec2bd8e799d1c52f91a7c9778b7b,24objects322098bytes,CPU941047.
+This following observer-recovery/receipt bookkeeping is later than that source.
