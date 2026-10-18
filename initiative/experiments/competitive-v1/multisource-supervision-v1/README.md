@@ -74,3 +74,17 @@ be justified, retain this negative admission result and skip duplicate training.
 No probability/source weights will be chosen from protected Gold or leaderboard
 search. The retained source tensor supports later observation-process research,
 but this implementation does not estimate annotator reliability or latent truth.
+
+## Actual ancestry finding after the first constructor
+
+CPU952283 read the already-acquired exact S6 rebuild, without any label rows.
+Authenticated public metadata now identifies the nartaa blend as Gemini plus
+Steven; JEV HYBRID is95%Gold-selected Steven/Pilkwang hard-swap plus5%JEV text
+ensemble. Therefore Steven and S6 are overlapping families, not extra independent
+votes. The two current source cards expose primitive Gemini probabilities and
+a separate observation-mask table. Their declared unmentioned conventions must
+be reconciled before using values. This changes the next action: acquire only
+the missing primitive small files privately once, reuse original fitting arrays,
+and test the baseline-versus-Gemini safe-cell contrast. Do not launch the naive
+Steven/S6 mean. Current cards do not reproduce every historical numeric ancestor.
+[Actual hashes, versions and source declarations](actual-overlapping-lineage.json).

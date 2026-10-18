@@ -1,0 +1,99 @@
+"""Actual32 streamed encoder input/teacher probe, no optimizer or clinical data."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import time
+
+R = Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+B = R / 'dense-online-input-fp32-v2'
+CODE = R / 'reader-engine-recovery-v2/code'
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def cap():
+    paid = sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+    assert paid < 3*2**30 and shutil.disk_usage('/tmp').free > 603433009211+max(0,3*2**30-paid)
+    assert sum(p.stat().st_size for p in B.rglob('*') if p.is_file()) < 32*2**20
+
+def fingerprint(model):
+    result = hashlib.sha256()
+    for name, tensor in model.state_dict().items():
+        array = tensor.detach().cpu().contiguous().numpy()
+        result.update(name.encode());result.update(str(array.dtype).encode())
+        result.update(json.dumps(list(array.shape)).encode());result.update(array.tobytes())
+    return result.hexdigest()
+
+assert os.uname().nodename == 'evc33' and not (B/'accepted.json').exists()
+admission = json.loads((B/'admitted.json').read_text())
+assert sha(__file__) == admission['worker_sha256']
+assert all(sha(CODE/n)==h for n,h in admission['original118'].items())
+assert all(sha(B/'code'/n)==h for n,h in admission['new_source_sha256'].items())
+sys.path[:0] = [str(B/'code'),str(CODE),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import numpy as np
+import pandas as pd
+import torch
+from online_inputs_fp32 import StreamedFP32PathData as StreamedPathData
+from path_reader import PathReader
+from rsna.competitive.compact_infer import load_model
+from rsna.competitive.data import CompetitiveStudyDataset
+from rsna.competitive.spatial_data import CachedSpatialData
+assert str(torch.__version__) == '2.14.0+cu130' and torch.cuda.device_count()==1 and torch.cuda.is_available()
+assert 'H100' in torch.cuda.get_device_name(0)
+torch.ones(1,device='cuda');torch.cuda.synchronize()
+torch.set_num_threads(2);torch.use_deterministic_algorithms(True)
+torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=True
+torch.backends.cudnn.benchmark=False;torch.backends.cudnn.deterministic=True
+assert os.environ['CUBLAS_WORKSPACE_CONFIG']==':4096:8'
+cap()
+with (B/'run-start.json').open('x') as f:
+    json.dump({'GPU_job':os.environ['SLURM_JOB_ID'],'source_git':admission['source_git'],'source_files':admission['new_source_sha256'],'GPU':torch.cuda.get_device_name(0),'diagnostic_only':True},f)
+start=time.monotonic()
+index=R/'pilot-recovery-v2-accepted.json'
+assert sha(index)=='f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+rows=json.loads(index.read_text())['private_records'];assert len(rows)==32
+original=json.loads((R/'admitted.json').read_text());membership=json.loads((R/'membership.private.json').read_text())
+assert all([x['study_uid'] for x in rows if x['role']==role]==membership[role][:16] for role in ('fitting','outer'))
+# No clinical columns are loaded, including for original fitting cases.
+zeros=np.zeros((32,12),np.float32)
+binding={'diagnostic_only':True,'original_index_sha256':sha(index),'source_git':admission['source_git']}
+cached=CachedSpatialData(R/'features',rows,zeros,zeros,binding,seed=20261017)
+parent,policy=load_model(Path(original['checkpoint']),'5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5',precision='float32',device=torch.device('cuda'))
+assert policy['epoch']==16 and policy['optimizer_steps']==4496
+before=fingerprint(parent);assert before=='8ba6c84e2c7715799dc78c64e4bfdde198cd8d1ef1db307119d70e1b55773c1e'
+dataset=CompetitiveStudyDataset(pd.DataFrame({'study_uid':[x['study_uid'] for x in rows]}),pd.read_csv(original['series_path']),Path(original['native_cache']),side=384,slices=16,max_series=6,augment=False,soft_targets=False)
+providers={sampling:StreamedPathData(dataset,parent,binding,sampling=sampling,chunk_size=12) for sampling in ('sparse16','dense')}
+reader=PathReader().to('cuda').eval()
+counts={sampling:0 for sampling in providers};elapsed={sampling:0.0 for sampling in providers}
+first_cases=set()
+for i,row in enumerate(rows):
+    reference=cached[i]
+    for sampling,provider in providers.items():
+        torch.cuda.synchronize();t=time.monotonic()
+        actual=provider[i]
+        torch.cuda.synchronize();elapsed[sampling]+=time.monotonic()-t
+        assert actual['study_uid']==reference['study_uid'] and not actual['label_mask'].any()
+        assert actual['maps'].shape[1:]==(1024,12,12) and actual['maps'].dtype==torch.float32
+        assert torch.isfinite(actual['maps']).all() and not actual['maps'].requires_grad
+        assert torch.equal(actual['base_logits'].cpu(),reference['base_logits'])
+        if sampling=='sparse16':
+            assert torch.equal(actual['maps'].cpu(),reference['maps'])
+            assert actual['plan'].source.metadata_sha256==reference['plan'].metadata_sha256
+        counts[sampling]+=len(actual['maps'])
+        # One actual fitting and one prediction-only case: both path arms
+        # start at the common parent, with no optimizer or target evidence.
+        if row['role'] not in first_cases:
+            with torch.no_grad():
+                for arm in ('aligned','null'):
+                    logits,correction=reader(actual['maps'],actual['base_logits'],actual['plan'],arm=arm)
+                    assert torch.equal(logits,actual['base_logits']) and not correction.any()
+        del actual
+    first_cases.add(row['role'])
+    del reference
+assert counts=={'sparse16':2345,'dense':4898}
+assert fingerprint(parent)==before and not parent.training and not any(p.requires_grad for p in parent.parameters())
+out={'status':'actual_original32_explicit_FP32_stream_sparse_maps_dense_common_teacher_GPU_input_accepted','GPU_job':os.environ['SLURM_JOB_ID'],'node':'evc33','source_git':admission['source_git'],'worker_sha256':admission['worker_sha256'],'source_sha256':admission['new_source_sha256'],'cases':32,'windows':counts,'timed_online_input_seconds':elapsed,'dense_timing_includes_common_sparse_teacher_forward':True,'elapsed_seconds':time.monotonic()-start,'peak_device_allocated_bytes':torch.cuda.max_memory_allocated(),'sparse_full_maps_and_parent_logits_original_byte_equal':True,'dense_all_windows_supported_and_same_sparse_teacher_byte_equal':True,'first_fit_and_outer_both_path_arms_zero_start_exact':True,'parent_all_parameters_buffers_unchanged':True,'parent_fingerprint':before,'labels_reports_clinical_targets_optimizer_or_loss_used':False,'new_weights_or_pixel_feature_cache_created':False,'full_trainer_recovery_production_or_accuracy_accepted':False}
+cap();(B/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

@@ -1,0 +1,56 @@
+"""One CPU source/runtime/storage admission and distinct no-optimizer GPU probe."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');B=R/'dense-online-input-fp32-v2';assert not B.exists()
+CODE=R/'reader-engine-recovery-v2/code'
+assert len(v['original118'])==118 and all(hashlib.sha256((CODE/n).read_bytes()).hexdigest()==h for n,h in v['original118'].items())
+assert v['actual_CPU_input']['CPU_job']=='951889' and v['actual_CPU_input']['dense_all_supported']
+assert v['actual_CPU_input']['all_sparse_dense_chunk_tensors_exact_independent_whole_slice_reference']
+assert v['actual_CPU_input']['source_sha256']==hashlib.sha256(v['files']['dense_inputs.py'].encode()).hexdigest()
+assert v['synthetic_online']['same_sparse_teacher_for_dense'] and v['synthetic_online']['sparse_full_maps_and_parent_logits_bit_exact']
+assert v['synthetic_online']['source_sha256']==hashlib.sha256(v['files']['online_inputs.py'].encode()).hexdigest()
+assert v['synthetic_FP32']['source_sha256']==hashlib.sha256(v['files']['online_inputs_fp32.py'].encode()).hexdigest()
+assert v['synthetic_FP32']['enclosing_CPU_BF16_context_does_not_change_FP32_reference']
+oldprobe=R/'dense-online-input-v1';assert (oldprobe/'submitted.json').exists() and not (oldprobe/'accepted.json').exists()
+assert json.loads((oldprobe/'submitted.json').read_text())['GPU_job']=='951964'
+terminal=subprocess.check_output(['sacct','-j','951964','--noheader','--parsable2','--format=JobIDRaw,State'],text=True)
+assert any(line.startswith('951964|FAILED') for line in terminal.splitlines())
+assert sum(p.stat().st_size for p in oldprobe.rglob('*') if p.is_file())<32*2**20
+node=subprocess.check_output(['scontrol','show','node','evc33','-o'],text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',node)
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid<3*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)
+oldfull=R/'reader-production-v1'
+oldpaid=sum(p.stat().st_size for p in oldfull.rglob('*') if p.is_file())
+assert oldpaid<256*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+q=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(q[2])-int(q[1]))*1024>20*2**30 and int(q[6])-int(q[5])>5000
+sys.path[:0]=[str(CODE),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import torch,torchvision,timm
+assert str(torch.__version__)=='2.14.0+cu130' and str(torchvision.__version__)=='0.29.1+cu130' and timm.__version__=='1.0.30'
+assert Path('/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12/Python.h').is_file()
+B.mkdir(mode=0o700);(B/'code').mkdir(mode=0o700)
+for name,text in v['files'].items():
+    assert name.endswith('.py') and '/' not in name;compile(text,name,'exec')
+    (B/'code'/name).write_text(text)
+compile(v['worker'],'dense_original32_GPU_worker','exec');(B/'worker.py').write_text(v['worker'])
+admission={'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'original118':v['original118'],'new_source_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'CPU_input_receipt_sha256':v['CPU_input_receipt_sha256'],'old_full_node33_paid_bytes':oldpaid,'reassigned_original_node33_full320MiB':{'retain_old_and_future_bytes':256*2**20,'retained_failed_v1_probe_bytes':32*2**20,'new_no_checkpoint_probe_bytes':32*2**20},'same_original_node3GiB_and_reader512MiB':True,'new_shared_data_or_files':0,'no_encoder_fitting_or_accuracy_authority':True}
+(B/'admitted.json').write_text(json.dumps(admission,indent=2)+'\n')
+batch='#!/bin/bash\nset -euo pipefail\numask 077\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8\nexport CPATH=/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12\nexec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B '+str(B/'worker.py')+'\n'
+(B/'run.sbatch').write_text(batch)
+with (B/'dispatch.intent.json').open('x') as f:json.dump({'source_git':v['source_git'],'purpose':'independent_streamed_dense_encoder_input_probe_no_optimizer','GPUs':1,'CPUs':2,'no_requeue':True},f)
+args=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=16G','--time=00:15:00','--no-requeue','--job-name=rsna-dense-FP32-input','--output='+str(B/'%j.stdout'),'--error='+str(B/'%j.stderr'),str(B/'run.sbatch')]
+x=subprocess.run(args,capture_output=True,text=True);assert x.returncode==0,'Original GPU submission uncertain; reconcile only'
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={'status':'distinct_corrected_FP32_original32_dense_stream_encoder_GPU_input_probe_submitted_once','GPU_job':job,'CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc33_physical2_H100','source_git':v['source_git'],'worker_sha256':admission['worker_sha256'],'source_sha256':admission['new_source_sha256'],'CPU_input_receipt_sha256':v['CPU_input_receipt_sha256'],'same_original_node3GiB_and_reader512MiB':True,'new32MiB_reassigned_from_node33_full320MiB':True,'actual_GPU_terminal_or_training_or_accuracy_admission':False}
+(B/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

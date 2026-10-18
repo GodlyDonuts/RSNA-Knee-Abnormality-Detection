@@ -1,0 +1,43 @@
+{
+  "status": "actual_public_source_code_and_current_metadata_reveal_overlapping_ancestry",
+  "observer_CPU_job": "952283",
+  "original_rebuild_sha256": "676b05c04f25c4e940f3cf42a22d6ccc18426d87c3583d93c4e5469a5a6b095d",
+  "S6_rebuild": "equal cellwise mean nartaa labels_v1_blend and JEV HYBRID; keep nartaa blend when JEV cell NaN",
+  "current_source_cards": [
+    {
+      "slug": "nartaa/rsna-knee-hpo-assets",
+      "id": 12032129,
+      "version": 9,
+      "declared_ancestry": [
+        "Steven v4_blend",
+        "gemini-3-flash low report reread"
+      ],
+      "semantic_claims": [
+        "raw Steven exact .25 is unmentioned according to this card; do not globally infer meaning in another source/version",
+        "Gemini silent findings retain prior; source mask tables separately available"
+      ],
+      "primitive_files": {
+        "labels_v1_gemlow.parquet": 189931,
+        "train_labels_v1.parquet": 211780
+      },
+      "licenseName": "CC0: Public Domain"
+    },
+    {
+      "slug": "riadmohamed42/jev-knee-labels",
+      "id": 12114723,
+      "version": 5,
+      "declared_ancestry": [
+        "Steven",
+        "Pilkwang",
+        "six JEV report extractions"
+      ],
+      "HYBRID_declared": "0.95 hard-swap +0.05 JEV text ensemble; hard-swap Steven9targets and Pilkwang ACL/MCL/Fracture",
+      "upstream_selection_exposure": "Gold58, report-reviewed16 and seven-study holdout used upstream; not our independent validation",
+      "licenseName": "CC0: Public Domain"
+    }
+  ],
+  "decision": "Do not count Steven and S6 as disjoint canonical families; inspect primitive Gemini plus explicit source mask instead",
+  "limitation": "Current card versions declare ancestry and semantics; they do not independently reproduce every historical numeric input or resolve exact .25/.5 sentinel provenance",
+  "private_or_gold_numeric_values_read": false,
+  "new_model_or_clinical_score": false
+}
