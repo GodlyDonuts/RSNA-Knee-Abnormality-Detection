@@ -554,8 +554,8 @@ def profile_updates(
     """Run the trainer's exact first-epoch update arithmetic with phase timing.
 
     Slot-classifier window selection/augmentation runs on CPU (``cpu_transform``) before
-    the copy (``host_to_device``); the trainer runs the same CPU code and copies inside
-    autocast, which affects neither CPU augmentation nor copies, so values are equal.
+    the copy (``host_to_device``), inside the trainer's autocast context: CPU FP16/BF16
+    diagnostics change ``affine_grid``; a CUDA context leaves this CPU work unchanged.
     """
     model, optimizer, scaler = state["model"], state["optimizer"], state["scaler"]
     strategy = config.classifier_strategy
