@@ -37,12 +37,17 @@ paid-plan change, original job cancellation or source overwrite is implied.
 
 ## Integration with the strongest ensemble
 
-CPU960788 accepted the new R6 member compiler template. The complete original
+CPU960788 accepted the new R6 member compiler template; CPU960836 accepted the
+updated compiler that preserves exact qualified-source receipt ordering through
+canonical JSON round trips. Twenty-three focused tests passed. The complete original
 384-member Python module matches our adaptation parent after only CSV-export
 normalization. The proposed candidate replaces that existing member with the
 fixed-final paired model, preserving the other seven source cells and all blend
 weights. It adds no model or inference pass; runtime, memory and score still need
 actual candidate acceptance. This is source integration, not a new ensemble run.
+The distinct source milestone304ef378 is privately preserved at
+HF6026772bf78ba6240154d733ce225a45d41dc1ba (22 small objects fully downloaded
+and hash verified, CPU960848). No model publication was repeated.
 The original wrapper-only missing-schema failure960753 is preserved; the distinct
 CPU recovery succeeded without any model, training or competition mutation.
 [Source and actual receipt](../initiative/research/R6-paired-member-replacement-20261018-v1/README.md).
