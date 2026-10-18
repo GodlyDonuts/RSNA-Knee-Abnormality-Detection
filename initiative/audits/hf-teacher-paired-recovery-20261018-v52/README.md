@@ -1,0 +1,5 @@
+# New full-teacher and paired-model scoring milestone
+
+Preserve only distinct own source and sanitized receipts since verified sourceca7c2bcf, including completed paired checkpoints, full CPU teacher and admitted scoring recovery. Exclude prior v51 mirror and archive catalog. No pixels, clinical records, teacher arrays or model weights. One CPU/zeroGPU, original shared lock, private repository, original small-control envelope and full independent download/size/SHA validation. A transport or mutation uncertainty never authorizes rerunning this publication.
+
+Actual outcome: CPU962337 stopped at its original node-funded reserve check, before any remote staging or HF operation. Read-only CPU962351 confirmed no target root/intent/commit. Actual free652865822720 bytes was below its carried655339966118-byte all-liabilities floor. Original2MiB control envelope itself fit; byte funding was the blocker. Preserve this failed attempt; no retry, deletion credit, quota change or new private-mirror claim. A later distinct placement needs its own fresh funded-node admission. GitHub source remains authoritative.
