@@ -1,0 +1,3 @@
+# New gradient measurement and reconciled execution milestone
+
+Preserve only distinct sanitized source/receipts after verified f8bf0944. Includes the complete-gradient uncertainty core, actual finding qualification, existing-draft capacity reconciliation and restored finite owners, original aligned spatial epoch2 receipt, and sanitized seventh-addendum/eighth-packet delivery. No images, clinical reports/review JSON, native references, private correction table or learned weights. One canonical lock/commit/full re-download/size/SHA verification; never retry uncertainty or repeat preceding mirrors.
