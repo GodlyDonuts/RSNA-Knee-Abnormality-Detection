@@ -65,8 +65,8 @@ its internal score is not comparable to the public Kaggle numbers above.
 Healthy original controllers continue; no duplicate training, notebook push or
 entry is authorized by a missing log/status. Each new paired epoch is preserved
 through bounded RAM, including the resumable optimizer checkpoint, before resume.
-Latest small source milestone through023a9fb0 is fully verified at private
-HF4adb19d201d75bb6ec1f7b72607201b3f5fb3376; do not repeat it.
+Latest small source milestone through69c96089 is fully verified at private
+HFc6e7fcef50202091400efdbff67eae1e1cdf0c1b; do not repeat it.
 
 Accepted labels/masks/folds and protected gold/confirmation remain unchanged.
 Daenerys study9 original reviews and81408-byte addendum are now collected unchanged
