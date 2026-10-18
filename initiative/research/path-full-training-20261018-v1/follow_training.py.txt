@@ -1,0 +1,106 @@
+"""Keep NEW full training moving through checkpoint preservation and final analysis.
+
+No old-data/model audit, new GPU job, restart or competition submission authority.
+"""
+import ast,hashlib,json,os,shlex,subprocess,sys,time,traceback
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[3];os.chdir(ROOT)
+D=ROOT/'initiative/research/path-full-training-20261018-v1';L=ROOT/'artifacts/path-full-training-20261018-v1';PROOF=json.loads((D/'actual-submitted.json').read_text());JOBS=PROOF['jobs'];SOURCE=PROOF['source_git']
+assert JOBS=={'aligned':'955711','null':'955712'}
+P='/tmp/rsna-criterion-N3-features-20261017-v1/dense-online-input-fp32-v2/full-path-production-v1'
+SOCKET='/tmp/rsna-research-20261001-stable.sock';PYTHON='/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python'
+SSH=['ssh','-S',SOCKET,'-o','BatchMode=yes','-o','ConnectTimeout=10','newton'];START=time.monotonic()
+def fresh(path,value):
+ with path.open('x') as f:json.dump(value,f,indent=2,allow_nan=False);f.write('\n')
+def latest(value):
+ tmp=L/'training-owner.progress.tmp';tmp.write_text(json.dumps({'PID':os.getpid(),'elapsed_seconds':time.monotonic()-START,**value},indent=2,allow_nan=False)+'\n');tmp.replace(L/'training-owner.progress.json')
+def remote(program,payload,*,name,mem='1G',minutes=3,timeout=240):
+ a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem='+mem,'--time=00:'+str(minutes).zfill(2)+':00','--job-name='+name,'env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1',PYTHON,'-B','-c',program]
+ x=subprocess.run(SSH+[shlex.join(a)],input=json.dumps(payload),capture_output=True,text=True,timeout=timeout)
+ return {'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+probe=r'''
+import json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);P=Path(v['root']);a=json.loads((P/'admitted.json').read_text());assert a['source_git']==v['source_git']
+out={'new_epochs_ready':{},'progress':{},'results':{}}
+for arm in ('aligned','null'):
+ out['new_epochs_ready'][arm]=[e for e in (1,2,3) if (P/arm/'epoch-checkpoints'/('epoch-%03d.pt'%e)).is_file()]
+ q=P/arm/'progress.json'
+ if q.is_file():out['progress'][arm]=json.loads(q.read_text())
+ q=P/arm/'result.json'
+ if q.is_file():out['results'][arm]=json.loads(q.read_text())
+print(json.dumps(out),flush=True)
+'''
+publish=r'''
+import hashlib,json,runpy,sys
+from pathlib import Path
+v=json.load(sys.stdin);P=Path(v['root']);a=json.loads((P/'admitted.json').read_text());assert a['source_git']==v['source_git'] and hashlib.sha256((P/'publisher.py').read_bytes()).hexdigest()==v['publisher_sha256']
+# The token remains in this process's RAM/stdin; it is not part of argv or files.
+import io
+sys.stdin=io.StringIO(json.dumps({'arm':v['arm'],'epoch':v['epoch'],'token':v['token']}))
+runpy.run_path(str(P/'publisher.py'),run_name='__main__')
+'''
+analysis_source=(ROOT/'initiative/audits/spatial-reader-fixed-final-20261017-v1/analyze_once.py.txt').read_text();tree=ast.parse(analysis_source);function=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='paired_metrics');paired_source=ast.get_source_segment(analysis_source,function)
+rank_source=(ROOT/'scripts/rank_learning.py').read_text()
+analysis=r'''
+import hashlib,json,os,sys,types
+from pathlib import Path
+import numpy as np,pandas as pd
+v=json.load(sys.stdin);P=Path(v['root']);a=json.loads((P/'admitted.json').read_text());assert a['source_git']==v['source_git']
+R=P.parents[1];sys.path.insert(0,str(R/'reader-engine-recovery-v2/code'))
+from rsna.schema import TARGETS
+results={arm:json.loads((P/arm/'result.json').read_text()) for arm in ('aligned','null')}
+assert all(x['optimizer_updates']==843 and x['epochs']==3 and x['source_git']==v['source_git'] for x in results.values())
+member=json.loads((R/'membership.private.json').read_text());ids=member['outer'];assert len(ids)==1156
+release=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet')
+cols=['study_uid','leakage_group',*TARGETS,*[t+'__mask' for t in TARGETS]]
+labels=pd.read_parquet(release,columns=cols,filters=[('study_uid','in',ids)]).set_index('study_uid').loc[ids]
+models={arm:pd.read_csv(P/arm/'outer_predictions.csv',dtype={'study_uid':str}).set_index('study_uid') for arm in ('aligned','null')}
+base=[(P/arm/'unchanged_parent_outer_predictions.csv').read_bytes() for arm in ('aligned','null')];assert base[0]==base[1]
+models['parent']=pd.read_csv(P/'aligned/unchanged_parent_outer_predictions.csv',dtype={'study_uid':str}).set_index('study_uid')
+lib=types.ModuleType('original_component_uncertainty');exec(compile(v['rank_source'],'original_rank_functions','exec'),lib.__dict__)
+scope={'np':np,'hashlib':hashlib,'TARGETS':TARGETS,'ROLES':('aligned','null','parent'),'CONTRASTS':(('aligned','null'),('aligned','parent'),('null','parent'))};exec(compile(v['paired_source'],'unchanged_paired_metric_function','exec'),scope)
+metrics=scope['paired_metrics'](labels,models,lib,draws=4000,seed=20261017)
+out={'status':'actual_new_full_dense_path_fixed_final_comparison','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'jobs':v['jobs'],'studies':1156,'epochs':3,'updates_per_arm':843,'metrics':metrics,'simultaneous_parent_predictions_equal':True,'internal_weak_label_not_Kaggle_or_clinical_truth':True,'direct_production_step0_tensor_dump_collected':False,'all_six_new_epochs_privately_preserved':True,'no_automatic_promotion':True}
+q=P/'fixed-final-comparison.json';assert not q.exists();q.write_text(json.dumps(out,indent=2,allow_nan=False)+'\n');print(json.dumps(out,allow_nan=False),flush=True)
+'''
+fresh(L/'training-owner.intent.json',{'PID':os.getpid(),'jobs':JOBS,'source_git':SOURCE,'maximum_hours':96,'training_restarts_or_new_GPU_jobs':0,'new_immutable_checkpoint_publications_at_most':6,'one_new_fixed_final_analysis':True})
+try:
+ while time.monotonic()-START<96*3600:
+  x=subprocess.run(SSH+['sacct -j 955582,955711,955712 -X -n -P -o JobIDRaw,State,ExitCode'],capture_output=True,text=True,timeout=30)
+  if x.returncode:
+   latest({'phase':'observation_unavailable','new_GPU_or_retry_actions':0});time.sleep(180);continue
+  rows={r[0]:r for line in x.stdout.splitlines() if len(r:=line.strip().split('|'))>=3}
+  dependency=rows.get('955582',[])
+  if dependency and dependency[1] not in {'PENDING','RUNNING','COMPLETING','COMPLETED'}:
+   fresh(L/'training-owner.result.json',{'status':'new_integrated_dependency_terminal_not_successful','actual':dependency,'jobs':JOBS,'no_restart_or_duplicate':True});break
+  active=any(rows.get(j,['',''])[1] in {'RUNNING','COMPLETING','COMPLETED'} for j in JOBS.values())
+  latest({'phase':'new_training_or_dependency_wait','actual_Slurm':rows})
+  if not active:time.sleep(180);continue
+  answer=remote(probe,{'root':P,'source_git':SOURCE},name='rsna-new-path-epochs')
+  (L/'training-probe.latest.json').write_text(json.dumps(answer,indent=2)+'\n');assert answer['returncode']==0,'Read-only observation failed; inspect original jobs without restart'
+  state=json.loads(answer['stdout']);latest({'phase':'new_full_training','actual_Slurm':rows,'new_run_progress':state['progress']})
+  for arm,epochs in state['new_epochs_ready'].items():
+   for epoch in epochs:
+    prefix=f'{arm}-epoch-{epoch:03d}';verified=L/(prefix+'.verified.json')
+    if verified.exists():continue
+    fresh(L/(prefix+'.intent.json'),{'arm':arm,'epoch':epoch,'source_git':SOURCE,'publisher_sha256':PROOF['publisher_sha256'],'automatic_retry':False})
+    E=ROOT/'.env';assert E.stat().st_mode&0o077==0
+    values={k.strip():z.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,z in [line.partition('=')] if sep and not line.lstrip().startswith('#')}
+    answer=remote(publish,{'root':P,'source_git':SOURCE,'publisher_sha256':PROOF['publisher_sha256'],'arm':arm,'epoch':epoch,'token':values['HF_TOKEN']},name='rsna-new-path-preserve',mem='4G',minutes=10,timeout=720)
+    values.clear();(L/(prefix+'.result.json')).write_text(json.dumps(answer,indent=2)+'\n');assert answer['returncode']==0,'Reconcile original private publication intent; do not retry'
+    result=json.loads(answer['stdout']);fresh(verified,result);fresh(D/(prefix+'-private-verified.json'),result)
+  complete=all(rows.get(j,['','',''])[1:3]==['COMPLETED','0:0'] for j in JOBS.values())
+  if complete:
+   assert len(list(L.glob('*-epoch-*.verified.json')))==6 and set(state['results'])=={'aligned','null'}
+   fresh(L/'analysis.intent.json',{'source_git':SOURCE,'jobs':JOBS,'only_new_fixed_final_outputs':True,'automatic_retry':False})
+   answer=remote(analysis,{'root':P,'source_git':SOURCE,'jobs':JOBS,'rank_source':rank_source,'paired_source':paired_source},name='rsna-new-path-final-score',mem='4G',minutes=15,timeout=1000)
+   (L/'analysis.result.json').write_text(json.dumps(answer,indent=2)+'\n');assert answer['returncode']==0,'Inspect new fixed-final output; no automatic repeat'
+   result=json.loads(answer['stdout']);fresh(D/'actual-fixed-final-comparison.json',result);fresh(L/'training-owner.result.json',result);break
+  failed={arm:rows.get(j) for arm,j in JOBS.items() if j in rows and rows[j][1] not in {'PENDING','RUNNING','COMPLETING','COMPLETED'}}
+  if failed:
+   fresh(L/'training-owner.result.json',{'status':'new_training_terminal_requires_review','actual':failed,'new_epochs_preserved':len(list(L.glob('*-epoch-*.verified.json'))),'no_auto_restart':True});break
+  time.sleep(180)
+ else:fresh(L/'training-owner.result.json',{'status':'finite_owner_expired','jobs':JOBS,'no_training_terminal_inferred':True})
+except BaseException:
+ fresh(L/'training-owner.failure.json',{'PID':os.getpid(),'error':traceback.format_exc(),'existing_training_unchanged':True,'uncertain_publication_never_retried':True});raise
