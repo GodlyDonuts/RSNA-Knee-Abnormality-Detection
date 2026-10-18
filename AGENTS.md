@@ -1,5 +1,14 @@
 # RSNA Knee: current agent guide
 
+October18 real training progress: finding E2kernel139369133 completed972
+updates and all6private objects were fully downloaded/size/SHA verified once
+at HF32444190020d0872ac11656d1cfd7b3d30116bc4 viaCPU955897. Existing43912
+pushed finalE3kernel139381056v1/source6faa618a0f73 once; do not repeat.
+Path integration955582 and dependent955711/12 remain unchanged. A possible
+evc26 move was rejected: actual immediate placement955927 received no GPU
+allocation (nodes busy), so no data copy, CUDA test or job move followed.
+See path-integration-placement-20261018-v1; no existing MRI/model audit replay.
+
 October18 path-serving forward work now includes competition_input.py: actual
 test.csv roster, five image-metadata columns, existing single-decode recovery,
 per-study disposable native384 cache, unchanged denseFP32 provider. Five NEW

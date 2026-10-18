@@ -1,0 +1,15 @@
+"""Seconds-long placement decision after Slurmd restart; no old MRI/model audit."""
+import json,os,time
+start=time.monotonic()
+out={'GPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'purpose':'decide whether the NEW pending integrated run can avoid its owning-node queue','old_MRI_model_recovery_or_accuracy_claim':False}
+try:
+ import torch
+ assert os.uname().nodename=='evc26'
+ assert torch.cuda.is_available() and torch.cuda.device_count()==1
+ props=torch.cuda.get_device_properties(0)
+ assert 'H100' in props.name
+ x=torch.tensor([1.0],device='cuda');y=x+1;torch.cuda.synchronize();assert y.item()==2.0
+ out.update(status='assigned_context_usable_for_new_placement',GPU=props.name,torch=str(torch.__version__),visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES'),elapsed_seconds=time.monotonic()-start)
+except Exception as e:
+ out.update(status='new_placement_rejected_before_MRI_model_or_optimizer',error_type=type(e).__name__,error=str(e),elapsed_seconds=time.monotonic()-start)
+print(json.dumps(out),flush=True)
