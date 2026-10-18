@@ -123,3 +123,14 @@ covering the tensor, exact fitting roster and one future upload archive together
 Fresh funding includes all original reader/family liabilities and no deletion
 credit. This does not fund classifier checkpoints, a Dataset creation, model
 fitting or serving. No case rows or arrays enter Git/source mirrors.
+
+Materialization v1job953996 stopped at its fresh80MiB funding check BEFORE root
+creation or data reads/writes; it is preserved as FAILED1:0. Owning-node CPU954023
+confirms no v1root exists. Current disk has only12.6MB above all pre-existing
+liabilities, so no new global80MiB reservation is admitted. Distinct v2 instead
+uses80MiB of unassigned capacity inside the existing3GiB research root, retaining
+its ENTIRE512MiB reader allowance (320full/48epoch/128GPU/8CPU/8source), all paid
+originals and every other liability. It checks paid+512+80<3GiB and the unchanged
+global reserve. This reassigns an already funded unused slice; it deletes nothing
+and does not reclaim the retired8GiB twice. Numerical component construction is
+unchanged. Its actual receipt, not this prepared correction, establishes success.

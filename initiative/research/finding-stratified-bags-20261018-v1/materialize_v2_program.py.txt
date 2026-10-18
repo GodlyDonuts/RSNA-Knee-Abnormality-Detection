@@ -1,0 +1,47 @@
+"""One private fitting-only component tensor; no upload or classifier training."""
+import hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');A=R/'finding-strata-audit-v1';D=Path('/tmp/rsna-criterion-N3-features-20261017-v1/finding-strata-full-proposals-v2')
+assert not D.exists() and not Path('/tmp/rsna-finding-strata-full-proposals-20261018-v1').exists()
+actual=json.loads((A/'actual.json').read_text());assert actual['CPU_job']=='953779' and actual['targets_with_lower_MSE']==12
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');FAMILY=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert paid(P)+512*2**20+80*2**20<3*2**30 and paid(FAMILY)<4*2**30
+# Preserve the entire original512MiB reader allowance (320full+48epoch+128GPU+8CPU+8source).
+# The new80MiB is a separate slice of unassigned space inside the unchanged3GiB root.
+assert 320+48+128+8+8==512
+retirement=P/'original-N3-unused8GiB-retirement-v1.json'
+assert hashlib.sha256(retirement.read_bytes()).hexdigest()=='f7a39ef29040ff8e922c8325fe515ff2d6aa773e8a04dcd355ebd69aefcc9e4a' 
+required=603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(FAMILY))
+free=shutil.disk_usage('/tmp').free;assert free>required
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+S=R/'code';sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();meta=json.loads((R/'staged.json').read_text());assert all(sha(S/n)==h for n,h in meta['source_files'].items())
+sys.path.insert(0,str(S));from rsna.competitive.released_context_train import FrozenFeatures;from rsna.competitive.mil_sampling import readout_moments
+sampler=A/'sampling.py';assert sha(sampler)==actual['module_sha256']=='71d7e41228bf06c0358f619d90f85cbf9db2b81acbdf5e4c83221fb4b1304ebf'
+scope={'__name__':'private_finding_component_materializer'};exec(compile(sampler.read_text(),'fixed_finding_component_source','exec'),scope)
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');admission=json.loads((F/'full-input-admitted.json').read_text());assert admission['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted' and admission['all3887_feature_members_exact_size_SHA_NPY_metadata']
+index=F/'full-features/index.private.json';assert sha(index)==admission['binding']['feature_index_sha256']=='5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113'
+records=json.loads(index.read_text())['records'];uids=[x['study_uid'] for x in records];assert len(uids)==3887 and uids==sorted(set(uids))
+uidbytes=json.dumps(uids,separators=(',',':')).encode();assert hashlib.sha256(uidbytes).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+data=FrozenFeatures(records,roots,np.zeros((3887,12),dtype=np.float32),np.zeros((3887,12),dtype=bool),{'scope':'fixed_components_without_labels'})
+headpath=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt');assert headpath.stat().st_size==1122765 and sha(headpath)=='8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5'
+head=torch.load(headpath,map_location='cpu',weights_only=True);old=np.load(R/'proposal-table/proposals.private.npy',mmap_mode='r',allow_pickle=False);assert old.shape==(3887,94) and old.dtype==np.float64
+D.mkdir(mode=0o700);os.umask(0o077)
+intent={'source_git':v['source_git'],'program_sha256':v['program_sha256'],'CPU_fidelity_job':953779,'private_cap_bytes':80*2**20,'tensor_and_one_future_archive_funded_together':True,'inside_unchanged_original3GiB_root':True,'entire_old_reader_future_allowance_retained_bytes':512*2**20,'additional_global_disk_reserve':0,'previous_no_write_funding_stop_job':953996,'actual_free_bytes':free,'all_prior_and_new_required_bytes':required,'remaining_after_all_liabilities_bytes':free-required,'new_shared_bytes_files':0,'new_GPU_or_classifier':False,'automatic_retry':False}
+with (D/'intent.json').open('x') as f:json.dump(intent,f,indent=2)
+with (D/'uids.private.json').open('xb') as f:f.write(uidbytes)
+target=D/'components.private.npy';assert not target.exists();tensor=np.lib.format.open_memmap(target,mode='w+',dtype=np.float64,shape=(3887,94,12));target.chmod(0o600)
+start=time.monotonic();maximum=0.0
+for i in range(len(data)):
+ weights,votes,bias,_=readout_moments(head,data[i][0]);components,q=scope['components'](weights,votes,bias);difference=float(np.max(np.abs(q-old[i])));assert difference<=1e-15;maximum=max(maximum,difference);tensor[i]=components
+tensor.flush();assert np.isfinite(tensor).all() and (tensor>=0).all() and np.max(np.abs(tensor.sum(1)-1))<1e-12
+permission=R/'source-permission.txt';assert sha(permission)=='34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79'
+with (D/'source-permission.txt').open('xb') as f:f.write(permission.read_bytes())
+out={'status':'actual_fitting3887_immutable_finding_component_tensor_materialized','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'population':3887,'shape':[3887,94,12],'dtype':'float64','fitting_roster_sha256':hashlib.sha256(uidbytes).hexdigest(),'original_feature_index_sha256':sha(index),'original_head_sha256':sha(headpath),'component_source_sha256':sha(sampler),'tensor':{'bytes':target.stat().st_size,'sha256':sha(target)},'private_uid_file':{'bytes':len(uidbytes),'sha256':hashlib.sha256(uidbytes).hexdigest()},'maximum_original_mixture_density_difference':maximum,'source_permission_sha256':sha(permission),'private_cap_bytes':80*2**20,'inside_unchanged_original3GiB_root':True,'entire_old512MiB_reader_allowance_retained':True,'all_original_files_preserved':True,'new_shared_bytes_files':0,'new_clinical_labels_pixels_features_weights_or_checkpoints':False,'no_new_Kaggle_Dataset_upload_GPU_fit_or_entry':True,'elapsed_seconds':time.monotonic()-start,'clinical_or_competition_accuracy_claim':False}
+with (D/'materialized.json').open('x') as f:json.dump(out,f,indent=2)
+assert paid(D)<80*2**20 and paid(P)+512*2**20<3*2**30;print(json.dumps(out),flush=True)
