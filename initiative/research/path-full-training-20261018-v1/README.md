@@ -32,3 +32,15 @@ Actual dispatch: CPU955702 queued aligned955711 and null955712, each with
 afterok955582. Finite follow-through48097 is live for new epoch preservation and
 new fixed-final analysis. Old pending, nontraining benchmark950940 was cancelled
 with zero runtime to prioritize these experiments; its data/code remain intact.
+
+New execution-wrapper correction464a1dd2 supplies the required path-mechanism
+binding to PathTrainer; the initial full wrapper omitted that constructor
+argument. Both production-arm constructor expressions now pass on CPU, with
+843updates/68560learned parameters. Scientific modules, images, labels, schedule
+and original scientific source210036b6 remain unchanged. Existing full jobs
+955711/955712 are temporarily held before any allocation while CPU955795
+applies the exact new wrapper, retaining the initial worker/admission. The
+coordinator releases the same jobs only after the correction succeeds; no
+replacement GPU jobs or restart. This is a new-wrapper fix, not a repeated
+old-model verification or an accuracy result. See actual-constructor-correction
+once the one-time correction finishes.
