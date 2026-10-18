@@ -27,13 +27,17 @@ The prior goal turn made concrete progress: actual coupled MRI recovery, full
 candidate launch/finite update, source preservation and source/epoch checks.
 Goal remains active; no completion or blocker claim.
 
-New bounded research: actual CPU953779 tested one draw per finding proposal
-plus4 uniform observations at the EXACT original mixture density/16-window
-budget,3887 fitting studies/128draws each. Frozen-teacher probability MSE fell
-8.64%, lower on all12findings; this is not clinical/held-out AUC.21 focused
-math/actual-engine synthetic recovery/compiler/capacity cases pass. Real-MRI GPU
-recovery is prepared, not accepted; do not launch a full fit from the CPU result.
-See `initiative/research/finding-stratified-bags-20261018-v1` (repository root).
+New finding-stratified sampler: CPU953779 measured8.64% lower frozen-teacher
+probability MSE on all12findings at the EXACT original mixture density and16-
+window budget. Actual two-T4 recovery139349540v1 COMPLETED/513.56s; CPU954066
+accepts complete original-control replay and both-role full/stop/resume states
+and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
+all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
+existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
+cases pass. No new Dataset, full fit or clinical/competition result exists for
+this mechanism. Next requires full-source/input/preservation admission; original
+label values must match influence0.949, separate from the healthy family mix.
+Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
 
 ## Original live handles: inspect, never duplicate
 

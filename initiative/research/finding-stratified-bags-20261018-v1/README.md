@@ -134,3 +134,36 @@ originals and every other liability. It checks paid+512+80<3GiB and the unchange
 global reserve. This reassigns an already funded unused slice; it deletes nothing
 and does not reclaim the retired8GiB twice. Numerical component construction is
 unchanged. Its actual receipt, not this prepared correction, establishes success.
+
+## Actual real-MRI acceptance and complete fitting tensor
+
+Original139349540v1 COMPLETED; CPU954066 accepted its513.56-second numerical
+run. The old influence control's entire checkpoint state and prediction bytes
+replay exactly. Both IID and finding-stratified roles match full/stop1/resume
+model/AdamW/LR/cursors/all-rank RNG/scaler/history/epochs and all16 prediction
+case bytes. Both T4s remain within about5.87GB peak allocated memory. This is
+engineering acceptance; the tiny diagnostic has no disease-accuracy claim.
+Owner22857 is terminal success; never restart or repeat it.
+
+Distinct CPU954077 actually materialized all3887x94x12FP64 components,35,076,416
+bytes/SHA3581baf78d76, in20.90seconds. Exact sorted fitting roster0485d1b1 and
+all original mixture densities match; no labels/masks/teacher/image changes.
+Private location is under the original3GiB root at finding-strata-full-proposals-v2,
+with the full original512MiB reader allowance preserved and a separate80MiB
+subcap for tensor/roster/one future archive. No Dataset upload or full fit exists.
+The v1 no-write funding refusal is preserved, not retried or hidden.
+
+Next is ONE fixed3epoch/1458-update full3887 finding-allocation comparison
+against completed original influence0.949, with its ORIGINAL label values,
+mask, teacher, model, optimizer and inference unchanged. It is separate from
+the healthy family-label-mixture candidate. A production compiler, exact full
+input admission, one private component Dataset and functioning funded epoch
+preservation must exist before dispatch. Do not call this materialized tensor
+or engineering acceptance a new trained competition model.
+
+Current global disk margin above all old liabilities is tight (12.6MB at954023).
+Do not fund another4GiB global checkpoint copy by assumption. Any full fit needs
+a fresh publication plan: potentially node-local model snapshots inside truly
+unassigned3GiB-root capacity, with optimizer/full verification in RAM during an
+allocated CPU job and fully verified private backing. Such a plan remains
+unimplemented/unaccepted; never delete originals or spend its space speculatively.
