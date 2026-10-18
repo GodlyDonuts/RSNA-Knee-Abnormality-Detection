@@ -1,0 +1,7 @@
+# Admit the already qualified paired model with a30-minute discretionary buffer
+
+Actual prior controller was idle with no child, no active registered GPU sessions and no remaining LR training GPU caps. Available35938.33seconds covered the entire32400-second public notebook cap plus3538.33seconds. It waited only because its voluntary buffer was3600seconds. The organizer's9h runtime limit is unchanged; it does not mandate our extra1h margin.
+
+This distinct handoff uses1800seconds safety, funding all existing actual/unstarted obligations exactly as before. The full32400-second request/timeout/source/model and all provenance/device/output/account checks remain unchanged. Its required34200seconds still leaves the complete9h execution and30min overhead funded. No purchase, quota increase, premature checkpoint retirement or hidden-timeout reduction.
+
+Old11549 was stopped only at a freshly observed nonmutating wait, with no child and its exact command verified. No GPU training/inference was stopped and no original source/evidence was edited. Qualification139489009 remains the same accepted original; zero qualification pushes are allowed. New stage requires that accepted receipt and no prior public push intent. One finite owner admits at most one public push and one code entry under fresh authoritative account allowance. Uncertain mutations stop and require reconciliation rather than retrying.
