@@ -1,0 +1,33 @@
+"""Read-only Kaggle reconciliation; never repeats the uncertain CreateDataset."""
+import hashlib,importlib.util,json,os,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+F=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/paired-fixed-correction-kaggle-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def load(n,h):
+ f=C/(n+'.py');assert hashlib.sha256(f.read_bytes()).hexdigest()==h;s=importlib.util.spec_from_file_location('readonly_503_'+n,f);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=load('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900');p=load('publication','e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336')
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');owner=json.loads((claim/'owner.json').read_text());assert owner=={'CPU_job':'959064','GPU_or_entry_actions':0,'kind':'paired_fixed_correction_input_once'}
+terminal=subprocess.check_output(['sacct','-j','959064','-X','-n','-P','-o','JobIDRaw,State,ExitCode,Elapsed'],text=True);assert '959064|FAILED|1:0|' in terminal
+assert not (F/'create-response.json').exists() and (F/'create-intent.json').exists() and not (F/'reconciliation-after-503.json').exists()
+key='paired-fixed-correction-dataset:bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619'
+with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+ row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert row['state']=='paired_correction_dataset_create_or_verification_uncertain';assert row['slug']=='godlydonuts/rsna-paired-fixed-correction-bfd9d6d67afc'
+ import requests
+ r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+ outcome={'status':'first_CreateDataset_503_outcome_unresolved_no_retry','CPU_job':os.environ['SLURM_JOB_ID'],'original_CPU_job':959064,'original_terminal':terminal.strip(),'dataset_slug':row['slug'],'new_dataset_mutations_GPU_or_entries':0,'canonical_original_uncertain_row_retained':True}
+ try:
+  assert r.call('security.OAuthService','IntrospectToken',{'token':v['token']}).get('username')=='godlydonuts'
+  meta=p.metadata(r,row['slug']);mapping=p.map_members(p.list_files(r,row['slug']),row['files']);verified={n:p.stream_file(r,row['slug'],remote,row['files'][n],max_seconds=45) for n,remote in mapping.items()};assert p.metadata(r,row['slug'])==meta
+  outcome.update(status='private_fixed3887_correction_Dataset_all_objects_full_download_size_SHA_verified',dataset=meta,files=verified,objects=len(verified),table_sha256='bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619',original_503_reconciled_existing_artifact=True,actual_create_RPCs=1,source_and_permission_provenance_retained=True,training_or_accuracy_accepted=False)
+  row.update(state='paired_correction_dataset_full_verified',dataset=meta,verified=outcome);w.new_json(F/'verified.json',outcome)
+ except Exception as error:
+  outcome['read_error_type']=type(error).__name__
+  try:outcome.update(status='first_CreateDataset_503_then_actual_owned_absence_observed_no_retry',owned_absence=p.require_absent(r,row['slug']))
+  except Exception as absence_error:outcome['owned_absence_read_error_type']=type(absence_error).__name__
+  row['post_503_readonly_reconciliation']=outcome  # Keep original uncertain state and sole intent.
+ w.new_json(F/'reconciliation-after-503.json',outcome);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+ # Only the dead original CPU's global mutex is released. The uncertain namespace
+ # row + create-intent still prohibit another create; no GPU/entry was involved.
+ assert json.loads((claim/'owner.json').read_text())==owner
+ (claim/'owner.json').unlink();claim.rmdir();outcome['original_dead_global_coordinator_claim_released']=True
+ print(json.dumps(outcome),flush=True)
