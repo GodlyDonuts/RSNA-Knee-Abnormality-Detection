@@ -30,3 +30,24 @@ fresh-process reconstruction, corrupt/missing/oversized/duplicate members,
 bounded output streams, trusted redirect isolation and signed-URL suppression.
 This proves small transport behavior, not a model improvement. Actual original
 source staging and CPU outcomes are recorded separately when observed.
+
+Actual CPU959757 staged two exact private sources830636/831806bytes. The FIRST
+SaveKernel accepted original part0 as139448644v1 but returned a title-derived
+slug different from the requested slug. Old owner80321 stopped on its identity
+guard; it did not push again. CPU959776 inspected the original terminal959759
+and response and released only its dead global mutex. CPU959802 verified the
+actual original saved source/private/CPU/offline/version and reconciled that
+service-assigned identity in the canonical ledger. The old intent is preserved.
+Distinct owner80541 could only follow original part0, then push the never-created
+part1 once with its title derived from its slug. No old notebook was duplicated.
+
+Both actual private CPU artifacts COMPLETED and original output bytes were fully
+streamed/size/SHA verified: part0 139448644v1
+`godlydonuts/rsna-private-original-correction-input-part-0`, then part1
+139449229v1 `godlydonuts/rsna-paired-cpu-input-part1-290459c6fa72`.
+CPU959831 verified all five final original files, including the exact1629919-byte
+correction table bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619.
+Owner80541 is terminal success. Do not restart either owner or either notebook.
+The original Dataset503intent remains untouched/uncertain. No GPU or competition
+submission was used. The final private notebook output is an accepted immutable
+input for a future separately funded matched fit; inference/math is unchanged.

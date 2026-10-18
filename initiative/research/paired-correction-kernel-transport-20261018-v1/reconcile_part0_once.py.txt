@@ -1,0 +1,35 @@
+"""Resolve the accepted first CPU notebook's service-assigned slug, no new push."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/paired-correction-kernel-transport-20261018-v1/execution'
+E=R/'.env';assert E.stat().st_mode&0o077==0;values={k.strip():x.strip().strip('"\'') for line in E.read_text().splitlines() for k,s,x in [line.partition('=')] if s}
+program=r'''import hashlib,importlib.util,json,os,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');N=Path('/tmp/rsna-paired-correction-CPU-chain-20261018-v1');meta=json.loads((N/'staged.json').read_text());assert sum(p.stat().st_size for p in N.rglob('*') if p.is_file())+65536<6*2**20
+assert '959759|FAILED|1:0' in subprocess.check_output(['sacct','-n','-X','-j','959759','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True)
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';spec=importlib.util.spec_from_file_location('cpu_original_slug_reconcile',p);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+response=json.loads((N/'push0-response.json').read_text());assert response.get('kernelId')==139448644 and response.get('versionNumber')==1 and response.get('ref')=='/code/godlydonuts/rsna-private-original-correction-input-part-0' and not response.get('error')
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';assert r.call('security.OAuthService','IntrospectToken',{'token':v['token']}).get('username')=='godlydonuts'
+slug=response['ref'].removeprefix('/code/');kernel=r.kernel('GetKernel',slug,1);assert hashlib.sha256(kernel['blob']['source'].encode()).hexdigest()==meta['source_sha256'][0]
+assert kernel['metadata'].get('isPrivate') is True and kernel['metadata'].get('enableGpu',False) is False and kernel['metadata'].get('enableInternet',False) is False
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end;time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'original_CPU_input_slug_reconciliation','CPU_job':os.environ['SLURM_JOB_ID'],'new_GPU_entries_notebook_pushes':0})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  key='paired-correction-CPU-chain:'+meta['binding']['archive_sha256']+':part0';row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert row['state']=='private_CPU_correction_input_push_uncertain' and row['source_sha256']==meta['source_sha256'][0]
+  identity={'status':'original_CPU_notebook_service_assigned_slug_source_private_CPU_version_equal','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':139448644,'version':1,'source_sha256':meta['source_sha256'][0],'requested_slug':row['slug'],'actual_slug':slug,'original_pushed_once':True,'new_notebook_pushes_GPU_entries_Dataset_retries':0}
+  w.new_json(N/'part0-identity.json',identity);w.new_json(N/'execution-v2.json',{'source_git':v['source_git'],'phase_sha256':hashlib.sha256(v['phase'].encode()).hexdigest(),'original_phase_sha256':meta['phase_sha256'],'part0_push_prohibited':True,'only_remaining_new_CPU_notebook_part':1,'part1_title_derived_from_requested_slug':True,'numerical_sources_and_payloads_unchanged':True})
+  row.update(state='private_CPU_correction_input_pushed',requested_slug=row['slug'],slug=slug,kernel_id=139448644,original_response_slug_reconciled=identity);db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+ print(json.dumps(identity),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()
+'''
+with (A/'slug-reconcile-intent.json').open('x') as f:json.dump({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'original_kernel_id':139448644,'new_pushes_GPU_entries':0},f,indent=2)
+b='import io,json,sys;v=json.load(sys.stdin);sys.stdin=io.StringIO(json.dumps(v));exec(compile(v["program"],"original_CPU_slug_reconciliation","exec"),{"__name__":"__main__"})'
+a=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:07:00','--job-name=rsna-original-CPU-slug','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',b]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps({'program':program,'phase':(D/'phase_v2.py.txt').read_text(),'source_git':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'token':values['KAGGLE_API_TOKEN']}),capture_output=True,text=True,timeout=500)
+(A/'slug-reconcile-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr[-1800:]
+out=json.loads(x.stdout);(D/'actual-part0-identity.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

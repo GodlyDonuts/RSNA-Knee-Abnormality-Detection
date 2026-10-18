@@ -43,3 +43,14 @@ PYTHONPATH=. python3 -m scripts.kaggle.decide_paired_probe \
 Original owner byte hashes, canonical parsed-receipt hash and decision-source
 hash bind the result. Output uses exclusive creation, so rerunning cannot silently
 replace a negative or inconclusive decision. No actual GPU result exists yet.
+
+Actual outcome: original139446429v1 completed in1006.6seconds. The independent
+receipt-only decision74590 is terminal and records eligibility for a separately
+funded matched full fit. Complete/encoder gradient-MSE ratios0.434633/0.434710;
+head0.299334; forward probability-MSE0.184501. Empirical mean-gradient-error
+ratios0.300093/0.300143/0.207794, not proof of unbiasedness. Reference MCSE is
+0.28% of ordinary encoderMSE. Actual step-cost ratio0.998438, warm-step1.004625
+from the original ordered fresh-process trajectories. Four fitting studies, both
+views; no independent accuracy/clinical or training-seed uncertainty claim.
+The GPU result and exact source/owner/decision hashes are retained unchanged.
+No automatic repetition or full dispatch follows from this result alone.

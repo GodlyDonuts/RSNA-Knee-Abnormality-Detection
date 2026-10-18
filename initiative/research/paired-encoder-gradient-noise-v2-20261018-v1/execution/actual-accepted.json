@@ -1,0 +1,556 @@
+{
+  "status": "COMPLETE",
+  "CPU_job": "959769",
+  "kernel_id": 139446429,
+  "slug": "godlydonuts/rsna-encoder-noise-steps-b91b621dd82b",
+  "version": 1,
+  "source_sha256": "b91b621dd82bb9a28472d062ecf407c6fff65caf89060c44adcbc369198708d5",
+  "competition_entries": 0,
+  "receipt": {
+    "status": "actual_encoder_sampling_noise_and_matched_update_cost_measured",
+    "fit_cases": 4,
+    "views_per_case": 2,
+    "loss_averages_views": false,
+    "dense_reference_draws_per_view": 16,
+    "paired_sampled_draws_per_view": 32,
+    "gradients": "all_learned_parameters_preclip_per_study_unscaled_FP32",
+    "forward_precision": "actual_FP16_autocast",
+    "gradient_scale": 1024.0,
+    "groups": {
+      "all": {
+        "parameters": 73136096,
+        "ordinary": {
+          "MSE_against_estimated_dense_gradient": 18.86639728874101,
+          "empirical_mean_gradient_error": 1.2286544901410525,
+          "MSE_minus_estimated_reference_noise": 18.813255304553554
+        },
+        "controlled": {
+          "MSE_against_estimated_dense_gradient": 8.199963247499245,
+          "empirical_mean_gradient_error": 0.3687103655864458,
+          "MSE_minus_estimated_reference_noise": 8.14682126331179
+        },
+        "reference_mean_squared_standard_error": 0.053141984187454444,
+        "MSE_ratio": 0.43463323293805417,
+        "within_case_view_empirical_mean_error_ratio": 0.3000927995177204,
+        "reference_noise_fraction_of_ordinary_MSE": 0.00281675316034865
+      },
+      "encoder": {
+        "parameters": 72856264,
+        "ordinary": {
+          "MSE_against_estimated_dense_gradient": 18.855739994615966,
+          "empirical_mean_gradient_error": 1.227988074296576,
+          "MSE_minus_estimated_reference_noise": 18.802622890450582
+        },
+        "controlled": {
+          "MSE_against_estimated_dense_gradient": 8.19677316059009,
+          "empirical_mean_gradient_error": 0.36857188865957957,
+          "MSE_minus_estimated_reference_noise": 8.143656056424705
+        },
+        "reference_mean_squared_standard_error": 0.053117104165386016,
+        "MSE_ratio": 0.4347097044682724,
+        "within_case_view_empirical_mean_error_ratio": 0.30014288931161426,
+        "reference_noise_fraction_of_ordinary_MSE": 0.002817025700426129
+      },
+      "head": {
+        "parameters": 279832,
+        "ordinary": {
+          "MSE_against_estimated_dense_gradient": 0.010657294125041385,
+          "empirical_mean_gradient_error": 0.0006664158444765511,
+          "MSE_minus_estimated_reference_noise": 0.010632414102972962
+        },
+        "controlled": {
+          "MSE_against_estimated_dense_gradient": 0.0031900869091531572,
+          "empirical_mean_gradient_error": 0.0001384769268662443,
+          "MSE_minus_estimated_reference_noise": 0.003165206887084733
+        },
+        "reference_mean_squared_standard_error": 2.4880022068423893e-05,
+        "MSE_ratio": 0.2993336649738725,
+        "within_case_view_empirical_mean_error_ratio": 0.20779356915652808,
+        "reference_noise_fraction_of_ordinary_MSE": 0.0023345533844246116
+      }
+    },
+    "forward_probability_MSE": {
+      "ordinary": 0.002456570368145236,
+      "controlled": 0.0004532391669001276
+    },
+    "forward_probability_MSE_ratio": 0.18450078726722288,
+    "forward_backward_timing_seconds": {
+      "ordinary": 231.17346793199926,
+      "controlled": 229.9362607170009
+    },
+    "forward_backward_timing_ratio": 0.9946481435518271,
+    "optimizer_step_time_or_proven_gradient_bias_accepted": false,
+    "clinical_accuracy_or_production_fit_accepted": false,
+    "actual_encoder_recovery_is_separate": true,
+    "devices": [
+      {
+        "rank": 0,
+        "GPU": "Tesla T4",
+        "parameters": 73136096,
+        "completed_cases": 2,
+        "peak_allocated_bytes": 6890034688,
+        "total_VRAM_bytes": 15636037632,
+        "original_trained_complete_state_unchanged": true,
+        "CPU_threads": 1
+      },
+      {
+        "rank": 1,
+        "GPU": "Tesla T4",
+        "parameters": 73136096,
+        "completed_cases": 2,
+        "peak_allocated_bytes": 6882915840,
+        "total_VRAM_bytes": 15636037632,
+        "original_trained_complete_state_unchanged": true,
+        "CPU_threads": 1
+      }
+    ],
+    "trained_model_sha256": "f6a2007e7264fe5021cba4a4b58c0897a1e20f181078b7f566962ea10b2a04f4",
+    "trained_source_sha256": "cff5c493ee2832a0672298f1942662474aa3a01d0b421069c4db171ed394b012",
+    "own_module_sha256": {
+      "rsna/competitive/licensed_parent_train.py": "cf238d9154806a51cd92c80a61e39ca344ef865558305db51cbfdc86f89eeec0",
+      "rsna/competitive/checkpoint.py": "a70ef871e200bac89e4f071d9394ce8b0abc1c2ba0017eaba3692d25dde31e21",
+      "rsna/competitive/released_context.py": "4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9",
+      "rsna/competitive/licensed_full_bag.py": "74a4e19eb37570f66754fa3b4d8e2e117fadb7cc91c61345efc4e962cbf3983f",
+      "rsna/competitive/licensed_importance.py": "fc3fcedfc52fc922b82f7cb8e2034b6d7526d65c536c2ae8163aa8de1d3dafe4",
+      "rsna/competitive/licensed_importance_train.py": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+      "rsna/competitive/mil_sampling.py": "f04b4e9ff0874d1809742fed4b9fafc57e77255a9908e2d56c7fdf8203a0a54e",
+      "rsna/competitive/released_context_train.py": "5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f",
+      "rsna/competitive/released_context_infer.py": "4dbeb46a3e647a840047e6cede75328a9945a57ec2db4261250d03e28452cc34",
+      "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948",
+      "rsna/competitive/paired_logit_cases.py": "6912ee44c6e3b2891de526471bbab2e32356577264382f15289fc5cfa99b19e3",
+      "rsna/competitive/paired_logit_control.py": "c95b35b672654cabeac6a8d46432ef878c2e084d2d8ea7dbcb38b0f1fa0ce896",
+      "rsna/competitive/paired_logit_train.py": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+      "rsna/competitive/paired_encoder_noise.py": "b055a8f8f3e27398bf812cfb1e8d39547c0f26ca21bf9212289374e78b56d14d",
+      "rsna/competitive/paired_encoder_probe.py": "93972f16dcfc6cefb14b877e6eb6859758ca61fc2ffba19c3c18033de25ea7d0",
+      "rsna/competitive/licensed_importance_serving.py": "e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d",
+      "rsna/competitive/paired_step_timing.py": "0159351da3aa058c1dbb48c912ba07a25474f51dc06e6f24f2fdd5b46aeaada6"
+    },
+    "worker_sha256": "10866782ded379290d920b19e8f6045293600478c543260978bd0b437e8aced1",
+    "private_fitting_targets_sha256": "87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834",
+    "elapsed_seconds": 1006.6143619420001,
+    "retained_bytes": 464663,
+    "competition_entries": 0,
+    "actual_update_timing": {
+      "fresh_two_rank_processes_per_run": true,
+      "order": [
+        "ordinary",
+        "controlled",
+        "controlled",
+        "ordinary"
+      ],
+      "fixed_parent_initialization_and_all_rank_RNG_equal": true,
+      "runs": [
+        [
+          {
+            "arm": "ordinary",
+            "run": 0,
+            "rank": 0,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [
+              {
+                "update": 1,
+                "seconds": 14.375033919999964,
+                "studies": 8
+              },
+              {
+                "update": 2,
+                "seconds": 7.233671409000067,
+                "studies": 8
+              },
+              {
+                "update": 3,
+                "seconds": 6.809948208999913,
+                "studies": 8
+              },
+              {
+                "update": 4,
+                "seconds": 6.959596819000012,
+                "studies": 8
+              },
+              {
+                "update": 5,
+                "seconds": 7.239890152999919,
+                "studies": 8
+              },
+              {
+                "update": 6,
+                "seconds": 7.105505999999991,
+                "studies": 8
+              }
+            ],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 68.50535321100006,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          },
+          {
+            "arm": "ordinary",
+            "run": 0,
+            "rank": 1,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 68.505329888,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          }
+        ],
+        [
+          {
+            "arm": "controlled",
+            "run": 1,
+            "rank": 0,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [
+              {
+                "update": 1,
+                "seconds": 13.631621867000035,
+                "studies": 8
+              },
+              {
+                "update": 2,
+                "seconds": 6.971318552999946,
+                "studies": 8
+              },
+              {
+                "update": 3,
+                "seconds": 6.865122647000021,
+                "studies": 8
+              },
+              {
+                "update": 4,
+                "seconds": 7.125078715999962,
+                "studies": 8
+              },
+              {
+                "update": 5,
+                "seconds": 7.226157920000105,
+                "studies": 8
+              },
+              {
+                "update": 6,
+                "seconds": 7.093205159000036,
+                "studies": 8
+              }
+            ],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 67.60810627299998,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          },
+          {
+            "arm": "controlled",
+            "run": 1,
+            "rank": 1,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 67.60807580300002,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          }
+        ],
+        [
+          {
+            "arm": "controlled",
+            "run": 2,
+            "rank": 0,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [
+              {
+                "update": 1,
+                "seconds": 13.73861195400002,
+                "studies": 8
+              },
+              {
+                "update": 2,
+                "seconds": 6.974355481000089,
+                "studies": 8
+              },
+              {
+                "update": 3,
+                "seconds": 6.818782794999834,
+                "studies": 8
+              },
+              {
+                "update": 4,
+                "seconds": 7.093162200000052,
+                "studies": 8
+              },
+              {
+                "update": 5,
+                "seconds": 7.276163717000145,
+                "studies": 8
+              },
+              {
+                "update": 6,
+                "seconds": 7.100159920999886,
+                "studies": 8
+              }
+            ],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 67.6729233640001,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          },
+          {
+            "arm": "controlled",
+            "run": 2,
+            "rank": 1,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 67.67291136699998,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          }
+        ],
+        [
+          {
+            "arm": "ordinary",
+            "run": 3,
+            "rank": 0,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [
+              {
+                "update": 1,
+                "seconds": 13.473130505999961,
+                "studies": 8
+              },
+              {
+                "update": 2,
+                "seconds": 6.789396250999971,
+                "studies": 8
+              },
+              {
+                "update": 3,
+                "seconds": 6.783544210999935,
+                "studies": 8
+              },
+              {
+                "update": 4,
+                "seconds": 7.0835326989999885,
+                "studies": 8
+              },
+              {
+                "update": 5,
+                "seconds": 7.188869421999925,
+                "studies": 8
+              },
+              {
+                "update": 6,
+                "seconds": 7.024809647999973,
+                "studies": 8
+              }
+            ],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 66.99995631700017,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          },
+          {
+            "arm": "ordinary",
+            "run": 3,
+            "rank": 1,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "fit_studies": 16,
+            "parameters": 73136096,
+            "GPU": "Tesla T4",
+            "peak_allocated_bytes": 5866004480,
+            "total_VRAM_bytes": 15636037632,
+            "actual_optimizer_updates": 6,
+            "step_timings": [],
+            "trainer_call_wall_seconds_including_setup_and_checkpoint_IO": 67.00000026399994,
+            "step_scope": "LR_factor_entry_through_history_after_AdamW_scaler_update_and_loss_allreduce",
+            "step_scope_excludes": [
+              "per_step_order_construction",
+              "progress_file_write",
+              "epoch_snapshot_and_resume_checkpoint_IO",
+              "one_time_source_and_input_admission"
+            ],
+            "engine_source_sha256": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+            "numerical_engine_body_changed": false,
+            "new_GPU_or_accuracy_acceptance": false
+          }
+        ]
+      ],
+      "step_seconds": {
+        "ordinary": [
+          14.375033919999964,
+          7.233671409000067,
+          6.809948208999913,
+          6.959596819000012,
+          7.239890152999919,
+          7.105505999999991,
+          13.473130505999961,
+          6.789396250999971,
+          6.783544210999935,
+          7.0835326989999885,
+          7.188869421999925,
+          7.024809647999973
+        ],
+        "controlled": [
+          13.631621867000035,
+          6.971318552999946,
+          6.865122647000021,
+          7.125078715999962,
+          7.226157920000105,
+          7.093205159000036,
+          13.73861195400002,
+          6.974355481000089,
+          6.818782794999834,
+          7.093162200000052,
+          7.276163717000145,
+          7.100159920999886
+        ]
+      },
+      "step_sum_ratio": 0.9984379207325473,
+      "step_sum_ratio_excluding_first_each_run": 1.004624722306469,
+      "temporary_checkpoint_bytes": 7027727028,
+      "temporary_checkpoints_uploaded_or_published": false,
+      "retained_on_VM_only_until_teardown": true,
+      "total_actual_optimizer_updates_all_runs": 24,
+      "production_or_accuracy_accepted": false
+    },
+    "benchmark_worker_sha256": "0cb49266262f35641942297cd910a7e2bcfda609c8cb807b5d27828221756bec"
+  }
+}

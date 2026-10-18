@@ -1,0 +1,86 @@
+"""Distinct exact-byte private CPU chain. No Dataset retry/GPU/competition APIs."""
+import hashlib,importlib.util,json,os,shutil,sqlite3,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);phase=v['phase'];part=v.get('part',0)
+assert phase in ('push','status') and part in (0,1) and (phase!='push' or part==1) and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');N=Path('/tmp/rsna-paired-correction-CPU-chain-20261018-v1');C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control');paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file());sha=lambda b:hashlib.sha256(b).hexdigest()
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert sha((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes())=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20), (str(N),6*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor and paid(R)<32*2**20 and paid(N)<6*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+
+def load(path,name):
+ spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+assert sha((C/'workflow.py').read_bytes())=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+assert sha((C/'publication.py').read_bytes())=='e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336'
+w=load(C/'workflow.py','chain_canonical_workflow');pub=load(C/'publication.py','chain_original_publication')
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+assert r.call('security.OAuthService','IntrospectToken',{'token':v['token']}).get('username')=='godlydonuts'
+original_key='paired-fixed-correction-dataset:bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619'
+if phase=='stage':
+ assert not N.exists()
+ with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(original_key,)).fetchone()[0])
+ assert row['state']=='paired_correction_dataset_create_or_verification_uncertain'
+ absence=pub.require_absent(r,row['slug']);archive=Path('/tmp/rsna-paired-fixed-correction-transport-v3/bundle.zip');raw=archive.read_bytes()
+ assert len(raw)==row['archive']['bytes'] and sha(raw)==row['archive']['sha256']
+ N.mkdir(mode=0o700)
+ for name,text in (('compiler.py',v['compiler']),('output_bytes.py',v['output_verifier'])):
+  p=N/name;p.write_text(text);p.chmod(0o600)
+ compiler=load(N/'compiler.py','new_private_CPU_chain_compiler');sources,meta=compiler.build(raw,row['files'])
+ for i,source in enumerate(sources):p=N/('part'+str(i)+'.private.py');p.write_text(source);p.chmod(0o600)
+ meta.update(source_git=v['source_git'],compiler_sha256=sha(v['compiler'].encode()),output_verifier_sha256=sha(v['output_verifier'].encode()),phase_sha256=sha(v['program'].encode()),original_uncertain_Dataset_slug=row['slug'],original_uncertain_Dataset_unchanged=True,original_absence=absence,small_node_control_cap_bytes=6*2**20,new_shared_bytes_files=0,CPU_job=os.environ['SLURM_JOB_ID'])
+ w.new_json(N/'staged.json',meta);assert paid(N)<6*2**20
+ print(json.dumps({'status':'new_private_two_CPU_input_chain_sources_staged_only',**meta}),flush=True);raise SystemExit(0)
+meta=json.loads((N/'staged.json').read_text());assert json.loads((N/'execution-v2.json').read_text())['phase_sha256']==sha(v['program'].encode()) and sha((N/'output_bytes.py').read_bytes())==meta['output_verifier_sha256']
+source=(N/('part'+str(part)+'.private.py')).read_text();h=meta['source_sha256'][part];assert sha(source.encode())==h and len(source.encode())<900000
+slugs=['godlydonuts/rsna-paired-cpu-input-part'+str(i)+'-'+s[:12] for i,s in enumerate(meta['source_sha256'])]
+identity=json.loads((N/'part0-identity.json').read_text());assert identity['source_sha256']==meta['source_sha256'][0] and identity['kernel_id']==139448644 and identity['version']==1
+slugs[0]=identity['actual_slug']
+slug=slugs[part];key='paired-correction-CPU-chain:'+meta['binding']['archive_sha256']+':part'+str(part)
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':False,'enableInternet':False,'datasetDataSources':[],'competitionDataSources':[],'kernelDataSources':[] if part==0 else [slugs[0]],'sessionTimeoutSeconds':180,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end;time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'new_private_CPU_correction_input','phase':phase,'part':part,'CPU_job':os.environ['SLURM_JOB_ID'],'GPU_or_entries':0});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  def save(row):db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+  if phase=='push':
+   assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None and not (N/('push'+str(part)+'-intent.json')).exists()
+   if part==1:
+    accepted=json.loads((N/'part0-verified.json').read_text());assert accepted['status']=='COMPLETE' and accepted['source_sha256']==meta['source_sha256'][0]
+    prior=r.kernel('GetKernel',slugs[0],1);assert sha(prior['blob']['source'].encode())==meta['source_sha256'][0]
+   absence=r.require_absent_kernel(slug)
+   row={'state':'private_CPU_correction_input_push_intent','part':part,'slug':slug,'version':1,'source_sha256':h,'request_sha256':w.object_hash(request),'original_Dataset_untouched':True,'new_GPU_or_entries':0,'absence':absence,'automatic_retry':False}
+   w.new_json(N/('push'+str(part)+'-intent.json'),row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+   try:
+    response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(N/('push'+str(part)+'-response.json'),response)
+    assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    assert type(response.get('kernelId')) is int and response['kernelId']>0
+   except BaseException:row['state']='private_CPU_correction_input_push_uncertain';save(row);retain=True;raise
+   row.update(state='private_CPU_correction_input_pushed',kernel_id=response['kernelId']);save(row)
+   print(json.dumps({'status':'one_private_CPU_input_notebook_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'part':part,'kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':h,'source_bytes':len(source.encode()),'GPU_or_entries':0}),flush=True)
+  else:
+   row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert row['state'] in ('private_CPU_correction_input_pushed','private_CPU_correction_input_verified')
+   kernel=r.kernel('GetKernel',slug,1);assert kernel['blob']['source']==source
+   assert kernel['metadata'].get('isPrivate') is True and kernel['metadata'].get('enableGpu',False) is False and kernel['metadata'].get('enableInternet',False) is False
+   status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'part':part,'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':h,'GPU_or_entries':0}
+   if status=='COMPLETE' and not (N/('part'+str(part)+'-verified.json')).exists():
+    receipt=r.output_json(slug,1,'cpu-part-receipt.json' if part==0 else 'cpu-input-receipt.json');assert receipt['binding']==meta['binding'] and receipt['GPU_model_training_or_competition_entry'] is False
+    verifier=load(N/'output_bytes.py','exact_private_CPU_output_verifier')
+    if part==0:
+     assert receipt['status']=='private_original_correction_transport_part0_complete';expected={'bytes':meta['binding']['part0_bytes'],'sha256':meta['binding']['part0_sha256']};objects={'paired-part-000.bin':verifier.verify(r,slug,1,'paired-part-000.bin',expected)}
+    else:
+     assert receipt['status']=='private_original_correction_five_files_reconstructed_CPU_only' and receipt['output_files']==meta['binding']['files']
+     objects={n:verifier.verify(r,slug,1,'paired-correction-input/'+n,item) for n,item in meta['binding']['files'].items()}
+    out.update(receipt=receipt,all_original_objects_full_stream_size_SHA_verified=objects,original_Dataset_retry=False,complete_original_correction_input_accepted=part==1,full_training_accuracy_or_submission_accepted=False)
+    w.new_json(N/('part'+str(part)+'-verified.json'),out);row.update(state='private_CPU_correction_input_verified',verified=out);save(row)
+   elif status=='COMPLETE':out=json.loads((N/('part'+str(part)+'-verified.json')).read_text())
+   print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

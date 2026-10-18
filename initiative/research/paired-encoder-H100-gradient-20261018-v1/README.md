@@ -47,3 +47,12 @@ Future node admissions must retain the unpaid remainder of this distinct8MiB
 control cap, in addition to the correction transport sibling and prior floors.
 Actual paid bytes are already charged by node free space; never count them twice.
 No new shared files or ordinary model-checkpoint funding is implied.
+
+Superseding terminal: the exact original two-T4 measurement139446429 completed
+and passed its predeclared screen while this H100959613 was still PENDING with
+ElapsedRaw0. The same pending job was cancelled with the PENDING-only filter.
+Actual sacct reports CANCELLED/ElapsedRaw0; owner79221 exited on that cancellation.
+No H100 runtime, model download, gradient or optimizer ran. This is retirement
+of redundant queued engineering work, not a model/CUDA failure. Do not restart
+it. Preserve its immutable source/CPU admission and the8MiB control liability;
+no deletion or funding retirement is inferred. Prioritize a real full fit.
