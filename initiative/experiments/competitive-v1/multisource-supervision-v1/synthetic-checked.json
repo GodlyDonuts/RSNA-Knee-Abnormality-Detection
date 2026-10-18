@@ -1,0 +1,58 @@
+{
+  "status": "synthetic_target_constructor_accepted_no_source_or_training_admission",
+  "checks": [
+    "single-source identity",
+    "missing sentinel abstention",
+    "legacy fallback",
+    "mask and override identity",
+    "no input mutation",
+    "meaningful half probability",
+    "anchored per-target BCE loss and gradient equality"
+  ],
+  "refused": [
+    "evaluation identity",
+    "evaluation component",
+    "mirror vote",
+    "overlapping blend",
+    "unknown ancestry",
+    "cycle",
+    "unadmitted source",
+    "unmapped state",
+    "out of range",
+    "changed baseline",
+    "negative weight",
+    "duplicated source"
+  ],
+  "synthetic_audit": {
+    "status": "target_construction_only_not_training_or_accuracy",
+    "fitting_studies": 3,
+    "mask_unchanged": true,
+    "coverage_expansion_cells": 0,
+    "per_target": [
+      {
+        "target": "synthetic-target-a",
+        "supervised_cells": 2,
+        "safe_common_cells": 1,
+        "changed_cells": 1,
+        "available_family_counts": {
+          "1": 1,
+          "2": 2
+        },
+        "mean_disagreement_on_safe_common_cells": 0.25
+      },
+      {
+        "target": "synthetic-target-b",
+        "supervised_cells": 3,
+        "safe_common_cells": 1,
+        "changed_cells": 1,
+        "available_family_counts": {
+          "1": 1,
+          "2": 2
+        },
+        "mean_disagreement_on_safe_common_cells": 0.25
+      }
+    ]
+  },
+  "actual_training_cells_changed": null,
+  "new_model_trained": false
+}

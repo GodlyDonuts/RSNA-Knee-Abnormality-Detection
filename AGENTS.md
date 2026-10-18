@@ -1,5 +1,29 @@
 # RSNA Knee: current agent guide
 
+## October18 source-supervision brief and terminal corrections
+
+The owner brief is now available, read and preserved in
+`initiative/experiments/competitive-v1/multisource-supervision-v1/owner-brief.md`.
+A standalone missingness/ancestry-aware target constructor passes synthetic
+single-source/mask/override identity and anchored BCE loss/gradient checks.
+No production multi-source tensor, changed-cell count, trainer integration or
+accuracy gain is claimed. Trace primitive source meanings/ancestry before mixing
+opaque Steven/S6 blends; a separate owner Astra image export remains unlocated.
+The four original baseline files still match pre-Devin content; no rollback.
+
+This supersedes old pending paragraphs:951964 FAILED at sparse FP32-parent logit
+equality before any optimization; a distinct FP32 deployment-wrapper correction
+is implemented/synthetic-tested, not real-GPU accepted. Original951853 was
+cancelled only PENDING/unallocated/zero elapsed after the distinct evc26 fixture
+and CPU admissions. Distinct952162 FAILED before optimizer at CUDA101/device
+admission. Neither failure is an accuracy result or authority to retry originals.
+Original source/fixtures retained. GPU benchmark950940 remains PENDING(Resources)
+at the actual follow-up. Kaggle successor97513 already accepted uniform57329796
+once; last recorded hidden status/score remain null, not a scored result. Keep
+its existing outcome owner, do not restart or duplicate it. Original failure and
+FP32 receipts are in the connected-witness and evc26 recovery namespaces.
+
+
 ## Current sequence-reader execution
 
 Actual CPU951824 admitted all32 original1024x12x12 cached MRI inputs and the

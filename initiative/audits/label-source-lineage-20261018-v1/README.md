@@ -30,9 +30,10 @@ recipe's source bindings before changing supervision. Do not relabel or claim
 clinical accuracy based on the annotator name alone.
 
 The supplied `Codex_Multi_Source_Supervision_Research_and_Implementation_Brief.md`
-was absent from its stated Downloads location and not found by filename search
-of Downloads/attachments. Its contents were not read or implemented. Recover
-the brief and any separate original image-label path before deciding its scope.
+was absent at the original check, but is NOW available and read. Its verbatim
+copy, working target constructor, synthetic checks and current source-admission
+decision are in `initiative/experiments/competitive-v1/multisource-supervision-v1`.
+The separate original image-label export remains unlocated.
 No MRI/cache/label/mask/fold, healthy training or Kaggle controller changed.
 
 Further original-source inspection found six root legacy label CSVs. The card
@@ -43,4 +44,5 @@ corrected report-review release; it is not evidence that older labels would
 restore a whole-cohort Astra image review. Root file content identities and
 historical card hash/line evidence are preserved separately without reading
 clinical/gold label rows. A separate original image-review export is still
-unlocated, and the owner-provided brief is still unavailable.
+unlocated, the owner-provided brief is now available, preserved and implemented as a
+standalone target constructor; no new multi-source model or accuracy gain exists.

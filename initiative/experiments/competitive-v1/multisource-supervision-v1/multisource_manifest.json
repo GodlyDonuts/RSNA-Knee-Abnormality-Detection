@@ -1,0 +1,59 @@
+{
+  "status": "source_inventory_not_production_source_admission",
+  "sources": [
+    {
+      "id": "original_report_release",
+      "member": "initiative/releases/report-supervision-v1/studies.parquet",
+      "sha256": "2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7",
+      "input_modality": "report",
+      "provider_model": "not inferred from owner description",
+      "semantic_mapping": "existing frozen report protocol and masks; not automatically image adjudication",
+      "known_lineage": "corrected report-review release; root legacy pseudo-labels separately traced",
+      "training_role": "completed spatial reader source; not uniform parent-adaptation source",
+      "multisource_admitted": false
+    },
+    {
+      "id": "steven_v6_composite",
+      "revision": "Shio-Koube/knee3@373f4e1daf36984fa48bf3fc8fd9883fe17cb584",
+      "member": "llm_labels_v4_blend.csv",
+      "sha256": "eb4c2b29e7e84adbb4b5ccee825ca20ade6a43dbe295f13be442d549e4f5dca4",
+      "input_modality": "report",
+      "known_ancestors": [
+        "steven_v2",
+        "lixin73_sol56"
+      ],
+      "semantic_limit": "upstream .5 denotes not addressed; undisclosed blend prevents unambiguous recovery of all original semantic states",
+      "license": "upstream declares CC0; does not waive competition-data obligations",
+      "evaluation_exposure": "upstream recipe and blend selection used Gold58; not independent of it",
+      "training_role": "completed uniform reference targets",
+      "multisource_admitted": false
+    },
+    {
+      "id": "s6_v5_composite",
+      "revision": "Kaggle nartaa/rsna-knee-s6fall-weights version5",
+      "member": "training_code/labels/labels_v1_blendjev.parquet",
+      "sha256": "c97ee6b141f33bf5da0569ea1a69259b5ccd566fa9536d25eb7adea02807d10d",
+      "input_modality": "report",
+      "declared_ancestors": [
+        "nartaa_labels_v1_blend",
+        "JEV_HYBRID"
+      ],
+      "remaining_review": "primitive blend ancestors, value meanings, per-cell availability and overlap with Steven family",
+      "training_role": "completed label-only treatment; existing admission is not semantic multisource admission",
+      "multisource_admitted": false,
+      "separate_released_trainer_target_csv_sha256": "8006cc39d1f564d4031db9692c136a73dfe49a7be1a2e2e8ec8a19fbd8f2fcc6"
+    },
+    {
+      "id": "owner_astra_image_annotations",
+      "input_modality": "images per owner",
+      "revision": null,
+      "sha256": null,
+      "status": "separate export unlocated; no inference that owner annotation work did not happen",
+      "multisource_admitted": false
+    }
+  ],
+  "new_actual_training_cell_changes": null,
+  "new_training_dispatched": false,
+  "protected_values_read": false,
+  "accepted_release_changed": false
+}
