@@ -107,10 +107,26 @@ def build(
     training,
     publication,
     qualification,
+    *,
+    qualification_source=None,
 ):
     if hashlib.sha256(Path(reference.__file__).read_bytes()).hexdigest() != BASE_SHA:
         raise ValueError("Exact admitted original R6 batch launcher required")
     cells, _ = reference.code_cells(notebook, notebook_sha=NOTEBOOK_SHA, cells_sha=CELLS_SHA)
+    # Canonical ledger JSON sorts keys; the exact qualified script retains the
+    # original insertion ordering used by repr-based source generation. Recover
+    # that ordering only from authenticated bytes, never from guessed metadata.
+    if qualification_source is not None:
+        if (
+            reference.digest(qualification_source) != qualification.get("source_sha256")
+            or paired.literal(qualification_source, "_ADAPTED_MODE") != "qualification"
+        ):
+            raise ValueError("Exact original qualification source bytes required")
+        original_training = paired.literal(qualification_source, "_ADAPTED_TRAINING")
+        original_publication = paired.literal(qualification_source, "_ADAPTED_PUBLICATION")
+        if original_training != training or original_publication != publication:
+            raise ValueError("Original qualification receipt bindings differ")
+        training, publication = original_training, original_publication
     inputs = (parent, bounded, serving, codec, mixin, importance, correction, training, publication)
     _, qmeta = paired.build(*inputs, mode="qualification")
     source, meta = paired.build(*inputs, mode="competition")

@@ -48,3 +48,11 @@ CPU960753 failed only because the isolated compiler lacked rsna.schema; v2 adds
 the exact original schema source and stays within the combined128KiB control cap.
 No final candidate, GPU run, model transfer or competition entry occurred. See
 [actual receipt](actual-v2-CPU-admitted.json).
+
+The compiler can now take the exact accepted qualification source bytes, recover
+the original training/publication literal ordering, and require semantic equality
+with the supplied canonical receipts. This avoids a false hash mismatch caused by
+JSON key sorting. Actual source hash, final-model provenance and two-T4 acceptance
+remain required. Four new regressions cover canonical round trips, altered bytes
+and mixed training/publication receipts; the combined focused suite has23 passes.
+This does not change live training or the admitted standalone scoring source.

@@ -176,3 +176,61 @@ def test_failed_or_mixed_member_cannot_become_ensemble_result(key, value):
         compiler.validate_member_receipt(
             m, "1" * 64, "2" * 64, 3, {"sha256": "3" * 64, "bytes": 123}
         )
+
+
+def ordered_case(case, monkeypatch):
+    args, cells = case
+    training = {"source_sha256": args[-3]["source_sha256"], "kernel_id": 123}
+    publication = {"z": 1, "a": {"second": 2, "first": 1}}
+
+    def source(t, p):
+        return (
+            fake_paired()
+            + "\n_ADAPTED_MODE='qualification'\n_ADAPTED_TRAINING="
+            + repr(t)
+            + "\n_ADAPTED_PUBLICATION="
+            + repr(p)
+            + "\n"
+        )
+
+    original = source(training, publication)
+
+    def build(*values, mode):
+        text = source(values[-2], values[-1])
+        return text, {
+            "source_sha256": hashlib.sha256(text.encode()).hexdigest(),
+            "model_sha256": "1" * 64,
+        }
+
+    monkeypatch.setattr(compiler.paired, "build", build)
+    args[-3] = json.loads(json.dumps(training, sort_keys=True))
+    args[-2] = json.loads(json.dumps(publication, sort_keys=True))
+    args[-1]["source_sha256"] = hashlib.sha256(original.encode()).hexdigest()
+    return args, cells, original
+
+
+def test_original_qualified_bytes_recover_receipt_order_without_weakening_identity(
+    case, monkeypatch
+):
+    args, cells, source = ordered_case(case, monkeypatch)
+    with pytest.raises(ValueError, match="qualification"):
+        compiler.build(*args)
+    result, meta = compiler.build(*args, qualification_source=source)
+    assert literal(result, "_CELLS")[1:] == cells[1:]
+    assert (
+        meta["actual_original_qualification_source_sha256"]
+        == hashlib.sha256(source.encode()).hexdigest()
+    )
+
+
+@pytest.mark.parametrize("mutation", ["source", "training", "publication"])
+def test_original_qualified_bytes_reject_tampering_or_mixed_receipts(case, monkeypatch, mutation):
+    args, _, source = ordered_case(case, monkeypatch)
+    if mutation == "source":
+        source += "# unqualified change\n"
+    elif mutation == "training":
+        args[-3]["kernel_id"] = 999
+    else:
+        args[-2]["z"] = 99
+    with pytest.raises(ValueError, match="qualification"):
+        compiler.build(*args, qualification_source=source)
