@@ -1,0 +1,104 @@
+"""One distinct public run after actual whole94 final qualification; no entry."""
+import ast
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+import requests
+
+v=json.load(sys.stdin);phase=v['phase'];assert phase in ('preflight','admit_push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+MODEL='a244d120a19147b2a40abc02a15fd8d090f7adbc2f8196e4d545628e4aa9307c'
+R=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1');old=R/'epoch-3';Q=R/'whole94-final-qualification-v2';D=R/'whole94-final-public-v2';C=R/'code'
+base=json.loads((old/'prepared.json').read_text());tr=base['training'];pub=base['publication']
+assert base['model_sha256']==MODEL and tr['kernel_id']==139172537 and tr['status']=='COMPLETE' and tr['segment']==3 and tr['receipt']['completed']==1458
+assert pub['revision']=='1ea56fa5f9a263597df0a10cc87d98fe2dc1da7b' and pub['files']['model.pt']==tr['receipt']['epoch']
+original=(old/'competition.private.py').read_text()
+assert hashlib.sha256(original.encode()).hexdigest()==base['prepared']['competition']['source_sha256']=='9f42ee33bca2b427bf3f2b8717f5db7b8e3219756e07531f56eed448661ae508'
+source='# Distinct qualified whole94 fixed-final public run v2; original quarantine preserved.\n'+original
+assert ast.dump(ast.parse(source),include_attributes=False)==ast.dump(ast.parse(original),include_attributes=False)
+compile(source,'unchanged_whole94_fixed_final_public','exec')
+values={n.targets[0].id:ast.literal_eval(n.value) for n in ast.parse(source).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('_ADAPTED_MODE','_ADAPTED_SHA','_ADAPTED_TRAINING','_ADAPTED_PUBLICATION')}
+assert values['_ADAPTED_MODE']=='competition' and values['_ADAPTED_SHA']==MODEL and values['_ADAPTED_TRAINING']==tr and values['_ADAPTED_PUBLICATION']==pub
+sha=hashlib.sha256(source.encode()).hexdigest();slug='godlydonuts/rsna-whole94-final-e3-offline-v2-'+sha[:12];key='whole94-fixed-final-public-v2:'+MODEL
+def module(path,digest):
+ assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
+ spec=importlib.util.spec_from_file_location('whole94_public_'+path.stem,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module(C/'scripts/kaggle/workflow.py','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts'
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':[],'competitionDataSources':['rsna-knee-abnormality-detection'],'kernelDataSources':[tr['slug']],'sessionTimeoutSeconds':32400,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>deadline:print(json.dumps({'status':'waiting_canonical_claim_no_mutation'}));raise SystemExit(0)
+  time.sleep(3)
+owner={'kind':'distinct_whole94_final_public_only','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  parent=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-parent-full-epoch-serving:'+MODEL,)).fetchone()[0])
+  assert parent['state']=='full_parent_epoch_qualification_push_quarantined' and not parent.get('submission_id') and 'competition' not in parent and not (old/'competition-push-intent.json').exists()
+  qraw=db.execute('SELECT value FROM meta WHERE key=?',('whole94-fixed-final-qualification-v2:'+MODEL,)).fetchone()
+  qualification=json.loads(qraw[0]) if qraw else None
+  if qualification is None or qualification['state']=='distinct_whole94_final_qualification_pushed':
+   print(json.dumps({'status':'waiting_original_qualification_no_mutation'}));raise SystemExit(0)
+  assert qualification['state']=='distinct_whole94_final_qualification_actual_accepted'
+  accepted=json.loads((Q/'actual-accepted.json').read_text());assert qualification['actual']==accepted and accepted['model_sha256']==MODEL
+  assert accepted['source_sha256']=='52a399cda4efe084786ea8bb11ead8d29e864ccf7153a8a8c0303ae1de18dc11' and accepted['kernel_id']==139343479 and accepted['version']==1
+  qr=accepted['receipt'];assert qr==r.output_json(accepted['slug'],1,'licensed-parent-epoch-qualification-accepted.json')
+  assert r.kernel('GetKernelSessionStatus',accepted['slug'],1)['status']=='COMPLETE' and qr['epoch']==3 and qr['model_sha256']==MODEL
+  assert qr['qualified_studies']==32 and len(qr['devices'])==2 and all(x['GPU']=='Tesla T4' and x['both_original94_input_views_bit_equal'] and x['complete_learned_graph_tensor_values_equal'] and x['maximum_original_class_vs_training_graph_probability_error']<=1e-6 for x in qr['devices'])
+  raw=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();row=json.loads(raw[0]) if raw else None
+  def save():db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+  if phase in ('preflight','admit_push') and row is None:
+   assert not D.exists()
+   F=Path('/tmp/rsna-S6-training-release-20261017-v1/family-influence-full-fitting-v1')
+   required=sum(6000 for e in (1,2,3) if not (F/('epoch-'+str(e))/'actual-accepted.json').exists())+5400+32400+32400
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'))
+   remaining=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+   cap=module(R/'GPU-admission-v1/gpu_capacity.py','0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2');capacity=cap.admission(db,r,caller='sampling')
+   if remaining<required or not capacity['available']:print(json.dumps({'status':'waiting_actual_VM_or_batch_capacity_no_mutation','remaining_VM_seconds':remaining,'required_all_future_VM_seconds':required,'capacity':capacity}));raise SystemExit(0)
+   roots=[Path('/tmp/'+n) for n in ('rsna-licensed-parent-trainer-recovery-20261016-v1','rsna-licensed-parent-whole94-recovery-20261016-v1','rsna-licensed-parent-production-inputs-20261016-v1','rsna-licensed-parent-whole94-production-20261016-v1','rsna-licensed-parent-whole94-small-milestone-20261016-v1','rsna-licensed-parent-full-production-small-milestone-20261016-v1')]+[R]
+   assert sum(p.stat().st_size for root in roots if root.exists() for p in root.rglob('*') if p.is_file())+2*2**20<16*2**20
+   readers=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in readers.rglob('*') if p.is_file());storage=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');stored=sum(p.stat().st_size for p in storage.rglob('*') if p.is_file())
+   assert stored<4*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+4*2**30-stored
+   q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+   assert r.kernel('GetKernelSessionStatus',tr['slug'],1)['status']=='COMPLETE' and hashlib.sha256(r.kernel('GetKernel',tr['slug'],1)['blob']['source'].encode()).hexdigest()==tr['source_sha256']
+   absence=r.require_absent_kernel(slug);fresh=cap.admission(db,r,caller='sampling')
+   if not fresh['available']:print(json.dumps({'status':'waiting_actual_VM_or_batch_capacity_no_mutation','capacity':fresh}));raise SystemExit(0)
+   if phase=='preflight':print(json.dumps({'status':'actual_original_asset_public_preflight_accepted_no_mutation','CPU_job':os.environ['SLURM_JOB_ID'],'model_sha256':MODEL,'source_sha256':sha,'original_competition_source_sha256':base['prepared']['competition']['source_sha256'],'qualification_kernel':accepted['kernel_id'],'AST_identical':True,'remaining_VM_seconds':remaining,'required_all_future_VM_seconds':required,'capacity':fresh,'new_mutations':0}));raise SystemExit(0)
+   D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600)
+   row={'state':'distinct_whole94_final_public_push_intent','control_git':v['control_git'],'coordinator_sha256':v['program_sha256'],'source_sha256':sha,'model_sha256':MODEL,'slug':slug,'version':1,'qualification_key':'whole94-fixed-final-qualification-v2:'+MODEL,'qualification_receipt_sha256':w.object_hash(qr),'original_competition_source_sha256':base['prepared']['competition']['source_sha256'],'AST_identical':True,'request_sha256':w.object_hash(request),'remaining_VM_seconds':remaining,'required_all_future_VM_seconds':required,'absence':absence,'capacity':fresh,'automatic_retry':False}
+   w.new_json(D/'push-intent.json',row);save()
+   try:
+    response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+   except BaseException:row['state']='distinct_whole94_final_public_push_uncertain';save();retain=True;raise
+   row.update(state='distinct_whole94_final_public_pushed',kernel_id=response['kernelId']);save()
+   out={'status':'one_distinct_whole94_final_public_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'model_sha256':MODEL,'source_sha256':sha,'kernel_id':response['kernelId'],'slug':slug,'version':1,'maximum_seconds':32400,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':required,'old_quarantined_identity_unchanged':True,'new_Dataset_weight_or_pixel_copies':0,'competition_entries':0};w.new_json(D/'pushed.json',out);print(json.dumps(out),flush=True)
+  else:
+   assert row is not None and row['source_sha256']==sha and row['state'] not in ('distinct_whole94_final_public_push_intent','distinct_whole94_final_public_push_uncertain')
+   actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+   for n in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage','kernelType'):assert m[n]==request[n]
+   for n in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(m.get(n,[]))==sorted(request[n])
+   status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'model_sha256':MODEL,'source_sha256':sha,'kernel_id':row['kernel_id'],'slug':slug,'version':1,'new_mutations':0}
+   if status=='COMPLETE':
+    receipt=r.output_json(slug,1,'licensed-parent-epoch-public-accepted.json');assert receipt['status']=='actual_full_parent_epoch_MRI_test_roster_CSV_complete' and receipt['epoch']==3 and receipt['model_sha256']==MODEL and receipt['training_source_sha256']==tr['source_sha256']
+    assert receipt['studies']==3 and receipt['columns']==13 and receipt['prediction_counts']=={'started':6,'completed':6,'failed':0,'decode_errors':0,'empty_views':0}
+    csvspec=importlib.util.spec_from_file_location('strict_whole94_public_csv',C/'scripts/kaggle/output_csv.py');csv=importlib.util.module_from_spec(csvspec);csvspec.loader.exec_module(csv)
+    meta=json.loads((R/'staged.json').read_text());assert meta['expected_public_roster_sha256']=='e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b'
+    checked=csv.verify_csv(csv.download_csv(r,slug,1),meta['columns'],meta['expected_public_roster_sha256']);assert checked['CSV_sha256']==receipt['CSV_sha256'] and checked['bytes']==receipt['CSV_bytes']
+    out.update(receipt=receipt,CSV_verified_in_RAM=checked)
+    if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='distinct_whole94_final_public_actual_accepted',actual=out);save()
+   elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+    if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row.update(state='distinct_whole94_final_public_failed',actual=out);save()
+   print(json.dumps(out),flush=True)
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()

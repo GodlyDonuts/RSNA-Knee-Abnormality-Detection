@@ -1,5 +1,15 @@
 # RSNA Knee: current agent guide
 
+Actual whole94 fixed-final qualification139343479v1 is now COMPLETE and accepted:
+32 original MRI studies on both T4s, bit-equal input views/full learned graph,
+maximum probability difference0, peak allocated2,017,322,496bytes per device.
+This is not an accuracy or hidden-runtime result. Distinct public counterpart
+is prepared in `initiative/audits/whole94-final-public-20261018-v2`, retaining the
+original quarantined identity unchanged and reusing existing model/input assets.
+Family training's latest observed finite update is446/1458; original healthy
+owners17423/18386 remain active. No new score exists.
+
+
 Latest source/serving/QA/current-guide milestone27986249 is privately fully
 23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
 viaCPU953355. Never repeat it or preceding cfb51524. Model training remains

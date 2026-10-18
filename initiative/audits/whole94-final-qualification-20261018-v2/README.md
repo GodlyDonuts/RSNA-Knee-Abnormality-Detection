@@ -25,3 +25,7 @@ It cannot launch a public example or competition submission. Public/entry fundin
 and actual hidden outcomes/allowance need a separate review after qualification.
 The healthy family fitting owners17423/18386 remain untouched. Prepared wrappers
 are not an actual push, GPU acceptance, hidden score or accuracy gain.
+
+Actual result: kernel139343479v1 COMPLETED; CPU953611 independently accepted
+bothT4/32MRI input and learned-graph equality, max error0. Original owner19977
+terminal success. See actual-qualified.json. Never repeat this qualification.

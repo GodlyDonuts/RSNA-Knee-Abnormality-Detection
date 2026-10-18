@@ -1,0 +1,36 @@
+"""Finite owner: one distinct qualification push, then observe its actual original outcome."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+D=Path(__file__).resolve().parent;L=Path('artifacts/whole94-final-public-20261018-v2')
+assert not (L/'recovery-owner.intent.json').exists()
+paths=[D/name for name in ('coordinate_once.py.txt','program.py.txt')]
+frozen={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+with (L/'recovery-owner.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_GPU_pushes':1,'maximum_hours':3,'maximum_training_or_competition_entries':0,'frozen_coordinator':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic();phase='admit_push'
+def record(out,terminal=False):
+    value={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'phase':phase,**out}
+    (L/('recovery-owner.result.json' if terminal else 'recovery-owner.progress.json')).write_text(json.dumps(value,indent=2)+'\n');print(json.dumps(value),flush=True)
+try:
+    while time.monotonic()-start<3*3600:
+        assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==sha for p,sha in frozen.items())
+        x=subprocess.run([sys.executable,str(D/'coordinate_once.py.txt'),phase],capture_output=True,text=True,timeout=480)
+        assert x.returncode==0,x.stderr[-1500:]
+        out=json.loads(x.stdout);record({'actual':out})
+        status=out['status']
+        if status=='one_distinct_whole94_final_public_pushed':phase='status'
+        elif status=='COMPLETE':
+            assert 'receipt' in out;record({'status':'actual_whole94_fixed_final_public_accepted_no_competition_entry','actual':out},True);break
+        elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+            record({'status':'actual_whole94_public_failed_preserve_no_retry','actual':out},True);break
+        else:
+            assert status in ('waiting_original_qualification_no_mutation','waiting_canonical_claim_no_mutation','waiting_actual_VM_or_batch_capacity_no_mutation','QUEUED','RUNNING','INITIALIZING','CREATED','PENDING','STARTING'),status
+        time.sleep(150)
+    else:record({'status':'finite_owner_expired_preserve_original_no_retry'},True)
+except BaseException as error:
+    record({'status':'finite_owner_stopped_reconcile_existing_original','reason':str(error)},True);raise
