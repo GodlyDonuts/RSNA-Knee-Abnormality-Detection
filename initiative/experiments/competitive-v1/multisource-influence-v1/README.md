@@ -24,3 +24,10 @@ This is the same single candidate and existing4GiB preservation reservation,
 not a second full fit or new funding. An actual influence-family MRI recovery,
 fresh capacity/quota and explicit full-fit ownership are required before training.
 Original uniform plan/diagnostic and all completed comparison receipts are kept.
+
+CPU952973 actually compiled the distinct influence diagnostic on evc33. Every
+previously accepted numerical/source module is byte-identical; only the thin
+influence adapter is added. The existing32-case admission and private Dataset
+are reused. The finite recovery owner may push one exact offline two-T4
+engineering notebook, then observe it; it has no full-fitting or entry authority.
+Actual source/worker pins are in `actual-CPU-admitted.json`.
