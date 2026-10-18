@@ -40,7 +40,26 @@ identity with the single-lane synthetic CSV. These do not test MRI accuracy or
 T4runtime. Ruff passes for these two new files only; no old test suite rerun.
 
 Still needed before any actual deployment: successful original training and
-fixed-final analysis, actual full-source bundle, competition test-DICOM-to-cache
-adapter integration, actual twoT4offline runtime/memory/whole-cohort feasibility,
+fixed-final analysis, actual full-source bundle, actual complete MRI/provider/reader integration on twoT4s, offline runtime/
+memory/whole-cohort feasibility,
 and fresh allowance/one-time exact notebook submission handling. No Dataset,
 notebook, transfer, GPU reservation or competition submission was made here.
+
+## Competition-image adapter now implemented
+
+competition_input.py reads explicit StudyInstanceUIDs from test.csv and only
+the five image-metadata columns from test_series.csv. Reports, clinical labels
+and sample_submission.csv do not enter. It invokes the existing single-decode
+series/slice recovery policy into a fresh per-study native384 cache, then feeds
+that study to the unchanged StreamedFP32PathData. Successful encoding discards
+only this new disposable cache; original DICOMs and cluster caches are never
+changed. A failed new cache is retained for diagnosis. Every decoded alternative
+counts against the explicit2GiB owned-cache limit and3GiB free-disk reserve.
+Two GPU processes use independent owned scratch roots and ShardedProvider.
+The new adapter itself does not spawn workers, reserve hardware or enterKaggle.
+
+Five new adapter tests passed, including actual original decoder/native-cache/
+dataset wiring on synthetic DICOMs with only the encoder-provider stubbed. Other
+cases cover pre-decode capacity refusal, immutable scratch, required test.csv
+and safe DICOM identities. This is new glue acceptance, not real MRI/path
+inference or T4time/VRAM acceptance. Both full scientific jobs stay unchanged.

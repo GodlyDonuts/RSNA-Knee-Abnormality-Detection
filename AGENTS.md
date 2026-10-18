@@ -1,5 +1,12 @@
 # RSNA Knee: current agent guide
 
+October18 path-serving forward work now includes competition_input.py: actual
+test.csv roster, five image-metadata columns, existing single-decode recovery,
+per-study disposable native384 cache, unchanged denseFP32 provider. Five NEW
+adapter tests pass including synthetic DICOM decoder-to-dataset wiring (encoder
+stubbed), not an old cohort audit or T4qualification. Full integrated MRI/reader
+T4throughput remains unmeasured; no new notebook/entry or GPU job dispatched.
+
 October18 forward deployment work: path-serving-20261018-v1 now provides a
 small fixed-final path-head export and streamed one/two-GPU study lanes with
 exact test-order CSV merging. Eleven NEW synthetic wrapper tests and scoped
