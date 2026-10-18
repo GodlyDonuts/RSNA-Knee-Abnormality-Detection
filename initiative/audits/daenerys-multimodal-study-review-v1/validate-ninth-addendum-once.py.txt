@@ -1,0 +1,41 @@
+"""Bind the unchanged ninth candidate addendum; no accepted clinical labels change."""
+import hashlib,json
+from pathlib import Path
+from rsna.schema import TARGETS
+D=Path(__file__).resolve().parent
+raw=(D/'addendum-003.original.json').read_bytes()
+assert len(raw)==81408 and hashlib.sha256(raw).hexdigest()=='a4ca59a8aeb1889c54f3d88f9e77e4d7c6540d6177a099f6388406c5724ecf12'
+v=json.loads(raw);packet=json.loads((D/'packet.json').read_text());A=D/'alternate-windows-v1'
+assert v['packet_id']==packet['packet_id'] and v['candidate_annotation_only'] is True and v['accepted_labels_changed'] is False and v['next_study_started'] is False
+mraw=(A/'manifest.json').read_bytes();m=json.loads(mraw);h=json.loads((A/'hosted-confirmed.json').read_text())
+assert v['source']['alternate_manifest_sha256']==hashlib.sha256(mraw).hexdigest()
+assert v['source']['original_manifest_sha256']==hashlib.sha256((D/'image-only-manifest.json').read_bytes()).hexdigest()
+rows={x['reference']:x for x in h['images']};sources={x['sha256']:x for x in m['images']};c=v['coverage'];access=c['reference_access_and_slice_observations']
+assert c['new_references_expected']==c['successfully_accessed']==c['personally_inspected_references']==c['unique_source_slices_revisited']==len(access)==14
+assert c['panels_personally_inspected']==28 and c['inaccessible_references']==c['unreviewed_new_references']==[] and c['new_source_slices_added']==0
+assert c['original_source_slice_count']==342 and c['page_mri_references_after_addition']==76
+assert {a['page_reference'] for a in access}==set(rows)
+for a in access:
+ s=sources[a['sha256']];r=rows[a['page_reference']]
+ assert a['read_result_sha256']==a['sha256']==r['sha256'] and a['read_result_byte_count']==a['size']==r['byte_size']==s['size']
+ assert a['personally_inspected'] is True and a['panels_inspected']==['left contrast','right wide']
+ for k in ('series_index','slice_number','original_sop_uid','source_sha256','width','height','original_pixel_spacing','original_position','original_orientation','each_panel_source_shape'):assert a[k]==s[k],k
+ series=packet['series'][s['series_index']-1];i=s['slice_number']-1
+ assert series['ordered_sop_uids'][i]==s['original_sop_uid'] and series['source_sha256'][i]==s['source_sha256']
+for a in v['preserved_originals']:
+ paths=[D/n for n in ('provisional-001.original.json','report-informed-002.original.json') if hashlib.sha256((D/n).read_bytes()).hexdigest()==a['sha256']]
+ assert len(paths)==1 and paths[0].stat().st_size==a['byte_count'] and a['verified_unchanged'] is True
+old=json.loads((D/'report-informed-002.original.json').read_text());assert [t['target'] for t in v['targets']]==list(TARGETS)
+for a,b in zip(v['targets'],old['targets'],strict=True):
+ assert a['status']==a['prior_report_informed_status']==b['status'] and a['confidence']==b['confidence']
+ assert a['status_changed_from_report_informed_002'] is False and a['confidence_changed_from_report_informed_002'] is False
+ assert all(type(i) is int and 0<=i<14 for i in a['new_image_access_indices_zero_based'])
+ for e in a['new_supporting_image_evidence']+a['new_contrary_image_evidence']:
+  si=e['series'];assert type(si) is int and 1<=si<=10
+  assert all(type(n) is int and 1<=n<=packet['series'][si-1]['slice_count'] for n in e['slices'])
+assert v['report']['sha256']==packet['report_sha256']
+assert v['reading_order']['report_known_before_all_new_images'] is True and v['reading_order']['meniscal_request_report_informed'] is True
+assert v['additional_material']['new_window_request'] is None
+out={'status':'ninth_original_addendum_bytes_and_all14_requested_native_views_source_bound','original_bytes':len(raw),'original_sha256':hashlib.sha256(raw).hexdigest(),'targets':12,'new_source_bound_image_access_records':14,'panels':28,'source_slices':342,'total_MRI_references':76,'target_status_or_confidence_changes':0,'prior_original_reviews_unchanged':True,'independent_underlying_tool_call_trace_collected':False,'image_access_and_reading_order_remain_reviewer_reported':True,'report_known_before_addendum':True,'accepted_labels_changed':False,'clinical_gold_or_accuracy_claim':False}
+with (D/'addendum-validated.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out))

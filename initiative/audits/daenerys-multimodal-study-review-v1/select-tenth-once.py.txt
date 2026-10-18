@@ -1,0 +1,12 @@
+"""Admit only the next untouched fitting study after original case7 completion."""
+import hashlib,json,shutil
+from pathlib import Path
+import pyarrow.dataset as ds
+ROOT=Path.cwd();Q=ROOT/'artifacts/daenerys-study-review-v1';D=Q/'case-010';assert not D.exists();previous=json.loads((Q/'case-009/addendum-validated.json').read_text());assert previous['status']=='ninth_original_addendum_bytes_and_all14_requested_native_views_source_bound' and previous['accepted_labels_changed'] is False
+queue=json.loads((Q/'selection.json').read_text());assert queue['fitting_uid_sha256']=='e71eb9ba952b9e4bc68e32b548b131c457b5c86c9381eb089012404923dc68cf' and len(queue['fitting_queue'])==len(set(queue['fitting_queue']))==2247
+used={json.loads((Q/'packet.json').read_text())['study_uid']}
+for i in range(2,10):used.add(json.loads((Q/f'case-{i:03d}/packet.json').read_text())['study_uid'])
+assert len(used)==9 and used<=set(queue['fitting_queue']);uid=next(x for x in queue['fitting_queue'] if x not in used);index=queue['fitting_queue'].index(uid);assert index==8;assert shutil.disk_usage(Q).free>20*2**30+512*2**20
+inventory=ds.dataset(str(ROOT/'initiative/source/inventory'),format='parquet').to_table(filter=(ds.field('study_uid')==uid)&(ds.field('split')=='train_series')).to_pylist();assert inventory and len({r['path'] for r in inventory})==len(inventory) and sum(r['bytes'] for r in inventory)<256*2**20
+D.mkdir(mode=0o700);selection={'first_uid':uid,'fitting_uid_sha256':queue['fitting_uid_sha256'],'seed':queue['seed'],'record_index':index,'original_source_cap_bytes':256*2**20,'total_local_case_cap_bytes':512*2**20,'minimum_free_reserve_bytes':20*2**30,'shared_new_bytes':0,'shared_new_files':0,'original_frozen2247_queue_membership_reused':True,'protected_evaluation_or_accepted_label_values_read_for_selection':False,'previous_complete_packet_uids_excluded':9};(D/'selection.json').write_text(json.dumps(selection,indent=2)+'\n');(D/'first-source-inventory.json').write_text(json.dumps(inventory,indent=2)+'\n');source=(Q/'case-009/prepare.py').read_text();assert source.count('daenerys-fitting-study-009-v1')==1;source=source.replace('daenerys-fitting-study-009-v1','daenerys-fitting-study-010-v1');(D/'prepare.py').write_text(source)
+print(json.dumps({'status':'tenth_original_fitting_study_and_new_storage_admitted','queue_index':index,'source_slices':len(inventory),'series':len({r['series_uid'] for r in inventory}),'source_bytes':sum(r['bytes'] for r in inventory),'new_local_case_cap':512*2**20,'shared_bytes_files':0,'old_training_audits_repeated':False}))

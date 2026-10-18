@@ -60,10 +60,15 @@ Latest small source milestone through285377d3 is fully verified at private
 HF2b615c4130c0fb5cd4cba557b7738a060dc911e5; do not repeat it.
 
 Accepted labels/masks/folds and protected gold/confirmation remain unchanged.
-Daenerys study9 original reviews are collected; its requested-view addendum has
-been reported complete but exact-byte collection/validation is still pending.
-No candidate review has been promoted into accepted labels on this basis.
-Private MRI/report/review records remain outside public Git.
+Daenerys study9 original reviews and81408-byte addendum are now collected unchanged
+and source-bound. Its14 requested views/28panels changed no target status or
+confidence. The next complete study10 was delivered once and read1:16PM:
+six series/all171 source slices/30 native image sheets, with all32 hosted files
+matching their original sizes/hashes and Page references. Image-only review is
+requested before the separate matching report; review outputs remain pending.
+No candidate review was promoted into accepted labels. Private MRI/report/review
+records remain outside public Git.
+[Sanitized review milestone](../initiative/audits/daenerys-multimodal-study-review-v1/ninth-addendum-and-tenth-delivery-20261018.json).
 
 [Operational continuation](codex-continuation.md) contains exact handles and
 resource liabilities. [Preceding state](current-state.history-20261018-before-serving.md)
