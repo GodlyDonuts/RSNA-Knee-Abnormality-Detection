@@ -1,0 +1,260 @@
+"""Construct one real late2 candidate on CPU/RAM and privately verify every output byte."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-paired-late2-average-20261018-v1")
+assert not D.exists()
+
+
+def paid(p):
+    return sum(x.stat().st_size for x in p.rglob("*") if x.is_file())
+
+
+reader = Path("/tmp/rsna-criterion-N3-features-20261017-v1")
+family = Path("/tmp/rsna-family-label-epoch-preservation-20261018-v1")
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+assert (
+    sha(family / "completed-fixed3-unspent512MiB-retirement-v1.json")
+    == "f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a"
+)
+floor = 603433009211 + max(0, 3 * 2**30 - paid(reader)) + max(0, 3758096384 - paid(family))
+for root, cap in (
+    ("/tmp/rsna-paired-fixed-correction-transport-v3", 2 * 2**20),
+    ("/tmp/rsna-paired-encoder-H100-gradient-20261018-v1", 8 * 2**20),
+    ("/tmp/rsna-paired-full-actual-source-20261018-v1", 2 * 2**20),
+    ("/tmp/rsna-paired-correction-CPU-chain-20261018-v1", 6 * 2**20),
+    ("/tmp/rsna-paired-full-fitting-20261018-v1", 8 * 2**20),
+    ("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1", 8 * 2**20),
+    ("/tmp/rsna-S6-complete-target-admission-20261018-v1", 4 * 2**20),
+    (str(D), 2**20),
+):
+    floor += max(0, cap - paid(Path(root)))
+assert shutil.disk_usage("/tmp").free > floor
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 2**20 and int(a[6]) - int(a[5]) > 5048
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+ram = Path(json.loads((P / "RAM-location.private.json").read_text())["path"]).parent
+# Fund the producer's remaining tmpfs capacity, our4GiB, and the existing28GiB reserve.
+unpaid = max(0, 65 * 2**30 - paid(ram))
+assert shutil.disk_usage("/dev/shm").free > unpaid + 4 * 2**30 + 28 * 2**30
+mem = {
+    x.split(":")[0]: int(x.split()[1]) * 1024
+    for x in Path("/proc/meminfo").read_text().splitlines()
+    if ":" in x
+}
+assert mem["MemAvailable"] > unpaid + 80 * 2**30 + 16 * 2**30 + 32 * 2**30
+assert int(os.environ.get("SLURM_MEM_PER_NODE", "0")) >= 16384
+D.mkdir(mode=0o700)
+W = Path(tempfile.mkdtemp(prefix="rsna-new-paired-late2-", dir="/dev/shm"))
+W.chmod(0o700)
+os.environ.update(
+    HF_HUB_DISABLE_XET="1",
+    HF_HUB_DISABLE_PROGRESS_BARS="1",
+    HF_HOME=str(W / "hf-home"),
+    HF_HUB_CACHE=str(W / "hf-cache"),
+    HF_XET_CACHE=str(W / "hf-xet"),
+)
+(D / "collection-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "RAM_path": str(W),
+            "RAM_cap_bytes": 4 * 2**30,
+            "new_small_control_bytes": 2**20,
+            "fixed_epochs": [2, 3],
+            "weights": [0.5, 0.5],
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+source = D / "average.py"
+source.write_text(v["helper"])
+assert sha(source) == v["helper_sha256"]
+spec = importlib.util.spec_from_file_location("actual_late2_averager", source)
+average = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(average)
+import torch  # noqa: E402 - initialize only after private RAM cache environment
+
+torch.set_num_threads(1)
+assert not torch.cuda.is_available()
+from huggingface_hub import CommitOperationAdd, HfApi  # noqa: E402 - private RAM cache first
+
+api = HfApi(token=v["token"])
+assert api.repo_info("GodlyDonuts/RSNA-Data", repo_type="dataset").private is True
+snapshots = []
+pins = []
+signatures = []
+for epoch in (2, 3):
+    proof = v["publications"][str(epoch)]
+    assert (
+        proof["status"] == "actual_paired_epoch_RAM_private_all6_full_download_size_SHA_verified"
+        and proof["epoch"] == epoch
+        and proof["completed"] == epoch * 486
+        and proof["objects"] == 6
+    )
+    item = proof["files"]["model.pt"]
+    assert item["bytes"] == 292871091
+    path = Path(
+        api.hf_hub_download(
+            "GodlyDonuts/RSNA-Data",
+            proof["prefix"] + "/model.pt",
+            repo_type="dataset",
+            revision=proof["revision"],
+            cache_dir=str(W / "hf-cache"),
+            local_dir=str(W / ("epoch-" + str(epoch))),
+            force_download=True,
+        )
+    )
+    assert path.stat().st_size == item["bytes"] and sha(path) == item["sha256"]
+    assert paid(W) < 4 * 2**30
+    snapshots.append(torch.load(path, map_location="cpu", weights_only=True))
+    pins.append(
+        {
+            "epoch": epoch,
+            "sha256": item["sha256"],
+            "bytes": item["bytes"],
+            "private_revision": proof["revision"],
+            "private_path": proof["prefix"] + "/model.pt",
+            "original_kernel": proof["original_kernel"],
+        }
+    )
+    s = path.stat()
+    signatures.append((path, (s.st_size, s.st_mtime_ns, s.st_ino)))
+value, changed = average.derive(*snapshots, pins)
+assert changed > 0 and 73136096 <= sum(x.numel() for x in value["model"].values()) < 74000000
+out = W / "candidate"
+out.mkdir(mode=0o700)
+path = out / "model.pt"
+torch.save(value, path)
+assert path.stat().st_size < 320 * 2**20
+reloaded = torch.load(path, map_location="cpu", weights_only=True)
+assert (
+    reloaded["format"] == average.FORMAT
+    and reloaded["optimizer_boundary"] is False
+    and "binding" not in reloaded
+)
+assert all(torch.equal(t, reloaded["model"][n]) for n, t in value["model"].items())
+for p, s in signatures:
+    current = p.stat()
+    assert (current.st_size, current.st_mtime_ns, current.st_ino) == s
+permission = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/source-permission.txt")
+assert (
+    permission.stat().st_size == 4411
+    and sha(permission) == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+(out / "source-permission.txt").write_bytes(permission.read_bytes())
+(out / "own-source.py").write_text(v["helper"])
+(out / "provenance.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "helper_sha256": v["helper_sha256"],
+            "publications": v["publications"],
+            "inference_only_policy": value["provenance"],
+            "original_parent_weight_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+            "no_optimizer_or_resume_claim": True,
+            "actual_MRI_T4_serving_or_accuracy_acceptance": False,
+        },
+        sort_keys=True,
+    )
+)
+core = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py"
+)
+assert sha(core) == "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+spec = importlib.util.spec_from_file_location("original_shared_private_publisher", core)
+pub = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(pub)
+files = {p.name: p for p in out.iterdir()}
+assert set(files) == {"model.pt", "source-permission.txt", "own-source.py", "provenance.json"}
+table = {n: {"bytes": p.stat().st_size, "sha256": sha(p)} for n, p in files.items()}
+prefix = "models/paired-late2-average-20261018-v1"
+with pub.shared_publication_lock():
+    info = api.repo_info("GodlyDonuts/RSNA-Data", repo_type="dataset")
+    assert info.private and not list(
+        api.get_paths_info(
+            "GodlyDonuts/RSNA-Data", paths=[prefix + "/" + n for n in files], repo_type="dataset"
+        )
+    )
+    pub.atomic_new(
+        D / "publication-intent.json",
+        {
+            "source_git": v["source_git"],
+            "prefix": prefix,
+            "parent": info.sha,
+            "files": table,
+            "automatic_retry": False,
+        },
+    )
+    commit = api.create_commit(
+        "GodlyDonuts/RSNA-Data",
+        repo_type="dataset",
+        parent_commit=info.sha,
+        commit_message="Preserve actual CPU-derived paired epoch2/3 equal weight average privately",
+        operations=[
+            CommitOperationAdd(path_in_repo=prefix + "/" + n, path_or_fileobj=p)
+            for n, p in files.items()
+        ],
+    )
+    pub.atomic_new(D / "publication-commit.json", {"revision": commit.oid})
+    for n, item in table.items():
+        assert paid(W) + 2 * item["bytes"] < 4 * 2**30
+        with tempfile.TemporaryDirectory(prefix="verify-late2-", dir=W) as tmp:
+            p = Path(
+                api.hf_hub_download(
+                    "GodlyDonuts/RSNA-Data",
+                    prefix + "/" + n,
+                    repo_type="dataset",
+                    revision=commit.oid,
+                    cache_dir=str(W / "hf-cache"),
+                    local_dir=tmp,
+                    force_download=True,
+                )
+            )
+            assert p.stat().st_size == item["bytes"] and sha(p) == item["sha256"]
+    result = {
+        "status": "actual_real_paired_E2_E3_average_constructed_and_all4_private_objects_full_download_SHA_verified",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "revision": commit.oid,
+        "prefix": prefix,
+        "files": table,
+        "source_epochs": [2, 3],
+        "parameter_weights": [0.5, 0.5],
+        "changed_source_float_values": changed,
+        "complete_source_and_output_graph_finite": True,
+        "BN_and_nonfloating_buffers_exact": True,
+        "permanent_node_model_bytes": 0,
+        "training_resume_allowed": False,
+        "actual_MRI_or_GPU_serving_qualified": False,
+        "clinical_or_Kaggle_gain_claim": False,
+    }
+    pub.atomic_new(D / "verified.json", result)
+shutil.rmtree(W)
+pub.atomic_new(
+    D / "new_temporary_RAM_copies_released.json",
+    {
+        "original_HF_assets_unchanged": True,
+        "only_new_working_copies_removed_after_private_verification": True,
+    },
+)
+assert paid(D) < 2**20
+print(json.dumps(result), flush=True)

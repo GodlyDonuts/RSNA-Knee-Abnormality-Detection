@@ -1,0 +1,71 @@
+import copy
+import importlib.machinery
+import importlib.util
+import json
+from pathlib import Path
+
+import torch
+
+p = Path(__file__).resolve().parent / "average.py.txt"
+loader = importlib.machinery.SourceFileLoader("new_late2_average", str(p))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+m = importlib.util.module_from_spec(spec)
+loader.exec_module(m)
+a = {
+    "weight": torch.tensor([1.0, 3.0]),
+    "bn.running_mean": torch.tensor([1.0]),
+    "bn.num_batches_tracked": torch.tensor(2),
+}
+b = {**a, "weight": torch.tensor([3.0, 5.0])}
+a = copy.deepcopy(a)
+b = copy.deepcopy(b)
+out, n = m.average_states(a, b)
+assert (
+    torch.equal(out["weight"], torch.tensor([2.0, 4.0]))
+    and n == 2
+    and torch.equal(a["weight"], torch.tensor([1.0, 3.0]))
+)
+same, n = m.average_states(b, b)
+assert n == 0 and all(torch.equal(same[k], b[k]) for k in b)
+negative = [
+    {**b, "weight": torch.tensor([float("nan"), 5.0])},
+    {**b, "weight": torch.ones(3)},
+    {**b, "weight": b["weight"].double()},
+    {**b, "bn.running_mean": torch.tensor([2.0])},
+    {**b, "bn.num_batches_tracked": torch.tensor(3)},
+    {"weight": b["weight"]},
+]
+for value in negative:
+    try:
+        m.average_states(a, value)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid graph accepted")
+binding = {
+    "source_git": m.SCIENCE,
+    "population": 3887,
+    "world_size": 2,
+    "recipe": {"epochs": 3, "role": "influence"},
+}
+s2 = {"binding": binding, "epoch": 2, "completed": 972, "model": a}
+s3 = {"binding": binding, "epoch": 3, "completed": 1458, "model": b}
+pins = [{"epoch": 2, "sha256": "a" * 64}, {"epoch": 3, "sha256": "b" * 64}]
+c, n = m.derive(s2, s3, pins)
+assert c["format"] == m.FORMAT and "binding" not in c and c["optimizer_boundary"] is False
+for value in ({**s3, "completed": 972}, {**s3, "binding": {**binding, "source_git": "other"}}):
+    try:
+        m.derive(s2, value, pins)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Unmatched training accepted")
+print(
+    json.dumps(
+        {
+            "status": "late2_arithmetic_identity_immutable_buffers_graph_and_source_contracts_passed",
+            "negative_cases": 8,
+            "accuracy_claim": False,
+        }
+    )
+)

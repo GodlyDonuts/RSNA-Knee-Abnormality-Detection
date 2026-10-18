@@ -1,0 +1,86 @@
+"""Fixed late2 full-state average, not a resumable optimizer checkpoint."""
+
+import torch
+
+FORMAT = "paired_full_late_E2_E3_equal_average_inference_v1"
+SCIENCE = "37650602851c929afc1c444b87593a4af09d71ec"
+
+
+def average_states(a, b):
+    if not a or set(a) != set(b):
+        raise ValueError("Exact complete matching model graph required")
+    out = {}
+    changed = 0
+    for name in sorted(a):
+        x, y = a[name], b[name]
+        if (
+            any(
+                not isinstance(v, torch.Tensor)
+                or v.device.type != "cpu"
+                or v.layout != torch.strided
+                for v in (x, y)
+            )
+            or x.shape != y.shape
+            or x.dtype != y.dtype
+        ):
+            raise ValueError("Matching dense CPU model tensors required")
+        if not torch.isfinite(x).all() or not torch.isfinite(y).all():
+            raise ValueError("Finite source graph required")
+        fixed = not x.is_floating_point() or any(
+            k in name for k in ("running_mean", "running_var", "num_batches_tracked")
+        )
+        if fixed:
+            if not torch.equal(x, y):
+                raise ValueError("Frozen BN and nonfloating buffers must agree exactly")
+            out[name] = y.clone()
+        else:
+            if x.dtype != torch.float32:
+                raise ValueError("Original full FP32 learned graph required")
+            if torch.equal(x, y):
+                out[name] = y.clone()
+            else:
+                out[name] = ((x.double() + y.double()) * 0.5).float()
+                changed += int(torch.count_nonzero(x != y))
+        if not torch.isfinite(out[name]).all():
+            raise ValueError("Nonfinite averaged state")
+    return out, changed
+
+
+def derive(a, b, sources):
+    if (
+        len(sources) != 2
+        or [x["epoch"] for x in sources] != [2, 3]
+        or len({x["sha256"] for x in sources}) != 2
+    ):
+        raise ValueError("Fixed distinct epoch2/3 source identities required")
+    binding = a.get("binding")
+    if (
+        not isinstance(binding, dict)
+        or b.get("binding") != binding
+        or binding.get("source_git") != SCIENCE
+        or binding.get("population") != 3887
+        or binding.get("world_size") != 2
+        or binding.get("recipe", {}).get("epochs") != 3
+        or binding.get("recipe", {}).get("role") != "influence"
+    ):
+        raise ValueError("Same actual full-population paired scientific run required")
+    if [(x.get("epoch"), x.get("completed")) for x in (a, b)] != [(2, 972), (3, 1458)]:
+        raise ValueError("Two complete original immutable late epoch boundaries required")
+    model, changed = average_states(a["model"], b["model"])
+    return {
+        "format": FORMAT,
+        "optimizer_boundary": False,
+        "model": model,
+        "provenance": {
+            "original_binding": binding,
+            "sources": sources,
+            "fixed_epochs": [2, 3],
+            "weights": [0.5, 0.5],
+            "accumulation": "CPU_float64_then_original_FP32",
+            "BN_and_nonfloating_buffers": "exact_identical_original_values",
+            "inference_only": True,
+            "optimizer_or_training_resume_allowed": False,
+            "averaging_selected_from_scores": False,
+            "changed_source_float_values": changed,
+        },
+    }, changed
