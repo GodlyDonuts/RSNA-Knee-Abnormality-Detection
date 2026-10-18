@@ -1,0 +1,35 @@
+"""Preserve the staged source with a distinct prefix after pre-intent refusal."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/hf-actual-encoder-recovery-and-H100-20261018-v39';manifest=json.loads((D/'manifest.json').read_text());table=manifest['files'].copy();b=(D/'manifest.json').read_bytes();table['source-manifest.json']={'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+E=R/'.env';assert E.stat().st_mode&0o077==0;env={k.strip():v.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+program=r'''import hashlib,importlib.util,json,os,shutil,subprocess,sys,tempfile
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS');D=Path('/tmp/rsna-encoderLR3e5-private-epochs-20261018-v1/source-milestone-v39-0695d843');assert D.is_dir()
+assert not any((D/n).exists() for n in ('publication-intent.json','publication-commit.json','verified.json'))
+state=subprocess.check_output(['sacct','-n','-X','-j','959675','--format=JobIDRaw,State,ExitCode','--parsable2'],text=True);assert '959675|FAILED|1:0' in state
+files={}
+for n,item in v['table'].items():
+ p=D/'source'/n;assert p.resolve().is_relative_to((D/'source').resolve());assert p.stat().st_size==item['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==item['sha256'];files[n]=p
+assert sum(x['bytes'] for x in v['table'].values())<2**20
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert hashlib.sha256(core.read_bytes()).hexdigest()=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde'
+spec=importlib.util.spec_from_file_location('canonical_source_pub',core);pub=importlib.util.module_from_spec(spec);spec.loader.exec_module(pub)
+os.environ.update(HF_HUB_DISABLE_XET='1',HF_HUB_DISABLE_PROGRESS_BARS='1',HF_HOME=str(D/'hf-home'),HF_XET_CACHE=str(D/'hf-xet'))
+from huggingface_hub import HfApi,CommitOperationAdd
+prefix='research-milestones/actual-encoder-recovery-H100-20261018-v39-0695d843'
+with pub.shared_publication_lock():
+ api=HfApi(token=v['token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True
+ assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in files],repo_type='dataset'))
+ pub.atomic_new(D/'publication-intent.json',{'source_git':v['source_git'],'parent':info.sha,'prefix':prefix,'files':v['table'],'prior959675_pre_intent_refusal':True,'automatic_retry':False})
+ commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve actual encoder recovery, H100 route and prepared full-data source',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in files.items()]);pub.atomic_new(D/'publication-commit.json',{'revision':commit.oid})
+ for n,item in v['table'].items():
+  with tempfile.TemporaryDirectory(prefix='rsna-v39-source-verify-',dir='/tmp') as tmp:
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+n,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==item['bytes'] and pub.sha(p)==item['sha256']
+ out={'status':'new_sanitized_source_and_receipts_private_HF_all_objects_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'revision':commit.oid,'prefix':prefix,'objects':len(files),'bytes':sum(x['bytes'] for x in v['table'].values()),'canonical_shared_publication_lock_used':True,'prior_existing_v38_prefix_unchanged':True,'prior959675_failed_before_publication_intent_or_RPC':True,'staged_source_transfer_not_repeated':True,'new_model_or_data_uploads':False,'old_model_source_publication_repeated':False,'private_clinical_pixels_UIDs_reports_or_review_outputs_published':False};pub.atomic_new(D/'verified.json',out);print(json.dumps(out),flush=True)
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<2*2**20
+'''
+with (A/'namespace-recovery-intent.json').open('x') as f:json.dump({'source_git':manifest['source_git'],'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'table':table,'prior_job':'959675','no_model_data_or_GPU_mutations':True},f,indent=2)
+v={'source_git':manifest['source_git'],'table':table,'token':env['HF_TOKEN']}
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc39','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:12:00','--job-name=rsna-source-v39-new-prefix','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps(v),capture_output=True,text=True,timeout=780);(A/'namespace-recovery-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr[-1600:]
+out=json.loads(x.stdout);(D/'actual-private-verified.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))
