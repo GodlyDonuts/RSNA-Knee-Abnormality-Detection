@@ -1,0 +1,40 @@
+"""Admit existing S6 inputs/runtime and bounded own H100 inference controls."""
+import hashlib,importlib.util,inspect,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'H100-teacher8-20261018-v1';assert not D.exists()
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+previous=P/'CPU32-recovered-numerics-20261018-v1';assert json.loads((previous/'numerical-result.json').read_text())['CPU_job']=='960928' and paid(previous)<2*2**20
+prepaid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in prepaid) and p.suffix not in ('.pt','.whl'));assert controls+5*2**20+2*2**20<16*2**20
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert sha(family/'completed-fixed3-unspent512MiB-retirement-v1.json')=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+C=P/'CPU-fitting8-UID-view-v2/collected';proof=json.loads((C/'verified.json').read_text());assert proof['kernel_id']==139165316 and proof['all_original_lossless_inputs_and_fitting_roster_equal'] is True and proof['receipt']['source_label_mask_teacher_arrays_decoded_or_used'] is False
+assert sha(C/'index.private.json')==proof['receipt']['index_sha256'] and all((C/x['file']).stat().st_size==x['bytes'] for x in proof['receipt']['files'])
+assert (P/'E_prior_s42_fall.pt').stat().st_size==200185003
+original=json.loads((P/'CPU-fitting8-classifier-v1/accepted.json').read_text());assert original['CPU_job']=='942806' and original['model_sha256']=='0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12' and sha(P/'CPU-fitting8-classifier-v1/fp32/logits.private.json')==original['logits_sha256']
+# Original small CPU worker records the exact anatomy argument without guessing a filename.
+import ast
+old=(P/'CPU-fitting8-classifier-v1/worker.py').read_text();tree=ast.parse(old)
+assignment=next(n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Attribute) and isinstance(t.value,ast.Name) and t.value.id=='sys' and t.attr=='argv' for t in n.targets))
+expr=assignment.value;anchor=next(x for i,x in enumerate(expr.elts) if i and isinstance(expr.elts[i-1],ast.Constant) and expr.elts[i-1].value=='--anchor-weights')
+# Permit only str(P / constant), not arbitrary source evaluation.
+assert isinstance(anchor,ast.Call) and isinstance(anchor.func,ast.Name) and anchor.func.id=='str' and len(anchor.args)==1
+b=anchor.args[0];assert isinstance(b,ast.BinOp) and isinstance(b.op,ast.Div) and isinstance(b.left,ast.Name) and b.left.id=='R' and isinstance(b.right,ast.Constant) and isinstance(b.right.value,str)
+anatomy=P/'source-tree-v1'/b.right.value;assert anatomy.is_file()
+sys.path.insert(0,str(P/'runtime-opencv-v1/site-packages'));sys.path.insert(0,'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay')
+import cv2,timm,torch
+spec=importlib.util.spec_from_file_location('original_S6_hardware_probe_import',P/'source-tree-v1/launcher.private.py');launch=importlib.util.module_from_spec(spec);spec.loader.exec_module(launch)
+assert hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()=='7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946'
+node=subprocess.check_output(['scontrol','show','node','evc33','-o'],text=True);assert 'Gres=gpu:nvidia_h100_pcie:2' in node
+D.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ p=D/name;assert p.resolve().is_relative_to(D.resolve());p.write_text(text);p.chmod(0o600);compile(text,name,'exec')
+index=json.loads((C/'index.private.json').read_text());(D/'assignment.private.json').write_text(json.dumps([x['uid'] for x in index['records']])+'\n')
+out={'status':'actual_CPU_original_S6_H100_retained8_source_runtime_resource_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'worker_sha256':sha(D/'worker.py'),'driver_sha256':sha(D/'run_gpu.py'),'original_anatomy_path':str(anatomy),'original_model_size_and_immutable_proof_reused':True,'original8_inputs_stat_equal_no_pixel_transfer_or_rehash':True,'original_CPU_reference_reused':True,'original_main_source_sha256':'7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946','runtime':{'torch':torch.__version__,'timm':timm.__version__,'cv2':cv2.__version__},'physical_node_GPU_count':2,'one_assigned_H100_requested_later':True,'new_controls_bytes_from_existing_future':2*2**20,'remaining_original_future_controls_bytes':5*2**20,'original16MiB_cap_unchanged':True,'actual_GPU_probe_or_full_teacher_or_accuracy':False}
+with (D/'staged.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+assert paid(D)<2*2**20
+print(json.dumps(out),flush=True)

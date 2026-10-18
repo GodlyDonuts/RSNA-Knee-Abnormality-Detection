@@ -1,0 +1,22 @@
+"""Two fresh inference processes, no optimizer, labels, model copies or network."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/H100-teacher8-20261018-v1');stage=json.loads((D/'staged.json').read_text())
+assert os.uname().nodename=='evc33' and os.environ.get('SLURM_JOB_GPUS') and not (D/'run-intent.json').exists()
+assert hashlib.sha256((D/'worker.py').read_bytes()).hexdigest()==stage['worker_sha256']
+with (D/'run-intent.json').open('x') as f:json.dump({'Slurm_job':os.environ['SLURM_JOB_ID'],'stage_source_git':stage['source_git'],'automatic_retry':False},f,indent=2)
+env={k:v for k,v in os.environ.items() if not any(x in k.upper() for x in ('TOKEN','SECRET','PASSWORD','AUTHORIZATION'))}
+env.update(PYTHONPATH='/tmp/rsna-S6-checkpoint-admission-20261017-v1/runtime-opencv-v1/site-packages:/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',HF_HOME=str(D/'hf-private'),TORCH_HOME=str(D/'torch-private'),XDG_CACHE_HOME=str(D/'cache-private'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1')
+try:
+ results=[]
+ for mode in ('fp32','fp16'):
+  with (D/(mode+'-stdout.private.log')).open('x') as out,(D/(mode+'-stderr.private.log')).open('x') as err:x=subprocess.run([sys.executable,'-B',str(D/'worker.py'),mode],env=env,stdin=subprocess.DEVNULL,stdout=out,stderr=err,timeout=480)
+  assert x.returncode==0,'Original '+mode+' child failed; preserve logs without retry'
+  results.append(json.loads((D/mode/'H100-accepted.json').read_text()))
+ assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<2*2**20
+ result={'status':'actual_original_S6_retained8_H100_two_precision_inference_complete','Slurm_job':os.environ['SLURM_JOB_ID'],'source_git':stage['source_git'],'results':results,'full3887_runtime_or_teacher_generation_accepted':False,'clinical_accuracy_or_training_gain':False,'GPU_nodes':1,'physical_GPU_node_size':2,'new_model_or_pixel_copies':0}
+ with (D/'terminal.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+ print(json.dumps(result),flush=True)
+except BaseException as e:
+ with (D/'terminal-failed.json').open('x') as f:json.dump({'status':'original_H100_teacher_probe_failed_no_retry','Slurm_job':os.environ['SLURM_JOB_ID'],'reason':str(e)},f,indent=2)
+ raise

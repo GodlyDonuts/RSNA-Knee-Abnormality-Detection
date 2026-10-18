@@ -1,0 +1,32 @@
+"""Original S6 classifier on original eight retained inputs, one assigned H100."""
+import hashlib,importlib.util,inspect,json,os,sys,time
+from pathlib import Path
+import numpy as np,torch
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'H100-teacher8-20261018-v1';C=P/'CPU-fitting8-UID-view-v2/collected';mode=sys.argv[1];assert mode in ('fp32','fp16')
+assert os.uname().nodename=='evc33' and torch.cuda.is_available() and torch.cuda.device_count()==1 and 'H100' in torch.cuda.get_device_name(0)
+torch.cuda.init();torch.cuda.set_device(0);torch.set_num_threads(2);torch.set_num_interop_threads(1);torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
+index=json.loads((C/'index.private.json').read_text());uids=[x['uid'] for x in index['records']];rows={x['uid']:x for x in index['records']};assert len(uids)==8
+spec=importlib.util.spec_from_file_location('original_S6_H100_fixture_launcher',P/'source-tree-v1/launcher.private.py');launch=importlib.util.module_from_spec(spec);spec.loader.exec_module(launch)
+assert hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()=='7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946'
+class OriginalVerifiedFixtures(torch.utils.data.Dataset):
+ def __init__(self,data,split,ids,*args,**kwargs):assert split=='test' and set(ids)<=set(uids);self.uids=list(ids)
+ def __len__(self):return len(self.uids)
+ def __getitem__(self,i):
+  uid=self.uids[i];row=rows[uid]
+  with np.load(C/row['file'],allow_pickle=False) as z:images=torch.from_numpy(z['images']);meta=torch.from_numpy(z['meta'])
+  return {'uid':uid,'error':None,'images':images,'meta':meta,'anchor':row['anchor'],'side':None,'seconds':[0.,0.,0.]}
+launch.CI.CStudies=OriginalVerifiedFixtures
+out=D/mode;assert not out.exists();out.mkdir(mode=0o700);g=index['geometry']
+sys.argv=['original_compact_infer_H100_'+mode,'--data',str(C),'--split','test','--code',str(P/'source-tree-v1/code/cloud_code'),'--models',str(P),'--arm','E_prior','--backbone',g['backbone'],'--size',str(g['size']),'--crop',str(g['crop']),'--views',g['views'],'--slices',str(g['slices']),'--phys-mm',str(g['phys_mm']),'--eval-stride',str(g['eval_stride']),'--anchor-weights',str(P/'anatloc_s0_sag.pth'),'--amp',mode,'--chunk',str(g['chunk']),'--workers','0','--assignment',str(D/'assignment.private.json'),'--output',str(out),'--tmp',str(D/('temporary-'+mode)),'--dump-logits',str(out/'logits.private.json')]
+# Original admitted CPU invocation supplies the exact anatomy path below.
+sys.argv[sys.argv.index('--anchor-weights')+1]=json.loads((D/'staged.json').read_text())['original_anatomy_path']
+torch.cuda.synchronize();torch.cuda.reset_peak_memory_stats();start=time.perf_counter();launch.CI.main();torch.cuda.synchronize();elapsed=time.perf_counter()-start
+r=json.loads((out/'receipt.json').read_text());assert r['status']=='PASS' and r['studies']==r['scored']==8 and r['fallback']=={} and r['timed_out'] is False and r['amp']==mode and r['models']==['E_prior_s42_fall.pt'] and r['spatial_models']==1 and r['stats']['windows']==5372
+z=json.loads((out/'logits.private.json').read_text());old=json.loads((P/'CPU-fitting8-classifier-v1/fp32/logits.private.json').read_text());assert set(z)==set(old)==set(uids)
+a=np.asarray([z[u] for u in uids],dtype=np.float64);b=np.asarray([old[u] for u in uids],dtype=np.float64);assert a.shape==b.shape==(8,1,12) and np.isfinite(a).all()
+error=float(np.max(np.abs(1/(1+np.exp(-a))-1/(1+np.exp(-b)))));tolerance=0.0001 if mode=='fp32' else 0.003
+assert error<=tolerance,'Original predeclared precision tolerance exceeded'
+result={'mode':mode,'studies':8,'windows':5372,'device':torch.cuda.get_device_name(0),'allocated_GPU_count':1,'elapsed_seconds':elapsed,'inference_stats':r['stats'],'maximum_CPU_FP32_probability_error':error,'predeclared_tolerance':tolerance,'peak_allocated_GPU_bytes':torch.cuda.max_memory_allocated(),'GPU_total_memory_bytes':torch.cuda.get_device_properties(0).total_memory,'original_classifier_main_unmodified':True,'pixel_fixture_model_or_original_CPU_reference_transfers':0}
+assert 0<result['peak_allocated_GPU_bytes']<result['GPU_total_memory_bytes']
+with (out/'H100-accepted.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+print(json.dumps(result),flush=True)

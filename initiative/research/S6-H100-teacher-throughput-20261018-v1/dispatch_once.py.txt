@@ -1,0 +1,18 @@
+"""One original H100 inference benchmark on a permitted physical two-GPU node."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/S6-H100-teacher-throughput-20261018-v1';stage=json.loads((D/'actual-staged.json').read_text());assert stage['status']=='actual_CPU_original_S6_H100_retained8_source_runtime_resource_staged' and stage['physical_node_GPU_count']==2
+assert not (L/'GPU-dispatch-intent.json').exists()
+assert hashlib.sha256((D/'worker.py.txt').read_bytes()).hexdigest()==stage['worker_sha256'] and hashlib.sha256((D/'run_gpu.py.txt').read_bytes()).hexdigest()==stage['driver_sha256']
+root='/tmp/rsna-S6-checkpoint-admission-20261017-v1/H100-teacher8-20261018-v1'
+script='#!/bin/bash\nset -euo pipefail\numask 077\nsrun --ntasks=1 env PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=1 /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B '+root+'/run_gpu.py\n'
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','--mem=24G','--time=00:20:00','--job-name=rsna-S6-teacher-H100','--output='+root+'/slurm-%j.private.out','--error='+root+'/slurm-%j.private.err']
+intent={'stage_CPU_job':stage['CPU_job'],'stage_source_git':stage['source_git'],'worker_sha256':stage['worker_sha256'],'driver_sha256':stage['driver_sha256'],'script_sha256':hashlib.sha256(script.encode()).hexdigest(),'requested_GPU_nodes':1,'physical_node_GPU_count':2,'requested_H100s':1,'maximum_seconds':1200,'new_optimizer_training_entries':0,'automatic_retry':False}
+with (L/'GPU-dispatch-intent.json').open('x') as f:json.dump(intent,f,indent=2)
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=script,capture_output=True,text=True,timeout=60)
+with (L/'GPU-dispatch-response.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Original dispatch uncertain; reconcile scheduler without retry'
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={'status':'one_original_S6_H100_retained8_inference_benchmark_submitted','Slurm_job':job,**intent,'actual_GPU_allocation_progress_or_precision_result':False}
+with (D/'actual-dispatched.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)

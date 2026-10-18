@@ -1,0 +1,16 @@
+"""One actual zero-GPU admission of a distinct original S6 H100 probe."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/S6-H100-teacher-throughput-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'stage-intent.json').exists();git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+program=(D/'stage.py.txt').read_text();assert subprocess.check_output(['git','show',git+':'+D.relative_to(R).as_posix()+'/stage.py.txt'],text=True)==program
+files={name:subprocess.check_output(['git','show',git+':'+D.relative_to(R).as_posix()+'/'+src],text=True) for name,src in [('worker.py','worker.py.txt'),('run_gpu.py','run_gpu.py.txt')]};assert all(files[n]==(D/s).read_text() for n,s in [('worker.py','worker.py.txt'),('run_gpu.py','run_gpu.py.txt')])
+with (L/'stage-intent.json').open('x') as f:json.dump({'source_git':git,'automatic_retry':False,'GPU_or_model_pixel_transfers':0},f,indent=2)
+p=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('same_bounded_stdin',p);t=importlib.util.module_from_spec(spec);spec.loader.exec_module(t)
+v={'source_git':git,'files':files}
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:04:00','--job-name=rsna-S6-H100-stage','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',t.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=t.envelope(program,v),capture_output=True,text=True,timeout=340)
+with (L/'stage-response.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Original admission stopped; inspect exact failure before another action: '+x.stderr[-900:]
+out=json.loads(x.stdout)
+with (D/'actual-staged.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)
