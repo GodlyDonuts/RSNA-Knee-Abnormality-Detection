@@ -1,5 +1,8 @@
 # RSNA Knee: current agent guide
 
+October18 new H100 alternative availability CPU959303: retained original32pixel archive326799360bytes/index/target membership/features32/readout available on evc33, no transfer/bulk rehash/GPU. Fresh extra458644034bytes over funded floor and269740019712bytes /dev/shm free support considering small-source+explicitRAM route. Actual CPU tensor binding, immutable H100 wrapper/source/runtime and memory admission still missing; NOnewGPU or modeldownload. OriginalT4 recovery/combined owners unchanged. See paired-encoder-H100-memory-probe-20261018-v1. Later authenticated Kaggle read at15:06UTC still had no correction Dataset in all76owned/fivepages; uncertain original503intent remains, no retry.
+
+
 October18 ninth original candidate reviews209643/217870bytes are collected unchanged/SHA/source-bound to all62refs/342slices/10series;12literal report quotes match. Medial Meniscus changes negative to uncertain after report, not accepted-label correction; independent tool chronology uncollected. Requested14native paired-window images+manifest uploaded ONCE/all15sizesSHA/access matched, appendedsequence3with all162priorblocks unchanged and76uniqueMRIrefs. Same-studyfollowup Read11:11EDT/acknowledged/Thinking; waitoriginaladdendum beforecase10. Private clinical originals/refs/proof stay ignored. See daenerys-multimodal-study-review-v1/ninth-original-reviews-and-requested14-views-20261018.json.
 
 

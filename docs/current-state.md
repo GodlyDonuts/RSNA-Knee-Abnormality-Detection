@@ -56,15 +56,20 @@ of the exact slug is read-only; never rerun the creation wrappers.
 
 ## Data review
 
-Eight sequential fitting-study candidate reviews are collected. The eighth's
-14 additional native views changed no target statuses; uncertainty remains.
-Study nine is now delivered once and acknowledged: **342 original slices across
-10 series on 62 native-resolution sheets**, with a separate exact report.
-All 64 hosted assets match original size/SHA and access. Image-only review is
-requested before report access; independent underlying tool chronology remains
-uncollected. Accepted labels/masks are unchanged. Images, reports, original
-reviews and native references remain private.
-[Sanitized handoff](../initiative/audits/daenerys-multimodal-study-review-v1/eighth-addendum-and-ninth-delivery-20261018.json).
+Eight sequential fitting-study candidate reviews are complete. Both original
+study-nine reviews are now collected byte-for-byte (209643/217870bytes), bound to
+all62image references/342source slices/ten series. Twelve literal original report
+quotes match. Medial Meniscus changes from negative to uncertain after report;
+this is a candidate discrepancy, not an accepted correction or gold diagnosis.
+
+Fourteen requested native paired-window images and their manifest are appended
+once: all15hosted assets match size/SHA/access, all162prior Page blocks are
+unchanged, and76unique MRI image references remain. Follow-up was read11:11EDT,
+acknowledged and actively reviewing. Wait for the original separate addendum
+before study10. Independent tool chronology is uncollected, report order is
+reviewer-reported, and accepted labels/masks are unchanged. Clinical originals,
+images, reports, raw identities/references and screenshots remain private.
+[Sanitized receipt](../initiative/audits/daenerys-multimodal-study-review-v1/ninth-original-reviews-and-requested14-views-20261018.json).
 
 ## Compute and execution
 
@@ -86,3 +91,11 @@ included in a source milestone.
 [Execution continuation](codex-continuation.md) carries exact operational handles.
 [Preserved preceding state](current-state.history-20261018-1438.md) is historical,
 including its obsolete pending states and former owner PIDs.
+
+## New alternative route under preparation
+
+Actual CPU959303 confirms retained32-study source descriptors and RAM availability
+for a possible bounded H100 encoder measurement. It allocated no GPU, processed
+no model/MRI tensors and transferred no weights. Actual tensor/source/runtime
+admission and a H100-specific wrapper remain necessary. The original T4 owners
+are unchanged. [Availability and limits](../initiative/research/paired-encoder-H100-memory-probe-20261018-v1/README.md).
