@@ -121,12 +121,14 @@ def test_original_transport_function_is_byte_equivalent_and_optimizer_is_not_omi
         / "experiments/competitive-v1/multisource-influence-v1/publish_epoch_worker.py.txt"
     ).read_text()
     new = (HERE / "publish_epoch_program.py.txt").read_text()
+
     def functions(s):
         return {
             n.name: ast.dump(n, include_attributes=False)
             for n in ast.parse(s).body
             if isinstance(n, ast.FunctionDef)
         }
+
     assert functions(old)["download"] == functions(new)["download"]
     assert 'files["optimizer-checkpoint.pt"]=RAM/"optimizer-checkpoint.pt"' in new
     assert "dir=str(RAM)" in new and "shutil.rmtree(RAM)" in new

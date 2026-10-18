@@ -1,112 +1,89 @@
 # Current measured state
 
-Family-mixture E1 completed486 finite updates and is fully privately verified
-at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501. Both T4s have
-accepted the original resume; actual finite optimizer update499 was observed. The fixed3epoch/
-1458-update recipe remains unchanged; no accuracy result exists yet.
-
-Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
-probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
-passed its public output checks. Exact code submission57336190 was accepted
-ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
-entry/outcome owner21510 is terminal success: actual hidden score0.949,
-COMPLETE, no error. No public CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
-The old qualification quarantine remains preserved and must never be retried.
-
-Source8b8441da/21 distinct small objects, including entry controls/public proof/
-entry57336190 and E1/E2 receipts, are privately fully re-downloaded/size/SHA
-verified at HF7889d6cb247ab3679a63cc64e08f6693ebec7517 viaCPU953715.
-Never repeat it or earlier b09914e/d9299138/cfb51524 mirrors. The later E2update499
-observation is an additional Git receipt, not part of that earlier source mirror.
-
 Latest verified execution: October18,2026. Target0.97 remains unachieved.
-This page supersedes chronological snapshots preserved verbatim in
-[current-state.history-20261018-0200.md](current-state.history-20261018-0200.md).
-Exact mutable live state must be refreshed before action.
+Actual source/epoch/entry receipts override old chronological pending snapshots.
 
 | Model / comparison | Actual public Kaggle AUC | Meaning |
 | --- | ---: | --- |
-| External S6 reproduction,57300990 | **0.950** | Best verified; not from-scratch independent training |
+| External S6 reproduction,57300990 | **0.950** | Best verified; external released model |
 | Own influence IID16 final,57332456 | **0.949** | Fixed3 adaptation of licensed external parent |
-| Matched uniform IID16 final,57329796 | **0.947** | Same schedule; sampling reference |
+| Whole94 fixed-final E3,57336190 | **0.949** | Hidden COMPLETE, no error; no gain at displayed precision |
+| Matched uniform IID16 final,57329796 | **0.947** | Same fixed schedule, sampling reference |
 | Matched S6-label-only final,57331631 | **0.947** | Label swap did not improve uniform |
-| Independent N3E16 | **0.894** | Independently trained MRI DINOv3 lineage |
-| Exact external R6,57333150 | Unreported | Submitted once; source author's0.958 is not ours |
-| Whole94 fixed-final E3,57336190 | **0.949** | Hidden run COMPLETE; ties influence, below best0.950 |
-| New family-mean/influence candidate | No score | E1 privately verified; E2 pushed once |
+| Independent DINOv3 N3E16 | **0.894** | Separate independently fitted lineage |
+| Exact external R6,57333150 | Unreported | Same original entry; author's0.958 is not our score |
+| Family-mean/influence candidate | No score | E1/E2 privately verified; final E3 pushed once |
+| Finding-stratified16 candidate | No score | Full E1pushed once after exact input and MRI recovery acceptance |
 
-The influence result is+.002 against matched uniform, still below0.950. A single
-three-decimal public comparison does not establish a robust/private improvement.
-All completed fixed-final submissions are terminal/scored; never resubmit them.
+These are rounded single public results, not established private-final gains.
+The strongest current adaptation uses the licensed73.1M-parameter CoAtNet/MIL
+parent, not the independent DINOv3 model. Upstream source/Gold exposure prevents
+claiming independent whole-model internal validation.
 
-New finding-stratified sampler: CPU953779 measured8.64% lower frozen-teacher
-probability MSE on all12findings at the EXACT original mixture density and16-
-window budget. Actual two-T4 recovery139349540v1 COMPLETED/513.56s; CPU954066
-accepts complete original-control replay and both-role full/stop/resume states
-and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
-all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
-existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
-cases pass. Private Dataset12671054v1 exists; CPU954262 reconciled its uncertain original
-create read-only and fully downloaded/size/SHA verified all6files. No full fit
-or clinical/competition result exists for this mechanism. Next requires full-source/input/preservation admission; original
-label values must match influence0.949, separate from the healthy family mix.
-Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
+## Two controlled experiments are advancing
 
-## What is training and being scored
+**Label information:** one family-mixture candidate changes35418safe-common
+label values against influence0.949, with zero new coverage and unchanged
+masks/images/teacher/optimizer/sampling/inference.3887studies,3epochs/1458updates,
+16influence windows/effective8,25%source/75%parent. E1andE2completed486/972updates
+and all5private objects per epoch are fully re-downloaded/size/SHA verified.
+Latest E2HF2faaa9cf454e6e90cc2bb6ef428874e24216cdbf, CPU954363. Original finite
+owner18386 pushed final E3kernel139355023v1/source3d6448b6d33b once. No new score.
+[Source definitions and per-target changes](../initiative/experiments/competitive-v1/multisource-supervision-v1/multisource_result.md).
 
-One predeclared family-mixture candidate:3887 fitting studies,3epochs/1458updates,
-16 influence-sampled windows/effective8,73,136,096 learned parameters,25%source/
-75%parent. Only source-label values change against the completed0.949 influence
-control; MRI schedule/masks/teacher/views/optimizer/seed/inference remain fixed.
-35418cells change, coverage does not; two mismatched Synovitis cells remain
-untouched. Dataset12668561v1 is already fully verified; never repeat it.
+**Image evidence allocation:** one new candidate keeps the ORIGINAL influence
+labels and recipe, changing only allocation of sixteen sampled windows: one
+from each12finding proposal plus4uniform, retaining the exact original mixture
+density/inverse-proposal correction. Fitting-only CPU953779 measured8.6365%
+lower frozen-teacher probability MSE, all12targets lower; this is not disease
+accuracy. Actual both-T4 recovery139349540v1 passed original-control replay and
+both-role complete-state/resume/prediction equality. CPU954331 accepted every
+3887input identity/density, the full component tensor and unchanged13modules.
+Full E1kernel139354995v1/source5989537de157 was pushed ONCE by original owner38017
+and actually reported RUNNING at CPU954400. That owner owns only the fixed3epoch/
+1458-update run and private preservation before each resume, no competition entry.
+[Exact mechanism and actual receipts](../initiative/research/finding-stratified-bags-20261018-v1/README.md).
 
-Actual coupled MRI recovery139336728v1 and full3887 input acceptance passed.
-E1kernel139338298v1 COMPLETE:486 finite updates, about3981seconds fitting on each
-T4, five objects privately fully verified at HFd4f35abe. Owner17423 is terminal.
-Owner18386 then pushed E2kernel139346363v1/source32493d2ee501 once; it owns
-remaining E2/E3 preservation/resume. No new family score exists.
-[Exact family candidate](../initiative/experiments/competitive-v1/multisource-influence-v1/README.md).
+Finding component Dataset12671054v1 is private and all6files fully verified;
+an uncertain original create was reconciled without duplication. Snapshot1GiB
+fits INSIDE the existing3GiB node-local root, retaining the full512MiB reader and
+80MiB component budgets. Full optimizer checkpoints are a sixth private HF object
+verified with allocated CPU RAM scratch; no extra4GiB disk reservation or deletion.
+Actual E1private verification is required before E2resume. Never duplicate either
+training owner or change its frozen numerical/controller files.
 
-The already completed whole94 fixed-final E3modelSHAa244d120 passed exact32-MRI
-both-T4 qualification139343479v1. Public notebook139346231v1/sourceaf412cf7e6f2
-passed public output checks; exact code entry57336190 was then accepted once.
-Owners21510 and20978 are terminal success. The entry reuses the
-existing model and inputs, with no new training or weight Dataset.
-[Exact public/entry campaign](../initiative/audits/whole94-final-public-20261018-v2/README.md).
-Whole94 actual hidden score is0.949; hidden runtime is unreported.
+## Findings and limits
 
-The attached multi-source brief is implemented as the single running family candidate.
-[Current supervision result and limitations](../initiative/experiments/competitive-v1/multisource-supervision-v1/multisource_result.md)
-records exact sources, all12target change counts and why no baseline rollback occurred.
+- Steven/S6 share ancestry; they are not independent votes. The new overlay uses
+  a composite baseline and primitive Gemini observation masks on safe-common cells.
+  Same-report correlated errors remain; fallback missingness is not silently repaired.
+- Four baseline files match pre-Devin Git/HF content identities. No rollback occurred.
+  A separate whole-cohort Astra image-derived export remains unlocated, not disproven.
+- Completed spatial reader geometry delta remains uncertain: aligned0.9222304
+  versus null0.9211719; conditional95%[-0.0005818,0.0030275],1186undefined draws.
+  Variable-path cached recovery is accepted, but no integrated dense/path
+  production or accuracy gain is established. Original H100benchmark950940
+  remains the same job; inspect its actual state rather than duplicating it.
+- Protected gold/confirmation values were not used to choose these interventions.
+  Software acceptance and teacher fidelity are not clinical or private-final evidence.
 
-## Findings that changed the research direction
+## Outcomes and preservation
 
-- Steven and S6 share upstream ancestry. Counting them as independent votes
-  would duplicate information. Primitive source masks/semantics were traced
-  before construction; no numerical sentinel was globally interpreted as truth.
-- Four baseline release files match pre-Devin Git/HF identities. None was reverted.
-  A separate whole-cohort Astra image-label export remains unlocated; current
-  admitted arrays are report weak labels, not adjudicated MRI truth.
-- Completed first spatial reader: aligned0.9222304/null0.9211719/parent0.9205878
-  on repeated weak-label development. Geometry delta conditional95%
-  [-0.0005818,0.0030275],1186undefined bootstrap draws. No established geometry gain.
-- New variable-path cached recovery passes complete numerical checks, but its GPU
-  job failed a final collector and remains FAILED. Independent CPU acceptance
-  does not establish integrated dense production or accuracy.
+Whole94 owner21510 is terminal success:57336190scored0.949. Never repeat it.
+R6observer3182stopped on a coordinator-claim wait, not a model terminal. After
+read-only reconciliation and a fresh unknown result at954374, distinct outcome-only
+owner38345 follows the same original57333150. It cannot submit.
 
-## Preservation and validation
+Source d7aa8423/41small objects is fully privately verified at
+HFbd94ebff44e4cae0e7f0832b99b6cb59ca9048fa, CPU954166. Never repeat it or earlier
+verified mirrors. The new full-dispatch source/receipt delta is separate.
+Large MRI/UID/label/teacher arrays and restricted weights are excluded from
+small source mirrors. Model publications retain complete license/source/runtime/
+cohort provenance under the canonical shared lock.
 
-Every old completed production epoch remains privately preserved; do not repeat
-it. New source milestone c9349ae5 is privately fully66-object re-download/size/SHA
-verified at **cfb51524d9865ddf6a6b229007745da4a6b70350**. No MRI/UID/label/teacher/
-prediction arrays or checkpoint weights were copied into that small source mirror.
-[Actual private proof](../initiative/audits/hf-family-influence-20261018-v1/verified.json).
-
-New focused source/optimizer/compiler/verifier checks pass. Canonical full QA
-3950 completed4717passed/8skipped;118-module mypy passed. The two clean-commit packaging cases subsequently
-passed2/2 at e0e6495d. Archive refresh and exact checksum/membership verification
-passed after concurrent receipt changes. Global historical Ruff debt1327/57 remains.
-Current v2 evidence coverage is89/89; that is coverage, not clinical validation.
-See [continuation](codex-continuation.md) for exact original handles and next work.
+Original full QA:4717passed/8skipped; two clean-commit packaging cases subsequently
+passed2/2. Fresh broad rerun also passed4717/8skipped in1519.37seconds. All56new focused
+numerical/complete-state/owner cases pass;all13experiment Python files are Ruff/format
+clean and118-module mypy passes. Historical global
+Ruff1327errors/57format files remain. Current v2 evidence89/89 is coverage, not
+clinical validation. See [continuation](codex-continuation.md) for exact live handles.

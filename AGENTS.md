@@ -1,42 +1,35 @@
 # RSNA Knee: current agent guide
 
-Family-mixture E1 completed486 finite updates and is fully privately verified
-at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501. Both T4s have
-accepted the original resume; actual finite optimizer update499 was observed. The fixed3epoch/
-1458-update recipe remains unchanged; no accuracy result exists yet.
+October18 live execution update: the finding-allocation full comparison was
+pushed ONCE as kernel139354995v1/source5989537de157, private/offline twoT4,
+scientific source bf362cdd. Original finite owner38017 owns all3epochs/1458updates
+and full private preservation before each resume. CPU954331 accepted all3887
+original input identities/densities and all13 original modules. Labels/masks/
+teacher/optimizer/inference stay those of influence0.949; this is separate from
+the family mixture. Private component Dataset12671054v1 is fully six-object
+verified after read-only reconciliation; do not create it again. Latest runtime
+and real optimizer evidence are in the exact original per-epoch receipts.
 
-Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
-probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
-passed its public output checks. Exact code submission57336190 was accepted
-ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
-entry/outcome owner21510 is terminal success: actual hidden score0.949,
-COMPLETE, no error. No public CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
-The old qualification quarantine remains preserved and must never be retried.
+Model snapshots have1GiB INSIDE original P3GiB, with the entire old512MiB reader
+and80MiB component envelopes retained. Full optimizer snapshots are an additional
+private HF object, fully downloaded/size/SHA checked using transient allocated
+8GiB CPU RAM scratch, not another4GiB disk reservation. E2cannot resume before
+actual E1private verification. No originals deleted and no new shared data.
 
-Source8b8441da/21 distinct small objects, including entry controls/public proof/
-entry57336190 and E1/E2 receipts, are privately fully re-downloaded/size/SHA
-verified at HF7889d6cb247ab3679a63cc64e08f6693ebec7517 viaCPU953715.
-Never repeat it or earlier b09914e/d9299138/cfb51524 mirrors. The later E2update499
-observation is an additional Git receipt, not part of that earlier source mirror.
+Family-mixture E2actually completed972updates (kernel139346363v1) and all5private
+objects are fully verified at HF2faaa9cf454e6e90cc2bb6ef428874e24216cdbf, CPU954363.
+Original owner18386 then pushed final E3kernel139355023v1/source3d6448b6d33b once.
+Never duplicate either healthy owner, their notebooks or publications. No disease
+score exists yet for either new mechanism. Best remains0.950; whole94final scored
+0.949. Exact R6entry57333150 remains unreported at CPU954374; old3182observer
+stopped while waiting for a claim, not because the model failed. Distinct
+outcome-only owner38345 now follows that same original entry, with zero new
+submission authority. Never repeat it.
 
-Current execution is summarized here; older chronological snapshots are preserved
-in `docs/AGENTS.history-20261018-0200.md`. Do not use historical pending statements
-as restart/duplication authority. Read `docs/current-state.md`,
-`docs/codex-continuation.md` and the exact experiment receipts before action.
-
-New finding-stratified sampler: CPU953779 measured8.64% lower frozen-teacher
-probability MSE on all12findings at the EXACT original mixture density and16-
-window budget. Actual two-T4 recovery139349540v1 COMPLETED/513.56s; CPU954066
-accepts complete original-control replay and both-role full/stop/resume states
-and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
-all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
-existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
-cases pass. Private Dataset12671054v1 exists; CPU954262 reconciled its uncertain original
-create read-only and fully downloaded/size/SHA verified all6files. No full fit
-or clinical/competition result exists for this mechanism. Next requires full-source/input/preservation admission; original
-label values must match influence0.949, separate from the healthy family mix.
-Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
+Source d7aa8423/41small objects is privately fully verified at
+HFbd94ebff44e4cae0e7f0832b99b6cb59ca9048fa, CPU954166. Never repeat it or earlier
+mirrors. New full-run source/receipts are a later distinct delta. No new clinical
+or competition gain is claimed by input/recovery/software checks.
 
 ## Objective and actual evidence
 

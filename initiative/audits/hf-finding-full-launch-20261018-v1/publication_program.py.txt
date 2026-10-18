@@ -1,0 +1,33 @@
+
+import hashlib,importlib.util,json,os,shutil,sys,tempfile,subprocess
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');R=P/'reader-source-milestone-v16';old=P/'reader-source-milestone-v15'
+assert not R.exists() and json.loads((old/'verified.json').read_text())['revision']=='bd94ebff44e4cae0e7f0832b99b6cb59ca9048fa'
+assert json.loads((P/'reader-source-milestone-v4'/'verified.json').read_text())['revision']=='a434cae3823baade2d2edbc69c1fdfe670c66e8c'
+assert json.loads((P/'reader-source-milestone-v1'/'verified.json').read_text())['revision']=='99da506b9e7c6c6bfb2d5ccfa245c3f4d46ecbb2'
+assert json.loads((P/'reader-source-milestone-v2'/'verified.json').read_text())['revision']=='67775579057b95716771bbe821adaecb37854a35'
+assert json.loads((P/'reader-source-milestone-v3'/'verified.json').read_text())['revision']=='c11f1aeacf10ab424d24fa654500aa76c64802a7'
+assert hashlib.sha256((P/'original-N3-unused8GiB-retirement-v1.json').read_bytes()).hexdigest()=='f7a39ef29040ff8e922c8325fe515ff2d6aa773e8a04dcd355ebd69aefcc9e4a'
+paid=sum(p.stat().st_size for p in P.rglob('*') if p.is_file());family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');family_paid=sum(p.stat().st_size for p in family.rglob('*') if p.is_file());assert paid<3*2**30 and family_paid<4*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+max(0,4*2**30-family_paid)
+old_paid=sum(p.stat().st_size for i in range(1,16) for p in (P/('reader-source-milestone-v'+str(i))).rglob('*') if p.is_file());payload=sum(len(t.encode()) for t in v['files'].values());assert old_paid+3*payload+2**20<8*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+R.mkdir(mode=0o700);paths={}
+for n,t in v['files'].items():
+ p=R/'files'/n;assert p.resolve().is_relative_to((R/'files').resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(t);p.chmod(0o600);paths[n]=p
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert hashlib.sha256(core.read_bytes()).hexdigest()=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde'
+spec=importlib.util.spec_from_file_location('original_shared_private_publication_lock',core);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+os.environ.update(HF_HUB_DISABLE_XET='1',HF_HOME=str(R/'hf-home-private'),HF_XET_CACHE=str(R/'hf-xet-private'))
+from huggingface_hub import HfApi,CommitOperationAdd
+with m.shared_publication_lock():
+ api=HfApi(token=v['token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True
+ prefix='milestones/finding-full-launch-20261018-'+v['source_git'][:12]+'-v1';table={n:{'bytes':p.stat().st_size,'sha256':m.sha(p)} for n,p in paths.items()}
+ assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in paths],repo_type='dataset'))
+ m.atomic_new(R/'intent.json',{'source_git':v['source_git'],'previous_verified_source':'d7aa8423cd27f3e83558691925d99d067147fcc6','parent':info.sha,'prefix':prefix,'files':table,'cumulative_source_cap_bytes':8*2**20,'old_source_paid_bytes':old_paid,'same_original512MiB_reader_allowance':True,'other_future_epoch_publication_allowance_bytes':48*2**20,'no_private_rows_pixels_feature_arrays_checkpoint_or_CSV_export':True,'automatic_retry':False})
+ commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve original full-input finding-allocation admission, fixed3 dispatch and full optimizer publication method; no clinical gain claim',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in paths.items()])
+ m.atomic_new(R/'commit.json',{'revision':commit.oid})
+ for n,row in table.items():
+  with tempfile.TemporaryDirectory(prefix='rsna-reader-full-source-verify-',dir=R) as tmp:
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+n,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==row['bytes'] and m.sha(p)==row['sha256']
+ out={'status':'actual_finding_full_source_input_funding_and_dispatch_private_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'previous_distinct_verified_source':'d7aa8423cd27f3e83558691925d99d067147fcc6','prefix':prefix,'revision':commit.oid,'objects':len(paths),'bytes':sum(x['bytes'] for x in table.values()),'cumulative_old_and_new_source_cap_bytes':8*2**20,'old_source_paid_bytes':old_paid,'all_objects_fully_re_downloaded_size_SHA_verified':True,'same_original3GiB_spatial_and512MiB_reader_envelope':True,'no_private_rows_pixels_features_weights_predictions_or_CSV_export':True,'no_accuracy_claim':True}
+ m.atomic_new(R/'verified.json',out);assert old_paid+sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20;print(json.dumps(out),flush=True)

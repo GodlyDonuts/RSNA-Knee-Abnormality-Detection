@@ -40,8 +40,10 @@ The completed matched reference is influence57332456/public0.949. Exact coupled
 real-MRI diagnostic139336728v1 passed complete control replay and both-role
 full/stop/resume checks. Candidate E1kernel139338298v1 completed486finite updates
 and all five private objects were fully re-downloaded/size/SHA verified at
-HFd4f35abe654c0505b67b51b1fc2952047347842c. E2kernel139346363v1 is RUNNING at
-CPU954263's authenticated read. This establishes fitting, not accuracy.
+HFd4f35abe654c0505b67b51b1fc2952047347842c. E2kernel139346363v1 completed972updates and all five private objects were
+fully verified at HF2faaa9cf454e6e90cc2bb6ef428874e24216cdbf, CPU954363.
+Original owner18386 pushed final E3kernel139355023v1 once. No new score exists.
+This establishes fitting, not accuracy.
 
 Decision: finish this one fixed-final candidate and evaluate all12findings using
 the predeclared comparison. Do not launch epoch-source cycling or an unidentified

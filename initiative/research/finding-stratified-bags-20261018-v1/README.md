@@ -1,5 +1,26 @@
 # Finding-stratified MRI observations at the unchanged mixture density
 
+Full comparison actually dispatched: original owner38017 (finite12hours) prepared
+and pushed E1kernel139354995v1/source5989537de157 ONCE viaCPU954378. It owns
+only this fixed3epoch/1458-update candidate and complete private epoch preservation
+before every resume, with zero competition-entry authority. Source bf362cdd
+is pinned across all epochs. The shared account claim and extended capacity
+check counted other registered actors; no old GPU controller was changed.
+CPU954331 accepted the complete exact3887 input loader, raw tensora2753d69,
+all original13modules and explicit1GiB model-snapshot funding INSIDE the original
+P3GiB cap, retaining the entire512MiB reader and80MiB component budgets.
+Full optimizer checkpoints will be published as a sixth private HF object and
+fully downloaded/hash verified using transient allocated8GiB CPU RAM scratch;
+only model snapshots/metadata remain on node. No original files are deleted.
+Thirty-five orchestration/complete-state/transport checks and31compiler/sampler
+checks passed (overlapping subsets, not66unique cases). This is not accuracy.
+See actual-full-CPU-admitted.json, actual-full-owner-launched.json and original
+per-epoch receipts. New full-push acceptance is not optimizer progress.
+
+The body below preserves original preparation stages. The full source/input/
+funding/dispatch evidence above supersedes their unlaunched/unimplemented statements.
+
+
 Actual input publication: original create954209 returned an uncertain exception;
 read-only954252 located exact private Dataset12671054v1. CPU954262 streamed all
 six immutable files and verified every size/SHA, then reconciled the canonical
@@ -183,3 +204,10 @@ create-once and bounded full-file download/size/SHA verifier. The tensor stays i
 place while its single archive is built inside the existing80MiB cap; no duplicate
 hardlink tree inflates that cap. No model fit, checkpoint/publication or serving
 is admitted by this input publication. Exact actual Dataset receipt is required.
+
+The inherited static `training_bag` description identifies the original IID16
+reference. Actual sampling is explicitly bound by `finding_allocation` in the
+trained state and checked by the production bootstrap and independent verifier.
+It must say finding_strata/12plus4, original density,16observations and the exact
+full raw component hash; no inference about IID sampling should be made from
+the retained original descriptive field alone.
