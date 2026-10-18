@@ -1,0 +1,15 @@
+"""One distinct renderer recovery; zero credentials and zero source downloads."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/S6-HF-raw-input-bridge-recovery-20261018-v2';L.mkdir(exist_ok=True);original=R/'artifacts/S6-HF-raw-input-bridge-20261018-v1';assert not (L/'render-intent.json').exists();git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();program=(D/'program.py.txt').read_text();assert subprocess.check_output(['git','show',git+':'+D.relative_to(R).as_posix()+'/program.py.txt'],text=True)==program
+selected=json.loads((original/'selection.private.json').read_text());metadata=json.loads((original/'missing-source-metadata.private.json').read_text())
+v={'source_git':git,'selection':selected,'metadata':metadata,'source_inventory_sha256':hashlib.sha256((original/'selection.private.json').read_bytes()).hexdigest()}
+with (L/'render-intent.json').open('x') as f:json.dump({'source_git':git,'source_files_downloaded':0,'source_bytes_downloaded':0,'original_source_files_reused':len(selected['source_files']),'RAM_cap_bytes':2**30,'CPU_memory_bytes':8*2**30,'automatic_retry':False,'GPU_or_disease_classifier':False},f,indent=2)
+p=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('same_bounded_transport',p);t=importlib.util.module_from_spec(spec);spec.loader.exec_module(t)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=2','--gres=none','--mem=8G','--time=00:12:00','--job-name=rsna-S6-raw-recovery-v2','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=2','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',t.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=t.envelope(program,v),capture_output=True,text=True,timeout=800)
+with (L/'render-response.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Original bridge stopped; inspect retained raw bytes/intent without duplicate source retrieval: '+x.stderr[-900:]
+out=json.loads(x.stdout)
+with (D/'actual-render-result.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)
