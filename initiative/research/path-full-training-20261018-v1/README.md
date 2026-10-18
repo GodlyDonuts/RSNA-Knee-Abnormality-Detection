@@ -38,9 +38,11 @@ binding to PathTrainer; the initial full wrapper omitted that constructor
 argument. Both production-arm constructor expressions now pass on CPU, with
 843updates/68560learned parameters. Scientific modules, images, labels, schedule
 and original scientific source210036b6 remain unchanged. Existing full jobs
-955711/955712 are temporarily held before any allocation while CPU955795
-applies the exact new wrapper, retaining the initial worker/admission. The
-coordinator releases the same jobs only after the correction succeeds; no
-replacement GPU jobs or restart. This is a new-wrapper fix, not a repeated
-old-model verification or an accuracy result. See actual-constructor-correction
-once the one-time correction finishes.
+955711/955712 were held before allocation while correcting the new wrapper.
+First CPU955795 stopped before any file mutation because its Slurm query used
+unsupported multiple-job syntax. Distinct corrected CPU955805 applied only the
+missing binding and recorded execution-wrapper sourcebfd121d3; original source
+210036b6 and old worker/admission remain retained. Both original full jobs were
+released successfully and are again PENDING Dependency afterok955582. No new
+GPU jobs or restart. See actual-constructor-correction.json. This is a new
+wrapper fix, not an old-model verification or an accuracy result.

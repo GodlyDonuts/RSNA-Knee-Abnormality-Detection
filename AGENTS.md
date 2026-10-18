@@ -1,5 +1,14 @@
 # RSNA Knee: current agent guide
 
+October18 new-wrapper correction: before either full path job allocated,
+CPU955805 fixed a missing PathTrainer mechanism-binding argument in the NEW
+full wrapper, execution sourcebfd121d3. Same jobs955711/955712 were released
+after correction and remain PENDING Dependency on955582; original scientific
+source210036b6, images, masks, recipe and reader unchanged. No GPU restart or
+old-data/model recovery rerun. The earlier small CPU955795 failed only its
+Slurm control syntax before mutation. Actual correction and two-arm constructor
+check are in path-full-training-20261018-v1.
+
 October18 execution update: owner directed full throttle and no repeated
 verification of completed work. Full original dense-path runs955711(aligned)
 and955712(conditional-marginal null) are submitted once, source210036b6,
