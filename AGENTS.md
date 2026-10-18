@@ -1,5 +1,12 @@
 # RSNA Knee: current agent guide
 
+October18 forward deployment work: path-serving-20261018-v1 now provides a
+small fixed-final path-head export and streamed one/two-GPU study lanes with
+exact test-order CSV merging. Eleven NEW synthetic wrapper tests and scoped
+Ruff pass; no old MRI/model audits replayed. No full head exists until actual
+843update completion; actual T4runtime, test-DICOM adapter and competition entry
+remain future work. Original full job sources and running finding work unchanged.
+
 October18 new-wrapper correction: before either full path job allocated,
 CPU955805 fixed a missing PathTrainer mechanism-binding argument in the NEW
 full wrapper, execution sourcebfd121d3. Same jobs955711/955712 were released
