@@ -35,10 +35,10 @@ claimed. Original family/finding training owners remain unchanged. Read
 initiative/experiments/competitive-v1/family-final-scoring-20261018-v1.
 
 
-Latest distinct private source milestone:13655844/20small objects,107260bytes,
-fully re-downloaded/size/SHA verified at HFedd29aeff7a18d9314af4c718b506795c15a802b
-viaCPU954870 under the canonical shared lock. Never repeat this v18 publication.
-It includes actual CPU954823 serving and954859 scoring staging plus owner41043.
+Latest distinct private source milestone:996b58a9/17small objects,81427bytes,
+fully re-downloaded/size/SHA verified at HF5b70320b5bd64f40c9297af18b61bb86cf6e7200
+viaCPU954959 under the canonical shared lock. Never repeat this v19 publication.
+It includes actual CPU954924 parent-delta screen and unstable-ratio rejection.
 No MRI/UID/label/teacher arrays or model weights are in that small source mirror.
 
 
