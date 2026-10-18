@@ -1,0 +1,34 @@
+"""Follow the one original Slurm probe and collect aggregate terminal evidence once."""
+import hashlib,json,os,shlex,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/S6-H100-teacher-throughput-20261018-v1');receipt=json.loads((D/'actual-dispatched.json').read_text());job=receipt['Slurm_job'];assert job.isdigit() and not (L/'owner-intent.json').exists()
+with (L/'owner-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'Slurm_job':job,'maximum_hours':36,'scheduler_or_GPU_mutations':0,'maximum_CPU_terminal_collections':1,'automatic_retry_of_collection':False},f,indent=2)
+start=time.monotonic()
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'Slurm_job':job,'elapsed_seconds':time.monotonic()-start,**value};(L/('owner-result.json' if terminal else 'owner-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while True:
+  assert time.monotonic()-start<36*3600,'Finite observer expired; original Slurm job untouched'
+  a=['sacct','-j',job,'-n','-X','-P','-o','JobIDRaw,State,ExitCode,ElapsedRaw,NodeList']
+  x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],capture_output=True,text=True,timeout=30)
+  if x.returncode:
+   record({'status':'original_scheduler_observation_temporarily_unavailable_no_job_mutation'});time.sleep(90);continue
+  rows=[l.split('|') for l in x.stdout.splitlines() if l.split('|')[0]==job];assert len(rows)==1
+  row=rows[0];state=row[1].split()[0];record({'status':'actual_original_Slurm_observation','state':state,'exit_code':row[2],'elapsed_job_seconds':int(row[3]),'node':row[4]})
+  if state in ('PENDING','RUNNING','CONFIGURING','COMPLETING','SUSPENDED','REQUEUED','RESIZING'):time.sleep(90);continue
+  assert state in ('COMPLETED','FAILED','TIMEOUT','CANCELLED','PREEMPTED','NODE_FAIL','OUT_OF_MEMORY','BOOT_FAIL','DEADLINE')
+  with (L/'terminal-collection-intent.json').open('x') as f:json.dump({'Slurm_job':job,'actual_state':state,'exit_code':row[2],'automatic_retry':False},f,indent=2)
+  program="""import hashlib,json,os\nfrom pathlib import Path\nD=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/H100-teacher8-20261018-v1');assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');out={'CPU_job':os.environ['SLURM_JOB_ID'],'node':os.uname().nodename,'terminal_files':{}}\nfor name in ('terminal.json','terminal-failed.json','run-intent.json'):\n p=D/name\n if p.exists():\n  assert p.stat().st_size<1024*1024;out['terminal_files'][name]=json.loads(p.read_text())\nprint(json.dumps(out))\n"""
+  args=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:03:00','--job-name=rsna-S6-H100-terminal','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+  y=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=300)
+  with (L/'terminal-collection-response.json').open('x') as f:json.dump({'returncode':y.returncode,'stdout':y.stdout,'stderr':y.stderr},f,indent=2)
+  assert y.returncode==0,'Original terminal collection uncertain; inspect retained response without retry'
+  actual=json.loads(y.stdout);assert all(t['Slurm_job']==job for t in actual['terminal_files'].values())
+  result={'status':'actual_original_H100_teacher_probe_terminal_observed','Slurm_job':job,'Slurm_state':state,'Slurm_exit_code':row[2],'actual':actual,'full_teacher_or_training_or_accuracy_accepted':False}
+  if state=='COMPLETED' and row[2]=='0:0':
+   assert 'terminal.json' in actual['terminal_files'] and 'terminal-failed.json' not in actual['terminal_files']
+   assert actual['terminal_files']['terminal.json']['status']=='actual_original_S6_retained8_H100_two_precision_inference_complete'
+  with (D/'actual-terminal.json').open('x') as f:json.dump(result,f,indent=2);f.write('\n')
+  record(result,True);break
+except BaseException as error:
+ record({'status':'original_H100_probe_observer_stopped_job_and_intents_preserved','reason':str(error)},True);raise

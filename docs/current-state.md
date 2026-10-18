@@ -133,3 +133,11 @@ comparisons, not ground-truth errors, AUC or accepted resource bounds. They
 advance the existing rank-transport/distillation route; full-cohort teacher
 outputs and actual new training are still absent.
 [Exact recovery and limitations](../initiative/research/recovered-S6-teacher32-20261018-v1/README.md).
+
+The separate retained-input H100 teacher benchmark is CPU-staged960975 and
+submitted once as Slurm960986 on physical2-H100 evc33 (oneGPU requested). Actual
+scheduler state isPENDING; observer88773/session51865 is live. It will compare
+original S6 GPU FP32/FP16 against the already verified CPU8reference and measure
+actual throughput/VRAM. No full-cohort teacher, training or accuracy is accepted.
+Original retained model/pixels are reused; this is not another CPU inference run.
+[Original dispatch and scope](../initiative/research/S6-H100-teacher-throughput-20261018-v1/README.md).
