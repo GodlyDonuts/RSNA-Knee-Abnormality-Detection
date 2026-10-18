@@ -1,3 +1,5 @@
+New H100 experiment: CPU959600 accepted the complete graph/runtime; Slurm959613 is submitted once and currently PENDING(Resources) on evc33. It tests paired sampled-gradient error through all73M parameters, with no optimizer updates. Original Kaggle runs continue. Source/owner/resource details: [H100 gradient measurement](../initiative/research/paired-encoder-H100-gradient-20261018-v1/README.md). No new accuracy result.
+
 # Current measured state
 
 Updated October 18, 2026. Actual original receipts and live job states

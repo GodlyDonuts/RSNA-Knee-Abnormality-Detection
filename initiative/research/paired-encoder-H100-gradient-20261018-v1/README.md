@@ -32,3 +32,18 @@ fresh resources. Read-only reconcile uncertain Slurm intent before another
 request. The eventual measurement must retain the complete trained state exactly.
 A favorable variance ratio remains engineering evidence, not better accuracy;
 a separately justified matched fit and held-out outcome are still necessary.
+
+Actual CPU959600 accepted the full73,136,096-parameter graph, unchanged original
+numerical closure, Torch2.14/CUDA13, torchvision0.29.1 and timm1.0.30, original
+MIL head and fresh storage reserves. The single coordinator79221 then submitted
+Slurm959613 ONCE: physical2-H100 evc33, oneH100/twoCPUs/32GiB/45minutes. Actual
+squeue shows PENDING(Resources); no GPU/model-transfer/result is inferred. Both
+GPUs are occupied by other users. Session97244/SSH child79251 follow this exact
+request; do not restart the wrapper because allocation is delayed. Poll original
+Slurm/owner/output. No uncertainty retry or another GPU request is authorized by
+the intent. Original Kaggle owners remain live and unchanged.
+
+Future node admissions must retain the unpaid remainder of this distinct8MiB
+control cap, in addition to the correction transport sibling and prior floors.
+Actual paid bytes are already charged by node free space; never count them twice.
+No new shared files or ordinary model-checkpoint funding is implied.
