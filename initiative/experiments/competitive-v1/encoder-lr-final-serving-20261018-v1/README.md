@@ -25,3 +25,15 @@ Fourteen NEW focused synthetic cases pass: actual format admission/rejections an
 compiled original full94/two-view function behavior in both serving modes. They
 are software evidence only. No original MRI/recovery audit or full QA was replayed.
 The new inference code does not alter the live fitting recipe or its controller.
+
+## Actual preparation
+
+Owning-node CPU956680 completed: both new helpers are staged under the existing
+8MiB LR control cap, with a256KiB child ceiling. It loaded the original accepted
+base compiler/helper unchanged and rejected the real current E1 as non-final.
+It read no MRI/weight/optimizer bytes and made no GPU, Dataset or entry mutation.
+Source d3b1a5c7; exact helper/compiler hashes are in actual-CPU-staged.json.
+This is CPU template preparation, not actual final-model or T4 acceptance.
+The actual E1 UI shows Queued.../GPU T4x2/output0B (edit-run359651595), explaining
+the original status API's null observation. Preserve its existing notebook and
+live55986 owner; queue delay does not authorize a duplicate push or restart.

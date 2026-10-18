@@ -1,5 +1,13 @@
 # Current measured state
 
+October18 new LR scoring preparation is ACTUALLY staged by CPU956680 under
+existing8MiBcontrol cap/256KiBchild: strict final3/1458update provenance with
+unchanged full94/two-view MRI math.14NEW focused cases/scopedRuff/mypy2 pass;
+actual current E1is refused as nonfinal. No GPU/Dataset/entry/accuracy claim.
+UI now confirms original139394879v1 Queued.../T4x2/output0B/edit-run359651595;
+API null is not failure.55986remains live. Read competitive-v1/
+encoder-lr-final-serving-20261018-v1; never push another E1.
+
 October18 NEW encoder-LR comparison E1accepted ONCE as Kaggle139394879v1,
 source51aa28fcf645/scienced6af9194: same3887influence fit/3epochs/1458updates,
 only encoderLR3e-6 to3e-5; head remains3e-5. No gain is known. Original owner55793
