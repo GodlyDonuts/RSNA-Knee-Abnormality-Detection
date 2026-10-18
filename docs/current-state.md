@@ -20,11 +20,20 @@ The active full-encoder experiments use **73M CoAtNet, not DINOv3**.
 | Family supervision | Full fit, qualification and public example completed; original owner43079 remains live. | Actual hidden competition outcome after a permitted entry; no new score recorded here. |
 | Finding-stratified fitting | Full fit/private preservation and qualification completed. Its public controller stopped on the original draft/source guard before a push. | Reconcile the original mismatched draft read-only. Public execution is postponed; owner66217 is terminal and must not be restarted. |
 
-The new paired serving template is CPU-staged via960163 and has13 focused tests,
-scoped Ruff and mypy passing. It preserves original full94-window/two-view MRI
-inference: the correction is **training-only**, with no correction table or teacher
-feature cache at inference. This is source preparation, not actual final-weight
-qualification or a new score. [Template and exact staging receipt](../initiative/research/paired-fixed-final-serving-20261018-v1/README.md).
+The paired serving template is CPU-staged via960163. Its separate end-to-end
+scoring controller is now CPU-staged via960352 and live as84527, tool session88084,
+waiting for the original training owner81735 to finish all three privately
+preserved epochs. Fourteen new controller checks pass. It then admits at most one
+two-T4 qualification, one offline public version and one code entry, each under
+fresh canonical capacity/allowance and the full remaining runtime budget. This
+is an active watcher, not a scoring GPU allocation or measured gain.
+[Actual staging and owner](../initiative/experiments/competitive-v1/paired-final-scoring-20261018-v1/README.md).
+
+Full94-window/two-view inference remains unchanged: the paired correction is
+training-only, with no teacher feature cache or correction table at inference.
+The controller orders this comparison before unstarted later scoring while
+funding unfinished LR fitting and all already-started work. No quota refund,
+paid-plan change, original job cancellation or source overwrite is implied.
 
 ## What the new mechanism actually demonstrated
 
