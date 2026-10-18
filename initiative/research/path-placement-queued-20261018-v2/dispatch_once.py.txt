@@ -1,0 +1,59 @@
+"""One bounded assigned-GPU placement probe; no MRI/model/optimizer execution."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+
+LOCAL = Path('artifacts/path-placement-queued-20261018-v2')
+LOCAL.mkdir(parents=True, exist_ok=True)
+intent = LOCAL / 'dispatch.intent.json'
+assert not intent.exists(), 'Existing intent requires read-only reconciliation'
+probe = '''import json, os, time
+start = time.monotonic()
+out = {'node': os.uname().nodename, 'job': os.environ['SLURM_JOB_ID'], 'MRI_or_model_read': False}
+try:
+ import torch
+ assert os.uname().nodename == 'evc26'
+ assert torch.cuda.is_available() and torch.cuda.device_count() == 1
+ props = torch.cuda.get_device_properties(0)
+ assert 'H100' in props.name
+ x = torch.tensor([1.0], device='cuda'); y = x + 1
+ torch.cuda.synchronize(); assert y.item() == 2.0
+ out.update(status='assigned_context_accepted_for_relocation_decision', GPU=props.name, visible=os.environ.get('CUDA_VISIBLE_DEVICES'))
+except Exception as e:
+ out.update(status='placement_rejected_before_data_or_model', error_type=type(e).__name__, error=str(e))
+out['elapsed_seconds'] = time.monotonic() - start
+print(json.dumps(out), flush=True)
+raise SystemExit(0 if out['status'] == 'assigned_context_accepted_for_relocation_decision' else 1)
+'''
+program = '''import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+assert os.uname().nodename=='evc26'
+root=Path('/tmp/rsna-path-placement-queued-20261018-v2')
+assert not root.exists(), 'Existing original control: reconcile read-only'
+runtime=Path('/tmp/rsna-environment-906337-gdraqwzl/environment/bin/python')
+assert runtime.is_file()
+free=shutil.disk_usage('/tmp').free
+assert free>603433009211+256*1024, 'Existing funded reserve plus new bounded controls'
+root.mkdir(mode=0o700)
+probe=PROBE
+(root/'probe.py').write_text(probe)
+script='#!/bin/bash\\nset -eu\\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1\\n'+str(runtime)+' -B '+str(root/'probe.py')+'\\n'
+(root/'run.sbatch').write_text(script)
+args=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=4G','--time=00:01:00','--no-requeue','--job-name=rsna-new-path-placement','--output='+str(root/'%j.stdout'),'--error='+str(root/'%j.stderr'),str(root/'run.sbatch')]
+receipt={'node':os.uname().nodename,'free_bytes':free,'control_cap_bytes':256*1024,'new_MRI_transfers':0,'existing_jobs_unchanged':[955582,955711,955712],'probe_sha256':hashlib.sha256(probe.encode()).hexdigest(),'dispatch_intent':args}
+(root/'intent.json').write_text(json.dumps(receipt,indent=2))
+p=subprocess.run(args,text=True,capture_output=True)
+receipt.update(returncode=p.returncode,stdout=p.stdout,stderr=p.stderr)
+(root/'dispatch.json').write_text(json.dumps(receipt,indent=2))
+assert sum(p.stat().st_size for p in root.iterdir() if p.is_file())<256*1024
+print(json.dumps(receipt))
+raise SystemExit(p.returncode)
+'''.replace('PROBE', repr(probe))
+remote=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','--job-name=rsna-queue-placement-control','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','python3','-']
+intent.write_text(json.dumps({'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'new_scheduler_evidence':'test-only evc26 predicts06:22 cluster local vs evc33 10:53; original immediate probe had zero allocations','max_gpu_minutes':1,'max_GPU_jobs':1,'original_jobs_unchanged':[955582,955711,955712]},indent=2)+'\n')
+p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(remote)],input=program,text=True,capture_output=True)
+(LOCAL/'dispatch.response.json').write_text(json.dumps({'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},indent=2)+'\n')
+print(p.stdout);print(p.stderr)
+raise SystemExit(p.returncode)

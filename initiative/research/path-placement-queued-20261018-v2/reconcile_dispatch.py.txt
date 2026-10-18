@@ -1,0 +1,28 @@
+"""Correct one pre-exec Python3.6 keyword failure; never retry an unknown sbatch."""
+import json
+from pathlib import Path
+import shlex
+import subprocess
+root=Path('artifacts/path-placement-queued-20261018-v2')
+prior=json.loads((root/'dispatch.response.json').read_text())
+assert prior['returncode']==1 and "unexpected keyword argument 'text'" in prior['stderr']
+intent=root/'recovery.intent.json';assert not intent.exists()
+program='''import json,hashlib,os,subprocess
+from pathlib import Path
+r=Path('/tmp/rsna-path-placement-queued-20261018-v2')
+assert os.uname().nodename=='evc26'
+i=json.loads((r/'intent.json').read_text())
+assert hashlib.sha256((r/'probe.py').read_bytes()).hexdigest()==i['probe_sha256']
+assert not (r/'dispatch.json').exists() and not (r/'dispatch-recovery-intent.json').exists()
+s=(r/'run.sbatch').read_text();assert s.startswith('#!/bin/bash\\n') and '\\\\n' not in s
+q=subprocess.run(['squeue','-h','-u','sa305415','-o','%j'],universal_newlines=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+assert q.returncode==0 and 'rsna-new-path-placement' not in q.stdout.splitlines()
+(r/'dispatch-recovery-intent.json').write_text(json.dumps({'prior_CPU':956313,'cause':'Python3.6 text keyword failed before Popen; no GPU submitted','same_original_probe':i['probe_sha256']}))
+p=subprocess.run(i['dispatch_intent'],universal_newlines=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+out=dict(i,returncode=p.returncode,stdout=p.stdout,stderr=p.stderr,CPU_job=os.environ['SLURM_JOB_ID'])
+(r/'dispatch.json').write_text(json.dumps(out,indent=2));print(json.dumps(out));raise SystemExit(p.returncode)
+'''
+intent.write_text(json.dumps({'prior_CPU_failure':956313,'no_sbatch_executed':True,'reconcile_original_control_before_one_submission':True},indent=2)+'\n')
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','--job-name=rsna-placement-control-fix','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','python3','-']
+p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=program,text=True,capture_output=True)
+(root/'recovery.response.json').write_text(json.dumps({'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},indent=2)+'\n');print(p.stdout);print(p.stderr);raise SystemExit(p.returncode)

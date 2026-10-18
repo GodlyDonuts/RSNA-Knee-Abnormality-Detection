@@ -1,0 +1,35 @@
+{
+  "node": "evc26",
+  "free_bytes": 753479643136,
+  "control_cap_bytes": 262144,
+  "new_MRI_transfers": 0,
+  "existing_jobs_unchanged": [
+    955582,
+    955711,
+    955712
+  ],
+  "probe_sha256": "c2561a57275ffae8d8ed76290664bae8c6e50ef6f2c555240915127804dcca55",
+  "dispatch_intent": [
+    "sbatch",
+    "--parsable",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc26",
+    "--nodes=1",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:1",
+    "--mem=4G",
+    "--time=00:01:00",
+    "--no-requeue",
+    "--job-name=rsna-new-path-placement",
+    "--output=/tmp/rsna-path-placement-queued-20261018-v2/%j.stdout",
+    "--error=/tmp/rsna-path-placement-queued-20261018-v2/%j.stderr",
+    "/tmp/rsna-path-placement-queued-20261018-v2/run.sbatch"
+  ],
+  "returncode": 0,
+  "stdout": "956315\n",
+  "stderr": "",
+  "CPU_job": "956314"
+}

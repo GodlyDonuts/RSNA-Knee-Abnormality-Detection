@@ -1,5 +1,13 @@
 # Execution handoff
 
+October18 queue acceleration attempt: NEW assigned-context probe956315 actually
+allocated evc26 and FAILED1:0/3seconds with CUDAError101 invalid device ordinal,
+before MRI/model/optimizer reads. No asset transfer, training restart or device
+isolation bypass. Original955582/955711/12 unchanged. PriorCPU956313failed its
+Python3.6 subprocess keyword before sbatch; reconciledCPU956314submitted once.
+Read path-placement-queued-20261018-v2; no immediate probe retry.
+
+
 October18 supervision queue resumed: sixth complete original fitting-study
 packet sent ONCE to actual existing Daenerys UI, read/acknowledged and Thinking.
 All39native image sheets/7series/226slices and exact source report are present.
