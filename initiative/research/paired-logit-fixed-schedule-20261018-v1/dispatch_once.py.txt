@@ -1,0 +1,12 @@
+"""One bounded CPU-only new schedule construction; never repeat an uncertain run."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+ROOT=Path.cwd();D=Path(__file__).resolve().parent;L=ROOT/'artifacts/paired-logit-fixed-schedule-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists();git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+worker=(D/'worker.py.txt').read_text();helper=(ROOT/'rsna/competitive/paired_logit_control.py').read_text()
+for name,text in [(D.relative_to(ROOT).as_posix()+'/worker.py.txt',worker),('rsna/competitive/paired_logit_control.py',helper)]:assert subprocess.check_output(['git','show',git+':'+name],text=True)==text
+T=ROOT/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('bounded_source_stdin',T);transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
+sampler={n:hashlib.sha256(subprocess.check_output(['git','show','a420bd2ed38c657e1296881f0294917e6d466373:'+n])).hexdigest() for n in ('rsna/competitive/licensed_importance.py','rsna/competitive/licensed_parent_train.py')}
+v={'source_git':git,'worker_sha256':hashlib.sha256(worker.encode()).hexdigest(),'control_source':helper,'control_sha256':hashlib.sha256(helper.encode()).hexdigest(),'original_sampler_files':sampler}
+(L/'intent.json').write_text(json.dumps({k:value for k,value in v.items() if k!='control_source'},indent=2)+'\n')
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=6G','--time=00:15:00','--job-name=rsna-new-fixed-correction-schedule','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',transport.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=transport.envelope(worker,v),capture_output=True,text=True,timeout=1000);(L/'response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'New schedule stopped; reconcile original root read-only, no automatic retry: '+x.stderr[-1000:];out=json.loads(x.stdout);(D/'actual.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
