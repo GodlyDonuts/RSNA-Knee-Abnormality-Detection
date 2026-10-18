@@ -1,0 +1,86 @@
+"""One fitting-only CPU audit; reuse original feature and model proofs in place."""
+import hashlib, json, os, shutil, subprocess, sys, time
+from pathlib import Path
+import numpy as np
+import torch
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ['SLURM_CPUS_PER_TASK']=='1'
+torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'parent-delta-schedule-v1';S=R/'code'
+assert not D.exists() and sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+2*2**20<32*2**20
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');FAMILY=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid(P)<3*2**30 and paid(FAMILY)<4*2**30
+required=603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(FAMILY))
+assert shutil.disk_usage('/tmp').free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+meta=json.loads((R/'staged.json').read_text());assert meta['source_git']=='be837f9b569b16942e6cd290a7898b4a75863766'
+assert all(sha(S/n)==h for n,h in meta['source_files'].items())
+sys.path.insert(0,str(S))
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.competitive.mil_sampling import readout_moments
+scope={'__name__':'private_finding_strata_fixed_audit'}
+assert hashlib.sha256(v['module_source'].encode()).hexdigest()==v['module_sha256']
+exec(compile(v['module_source'],'finding_strata_source','exec'),scope)
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');admission=json.loads((F/'full-input-admitted.json').read_text())
+assert admission['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted' and admission['all3887_feature_members_exact_size_SHA_NPY_metadata'] is True
+index=F/'full-features/index.private.json';assert sha(index)==admission['binding']['feature_index_sha256']=='5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113'
+records=json.loads(index.read_text())['records'];uids=[r['study_uid'] for r in records]
+assert len(uids)==3887 and uids==sorted(uids) and len(set(uids))==3887
+assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+data=FrozenFeatures(records,roots,np.zeros((3887,12),dtype=np.float32),np.zeros((3887,12),dtype=bool),{'scope':'fixed_label_free_teacher_fidelity_only'})
+headpath=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt')
+assert headpath.stat().st_size==1122765 and sha(headpath)=='8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5'
+head=torch.load(headpath,map_location='cpu',weights_only=True)
+proposal_proof=json.loads((R/'proposal-table/accepted.json').read_text());assert proposal_proof['CPU_job']=='940658' and proposal_proof['proposal_table']['sha256']=='e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e'
+table=np.load(R/'proposal-table/proposals.private.npy',mmap_mode='r',allow_pickle=False);assert table.shape==(3887,94) and table.dtype==np.float64
+assert sha(S/'rsna/competitive/licensed_importance.py')=='fc3fcedfc52fc922b82f7cb8e2034b6d7526d65c536c2ae8163aa8de1d3dafe4'
+from rsna.competitive.licensed_importance import Recipe
+recipe=Recipe(role='influence');assert recipe.seed==20261016 and recipe.epochs==3 and recipe.windows==16
+original=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert original.stat().st_size==483656 and sha(original)=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(original,allow_pickle=False) as a:
+ assert a['uids'].tolist()==uids
+ teachers=a['parent_logits'].copy()
+assert teachers.shape==(3887,2,12) and teachers.dtype==np.float32 and np.isfinite(teachers).all()
+D.mkdir(mode=0o700)
+intent={'source_git':v['source_git'],'program_sha256':v['program_sha256'],'module_sha256':v['module_sha256'],'population':3887,'epochs':3,'sampler_seed':20261016,'node_local_cap_bytes':2*2**20,'within_original_controls_cap_bytes':32*2**20,'GPU_or_classifier_or_entry_admission':False,'automatic_retry':False}
+for name,content in [('schedule.py',v['module_source']),('intent.json',json.dumps(intent,indent=2)+'\n')]:
+ with (D/name).open('x') as f:os.fchmod(f.fileno(),0o600);f.write(content)
+start=time.monotonic();positions=np.empty((3,3887,16),dtype=np.uint8);mirrors=np.empty((3,3887),dtype=bool);sampled=np.empty((3,3887,12),dtype=np.float32)
+max_reference=0.0;max_full_reference=0.0;before=torch.get_rng_state().clone();np_before=np.random.get_state()
+for i,uid in enumerate(uids):
+ features,cached_teacher,*_=data[i]
+ assert np.array_equal(cached_teacher.numpy(),teachers[i])
+ w0,v0,bias,full_probability=readout_moments(head,features)
+ max_full_reference=max(max_full_reference,float(np.max(np.abs(1/(1+np.exp(-((w0*v0).sum(1)+bias)))-torch.from_numpy(teachers[i]).sigmoid().numpy()))))
+ p,m=scope['plan'](uid,recipe,table[i]);positions[:,i]=p;mirrors[:,i]=m
+ sampled[:,i]=scope['teacher_logits'](features,head['model'],p,m,table[i])
+ for e in range(3):
+  ix=p[e].astype(np.int64);view=int(m[e]);a=w0[view,ix]/table[i,ix,None]
+  exact=1/(1+np.exp(-((a*v0[view,ix]).sum(0)/a.sum(0)+bias)))
+  max_reference=max(max_reference,float(np.max(np.abs(exact-torch.from_numpy(sampled[e,i]).sigmoid().numpy()))))
+ if (i+1)%512==0:(D/'progress.json').write_text(json.dumps({'completed_studies':i+1,'population':3887,'elapsed_seconds':time.monotonic()-start})+'\n')
+assert max_reference<=2e-6 and max_full_reference<=1e-5
+schedule=scope['Schedule'](uids,positions,mirrors,sampled,table,recipe)
+assert torch.equal(before,torch.get_rng_state());np_after=np.random.get_state();assert np_before[0]==np_after[0] and np.array_equal(np_before[1],np_after[1]) and np_before[2:]==np_after[2:]
+with (D/'scheduled-parent-logits.private.npz').open('xb') as f:
+ os.fchmod(f.fileno(),0o600);np.savez_compressed(f,positions=positions,mirrors=mirrors,parent_sampled_logits=sampled)
+path=D/'scheduled-parent-logits.private.npz'
+with np.load(path,allow_pickle=False) as a:
+ assert set(a.files)=={'positions','mirrors','parent_sampled_logits'}
+ replay=scope['Schedule'](uids,a['positions'],a['mirrors'],a['parent_sampled_logits'],table,recipe)
+ assert replay.binding==schedule.binding
+reference=np.stack([teachers[np.arange(3887),mirrors[e].astype(int)] for e in range(3)])
+full=torch.from_numpy(reference);small=torch.from_numpy(sampled);delta=full-small
+corrected=small+delta;before_error=(small.sigmoid()-full.sigmoid()).double();after_error=(corrected.sigmoid()-full.sigmoid()).double()
+assert after_error.abs().max().item()<=2e-6
+binding={**schedule.binding,'source_git':v['source_git'],'parent_readout_sha256':sha(headpath),'feature_index_sha256':sha(index),'original_target_file_sha256':sha(original),'original_proposal_file_sha256':proposal_proof['proposal_table']['sha256'],'teacher_file':{'bytes':path.stat().st_size,'sha256':sha(path)},'clinical_labels_or_masks_loaded':False,'original_models_labels_masks_teacher_or_schedule_changed':False,'new_GPU_or_dataset_or_entry':False,'actual_GPU_FP16_dropout_acceptance':False}
+with (D/'binding.json').open('x') as f:os.fchmod(f.fileno(),0o600);f.write(json.dumps(binding,indent=2)+'\n')
+out={'status':'actual_full3887_three_epoch_parent_same_bag_FP32_schedule_CPU_materialized','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'module_sha256':v['module_sha256'],'program_sha256':v['program_sha256'],'binding':binding,'population':3887,'epochs':3,'windows':16,'scheduled_bags':11661,'all_original_bags_mirrors_and_densities_replayed':True,'original_target_teacher_logits_equal_original_feature_members':True,'maximum_FP32_sampled_probability_error_against_FP64_reference':max_reference,'maximum_original_full_teacher_probability_error':max_full_reference,'deterministic_readout_anchor_probability_gradient_RMS_before_all12':before_error.square().mean((0,1)).sqrt().tolist(),'deterministic_readout_anchor_probability_gradient_RMS_after_all12':after_error.square().mean((0,1)).sqrt().tolist(),'maximum_deterministic_corrected_probability_roundoff':after_error.abs().max().item(),'global_CPU_Torch_and_numpy_RNG_unchanged':True,'private_arrays_remain_on_owning_node_only':True,'shared_bytes_files_added':0,'new_GPU_Dataset_encoder_optimizer_or_competition_mutations':0,'actual_GPU_FP16_dropout_or_accuracy_claim':False,'retained_bytes':paid(D),'elapsed_seconds':time.monotonic()-start}
+with (D/'actual.json').open('x') as f:os.fchmod(f.fileno(),0o600);f.write(json.dumps(out,indent=2)+'\n')
+assert paid(D)<2*2**20 and paid(R)<32*2**20
+print(json.dumps(out),flush=True)
