@@ -1,0 +1,19 @@
+"""Admit one new private LR-comparison storage obligation; no GPU/data copy."""
+import json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/encoder-lr-comparison-20261018-v1');L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'storage-intent.json').exists()
+program='''import json,os,shutil
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-licensed-parent-pixels-full-20261016-v1');paid_cache=sum((lambda r:r['archive_bytes']+r['index_bytes'])(json.loads(p.read_text())) for p in C.glob('shard-*/collected/verified.json'))
+O=Path('/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1');paid_models=sum(json.loads(p.read_text())['retained_original_bytes'] for p in O.glob('epoch-*/verified.json'))
+R=Path('/tmp/rsna-licensed-importance-full-epochs-20261017-v1');paid_new=sum(json.loads(p.read_text())['retained_original_bytes'] for p in R.glob('*/epoch-*/verified.json'))
+old_floor=689890867139-paid_cache-paid_models+12*2**30+16*2**20-paid_new+256*1024
+newcap=4*2**30+16*2**20;free=shutil.disk_usage('/tmp').free;result={'CPU_job':os.environ['SLURM_JOB_ID'],'node':'evc39','free_bytes':free,'all_old_funded_floor':old_floor,'new_checkpoint_cap_bytes':4*2**30,'new_small_cap_bytes':16*2**20,'new_beyond_all_liabilities_bytes':free-old_floor-newcap,'deletion_credit':0,'new_transfer_or_GPU':False}
+if free<=old_floor+newcap:result['status']='new_LR_storage_not_funded';print(json.dumps(result));raise SystemExit(0)
+D=Path('/tmp/rsna-encoderLR3e5-private-epochs-20261018-v1');assert not D.exists();D.mkdir(mode=0o700);result['status']='new_LR_private_three_epoch_storage_admitted';(D/'funding-admitted.json').write_text(json.dumps(result,indent=2)+'\\n');print(json.dumps(result))
+'''
+(L/'storage-intent.json').write_text(json.dumps({'node':'evc39','cap_bytes':4*2**30+16*2**20,'one_CPU_zero_GPU':True,'automatic_retry':False})+'\n')
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc39','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','--job-name=rsna-new-LR-storage','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','CUDA_VISIBLE_DEVICES=','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True);(L/'storage-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr
+out=json.loads(x.stdout);(D/'actual-storage-admission.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

@@ -1,5 +1,16 @@
 # Execution handoff
 
+October18 NEW encoder-LR comparison E1accepted ONCE as Kaggle139394879v1,
+source51aa28fcf645/scienced6af9194: same3887influence fit/3epochs/1458updates,
+only encoderLR3e-6 to3e-5; head remains3e-5. No gain is known. Original owner55793
+stopped on Kaggle slug lowercase normalization AFTER acceptance; read-only
+reconciliation956619 preserved exact source/version, no duplicate push. Finite
+successor55986follows original E1then at mostE2/E3, preserving each epoch once.
+Latest956628API status null: accepted, NOT observed running/scored. Actual fresh
+62,833VMseconds covers61,800fit+existing finding+reserve; no paid quota enabled.
+Node39private4GiB+16MiB admitted. Source/receipts: encoder-lr-comparison-20261018-v1.
+Original family/finding/path owners intact; old fullQA/MRI audits not replayed.
+
 October18 new encoder-adaptation evidence: CPU956497 measured existing E1-to-E3
 uniform/influence encoder relativeL2 movement0.04259%/0.04191%; heads0.6130%/
 0.6253%, BN buffers unchanged. Nearly every encoder parameter updates. This is

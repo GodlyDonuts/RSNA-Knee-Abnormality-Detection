@@ -1,5 +1,16 @@
 # Research brief
 
+October18 NEW encoder-LR comparison E1accepted ONCE as Kaggle139394879v1,
+source51aa28fcf645/scienced6af9194: same3887influence fit/3epochs/1458updates,
+only encoderLR3e-6 to3e-5; head remains3e-5. No gain is known. Original owner55793
+stopped on Kaggle slug lowercase normalization AFTER acceptance; read-only
+reconciliation956619 preserved exact source/version, no duplicate push. Finite
+successor55986follows original E1then at mostE2/E3, preserving each epoch once.
+Latest956628API status null: accepted, NOT observed running/scored. Actual fresh
+62,833VMseconds covers61,800fit+existing finding+reserve; no paid quota enabled.
+Node39private4GiB+16MiB admitted. Source/receipts: encoder-lr-comparison-20261018-v1.
+Original family/finding/path owners intact; old fullQA/MRI audits not replayed.
+
 October18 verified score update: exact public R6 reproduction57333150 is
 COMPLETE with actual publicAUC0.958, no error, authenticatedCPU955446. This
 supersedes all older pending/unreported R6 and best0.950 statements below.

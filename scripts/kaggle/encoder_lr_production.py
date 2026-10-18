@@ -38,7 +38,12 @@ def build(*args, segment, previous=None):
     """
     if type(segment) is not int or not 1 <= segment <= 3:
         raise ValueError("Fixed three epochs required")
-    source, meta = original.build(*args, "influence", 1)
+    if len(args) != 6:
+        raise ValueError("Six original source/input admission arguments required")
+    accepted_source, actual, files, proofs, proposal, source_git = args
+    source, meta = original.build(
+        accepted_source, actual, files, proofs, proposal, source_git, "influence", 1
+    )
     values = literals(source)
     old = values["BINDING"]
     binding = {
