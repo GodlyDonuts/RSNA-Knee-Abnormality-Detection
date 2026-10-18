@@ -3,7 +3,10 @@
 The deterministic label-values-only candidate completed all1458updates and all
 three private epoch backups. No disease score exists yet, so combining supervision
 remains unproved. Original training owner18386 is terminal success. Reconciled
-scoring owner43079 pushed actual qualification139366373v1, currently RUNNING.
+scoring owner43079 completed qualification139366373v1 and offline public
+run139367736v1. Exact32MRI/bothT4/graph equivalence and the public3row13column
+output passed. At2026-10-18 06:44UTC authenticated account allowance was zero
+(five entries today); no family competition entry or hidden score exists yet.
 Original40013 stopped before preparation at a reserve check and was not restarted.
 
 The original licensed-parent control consumes the Steven composite report-label
@@ -55,3 +58,9 @@ source-confusion model, and do not treat agreement with its own mixture labels
 as clinical validation. No protected gold/confirmation target values were used
 for this construction. See actual-materialized-overlay.json and the neighboring
 multisource-influence-v1 original recovery/epoch receipts for exact evidence.
+
+A separate fitting-only observation auditCPU955379 found both-source-unmentioned
+cells contribute4.64%of pooled per-cell source logit-gradient energy at the
+stored-teacher counterfactual. It does not establish MRI truth or justify a
+blanket masking/anchor-weight change. See
+[actual attribution result](../../../research/source-observation-gradient-20261018-v1/result.md).

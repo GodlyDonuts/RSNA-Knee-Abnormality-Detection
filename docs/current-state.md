@@ -15,8 +15,19 @@ Original38017stopped at pre-collection reserve gate955166; waiter41043terminal
 without scoring mutation. Distinct continuation43912preserved E1then pushed
 E2kernel139369133v1/source9f4c9837d530 ONCE, samebf362cddscience/recipe/inputs/
 optimizer state. It owns only E2/E3and preservation. Do not repeat E1 or old owners.
-Next rebind finding fixed-final scoring to this actual continuation; old41043is
-not an active evaluator. Read finding-full-funding-recovery-20261018-v2.
+Distinct postfit evaluator44793 is live, staged byCPU955328, waiting for
+actual continuation43912 and all six-object final-epoch private proofs. It owns
+at most one qualification/public run/code entry; no final finding score exists.
+Old41043 is terminal. Read finding-final-scoring-recovery-20261018-v2 and
+finding-full-funding-recovery-20261018-v2.
+
+Actual fitting-only source-observation auditCPU955379 does not support blanket
+unmentioned-cell gradient dominance:3967/46644cells account for4.64%of pooled
+source logit-gradient energy at the stored-teacher counterfactual. This is not
+an actual student trajectory, network gradient or disease score. Concentrated
+Baker's/Synovitis source-definition differences are not confirmed errors. Do not
+launch blanket masking/alpha sweeps from this result; preserve current fits.
+Read initiative/research/source-observation-gradient-20261018-v1/result.md.
 
 CPU955076 retired ONLY512MiB UNUSED completed-family future capacity:4to3.5GiB,
 all3.516GB originals retained plus242MB buffer. RetirementSHAf210549e. New guards
