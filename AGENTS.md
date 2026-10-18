@@ -1,5 +1,8 @@
 # RSNA Knee: current agent guide
 
+October18 ninth original candidate reviews209643/217870bytes are collected unchanged/SHA/source-bound to all62refs/342slices/10series;12literal report quotes match. Medial Meniscus changes negative to uncertain after report, not accepted-label correction; independent tool chronology uncollected. Requested14native paired-window images+manifest uploaded ONCE/all15sizesSHA/access matched, appendedsequence3with all162priorblocks unchanged and76uniqueMRIrefs. Same-studyfollowup Read11:11EDT/acknowledged/Thinking; waitoriginaladdendum beforecase10. Private clinical originals/refs/proof stay ignored. See daenerys-multimodal-study-review-v1/ninth-original-reviews-and-requested14-views-20261018.json.
+
+
 October18 offline correction-input staging: originalCPU959030failed ZIP ordering BEFORE any Dataset RPC;959053refused old shared control cap BEFORE intent. Separate2MiB sibling ZIP959064preserved originals/live32MiBcap and made ONE CreateDataset RPC, which returned503ServiceUnavailable. Read-only959084found no target in complete76-owned/five-page listing; uncertain original ledger row/intent retained, dead959064globalclaim released, no retry. No accepted Dataset/GPUfit/entry. Existing model owners all live. See paired-correction-kaggle-input-20261018-v1; future exactslug reconciliation READ-ONLY, never rerun create wrappers.
 
 
