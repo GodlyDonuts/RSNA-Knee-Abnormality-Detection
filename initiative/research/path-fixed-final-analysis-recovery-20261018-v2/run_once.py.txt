@@ -1,0 +1,16 @@
+"""One CPU-only recovery of failed analysis; no fitting or publication repeats."""
+import ast,hashlib,json,shlex,subprocess
+from pathlib import Path
+ROOT=Path.cwd();D=Path(__file__).resolve().parent;L=ROOT/'artifacts/path-fixed-final-analysis-recovery-20261018-v2';L.mkdir(mode=0o700,parents=True,exist_ok=True)
+old=ROOT/'initiative/audits/spatial-reader-fixed-final-20261017-v1/analyze_once.py.txt';t=old.read_text();n=next(n for n in ast.parse(t).body if isinstance(n,ast.FunctionDef) and n.name=='paired_metrics');paired=ast.get_source_segment(t,n);rank=(ROOT/'scripts/rank_learning.py').read_text();p=(D/'program.py.txt').read_text();proof=json.loads((ROOT/'initiative/research/path-full-training-20261018-v1/actual-submitted.json').read_text());pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+for arm in ('aligned','null'):
+ for epoch in (1,2,3):
+  r=json.loads((ROOT/f'initiative/research/path-full-training-20261018-v1/{arm}-epoch-{epoch:03d}-private-verified.json').read_text());assert r['arm']==arm and r['epoch']==epoch and r['source_git']==proof['source_git'] and r['all_bytes_fully_re_downloaded'] is True
+assert 'NameError' in json.loads((ROOT/'artifacts/path-full-training-20261018-v1/analysis.result.json').read_text())['stderr']
+v={'program':p,'source_git':proof['source_git'],'analysis_source_git':pin,'jobs':proof['jobs'],'root':'/tmp/rsna-criterion-N3-features-20261017-v1/dense-online-input-fp32-v2/full-path-production-v1','rank_source':rank,'paired_source':paired}
+with (L/'intent.json').open('x') as f:json.dump({'source_git':pin,'training_source_unchanged':proof['source_git'],'program_sha256':hashlib.sha256(p.encode()).hexdigest(),'rank_source_sha256':hashlib.sha256(rank.encode()).hexdigest(),'paired_source_sha256':hashlib.sha256(paired.encode()).hexdigest(),'original_failed_analysis_CPU':959352,'new_fits_GPU_entries_checkpoint_publications':0,'automatic_retry':False},f,indent=2)
+b='import io,json,sys;v=json.load(sys.stdin);sys.stdin=io.StringIO(json.dumps(v));exec(compile(v["program"],"new_original_fixed_final_wrapper_recovery","exec"),{"__name__":"__main__"})';a=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-new-path-final-analysis-v2','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',b]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps(v),capture_output=True,text=True,timeout=1000);(L/'response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Reconcile original new analysis output; no automatic repeat: '+x.stderr[-1500:];out=json.loads(x.stdout)
+for target in (D/'actual-fixed-final-comparison.json',ROOT/'initiative/research/path-full-training-20261018-v1/actual-fixed-final-comparison.json'):
+ with target.open('x') as f:json.dump(out,f,indent=2,allow_nan=False);f.write('\n')
+print(json.dumps(out,allow_nan=False),flush=True)

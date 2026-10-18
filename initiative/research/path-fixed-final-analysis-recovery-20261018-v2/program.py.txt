@@ -1,0 +1,22 @@
+
+import hashlib,json,os,sys,types,subprocess
+from pathlib import Path
+import numpy as np,pandas as pd
+v=json.load(sys.stdin);P=Path(v['root']);a=json.loads((P/'admitted.json').read_text());assert a['source_git']==v['source_git']
+terminal=subprocess.check_output(['sacct','-j','955711,955712,959352','-X','-n','-P','-o','JobIDRaw,State,ExitCode'],text=True);assert all(j+'|COMPLETED|0:0' in terminal for j in ('955711','955712')) and '959352|FAILED|1:0' in terminal;assert not (P/'fixed-final-comparison.json').exists()
+R=P.parents[1];sys.path.insert(0,str(R/'reader-engine-recovery-v2/code'))
+from rsna.schema import TARGETS
+results={arm:json.loads((P/arm/'result.json').read_text()) for arm in ('aligned','null')}
+assert all(x['optimizer_updates']==843 and x['epochs']==3 and x['source_git']==v['source_git'] for x in results.values())
+member=json.loads((R/'membership.private.json').read_text());ids=member['outer'];assert len(ids)==1156
+release=Path('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet')
+cols=['study_uid','leakage_group',*TARGETS,*[t+'__mask' for t in TARGETS]]
+labels=pd.read_parquet(release,columns=cols,filters=[('study_uid','in',ids)]).set_index('study_uid').loc[ids]
+models={arm:pd.read_csv(P/arm/'outer_predictions.csv',dtype={'study_uid':str}).set_index('study_uid') for arm in ('aligned','null')}
+base=[(P/arm/'unchanged_parent_outer_predictions.csv').read_bytes() for arm in ('aligned','null')];assert base[0]==base[1]
+models['parent']=pd.read_csv(P/'aligned/unchanged_parent_outer_predictions.csv',dtype={'study_uid':str}).set_index('study_uid')
+rank_path=P/'rank-analysis-source-v2.py';assert not rank_path.exists() and sum(q.stat().st_size for q in P.rglob('*') if q.is_file())+len(v['rank_source'].encode())+128*1024<12*2**20;rank_path.write_text(v['rank_source']);lib=types.ModuleType('original_component_uncertainty');lib.__file__=str(rank_path);exec(compile(v['rank_source'],str(rank_path),'exec'),lib.__dict__)
+scope={'np':np,'hashlib':hashlib,'TARGETS':TARGETS,'ROLES':('aligned','null','parent'),'CONTRASTS':(('aligned','null'),('aligned','parent'),('null','parent'))};exec(compile(v['paired_source'],'unchanged_paired_metric_function','exec'),scope)
+metrics=scope['paired_metrics'](labels,models,lib,draws=4000,seed=20261017)
+out={'status':'actual_new_full_dense_path_fixed_final_comparison','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'jobs':v['jobs'],'studies':1156,'epochs':3,'updates_per_arm':843,'metrics':metrics,'simultaneous_parent_predictions_equal':True,'internal_weak_label_not_Kaggle_or_clinical_truth':True,'direct_production_step0_tensor_dump_collected':False,'all_six_new_epochs_privately_preserved':True,'no_automatic_promotion':True}
+out.update(original_failed_analysis_CPU=959352,wrapper_only_missing_file_binding_corrected=True,rank_function_source_sha256=hashlib.sha256(v['rank_source'].encode()).hexdigest(),paired_function_source_sha256=hashlib.sha256(v['paired_source'].encode()).hexdigest(),analysis_execution_source_git=v['analysis_source_git']);q=P/'fixed-final-comparison.json';assert not q.exists();q.write_text(json.dumps(out,indent=2,allow_nan=False)+'\n');print(json.dumps(out,allow_nan=False),flush=True)
