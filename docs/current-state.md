@@ -1,3 +1,5 @@
+October18 actual recovery: original S6 raw-input CPU961339 failed on missing directory-adapter CSVs after all67 DICOMs passed checks. Distinct CPU961406 reused those bytes, supplied original3series metadata/ID-only roster, and matched ALL248 image+metadata tensor bytes exactly (19.9647s render; no new downloads/GPU/disease inference). Read S6-HF-raw-input-bridge-recovery-20261018-v2. One smallest-source study is not a full-cohort cost bound. Original paired E2 completed972updates/all6private objects verifiedCPU961302/HFe0829a41; original81735 pushed E3ONCE139474998v1/source7e6aa56c, actualRUNNING961367. Scoring84527/R6source87761 still live and unchanged. Bounded one-study source-stream helper is prepared/synthetic-tested only; no full3887teacher/accuracy gain yet.
+
 # Current measured state
 
 Updated October 18, 2026. This page replaces historical running/pending snapshots;

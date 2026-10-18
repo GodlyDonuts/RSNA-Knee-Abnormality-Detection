@@ -1,6 +1,6 @@
 # Equal-rank teacher transport into one trainable MRI classifier
 
-October17 2026. **Target0.97; verified best0.949.** This is a falsifiable mechanism
+October17 2026 plan. At that point verified best was0.949. October18 update: actual best is0.958 from an external R6 reproduction; own influence fitting remains0.949. **Target0.97 remains unachieved.** This is a falsifiable mechanism
 and numerical preparation, not a trained model, new best score or promise.
 The [actual eight-study screen](../../../audits/s6-fitting8-cross-lineage-20261017-v1/README.md)
 shows raw probability shifts8–39points but substantially closer ordering. A raw

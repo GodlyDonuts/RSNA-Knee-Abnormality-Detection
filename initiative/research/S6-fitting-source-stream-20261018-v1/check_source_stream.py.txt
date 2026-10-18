@@ -1,0 +1,106 @@
+"""Exercise byte/cap/identity failures with synthetic source, never clinical data."""
+
+import copy
+import hashlib
+import importlib.util
+import io
+import tempfile
+import unittest
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "source_stream", SourceFileLoader("source_stream", str(D / "source_stream.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+
+
+class Stream(unittest.TestCase):
+    def setUp(self):
+        self.uid = "1.2.3"
+        self.body = b"original bytes"
+        self.rows = [
+            {
+                "study_uid": self.uid,
+                "series_uid": "1.2.4",
+                "sop_uid": "1.2.5",
+                "split": "train_series",
+                "path": "original/file",
+                "bytes": len(self.body),
+                "sha256": hashlib.sha256(self.body).hexdigest(),
+            }
+        ]
+        self.csv = ",".join(m.SERIES_COLUMNS) + "\n1.2.3,1.2.4,1,1,Sagittal\n"
+
+    def test_success_and_required_metadata(self):
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+
+            def open_(r):
+                calls.append(r["path"])
+                return io.BytesIO(self.body)
+
+            data, p = m.acquire(
+                Path(tmp),
+                uid=self.uid,
+                rows=self.rows,
+                series_csv=self.csv,
+                cap=1024,
+                workers=2,
+                opener=open_,
+            )
+            self.assertEqual((data / "train.csv").read_text(), "StudyInstanceUID\n1.2.3\n")
+            self.assertEqual((data / "train_series.csv").read_text(), self.csv)
+            self.assertEqual(calls, ["original/file"])
+            self.assertEqual(p["source_bytes"], len(self.body))
+            self.assertFalse(p["diagnosis_labels_read"])
+
+    def test_identity_and_metadata_refusals_before_fetch(self):
+        bad = []
+        for key, value in [
+            ("study_uid", "1.2.9"),
+            ("series_uid", "../escape"),
+            ("sop_uid", "../escape"),
+            ("bytes", 0),
+            ("sha256", "bad"),
+            ("split", "test_series"),
+        ]:
+            rows = copy.deepcopy(self.rows)
+            rows[0][key] = value
+            bad.append((rows, self.csv, 1024))
+        bad += [
+            (self.rows * 2, self.csv, 1024),
+            (self.rows, self.csv.replace("1.2.4", "1.2.8"), 1024),
+            (self.rows, self.csv.replace("Fluid_Sensitive", "Report"), 1024),
+            (self.rows, self.csv, 1),
+        ]
+        for rows, csv, cap in bad:
+            with self.subTest(rows=rows, csv=csv, cap=cap), self.assertRaises(ValueError):
+                m.validate(self.uid, rows, csv, cap)
+
+    def test_transport_corruption_retained_without_retry(self):
+        for body in [self.body[:-1], self.body + b"X", b"x" * len(self.body)]:
+            calls = []
+            with tempfile.TemporaryDirectory() as tmp:
+
+                def open_(r):
+                    calls.append(1)
+                    return io.BytesIO(body)
+
+                with self.assertRaises(ValueError):
+                    m.acquire(
+                        Path(tmp),
+                        uid=self.uid,
+                        rows=self.rows,
+                        series_csv=self.csv,
+                        cap=1024,
+                        workers=1,
+                        opener=open_,
+                    )
+                self.assertEqual(calls, [1])
+                self.assertEqual(len(list(Path(tmp).glob("*/source-failure.private.json"))), 1)
+
+
+unittest.main()

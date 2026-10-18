@@ -1,0 +1,133 @@
+"""Bounded one-study source buffer for the unchanged MRI renderer.
+
+The caller supplies a hash-bound source table and an authenticated stream opener.
+No clinical labels, model weights or credentials are stored by this module.
+"""
+
+from __future__ import annotations
+
+import csv
+import hashlib
+import io
+import json
+import re
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+SERIES_COLUMNS = (
+    "StudyInstanceUID",
+    "SeriesInstanceUID",
+    "Fluid_Sensitive",
+    "Fat_Suppression",
+    "Anatomical_Plane",
+)
+
+
+def validate(uid: str, rows: list[dict], series_csv: str, cap: int) -> int:
+    """Refuse inconsistent source identities/metadata before acquisition."""
+
+    def uid_ok(x):
+        return isinstance(x, str) and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", x) is not None
+
+    if not uid_ok(uid) or not rows or cap <= 0:
+        raise ValueError("Invalid study identity or source bound")
+    keys = set()
+    for row in rows:
+        key = (row["series_uid"], row["sop_uid"])
+        if (
+            row["study_uid"] != uid
+            or row["split"] != "train_series"
+            or not all(uid_ok(x) for x in key)
+            or key in keys
+            or not isinstance(row["bytes"], int)
+            or row["bytes"] <= 0
+            or re.fullmatch(r"[a-f0-9]{64}", row["sha256"]) is None
+        ):
+            raise ValueError("Source identity, multiplicity or byte/hash contract differs")
+        keys.add(key)
+    reader = csv.DictReader(io.StringIO(series_csv))
+    if tuple(reader.fieldnames or []) != SERIES_COLUMNS:
+        raise ValueError("Only original series metadata columns are accepted")
+    metadata = list(reader)
+    if (
+        any(r["StudyInstanceUID"] != uid for r in metadata)
+        or len({r["SeriesInstanceUID"] for r in metadata}) != len(metadata)
+        or {r["SeriesInstanceUID"] for r in metadata} != {r["series_uid"] for r in rows}
+    ):
+        raise ValueError("Source series metadata does not cover the exact study")
+    expected = sum(r["bytes"] for r in rows)
+    if expected + len(series_csv.encode()) + len(uid.encode()) + 32 > cap:
+        raise ValueError("Study source exceeds funded byte cap")
+    return expected
+
+
+def acquire(
+    root: Path, *, uid: str, rows: list[dict], series_csv: str, cap: int, workers: int, opener
+) -> tuple[Path, dict]:
+    """Acquire each source once; fail closed and retain owned partials on error.
+
+    opener(row) must return a context manager yielding a binary readable stream.
+    It must pin the admitted source revision. This helper never retries requests.
+    A caller may reclaim only this returned owned scratch after consuming its
+    verified tensors; it must preserve the independent source proof first.
+    """
+    expected = validate(uid, rows, series_csv, cap)
+    if not 1 <= workers <= 8:
+        raise ValueError("Source parallelism must be explicitly bounded")
+    root = root.resolve()
+    if not root.is_dir():
+        raise ValueError("Owner must admit the RAM/scratch root first")
+    owned = Path(tempfile.mkdtemp(prefix="fitting-study-", dir=root))
+    owned.chmod(0o700)
+    data = owned / "data"
+    data.mkdir(mode=0o700)
+    (data / "train_series.csv").write_text(series_csv)
+    (data / "train.csv").write_text("StudyInstanceUID\n" + uid + "\n")
+
+    def one(row):
+        p = data / "train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+        p.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        size = 0
+        with opener(row) as source, p.open("xb") as output:
+            while True:
+                chunk = source.read(min(65536, row["bytes"] - size + 1))
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > row["bytes"]:
+                    raise ValueError("Original source exceeded its exact byte bound")
+                digest.update(chunk)
+                output.write(chunk)
+        if size != row["bytes"] or digest.hexdigest() != row["sha256"]:
+            raise ValueError("Original source size/SHA verification failed")
+        return {"source_path": row["path"], "bytes": size, "sha256": digest.hexdigest()}
+
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            verified = list(pool.map(one, rows))
+        if sum(p.stat().st_size for p in data.rglob("*") if p.is_file()) > cap:
+            raise ValueError("Actual study buffer exceeded admitted source cap")
+        proof = {
+            "study_uid_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+            "files": verified,
+            "source_bytes": expected,
+            "source_cap_bytes": cap,
+            "series_csv_sha256": hashlib.sha256(series_csv.encode()).hexdigest(),
+            "diagnosis_labels_read": False,
+            "automatic_retry": False,
+        }
+        (owned / "source-proof.private.json").write_text(json.dumps(proof, sort_keys=True))
+        return data, proof
+    except BaseException as error:
+        (owned / "source-failure.private.json").write_text(
+            json.dumps(
+                {
+                    "error_type": type(error).__name__,
+                    "automatic_retry": False,
+                    "retained_for_reconciliation": True,
+                }
+            )
+        )
+        raise
