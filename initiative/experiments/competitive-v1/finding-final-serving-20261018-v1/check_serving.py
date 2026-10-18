@@ -27,6 +27,7 @@ def records():
             finding_allocation=copy.deepcopy(scope.ALLOCATION),
             actual_finding_recovery=copy.deepcopy(scope.RECOVERY),
         )
+    training["receipt"]["binding"].pop("finding_allocation")
     snapshot.update(epoch=3, completed=1458)
     training["epoch"] = 3
     training["receipt"].update(
@@ -133,3 +134,46 @@ def test_incomplete_or_wrong_model_preservation_refused(records, damage):
         training["receipt"]["fixed_final_complete"] = False
     with pytest.raises(ValueError):
         scope.validate(snapshot, training, publication, sha)
+
+
+def test_actual_final_receipt_does_not_invent_checkpoint_allocation(records):
+    import json
+
+    root = HERE.parents[3]
+    actual = json.loads(
+        (
+            root
+            / "initiative/research/finding-stratified-bags-20261018-v1/epoch-3-actual-accepted.json"
+        ).read_text()
+    )
+    publication = json.loads(
+        (
+            root
+            / "initiative/research/finding-stratified-bags-20261018-v1/epoch-3-private-verified.json"
+        ).read_text()
+    )
+    assert "finding_allocation" not in actual["receipt"]["binding"]
+    assert scope.provenance(actual, publication, actual["receipt"]["epoch"]["sha256"]) == 3
+    snapshot = records[0]
+    runtime = {
+        k: copy.deepcopy(snapshot["binding"][k])
+        for k in (
+            "recipe",
+            "version",
+            "population",
+            "population_sha256",
+            "world_size",
+            "total_steps",
+            "finding_allocation",
+        )
+    }
+    snapshot["binding"] = {**copy.deepcopy(actual["receipt"]["binding"]), **runtime}
+    assert (
+        scope.validate(snapshot, actual, publication, actual["receipt"]["epoch"]["sha256"])[
+            "completed"
+        ]
+        == 1458
+    )
+    snapshot["binding"]["finding_allocation"]["components_sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        scope.validate(snapshot, actual, publication, actual["receipt"]["epoch"]["sha256"])

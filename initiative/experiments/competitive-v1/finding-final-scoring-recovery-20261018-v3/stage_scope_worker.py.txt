@@ -1,0 +1,23 @@
+"""Admit corrected source/checkpoint field boundaries on the actual new final model."""
+import hashlib,importlib.util,json,os,shutil,sqlite3,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');R=P/'finding-strata-production-v1/final-serving-v1';T=R/'scope-correction-v2';assert not T.exists() and not (R/'finding').exists();original=json.loads((R/'accepted.json').read_text());assert original['CPU_job']=='954823';assert all(hashlib.sha256((R/n).read_bytes()).hexdigest()==h for n,h in original['source_files'].items())
+paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file());reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');ret=family/'completed-fixed3-unspent512MiB-retirement-v1.json';assert hashlib.sha256(ret.read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a';assert paid(R)+256*1024<2*2**20 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+a=json.loads((P/'finding-strata-full-fitting-v1/epoch-3/actual-accepted.json').read_text());Q=reader/'finding-strata-epoch-preservation-v1/epoch-003';publication=json.loads((Q/'verified.json').read_text());assert a==v['actual'] and publication==v['publication'];assert a['receipt']['completed']==1458 and publication['objects']==6 and publication['full_optimizer_privately_verified'] is True
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:assert db.execute('SELECT value FROM meta WHERE key=?',('licensed-parent-full-epoch-serving:'+a['receipt']['epoch']['sha256'],)).fetchone() is None
+for name,text in v['files'].items():compile(text,name,'exec')
+T.mkdir(mode=0o700)
+for name,text in v['files'].items():p=T/name;p.write_text(text);p.chmod(0o600)
+S=P/'full-comparison/final-matched-serving-v1/code';sys.path.insert(0,str(S));spec=importlib.util.spec_from_file_location('corrected_finding_notebook_compiler',T/'notebook.py');compiler=importlib.util.module_from_spec(spec);spec.loader.exec_module(compiler);scope=compiler.label_scope;assert 'finding_allocation' not in a['receipt']['binding'];sha=a['receipt']['epoch']['sha256'];assert scope.provenance(a,publication,sha)==3
+import torch
+torch.set_num_threads(1);weight=Q/'model.pt';assert weight.stat().st_size==a['receipt']['epoch']['bytes']==publication['files']['model.pt']['bytes'];snapshot=torch.load(weight,map_location='cpu',weights_only=True);accepted=scope.validate(snapshot,a,publication,sha);assert accepted['completed']==1458 and accepted['fixed_final_only']
+from copy import deepcopy
+bad=deepcopy(snapshot);bad['binding']['finding_allocation']['components_sha256']='0'*64
+try:scope.validate(bad,a,publication,sha)
+except ValueError:pass
+else:raise RuntimeError('Corrupted actual checkpoint allocation admitted')
+del bad,snapshot
+parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text();args=[(S/n).read_text() for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_importance_serving.py')]+[v['files']['serving.py']]+[(S/n).read_text() for n in ('rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')];modes={}
+for mode in ('qualification','competition'):
+ source,binding=compiler.build(parent,*args,a,publication,mode=mode);modes[mode]={'source_sha256':binding['source_sha256'],'model_sha256':binding['model_sha256'],'serving_windows':binding['serving_windows']};assert binding['fixed_final_only'] and binding['model_filename']=='epoch-003.pt'
+out={'status':'actual_fixed_final_finding_source_checkpoint_scope_corrected_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'original_template_CPU':'954823','source_git':v['source_git'],'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'actual_final_kernel':a['kernel_id'],'actual_final_model_sha256':sha,'source_receipt_checkpoint_allocation_absent':True,'actual_checkpoint_allocation_strictly_accepted':True,'corrupt_actual_checkpoint_allocation_rejected':True,'actual_full94_compiled_modes':modes,'weights_rehashed_or_transferred':False,'new_model_GPU_inference_or_entry':False,'no_training_restart':True};(T/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

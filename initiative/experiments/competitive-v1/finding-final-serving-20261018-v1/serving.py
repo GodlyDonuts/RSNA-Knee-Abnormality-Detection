@@ -44,7 +44,6 @@ def binding_ok(binding):
         and binding.get("component_file_sha256") == COMPONENT
         and binding.get("component_roster_sha256") == ROSTER
         and binding.get("original_target_sha256") == TARGET
-        and exact(binding.get("finding_allocation"), ALLOCATION)
         and exact(binding.get("actual_finding_recovery"), RECOVERY)
         and "multisource_supervision" not in binding
         and "source_label_role" not in binding
@@ -96,7 +95,9 @@ def provenance(training, publication, model_sha):
 
 def validate(snapshot, training, publication, model_sha):
     records = normalized(training, publication)
-    if not binding_ok(snapshot.get("binding", {})):
+    if not binding_ok(snapshot.get("binding", {})) or not exact(
+        snapshot.get("binding", {}).get("finding_allocation"), ALLOCATION
+    ):
         raise ValueError("Exact original-target sampling treatment binding required")
     result = base_validate(
         {**snapshot, "binding": {**snapshot["binding"], "production_plan": BASE_PLAN}},

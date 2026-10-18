@@ -17,7 +17,7 @@ label_scope = importlib.util.module_from_spec(_scope_spec)
 _scope_spec.loader.exec_module(label_scope)
 
 BASE_HELPER_SHA = "e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d"
-LABEL_HELPER_SHA = "68530d7a32197635c69df509a9908856ae6507c9226535316ec2e05dee70735a"
+LABEL_HELPER_SHA = "c4f4fe37908a85339895e13a121185a44f55b7ff8cdda72156cd60f79c6d3090"
 BASE_COMPILER_SHA = "9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2"
 
 
