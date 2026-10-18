@@ -43,3 +43,14 @@ existing canonical artifacts/qa-env (PID3950);118-module mypy passed. The first
 QA runner stopped before tests because global mypy was absent; that is recorded,
 not hidden. Global original lint/format debt remains. Wait for actual full-suite
 result before pushing this new source milestone to GitHub.
+
+`full_coordinator_worker.py.txt` prepares/pushes/observes one exact epoch under
+the canonical account claim. It accepts only the actual coupled recovery, retains
+one source pin across3epochs, refreshes quota/capacity/storage and reuses all
+original pixel inputs. Uncertain intents stop without retry. The first-epoch
+finite owner has at most one full-session push and no entry authority; it is
+prepared, not launched. `epoch_verify.py` retains every original complete-state
+check and adds exact family target/annotation/mask/teacher/recovery bindings.
+Twelve adverse synthetic state cases pass. The prepared owning-node collector
+retains optimizer locally and fully privately preserves/re-download-verifies the
+five immutable source/model/provenance objects. No collection has happened yet.

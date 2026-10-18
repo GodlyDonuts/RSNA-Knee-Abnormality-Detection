@@ -1,0 +1,111 @@
+"""Single canonical owner for one fixed-three-epoch family candidate; no entries."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+import requests
+
+v=json.load(sys.stdin);phase=v['phase'];epoch=v['epoch'];assert phase in ('prepare','push','status') and type(epoch) is int and 1<=epoch<=3
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-training-release-20261017-v1');T=P/'family-influence-production-template-v1';R=P/'family-influence-full-fitting-v1';D=R/('epoch-'+str(epoch))
+gate=json.loads((T/'CPU-admitted.json').read_text());assert gate['CPU_job']=='953014' and gate['all13_original_numerical_modules_byte_identical']
+compiler=T/'production.py';assert hashlib.sha256(compiler.read_bytes()).hexdigest()==gate['compiler_sha256']
+ns={};exec(compile(compiler.read_text(),'exact_family_influence_full_fit_compiler','exec'),ns)
+recovery=json.loads((P/'family-influence-recovery-v1/actual-accepted.json').read_text())
+assert recovery['status']=='COMPLETE' and recovery['source_sha256']==ns['RECOVERY'] and recovery['kernel_id']==139336728
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def module(path,expected):
+ assert hashlib.sha256(path.read_bytes()).hexdigest()==expected
+ spec=importlib.util.spec_from_file_location('immutable_family_'+path.stem,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module(C/'workflow.py','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>deadline:print(json.dumps({'status':'waiting_canonical_claim_no_mutation'}));raise SystemExit(0)
+  time.sleep(3)
+owner={'kind':'one_family_influence_full_candidate','phase':phase,'epoch':epoch,'CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('family-influence-label-recovery:'+ns['RECOVERY'],)).fetchone()[0]);assert row['state']=='family_recovery_actual_accepted' and row['actual']==recovery
+  storage=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');funding=json.loads((storage/'funding.json').read_text());assert funding['cap_bytes']==4*2**30
+  selection=json.loads((storage/'influence-selection-before-full-fit.json').read_text());assert selection['reference_submission']==57332456 and selection['fixed_target_sha256']==ns['TARGET'] and selection['epochs']==3
+  previous=None;previous_actual=None
+  if epoch>1:
+   previous_actual=json.loads((R/('epoch-'+str(epoch-1))/'actual-accepted.json').read_text());previous=previous_actual['receipt']
+   proof=json.loads((storage/('epoch-'+str(epoch-1).zfill(3))/'verified.json').read_text())
+   assert proof['status']=='actual_family_influence_epoch_private_full_download_size_SHA_verified' and proof['epoch']==epoch-1 and proof['original_Kaggle_kernel']==previous_actual['kernel_id'] and proof['original_source_sha256']==previous_actual['source_sha256']
+  if phase=='prepare':
+   assert not D.exists()
+   if epoch==1:
+    assert not R.exists();source_git=v['source_git']
+   else:source_git=json.loads((R/'source-pin.json').read_text())['source_git']
+   source,binding=ns['build'](Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/influence-epoch-1/source.private.py').read_text(),(T/'sampled_overlay.py').read_text(),(T/'influence_fit.py').read_text(),recovery,source_git,epoch,previous=previous)
+   sha=hashlib.sha256(source.encode()).hexdigest();slug='godlydonuts/rsna-family-influence-e'+str(epoch)+'-'+sha[:12];key='family-influence-full:'+sha
+   assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   assert sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+len(source.encode())+65536<16*2**20
+   D.mkdir(mode=0o700,parents=True)
+   if epoch==1:w.new_json(R/'source-pin.json',{'source_git':source_git,'fixed_epochs':3,'compiler_sha256':gate['compiler_sha256'],'actual_recovery_kernel':139336728,'reference_submission':57332456})
+   (D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600)
+   row={'state':'family_influence_full_prepared','slug':slug,'version':1,'source_sha256':sha,'epoch':epoch,'binding':binding,'source_git':source_git,'actual_recovery_kernel':139336728,'automatic_retry':False}
+   w.new_json(D/'prepared.json',row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+   print(json.dumps({'status':'family_influence_epoch_prepared_no_GPU','CPU_job':os.environ['SLURM_JOB_ID'],'prepared':row}),flush=True)
+  else:
+   prepared=json.loads((D/'prepared.json').read_text());sha=prepared['source_sha256'];slug=prepared['slug'];key='family-influence-full:'+sha
+   row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);source=(D/'source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==sha
+   F=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison');M=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')
+   proofs=json.loads((M/'actual-original-Kaggle-inputs.json').read_text())['proofs'];proposal=json.loads((F/'dataset-verified.json').read_text())
+   deps=['godlydonuts/rsna-parent-exact-pixels32-09254e97913d',*['godlydonuts/rsna-parent-pixels-full-s'+str(i)+'-'+p['source_sha256'][:12] for i,p in enumerate(proofs)]]
+   if previous_actual:deps.append(previous_actual['slug'])
+   request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007','godlydonuts/rsna-parent-fit-targets-48b4485f03b6',proposal['dataset']['slug'],'godlydonuts/rsna-family-fit-65d3730702a0'],'kernelDataSources':deps,'competitionDataSources':[],'sessionTimeoutSeconds':6000,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+   def save():db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+   if phase=='push':
+    assert row['state']=='family_influence_full_prepared' and not (D/'push-intent.json').exists(),'Reconcile uncertain intent read-only'
+    cap=module(Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py'),'0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2')
+    capacity=cap.admission(db,r,caller='sampling')
+    quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'))
+    remaining=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+    assert all((M/('segment-'+str(e))/'actual-accepted.json').exists() for e in (1,2,3))
+    assert all((F/(role+'-epoch-'+str(e))/'actual-accepted.json').exists() for role in ('uniform','influence') for e in (1,2,3))
+    required=(4-epoch)*6000+5400+32400
+    if not capacity['available'] or remaining<required:print(json.dumps({'status':'waiting_fresh_capacity_or_all_future_VM_no_mutation','capacity':capacity,'remaining_VM_seconds':remaining,'required_VM_seconds':required}),flush=True);raise SystemExit(0)
+    root=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file());stored=sum(p.stat().st_size for p in storage.rglob('*') if p.is_file())
+    assert stored<4*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+4*2**30-stored
+    q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+    for ref in deps:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+    assert r.kernel('GetKernelSessionStatus',recovery['slug'],1).get('status')=='COMPLETE'
+    publication=module(C/'publication.py',v['publication_sha256']);target=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('family-mean-fitting-targets-v1:'+ns['TARGET'],)).fetchone()[0]);assert publication.metadata(r,request['datasetDataSources'][-1])==target['dataset']
+    absence=r.require_absent_kernel(slug)
+    intent={'source_sha256':sha,'slug':slug,'version':1,'request_sha256':w.object_hash(request),'absence':absence,'capacity':capacity,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':required,'storage_cap_bytes':4*2**30,'paid_storage_bytes':stored,'same_single_family_candidate':True,'actual_recovery_kernel':139336728,'maximum_VM_seconds':6000,'automatic_retry':False,'competition_entry':False}
+    w.new_json(D/'push-intent.json',intent);row.update(state='family_influence_full_push_intent',push=intent);save()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:row['state']='family_influence_full_push_uncertain';save();retain=True;raise
+    row.update(state='family_influence_full_pushed',kernel_id=response['kernelId']);save()
+    out={'status':'one_family_influence_full_epoch_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'role':'influence','kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':sha,'fixed_epochs':3,'fixed_updates':1458,'actual_recovery_kernel':139336728,'competition_entry':False};w.new_json(D/'pushed.json',out);print(json.dumps(out),flush=True)
+   else:
+    assert row['state'] not in ('family_influence_full_push_intent','family_influence_full_push_uncertain')
+    actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+    for n in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage','kernelType'):assert m[n]==request[n]
+    for n in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(m.get(n,[]))==sorted(request[n])
+    status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'role':'influence','kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'competition_entry':False}
+    if status=='COMPLETE':
+     receipt=r.output_json(slug,1,'licensed-importance-full-session-accepted.json')
+     assert receipt['status']==ns['STATUS'] and receipt['role']=='influence' and receipt['completed']==486*epoch and receipt['total']==1458 and receipt['segment']==epoch and receipt['binding']==prepared['binding']['binding'] and receipt['worker_sha256']==prepared['binding']['worker_sha256'] and receipt['fixed_final_complete']==(epoch==3)
+     assert len(receipt['devices'])==2 and all(d['GPU']=='Tesla T4' and d['completed']==486*epoch and d['all_BN_buffers_equal_parent'] and d['trainable_parameters']==73136096 for d in receipt['devices'])
+     out['receipt']=receipt
+     if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='family_influence_full_actual_complete',receipt=receipt);save()
+    elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+     if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row.update(state='family_influence_full_actual_failed',actual=out);save()
+    print(json.dumps(out),flush=True)
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()
