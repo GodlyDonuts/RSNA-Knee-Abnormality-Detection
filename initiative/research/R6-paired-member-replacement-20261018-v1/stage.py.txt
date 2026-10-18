@@ -1,0 +1,33 @@
+"""One source-only R6 member closure/template admission, no trained model read."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');D=N/'R6-member-template-v1';assert not D.exists();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+future=sum((N/'epoch-1-source/source.private.py').stat().st_size+131072 for e in (2,3) if not (N/('epoch-'+str(e)+'-source/source.private.py')).exists())
+assert paid(N)+future+max(0,1024*1024-paid(N/'final-scoring-v1'))+512*1024+128*1024<8*2**20
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert hashlib.sha256((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor and paid(P)<32*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+helper='rsna/competitive/reference_member.py';ns={'__name__':'source_only_member_closure'};exec(compile(v['files'][helper],helper,'exec'),ns)
+R=P/'full-comparison/public0958-reference-v1';raw=(R/'scored-UI-v6.private.ipynb').read_bytes();assert hashlib.sha256(raw).hexdigest()=='fac1723c32de2d27f59e10ebca7102327bb33346117a3fec3a58937ecf2d3a0e';nb=json.loads(raw);cells=[''.join(x['source']) if isinstance(x['source'],list) else x['source'] for x in nb['cells'] if x['cell_type']=='code'];assert len(cells)==8 and hashlib.sha256(json.dumps(cells,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()=='300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text();assert hashlib.sha256(parent.encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde';proof=ns['inspect_member'](parent,cells[0])
+D.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ p=D/name;assert p.resolve().is_relative_to(D.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600);compile(text,name,'exec')
+def load(name,path):
+ spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
+S=P/'full-comparison/final-matched-serving-v1/code';T=N/'fixed-final-serving-template-v1';sys.path.insert(0,str(S));import rsna.competitive,scripts.kaggle
+scope=load('rsna.competitive.paired_logit_serving',T/'rsna/competitive/paired_logit_serving.py');rsna.competitive.paired_logit_serving=scope
+pc=load('scripts.kaggle.paired_logit_serving',T/'scripts/kaggle/paired_logit_serving.py');scripts.kaggle.paired_logit_serving=pc
+h=load('rsna.competitive.reference_member',D/helper);rsna.competitive.reference_member=h
+base=load('scripts.kaggle.public_reference_script',D/'scripts/kaggle/public_reference_script.py');scripts.kaggle.public_reference_script=base
+compiler=load('new_R6_paired_replacement_compiler',D/'scripts/kaggle/paired_reference_member.py');assert hashlib.sha256(Path(base.__file__).read_bytes()).hexdigest()==compiler.BASE_SHA
+assert hashlib.sha256(Path(pc.original.__file__).read_bytes()).hexdigest()==pc.BASE_COMPILER_SHA
+producer=json.loads((N/'epoch-1-source/prepared.json').read_text());assert scope.source_binding_ok(producer['binding']) and scope.WORKER==producer['worker_sha256']
+epoch1=json.loads((N/'epoch-1/verified.json').read_text());assert epoch1['status']=='actual_paired_epoch_RAM_private_all6_full_download_size_SHA_verified' and epoch1['completed']==486 and epoch1['objects']==6
+out={'status':'actual_R6_member_whole_source_closure_and_new_compiler_CPU_template_admitted_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'closure':proof,'original_R6_source_cells_sha256':'300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f','original_parent_source_sha256':'493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde','code_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'actual_real_compiler_dependencies_imported_and_pins_match':True,'actual_original_paired_producer_scope_matches':True,'original_epoch1_private_proof_reused_without_rehash_or_transfer':True,'new_child_control_cap_bytes':128*1024,'inside_existing_paired8MiB_cap_after_unwritten_sources_and_scoring_reserves':True,'actual_final_epoch3_model_or_GPU_qualification_or_R6_candidate_run':False,'new_GPU_or_model_data_transfers_or_competition_entries':0}
+with (D/'accepted.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+assert paid(D)<128*1024
+print(json.dumps(out),flush=True)
