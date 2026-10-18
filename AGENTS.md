@@ -1,5 +1,15 @@
 # RSNA Knee: current agent guide
 
+October18 verified score update: exact public R6 reproduction57333150 is
+COMPLETE with actual publicAUC0.958, no error, authenticatedCPU955446. This
+supersedes all older pending/unreported R6 and best0.950 statements below.
+Exact notebook godlydonuts/rsna-public0958-script-b472091d7a32 version2.
+This is an external reproduction, not scratch training, a multi-source gain,
+private-final validation or achievement of0.97. Do not repeat its entry.
+Actual receipt: initiative/audits/exact-R6-entry-20261018-v1/actual-hidden-terminal.json.
+Family remains completed/qualified/unscored; finding E2is training. These
+separate mechanisms cannot claim the R6score as their improvement.
+
 Current October18 state supersedes phase snapshots below. Family label-mixture
 139355023v1 completed1458finite updates; all three epochs privately verified,
 finalHF8d8c1130/model275ec8d8. Qualification139366373v1 and public offline

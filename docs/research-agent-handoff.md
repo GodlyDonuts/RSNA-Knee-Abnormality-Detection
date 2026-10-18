@@ -1,5 +1,15 @@
 # Research-agent handoff
 
+October18 verified score update: exact public R6 reproduction57333150 is
+COMPLETE with actual publicAUC0.958, no error, authenticatedCPU955446. This
+supersedes all older pending/unreported R6 and best0.950 statements below.
+Exact notebook godlydonuts/rsna-public0958-script-b472091d7a32 version2.
+This is an external reproduction, not scratch training, a multi-source gain,
+private-final validation or achievement of0.97. Do not repeat its entry.
+Actual receipt: initiative/audits/exact-R6-entry-20261018-v1/actual-hidden-terminal.json.
+Family remains completed/qualified/unscored; finding E2is training. These
+separate mechanisms cannot claim the R6score as their improvement.
+
 **Verified October17,2026,21:13UTC. Target0.97; actual best0.950.** Read
 [current state](current-state.md), [research brief](research-brief.md) and
 [execution handoff](codex-continuation.md) before proposing or dispatching work.
