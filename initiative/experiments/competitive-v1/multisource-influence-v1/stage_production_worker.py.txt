@@ -1,0 +1,52 @@
+"""Private full-array preparation; no GPU, clinical evaluation or account action."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+
+import numpy as np
+import torch
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+torch.set_num_threads(1)
+P=Path('/tmp/rsna-S6-training-release-20261017-v1');R=P/'family-influence-production-template-v1';assert not R.exists()
+gate=json.loads((P/'family-influence-recovery-v1/CPU-admitted.json').read_text())
+assert gate['CPU_job']=='952973' and gate['same_private_dataset']==12668561
+assert hashlib.sha256(v['files']['production.py'].encode()).hexdigest()==v['checks']['compiler_sha256']
+module=type(sys)('private_family_influence_production');exec(compile(v['files']['production.py'],'private_full_array_compiler','exec'),module.__dict__)
+original=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/influence-epoch-1/source.private.py').read_text()
+values,worker,files=module.prepare(original,v['files']['sampled_overlay.py'],v['files']['influence_fit.py'])
+assert all(text==files[name] for name,text in values['FILES'].items())
+assert len(files)==15
+root=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+4*2**30
+planned=sum(len(s.encode()) for s in files.values())+sum(len(s.encode()) for s in v['files'].values())+len(worker.encode())+65536
+assert planned<2*2**20 and sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+planned<16*2**20
+R.mkdir(mode=0o700)
+for name,text in {**v['files'],**{'numerical/'+name:text for name,text in files.items()}}.items():
+ p=R/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(R/'numerical'))
+data=P/'primitive-supervision-v1'
+oldpath=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert hashlib.sha256(oldpath.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(oldpath,allow_pickle=False) as a:old={k:a[k].copy() for k in a.files}
+class ArraysOnly:
+ def __init__(self):
+  self.uids=old['uids'].tolist();self.labels=torch.from_numpy(old['labels']);self.mask=torch.from_numpy(old['masks']);self.teacher=torch.from_numpy(old['parent_logits'])
+ def __len__(self):return len(self.uids)
+ def case(self,*args,**kwargs):raise RuntimeError('Full-array CPU admission cannot decode MRI')
+def private_path(name):
+ text=str(name)
+ if text=='/kaggle/input/rsna-family-fit-65d3730702a0':return data
+ return Path(name)
+scope={'Path':private_path,'__file__':str(R/'numerical/worker.py'),'np':np,'torch':torch,'io':__import__('io'),'hashlib':hashlib,'PARENT_SHA':'7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef'}
+exec(compile(module.HELPER,'actual_production_full_array_path','exec'),scope)
+wrapped=scope['_full_source_labels'](ArraysOnly())
+assert len(wrapped)==3887 and wrapped.binding['diagnostic_only'] is False and wrapped.binding['role']=='safe_family_mean'
+assert int((wrapped._labels!=wrapped._old).sum())==35418
+assert torch.equal(wrapped._mask,torch.from_numpy(old['masks'])) and torch.equal(wrapped._teacher,torch.from_numpy(old['parent_logits']))
+out={'status':'actual_private_influence_family_production_template_and_full3887_array_path_CPU_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'compiler_sha256':module.sha(v['files']['production.py']),'worker_template_sha256':module.sha(worker),'original_control_source_sha256':module.CONTROL_SOURCE,'original_control_worker_sha256':module.CONTROL_WORKER,'all13_original_numerical_modules_byte_identical':True,'actual3887_order_original_masks_both_parent_views_and_fixed_label_changes_exact':True,'changed_label_cells':35418,'same_private_dataset':12668561,'private_template_cap_bytes':2*2**20,'existing_source_root_cap_bytes':16*2**20,'new_shared_data_or_GPU_or_account_mutations':0,'actual_GPU_or_full_fit_or_accuracy_accepted':False}
+(R/'CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
