@@ -1,12 +1,13 @@
 # Multi-source supervision: source information before source cycling
 
 Current brief disposition (October18): the attached brief is byte-identical to
-`owner-brief.md` and its deterministic mixture is implemented and actually fitting.
+`owner-brief.md` and its deterministic mixture completed all three epochs/1458finite updates.
 The current JSON manifests now distinguish execution from their retained initial
 admission snapshots. One candidate changes35418 safe-common label cells, no masks
-or coverage, against influence0.949. Actual coupled recovery passed; E1 completed
-486updates and private verification. Original owner18386 continues E2/E3; no new
-accuracy result exists. Source families are the composite baseline and primitive
+or coverage, against influence0.949. Actual coupled recovery passed; all three epochs were privately verified.
+Original owner18386 is terminal success. Qualification139366373v1 and public
+offline139367736v1 passed; evaluator43079 awaits actual Kaggle allowance. No
+family-mixture accuracy result exists. Source families are the composite baseline and primitive
 Gemini with its explicit observation mask, not independent Steven/S6 votes.
 No separate whole-cohort Astra image export is located and no baseline rollback
 is justified by the pre-Devin content check. Do not restart training because the

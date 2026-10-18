@@ -45,4 +45,6 @@ restore a whole-cohort Astra image review. Root file content identities and
 historical card hash/line evidence are preserved separately without reading
 clinical/gold label rows. A separate original image-review export is still
 unlocated, the owner-provided brief is now available, preserved and implemented as a
-standalone target constructor; no new multi-source model or accuracy gain exists.
+standalone target constructor. That initial implementation has since produced
+one completed three-epoch family-mixture model; see multisource_result.md in
+the experiment namespace. No family-mixture accuracy gain is established.
