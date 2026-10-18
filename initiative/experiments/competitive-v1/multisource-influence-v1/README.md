@@ -31,3 +31,15 @@ influence adapter is added. The existing32-case admission and private Dataset
 are reused. The finite recovery owner may push one exact offline two-T4
 engineering notebook, then observe it; it has no full-fitting or entry authority.
 Actual source/worker pins are in `actual-CPU-admitted.json`.
+
+Actual diagnostic push: kernel139336728version1, private/offline twoT4 source
+3fd77316770a, ownerPID3804. Latest actual session is RUNNING; no full fit or
+competition entry was admitted by this owner. Do not repeat its push.
+CPU953014 separately accepted the complete3887-case production array path,
+original masks/both teacher views/35418 fixed changes and all13 original numerical
+modules. Production compiler passes11 synthetic refusal checks; neither preparation
+nor a synthetic receipt establishes actual recovery. Full QA is running under
+existing canonical artifacts/qa-env (PID3950);118-module mypy passed. The first
+QA runner stopped before tests because global mypy was absent; that is recorded,
+not hidden. Global original lint/format debt remains. Wait for actual full-suite
+result before pushing this new source milestone to GitHub.
