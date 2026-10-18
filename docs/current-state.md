@@ -1,5 +1,15 @@
 # Current measured state
 
+Serving preparation now has25 focused passing checks and actual owning-node
+CPU953320 acceptance on the original private assets. It refuses actual non-final
+E1 kernel139338298 and binds the full family target/annotation/eligibility/teacher/
+recovery. New helper code is separate; all reused `rsna`, `scripts` and `tests`
+numerical sources remain byte-identical to the last full-QA ad26f043 baseline.
+No serving GPU/model acceptance or new Dataset is claimed. The original loader
+already selects by exact model size/SHA, allowing direct use of the eventual E3
+notebook output and original32-input qualification dependency without a new
+weight upload. Do not rename/reupload weights or repeat CPU953320 staging.
+
 Latest verified execution: October18,2026. Target0.97 remains unachieved.
 This page supersedes chronological snapshots preserved verbatim in
 [current-state.history-20261018-0200.md](current-state.history-20261018-0200.md).

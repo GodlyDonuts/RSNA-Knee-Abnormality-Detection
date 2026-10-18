@@ -46,7 +46,13 @@ Goal remains active; no completion or blocker claim.
    epochs1–3; do not repeat E1. Preserve the common original source pin and all
    fixed3/1458-update numerical settings. A later finite continuation owner may
    reuse these exact phases, not create another candidate or overwrite originals.
-3. After fixed-final3 acceptance/private preservation, qualify exact offline
+3. CPU953320 already accepted the separate family serving template on original
+   assets;25 focused cases pass. Private source is `family-serving-template-v1`
+   under the existing evc33 source root. Do not repeat staging. Use
+   `family_notebook.py` / `family_serving.py` from the candidate namespace,
+   retain exact original inference math and use the actual completed E3 notebook
+   output directly; no new weight Dataset/upload is needed. No serving GPU/model
+   acceptance exists yet. After fixed-final3 acceptance/private preservation, qualify exact offline
    inference/runtime and make one useful competition comparison within fresh
    authoritative allowance. Best0.950; influence control0.949. No candidate gain
    is known. Do not choose a best epoch or alter labels after results.
