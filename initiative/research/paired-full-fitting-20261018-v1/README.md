@@ -57,3 +57,28 @@ status and each new immutable six-object private preservation. Never restart it
 or duplicate one of its intents on an observation failure. It stops on uncertain
 mutation/publication and preserves the actual original job/namespace. No actual
 paired full-data checkpoint, private publication or accuracy result exists yet.
+
+Publication-cache correction before any epoch collection: actual runtime uses
+HFhub1.32.0 with hf_xet installed and default cache under shared/home storage.
+The original publisher configured environment after importing the common HF
+helper. New v2 sets all HF/Xet/cache paths to its owned RAM root BEFORE any HF
+import, disables Xet before import and passes cache_dir explicitly for each
+verification download. It budgets both potential cache and local copies. Two
+NEW regressions reject the original ordering and accept the corrected explicit
+routing; CPU960042 actually verified constants/disabledXet/cache_dir support in
+the exact runtime and confirmed the original139451532v1 source/status unchanged.
+No checkpoint existed or was collected yet; no model transfer was repeated.
+
+Only idle local status owner81354 was retired after its fresh RUNNING poll,
+with no active child and59seconds until its next phase. The Kaggle fit was not
+cancelled, restarted or pushed again. Frozen original source files were kept.
+New sole owner81735/session20454 starts with STATUS ONLY for that same E1, uses
+the separately admitted publisher-v2, and can push only the never-created E2/3
+after their original preceding private state verifies. Do not restart either
+owner. Publication-v2 manifest/program and validator pins bind the handoff.
+
+Read-only CPU960058 tried the official version-specific ListKernelSessionOutput
+log path for the original pairedE1 and LR-E2; both returned404. This is missing
+log observation, not a terminal model error. Do not repeat that route while
+unchanged or infer real optimizer updates from RUNNING alone. Exact source/v1
+and live status were bound before/after the read; no session was created.
