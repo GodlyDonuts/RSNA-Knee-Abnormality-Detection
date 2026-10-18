@@ -1,5 +1,14 @@
 # One multi-source candidate against the stronger completed control
 
+Current execution supersedes the chronological admission snapshots below:
+E1kernel139338298v1 completed486finite updates and is fully privately verified
+at HFd4f35abe654c0505b67b51b1fc2952047347842c. Original continuation owner18386
+then pushed E2kernel139346363v1 once; it remains RUNNING at CPU954263's exact
+read. This owner alone continues E2/E3 and preservation. No new mixture score
+is available. The attached multi-source brief is already implemented by this
+one label-values-only candidate; do not create a duplicate full fit.
+
+
 ## October18 actual coupled recovery and first full fitting owner
 
 The exact influence-family MRI diagnostic139336728v1 actually COMPLETED;

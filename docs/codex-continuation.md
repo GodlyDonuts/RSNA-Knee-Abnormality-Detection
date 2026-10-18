@@ -10,8 +10,8 @@ Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
 probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
 passed its public output checks. Exact code submission57336190 was accepted
 ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
-entry/outcome owner21510 follows its hidden result; score is unreported. No public
-CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+entry/outcome owner21510 is terminal success: actual hidden score0.949,
+COMPLETE, no error. No public CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
 The old qualification quarantine remains preserved and must never be retried.
 
 Source8b8441da/21 distinct small objects, including entry controls/public proof/
@@ -34,8 +34,9 @@ accepts complete original-control replay and both-role full/stop/resume states
 and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
 all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
 existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
-cases pass. No new Dataset, full fit or clinical/competition result exists for
-this mechanism. Next requires full-source/input/preservation admission; original
+cases pass. Private Dataset12671054v1 exists; CPU954262 reconciled its uncertain original
+create read-only and fully downloaded/size/SHA verified all6files. No full fit
+or clinical/competition result exists for this mechanism. Next requires full-source/input/preservation admission; original
 label values must match influence0.949, separate from the healthy family mix.
 Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
 
@@ -51,7 +52,7 @@ Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
   independently verified in RAM. Never restart it or repeat the public push.
 - **21510** is the distinct entry/outcome owner, ignored root above `/entry`.
   It submitted exact code version139346231v1 ONCE as57336190 after original
-  public acceptance and fresh allowance. It now only follows that hidden result.
+  public acceptance and fresh allowance. It is terminal success: hidden result COMPLETE/public0.949/no error.
   Six side-effect/failure simulations pass. Actual entry/outcome receipts prove
   execution; do not create another owner or invoke its submit phase manually.
 - **3950**: canonical full QA is actually terminal:4717passed/8skipped and
@@ -75,10 +76,10 @@ Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
 1. Inspect original family E2/E3 owner18386 and actual notebook outcomes. Leave
    healthy work unchanged; preserve each new immutable epoch once through that
    original owner. E1 is already fully verified; never repeat it.
-2. Follow original whole94 hidden-outcome owner21510 for57336190. Both
-   qualification and public output checks passed; entry was accepted once. Never
-   repeat qualification, public push, model upload or entry. A successful public
-   run and accepted entry are not a hidden score.
+2. Whole94 owner21510 is terminal success:57336190 scored0.949, COMPLETE,
+   no error. Read actual-hidden-outcome.json; do not repeat qualification, public
+   push, model upload or entry. The result ties influence and is below best0.950;
+   it does not establish improvement from training all94 windows.
 3. CPU953320 already accepted the separate family serving template on original
    assets;25 focused cases pass. Private source is `family-serving-template-v1`
    under the existing evc33 source root. Do not repeat staging. Use

@@ -1,5 +1,13 @@
 # Finding-stratified MRI observations at the unchanged mixture density
 
+Actual input publication: original create954209 returned an uncertain exception;
+read-only954252 located exact private Dataset12671054v1. CPU954262 streamed all
+six immutable files and verified every size/SHA, then reconciled the canonical
+record and released only that original claim. No duplicate create occurred.
+See `actual-private-Dataset.json`; full classifier fitting remains unlaunched.
+The older no-Dataset paragraphs below are historical phase snapshots.
+
+
 Question: does removing random variation in *which finding proposal supplies a
 window* improve sixteen-window fidelity to the frozen full94 teacher? Current
 influence training averages twelve normalized finding-sensitivity proposals with

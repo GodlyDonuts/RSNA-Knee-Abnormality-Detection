@@ -10,8 +10,8 @@ Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
 probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
 passed its public output checks. Exact code submission57336190 was accepted
 ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
-entry/outcome owner21510 follows its hidden result; score is unreported. No public
-CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+entry/outcome owner21510 is terminal success: actual hidden score0.949,
+COMPLETE, no error. No public CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
 The old qualification quarantine remains preserved and must never be retried.
 
 Source8b8441da/21 distinct small objects, including entry controls/public proof/
@@ -33,7 +33,7 @@ Exact mutable live state must be refreshed before action.
 | Matched S6-label-only final,57331631 | **0.947** | Label swap did not improve uniform |
 | Independent N3E16 | **0.894** | Independently trained MRI DINOv3 lineage |
 | Exact external R6,57333150 | Unreported | Submitted once; source author's0.958 is not ours |
-| Whole94 fixed-final E3,57336190 | Unreported | Exact code entry accepted once; public checks passed |
+| Whole94 fixed-final E3,57336190 | **0.949** | Hidden run COMPLETE; ties influence, below best0.950 |
 | New family-mean/influence candidate | No score | E1 privately verified; E2 pushed once |
 
 The influence result is+.002 against matched uniform, still below0.950. A single
@@ -47,8 +47,9 @@ accepts complete original-control replay and both-role full/stop/resume states
 and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
 all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
 existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
-cases pass. No new Dataset, full fit or clinical/competition result exists for
-this mechanism. Next requires full-source/input/preservation admission; original
+cases pass. Private Dataset12671054v1 exists; CPU954262 reconciled its uncertain original
+create read-only and fully downloaded/size/SHA verified all6files. No full fit
+or clinical/competition result exists for this mechanism. Next requires full-source/input/preservation admission; original
 label values must match influence0.949, separate from the healthy family mix.
 Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
 
@@ -71,10 +72,14 @@ remaining E2/E3 preservation/resume. No new family score exists.
 The already completed whole94 fixed-final E3modelSHAa244d120 passed exact32-MRI
 both-T4 qualification139343479v1. Public notebook139346231v1/sourceaf412cf7e6f2
 passed public output checks; exact code entry57336190 was then accepted once.
-Owner21510 observes the hidden outcome; owner20978 is terminal. It reuses the
+Owners21510 and20978 are terminal success. The entry reuses the
 existing model and inputs, with no new training or weight Dataset.
 [Exact public/entry campaign](../initiative/audits/whole94-final-public-20261018-v2/README.md).
-No whole94 final score or hidden runtime is known yet.
+Whole94 actual hidden score is0.949; hidden runtime is unreported.
+
+The attached multi-source brief is implemented as the single running family candidate.
+[Current supervision result and limitations](../initiative/experiments/competitive-v1/multisource-supervision-v1/multisource_result.md)
+records exact sources, all12target change counts and why no baseline rollback occurred.
 
 ## Findings that changed the research direction
 

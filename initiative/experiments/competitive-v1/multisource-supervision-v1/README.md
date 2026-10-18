@@ -1,5 +1,18 @@
 # Multi-source supervision: source information before source cycling
 
+Current brief disposition (October18): the attached brief is byte-identical to
+`owner-brief.md` and its deterministic mixture is implemented and actually fitting.
+The current JSON manifests now distinguish execution from their retained initial
+admission snapshots. One candidate changes35418 safe-common label cells, no masks
+or coverage, against influence0.949. Actual coupled recovery passed; E1 completed
+486updates and private verification. Original owner18386 continues E2/E3; no new
+accuracy result exists. Source families are the composite baseline and primitive
+Gemini with its explicit observation mask, not independent Steven/S6 votes.
+No separate whole-cohort Astra image export is located and no baseline rollback
+is justified by the pre-Devin content check. Do not restart training because the
+older chronological paragraphs below describe unfinished admission stages.
+
+
 Latest: actual real-MRI two-T4 diagnostic139334242v1 passed (CPU952876).
 No uniform-family full fit was started. Completed matched scores favor influence
 0.949 over uniform0.947 and the label swap0.947; the one future family candidate

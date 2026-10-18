@@ -10,8 +10,8 @@ Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
 probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
 passed its public output checks. Exact code submission57336190 was accepted
 ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
-entry/outcome owner21510 follows its hidden result; score is unreported. No public
-CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+entry/outcome owner21510 is terminal success: actual hidden score0.949,
+COMPLETE, no error. No public CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
 The old qualification quarantine remains preserved and must never be retried.
 
 Source8b8441da/21 distinct small objects, including entry controls/public proof/
@@ -32,8 +32,9 @@ accepts complete original-control replay and both-role full/stop/resume states
 and predictions. Owner22857 is terminal; never repeat it. CPU954077 materialized
 all3887x94x12FP64 components privately (35,076,416B/SHA3581baf78d76), inside the
 existing3GiB root with the ENTIRE old512MiB reader budget retained.21focused
-cases pass. No new Dataset, full fit or clinical/competition result exists for
-this mechanism. Next requires full-source/input/preservation admission; original
+cases pass. Private Dataset12671054v1 exists; CPU954262 reconciled its uncertain original
+create read-only and fully downloaded/size/SHA verified all6files. No full fit
+or clinical/competition result exists for this mechanism. Next requires full-source/input/preservation admission; original
 label values must match influence0.949, separate from the healthy family mix.
 Read `initiative/research/finding-stratified-bags-20261018-v1` from repo root.
 

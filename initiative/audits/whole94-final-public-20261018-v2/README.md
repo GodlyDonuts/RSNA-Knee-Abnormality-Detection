@@ -1,5 +1,12 @@
 # Whole94 fixed-final public qualification counterpart
 
+Actual hidden outcome: submission57336190 is COMPLETE with public AUC0.949
+and no error. Original owner21510 is terminal success; no repeat entry. This
+ties the0.949 influence model and remains below the0.950 external S6 reference.
+Public scores are rounded single outcomes, not a robust/private improvement.
+See `actual-hidden-outcome.json`; pending statements below are historical.
+
+
 Actual two-T4 qualification139343479v1 passed: all32 original MRI studies,
 both94-window input views and full learned graph exactly equal on both devices;
 maximum probability difference0, peak allocated2,017,322,496bytes each. This is
