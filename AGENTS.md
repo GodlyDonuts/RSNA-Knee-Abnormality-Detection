@@ -1,42 +1,22 @@
 # RSNA Knee: current agent guide
 
-Latest actual execution: family epoch1 completed486 finite updates and all5
-objects were privately re-downloaded/size/SHA verified once at
-HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501, preserving the same
-fixed3/1458-update recipe. No new accuracy result exists. Whole94 fixed-final
-public notebook139346231v1 was pushed once, sourceaf412cf7e6f2, viaowner20978.
-Actual public acceptance and fresh allowance precede a single code entry.
-Source82fdaf75/small25-object qualification milestone is privately fully verified
-at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657; never repeat it.
+Family-mixture E1 completed486 finite updates and is fully privately verified
+at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
+then pushed E2 kernel139346363v1 once, source32493d2ee501. The fixed3epoch/
+1458-update recipe remains unchanged; no accuracy result exists yet.
 
+Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
+probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
+passed its public output checks. Exact code submission57336190 was accepted
+ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
+entry/outcome owner21510 follows its hidden result; score is unreported. No public
+CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+The old qualification quarantine remains preserved and must never be retried.
 
-Actual whole94 fixed-final qualification139343479v1 is now COMPLETE and accepted:
-32 original MRI studies on both T4s, bit-equal input views/full learned graph,
-maximum probability difference0, peak allocated2,017,322,496bytes per device.
-This is not an accuracy or hidden-runtime result. Distinct public counterpart
-is prepared in `initiative/audits/whole94-final-public-20261018-v2`, retaining the
-original quarantined identity unchanged and reusing existing model/input assets.
-Distinct public-run owner20978 is live and waits for actual remaining VM funding
-(including all unpaid family work) before at most one push; it cannot submit.
-Family training's latest observed finite update is446/1458; original healthy
-owners17423/18386 remain active. No new score exists.
-
-
-Latest source/serving/QA/current-guide milestone27986249 is privately fully
-23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
-viaCPU953355. Never repeat it or preceding cfb51524. Model training remains
-healthy:209 finite updates observed on both T4s. No new accuracy result exists.
-
-Serving preparation now has25 focused passing checks and actual owning-node
-CPU953320 acceptance on the original private assets. It refuses actual non-final
-E1 kernel139338298 and binds the full family target/annotation/eligibility/teacher/
-recovery. New helper code is separate; all reused `rsna`, `scripts` and `tests`
-numerical sources remain byte-identical to the last full-QA ad26f043 baseline.
-No serving GPU/model acceptance or new Dataset is claimed. The original loader
-already selects by exact model size/SHA, allowing direct use of the eventual E3
-notebook output and original32-input qualification dependency without a new
-weight upload. Do not rename/reupload weights or repeat CPU953320 staging.
+Source82fdaf75/25 distinct small objects are privately fully re-downloaded/
+size/SHA verified at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657.
+Never repeat it or preceding d9299138/cfb51524. The later entry-controller code
+and E1/E2 receipts are on GitHub but not covered by that earlier source mirror.
 
 Current execution is summarized here; older chronological snapshots are preserved
 in `docs/AGENTS.history-20261018-0200.md`. Do not use historical pending statements
@@ -80,18 +60,14 @@ Steven/S6 have overlapping ancestry; do not count them as independent votes.
 A separate whole-cohort owner Astra image-label export remains unlocated, not
 proved absent. Current admitted source labels are report weak targets.
 
-First full epoch kernel**139338298v1**, slug
-`godlydonuts/rsna-family-influence-e1-8e22aacce4df`, was pushed once viaCPU953098.
-Scientific source **11ce568c63bcc6e984fc9c16ee92e58a8cc27eb3**; notebook source
-8e22aacce4df. Original finite owner**17423** owns at most this first epoch.
-Authenticated live logs show both allocated T4s/original inputs accepted,
-73136096 learned parameters and actual finite optimizer update1. Preserve its
-original run; no restart or duplicate. E1 must be independently fully privately
-preserved before E2 resumes. The prepared coordinator supports the same pinned
-three-epoch campaign; do not create a second candidate or new4GiB reservation.
-Downstream finite owner**18386** already waits for E1 success and owns private
-preservation/E2/E3 in sequence. Never race it or duplicate its phases.
-Read `initiative/experiments/competitive-v1/multisource-influence-v1`.
+First full E1 kernel139338298v1 is actually COMPLETE and all five private objects
+are fully verified at HFd4f35abe, CPU953658. Owner17423 is terminal success.
+Original continuation owner18386 owns E2/E3 and preservation: E2kernel139346363v1
+was pushed once after E1 verification. Never repeat E1, its publication or the
+E2push; inspect each original intent/result before any action. Scientific source
+remains11ce568c63bcc6e984fc9c16ee92e58a8cc27eb3. Existing4GiB preservation cap
+is reused, not doubled. Read the exact candidate receipts in
+`initiative/experiments/competitive-v1/multisource-influence-v1`.
 
 Source c9349ae5 and66 distinct small objects were privately fully downloaded/
 size/SHA verified viaCPU953109 at HF**cfb51524d9865ddf6a6b229007745da4a6b70350**.

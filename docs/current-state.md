@@ -1,42 +1,22 @@
 # Current measured state
 
-Latest actual execution: family epoch1 completed486 finite updates and all5
-objects were privately re-downloaded/size/SHA verified once at
-HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501, preserving the same
-fixed3/1458-update recipe. No new accuracy result exists. Whole94 fixed-final
-public notebook139346231v1 was pushed once, sourceaf412cf7e6f2, viaowner20978.
-Actual public acceptance and fresh allowance precede a single code entry.
-Source82fdaf75/small25-object qualification milestone is privately fully verified
-at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657; never repeat it.
+Family-mixture E1 completed486 finite updates and is fully privately verified
+at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
+then pushed E2 kernel139346363v1 once, source32493d2ee501. The fixed3epoch/
+1458-update recipe remains unchanged; no accuracy result exists yet.
 
+Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
+probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
+passed its public output checks. Exact code submission57336190 was accepted
+ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
+entry/outcome owner21510 follows its hidden result; score is unreported. No public
+CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+The old qualification quarantine remains preserved and must never be retried.
 
-Actual whole94 fixed-final qualification139343479v1 is now COMPLETE and accepted:
-32 original MRI studies on both T4s, bit-equal input views/full learned graph,
-maximum probability difference0, peak allocated2,017,322,496bytes per device.
-This is not an accuracy or hidden-runtime result. Distinct public counterpart
-is prepared in `initiative/audits/whole94-final-public-20261018-v2`, retaining the
-original quarantined identity unchanged and reusing existing model/input assets.
-Distinct public-run owner20978 is live and waits for actual remaining VM funding
-(including all unpaid family work) before at most one push; it cannot submit.
-Family training's latest observed finite update is446/1458; original healthy
-owners17423/18386 remain active. No new score exists.
-
-
-Latest source/serving/QA/current-guide milestone27986249 is privately fully
-23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
-viaCPU953355. Never repeat it or preceding cfb51524. Model training remains
-healthy:209 finite updates observed on both T4s. No new accuracy result exists.
-
-Serving preparation now has25 focused passing checks and actual owning-node
-CPU953320 acceptance on the original private assets. It refuses actual non-final
-E1 kernel139338298 and binds the full family target/annotation/eligibility/teacher/
-recovery. New helper code is separate; all reused `rsna`, `scripts` and `tests`
-numerical sources remain byte-identical to the last full-QA ad26f043 baseline.
-No serving GPU/model acceptance or new Dataset is claimed. The original loader
-already selects by exact model size/SHA, allowing direct use of the eventual E3
-notebook output and original32-input qualification dependency without a new
-weight upload. Do not rename/reupload weights or repeat CPU953320 staging.
+Source82fdaf75/25 distinct small objects are privately fully re-downloaded/
+size/SHA verified at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657.
+Never repeat it or preceding d9299138/cfb51524. The later entry-controller code
+and E1/E2 receipts are on GitHub but not covered by that earlier source mirror.
 
 Latest verified execution: October18,2026. Target0.97 remains unachieved.
 This page supersedes chronological snapshots preserved verbatim in
@@ -51,35 +31,36 @@ Exact mutable live state must be refreshed before action.
 | Matched S6-label-only final,57331631 | **0.947** | Label swap did not improve uniform |
 | Independent N3E16 | **0.894** | Independently trained MRI DINOv3 lineage |
 | Exact external R6,57333150 | Unreported | Submitted once; source author's0.958 is not ours |
-| New family-mean/influence candidate | No score | Actual full training has started |
+| Whole94 fixed-final E3,57336190 | Unreported | Exact code entry accepted once; public checks passed |
+| New family-mean/influence candidate | No score | E1 privately verified; E2 pushed once |
 
 The influence result is+.002 against matched uniform, still below0.950. A single
 three-decimal public comparison does not establish a robust/private improvement.
 All completed fixed-final submissions are terminal/scored; never resubmit them.
 
-## What is training now
+## What is training and being scored
 
 One predeclared family-mixture candidate:3887 fitting studies,3epochs/1458updates,
 16 influence-sampled windows/effective8,73,136,096 learned parameters,25%source/
-75%parent. Only admitted source-label values change against the completed
-influence control. The MRI schedule/masks/teacher/views/optimizer/seed/inference
-remain fixed. No source cycling, extra encoder or public prediction blend was added.
+75%parent. Only source-label values change against the completed0.949 influence
+control; MRI schedule/masks/teacher/views/optimizer/seed/inference remain fixed.
+35418cells change, coverage does not; two mismatched Synovitis cells remain
+untouched. Dataset12668561v1 is already fully verified; never repeat it.
 
-Both real-MRI diagnostics passed exact complete-state/recovery/prediction checks.
-The new coupled influence diagnostic is139336728v1, independently accepted
-CPU953076. CPU953014 admits full3887-array identity and all13 original numerical
-modules. First full epoch**139338298v1** was pushed once at scientific source
-**11ce568c63bcc6e984fc9c16ee92e58a8cc27eb3**; original owner**17423** follows it.
-Actual logs verify both T4s, original inputs and a finite optimizer update.
-This is real training, not a completed epoch or measured accuracy gain.
-[Exact candidate and current receipts](../initiative/experiments/competitive-v1/multisource-influence-v1/README.md).
+Actual coupled MRI recovery139336728v1 and full3887 input acceptance passed.
+E1kernel139338298v1 COMPLETE:486 finite updates, about3981seconds fitting on each
+T4, five objects privately fully verified at HFd4f35abe. Owner17423 is terminal.
+Owner18386 then pushed E2kernel139346363v1/source32493d2ee501 once; it owns
+remaining E2/E3 preservation/resume. No new family score exists.
+[Exact family candidate](../initiative/experiments/competitive-v1/multisource-influence-v1/README.md).
 
-The target is a deterministic safe-common family mean.35418cells change; source
-masks/coverage/both teacher views/fallback cells do not. Two source-mismatched
-Synovitis cells remain untouched. Private Dataset12668561v1 is already fully
-verified. The old uniform-family full fit was never launched; influence was
-selected before fitting, using the stronger completed control. Existing one-
-candidate4GiB reservation is reused, not doubled.
+The already completed whole94 fixed-final E3modelSHAa244d120 passed exact32-MRI
+both-T4 qualification139343479v1. Public notebook139346231v1/sourceaf412cf7e6f2
+passed public output checks; exact code entry57336190 was then accepted once.
+Owner21510 observes the hidden outcome; owner20978 is terminal. It reuses the
+existing model and inputs, with no new training or weight Dataset.
+[Exact public/entry campaign](../initiative/audits/whole94-final-public-20261018-v2/README.md).
+No whole94 final score or hidden runtime is known yet.
 
 ## Findings that changed the research direction
 

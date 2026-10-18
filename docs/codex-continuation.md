@@ -1,32 +1,22 @@
 # Execution handoff
 
-Latest actual execution: family epoch1 completed486 finite updates and all5
-objects were privately re-downloaded/size/SHA verified once at
-HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501, preserving the same
-fixed3/1458-update recipe. No new accuracy result exists. Whole94 fixed-final
-public notebook139346231v1 was pushed once, sourceaf412cf7e6f2, viaowner20978.
-Actual public acceptance and fresh allowance precede a single code entry.
-Source82fdaf75/small25-object qualification milestone is privately fully verified
-at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657; never repeat it.
+Family-mixture E1 completed486 finite updates and is fully privately verified
+at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
+then pushed E2 kernel139346363v1 once, source32493d2ee501. The fixed3epoch/
+1458-update recipe remains unchanged; no accuracy result exists yet.
 
+Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
+probability difference0. Public counterpart139346231v1, sourceaf412cf7e6f2,
+passed its public output checks. Exact code submission57336190 was accepted
+ONCE after fresh authoritative allowance/duplicate/uncertainty checks. Original
+entry/outcome owner21510 follows its hidden result; score is unreported. No public
+CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
+The old qualification quarantine remains preserved and must never be retried.
 
-Actual whole94 fixed-final qualification139343479v1 is now COMPLETE and accepted:
-32 original MRI studies on both T4s, bit-equal input views/full learned graph,
-maximum probability difference0, peak allocated2,017,322,496bytes per device.
-This is not an accuracy or hidden-runtime result. Distinct public counterpart
-is prepared in `initiative/audits/whole94-final-public-20261018-v2`, retaining the
-original quarantined identity unchanged and reusing existing model/input assets.
-Distinct public-run owner20978 is live and waits for actual remaining VM funding
-(including all unpaid family work) before at most one push; it cannot submit.
-Family training's latest observed finite update is446/1458; original healthy
-owners17423/18386 remain active. No new score exists.
-
-
-Latest source/serving/QA/current-guide milestone27986249 is privately fully
-23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
-viaCPU953355. Never repeat it or preceding cfb51524. Model training remains
-healthy:209 finite updates observed on both T4s. No new accuracy result exists.
+Source82fdaf75/25 distinct small objects are privately fully re-downloaded/
+size/SHA verified at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657.
+Never repeat it or preceding d9299138/cfb51524. The later entry-controller code
+and E1/E2 receipts are on GitHub but not covered by that earlier source mirror.
 
 Read [AGENTS](../AGENTS.md) and [current measured state](current-state.md).
 Previous chronological handoff is preserved verbatim in
@@ -37,24 +27,28 @@ Goal remains active; no completion or blocker claim.
 
 ## Original live handles: inspect, never duplicate
 
-- **17423**: finite first-full-epoch owner. Local ignored root
-  `artifacts/multisource-influence-20261018-v1/first-full-owner.*`.
-  Exact private offline twoT4 kernel**139338298v1**, slug
-  `godlydonuts/rsna-family-influence-e1-8e22aacce4df`,source8e22aacce4df,
-  worker9eb0423c…,scientificGit**11ce568c63bcc6e984fc9c16ee92e58a8cc27eb3**.
-  Actual both-device/input/initial-state admission and finite update1 observed.
-  It can push only E1 and has no competition entry authority. Read its original
-  result/progress plus exact API/UI before action. Healthy job stays unchanged.
+- **17423** is terminal success: E1kernel139338298v1 completed486 updates and
+  owner18386 privately verified all five objects once at HFd4f35abe/CPU953658.
+  Original first-full-owner.result.json and epoch-1-private-verified.json remain
+  authoritative. Never repeat E1 or its publication.
+- **20978** is the original whole94 final public owner, kernel139346231v1,
+  sourceaf412cf7e6f2. Ignored root `artifacts/whole94-final-public-20261018-v2`.
+  It is terminal success: public run COMPLETE, bothT4/3MRI/13columns/finite CSV
+  independently verified in RAM. Never restart it or repeat the public push.
+- **21510** is the distinct entry/outcome owner, ignored root above `/entry`.
+  It submitted exact code version139346231v1 ONCE as57336190 after original
+  public acceptance and fresh allowance. It now only follows that hidden result.
+  Six side-effect/failure simulations pass. Actual entry/outcome receipts prove
+  execution; do not create another owner or invoke its submit phase manually.
 - **3950**: canonical full QA is actually terminal:4717passed/8skipped and
   118-module mypy passed; ignored same root`QA-canonical-*`. The two skipped clean-tree
   packaging cases subsequently passed2/2 at e0e6495d. Archive refresh and exact
   verification both passed after concurrent receipt changes. Read the actual result. Initial global-environment runner stopped before mypy/tests;
   canonical `artifacts/qa-env` is the correction, not a second training job.
-- **18386**: downstream finite owner waits for original17423's actual E1 success,
-  then privately preserves E1 before preparing/resuming E2 and E3, preserving each
-  in turn. It can push only E2/E3 and cannot submit to competition. Original
-  ignored `continuation-owner.*` has the frozen source/intent/result. Never launch
-  another continuation owner or manually duplicate these phases while it is live.
+- **18386** privately preserved E1 and pushed E2kernel139346363v1 once, source
+  32493d2ee501. It now owns only remaining E2/E3 observation, preservation and
+  resume, at the unchanged fixed-final recipe. Inspect original continuation-
+  owner.* and epoch phase receipts. Never duplicate its phases.
 - **3182**: original outcome-only observer for exact R6submission**57333150**,
   notebookv2. Ignored `artifacts/exact-R6-entry-20261018-v1/observer.*`.
   Last authenticated hidden status/score unreported. Do not resubmit.
@@ -64,16 +58,13 @@ Goal remains active; no completion or blocker claim.
 
 ## Concrete next steps
 
-1. Confirm actual E1 optimizer progress/terminal and original owner18386 state. After completion, use only
-   `initiative/experiments/competitive-v1/multisource-influence-v1/publish_epoch_once.py.txt 1`
-   only if original18386 is not already handling the phase, to independently
-   decode/check complete state and privately publish/re-download verify the epoch. Existing intent/path means read-only
-   reconciliation. No premature E2: require actual E1 private preservation.
-2. Continue E2/E3 with the prepared same single coordinator after exact previous
-   receipt/checkpoint/RNG/source/publication review and fresh resources. It supports
-   epochs1–3; do not repeat E1. Preserve the common original source pin and all
-   fixed3/1458-update numerical settings. A later finite continuation owner may
-   reuse these exact phases, not create another candidate or overwrite originals.
+1. Inspect original family E2/E3 owner18386 and actual notebook outcomes. Leave
+   healthy work unchanged; preserve each new immutable epoch once through that
+   original owner. E1 is already fully verified; never repeat it.
+2. Follow original whole94 hidden-outcome owner21510 for57336190. Both
+   qualification and public output checks passed; entry was accepted once. Never
+   repeat qualification, public push, model upload or entry. A successful public
+   run and accepted entry are not a hidden score.
 3. CPU953320 already accepted the separate family serving template on original
    assets;25 focused cases pass. Private source is `family-serving-template-v1`
    under the existing evc33 source root. Do not repeat staging. Use

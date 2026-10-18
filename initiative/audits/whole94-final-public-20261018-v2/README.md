@@ -32,3 +32,10 @@ or pushes a GPU notebook. Other known-ID pending submissions are recorded, not
 misrepresented as mutation uncertainty. Six simulated side-effect/failure cases
 passed, including no retry after uncertain submission and no entry after public
 failure. Actual entry/outcome receipts establish results, not these tests.
+
+Actual public run completed and CPU953681 verified the exact finite13-column
+CSV/3-study roster in RAM; inference receipt16.797seconds on the public example
+is not a hidden runtime. Following fresh authoritative4used/1available allowance,
+entry owner21510 submitted exact code version ONCE as57336190. It follows the
+actual hidden result; no score is known yet. Never repeat this entry or upload
+the public three-row CSV. Original public owner20978 is terminal success.
