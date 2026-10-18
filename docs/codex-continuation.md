@@ -1,5 +1,12 @@
 # Execution handoff
 
+October18 forward speed mechanism: path-serving-vectorization-20261018-v1
+adds an opt-in batched-start score for NEW reader inference. Thirteen focused
+synthetic CPU tests pass (scores/gradients/complete head/serving selection);
+16/32window null arithmetic is2.7–2.8xfaster on CPU, not measured MRI/T4speed
+or accuracy. Default remains reference; original955582/955711/12 source and
+weights are unchanged. No old cohort/recovery replay or new GPU/entry action.
+
 October18 exact new finding E3UI observation:139381056v1/source6faa618a0f73
 visibly shows Queued.../GPU T4 x2/output0B, edit-run359625026. Contemporaneous
 GetKernelSessionStatus returned{}, so null alone is not failure/restart authority.

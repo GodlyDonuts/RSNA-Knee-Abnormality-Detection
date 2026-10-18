@@ -1,0 +1,38 @@
+{
+  "scope": "new vectorized path serving synthetic CPU arithmetic only",
+  "new_focused_tests_passed": 13,
+  "new_files_Ruff_passed": true,
+  "actual_T4_or_H100_throughput_or_accuracy_claim": false,
+  "queued_training_or_old_scientific_modules_changed": false,
+  "scoring_candidate_default_enabled": false,
+  "torch": "2.14.0",
+  "CPU_threads": 1,
+  "median_repeats": 3,
+  "results": [
+    {
+      "synthetic_windows": 16,
+      "tokens": 144,
+      "targets": 12,
+      "reference_median_seconds": 0.008867207972798496,
+      "candidate_median_seconds": 0.0032403749937657267,
+      "max_absolute_score_difference": 0.0,
+      "reference_prior_matvec_calls_per_score": 240,
+      "candidate_prior_batched_matmul_calls_per_score": 15
+    },
+    {
+      "synthetic_windows": 32,
+      "tokens": 144,
+      "targets": 12,
+      "reference_median_seconds": 0.02650600002380088,
+      "candidate_median_seconds": 0.0093715830007568,
+      "max_absolute_score_difference": 4.76837158203125e-07,
+      "reference_prior_matvec_calls_per_score": 992,
+      "candidate_prior_batched_matmul_calls_per_score": 31
+    }
+  ],
+  "new_source_sha256": {
+    "path_vectorized.py": "0d3e2ba226ef14dba6a64b1f5fc91f52e4c7eaacd3d6227ccef1490c7b299c12",
+    "test_vectorized.py": "c15fd22b95e1c553b8a25bb49833b26e3bddda7f8bbbc52a35f6f4a37770c60a"
+  },
+  "serving_wrapper_sha256": "96e8494d1c4187ce87f0fe161dd58cd4afc0cca491edb36c976d835e86c3db92"
+}

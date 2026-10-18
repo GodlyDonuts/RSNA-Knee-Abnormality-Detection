@@ -102,7 +102,15 @@ def export_final(snapshot: Path, terminal: Path, output: Path) -> dict:
 
 
 class PathInference:
-    def __init__(self, head: Path, expected_sha256: str, *, parent_sha256: str, device):
+    def __init__(
+        self,
+        head: Path,
+        expected_sha256: str,
+        *,
+        parent_sha256: str,
+        device,
+        vectorized_scoring: bool = False,
+    ):
         if head.stat().st_size > 2**20 or digest(head) != expected_sha256:
             raise ValueError("Exact small immutable path-head export required")
         value = torch.load(head, map_location="cpu", weights_only=True)
@@ -123,7 +131,17 @@ class PathInference:
         ):
             raise ValueError("Fixed-final same-parent path policy required")
         self.device = torch.device(device)
-        self.reader = PathReader().to(self.device).eval()
+        if type(vectorized_scoring) is not bool:
+            raise ValueError("Explicit candidate scoring policy required")
+        reader_class = PathReader
+        self.scoring_version = "reference:" + VERSION
+        if vectorized_scoring:
+            from path_vectorized import SCORING_VERSION, FastPathReader
+
+            reader_class = FastPathReader
+            self.scoring_version = SCORING_VERSION
+        self.vectorized_scoring = vectorized_scoring
+        self.reader = reader_class().to(self.device).eval()
         self.reader.load_state_dict(value["model"], strict=True)
         self.reader.requires_grad_(False)
         if any(
@@ -205,6 +223,8 @@ class PathInference:
             "csv_sha256": digest(output),
             "head_policy": self.policy,
             "actual_T4_qualification_claim": False,
+            "candidate_vectorized_scoring": self.vectorized_scoring,
+            "scoring_execution_version": self.scoring_version,
         }
 
 
