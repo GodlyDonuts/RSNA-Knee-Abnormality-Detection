@@ -1,0 +1,66 @@
+"""One fitting-only CPU audit; reuse original feature and model proofs in place."""
+import hashlib, json, os, shutil, subprocess, sys, time
+from pathlib import Path
+import numpy as np
+import torch
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS') and os.environ['SLURM_CPUS_PER_TASK']=='1'
+torch.set_num_threads(1);torch.use_deterministic_algorithms(True)
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'parent-delta-control-variate-audit-v1';S=R/'code'
+assert not D.exists() and sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+2*2**20<32*2**20
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');FAMILY=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid(P)<3*2**30 and paid(FAMILY)<4*2**30
+required=603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(FAMILY))
+assert shutil.disk_usage('/tmp').free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+meta=json.loads((R/'staged.json').read_text());assert meta['source_git']=='be837f9b569b16942e6cd290a7898b4a75863766'
+assert all(sha(S/n)==h for n,h in meta['source_files'].items())
+sys.path.insert(0,str(S))
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.competitive.mil_sampling import readout_moments
+scope={'__name__':'private_finding_strata_fixed_audit'}
+assert hashlib.sha256(v['module_source'].encode()).hexdigest()==v['module_sha256']
+exec(compile(v['module_source'],'finding_strata_source','exec'),scope)
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');admission=json.loads((F/'full-input-admitted.json').read_text())
+assert admission['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted' and admission['all3887_feature_members_exact_size_SHA_NPY_metadata'] is True
+index=F/'full-features/index.private.json';assert sha(index)==admission['binding']['feature_index_sha256']=='5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113'
+records=json.loads(index.read_text())['records'];uids=[r['study_uid'] for r in records]
+assert len(uids)==3887 and uids==sorted(uids) and len(set(uids))==3887
+assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+roots={'self':str(F/'full-features'),'godlydonuts/rsna-released-context-probe-d077e354611d':str(F/'features32'),'godlydonuts/rsna-released-full-features-5ab9b091c0f1':str(F/'failed-prefix800')}
+data=FrozenFeatures(records,roots,np.zeros((3887,12),dtype=np.float32),np.zeros((3887,12),dtype=bool),{'scope':'fixed_label_free_teacher_fidelity_only'})
+headpath=Path('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt')
+assert headpath.stat().st_size==1122765 and sha(headpath)=='8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5'
+head=torch.load(headpath,map_location='cpu',weights_only=True)
+proposal_proof=json.loads((R/'proposal-table/accepted.json').read_text());assert proposal_proof['CPU_job']=='940658' and proposal_proof['proposal_table']['sha256']=='e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e'
+table=np.load(R/'proposal-table/proposals.private.npy',mmap_mode='r',allow_pickle=False);assert table.shape==(3887,94) and table.dtype==np.float64
+D.mkdir(mode=0o700)
+intent={'source_git':v['source_git'],'program_sha256':v['program_sha256'],'module_sha256':v['module_sha256'],'population':3887,'draws':64,'seed':20261018,'drift_grid':[0,.05,.2,.5,1],'new_labels_GPU_encoder_fits':False,'node_local_cap_bytes':2*2**20,'within_original_controls_cap_bytes':32*2**20,'automatic_retry':False}
+for name,content in [('estimator.py',v['module_source']),('intent.json',json.dumps(intent,indent=2)+'\n')]:
+ with (D/name).open('x') as f:os.fchmod(f.fileno(),0o600);f.write(content)
+start=time.monotonic();totals={}
+for i in range(len(data)):
+ weights,votes,bias,fp32_probability=readout_moments(head,data[i][0])
+ rows=scope['benchmark'](weights,votes,bias,table[i],draws=64,seed=20261018+i)
+ for row in rows:
+  scale=row['scale'];out=totals.setdefault(scale,{'valid_paired_draws':0,'invalid_draws':0,'standard_paired_squared_error_sum':np.zeros(12),'delta_paired_squared_error_sum':np.zeros(12),'standard_all_squared_error_sum':np.zeros(12),'stable_logit_delta_all_squared_error_sum':np.zeros(12),'maximum_stable_zero_drift_error':0.0,'minimum_delta_denominator':float('inf'),'maximum_delta_zero_drift_error':0.0})
+  for name in ('valid_paired_draws','invalid_draws','standard_paired_squared_error_sum','delta_paired_squared_error_sum','standard_all_squared_error_sum','stable_logit_delta_all_squared_error_sum'):out[name]+=row[name]
+  out['minimum_delta_denominator']=min(out['minimum_delta_denominator'],row['minimum_delta_denominator'])
+  if scale==0:out['maximum_stable_zero_drift_error']=max(out['maximum_stable_zero_drift_error'],row['maximum_stable_zero_drift_error'])
+  if scale==0:out['maximum_delta_zero_drift_error']=max(out['maximum_delta_zero_drift_error'],row['maximum_delta_zero_drift_error'])
+ if (i+1)%512==0:(D/'progress.json').write_text(json.dumps({'completed_studies':i+1,'population':3887,'elapsed_seconds':time.monotonic()-start})+'\n')
+results=[]
+for scale,stats in totals.items():
+ n=stats['valid_paired_draws'];assert n>0
+ a=stats.pop('standard_paired_squared_error_sum')/n;b=stats.pop('delta_paired_squared_error_sum')/n
+ assert np.isfinite(a).all() and np.isfinite(b).all()
+ standard_all=stats.pop('standard_all_squared_error_sum')/(3887*64);stable_all=stats.pop('stable_logit_delta_all_squared_error_sum')/(3887*64)
+ results.append({'scale':scale,**stats,'standard_MSE_all_draws_all12':standard_all.tolist(),'stable_logit_delta_MSE_all_draws_all12':stable_all.tolist(),'stable_logit_delta_macro_MSE_ratio_unconditional':float(stable_all.mean()/standard_all.mean()),'standard_MSE_paired_valid_draws_all12':a.tolist(),'delta_MSE_paired_valid_draws_all12':b.tolist(),'macro_MSE_ratio_on_valid_paired_draws':float(b.mean()/a.mean()),'invalid_draw_fraction':stats['invalid_draws']/(3887*64),'conditioning_on_valid_draws_is_not_unconditional_error':True})
+assert results[0]['invalid_draws']==0 and results[0]['maximum_delta_zero_drift_error']<1e-12
+out={'status':'actual_fitting3887_parent_delta_simulated_drift_CPU_complete','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'module_sha256':v['module_sha256'],'program_sha256':v['program_sha256'],'original_source_git':meta['source_git'],'parent_readout_sha256':sha(headpath),'feature_index_sha256':sha(index),'original_proposal_proof_CPU':940658,'population':3887,'views':2,'windows':94,'observations':16,'draws_each_study':64,'seed':20261018,'results':results,'student_drift_is_simulated_not_a_trained_student':True,'only_frozen_teacher_features_used':True,'parent_full_scores_normalizer_never_student_full_normalizer':True,'no_denominator_clamping_or_hidden_fallback':True,'two_predeclared_CV_formulas_raw_moment_and_stable_paired_logit':True,'stable_variant_has_positive_original_SNIS_denominators':True,'stable_variant_does_not_claim_unbiased_student_gradients':True,'denominator_failure_precludes_automatic_trainer_admission':True,'elapsed_seconds':time.monotonic()-start,'accepted_source_masks_teacher_inference_or_training_changed':False,'clinical_labels_reports_Gold_confirmation_read':False,'new_pixels_features_weights_transferred':0,'new_GPU_optimizer_or_competition_entries':0,'new_shared_bytes_files':0,'clinical_or_competition_accuracy_claim':False,'finite_bag_ratio_bias_can_remain_after_drift':True}
+with (D/'actual.json').open('x') as f:os.fchmod(f.fileno(),0o600);f.write(json.dumps(out,indent=2)+'\n')
+assert paid(D)<2*2**20 and paid(R)<32*2**20
+print(json.dumps(out),flush=True)
