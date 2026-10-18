@@ -1,0 +1,22 @@
+"""Run one phase; credentials and private compiler inputs cross stdin only."""
+import hashlib,importlib.util,json,shlex,subprocess,sys
+from pathlib import Path
+ROOT=Path.cwd();D=Path(__file__).resolve().parent;L=ROOT/'artifacts/paired-logit-real-encoder-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True);phase=sys.argv[1];assert phase in ('stage','push','status');pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();program=(D/'program.py.txt').read_text();assert subprocess.check_output(['git','show',pin+':'+D.relative_to(ROOT).as_posix()+'/program.py.txt'],text=True)==program
+v={'phase':phase,'source_git':pin,'program_sha256':hashlib.sha256(program.encode()).hexdigest()}
+if phase=='stage':
+ from scripts.kaggle import paired_logit_recovery as compiler
+ old='be837f9b569b16942e6cd290a7898b4a75863766';new=set(compiler.EXTRA)|{'scripts/kaggle/paired_logit_recovery.py'}
+ originals={*compiler.original.MODULES,compiler.original.WHOLE_MODULE,*compiler.original.EXTRA_MODULES,'rsna/__init__.py','rsna/competitive/__init__.py','rsna/competitive/licensed_pixel_cache.py','scripts/kaggle/licensed_importance_recovery.py','scripts/kaggle/licensed_parent_recovery.py','scripts/kaggle/licensed_pixel_cache_probe.py','scripts/kaggle/released_context_notebook.py','scripts/kaggle/series_boundary_notebook.py'}
+ v['files']={n:subprocess.check_output(['git','show',(pin if n in new else old)+':'+n],text=True) for n in sorted(originals|new)};v['files'].update({'scripts/__init__.py':'','scripts/kaggle/__init__.py':''});v['parent_source']=(ROOT/'artifacts/compact-native-n3-launch-20261016-v1/public-nartaa-contract-current/source.py').read_text()
+ with (L/'stage-intent.json').open('x') as stream:json.dump({k:x for k,x in v.items() if k not in ('files','parent_source')},stream,indent=2)
+else:
+ v['metadata']=json.loads((D/'actual-staged.json').read_text());env=ROOT/'.env';assert env.stat().st_mode&0o077==0;values={k.strip():x.strip().strip('"\'') for line in env.read_text().splitlines() for k,sep,x in [line.partition('=')] if sep};v['token']=values['KAGGLE_API_TOKEN']
+T=ROOT/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('paired_stdin_transport',T);transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:12:00','--job-name=rsna-paired-encoder-'+phase,'env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',transport.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=transport.envelope(program,v),capture_output=True,text=True,timeout=790);(L/(phase+'-response-'+str(len(list(L.glob(phase+'-response-*.json'))))+'.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Preserve original phase and reconcile read-only: '+x.stderr[-1500:];out=json.loads(x.stdout)
+if phase=='stage':(D/'actual-staged.json').write_text(json.dumps(out,indent=2)+'\n')
+elif phase=='push' and out['status']=='one_new_paired_logit_encoder_recovery_pushed':(D/'actual-pushed.json').write_text(json.dumps(out,indent=2)+'\n')
+elif phase=='status':
+ (D/'actual-live-status.json').write_text(json.dumps(out,indent=2)+'\n')
+ if out['status']=='COMPLETE':(D/'actual-accepted.json').write_text(json.dumps(out,indent=2)+'\n')
+print(json.dumps(out),flush=True)

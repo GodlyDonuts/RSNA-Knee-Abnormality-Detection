@@ -1,0 +1,69 @@
+"""One new corrected-encoder diagnostic; canonical exact-version mutations only."""
+import ast,base64,hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);phase=v['phase'];assert phase in ('stage','push','status');assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'paired-logit-real-encoder-v1';S=D/'code';paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert hashlib.sha256((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))+(2**20 if phase=='stage' else max(0,2**20-paid(D)))
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def load(name,p):
+ spec=importlib.util.spec_from_file_location(name,p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+if phase=='stage':
+ assert not D.exists() and paid(R)+2**20<32*2**20
+ old=Path('/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py');assignments={n.targets[0].id:ast.literal_eval(n.value) for n in ast.parse(old.read_text()).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='TARGETS'};raw=base64.b64decode(assignments['TARGETS'],validate=True);assert hashlib.sha256(raw).hexdigest()=='87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834';targets=json.loads(raw)
+ assert hashlib.sha256(v['parent_source'].encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+ D.mkdir(mode=0o700)
+ for name,text in v['files'].items():
+  path=S/name;assert path.resolve().is_relative_to(S.resolve());path.parent.mkdir(mode=0o700,parents=True,exist_ok=True);path.write_text(text);path.chmod(0o600)
+ sys.path.insert(0,str(S));from scripts.kaggle import paired_logit_recovery as compiler
+ permission=R/'source-permission.txt';assert permission.stat().st_size==4411 and sha(permission)=='34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79'
+ names=(*compiler.original.MODULES,compiler.original.WHOLE_MODULE,*compiler.original.EXTRA_MODULES,*compiler.EXTRA)
+ source,binding=compiler.build(v['parent_source'],(S/'rsna/competitive/licensed_pixel_cache.py').read_text(),{n:(S/n).read_text() for n in names},targets,permission=permission.read_text())
+ (D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600)
+ result={'status':'new_paired_logit_real_encoder_source_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'binding':binding,'source_files':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'private_control_child_cap':2**20,'inside_existing_control_cap':32*2**20,'new_model_pixel_transfers':0,'new_GPU_actions':0,'production_or_accuracy_acceptance':False};(D/'staged.json').write_text(json.dumps(result,indent=2)+'\n');assert paid(D)<2**20 and paid(R)<32*2**20;print(json.dumps(result),flush=True);raise SystemExit(0)
+meta=json.loads((D/'staged.json').read_text());assert meta==v['metadata'] and meta['program_sha256']==v['program_sha256'] and paid(D)<2**20;source=(D/'source.private.py').read_text();h=hashlib.sha256(source.encode()).hexdigest();assert h==meta['binding']['source_sha256'];sys.path.insert(0,str(S));from scripts.kaggle.paired_logit_recovery import STATUS
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert sha(C)=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';w=load('paired_canonical_workflow',C)
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end;time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'new_paired_logit_encoder_recovery','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);slug='godlydonuts/rsna-paired-logit-recovery-'+h[:12];key='paired-logit-recovery:'+h
+  dependencies=['godlydonuts/rsna-released-context-probe-d077e354611d','godlydonuts/rsna-parent-exact-pixels32-09254e97913d']
+  request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007'],'competitionDataSources':[],'kernelDataSources':dependencies,'sessionTimeoutSeconds':1800,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+  def save(row):db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+  if phase=='push':
+   assert not (D/'push-intent.json').exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   cap_path=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert sha(cap_path)=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';base=load('paired_base_capacity',cap_path);extpath=R/'finding-strata-audit-v1/accepted-capacity.py';assert sha(extpath)=='1c915d09f5c39c341bf910818cdd45f234c054ccb3f1fe4225c352c7821a70ea';from types import SimpleNamespace
+   capacity=load('paired_extended_capacity',extpath).admission(SimpleNamespace(admission=base.admission,FAMILIES=(*base.FAMILIES,'finding-strata-full:','encoder-lr-full-fit:','paired-logit-recovery:')),db,r)
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));available=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+   def serving(root):
+    if any((root/(mode+'-actual-failed.json')).exists() for mode in ('qualification','competition')):return 0
+    return sum(cap for mode,cap in (('qualification',1800),('competition',32400)) if not (root/(mode+'-actual-accepted.json')).exists())
+   lr=Path('/tmp/rsna-encoderLR3e5-influence-20261018-v1');lr_future=sum(6000 for e in (1,2,3) if not (lr/('epoch-'+str(e))/'actual-accepted.json').exists());finding_future=sum(6000 for e in (1,2,3) if not (R/'finding-strata-full-fitting-v1'/('epoch-'+str(e))/'actual-accepted.json').exists())+serving(R/'finding-strata-production-v1/final-serving-v1/finding');familyroot=Path('/tmp/rsna-S6-training-release-20261017-v1');family_future=(0 if (familyroot/'family-influence-full-fitting-v1/epoch-3/actual-accepted.json').exists() else 6000)+serving(familyroot/'family-final-scoring-v1/family');required=lr_future+finding_future+family_future+3600+1800
+   budget={'available_VM_seconds':available,'required_VM_seconds':required,'unfinished_LR_fit_caps':lr_future,'finding_future_caps':finding_future,'family_future_caps':family_future,'new_diagnostic_cap':1800,'reserve':3600,'later_LR_serving_requires_its_separate_fresh_admission':True,'no_quota_or_plan_change':True}
+   if not capacity['available'] or available<required:out={'status':'waiting_actual_capacity_or_budget_without_mutation','budget':budget,'capacity':capacity}
+   else:
+    for ref in dependencies:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+    absence=r.require_absent_kernel(slug);row={'state':'paired_logit_recovery_push_intent','slug':slug,'version':1,'source_sha256':h,'worker_sha256':meta['binding']['worker_sha256'],'binding':meta['binding'],'budget':budget,'capacity':capacity,'absence':absence,'request_sha256':w.object_hash(request),'automatic_retry':False};w.new_json(D/'push-intent.json',row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:row['state']='paired_logit_recovery_push_uncertain';save(row);retain=True;raise
+    row.update(state='paired_logit_recovery_pushed',kernel_id=response['kernelId']);save(row);out={'status':'one_new_paired_logit_encoder_recovery_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':h,'budget':budget,'competition_entries':0}
+  else:
+   row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source
+   for name in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage'):assert actual['metadata'].get(name,False if name=='enableInternet' else None)==request[name]
+   for name in ('kernelDataSources','datasetDataSources','competitionDataSources'):assert sorted(actual['metadata'].get(name,[]))==sorted(request[name])
+   state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':state,'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':h,'competition_entries':0}
+   if state=='COMPLETE':
+    receipt=r.output_json(slug,1,'paired-logit-real-MRI-recovery-accepted.json');assert receipt['status']==STATUS and receipt['worker_source_sha256']==meta['binding']['worker_sha256'] and receipt['source_module_sha256']==meta['binding']['own_module_sha256'] and receipt['epochs']==3 and receipt['updates_per_role']==6 and set(receipt['roles'])=={'influence'};assert receipt['roles']['influence']['complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal'] is True and receipt['roles']['influence']['all16_full94_two_view_prediction_bytes_equal'] is True;out['receipt']=receipt
+    if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='paired_logit_recovery_actual_complete',receipt=receipt);save(row)
+   elif state in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+    if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row['state']='paired_logit_recovery_actual_failed';save(row)
+  print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()
