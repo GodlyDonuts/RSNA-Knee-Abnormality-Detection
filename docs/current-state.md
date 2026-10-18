@@ -68,7 +68,8 @@ permitted. Fresh resources and exact original receipts govern new work.
 Private source preservation through source f3492774 is fully verified at
 HF db9feeb2bf1e76ed0422d5af91afb2227c00aa05. The preceding current-state/review milestone through source62f2674e is also
 fully privately verified at HF0d1752b642c309b895617db55cc030de01b67c84.
-The newer decision implementation awaits its distinct source mirror. No model or clinical data is
+The newer decision implementation through sourcef6fed9cf is fully privately
+verified at HFeff049a068fb3be01195fa7e04844c2cb12dedfc (15small objects). No model or clinical data is
 included in a source milestone.
 
 [Execution continuation](codex-continuation.md) carries exact operational handles.
