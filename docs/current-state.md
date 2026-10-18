@@ -73,8 +73,11 @@ Daenerys study9 original reviews and81408-byte addendum are now collected unchan
 and source-bound. Its14 requested views/28panels changed no target status or
 confidence. The next complete study10 was delivered once and read1:16PM:
 six series/all171 source slices/30 native image sheets, with all32 hosted files
-matching their original sizes/hashes and Page references. Image-only review is
-requested before the separate matching report; review outputs remain pending.
+matching their original sizes/hashes and Page references. Both original candidate reviews are now collected and source-bound; twelve
+literal report quotes match. One target becomes uncertain after report access.
+Eleven requested native paired-window images are appended with all68 prior blocks
+unchanged; the same-study follow-up was read1:43PM and is being reviewed. Its
+separate original addendum is pending; no next study has started.
 No candidate review was promoted into accepted labels. Private MRI/report/review
 records remain outside public Git.
 [Sanitized review milestone](../initiative/audits/daenerys-multimodal-study-review-v1/ninth-addendum-and-tenth-delivery-20261018.json).

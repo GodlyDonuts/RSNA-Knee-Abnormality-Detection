@@ -1,0 +1,39 @@
+"""Render requested original DICOM pixels with two disclosed linear windows."""
+import hashlib,json,os,shutil
+from pathlib import Path
+import numpy as np
+import pydicom
+from PIL import Image,ImageDraw
+os.umask(0o077)
+D=Path(__file__).resolve().parent;O=D/'alternate-windows-v1';assert not O.exists()
+assert shutil.disk_usage(D).free>20*2**30+32*2**20
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+32*2**20<512*2**20
+packet=json.loads((D/'packet.json').read_text());inventory={r['sop_uid']:r for r in json.loads((D/'first-source-inventory.json').read_text())}
+requested={2:[*range(18,21),*range(11,16)],5:list(range(7,10))};outputs=[];O.mkdir(mode=0o700)
+manifest={'packet_id':packet['packet_id'],'request':'Daenerys original study010 image-only001 ACL plus report-informed002 medial-meniscus clarification request','display':'Two side-by-side linear8bit windows, each at original spatial resolution. No enhancement, resampling, rotation or flipping. Each window is derived from the full original acquisition after DICOM rescale. Clipping/8bitquantization are lossy.','images':[],'series_windows':[],'accepted_labels_changed':False}
+for si,numbers in requested.items():
+ s=packet['series'][si-1];assert s['series_index']==si
+ decoded=[]
+ for sop in s['ordered_sop_uids']:
+  path=D/'original'/(sop+'.dcm');r=inventory[sop];assert path.stat().st_size==r['bytes']
+  ds=pydicom.dcmread(path);assert str(ds.SOPInstanceUID)==sop and str(ds.SeriesInstanceUID)==s['series_uid'] and str(ds.StudyInstanceUID)==packet['study_uid']
+  raw=ds.pixel_array.astype(np.float64);assert list(raw.shape)==s['original_shape'][1:] and np.isfinite(raw).all()
+  pixels=raw*float(getattr(ds,'RescaleSlope',1))+float(getattr(ds,'RescaleIntercept',0))
+  decoded.append((sop,ds,pixels))
+ stacked=np.stack([x[2] for x in decoded]);windows=[('contrast',*map(float,np.percentile(stacked,[1,98]))),('wide',*map(float,np.percentile(stacked,[0,99.9])))]
+ assert all(hi>lo for _,lo,hi in windows)
+ manifest['series_windows'].append({'series_index':si,'original_baseline_window':[s['window_low'],s['window_high']],'windows':[{'name':name,'low':lo,'high':hi,'percentiles':[1,98] if name=='contrast' else [0,99.9]} for name,lo,hi in windows],'full_series_slices_used_for_percentiles':len(decoded)})
+ for n in numbers:
+  sop,ds,pixels=decoded[n-1];source=D/'original'/(sop+'.dcm');assert hashlib.sha256(source.read_bytes()).hexdigest()==inventory[sop]['sha256']
+  h,w=pixels.shape;image=Image.new('L',(2*w,h+40),0);draw=ImageDraw.Draw(image)
+  for j,(name,lo,hi) in enumerate(windows):
+   display=np.round(np.clip((pixels-lo)/(hi-lo),0,1)*255).astype(np.uint8)
+   if str(ds.PhotometricInterpretation)=='MONOCHROME1':display=255-display
+   else:assert str(ds.PhotometricInterpretation)=='MONOCHROME2'
+   image.paste(Image.fromarray(display),(j*w,40));draw.text((j*w+4,3),f'Series {si} slice {n} | {name}',fill=255);draw.text((j*w+4,19),f'linear low={lo:.6g} high={hi:.6g}',fill=255)
+  path=O/f'series-{si:02d}-slice-{n:03d}-two-windows.png';image.save(path);size=path.stat().st_size;assert size<10*2**20
+  manifest['images'].append({'file':str(path),'series_index':si,'slice_number':n,'original_sop_uid':sop,'source_sha256':inventory[sop]['sha256'],'size':size,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'width':image.width,'height':image.height,'original_pixel_spacing':[float(x) for x in ds.PixelSpacing],'original_position':[float(x) for x in ds.ImagePositionPatient],'original_orientation':[float(x) for x in ds.ImageOrientationPatient],'each_panel_source_shape':[h,w]})
+assert len(manifest['images'])==11
+(O/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+assert sum(p.stat().st_size for p in O.rglob('*') if p.is_file())<32*2**20
+print(json.dumps({'original_requested_slices':11,'comparison_images':11,'new_bytes':sum(x['size'] for x in manifest['images']),'original_pixel_shape':manifest['images'][0]['each_panel_source_shape'],'accepted_labels_changed':False}))
