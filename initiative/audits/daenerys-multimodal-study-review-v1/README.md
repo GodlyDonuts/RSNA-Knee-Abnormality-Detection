@@ -196,3 +196,22 @@ verify its original size/SHA, then finish the original remaining uploads and
 deliver once. Do not send an incomplete case or replace the requested reviewer.
 All detailed clinical records, source images, reports and transport references
 remain private. Training is unchanged; no clinical or Kaggle gain is claimed.
+
+## October18 stalled sixth packet restored and delivered
+
+The sixth review had stalled on an image upload whose native reference was lost.
+Its original attachment remains preserved. One explicitly recorded replacement
+used the same original PNG bytes; the original38 confirmed references were reused.
+The private Page now contains all39 unique native images, seven complete series
+and226 original slices, the exact source report and unchanged12-target rubric.
+Native Page readback confirms all39references/report, and the replaced image
+actually renders. No original DICOM/cache replay or new study selection occurred.
+
+The complete packet was sent ONCE through the existing Daenerys conversation UI,
+which showed Read and her explicit acknowledgment of all39sheets, then Thinking.
+The clinical review is in progress, not complete. Preserve its original bytes
+and actual image-access/coverage before case7; never resend this packet while
+active. The old durable thread identifier is historical and is not sufficient
+to identify the current recipient. Private destination references, reports, MRI
+images and delivery screenshot remain in ignored artifacts. Accepted labels and
+model weights are unchanged; no new accuracy gain is claimed.

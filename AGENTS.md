@@ -1,5 +1,14 @@
 # RSNA Knee: current agent guide
 
+October18 supervision queue resumed: sixth complete original fitting-study
+packet sent ONCE to actual existing Daenerys UI, read/acknowledged and Thinking.
+All39native image sheets/7series/226slices and exact source report are present.
+One explicitly recorded identical-byte image replacement resolved lost reference;
+original38refs/orphan remain preserved. Clinical records/proof stay private.
+Collect her complete original review and actual image coverage before case7;
+accepted labels unchanged. See daenerys-multimodal-study-review-v1.
+
+
 October18 hardware-utilization forward work: new path runner exposes explicit
 encoder chunk size1–96(default12), preserves window coverage/FP32/source identity,
 and records synchronized encoder time separately from decoding.25focused new
