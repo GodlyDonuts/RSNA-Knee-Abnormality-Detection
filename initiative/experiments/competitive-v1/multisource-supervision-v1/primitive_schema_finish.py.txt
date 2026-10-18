@@ -1,0 +1,44 @@
+"""Finish only the acquired primitive schema audit; no acquisition or training."""
+import hashlib,json,os,sys
+from pathlib import Path
+import numpy as np
+import pandas as pd
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-training-release-20261017-v1/primitive-supervision-v1')
+assert (P/'intent.json').exists() and not (P/'source-audit.json').exists()
+proof=v['files']
+assert all((P/name).stat().st_size==row['bytes'] for name,row in proof.items())
+original=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert original.stat().st_size==483656
+with np.load(original,allow_pickle=False) as z:uids=z['uids'].tolist();old=z['labels'];mask=z['masks']
+assert len(uids)==3887 and mask.all() and old.shape==mask.shape==(3887,12)
+assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+# Scope admission precedes any numeric target conversion. Read only fitting
+# rows and only weak y/m columns; gold_* columns are never requested.
+targets=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+def fitting(name,columns):
+    assert 'StudyInstanceUID' in proof[name]['columns'] and all(c in proof[name]['columns'] for c in columns)
+    data=pd.read_parquet(P/name,columns=['StudyInstanceUID',*columns],filters=[('StudyInstanceUID','in',uids)])
+    assert len(data)==3887 and not data.StudyInstanceUID.duplicated().any() and set(data.StudyInstanceUID)==set(uids)
+    return data.set_index('StudyInstanceUID').loc[uids]
+gem=fitting('labels_v1_gemlow.parquet',targets).to_numpy(np.float32)
+schema_keys=[t.replace(' ','_').replace("'",'') for t in targets]
+cols=[prefix+t for prefix in ('y_','m_') for t in schema_keys]
+base=fitting('train_labels_v0.parquet',cols)
+source=fitting('train_labels_v1.parquet',cols)
+base_y=base[['y_'+t for t in schema_keys]].to_numpy(np.float32)
+gem_y=source[['y_'+t for t in schema_keys]].to_numpy(np.float32)
+base_m=base[['m_'+t for t in schema_keys]].to_numpy()
+gem_m=source[['m_'+t for t in schema_keys]].to_numpy()
+assert np.isin(base_m,[0,1]).all() and np.isin(gem_m,[0,1]).all()
+assert np.isfinite(gem).all() and ((gem>=0)&(gem<=1)).all()
+safe=base_m.astype(bool)&gem_m.astype(bool)&(base_y==old)&(gem_y==gem)
+assert np.isfinite(old).all()
+proposed=old.copy();proposed[safe]=((old[safe].astype(np.float64)+gem[safe].astype(np.float64))/2).astype(np.float32)
+rows=[]
+for c,target in enumerate(targets):
+    rows.append({'target':target,'safe_common_exact_cells':int(safe[:,c].sum()),'label_values_only_changed_cells':int((safe[:,c]&(proposed[:,c]!=old[:,c])).sum()),'mean_absolute_change_safe':float(np.abs(proposed[safe[:,c],c]-old[safe[:,c],c]).mean()) if safe[:,c].any() else None,'fitting_cells':3887,'baseline_y_exact_original_cells':int((base_y[:,c]==old[:,c]).sum()),'primitive_y_exact_probability_file_cells':int((gem_y[:,c]==gem[:,c]).sum()),'baseline_source_addressed_cells':int(base_m[:,c].sum()),'primitive_source_addressed_cells':int(gem_m[:,c].sum()),'safe_common_source_mask_cells':int((base_m[:,c].astype(bool)&gem_m[:,c].astype(bool)).sum())})
+
+out={'status':'actual_acquired_primitive_source_fitting_only_semantic_audit_complete','CPU_job':os.environ['SLURM_JOB_ID'],'original_acquisition_CPU_job':'952331','schema_reconciliation_CPU_job':'952341','source_git':v['source_git'],'dataset_id':12032129,'version':9,'fitting_studies':3887,'files':proof,'per_target':rows,'all_baseline_source_y_exact_current_targets':bool(np.array_equal(base_y,old)),'all_primitive_source_y_exact_probability_file':bool(np.array_equal(gem_y,gem)),'baseline_addressed_y_exact_current':bool(np.array_equal(base_y[base_m.astype(bool)],old[base_m.astype(bool)])),'primitive_addressed_y_exact_probability_file':bool(np.array_equal(gem_y[gem_m.astype(bool)],gem[gem_m.astype(bool)])),'new_actual_training_cells_changed':0,'hypothetical_safe_overlay_changed_cells':int((safe&(proposed!=old)).sum()),'legacy_training_masks_preserved':True,'new_coverage_cells':0,'target_columns_requested':cols,'gold_target_columns_requested':False,'new_acquisition_or_training_or_competition_mutation':False,'overlay_not_materialized':True}
+(P/'source-audit.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
