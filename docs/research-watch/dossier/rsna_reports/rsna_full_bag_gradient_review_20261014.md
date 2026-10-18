@@ -2,6 +2,12 @@
 
 14 October 2026. Mathematical review and primary-source inspection; no executed experiment.
 
+## October18 implementation update
+
+The rejection below describes the October14 declared train-mode-BatchNorm recipe. It does not describe current normalization: `licensed_parent_train.train_with_frozen_bn` explicitly calls `eval()` on every BatchNorm module, and `paired_logit_train.fit` invokes it before training. Current completed epoch receipts additionally assert parent BatchNorm buffers were preserved. Frozen buffers alone would not prove eval-mode; the source establishes it.
+
+Existing `licensed_full_bag.CheckpointedEncode` already implements full-bag activation recomputation with frozen-BN enforcement/RNG preservation and has synthetic gradient/buffer tests. This is existing work, not a newly invented method. The current paired trainer still uses sampled windows and a corrected readout. Removing the earlier BN objection does not remove encoder stochastic replay, compute-cost or variance requirements, nor establish an accuracy benefit. Any new gradient-estimator experiment must compare against the actual current recipe and unchanged held-out population; the older rejection must not be used as a blanket prohibition or a reason to claim a breakthrough.
+
 ## Conclusion
 
 Reject this as a drop-in change to the final-week CoAtNet recipe. Full-bag forward with sampled encoder gradients is mathematically sound for a window-separable encoder and can eliminate sampled-bag supervision mismatch. But the declared train-mode BatchNorm invalidates ordinary 12-window replay, the compute still rises roughly threefold versus the existing fit, and the estimator family is established rather than new.
