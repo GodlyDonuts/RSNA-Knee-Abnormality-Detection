@@ -1,0 +1,69 @@
+"""One new encoder-LR comparison; exact original assets, canonical mutation owner."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=PACKAGE;phase=v['phase'];epoch=v['epoch'];assert phase in ('stage','prepare','push','status') and type(epoch) is int and 1<=epoch<=3 and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');F=R/'full-comparison';S=F/'code';N=Path('/tmp/rsna-encoderLR3e5-influence-20261018-v1');capbytes=8*2**20
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');retirement=family/'completed-fixed3-unspent512MiB-retirement-v1.json';assert hashlib.sha256(retirement.read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+basefloor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family));assert shutil.disk_usage('/tmp').free>basefloor+max(0,capbytes-paid(N))
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+assert v['storage']['status']=='new_LR_private_three_epoch_storage_admitted' and v['storage']['new_checkpoint_cap_bytes']==4*2**30
+sys.path.insert(0,str(S))
+def load(name,p):
+ spec=importlib.util.spec_from_file_location(name,p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+if phase=='stage':
+ assert not N.exists();N.mkdir(mode=0o700);(N/'encoder_lr_production.py').write_text(v['compiler']);(N/'encoder_lr_production.py').chmod(0o600);(N/'cloud.py.txt').write_text(v['program']);(N/'cloud.py.txt').chmod(0o600);(N/'storage-admitted.json').write_text(json.dumps(v['storage'],indent=2)+'\n');(N/'source.json').write_text(json.dumps({'source_git':v['source_git'],'compiler_sha256':hashlib.sha256(v['compiler'].encode()).hexdigest(),'cloud_sha256':hashlib.sha256(v['program'].encode()).hexdigest(),'small_cap_bytes':capbytes,'existing_numerical_modules_unchanged':True},indent=2)+'\n')
+ assert paid(N)<capbytes;print(json.dumps({'status':'new_encoderLR_comparison_controls_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'new_GPU':False,'new_dataset':False}));raise SystemExit(0)
+source_record=json.loads((N/'source.json').read_text());assert source_record['source_git']==v['source_git'] and source_record['compiler_sha256']==hashlib.sha256((N/'encoder_lr_production.py').read_bytes()).hexdigest() and json.loads((N/'execution-v3.json').read_text())['cloud_sha256']==hashlib.sha256(v['program'].encode()).hexdigest() and paid(N)<capbytes
+compiler=load('new_encoder_LR_compiler',N/'encoder_lr_production.py');from scripts.kaggle.licensed_importance_production import ACCEPTED_MODULES,POPULATION_MODULES
+recovery=json.loads((F/'actual-recovery.json').read_text());proposal=json.loads((F/'proposal-accepted.json').read_text());dataset=json.loads((F/'dataset-verified.json').read_text());original=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');proofs=json.loads((original/'actual-original-Kaggle-inputs.json').read_text())['proofs'];D=N/('epoch-'+str(epoch));C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(C.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';w=load('LR_canonical_workflow',C)
+if phase=='prepare':
+ assert not D.exists();previous=None
+ if epoch>1:
+  prior=json.loads((N/('epoch-'+str(epoch-1))/'actual-accepted.json').read_text());publication=v['previous_publication'];assert publication['status']=='actual_encoderLR3e5_epoch_private_full_download_size_SHA_verified' and publication['epoch']==epoch-1 and publication['original_Kaggle_kernel']==prior['kernel_id'] and publication['original_source_sha256']==prior['source_sha256'];previous=prior['receipt']
+ files={name:(S/name).read_text() for name in (*ACCEPTED_MODULES,*POPULATION_MODULES)};source,meta=compiler.build((R/'recovery.private.py').read_text(),recovery,files,proofs,proposal,v['source_git'],segment=epoch,previous=previous);D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600);w.new_json(D/'prepared.json',meta);print(json.dumps({'status':'new_encoderLR_epoch_prepared','epoch':epoch,'source_sha256':meta['source_sha256'],'worker_sha256':meta['worker_sha256'],'source_git':v['source_git'],'new_GPU':False}));raise SystemExit(0)
+prepared=json.loads((D/'prepared.json').read_text());source=(D/'source.private.py').read_text();h=hashlib.sha256(source.encode()).hexdigest();assert h==prepared['source_sha256'];slug='godlydonuts/rsna-i16-encoderlr3e5-e'+str(epoch)+'-'+h[:12];key='encoder-lr-full-fit:'+h
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts';claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  assert time.monotonic()<deadline,'Canonical claim busy; no duplicate mutation';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'encoder_LR_single_factor','phase':phase,'epoch':epoch,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  def save(row):db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+  dependencies=['godlydonuts/rsna-parent-exact-pixels32-09254e97913d',*['godlydonuts/rsna-parent-pixels-full-s'+str(i)+'-'+x['source_sha256'][:12] for i,x in enumerate(proofs)]]
+  if epoch>1:dependencies.append(json.loads((N/('epoch-'+str(epoch-1))/'push-intent.json').read_text())['slug'].lower())
+  request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007','godlydonuts/rsna-parent-fit-targets-48b4485f03b6',dataset['dataset']['slug']],'competitionDataSources':[],'kernelDataSources':dependencies,'sessionTimeoutSeconds':6000,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+  if phase=='push':
+   assert not (D/'push-intent.json').exists() and db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+   cap_path=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(cap_path.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';capacity=load('new_LR_registered_capacity',cap_path);capacity.FAMILIES=(*capacity.FAMILIES,'finding-strata-full:','encoder-lr-full-fit:');admission=capacity.admission(db,r,caller='sampling')
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));allowed=quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') is True else quota['minimumTimeAllowed'];available=seconds(allowed)-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+   finding=R/'finding-strata-full-fitting-v1';finding_fit=sum(6000 for e in (1,2,3) if not (finding/('epoch-'+str(e))/'actual-accepted.json').exists());finding_serve=R/'finding-strata-production-v1/final-serving-v1/finding'
+   finding_future=finding_fit+(0 if (finding_serve/'qualification-actual-accepted.json').exists() else 1800)+(0 if (finding_serve/'competition-actual-accepted.json').exists() else 32400)
+   familyroot=Path('/tmp/rsna-S6-training-release-20261017-v1');familyfit=0 if (familyroot/'family-influence-full-fitting-v1/epoch-3/actual-accepted.json').exists() else 6000;familyserve=familyroot/'family-final-scoring-v1/family';family_future=familyfit+(0 if (familyserve/'qualification-actual-accepted.json').exists() else 1800)+(0 if (familyserve/'competition-actual-accepted.json').exists() else 32400)
+   unfinished=sum(6000 for e in (1,2,3) if not (N/('epoch-'+str(e))/'actual-accepted.json').exists());required=unfinished+finding_future+family_future+3600;budget={'actual_quota':quota,'available_VM_seconds':available,'new_unfinished_fit_caps':unfinished,'original_finding_future_caps':finding_future,'original_family_future_caps':family_future,'safety_seconds':3600,'required_VM_seconds':required,'later_new_candidate_serving_not_yet_admitted':True,'no_purchase_or_quota_change':True}
+   if not admission['available'] or available<required:out={'status':'waiting_fresh_capacity_or_complete_fit_budget_no_mutation','budget':budget,'capacity':admission}
+   else:
+    for ref in dependencies:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+    absence=r.require_absent_kernel(slug);row={'state':'encoder_LR_full_fit_push_intent','slug':slug,'version':1,'epoch':epoch,'source_sha256':h,'worker_sha256':prepared['worker_sha256'],'binding':prepared['binding'],'budget':budget,'capacity':admission,'absence':absence,'request_sha256':w.object_hash(request),'automatic_retry':False};w.new_json(D/'push-intent.json',row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+    except BaseException:
+     row['state']='encoder_LR_full_fit_push_uncertain';save(row);retain=True;raise
+    row.update(state='encoder_LR_full_fit_pushed',kernel_id=response['kernelId']);save(row);out={'status':'one_exact_encoderLR_treatment_epoch_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':response['kernelId'],'slug':slug,'version':1,'epoch':epoch,'role':'influence','source_sha256':h,'budget':budget,'competition_entry':False}
+  else:
+   row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source
+   for name in ('isPrivate','enableInternet','enableGpu','machineShape','dockerImage'):assert actual['metadata'].get(name,False if name=='enableInternet' else None)==request[name]
+   for name in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(actual['metadata'].get(name,[]))==sorted(request[name])
+   state=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':state,'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':row['kernel_id'],'slug':slug,'version':1,'epoch':epoch,'role':'influence','source_sha256':h,'competition_entry':False}
+   if state=='COMPLETE':
+    receipt=r.output_json(slug,1,'licensed-importance-full-session-accepted.json');assert receipt['status']==compiler.STATUS and receipt['role']=='influence' and receipt['segment']==epoch and receipt['binding']==prepared['binding'] and receipt['worker_sha256']==prepared['worker_sha256'] and receipt['completed']==486*epoch and receipt['total']==1458 and receipt['fixed_final_complete']==(epoch==3) and len(receipt['devices'])==2 and all(d['GPU']=='Tesla T4' and d['completed']==486*epoch and d['trainable_parameters']==73136096 and d['all_BN_buffers_equal_parent'] is True and d['peak_allocated_bytes']<d['total_VRAM_bytes'] for d in receipt['devices']);out['receipt']=receipt
+    if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='encoder_LR_full_fit_actual_complete',receipt=receipt);save(row)
+   elif state in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+    if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row['state']='encoder_LR_full_fit_actual_failed';save(row)
+  print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()
