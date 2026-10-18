@@ -1,5 +1,12 @@
 # Execution handoff
 
+October18 exact new finding E3UI observation:139381056v1/source6faa618a0f73
+visibly shows Queued.../GPU T4 x2/output0B, edit-run359625026. Contemporaneous
+GetKernelSessionStatus returned{}, so null alone is not failure/restart authority.
+No duplicate push or training restart; existing43912continues polling. Receipt
+is finding-stratified-bags-20261018-v1/epoch-3-queued-observation.json. No new
+optimizer progress or accuracy result is claimed by this queue observation.
+
 October18 real training progress: finding E2kernel139369133 completed972
 updates and all6private objects were fully downloaded/size/SHA verified once
 at HF32444190020d0872ac11656d1cfd7b3d30116bc4 viaCPU955897. Existing43912
