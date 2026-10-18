@@ -1,0 +1,37 @@
+"""Read only the exact submitted reference outcome; record actual terminal state."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sys
+import time
+import requests
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py')
+assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('exact_reference_outcome',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+    try:claim.mkdir(mode=0o700);break
+    except FileExistsError:assert time.monotonic()<deadline;time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'exact_reference_submission_outcome_only','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+    with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+        w.verify_account(db,r)
+        key='licensed-parent-full-epoch-serving:exact-public0958-script:b472091d7a323e0165958ca01e6f023b21db9c3d2b10d3f79ba8962fb83efc5b'
+        row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0])
+        assert row['state'] in ('full_parent_epoch_reference_script_submitted','full_parent_epoch_reference_script_scored','full_parent_epoch_reference_script_hidden_failed')
+        found=[x for x in r.submissions() if x['ref']==row['submission_id']];assert len(found)==1
+        item=found[0];assert row['slug'].split('/')[1] in item.get('url','')
+        outcome=w.submission_outcome(item)
+        out={'status':'actual_exact_reference_hidden_outcome','CPU_job':os.environ['SLURM_JOB_ID'],'submission_id':item['ref'],'slug':row['slug'],'version':row['version'],'actual_status':item.get('status'),'public_score':item.get('publicScore'),'outcome':outcome,'error_present':bool(item.get('errorDescription')),'new_mutations':0}
+        if outcome in ('scored','failed'):
+            row.update(state='full_parent_epoch_reference_script_scored' if outcome=='scored' else 'full_parent_epoch_reference_script_hidden_failed',actual_hidden_outcome=out,public_score=item.get('publicScore'))
+            db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+            G=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1')
+            if not (G/'actual-hidden-terminal.json').exists():w.new_json(G/'actual-hidden-terminal.json',out)
+        print(json.dumps(out),flush=True)
+finally:(claim/'owner.json').unlink();claim.rmdir()
