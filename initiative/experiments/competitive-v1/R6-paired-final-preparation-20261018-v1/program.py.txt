@@ -1,0 +1,65 @@
+"""Stage or compile one actual qualified paired member into R6, CPU only."""
+import hashlib,importlib.util,json,os,shutil,sqlite3,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');D=N/'R6-final-preparation-v1'
+C=N/'R6-member-template-v3';T=N/'fixed-final-serving-template-v1'
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1')
+S=P/'full-comparison/final-matched-serving-v1/code'
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def paid(p):return sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+def new(p,value):
+ with p.open('x') as f:json.dump(value,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n')
+def bounds(extra=0):
+ future=sum((N/'epoch-1-source/source.private.py').stat().st_size+131072 for e in (2,3) if not (N/('epoch-'+str(e)+'-source/source.private.py')).exists())
+ assert paid(D)+extra+32768<2**20
+ assert paid(N)+future+max(0,2**20-paid(N/'final-scoring-v1'))+max(0,2**20-paid(D))+512*1024<8*2**20
+ reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+ assert sha(family/'completed-fixed3-unspent512MiB-retirement-v1.json')=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+ floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+ for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+ assert shutil.disk_usage('/tmp').free>floor and paid(P)<32*2**20
+ q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'))
+ assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+bounds(len(v.get('program','').encode()))
+accepted=json.loads((C/'accepted.json').read_text());assert accepted['CPU_job']=='960836' and accepted['qualified_original_source_ordering_supported'] is True
+assert all(sha(C/n)==h for n,h in accepted['code_sha256'].items())
+def load(name,path):
+ spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
+sys.path.insert(0,str(S));import rsna.competitive,scripts.kaggle
+load('rsna.schema',C/'rsna/schema.py')
+scope=load('rsna.competitive.paired_logit_serving',T/'rsna/competitive/paired_logit_serving.py');rsna.competitive.paired_logit_serving=scope
+pc=load('scripts.kaggle.paired_logit_serving',T/'scripts/kaggle/paired_logit_serving.py');scripts.kaggle.paired_logit_serving=pc
+member=load('rsna.competitive.reference_member',C/'rsna/competitive/reference_member.py');rsna.competitive.reference_member=member
+ref=load('scripts.kaggle.public_reference_script',C/'scripts/kaggle/public_reference_script.py');scripts.kaggle.public_reference_script=ref
+compiler=load('actual_original_R6_paired_compiler',C/'scripts/kaggle/paired_reference_member.py')
+assert sha(pc.original.__file__)==pc.BASE_COMPILER_SHA and sha(ref.__file__)==compiler.BASE_SHA
+if v['phase']=='stage':
+ assert not D.exists() and hashlib.sha256(v['program'].encode()).hexdigest()==v['program_sha256']
+ D.mkdir(mode=0o700);(D/'program.py.txt').write_text(v['program']);(D/'program.py.txt').chmod(0o600)
+ out={'status':'actual_CPU_R6_final_preparation_single_coordinator_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'original_compiler_CPU_job':'960836','actual_real_compiler_dependencies_imported':True,'new_child_cap_bytes':2**20,'inside_existing_paired8MiB_after_unwritten_sources_and_scoring_and_other_reserves':True,'GPU_pushes':0,'competition_entries':0,'model_or_input_transfers':0}
+ new(D/'staged.json',out);print(json.dumps(out),flush=True)
+else:
+ assert v['phase']=='prepare' and sha(D/'program.py.txt')==v['program_sha256']
+ assert not (D/'prepare-intent.json').exists() and not (D/'prepared.json').exists()
+ B=N/'final-scoring-v1/paired';base=json.loads((B/'prepared.json').read_text());q=json.loads((B/'qualification-actual-accepted.json').read_text())
+ actual=json.loads((N/'epoch-3-source/actual-accepted.json').read_text());pub=json.loads((N/'epoch-3/verified.json').read_text())
+ assert base['training']==actual and base['publication']==pub and base['epoch']==3 and actual['receipt']['completed']==1458
+ assert scope.provenance(actual,pub,base['model_sha256'])==3
+ # The canonical read-only snapshot must identify these exact accepted bytes.
+ db=sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True)
+ row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('licensed-parent-full-epoch-serving:'+base['model_sha256'],)).fetchone()[0]);db.close()
+ assert row['training']==actual and row['publication']==pub and row['qualification']['receipt']==q['receipt']
+ assert row['qualification']['kernel_id']==q['kernel_id'] and row['qualification']['source_sha256']==q['source_sha256']
+ qual_source=(B/'qualification.private.py').read_text()
+ parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text()
+ notebook=(P/'full-comparison/public0958-reference-v1/scored-UI-v6.private.ipynb').read_text()
+ args=[(S/'rsna/competitive/bounded_preparation.py').read_text(),(T/'rsna/competitive/paired_logit_serving.py').read_text()]+[(S/n).read_text() for n in ('rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')]+[(P/'paired-logit-real-encoder-v1/code/rsna/competitive/paired_logit_control.py').read_text()]
+ source,meta=compiler.build(notebook,parent,*args,actual,pub,q,qualification_source=qual_source)
+ bounds(len(source.encode())+len(json.dumps(meta).encode())+32768)
+ intent={'model_sha256':base['model_sha256'],'source_sha256':meta['source_sha256'],'qualification_kernel':q['kernel_id'],'qualification_source_sha256':q['source_sha256'],'automatic_retry':False}
+ new(D/'prepare-intent.json',intent)
+ path=D/'competition.private.py';path.write_text(source);path.chmod(0o600);assert sha(path)==meta['source_sha256']
+ out={'status':'actual_final_qualified_paired_R6_member_candidate_CPU_compiled_only','CPU_job':os.environ['SLURM_JOB_ID'],'control_source_git':v['source_git'],'metadata':meta,'source_bytes':len(source.encode()),'GPU_pushes':0,'competition_entries':0,'model_or_input_transfers':0,'actual_new_R6_runtime_or_score':False,'requires_fresh_original_R6_v1_attachment_and_runtime_budget_before_public_push':True}
+ new(D/'prepared.json',out);print(json.dumps(out),flush=True)

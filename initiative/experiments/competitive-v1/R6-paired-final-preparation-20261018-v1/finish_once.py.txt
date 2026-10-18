@@ -1,0 +1,25 @@
+"""Finite source-only waiter; one qualified final R6 preparation, zero GPU pushes."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;R=Path.cwd();L=R/'artifacts/R6-paired-final-preparation-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert (D/'actual-staged.json').exists() and not (L/'owner-intent.json').exists()
+frozen={n:hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('program.py.txt','coordinate_once.py.txt')}
+with (L/'owner-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_hours':36,'original_solo_scoring_owner':84527,'frozen':frozen,'maximum_CPU_preparations':1,'GPU_pushes':0,'competition_entries':0,'automatic_retry':False},f,indent=2)
+start=time.monotonic()
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(L/('owner-result.json' if terminal else 'owner-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while True:
+  assert time.monotonic()-start<36*3600 and all(hashlib.sha256((D/n).read_bytes()).hexdigest()==h for n,h in frozen.items())
+  proof=R/'initiative/experiments/competitive-v1/paired-final-scoring-20261018-v1/qualification-actual-accepted.json'
+  if proof.exists():
+   q=json.loads(proof.read_text());assert q['status']=='COMPLETE' and q['version']==1 and q['receipt']['epoch']==3 and q['receipt']['qualification_cannot_submit'] is True
+   x=subprocess.run([sys.executable,str(D/'coordinate_once.py.txt'),'prepare'],capture_output=True,text=True,timeout=400)
+   assert x.returncode==0,x.stderr[-1200:]
+   actual=json.loads(x.stdout);assert actual['status']=='actual_final_qualified_paired_R6_member_candidate_CPU_compiled_only'
+   record({'status':'actual_final_R6_candidate_source_prepared_no_GPU_or_entry','actual':actual},True);break
+  p=subprocess.run(['ps','-p','84527','-o','command='],capture_output=True,text=True)
+  assert p.returncode==0 and 'paired-final-scoring-20261018-v1/finish_once.py.txt' in p.stdout,'Original scoring owner absent before qualification; reconcile original without restarting'
+  record({'status':'verified_live_original_qualification_owner_wait','original_owner_PID':84527});time.sleep(150)
+except BaseException as e:
+ record({'status':'R6_preparation_owner_stopped_original_intents_preserved','reason':str(e)},True);raise
