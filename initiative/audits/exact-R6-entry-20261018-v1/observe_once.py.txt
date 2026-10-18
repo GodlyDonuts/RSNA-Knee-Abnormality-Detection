@@ -1,0 +1,30 @@
+"""Finite observer of the original exact reference entry; cannot submit."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+D=Path(__file__).resolve().parent;L=Path('artifacts/exact-R6-entry-20261018-v1')
+entry=json.loads((D/'actual-submitted.json').read_text());assert entry['submission_id']==57333150
+assert not (L/'observer.intent.json').exists()
+frozen={str(D/name):hashlib.sha256((D/name).read_bytes()).hexdigest() for name in ('coordinate_once.py.txt','outcome_worker.py.txt')}
+with (L/'observer.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'submission_id':57333150,'maximum_hours':20,'new_submissions':0,'frozen':frozen},f,indent=2)
+start=time.monotonic()
+def record(out,terminal=False):
+    value={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**out}
+    (L/('observer.result.json' if terminal else 'observer.progress.json')).write_text(json.dumps(value,indent=2)+'\n');print(json.dumps(value),flush=True)
+try:
+    while time.monotonic()-start<20*3600:
+        assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==sha for p,sha in frozen.items())
+        x=subprocess.run([sys.executable,str(D/'coordinate_once.py.txt'),'outcome'],capture_output=True,text=True,timeout=430)
+        assert x.returncode==0,x.stderr[-1200:]
+        out=json.loads(x.stdout);assert out['submission_id']==57333150;record({'actual':out})
+        if out['outcome'] in ('scored','failed'):
+            record({'status':'actual_original_reference_hidden_terminal','actual':out},True);break
+        time.sleep(180)
+    else:record({'status':'finite_observer_expired_original_submission_not_repeated'},True)
+except BaseException as error:
+    record({'status':'observer_stopped_original_submission_preserved','reason':str(error)},True);raise
