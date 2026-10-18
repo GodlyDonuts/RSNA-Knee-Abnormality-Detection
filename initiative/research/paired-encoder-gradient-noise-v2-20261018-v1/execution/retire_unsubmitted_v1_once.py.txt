@@ -1,0 +1,32 @@
+"""Retire only the old CPU owner after proving it never pushed its GPU version."""
+import hashlib,json,os,shlex,signal,subprocess,time
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/paired-encoder-gradient-noise-v2-20261018-v1/execution';L.mkdir(mode=0o700,parents=True,exist_ok=True);PID=68344
+def group():
+ return [a for line in subprocess.check_output(['ps','-axo','pid=,ppid=,pgid=,stat=,command='],text=True).splitlines() if len(a:=line.strip().split(None,4))==5 and a[2]==str(PID)]
+rows=group();assert len(rows)==1 and rows[0][0]==str(PID) and 'paired-encoder-gradient-noise-20261018-v1/execution/finish_once.py.txt' in rows[0][4] and 'T' not in rows[0][3]
+intent={'PID':PID,'actual_pre_freeze_process':rows,'purpose':'replace one unexecuted noise-only controller with combined noise/update-cost controller','old_or_new_GPU_restarts':0,'uncertainty_retry':False}
+with (L/'retire-v1-intent.json').open('x') as f:json.dump(intent,f,indent=2)
+frozen=False;retired=False
+try:
+ os.killpg(PID,signal.SIGSTOP);frozen=True;rows=group();assert len(rows)==1 and 'T' in rows[0][3],'A phase child may exist: resume original owner and defer'
+ program="""import hashlib,json,os,sqlite3
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');old=R/'paired-encoder-noise-v1';new=R/'paired-encoder-noise-v2';oldh='78c4b58bad6bb2ba58bebedc259b19b85b006c32813d69a63e1b1c5212ea6dfb';newh='b91b621dd82bb9a28472d062ecf407c6fff65caf89060c44adcbc369198708d5'
+assert hashlib.sha256((old/'source.private.py').read_bytes()).hexdigest()==oldh and hashlib.sha256((new/'source.private.py').read_bytes()).hexdigest()==newh
+assert all(not (root/name).exists() for root in (old,new) for name in ('push-intent.json','push-response.json','actual-accepted.json','actual-failed.json'))
+keys=['paired-encoder-noise:'+oldh,'licensed-parent-full-epoch-serving:capacity-only:paired-encoder-noise:'+oldh,'paired-encoder-noise-v2:'+newh,'licensed-parent-full-epoch-serving:capacity-only:paired-encoder-noise-v2:'+newh]
+db=sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True);found=db.execute('SELECT key FROM meta WHERE key IN (?,?,?,?)',keys).fetchall();assert found==[]
+print(json.dumps({'status':'old_and_new_noise_versions_have_no_GPU_intent_or_canonical_record','CPU_job':os.environ['SLURM_JOB_ID'],'old_source_sha256':oldh,'new_source_sha256':newh,'canonical_read_only':True,'new_GPU_actions':0}))
+"""
+ args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:03:00','--job-name=rsna-noise-v1-handoff-readonly','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+ x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],capture_output=True,text=True,timeout=220);(L/'retire-v1-readonly-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-1600:];proof=json.loads(x.stdout)
+ os.killpg(PID,signal.SIGTERM);os.killpg(PID,signal.SIGCONT);frozen=False
+ for _ in range(50):
+  if not group() or all('Z' in a[3] for a in group()):retired=True;break
+  time.sleep(.1)
+ assert retired,'Do not start a replacement while original owner is live'
+ out={'status':'old_unsubmitted_CPU_owner_retired_after_read_only_canonical_reconciliation','old_PID':PID,'old_owner_terminal_confirmed':True,'proof':proof,'old_original_recovery139417155_unchanged':True,'healthy_training_untouched':True,'old_or_new_GPU_jobs_cancelled_or_restarted':0};(D/'actual-v1-retired-before-GPU.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))
+finally:
+ if frozen and not retired:os.killpg(PID,signal.SIGCONT)

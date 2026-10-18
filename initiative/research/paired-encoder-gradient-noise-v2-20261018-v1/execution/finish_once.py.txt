@@ -1,0 +1,24 @@
+"""Finite owner: wait for actual prerequisite, then at most one new GPU measurement."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/paired-encoder-gradient-noise-v2-20261018-v1/execution');L.mkdir(mode=0o700,parents=True,exist_ok=True);assert (D/'actual-v1-retired-before-GPU.json').exists() and not (L/'owner-intent.json').exists() and not (D/'actual-pushed.json').exists();frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('program.py.txt','run_phase.py.txt')}
+with (L/'owner-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_hours':12,'maximum_new_GPU_pushes':1,'maximum_competition_entries':0,'required_actual_recovery':139417155,'frozen':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic();phase='push'
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'phase':phase,**value};(L/('owner-result.json' if terminal else 'owner-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while True:
+  assert time.monotonic()-start<12*3600,'Finite owner expired; no new GPU job inferred'
+  assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in frozen.items())
+  child=subprocess.run([sys.executable,str(D/'run_phase.py.txt'),phase],capture_output=True,text=True,timeout=820)
+  if child.returncode and 'FileExistsError' in child.stderr and 'coordinator-claim' in child.stderr:
+   record({'status':'waiting_pre_ledger_canonical_claim_no_mutation'});time.sleep(180);continue
+  assert child.returncode==0,child.stderr[-1800:];out=json.loads(child.stdout);record({'actual':out})
+  if out['status']=='one_new_trained_encoder_noise_probe_pushed':phase='status'
+  elif out['status']=='COMPLETE':
+   assert 'receipt' in out;record({'status':'new_trained_encoder_noise_measurement_actual_complete','actual':out,'clinical_or_full_production_fit_accepted':False},True);break
+  elif out['status'] in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):raise RuntimeError('New measurement terminal failure: retain actual logs, no automatic retry')
+  else:assert out['status'] in (None,'waiting_original_actual_encoder_recovery_no_GPU_mutation','waiting_actual_capacity_or_complete_future_budget_no_mutation','RUNNING','QUEUED','CREATED','STARTING','INITIALIZING','PENDING'),out['status']
+  time.sleep(180)
+except BaseException as error:
+ record({'status':'new_measurement_owner_stopped_reconcile_read_only','reason':str(error)},True);raise
