@@ -1,0 +1,68 @@
+"""One hash-bound original HF examination through the unchanged S6 renderer."""
+import concurrent.futures,contextlib,hashlib,importlib.util,json,os,shutil,subprocess,sys,tempfile,time
+from pathlib import Path
+from urllib.parse import quote
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');os.umask(0o077)
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'HF-raw-input-bridge-v1';assert not D.exists()
+paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file());sha=lambda b:hashlib.sha256(b).hexdigest()
+prepaid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in prepaid) and p.suffix not in ('.pt','.whl'));assert controls+2*2**20+2*2**20<16*2**20
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert sha((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes())=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+mem={x.split(':')[0]:int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if ':' in x}
+assert mem['MemAvailable']>28*2**30 and shutil.disk_usage('/dev/shm').free>21*2**30
+C=P/'CPU-fitting8-UID-view-v2/collected';proof=json.loads((C/'verified.json').read_text());assert proof['all_original_lossless_inputs_and_fitting_roster_equal'] is True and proof['kernel_id']==139165316
+index=json.loads((C/'index.private.json').read_text());selected=v['selection'];uid=selected['study_uid'];assert sha(uid.encode())==selected['original8_uid_sha256'];refs=[x for x in index['records'] if x['uid']==uid];assert len(refs)==1;reference=refs[0]
+rows=selected['source_files'];assert 0<len(rows)<=128 and sum(x['bytes'] for x in rows)==selected['source_bytes']<128*2**20
+assert len({x['path'] for x in rows})==len(rows) and all(x['study_uid']==uid and x['split']=='train_series' for x in rows)
+D.mkdir(mode=0o700)
+def new(path,value):
+ with path.open('x') as f:json.dump(value,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n')
+new(D/'intent.json',{'CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_inventory_sha256':v['source_inventory_sha256'],'original8_uid_sha256':selected['original8_uid_sha256'],'new_source_files':len(rows),'new_source_bytes':selected['source_bytes'],'RAM_cap_bytes':2**30,'automatic_retry':False})
+ram=Path(tempfile.mkdtemp(prefix='rsna-S6-HF-raw-bridge-',dir='/dev/shm'));os.chmod(ram,0o700);(ram/'scratch').mkdir();os.environ.update(TMPDIR=str(ram/'scratch'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PIP_NO_INDEX='1',HF_HOME=str(ram/'hf'),TORCH_HOME=str(ram/'torch'),XDG_CACHE_HOME=str(ram/'cache'))
+new(D/'RAM-location.private.json',{'path':str(ram),'original8_uid_sha256':selected['original8_uid_sha256']});new(ram/'selection.private.json',selected)
+import requests
+start=time.perf_counter();stage='hash_bound_HF_source_acquisition'
+try:
+ def acquire(row):
+  dest=ram/'data/train_series'/uid/row['series_uid']/(row['sop_uid']+'.dcm');dest.parent.mkdir(mode=0o700,parents=True,exist_ok=True);assert not dest.exists()
+  url='https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/'+selected['source_revision']+'/'+quote(row['path'],safe='/')
+  response=requests.get(url,headers={'Authorization':'Bearer '+v['token']},timeout=(10,60),stream=True);assert response.status_code==200,'Original source download failed'
+  h=hashlib.sha256();size=0
+  try:
+   with dest.open('xb') as f:
+    for b in response.iter_content(65536):size+=len(b);assert size<=row['bytes'];h.update(b);f.write(b)
+  finally:response.close()
+  assert size==row['bytes'] and h.hexdigest()==row['sha256'],'Original source size/SHA mismatch'
+  return {'file':str(dest.relative_to(ram)),'bytes':size,'sha256':h.hexdigest()}
+ with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:actual=list(pool.map(acquire,rows))
+ acquisition=time.perf_counter()-start;assert paid(ram)<2**30;new(ram/'source-verified.private.json',{'source_revision':selected['source_revision'],'files':actual})
+ stage='original_anatomy_and_native_source_renderer'
+ sys.path.insert(0,str(P/'runtime-opencv-v1/site-packages'));sys.path.insert(0,'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay')
+ import numpy as np,torch,inspect,pydicom
+ torch.set_num_threads(2);torch.set_num_interop_threads(1);assert not torch.cuda.is_available()
+ for row in rows:
+  path=ram/'data/train_series'/uid/row['series_uid']/(row['sop_uid']+'.dcm');dcm=pydicom.dcmread(path,stop_before_pixels=True)
+  assert str(dcm.StudyInstanceUID)==uid and str(dcm.SeriesInstanceUID)==row['series_uid'] and str(dcm.SOPInstanceUID)==row['sop_uid']
+ spec=importlib.util.spec_from_file_location('original_S6_HF_raw_renderer',P/'source-tree-v1/launcher.private.py');m=importlib.util.module_from_spec(spec);sys.modules[spec.name]=m;spec.loader.exec_module(m)
+ assert sha(inspect.getsource(m.CI.main).encode())=='7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946'
+ g=index['geometry'];t=time.perf_counter()
+ with (ram/'renderer.private.log').open('x') as log,contextlib.redirect_stdout(log),contextlib.redirect_stderr(log):
+  dataset=m.CI.CStudies(ram/'data','train',[uid],ram/'renderer-temporary',P/'source-tree-v1/code/cloud_code',g['size'],eval_stride=g['eval_stride'],views=g['views'],slices=g['slices'],anchor_weights=P/'source-tree-v1/anatomy.pt',phys_mm=g['phys_mm'])
+  sample=dataset[0]
+ render=time.perf_counter()-t
+ if sample['error'] is not None:
+  new(ram/'renderer-error.private.json',{'error':sample['error']});raise RuntimeError('Original source renderer failed; inspect retained private RAM error')
+ images=sample['images'].numpy();meta=sample['meta'].numpy()
+ with np.load(C/reference['file'],allow_pickle=False) as z:old_images=z['images'];old_meta=z['meta']
+ image_equal=images.dtype==old_images.dtype and images.shape==old_images.shape and np.array_equal(images,old_images)
+ meta_equal=meta.dtype==old_meta.dtype and meta.shape==old_meta.shape and np.array_equal(meta,old_meta)
+ np.savez_compressed(ram/'rendered-original.private.npz',images=images,meta=meta)
+ out={'status':'actual_HF_original_source_S6_tensor_parity_passed' if image_equal and meta_equal else 'actual_HF_original_source_S6_tensor_parity_failed_preserved','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_revision':selected['source_revision'],'original_source_files':len(rows),'original_source_bytes':selected['source_bytes'],'all_source_size_SHA_and_DICOM_identity_checks_passed':True,'windows':int(len(images)),'reference_windows':reference['windows'],'image_dtype_and_shape_equal':images.dtype==old_images.dtype and images.shape==old_images.shape,'meta_dtype_and_shape_equal':meta.dtype==old_meta.dtype and meta.shape==old_meta.shape,'all_image_tensor_bytes_equal':bool(image_equal),'all_metadata_tensor_bytes_equal':bool(meta_equal),'acquisition_seconds':acquisition,'render_seconds':render,'whole_seconds':time.perf_counter()-start,'RAM_bytes_after_render':paid(ram),'RAM_cap_bytes':2**30,'original_model_and_fixture_reused':True,'original_anatomy_renderer_executed_CPU':True,'disease_classifier_optimizer_or_GPU_run':False,'clinical_labels_reports_or_protected_cases_used':False,'full_cohort_teacher_or_training_admitted':False,'new_node_controls_from_existing_S6_future':2*2**20,'remaining_original_S6_future_controls':2*2**20}
+ new(D/'result.json',out);assert paid(ram)<2**30 and paid(D)<2*2**20;print(json.dumps(out),flush=True)
+except BaseException as e:
+ out={'status':'original_HF_raw_input_bridge_stopped_preserved','CPU_job':os.environ['SLURM_JOB_ID'],'stage':stage,'error_type':type(e).__name__,'reason':str(e),'source_git':v['source_git'],'RAM_source_and_logs_retained':True,'automatic_retry':False,'new_GPU_or_classifier_or_optimizer':False};new(D/'failure.json',out);print(json.dumps(out),flush=True);raise
