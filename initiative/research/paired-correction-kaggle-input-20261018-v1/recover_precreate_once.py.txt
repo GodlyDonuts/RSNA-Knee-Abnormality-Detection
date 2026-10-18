@@ -1,0 +1,56 @@
+"""One private immutable correction input; no GPU/entry or training acceptance."""
+import hashlib,importlib.util,importlib.metadata,json,os,shutil,subprocess,sys,time,zipfile
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+assert {n:importlib.metadata.version(n) for n in ('kaggle','kagglesdk')}=={'kaggle':'2.2.3','kagglesdk':'0.1.30'}
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'paired-logit-fixed-schedule-v1';F=R/'paired-fixed-correction-kaggle-v1'
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert hashlib.sha256((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))+2*2**20
+assert shutil.disk_usage('/tmp').free>floor,'Fresh all-liability node reserve insufficient; no dataset intent'
+assert paid(R)+2*2**20<32*2**20,'Two-MiB child must fit original funded32MiB small controls'
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def load(n,h):
+ p=C/(n+'.py');assert hashlib.sha256(p.read_bytes()).hexdigest()==h;s=importlib.util.spec_from_file_location('paired_input_'+n,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=load('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900');p=load('publication','e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336')
+accepted=json.loads((D/'accepted.json').read_text());assert accepted==v['construction'];assert accepted['CPU_job']=='957450' and accepted['same_original_sampler_replay_matches']==11661
+assert accepted['table']['sha256']=='bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619' and (D/'corrections.private.npz').stat().st_size==1629919
+permission=R/'source-permission.txt';assert permission.stat().st_size==4411 and p.digest(permission)=='34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79'
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts';r.username='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+240
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end,'Canonical coordinator busy; no mutation';time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'paired_fixed_correction_input_once','CPU_job':os.environ['SLURM_JOB_ID'],'GPU_or_entry_actions':0});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);key='paired-fixed-correction-dataset:'+accepted['table']['sha256'];slug='godlydonuts/rsna-paired-fixed-correction-bfd9d6d67afc'
+  assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None and F.is_dir() and not (F/'create-intent.json').exists() and not (F/'create-response.json').exists() and not (F/'verified.json').exists(),'Any prior Dataset intent requires read-only reconciliation only'
+  original_terminal=subprocess.check_output(['sacct','-j',str(v['original_CPU_job']),'-X','-n','-P','-o','JobIDRaw,State,ExitCode,Elapsed'],text=True);assert str(v['original_CPU_job'])+'|FAILED|1:0|' in original_terminal
+  assert (F/'upload/bundle.zip').is_file();original_zip_sha=p.digest(F/'upload/bundle.zip')
+  absence=p.require_absent(r,slug);U=F/'ordered-upload-v2';assert not U.exists();U.mkdir(mode=0o700)
+  provenance=json.loads((F/'provenance.json').read_text());assert provenance['construction_CPU']==957450 and provenance['training_or_accuracy_accepted'] is False
+  paths={'corrections.private.npz':D/'corrections.private.npz','construction-receipt.json':D/'accepted.json','source-permission.txt':permission,'provenance.json':F/'provenance.json'}
+  files={n:{'bytes':x.stat().st_size,'sha256':p.digest(x)} for n,x in paths.items()};assert files['corrections.private.npz']['sha256']==accepted['table']['sha256']
+  assert json.loads((F/'bundle-manifest.json').read_text())=={'kind':provenance['kind'],'files':files,'no_GPU_or_entry':True};paths['bundle-manifest.json']=F/'bundle-manifest.json';files['bundle-manifest.json']={'bytes':paths['bundle-manifest.json'].stat().st_size,'sha256':p.digest(paths['bundle-manifest.json'])}
+  with zipfile.ZipFile(U/'bundle.zip','x',compression=zipfile.ZIP_STORED) as z:
+   for n,path in sorted(paths.items()):z.write(path,n)
+  p.validate_zip(U/'bundle.zip',files);assert paid(F)<4*2**20 and paid(R)<32*2**20
+  record={'state':'paired_correction_dataset_create_intent','slug':slug,'source_git':v['source_git'],'files':files,'archive':{'bytes':(U/'bundle.zip').stat().st_size,'sha256':p.digest(U/'bundle.zip')},'absence':absence,'fresh_node_free_bytes_before':shutil.disk_usage('/tmp').free,'funded_total_child_cap':4*2**20,'new_additional_child_cap':2*2**20,'original_precreate_failure':{'CPU_job':v['original_CPU_job'],'actual_terminal':original_terminal.strip(),'no_prior_ledger_entry_create_intent_or_response':True,'preserved_bad_order_archive_sha256':original_zip_sha,'corrected_archive_uses_same_payload_bytes':True},'inside_original_small_control_cap':32*2**20,'new_GPU_or_entries':0,'no_automatic_retry':True}
+  w.new_json(F/'create-intent.json',record);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(record,sort_keys=True)));db.commit()
+  def save():db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record,sort_keys=True),key));db.commit()
+  try:
+   response=p.sdk_create_once(v['token'],slug,'RSNA private fixed paired-logit corrections',U);w.new_json(F/'create-response.json',response);record['state']='paired_correction_dataset_create_returned';save();start=time.monotonic()
+   while True:
+    try:meta=p.metadata(r,slug);mapping=p.map_members(p.list_files(r,slug),files);break
+    except (ValueError,w.RemoteError):assert time.monotonic()-start<300;time.sleep(10)
+   verified={n:p.stream_file(r,slug,remote,files[n]) for n,remote in mapping.items()};assert p.metadata(r,slug)==meta
+   out={'status':'private_fixed3887_correction_Dataset_all_objects_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'dataset':meta,'files':verified,'objects':len(verified),'table_sha256':accepted['table']['sha256'],'actual_create_RPCs':1,'new_GPU_or_entries':0,'original_table_rebuilt_or_HF_upload_repeated':False,'source_and_permission_provenance_retained':True,'training_or_accuracy_accepted':False,'funded_child_cap_bytes':4*2**20,'original_bad_order_archive_preserved':True,'original_precreate_failed_CPU':v['original_CPU_job'],'retained_child_bytes':paid(F),'new_shared_bytes_files':0}
+   w.new_json(F/'verified.json',out);record.update(state='paired_correction_dataset_full_verified',dataset=meta,verified=out);save();print(json.dumps(out),flush=True)
+  except BaseException:
+   record['state']='paired_correction_dataset_create_or_verification_uncertain';save();retain=True;raise
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

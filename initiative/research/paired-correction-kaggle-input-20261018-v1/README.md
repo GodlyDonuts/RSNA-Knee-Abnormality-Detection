@@ -28,3 +28,14 @@ are in this bundle. GPU recovery, actual noise/cost evidence, source/input
 binding and separately funded fixed-final fitting remain prerequisites to any
 subsequent model experiment. New coordinator sources compile; no old full QA,
 MRI or model audit is rerun. Actual dispatch/outcome are recorded separately.
+
+Actual first CPU959030 failed1:0 in4seconds at ZIP ordering validation, before
+create-intent or Dataset RPC. The original bad-order archive is retained. A
+separate immutable precreate recovery source requires that exact terminal,
+absent canonical Dataset record/intent/response and complete authenticated owned
+absence before any FIRST CreateDataset. It preserves all original payload bytes,
+creates only a sorted transport archive, and adds at most2MiB to the existing
+child (4MiB total), still within the original32MiB control cap and fresh reserves.
+No deletion credit or model checkpoint funding is taken. The new focused ZIP
+regression passes and preserves the original archive unchanged. This is not a
+retry of an uncertain Dataset mutation.
