@@ -1,0 +1,5 @@
+# Complete fitting-source transport index
+
+Prepare the actual per-file source/series input required by a bounded teacher pipeline, rather than repeating source counts. One zero-GPU1CPU/8GiB job filters original hash-bound metadata to the unchanged3887 fitting IDs, validates all720851 files and exact series coverage through the new source-buffer contract, and retains only the compressed private transport index in owner-only node RAM. No images, weights, reports or diagnosis labels are read/transferred. The future pixel stream remains unsubmitted.
+
+A distinct8MiB node control/future-small-output envelope is separately charged above all existing byte/file liabilities, without enlarging the original S6 small16MiB envelope. Private metadata uses a separate1GiB RAM cap and fresh host/system reserves. The original source paths and hashes stay private; only aggregate counts, provenance hashes and actual terminal receipt may be published. Reconciliation is read-only after any intent; no automatic repeat.

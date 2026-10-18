@@ -1,0 +1,24 @@
+"""Transfer original source metadata once; never transfer MRI pixels here."""
+import gzip,hashlib,io,json,os,shlex,shutil,subprocess
+from pathlib import Path
+import pyarrow as pa
+import pyarrow.dataset as ds
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/S6-fitting-source-index-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists();assert shutil.disk_usage(R).free>20*2**30+256*2**20;pa.set_cpu_count(2)
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();program=(D/'program.py.txt').read_text();assert subprocess.check_output(['git','show',source+':'+D.relative_to(R).as_posix()+'/program.py.txt'],text=True)==program
+helper_path=R/'initiative/research/S6-fitting-source-stream-20261018-v1/source_stream.py.txt';helper=helper_path.read_text();assert subprocess.check_output(['git','show',source+':'+helper_path.relative_to(R).as_posix()],text=True)==helper
+provenance=(R/'initiative/source/inventory-provenance.json').read_bytes();assert json.loads(provenance)['round_trip_equal'] is True
+with (L/'intent.json').open('x') as f:json.dump({'source_git':source,'private_metadata_only':True,'automatic_retry':False,'new_control_and_future_small_output_bytes':8*2**20,'original_RAM_index_cap':1024*2**20},f)
+index=L/'original-source-metadata.private.jsonl.gz';os.umask(0o077);columns=['split','study_uid','series_uid','sop_uid','path','sha256','bytes'];table=ds.dataset(str(R/'initiative/source/inventory'),format='parquet');count=0
+with gzip.open(index,'xt',encoding='utf-8',compresslevel=3) as f:
+ for batch in table.to_batches(columns=columns,filter=ds.field('split')=='train_series',batch_size=2048):
+  for row in batch.to_pylist():f.write(json.dumps(row,separators=(',',':'))+'\n');count+=1
+  assert index.stat().st_size<256*2**20
+payload=index.read_bytes();assert len(payload)<256*2**20
+v={'source_git':source,'compressed_bytes':len(payload),'compressed_sha256':hashlib.sha256(payload).hexdigest(),'source_revision':'52f995f4568e36bfa5fbbaf69a89af41226b4f5d','source_provenance_sha256':hashlib.sha256(provenance).hexdigest(),'series_csv':(R/'initiative/source/train_series.csv').read_text(),'buffer_helper':helper}
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=8G','--time=00:08:00','--job-name=rsna-S6-source-index','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps(v).encode()+b'\n'+payload,capture_output=True,timeout=600)
+with (L/'response.private.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout.decode(),'stderr':x.stderr.decode()},f)
+assert x.returncode==0,x.stderr.decode()[-800:]
+out=json.loads(x.stdout)
+with (D/'actual-source-index.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)
