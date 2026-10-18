@@ -20,7 +20,7 @@ acceptance is not an accuracy gain.
 
 | Experiment | Actual state and sole owner | Next evidence |
 | --- | --- | --- |
-| Dense spatial aligned versus null | Aligned original **955711 COMPLETED 0:0**, 843 updates; null **955712 RUNNING**, latest 824/843. CPU owner **48097** follows the same jobs. | Preserve null epoch 3 and compare both fixed-final predictions on the same 1,156 development studies, all 12 targets, with paired component uncertainty. |
+| Dense spatial aligned versus null | Aligned original **955711 COMPLETED 0:0**, 843 updates; null **955712 RUNNING**, 843/843 updates; final evaluation active. CPU owner **48097** follows the same jobs. | Preserve null epoch 3 and compare both fixed-final predictions on the same 1,156 development studies, all 12 targets, with paired component uncertainty. |
 | Encoder learning rate | Same original epoch 2 **139415974 v1**, status unreported; finite fitting owner **66083**. Epoch 1 completed 486 updates and is privately verified. | Finish fixed three epochs with encoder LR 3e-5 versus original 3e-6; head LR stays 3e-5. Final scoring owner **66215** waits that completion. |
 | Finding-stratified fitting | All three epochs/1,458 updates and private preservation complete. Exact 32-study two-T4 qualification passed. | Owner **66217** waits actual capacity to execute the original zero-version draft once, then a fresh-allowance competition entry. |
 | Family supervision | Full fit, qualification and public run complete. | Owner **43079** waits fresh competition allowance; no hidden entry or score yet. |
@@ -66,8 +66,9 @@ remain prohibited by the owner; useful accessible physical 1/2-GPU nodes are
 permitted. Fresh resources and exact original receipts govern new work.
 
 Private source preservation through source f3492774 is fully verified at
-HF db9feeb2bf1e76ed0422d5af91afb2227c00aa05. Newer small documentation/review
-receipts still need their distinct private mirror. No model or clinical data is
+HF db9feeb2bf1e76ed0422d5af91afb2227c00aa05. The preceding current-state/review milestone through source62f2674e is also
+fully privately verified at HF0d1752b642c309b895617db55cc030de01b67c84.
+The newer decision implementation awaits its distinct source mirror. No model or clinical data is
 included in a source milestone.
 
 [Execution continuation](codex-continuation.md) carries exact operational handles.
