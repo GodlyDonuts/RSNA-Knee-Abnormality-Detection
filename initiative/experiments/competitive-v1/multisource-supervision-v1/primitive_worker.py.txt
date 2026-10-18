@@ -1,0 +1,86 @@
+"""Bounded original report-source acquisition and fitting-only semantic audit."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+import numpy as np
+import pandas as pd
+import pyarrow.parquet as pq
+import requests
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+D=Path('/tmp/rsna-S6-training-release-20261017-v1')
+P=D/'primitive-supervision-v1'
+assert (D/'acquired.json').exists() and not P.exists()
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid<3*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+2*2**20
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+2*2**20<16*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py')
+assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('read_primitive_source_version',W)
+w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+slug='nartaa/rsna-knee-hpo-assets'
+meta=r.dataset(slug);assert meta['id']==12032129 and meta['currentVersionNumber']==9 and not meta.get('isPrivate',False)
+listing=r.call('datasets.DatasetApiService','ListDatasetFiles',{'ownerSlug':'nartaa','datasetSlug':'rsna-knee-hpo-assets','datasetVersionNumber':9,'pageSize':100})
+assert not listing.get('nextPageToken')
+sizes={x['name']:x['totalBytes'] for x in listing['datasetFiles']}
+needed={'labels_v1_gemlow.parquet':189931,'train_labels_v0.parquet':231342,'train_labels_v1.parquet':211780}
+assert all(sizes.get(name)==size for name,size in needed.items())
+# Original accepted fitting arrays are reused, not copied or rewritten.
+original=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert original.stat().st_size==483656 and hashlib.sha256(original.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(original,allow_pickle=False) as z:
+    uids=z['uids'].tolist();old=z['labels'];mask=z['masks']
+assert len(uids)==3887 and len(set(uids))==3887 and old.shape==mask.shape==(3887,12) and mask.dtype==np.bool_ and mask.all()
+assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+P.mkdir(mode=0o700)
+(P/'intent.json').write_text(json.dumps({'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'dataset_id':12032129,'version':9,'files':needed,'subcap_bytes':2*2**20,'inside_original_source_asset16MiB':True,'new_shared_files_or_GPU_or_training':0})+'\n')
+proof={}
+for name,size in needed.items():
+    response=requests.get('https://www.kaggle.com/api/v1/datasets/download/'+slug+'/'+name,params={'dataset_version_number':9},stream=True,timeout=(10,90))
+    assert response.status_code==200
+    h=hashlib.sha256();count=0
+    try:
+        with (P/name).open('xb') as f:
+            os.fchmod(f.fileno(),0o600)
+            for block in response.iter_content(65536):
+                count+=len(block);assert count<=size;f.write(block);h.update(block)
+    finally:response.close()
+    assert count==size
+    proof[name]={'bytes':count,'sha256':h.hexdigest(),'columns':pq.read_schema(P/name).names}
+# Scope admission precedes any numeric target conversion. Read only fitting
+# rows and only weak y/m columns; gold_* columns are never requested.
+targets=['ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture']
+def fitting(name,columns):
+    assert 'StudyInstanceUID' in proof[name]['columns'] and all(c in proof[name]['columns'] for c in columns)
+    data=pd.read_parquet(P/name,columns=['StudyInstanceUID',*columns],filters=[('StudyInstanceUID','in',uids)])
+    assert len(data)==3887 and not data.StudyInstanceUID.duplicated().any() and set(data.StudyInstanceUID)==set(uids)
+    return data.set_index('StudyInstanceUID').loc[uids]
+gem=fitting('labels_v1_gemlow.parquet',targets).to_numpy(np.float32)
+cols=[prefix+t for prefix in ('y_','m_') for t in targets]
+base=fitting('train_labels_v0.parquet',cols)
+source=fitting('train_labels_v1.parquet',cols)
+base_y=base[['y_'+t for t in targets]].to_numpy(np.float32)
+gem_y=source[['y_'+t for t in targets]].to_numpy(np.float32)
+base_m=base[['m_'+t for t in targets]].to_numpy()
+gem_m=source[['m_'+t for t in targets]].to_numpy()
+assert np.isin(base_m,[0,1]).all() and np.isin(gem_m,[0,1]).all()
+assert np.isfinite(gem).all() and ((gem>=0)&(gem<=1)).all()
+rows=[]
+for c,target in enumerate(targets):
+    rows.append({'target':target,'fitting_cells':3887,'baseline_y_exact_original_cells':int((base_y[:,c]==old[:,c]).sum()),'primitive_y_exact_probability_file_cells':int((gem_y[:,c]==gem[:,c]).sum()),'baseline_source_addressed_cells':int(base_m[:,c].sum()),'primitive_source_addressed_cells':int(gem_m[:,c].sum()),'safe_common_source_mask_cells':int((base_m[:,c].astype(bool)&gem_m[:,c].astype(bool)).sum())})
+assert r.dataset(slug)['currentVersionNumber']==9
+assert sum(p.stat().st_size for p in P.rglob('*') if p.is_file())<2*2**20 and sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<16*2**20
+out={'status':'actual_primitive_Gemini_and_source_masks_acquired_and_fitting_only_compared','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'dataset_id':12032129,'version':9,'files':proof,'fitting_studies':3887,'fitting_roster_sha256':'0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42','per_target':rows,'all_baseline_source_y_exact_current_targets':bool(np.array_equal(base_y,old)),'all_primitive_source_y_exact_probability_file':bool(np.array_equal(gem_y,gem)),'gold_target_columns_requested':False,'source_and_mask_comparison_only_no_overlay_or_fit':True,'accepted_data_masks_folds_changed':False,'new_shared_files_or_GPU_or_Kaggle_mutations':0}
+(P/'source-audit.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
