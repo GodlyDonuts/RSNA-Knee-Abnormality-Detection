@@ -1,0 +1,41 @@
+"""Retire only unused completed-family future capacity, never physical originals."""
+import hashlib,json,os,shutil,sqlite3,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');target=F/'completed-fixed3-unspent512MiB-retirement-v1.json'
+assert not target.exists()
+HOME=Path('/tmp/rsna-S6-training-release-20261017-v1');SC=HOME/'family-final-scoring-v1'
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1')
+assert hashlib.sha256((P/'original-N3-unused8GiB-retirement-v1.json').read_bytes()).hexdigest()=='f7a39ef29040ff8e922c8325fe515ff2d6aa773e8a04dcd355ebd69aefcc9e4a'
+assert not (R/'parent-delta-schedule-v1').exists() and not (SC/'family').exists()
+proofs=[]
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ for e in (1,2,3):
+  a=json.loads((HOME/f'family-influence-full-fitting-v1/epoch-{e}/actual-accepted.json').read_text())
+  p=json.loads((F/f'epoch-{e:03d}/verified.json').read_text())
+  assert a==v['epochs'][str(e)]['actual'] and p==v['epochs'][str(e)]['publication']
+  assert a['status']=='COMPLETE' and a['epoch']==e and a['receipt']['completed']==486*e and a['receipt']['total']==1458
+  assert a['receipt']['fixed_final_complete']==(e==3)
+  row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('family-influence-full:'+a['source_sha256'],)).fetchone()[0])
+  assert row['state']=='family_influence_full_actual_complete' and row['receipt']==a['receipt']
+  assert p['status']=='actual_family_influence_epoch_private_full_download_size_SHA_verified' and p['objects']==5
+  assert p['original_Kaggle_kernel']==a['kernel_id'] and p['original_source_sha256']==a['source_sha256']
+  assert p['files']['model.pt']==a['receipt']['epoch'] and p['independent_CPU_state_verification']['finite_contiguous_updates']==486*e
+  for name,desc in [('model.pt',a['receipt']['epoch']),('optimizer-checkpoint.pt',a['receipt']['checkpoint'])]:
+   f=F/f'epoch-{e:03d}'/name;assert f.is_file() and not f.is_symlink() and f.stat().st_size==desc['bytes']
+  proofs.append({'epoch':e,'kernel_id':a['kernel_id'],'revision':p['revision'],'model':p['files']['model.pt'],'optimizer_original_bytes':a['receipt']['checkpoint'],'existing_whole_state_and_private_download_proofs_reused':True})
+ model=proofs[-1]['model']['sha256'];assert db.execute('SELECT value FROM meta WHERE key=?',('licensed-parent-full-epoch-serving:'+model,)).fetchone() is None
+states=subprocess.check_output(['sacct','-j','954993,955014,955015','-X','-n','-P','-o','JobIDRaw,State,ExitCode,ElapsedRaw'],text=True)
+assert '954993|COMPLETED|0:0|' in states and '955014|FAILED|1:0|' in states and '955015|FAILED|1:0|' in states
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+old=4*2**30;release=512*2**20;new=old-release;amount=paid(F);reader=paid(P)
+assert amount+128*2**20<new and reader<3*2**30
+old_required=603433009211+max(0,3*2**30-reader)+max(0,old-amount)
+new_required=603433009211+max(0,3*2**30-reader)+max(0,new-amount)
+free=shutil.disk_usage('/tmp').free;assert free>new_required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+out={'status':'actual_completed_family_fixed3_unused512MiB_future_capacity_retired_once','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'old_family_cap_bytes':old,'new_family_cap_bytes':new,'unused_future_capacity_retired_bytes':release,'actual_retained_original_family_bytes':amount,'remaining_above_actual_original_bytes':new-amount,'retained_metadata_buffer_min_bytes':128*2**20,'all_three_original_immutable_private_proofs':proofs,'terminal_original_jobs':states.strip(),'old_carried_base_floor_unchanged':603433009211,'reader_future_cap_unchanged':3*2**30,'old_required_free_bytes':old_required,'new_required_free_bytes':new_required,'actual_free_bytes':free,'headroom_after_all_other_liabilities_and_20GiB_reserve':free-new_required,'retired_previous_N3_eightGiB_again':False,'physical_deletion_or_free_space_credit':0,'originals_deleted_moved_rehashed_or_transferred':False,'new_Kaggle_GPU_or_model_mutation':False,'legacy_frozen_sources_unchanged':True,'new_guards_must_bind_this_receipt_and_use_new_family_cap_not_subtract_credit_twice':True}
+with target.open('x') as f:os.fchmod(f.fileno(),0o600);f.write(json.dumps(out,indent=2)+'\n')
+out['retirement_receipt_sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+print(json.dumps(out),flush=True)

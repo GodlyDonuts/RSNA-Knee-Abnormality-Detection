@@ -29,3 +29,14 @@ labels, masks, reports, Gold or confirmation are loaded.
 Ten synthetic checks verify exact original sampling and FP32 teacher readout,
 alignment, wrong bags/dtypes/NaNs/order refusal, immutable lookup and RNG. Actual
 CPU terminal receipt, not those checks, must establish completed materialization.
+
+Actual materialization955015 FAILED1:0 in7seconds at the global free-space
+guard, before reading cached MRI features or creating the private schedule root.
+Read-only955035 verified absence and a59.5MB reserve shortfall. Preserve that
+original attempt; do not retry it. A distinct funded recovery is required.
+
+The isolated training loss hook is implemented: exactly one FP32 logit addition
+before the original anchored loss, with the complete original optimizer engine
+source pinned.19focused CPU cases pass, including zero-correction control equality
+and full/stop1/resume state/RNG/epoch equality for both modes on synthetic images.
+These are not actual MRI/GPU acceptance. No live scientific source was changed.
