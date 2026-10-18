@@ -43,3 +43,22 @@ def test_unobserved_targets_use_corresponding_view_teacher_without_mean_TTA():
 def test_new_benchmark_requires_actual_objective_inputs():
     with pytest.raises(TypeError):
         m.benchmark({}, {}, torch.zeros(2, 94, 1024), torch.zeros(94))
+
+
+def test_resource_constants_preserve_actual32MiB_parent_and512KiB_child():
+    import ast
+
+    tree = ast.parse(Path(__file__).with_name("production_objective_worker_v2.py.txt").read_text())
+    assignments = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id in {"ROOT_CAP", "CHILD_CAP"} for t in node.targets)
+    ]
+    assert len(assignments) == 2
+    scope = {}
+    exec(
+        compile(ast.Module(body=assignments, type_ignores=[]), "new_resource_contract", "exec"),
+        scope,
+    )
+    assert scope["ROOT_CAP"] == 33554432 and scope["CHILD_CAP"] == 524288
