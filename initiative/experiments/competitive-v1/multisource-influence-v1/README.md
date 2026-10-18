@@ -87,3 +87,14 @@ E1 success, privately verifies/preserves E1, then owns only E2/E3 in sequence,
 with private preservation before every resume. Four simulated side-effect/failure
 cases pass. No E1 repeat, duplicate publication or unqualified entry is allowed.
 Original live intents/results are in ignored artifacts; do not race this owner.
+
+Serving preparation: `family_serving.py` retains the existing full94 snapshot/
+provenance/graph checks and strictly binds this actual source/target/annotation/
+eligibility/teacher/recovery. The standalone compiler keeps base globals isolated
+and original inference math unchanged.25 synthetic/contract cases pass, including
+refusal of the actual non-final E1. No final family model or serving GPU is
+accepted yet. The existing loader already filters files by exact size/hash, so
+no new filename, model copy or weight Dataset is needed: use only the completed
+accepted E3 notebook output plus the original32-input qualification dependency.
+No extra runtime/weight acquisition was performed. Existing source/epoch caps
+are retained; current actual fitting owners17423/18386 stay untouched.
