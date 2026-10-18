@@ -90,22 +90,20 @@ its internal score is not comparable to the public Kaggle numbers above.
 Healthy original controllers continue; no duplicate training, notebook push or
 entry is authorized by a missing log/status. Each new paired epoch is preserved
 through bounded RAM, including the resumable optimizer checkpoint, before resume.
-Latest small source milestone through69c96089 is fully verified at private
-HFc6e7fcef50202091400efdbff67eae1e1cdf0c1b; do not repeat it.
+The source/recovered-teacher/H100 milestone through8f2feacd is privately verified
+at HFa800d1c63f4e549a2481b454b8ef3a238b82be32; do not repeat it.
 
 Accepted labels/masks/folds and protected gold/confirmation remain unchanged.
-Daenerys study9 original reviews and81408-byte addendum are now collected unchanged
-and source-bound. Its14 requested views/28panels changed no target status or
-confidence. The next complete study10 was delivered once and read1:16PM:
-six series/all171 source slices/30 native image sheets, with all32 hosted files
-matching their original sizes/hashes and Page references. Both original candidate reviews are now collected and source-bound; twelve
-literal report quotes match. One target becomes uncertain after report access.
-Eleven requested native paired-window images are appended with all68 prior blocks
-unchanged; the same-study follow-up was read1:43PM and is being reviewed. Its
-separate original addendum is pending; no next study has started.
-No candidate review was promoted into accepted labels. Private MRI/report/review
-records remain outside public Git.
-[Sanitized review milestone](../initiative/audits/daenerys-multimodal-study-review-v1/ninth-addendum-and-tenth-delivery-20261018.json).
+Daenerys study10's unchanged115504-byte addendum is collected and source-bound
+to all11 requested views/22panels; no target status or confidence changed.
+Study11 was delivered once and read2:49PM, with an explicit acknowledgement:
+five complete series/all195 original slices/34 native image sheets. All36 hosted
+assets match original byte counts and hashes; the separate image-only manifest
+omits report text. Source spatial dimensions are512 or1024pixels per side.
+No original review or accepted label was overwritten. Review11 is active;
+its originals and any requested addenda must be collected before study12.
+Private MRI/report/review records and delivery proof remain outside Git/HF.
+[Sanitized review milestone](../initiative/audits/daenerys-multimodal-study-review-v1/tenth-addendum-and-eleventh-delivery-20261018.json).
 
 [Operational continuation](codex-continuation.md) contains exact handles and
 resource liabilities. [Preceding state](current-state.history-20261018-before-serving.md)
