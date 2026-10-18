@@ -1,0 +1,358 @@
+{
+  "status": "actual_new_encoder_epoch1_to3_movement_measurement",
+  "CPU_job": "956497",
+  "new_module_sha256": "2607f71fd43920208bd6c42f2913a2794f49f9b44e1af529948605f6ad3ef536",
+  "roles": {
+    "uniform": {
+      "original_proofs": [
+        {
+          "epoch": 1,
+          "original_model_sha256": "c050716cbc6edce9e1289bd731382464d660128bca917b5462647495b591455f",
+          "original_private_revision": "c19961db0f377086b4a2fd12f6ec477213a1da7d",
+          "recipe": {
+            "epochs": 3,
+            "effective_batch": 8,
+            "windows": 16,
+            "seed": 20261016,
+            "encoder_lr": 3e-06,
+            "head_lr": 3e-05,
+            "weight_decay": 0.02,
+            "warmup_fraction": 0.1,
+            "final_lr_fraction": 0.01,
+            "source_weight": 0.25,
+            "clip": 1.0,
+            "role": "uniform"
+          }
+        },
+        {
+          "epoch": 3,
+          "original_model_sha256": "ed35463cc81b469b35c02ac79ff66cae384849dc5ec8d8242feb90951ca7b933",
+          "original_private_revision": "f47a884610cb9dc930827ba539ee3fcc77a4b050",
+          "recipe": {
+            "epochs": 3,
+            "effective_batch": 8,
+            "windows": 16,
+            "seed": 20261016,
+            "encoder_lr": 3e-06,
+            "head_lr": 3e-05,
+            "weight_decay": 0.02,
+            "warmup_fraction": 0.1,
+            "final_lr_fraction": 0.01,
+            "source_weight": 0.25,
+            "clip": 1.0,
+            "role": "uniform"
+          }
+        }
+      ],
+      "epoch1_to3_movement": {
+        "head": {
+          "elements": 279832,
+          "changed_elements": 279832,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.06433962330560002,
+          "last_RMS": 0.0643194780981646,
+          "delta_RMS": 0.0003944215293153454,
+          "relative_L2_movement": 0.006130305231069259,
+          "cosine": 0.9999812528271085
+        },
+        "layer:head": {
+          "elements": 279832,
+          "changed_elements": 279832,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.06433962330560002,
+          "last_RMS": 0.0643194780981646,
+          "delta_RMS": 0.0003944215293153454,
+          "relative_L2_movement": 0.006130305231069259,
+          "cosine": 0.9999812528271085
+        },
+        "encoder": {
+          "elements": 72856264,
+          "changed_elements": 72855083,
+          "changed_fraction": 0.9999837900005414,
+          "first_RMS": 0.07873051944891934,
+          "last_RMS": 0.0787284160489729,
+          "delta_RMS": 3.35327193943555e-05,
+          "relative_L2_movement": 0.00042591766990832136,
+          "cosine": 0.9999999096515397
+        },
+        "layer:backbone.stem.conv1": {
+          "elements": 1728,
+          "changed_elements": 1727,
+          "changed_fraction": 0.9994212962962963,
+          "first_RMS": 0.014015950708809009,
+          "last_RMS": 0.014016461419756389,
+          "delta_RMS": 3.099481538675311e-05,
+          "relative_L2_movement": 0.002211395861093668,
+          "cosine": 0.9999975556170987
+        },
+        "layer:backbone.stem.norm1": {
+          "elements": 128,
+          "changed_elements": 128,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.29584801215442613,
+          "last_RMS": 0.29583866345689175,
+          "delta_RMS": 3.76222341894024e-05,
+          "relative_L2_movement": 0.0001271674395086502,
+          "cosine": 0.9999999924132507
+        },
+        "BN_buffers": {
+          "elements": 30080,
+          "changed_elements": 0,
+          "changed_fraction": 0.0,
+          "first_RMS": 0.19498619027902417,
+          "last_RMS": 0.19498619027902417,
+          "delta_RMS": 0.0,
+          "relative_L2_movement": 0.0,
+          "cosine": 1.0
+        },
+        "layer:backbone.stem.conv2": {
+          "elements": 73728,
+          "changed_elements": 73727,
+          "changed_fraction": 0.9999864366319444,
+          "first_RMS": 0.014715756851679763,
+          "last_RMS": 0.01471494764146617,
+          "delta_RMS": 3.332750708438924e-05,
+          "relative_L2_movement": 0.0022647497794573168,
+          "cosine": 0.9999974368251864
+        },
+        "layer:backbone.stages.0": {
+          "elements": 539392,
+          "changed_elements": 539381,
+          "changed_fraction": 0.9999796066682487,
+          "first_RMS": 0.24476894161963814,
+          "last_RMS": 0.24476224868849764,
+          "delta_RMS": 3.5807860757755306e-05,
+          "relative_L2_movement": 0.00014629250149473375,
+          "cosine": 0.9999999896728133
+        },
+        "layer:backbone.stages.1": {
+          "elements": 5686400,
+          "changed_elements": 5686293,
+          "changed_fraction": 0.9999811831738886,
+          "first_RMS": 0.09472757310632486,
+          "last_RMS": 0.09472493959863736,
+          "delta_RMS": 3.4817655369890744e-05,
+          "relative_L2_movement": 0.00036755565700823394,
+          "cosine": 0.9999999328359966
+        },
+        "layer:backbone.stages.2": {
+          "elements": 43689432,
+          "changed_elements": 43688823,
+          "changed_fraction": 0.9999860607022769,
+          "first_RMS": 0.07583393630688237,
+          "last_RMS": 0.07583192792736534,
+          "delta_RMS": 3.566780472803e-05,
+          "relative_L2_movement": 0.00047034093791057687,
+          "cosine": 0.9999998897374798
+        },
+        "layer:backbone.stages.3": {
+          "elements": 22863408,
+          "changed_elements": 22862959,
+          "changed_fraction": 0.9999803616328764,
+          "first_RMS": 0.06234539827063246,
+          "last_RMS": 0.06234375058336405,
+          "delta_RMS": 2.85609143176318e-05,
+          "relative_L2_movement": 0.00045810781725465856,
+          "cosine": 0.9999998954150792
+        },
+        "layer:backbone.norm.weight": {
+          "elements": 1024,
+          "changed_elements": 1024,
+          "changed_fraction": 1.0,
+          "first_RMS": 5.233757512037211,
+          "last_RMS": 5.23361620797595,
+          "delta_RMS": 0.00014670099325363813,
+          "relative_L2_movement": 2.8029765023740197e-05,
+          "cosine": 0.9999999999716271
+        },
+        "layer:backbone.norm.bias": {
+          "elements": 1024,
+          "changed_elements": 1021,
+          "changed_fraction": 0.9970703125,
+          "first_RMS": 0.24754835891768742,
+          "last_RMS": 0.24754167375423666,
+          "delta_RMS": 1.6452896494309077e-05,
+          "relative_L2_movement": 6.646336322423307e-05,
+          "cosine": 0.9999999981559088
+        }
+      }
+    },
+    "influence": {
+      "original_proofs": [
+        {
+          "epoch": 1,
+          "original_model_sha256": "8f8010a92fbe22c3ef384ca287ce1128a1d3ffed5d864095c4651b5f254d5043",
+          "original_private_revision": "b09816181e2e79eb24563884af5c7ed0e1af40a5",
+          "recipe": {
+            "epochs": 3,
+            "effective_batch": 8,
+            "windows": 16,
+            "seed": 20261016,
+            "encoder_lr": 3e-06,
+            "head_lr": 3e-05,
+            "weight_decay": 0.02,
+            "warmup_fraction": 0.1,
+            "final_lr_fraction": 0.01,
+            "source_weight": 0.25,
+            "clip": 1.0,
+            "role": "influence"
+          }
+        },
+        {
+          "epoch": 3,
+          "original_model_sha256": "f6a2007e7264fe5021cba4a4b58c0897a1e20f181078b7f566962ea10b2a04f4",
+          "original_private_revision": "37abff1d3c521533738d6036f0d825d0c82e51ee",
+          "recipe": {
+            "epochs": 3,
+            "effective_batch": 8,
+            "windows": 16,
+            "seed": 20261016,
+            "encoder_lr": 3e-06,
+            "head_lr": 3e-05,
+            "weight_decay": 0.02,
+            "warmup_fraction": 0.1,
+            "final_lr_fraction": 0.01,
+            "source_weight": 0.25,
+            "clip": 1.0,
+            "role": "influence"
+          }
+        }
+      ],
+      "epoch1_to3_movement": {
+        "head": {
+          "elements": 279832,
+          "changed_elements": 279832,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.06436974348031105,
+          "last_RMS": 0.06435961120628968,
+          "delta_RMS": 0.00040247215713231754,
+          "relative_L2_movement": 0.0062525052201803915,
+          "cosine": 0.9999804624024182
+        },
+        "layer:head": {
+          "elements": 279832,
+          "changed_elements": 279832,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.06436974348031105,
+          "last_RMS": 0.06435961120628968,
+          "delta_RMS": 0.00040247215713231754,
+          "relative_L2_movement": 0.0062525052201803915,
+          "cosine": 0.9999804624024182
+        },
+        "encoder": {
+          "elements": 72856264,
+          "changed_elements": 72855043,
+          "changed_fraction": 0.9999832409743107,
+          "first_RMS": 0.07873054710893643,
+          "last_RMS": 0.07872843565735743,
+          "delta_RMS": 3.29969830907161e-05,
+          "relative_L2_movement": 0.00041911283869346734,
+          "cosine": 0.9999999125294904
+        },
+        "layer:backbone.stem.conv1": {
+          "elements": 1728,
+          "changed_elements": 1728,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.014016788946568295,
+          "last_RMS": 0.014017174010202825,
+          "delta_RMS": 2.648227988643944e-05,
+          "relative_L2_movement": 0.0018893257212753457,
+          "cosine": 0.9999982156505232
+        },
+        "layer:backbone.stem.norm1": {
+          "elements": 128,
+          "changed_elements": 128,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.29584734194930745,
+          "last_RMS": 0.29583478867052637,
+          "delta_RMS": 3.26755655785307e-05,
+          "relative_L2_movement": 0.00011044738601751425,
+          "cosine": 0.9999999948006874
+        },
+        "BN_buffers": {
+          "elements": 30080,
+          "changed_elements": 0,
+          "changed_fraction": 0.0,
+          "first_RMS": 0.19498619027902417,
+          "last_RMS": 0.19498619027902417,
+          "delta_RMS": 0.0,
+          "relative_L2_movement": 0.0,
+          "cosine": 1.0
+        },
+        "layer:backbone.stem.conv2": {
+          "elements": 73728,
+          "changed_elements": 73728,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.014715581786235278,
+          "last_RMS": 0.014715098136313476,
+          "delta_RMS": 3.1419541199703296e-05,
+          "relative_L2_movement": 0.0021351205583385524,
+          "cosine": 0.999997721095305
+        },
+        "layer:backbone.stages.0": {
+          "elements": 539392,
+          "changed_elements": 539382,
+          "changed_fraction": 0.9999814606074988,
+          "first_RMS": 0.24476876706177814,
+          "last_RMS": 0.24476211301065817,
+          "delta_RMS": 3.5099147990817575e-05,
+          "relative_L2_movement": 0.00014339716791545863,
+          "cosine": 0.9999999900878703
+        },
+        "layer:backbone.stages.1": {
+          "elements": 5686400,
+          "changed_elements": 5686277,
+          "changed_fraction": 0.9999783694428812,
+          "first_RMS": 0.09472748051357949,
+          "last_RMS": 0.0947248499108405,
+          "delta_RMS": 3.3879747469335076e-05,
+          "relative_L2_movement": 0.00035765489893377144,
+          "cosine": 0.9999999364253138
+        },
+        "layer:backbone.stages.2": {
+          "elements": 43689432,
+          "changed_elements": 43688759,
+          "changed_fraction": 0.9999845958171303,
+          "first_RMS": 0.07583398055774906,
+          "last_RMS": 0.07583195034365202,
+          "delta_RMS": 3.429213786341381e-05,
+          "relative_L2_movement": 0.00045220015633096926,
+          "cosine": 0.9999998981131468
+        },
+        "layer:backbone.stages.3": {
+          "elements": 22863408,
+          "changed_elements": 22862993,
+          "changed_fraction": 0.9999818487252644,
+          "first_RMS": 0.062345417302232066,
+          "last_RMS": 0.062343794646873375,
+          "delta_RMS": 3.0060469444817678e-05,
+          "relative_L2_movement": 0.0004821600487345117,
+          "cosine": 0.9999998840965257
+        },
+        "layer:backbone.norm.weight": {
+          "elements": 1024,
+          "changed_elements": 1024,
+          "changed_fraction": 1.0,
+          "first_RMS": 5.233768418456796,
+          "last_RMS": 5.233624050196177,
+          "delta_RMS": 0.00015014305645549841,
+          "relative_L2_movement": 2.868737102047188e-05,
+          "cosine": 0.999999999968955
+        },
+        "layer:backbone.norm.bias": {
+          "elements": 1024,
+          "changed_elements": 1024,
+          "changed_fraction": 1.0,
+          "first_RMS": 0.24754672630125515,
+          "last_RMS": 0.24753992648014198,
+          "delta_RMS": 2.1226369341333057e-05,
+          "relative_L2_movement": 8.574692001986467e-05,
+          "cosine": 0.999999996700911
+        }
+      }
+    }
+  },
+  "clinical_targets_images_or_protected_values_read": false,
+  "old_whole_weights_rehashed": false,
+  "new_GPU_training_or_accuracy_claim": false
+}

@@ -1,5 +1,15 @@
 # Current measured state
 
+October18 new encoder-adaptation evidence: CPU956497 measured existing E1-to-E3
+uniform/influence encoder relativeL2 movement0.04259%/0.04191%; heads0.6130%/
+0.6253%, BN buffers unchanged. Nearly every encoder parameter updates. This is
+73MCoAtNet, not DINO; neither initialization-to-final drift nor accuracy/causal
+proof. Read encoder-plasticity-20261018-v1. Proposed matched encoderLR3e-6 to
+3e-5 comparison is NOT dispatched. Fresh CPU956499 quota leaves9708.57seconds
+against minimum108000,63708.57against reported total162000; do not claim three
+6000second epochs plus existing obligations fit the conservative minimum.
+Original live fitting/scoring/path owners unchanged; no paid quota enabled.
+
 October18 execution update: owner directed full throttle and no repeated
 verification of completed work. Full original dense-path runs955711(aligned)
 and955712(conditional-marginal null) are submitted once, source210036b6,

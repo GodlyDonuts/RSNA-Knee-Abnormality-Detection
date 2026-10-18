@@ -1,0 +1,38 @@
+"""One new CPU measurement of existing learned encoder movement; no data audit replay."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/encoder-plasticity-20261018-v1');L.mkdir(parents=True,exist_ok=True);assert not (L/'intent.json').exists()
+module=(D/'drift.py').read_text()
+program='''import gc,hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc39';out=Path('/tmp/rsna-encoder-plasticity-20261018-v1');assert not out.exists()
+R=Path('/tmp/rsna-licensed-importance-full-epochs-20261017-v1');assert R.is_dir()
+C=Path('/tmp/rsna-licensed-parent-pixels-full-20261016-v1');paid_cache=0
+for p in C.glob('shard-*/collected/verified.json'):
+ row=json.loads(p.read_text());paid_cache+=row['archive_bytes']+row['index_bytes']
+OLD=Path('/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1');paid_models=sum(json.loads(p.read_text())['retained_original_bytes'] for p in OLD.glob('epoch-*/verified.json'))
+paid_new=sum(json.loads(p.read_text())['retained_original_bytes'] for p in R.glob('*/epoch-*/verified.json'))
+free=shutil.disk_usage('/tmp').free
+assert free>689890867139-paid_cache-paid_models+12*2**30+16*2**20-paid_new+256*1024
+out.mkdir(mode=0o700);(out/'intent.json').write_text(json.dumps({'module_sha256':hashlib.sha256(v['module'].encode()).hexdigest(),'node_free_bytes':free,'new_cap_bytes':256*1024,'no_large_transfer_or_old_weight_rehash':True}))
+import torch
+torch.set_num_threads(1);space={};exec(compile(v['module'],'new_encoder_movement','exec'),space)
+result={'status':'actual_new_encoder_epoch1_to3_movement_measurement','CPU_job':os.environ['SLURM_JOB_ID'],'new_module_sha256':hashlib.sha256(v['module'].encode()).hexdigest(),'roles':{},'clinical_targets_images_or_protected_values_read':False,'old_whole_weights_rehashed':False,'new_GPU_training_or_accuracy_claim':False}
+for role in ('uniform','influence'):
+ states=[];sources=[]
+ for epoch in (1,3):
+  d=R/role/('epoch-%03d'%epoch);proof=json.loads((d/'verified.json').read_text());p=d/'model.pt';assert proof['role']==role and proof['epoch']==epoch and proof['completed']==486*epoch
+  assert p.stat().st_size==proof['files']['model.pt']['bytes']
+  x=torch.load(p,map_location='cpu',weights_only=True);assert x['completed']==486*epoch and x['epoch']==epoch
+  assert x['binding']['recipe']['encoder_lr']==3e-6 and x['binding']['recipe']['head_lr']==3e-5
+  states.append(x['model']);sources.append({'epoch':epoch,'original_model_sha256':proof['files']['model.pt']['sha256'],'original_private_revision':proof['revision'],'recipe':x['binding']['recipe']})
+ result['roles'][role]={'original_proofs':sources,'epoch1_to3_movement':space['summarize'](*states)}
+ del states;gc.collect()
+(out/'result.json').write_text(json.dumps(result,indent=2)+'\\n');assert sum(p.stat().st_size for p in out.iterdir())<256*1024;print(json.dumps(result))
+'''
+(L/'intent.json').write_text(json.dumps({'module_sha256':hashlib.sha256(module.encode()).hexdigest(),'one_CPU_zero_GPU':True,'new_aggregate_diagnostic_not_old_recovery':True},indent=2)+'\n')
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc39','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:05:00','--job-name=rsna-encoder-movement','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+p=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps({'module':module}),capture_output=True,text=True)
+(L/'response.json').write_text(json.dumps({'returncode':p.returncode,'stdout':p.stdout,'stderr':p.stderr},indent=2)+'\n')
+if p.returncode:print(p.stderr);raise SystemExit(p.returncode)
+r=json.loads(p.stdout);(D/'actual-result.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps({'CPU_job':r['CPU_job'],'roles':{role:{k:s for k,s in row['epoch1_to3_movement'].items() if not k.startswith('layer:')} for role,row in r['roles'].items()}}))

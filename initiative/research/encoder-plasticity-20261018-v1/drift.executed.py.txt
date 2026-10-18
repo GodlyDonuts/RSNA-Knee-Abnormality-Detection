@@ -1,0 +1,32 @@
+"""New aggregate learned-state movement diagnostic; no targets or accuracy metric."""
+from __future__ import annotations
+import math
+import torch
+
+
+def summarize(first, last):
+    if first.keys() != last.keys():
+        raise ValueError('Identical model graph required')
+    groups = {}
+    for name, a in first.items():
+        b = last[name]
+        if a.shape != b.shape or a.dtype != b.dtype or a.device.type != 'cpu' or b.device.type != 'cpu':
+            raise ValueError('Identical CPU state graph/dtype required')
+        if not a.is_floating_point():
+            if not torch.equal(a, b):
+                raise ValueError('Nonfloating model metadata changed')
+            continue
+        if not torch.isfinite(a).all() or not torch.isfinite(b).all():
+            raise ValueError('Finite actual learned states required')
+        buffer = any(name.endswith(x) for x in ('.running_mean','.running_var','.num_batches_tracked'))
+        key = 'BN_buffers' if buffer else ('encoder' if name.startswith('backbone.') else 'head')
+        prefix = '.'.join(name.split('.')[:3]) if name.startswith('backbone.') else 'head'
+        x, y = a.double(), b.double()
+        values = (a.numel(), int(torch.count_nonzero(a != b)), float(x.square().sum()), float(y.square().sum()), float((y-x).square().sum()), float((x*y).sum()))
+        for group in (key, 'layer:'+prefix) if not buffer else (key,):
+            sums = groups.setdefault(group,[0,0,0.,0.,0.,0.])
+            for i,v in enumerate(values):sums[i]+=v
+    result = {}
+    for key,(count,changed,base,last,delta,dot) in groups.items():
+        result[key]={'elements':count,'changed_elements':changed,'changed_fraction':changed/count,'first_RMS':math.sqrt(base/count),'last_RMS':math.sqrt(last/count),'delta_RMS':math.sqrt(delta/count),'relative_L2_movement':math.sqrt(delta/base) if base else None,'cosine':dot/math.sqrt(base*last) if base and last else None}
+    return result
