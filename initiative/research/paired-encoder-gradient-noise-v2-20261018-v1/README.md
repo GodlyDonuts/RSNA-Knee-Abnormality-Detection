@@ -35,3 +35,12 @@ admission across ranks, fresh-process and reversed-order source compilation,
 temporary-storage policy and refusal to rewrite numerical module bytes. Scoped
 Ruff and two-module mypy pass. These are not GPU evidence. The revised wrapper
 has not been submitted to Kaggle; no new production run or accuracy is accepted.
+
+Actual CPU stage958642 compiled the original private source closure at source
+ce16ff94 into notebook SHA `b91b621dd82bb9a28472d062ecf407c6fff65caf89060c44adcbc369198708d5`.
+The 677,391-byte child remains within its existing parent control budget; no
+weights or pixels were transferred. CPU958691 then reconciled the old unexecuted
+v1 and confirmed no mutation before retiring only its CPU owner68344. New sole
+owner71891 is live and its first CPU958701 phase is waiting on the original
+recovery139417155; zero new GPUs/entries. Old v1 source/receipts remain preserved.
+Never restart68344 or push v1. Actual combined GPU execution remains unobserved.
