@@ -29,3 +29,19 @@ Prepared controls are not actual fixture/GPU acceptance. Original per-phase
 intent/result and Slurm terminal receipts determine execution. No full training
 or accuracy is claimed here. The FP32dense encoder952317 is a separate input-only
 test on33 and is not duplicated by this cached-map recovery.
+
+## Actual completed numerical recovery and preserved collector failure
+
+GPU952440 ran all six phases in166seconds. Both arms completed full4updates,
+stop1/resume4, and all original complete-state/each-epoch/CSV assertions passed.
+It then FAILED1:0 while reading a missing historical951853cancellation field
+when assembling the final receipt. The historical record was supplied as248B
+metadata after the failure; no live numerical source, state, input or checkpoint
+was changed. Do not call the original GPU job COMPLETED or restart it.
+
+Independent CPU952513 rechecked the actual complete model/AdamW/LR/cursor/order/
+allRNG/history/each-epoch/prediction bytes, finite updates and common initialization.
+It accepted the completed numerical recovery, preserving the actual FAILED Slurm
+terminal. Aligned/null final projection gradient norms .00092209/.00090952 are
+engineering values, not disease metrics. Read `engineering-decision.json`: cached
+recovery only; integrated online/dense trainer and full scientific fit unadmitted.

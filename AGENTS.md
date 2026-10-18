@@ -1,5 +1,24 @@
 # RSNA Knee: current agent guide
 
+## October18 terminal recovery correction
+
+Original GPU952440 finished all six numerical phases, then FAILED1:0/166seconds
+only while assembling the final receipt's historical951853cancel field. The248B
+historical metadata arrived after failure; no running source/state/checkpoint was
+changed. Never call952440COMPLETED or retry its numerical work. Independent
+CPU952513 accepted exact complete model/AdamW/LR/cursor/order/allRNG/history/
+each-epoch/16x12CSV equality in both arms and finite real gradients. This accepts
+cached1024/64reader recovery only; online/dense trainer/full fitting remain
+unadmitted. See `initiative/research/path-recovery-evc48-20261018-v3`.
+
+Source3b9f022e and79distinct small objects are privately fully re-downloaded/
+size/SHA verified at HFd93c1d3c3bd11c7715045ff96a29fb2e7cb800cb viaCPU952474.
+No private source arrays, predictions or engineering weights were published.
+Do not repeat this milestone. Latest model evidence remains Kaggle0.950best,
+uniform new0.947, label57331631still unreported under its live finite owner.
+No new source-mixture or path accuracy gain is claimed.
+
+
 ## October18 actual source and encoder progress
 
 Uniform fixed-final entry57329796 actually COMPLETE/publicAUC0.947, no error;

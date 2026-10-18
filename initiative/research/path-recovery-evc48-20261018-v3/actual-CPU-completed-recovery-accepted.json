@@ -1,0 +1,157 @@
+{
+  "status": "actual_completed_GPU_numerical_recovery_independently_CPU_accepted_after_final_provenance_collector_failure",
+  "CPU_job": "952513",
+  "source_git": "6b38bae047f6e7671f09f716d1933783474bcd4e",
+  "original_GPU_job": "952440",
+  "original_GPU_terminal": "FAILED1:0_after166seconds",
+  "original_worker_sha256": "18ed4f9d1b41614a523e7952030f38a320281e91a9eed22904e93155982501eb",
+  "original_terminal_failure": "missing historical cancellation field while composing final receipt after all numerical assertions",
+  "complete_model_AdamW_LR_order_cursor_allRNG_history_each_epoch_and16x12CSV_equal": true,
+  "both_arms_same_initial_model": true,
+  "original_fitting_outer_cases": [
+    16,
+    16
+  ],
+  "summaries": {
+    "aligned": {
+      "updates": 4,
+      "history_complete_finite": true,
+      "final_projection_gradient_norm": 0.0009220915683382964,
+      "model_parameters": 68560
+    },
+    "null": {
+      "updates": 4,
+      "history_complete_finite": true,
+      "final_projection_gradient_norm": 0.0009095153506918579,
+      "model_parameters": 68560
+    }
+  },
+  "phases": [
+    {
+      "GPU_job": "952440",
+      "arm": "aligned",
+      "phase": "full",
+      "actual_completed_updates": 4,
+      "status": "fixed_final_spatial_fit_complete",
+      "peak_device_allocated_bytes": 295373824,
+      "encoder_instantiated_or_trained": false
+    },
+    {
+      "GPU_job": "952440",
+      "arm": "aligned",
+      "phase": "stop",
+      "actual_completed_updates": 1,
+      "status": "stopped_at_complete_update",
+      "peak_device_allocated_bytes": 294820864,
+      "encoder_instantiated_or_trained": false
+    },
+    {
+      "GPU_job": "952440",
+      "arm": "aligned",
+      "phase": "resume",
+      "actual_completed_updates": 4,
+      "status": "fixed_final_spatial_fit_complete",
+      "peak_device_allocated_bytes": 295373824,
+      "encoder_instantiated_or_trained": false
+    },
+    {
+      "GPU_job": "952440",
+      "arm": "null",
+      "phase": "full",
+      "actual_completed_updates": 4,
+      "status": "fixed_final_spatial_fit_complete",
+      "peak_device_allocated_bytes": 224224768,
+      "encoder_instantiated_or_trained": false
+    },
+    {
+      "GPU_job": "952440",
+      "arm": "null",
+      "phase": "stop",
+      "actual_completed_updates": 1,
+      "status": "stopped_at_complete_update",
+      "peak_device_allocated_bytes": 223671808,
+      "encoder_instantiated_or_trained": false
+    },
+    {
+      "GPU_job": "952440",
+      "arm": "null",
+      "phase": "resume",
+      "actual_completed_updates": 4,
+      "status": "fixed_final_spatial_fit_complete",
+      "peak_device_allocated_bytes": 224863744,
+      "encoder_instantiated_or_trained": false
+    }
+  ],
+  "checkpoint_prediction_proofs": {
+    "aligned-full/checkpoint.pt": {
+      "bytes": 850417,
+      "sha256": "b09977518c2564f54f686549d9611ee1a81f8adeb63dda5b0e0c0fe0de0f2ffa"
+    },
+    "aligned-replay/checkpoint.pt": {
+      "bytes": 850609,
+      "sha256": "e413d4a146c02ae8e9674cf592d06dccc3cf0352de57e127c5b3c00f5520f3e9"
+    },
+    "aligned-full/epoch-checkpoints/epoch-001.pt": {
+      "bytes": 850225,
+      "sha256": "9821dd01ba576236f2abd484853194b676b1928966fce837a68cf7df0bea35e1"
+    },
+    "aligned-replay/epoch-checkpoints/epoch-001.pt": {
+      "bytes": 850417,
+      "sha256": "1fef57cdd58380f68671b81c542024f41b6dd09608a4870ce141abaafd019b1a"
+    },
+    "aligned-full/epoch-checkpoints/epoch-002.pt": {
+      "bytes": 850417,
+      "sha256": "b09977518c2564f54f686549d9611ee1a81f8adeb63dda5b0e0c0fe0de0f2ffa"
+    },
+    "aligned-replay/epoch-checkpoints/epoch-002.pt": {
+      "bytes": 850609,
+      "sha256": "e413d4a146c02ae8e9674cf592d06dccc3cf0352de57e127c5b3c00f5520f3e9"
+    },
+    "aligned-full/predictions-private.csv": {
+      "bytes": 4914,
+      "sha256": "92814f40f16f0ab187156f17f97193bfa1ccb924172a18517f45607bbc986cd8"
+    },
+    "aligned-replay/predictions-private.csv": {
+      "bytes": 4914,
+      "sha256": "92814f40f16f0ab187156f17f97193bfa1ccb924172a18517f45607bbc986cd8"
+    },
+    "null-full/checkpoint.pt": {
+      "bytes": 850417,
+      "sha256": "8aefca6487651df30678b6250ede88105bd2f23e4b6157b461d2544dc1b32230"
+    },
+    "null-replay/checkpoint.pt": {
+      "bytes": 850545,
+      "sha256": "65d813d1127aee6510a444a5a61ecb55a7c61acebe287f444684f154426b79b5"
+    },
+    "null-full/epoch-checkpoints/epoch-001.pt": {
+      "bytes": 850225,
+      "sha256": "899525f02eae54ac44f781b11c468e8e2c9be673682c0b3dc7c802ebb6ac4778"
+    },
+    "null-replay/epoch-checkpoints/epoch-001.pt": {
+      "bytes": 850417,
+      "sha256": "4544e3111d71a95866e5cae0644dd09556776ae3b6f1472957024a31a97f09c4"
+    },
+    "null-full/epoch-checkpoints/epoch-002.pt": {
+      "bytes": 850417,
+      "sha256": "8aefca6487651df30678b6250ede88105bd2f23e4b6157b461d2544dc1b32230"
+    },
+    "null-replay/epoch-checkpoints/epoch-002.pt": {
+      "bytes": 850545,
+      "sha256": "65d813d1127aee6510a444a5a61ecb55a7c61acebe287f444684f154426b79b5"
+    },
+    "null-full/predictions-private.csv": {
+      "bytes": 4907,
+      "sha256": "76df8d424dd855f9209a4c72cccafb19fa0fc9b7664cd3718d7d1765bef12cde"
+    },
+    "null-replay/predictions-private.csv": {
+      "bytes": 4907,
+      "sha256": "76df8d424dd855f9209a4c72cccafb19fa0fc9b7664cd3718d7d1765bef12cde"
+    }
+  },
+  "GPU_or_optimizer_work_repeated": false,
+  "encoder_instantiated_or_fitted": false,
+  "outer_clinical_targets_read": false,
+  "original_checkpoints_or_failed_GPU_terminal_modified": false,
+  "historical_provenance_added_after_original_failure": true,
+  "dense_online_trainer_production_or_accuracy_admission": false
+}
