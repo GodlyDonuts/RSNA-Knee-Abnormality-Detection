@@ -99,3 +99,13 @@ ledger keys; the old shared helper only knew older campaign prefixes. Three
 zero/one/two-live-actor checks prevent silently ignoring the current family fit,
 without modifying any frozen live controller. Unregistered/manual sessions remain
 outside that registry; an uncertain push must stop rather than retry.
+
+Actual CPU953915 compiled the derived MRI recovery source7a4e7db6 on the
+original owning node. Every original numerical module is byte unchanged. It
+uses the existing32-case MRI/features and original accepted recovery output,
+with no new Dataset or weight transfer. The bounded diagnostic can use one
+otherwise-free two-T4 session for at most1800seconds after expanded known-family
+capacity and all remaining original family-work funding checks. It compares
+complete old influence-control state/predictions, then full/stop1/resume for
+both allocation roles. No production or competition model is accepted by this
+engineering decision; full fitting/storage/deployment require separate review.

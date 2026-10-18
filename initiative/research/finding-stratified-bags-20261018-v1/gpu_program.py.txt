@@ -1,0 +1,76 @@
+"""One private diagnostic only, with current known-family capacity and funding."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);phase=v['phase'];assert phase in ('admit_push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'finding-strata-audit-v1'
+gate=json.loads((D/'recovery-staged.json').read_text());assert gate==v['gate'] and gate['binding']['original_numerical_modules_unchanged']
+source=(D/'recovery.private.py').read_text();sha=hashlib.sha256(source.encode()).hexdigest();assert sha==gate['binding']['source_sha256']
+def module(path,digest):
+ assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
+ spec=importlib.util.spec_from_file_location('finding_strata_'+path.stem,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+S=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1');w=module(S/'code/scripts/kaggle/workflow.py','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+base_capacity=module(S/'GPU-admission-v1/gpu_capacity.py','0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2')
+cap=module(D/'accepted-capacity.py',gate['files_sha256']['capacity.py'])
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert identity.get('active') is True and identity.get('username')=='godlydonuts'
+slug='godlydonuts/rsna-finding-strata-recovery-'+sha[:12];key='finding-strata-recovery:'+sha
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007'],'competitionDataSources':[],'kernelDataSources':['godlydonuts/rsna-released-context-probe-d077e354611d','godlydonuts/rsna-parent-exact-pixels32-09254e97913d','godlydonuts/rsna-importance-recovery-a01dd9643355'],'sessionTimeoutSeconds':1800,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+assert len(request['newTitle'])<=50
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:
+  if time.monotonic()>deadline:print(json.dumps({'status':'waiting_canonical_claim_no_mutation'}));raise SystemExit(0)
+  time.sleep(3)
+owner={'kind':'one_finding_strata_real_MRI_recovery_only','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);raw=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();row=json.loads(raw[0]) if raw else None
+  def save():db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+  if phase=='admit_push' and row is None:
+   assert not (D/'GPU-push-intent.json').exists()
+   F=Path('/tmp/rsna-S6-training-release-20261017-v1/family-influence-full-fitting-v1')
+   future=sum(6000 for e in (1,2,3) if not (F/('epoch-'+str(e))/'actual-accepted.json').exists())+5400+32400
+   quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'))
+   remaining=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+   capacity=cap.admission(base_capacity,db,r)
+   if remaining<future+1800 or not capacity['available']:print(json.dumps({'status':'waiting_actual_VM_or_batch_capacity_no_mutation','remaining_VM_seconds':remaining,'required_all_future_VM_seconds':future+1800,'capacity':capacity}));raise SystemExit(0)
+   paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+   assert paid(D)+256*2**10<2*2**20 and paid(R)+256*2**10<32*2**20
+   P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');FAMILY=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+   assert paid(P)<3*2**30 and paid(FAMILY)<4*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(FAMILY))
+   q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+   for ref in request['kernelDataSources']:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+   old=r.kernel('GetKernel',request['kernelDataSources'][-1],1);assert hashlib.sha256(old['blob']['source'].encode()).hexdigest()==gate['binding']['original_source_sha256']
+   absence=r.require_absent_kernel(slug);fresh=cap.admission(base_capacity,db,r)
+   if not fresh['available']:print(json.dumps({'status':'waiting_actual_VM_or_batch_capacity_no_mutation','capacity':fresh}));raise SystemExit(0)
+   row={'state':'finding_strata_recovery_push_intent','source_git':gate['source_git'],'control_git':v['control_git'],'coordinator_sha256':v['program_sha256'],'source_sha256':sha,'slug':slug,'version':1,'request_sha256':w.object_hash(request),'absence':absence,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':future+1800,'capacity':fresh,'binding':gate['binding'],'GPU_maximum_seconds':1800,'production_or_competition_entries':0,'automatic_retry':False}
+   w.new_json(D/'GPU-push-intent.json',row);save()
+   try:
+    response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'GPU-push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+   except BaseException:row['state']='finding_strata_recovery_push_uncertain';save();retain=True;raise
+   row.update(state='finding_strata_recovery_pushed',kernel_id=response['kernelId']);save()
+   out={'status':'one_private_finding_strata_real_MRI_recovery_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':gate['source_git'],'source_sha256':sha,'kernel_id':response['kernelId'],'slug':slug,'version':1,'maximum_seconds':1800,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':future+1800,'actual_capacity':fresh,'new_Dataset_pixel_or_weight_transfers':0,'production_or_competition_entries':0};w.new_json(D/'GPU-pushed.json',out);print(json.dumps(out),flush=True)
+  else:
+   assert row is not None and row['state'] not in ('finding_strata_recovery_push_intent','finding_strata_recovery_push_uncertain') and row['source_sha256']==sha
+   actual=r.kernel('GetKernel',slug,1);assert actual['blob']['source']==source;m=actual['metadata']
+   for n in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage','kernelType'):assert m[n]==request[n]
+   for n in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(m.get(n,[]))==sorted(request[n])
+   status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'source_sha256':sha,'kernel_id':row['kernel_id'],'slug':slug,'version':1,'new_mutations':0}
+   if status=='COMPLETE':
+    receipt=r.output_json(slug,1,'finding-strata-real-MRI-recovery-accepted.json')
+    assert receipt['status']=='actual_finding_strata_bothT4_original_control_and_recovery_accepted' and receipt['worker_source_sha256']==gate['binding']['worker_sha256'] and receipt['original_influence_complete_control_state_and_prediction_bytes_equal'] is True and receipt['same_initial_complete_model_and_allrank_RNG_between_roles'] is True
+    assert receipt['fit_studies']==receipt['disjoint_engineering_studies']==16 and receipt['updates_each_role']==4 and receipt['sampled_windows']==16 and receipt['full_inference_windows']==94 and set(receipt['roles'])=={'iid','finding_strata'}
+    assert all(x['complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal'] and x['all16_full94_two_view_prediction_bytes_equal'] for x in receipt['roles'].values())
+    assert receipt['roles']['iid']['prediction_SHA']==gate['binding']['original_control_prediction_sha256']
+    assert all(receipt['source_module_sha256'][name]==digest for name,digest in gate['binding']['additional_modules_sha256'].items())
+    out['receipt']=receipt
+    if not (D/'GPU-actual-accepted.json').exists():w.new_json(D/'GPU-actual-accepted.json',out);row.update(state='finding_strata_recovery_accepted',actual=out);save()
+   elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):
+    if not (D/'GPU-actual-failed.json').exists():w.new_json(D/'GPU-actual-failed.json',out);row.update(state='finding_strata_recovery_failed',actual=out);save()
+   print(json.dumps(out),flush=True)
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()
