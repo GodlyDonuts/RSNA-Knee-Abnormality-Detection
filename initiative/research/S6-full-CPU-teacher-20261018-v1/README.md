@@ -1,0 +1,13 @@
+# Full fitting-cohort teacher production on available CPUs
+
+This continues all3887 fitting studies;64 is a durable checkpoint size, not a smaller scientific objective. The original32 predictions and four new CPU predictions962056 are already preserved. Their identities are skipped. No labels/reports/protected values are read.
+
+Twelve persistent2-thread render workers each consume their exact tensors with the original CPU-only device/report AST port of S6's unchanged ConvNeXt classifier. That classifier already produced four actual new finite outputs in132seconds, with no repeated download/render. Cold CPU rendering separately produced those inputs in42.8seconds. These small timings motivate parallelization, not a guaranteed full-cohort runtime or an accuracy result.
+
+At most four studies acquire raw source concurrently (24HTTP streams total). Twelve5GiB scratch slots total60GiB inside the existing64GiB RAM envelope. Original metadata shows at most632DICOMs per study; source+12views/slice upper bound fits5GiB. Actual header/native/window checks still refuse an oversized study before decode; no case is silently omitted. Weighted80GiB heap admission covers native rendering and CPU classification. One25CPU/192GiB/zeroGPU job produces up to64new studies, with a90minute wall bound and70minute stop-submitting deadline. It appends unique finite12-target logits to the same capped journal before retiring only newly owned scratch.
+
+The original classifier worker is byte-identical to the actually executed four-study consumer. Its harmless unused-variable lint is preserved rather than modifying the frozen numerical source. New source only adds transport/concurrency/resource control, not CNN mathematics or target selection. Source metadata, original model/stat/proof, geometry, input hashes and exact device-only AST remain pinned.
+
+One finite coordinator follows actual successful Slurm terminals between distinct phases, refreshing original resource guards inside every phase. A failed/uncertain phase never retries automatically; completed predictions and private partials survive for reconciliation. The next backend may take over only through an explicit clean between-phase handoff. No GPU job or Kaggle entry is dispatched here. Kaggle's two original fits remain untouched; its latest authoritative unreserved GPU time was negative, and the asset-owning H100 pair was occupied.
+
+This uses spare CPU capacity now while preserving the prepared H100 route. All3887 identities and complete teacher provenance are still required before empirical-rank targets or student fitting. No partial ranks, more labels, new gold, full-cohort pass or clinical/Kaggle gain is claimed by source preparation or a partial checkpoint.

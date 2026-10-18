@@ -1,0 +1,162 @@
+"""One finite owner for unique64-study CPU checkpoints of the complete teacher."""
+
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-full-CPU-teacher-20261018-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+stage = json.loads((D / "actual-staged.json").read_text())
+source = stage["source_git"]
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep
+}
+with (L / "owner-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": source,
+            "maximum_phases": 128,
+            "new_studies_per_phase": 64,
+            "CPU": 25,
+            "GPU": 0,
+            "memory_GiB": 192,
+            "preserve_existing_teacher_rows": 36,
+            "automatic_retry_of_failed_or_uncertain_phase": False,
+        },
+        f,
+        indent=2,
+    )
+for phase in range(128):
+    if (L / "handoff-after-current.json").exists():
+        (L / "clean-handoff-ready.json").write_text(
+            json.dumps({"source_git": source, "next_phase": phase, "no_active_child": True})
+        )
+        print("Clean between-phase handoff ready", flush=True)
+        break
+    prefix = "phase-%03d" % phase
+    intent = L / (prefix + "-intent.json")
+    assert not intent.exists()
+    with intent.open("x") as f:
+        json.dump(
+            {
+                "source_git": source,
+                "phase": phase,
+                "program_sha256": stage["files"]["program.py"],
+                "one_original_CPU_job": True,
+                "automatic_retry": False,
+            },
+            f,
+            indent=2,
+        )
+    a = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=25",
+        "--gres=none",
+        "--mem=192G",
+        "--time=01:30:00",
+        "--job-name=rsna-S6-CPU-full-p" + str(phase),
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=2",
+        "MKL_NUM_THREADS=2",
+        "OPENBLAS_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py",
+    ]
+    with (
+        (L / (prefix + "-stdout.private.log")).open("x") as out,
+        (L / (prefix + "-stderr.private.log")).open("x") as err,
+    ):
+        child = subprocess.Popen(
+            [
+                "ssh",
+                "-S",
+                "/tmp/rsna-research-20261001-stable.sock",
+                "-o",
+                "BatchMode=yes",
+                "newton",
+                shlex.join(a),
+            ],
+            stdin=subprocess.PIPE,
+            stdout=out,
+            stderr=err,
+            text=True,
+        )
+        child.stdin.write(
+            json.dumps({"phase": phase, "source_git": source, "HF_token": values["HF_TOKEN"]})
+        )
+        child.stdin.close()
+        result = child.wait()
+    with (L / (prefix + "-transport.json")).open("x") as f:
+        json.dump({"returncode": result, "phase": phase, "no_automatic_retry": True}, f)
+    assert result == 0, (
+        "Original CPU checkpoint failed/uncertain: preserve journal/private buffers and reconcile without replay"
+    )
+    rows = [
+        json.loads(line)
+        for line in (L / (prefix + "-stdout.private.log")).read_text().splitlines()
+        if line.startswith("{")
+    ]
+    terminal = rows[-1]
+    assert (
+        terminal["phase"] == phase
+        and terminal["source_git"] == source
+        and terminal["new_studies"] > 0
+        and terminal["status"]
+        in (
+            "actual_CPU_full_teacher_production_checkpoint_preserved",
+            "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission",
+        )
+    )
+    actual = subprocess.check_output(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(
+                [
+                    "sacct",
+                    "-X",
+                    "-n",
+                    "-P",
+                    "-j",
+                    terminal["CPU_job"],
+                    "--format=JobIDRaw,State,ExitCode",
+                ]
+            ),
+        ],
+        text=True,
+    )
+    assert terminal["CPU_job"] + "|COMPLETED|0:0" in actual
+    with (D / (prefix + "-actual.json")).open("x") as f:
+        json.dump(terminal, f, indent=2)
+        f.write("\n")
+    (L / "owner-progress.json").write_text(json.dumps(terminal, indent=2))
+    print(json.dumps(terminal), flush=True)
+    if terminal["completed"] == 3887:
+        with (D / "actual-complete.json").open("x") as f:
+            json.dump(terminal, f, indent=2)
+            f.write("\n")
+        break
+else:
+    raise RuntimeError("Explicit full-cohort phase bound exhausted without completion")
