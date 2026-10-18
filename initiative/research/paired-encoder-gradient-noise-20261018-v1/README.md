@@ -60,3 +60,16 @@ cap, with 4,401,102 parent-cap bytes still free at admission. Fresh owning-node
 and shared reserves passed. No model/pixel transfer, GPU push or entry occurred.
 All 17 focused numerical/compiler tests, scoped Ruff and two-module mypy passed.
 See `staging/actual-staged.json`. This is prepared execution, not GPU acceptance.
+
+## Finite execution owner
+
+Original process **68344** now owns at most one new two-T4 noise measurement,
+with a 12-hour bound and no competition-entry authority. Actual CPU958304
+confirmed it is waiting for original recovery139417155; zero new GPUs were
+pushed. It stops on a failed original recovery, binds the exact staged source,
+checks fresh full future VM budgets/capacity and registers an explicit
+capacity-only alias atomically so legacy scanners count its diagnostic.
+Three new execution simulations confirm that missing prerequisites wait without
+credentials/API writes, failed recovery stops and changed source stops, all
+without changing source files or creating an intent. Never launch another owner
+or restart this one after uncertainty. Actual numerical results remain absent.
