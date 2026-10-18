@@ -1,5 +1,31 @@
 # Execution handoff
 
+## October18 immutable multi-source candidate
+
+Previous goal turn made progress: actual FP32MRI input acceptance, primitive
+annotation evidence and cached-reader numerical recovery (GPU collector failure
+preserved and independently accepted byCPU952513). No model accuracy gain yet.
+
+New actualCPU952586 verifies the unchanged3887fitting roster is all accepted
+train/report-supervision rows, disjoint from520excluded studies/components.
+CPU952617 materialized the fixed family target (493839B/SHA65d37307) and full
+source tensor (343927B/SHA54f1c949). Exactly35418target cells differ; masks, source
+cohort, both parent views and fallback cells remain identical. Source annotations
+are report-based weak targets, not clinical truth or a located Astra image export.
+
+The actual unchanged IID16 optimizer passes synthetic control-state/prediction
+identity, both-source complete recovery and six refusals with the new adapter.
+CPU952712 compiles the private real-MRI/T4recovery with all original numerical
+modules unchanged;31/32engineering cases have different targets. CPU952733 created
+privateDataset12668561v1 once; all6objects fully re-downloaded/size/SHA verified.
+No GPU or new fit was created by that publication. A new finite owner is prepared
+for one exact diagnostic push and its actual outcome, never production/entry.
+Fresh quota/batch capacity and original canonical ledger/claim are mandatory;
+uncertainty is reconciled read-only. Original97513Kaggle scoring owner remains
+untouched, label57331631last unreported; uniform57329796scored0.947 vs0.950best.
+See `initiative/experiments/competitive-v1/multisource-supervision-v1`.
+
+
 ## October18 terminal recovery correction
 
 Original GPU952440 finished all six numerical phases, then FAILED1:0/166seconds

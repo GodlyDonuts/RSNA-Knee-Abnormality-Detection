@@ -103,3 +103,42 @@ ranking gains or clinically adjudicated corrections. This audit has NOT yet
 materialized an overlay, integrated the trainer, admitted a new GPU run or read
 protected gold target columns. Source-generation claims remain source-relative;
 shared reports can induce correlated errors. [Actual all12target evidence](actual-primitive-source.json).
+
+## Actual immutable targets and training adapter
+
+CPU952586 confirms all3887original fitting studies are accepted train/report-
+supervision rows, zero missing IDs and zero leakage-component overlap against
+520excluded studies. CPU952617 materialized493839-byte targets (SHA65d37307) and
+343927-byte full annotation tensor (SHA54f1c949), preserving masks, teacher and
+all fallback cells exactly. All35418changes are bound; two Synovitis source
+mismatches stay unchanged. Both artifacts remain private on their owning node.
+
+`sampled_overlay.py` delegates to the unchanged original IID16 trainer. Synthetic
+real-engine checks prove original-control complete numerical/prediction identity
+(except explicit experiment metadata), both-role complete recovery, fixed images/
+IID duplicates/views/masks/teacher and a nonzero learned response. Six adverse
+cases are refused, including cross-source resume and changing the anchor. This
+is engineering evidence, not actual MRI fitting or an accuracy result.
+
+CPU952712 compiled the real original private two-T4 diagnostic, preserving every
+original numerical module and reusing the original actual32input/teacher bridge.
+31of32cases have different targets; the unchanged case is legitimate fallback.
+The new strict source wrapper retains16fit/16prediction-only engineering cases,
+full/stop1/resume4updates per role, original-control state/prediction replay and
+same model/initialRNG/proposal checks. No tiny metric can select a recipe.
+
+CPU952733 created the private Dataset12668561version1 once at
+`godlydonuts/rsna-family-fit-65d3730702a0`. All6objects fully re-downloaded/size/SHA
+verified. The sampled source files, source tensor and teacher arrays are never
+in public Git or small HF source mirrors. Canonical ledger/claim and exact
+original permissions were used; no competition entry or GPU had been made in
+that publication. Fresh observed92474VMseconds cover57600seconds of conservative
+new diagnostic/three-epoch/qualification/public-run caps; all older whole94 and
+uniform/influence training obligations were actually complete. Refresh quota
+and batch capacity before a diagnostic push. Source preparation is not a push.
+
+`finish_recovery_once.py.txt` may own one exact offline T4diagnostic and read its
+actual outcome for at most6hours. No production/competition entry permission is
+in that owner; any uncertain mutation stops for read-only reconciliation. Its
+actual original intent, livePID, kernel/source/version and terminal receipt,
+rather than this preparation, determine execution.

@@ -1,0 +1,102 @@
+"""Canonical single diagnostic push/status; never a production or competition entry."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+import requests
+
+v=json.load(sys.stdin);phase=v['phase'];assert phase in ('admit_push','status')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-training-release-20261017-v1');D=P/'family-source-recovery-v1'
+gate=json.loads((D/'CPU-admitted.json').read_text());assert gate['CPU_job']=='952712'
+source=(D/'recovery.private.py').read_text();sha=hashlib.sha256(source.encode()).hexdigest();assert sha==gate['binding']['source_sha256']
+slug='godlydonuts/rsna-family-recovery-'+sha[:12];key='family-source-label-recovery:'+sha
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def module(path,expected):
+    assert hashlib.sha256(path.read_bytes()).hexdigest()==expected
+    spec=importlib.util.spec_from_file_location('exact_family_coordinator_'+path.stem,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module(C/'workflow.py','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007','godlydonuts/rsna-family-fit-65d3730702a0'],'kernelDataSources':['godlydonuts/rsna-released-context-probe-d077e354611d','godlydonuts/rsna-parent-exact-pixels32-09254e97913d','godlydonuts/rsna-importance-recovery-a01dd9643355'],'competitionDataSources':[],'sessionTimeoutSeconds':1800,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+120
+while True:
+    try:claim.mkdir(mode=0o700);break
+    except FileExistsError:
+        if time.monotonic()>deadline:print(json.dumps({'status':'waiting_canonical_claim_no_mutation'}));raise SystemExit(0)
+        time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'one_family_label_only_GPU_recovery','phase':phase,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+    with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+        w.verify_account(db,r)
+        raw=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone();row=json.loads(raw[0]) if raw else None
+        def save():db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+        if phase=='admit_push' and row is None:
+            targetkey='family-mean-fitting-targets-v1:65d3730702a098c8c819396dba6122902a4f3720dde9b2cb3f9ffd7ac5eca3b5'
+            raw=db.execute('SELECT value FROM meta WHERE key=?',(targetkey,)).fetchone();assert raw is not None
+            target=json.loads(raw[0]);assert target['state']=='family_fitting_targets_fully_verified'
+            publication=module(C/'publication.py',v['publication_sha256'])
+            assert publication.metadata(r,request['datasetDataSources'][1])==target['dataset']
+            for ref in request['kernelDataSources']:assert r.kernel('GetKernelSessionStatus',ref,1).get('status')=='COMPLETE'
+            original=r.kernel('GetKernel',request['kernelDataSources'][-1],1)
+            assert hashlib.sha256(original['blob']['source'].encode()).hexdigest()==gate['binding']['original_recovery_source_sha256']
+            quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota']
+            seconds=lambda value:float(value.removesuffix('s'))
+            allowed=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])
+            remaining=allowed-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+            M=Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1');S=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison')
+            old_future=sum(25200 for e in (1,2,3) if not (M/('segment-'+str(e))/'actual-accepted.json').exists())+sum(6000 for role in ('uniform','influence') for e in (1,2,3) if not (S/(role+'-epoch-'+str(e))/'actual-accepted.json').exists())
+            future=1800+18000+5400+32400
+            capacity=module(Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py'),'0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2')
+            live=capacity.admission(db,r,caller='sampling')
+            if remaining<old_future+future or not live['available']:
+                print(json.dumps({'status':'waiting_fresh_VM_or_batch_capacity_no_mutation','remaining_VM_seconds':remaining,'required_VM_seconds':old_future+future,'capacity':live,'new_GPU_intent':False}),flush=True);raise SystemExit(0)
+            root=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+            reserve=4*2**30
+            assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+reserve
+            q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);item=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+            assert (int(item[2])-int(item[1]))*1024>20*2**30 and int(item[6])-int(item[5])>5000
+            storage=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert not storage.exists()
+            assert not (D/'push-intent.json').exists()
+            absence=r.require_absent_kernel(slug)
+            storage.mkdir(mode=0o700)
+            funding={'kind':'distinct_private_family_epoch_preservation','node':'evc33','cap_bytes':reserve,'fixed_final_epochs':3,'new_shared_data_files':0,'other_original_future_floor_bytes':603433009211,'unpaid_original_reader_bytes':max(0,3*2**30-paid),'no_original_assets_deleted_or_retirement_credit':True}
+            w.new_json(storage/'funding.json',funding)
+            row={'state':'family_recovery_push_intent','slug':slug,'version':1,'source_sha256':sha,'worker_sha256':gate['binding']['worker_sha256'],'dataset':target['dataset'],'request_sha256':w.object_hash(request),'absence':absence,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':old_future+future,'storage_funding':funding,'capacity':live,'maximum_GPU_seconds':1800,'diagnostic_only':True,'production_or_competition_entry_admitted':False,'automatic_retry':False}
+            w.new_json(D/'push-intent.json',row);save()
+            try:
+                response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response)
+                assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and not response.get('error')
+            except BaseException:row['state']='family_recovery_push_uncertain';save();retain=True;raise
+            row.update(state='family_recovery_pushed',kernel_id=response['kernelId']);save()
+            out={'status':'one_exact_family_source_label_GPU_recovery_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':response['kernelId'],'slug':slug,'version':1,'source_sha256':sha,'worker_sha256':gate['binding']['worker_sha256'],'maximum_seconds':1800,'storage_funding':funding,'actual_remaining_VM_seconds':remaining,'required_all_future_VM_seconds':old_future+future,'diagnostic_only':True,'new_competition_entries':0}
+            w.new_json(D/'pushed.json',out);print(json.dumps(out),flush=True)
+        else:
+            assert row is not None and row['source_sha256']==sha and row['state'] not in ('family_recovery_push_intent','family_recovery_push_uncertain')
+            actual=r.kernel('GetKernel',slug,1);assert hashlib.sha256(actual['blob']['source'].encode()).hexdigest()==sha
+            metadata=actual['metadata']
+            for name in ('isPrivate','enableInternet','enableGpu','machineShape','dockerImage','kernelType'):assert metadata[name]==request[name]
+            for name in ('datasetDataSources','kernelDataSources','competitionDataSources'):assert sorted(metadata.get(name,[]))==sorted(request[name])
+            session=r.kernel('GetKernelSessionStatus',slug,1);status=session.get('status')
+            out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':sha,'new_mutations':0}
+            if status=='COMPLETE':
+                receipt=r.output_json(slug,1,'family-source-real-MRI-recovery-accepted.json')
+                assert receipt['status']=='actual_family_label_only_uniform16_twoT4_MRI_recovery_accepted'
+                assert receipt['worker_source_sha256']==gate['binding']['worker_sha256'] and receipt['family_target_sha256']==gate['binding']['target_sha256']
+                assert receipt['original_control_complete_state_and_predictions_exact_except_label_binding'] and receipt['same_initial_complete_model_and_allrank_RNG_between_roles_and_original']
+                for role in ('unchanged_reference','safe_family_mean'):
+                    value=receipt['roles'][role];assert value['finite_updates']==4 and value['complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal'] and value['all16_full94_two_view_prediction_bytes_equal']
+                    assert value['label_binding']['role']==role and value['label_binding']['diagnostic_only'] is True
+                out['receipt']=receipt
+                if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='family_recovery_actual_accepted',actual=out);save()
+            elif status in ('ERROR','CANCELLED'):
+                if not (D/'actual-failed.json').exists():w.new_json(D/'actual-failed.json',out);row.update(state='family_recovery_actual_failed',actual=out);save()
+            print(json.dumps(out),flush=True)
+finally:
+    if not retain:(claim/'owner.json').unlink();claim.rmdir()
