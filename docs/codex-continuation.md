@@ -11,6 +11,10 @@ H100/twoCPU/30minutes, original16fitting/16prediction-only, aligned/null complet
 full/stop/resume checks; unchanged frozen N3parent and eight path/input modules.
 Only actual terminal acceptance plus measured cost can admit full paired work.
 Read initiative/research/online-path-training-20261018-v1. Never duplicate955582.
+Source34a1b9e1 and24distinct small objects are fully privately re-downloaded/
+size/SHA verified at HF1a9f17abc7b2644c0e274c29610a945363fdabe7 viaCPU955618.
+This is source/dispatch preservation, not GPU acceptance or accuracy. Never
+repeat this v23 mirror; no clinical arrays or model weights are in it.
 
 October18 verified score update: exact public R6 reproduction57333150 is
 COMPLETE with actual publicAUC0.958, no error, authenticatedCPU955446. This
