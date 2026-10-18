@@ -1,5 +1,11 @@
 # Current measured state
 
+Latest distinct private source milestone: e3480a43/45small objects,212256bytes,
+fully re-downloaded/size/SHA verified at HFa19b0381212fb85069c866d722260b0a563aa85f
+viaCPU954598 under the canonical shared lock. Never repeat this v16 publication.
+No MRI/UID/label/teacher arrays or model weights are in that small source mirror.
+
+
 Latest verified execution: October18,2026. Target0.97 remains unachieved.
 Actual source/epoch/entry receipts override old chronological pending snapshots.
 

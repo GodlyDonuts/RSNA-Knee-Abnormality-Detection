@@ -1,5 +1,11 @@
 # RSNA Knee: current agent guide
 
+Latest distinct private source milestone: e3480a43/45small objects,212256bytes,
+fully re-downloaded/size/SHA verified at HFa19b0381212fb85069c866d722260b0a563aa85f
+viaCPU954598 under the canonical shared lock. Never repeat this v16 publication.
+No MRI/UID/label/teacher arrays or model weights are in that small source mirror.
+
+
 October18 live execution update: the finding-allocation full comparison was
 pushed ONCE as kernel139354995v1/source5989537de157, private/offline twoT4,
 scientific source bf362cdd. Original finite owner38017 owns all3epochs/1458updates
@@ -70,8 +76,9 @@ proved absent. Current admitted source labels are report weak targets.
 
 First full E1 kernel139338298v1 is actually COMPLETE and all five private objects
 are fully verified at HFd4f35abe, CPU953658. Owner17423 is terminal success.
-Original continuation owner18386 owns E2/E3 and preservation: E2kernel139346363v1
-was pushed once after E1 verification. Never repeat E1, its publication or the
+Original continuation owner18386 completed and privately verified E2at
+HF2faaa9cf454e6e90cc2bb6ef428874e24216cdbf/CPU954363, then pushed E3kernel
+139355023v1 once. It owns only remaining E3and preservation. Never repeat E1, its publication or the
 E2push; inspect each original intent/result before any action. Scientific source
 remains11ce568c63bcc6e984fc9c16ee92e58a8cc27eb3. Existing4GiB preservation cap
 is reused, not doubled. Read the exact candidate receipts in

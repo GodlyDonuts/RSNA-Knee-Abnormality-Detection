@@ -1,5 +1,11 @@
 # Execution handoff
 
+Latest distinct private source milestone: e3480a43/45small objects,212256bytes,
+fully re-downloaded/size/SHA verified at HFa19b0381212fb85069c866d722260b0a563aa85f
+viaCPU954598 under the canonical shared lock. Never repeat this v16 publication.
+No MRI/UID/label/teacher arrays or model weights are in that small source mirror.
+
+
 October18 live execution update: the finding-allocation full comparison was
 pushed ONCE as kernel139354995v1/source5989537de157, private/offline twoT4,
 scientific source bf362cdd. Original finite owner38017 owns all3epochs/1458updates
@@ -131,3 +137,12 @@ Public3rowCSV is never uploaded as a hidden competition submission.
 Other original readers/benchmarks/cache assets remain preserved; don't restart
 historical pending/failed originals. Physical4/8-GPU nodes remain excluded;
 use useful accessible physical1/2-H100 nodes and minimum useful CPUs.
+
+Runtime observation note: the saved Version#1batches139354995and139355023
+reported RUNNING, but the new finding batch's first optimizer progress has not
+yet been observed. The official SDK live-log endpoint returned404for that
+original version; this is observation absence, not model failure. A separate
+cancelled Interactive Session card was visible while reading the editor; no
+Run/Save/cancel control was clicked and the saved batch cards remained RUNNING.
+Do not mistake that interactive card for either saved version's terminal.
+Do not open/start another interactive GPU session to inspect these batch jobs.
