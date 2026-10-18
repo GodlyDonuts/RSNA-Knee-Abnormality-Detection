@@ -1,0 +1,93 @@
+# New hardware/location entry; the complete gradient numerical modules are unchanged.
+def main():
+    import copy
+    import tempfile
+    import requests
+    import shutil
+    from rsna.competitive.licensed_importance_serving import validate
+    from rsna.competitive.mil_sampling import readout_moments, proposal
+    from rsna.competitive.paired_encoder_probe import measure_case
+    payload = json.load(sys.stdin)
+    token = payload.pop('token')
+    root = Path('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1')
+    admission = json.loads((root/'admitted.json').read_text())
+    assert payload['admission_sha256'] == hashlib.sha256((root/'admitted.json').read_bytes()).hexdigest()
+    assert os.uname().nodename == 'evc33'
+    assert torch.cuda.device_count() == 1
+    device = torch.device('cuda', 0)
+    torch.cuda.set_device(device)
+    assert 'H100' in torch.cuda.get_device_name(device)
+    torch.set_num_threads(2); torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark=False; torch.backends.cudnn.deterministic=True
+    torch.backends.cuda.matmul.allow_tf32=False; torch.backends.cudnn.allow_tf32=False
+    torch.use_deterministic_algorithms(True)
+    assert shutil.disk_usage('/dev/shm').free > 8*2**30
+    assert not (root/'runtime-started.json').exists()
+    (root/'runtime-started.json').write_text(json.dumps({'GPU_job':os.environ['SLURM_JOB_ID'],'GPU':torch.cuda.get_device_name(device),'parameters':73136096,'optimizer_updates':0}))
+    # One newly owned RAM copy of an already privately verified complete model.
+    ram = Path(tempfile.mkdtemp(prefix='rsna-H100-gradient-', dir='/dev/shm'));ram.chmod(0o700)
+    weight = ram/'trained.pt'
+    url = 'https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/37abff1d3c521533738d6036f0d825d0c82e51ee/models/licensed-parent-IID16-full3887-a420bd2ed38c/influence/epoch-003/model.pt'
+    digest=hashlib.sha256();count=0
+    with requests.get(url,headers={'Authorization':'Bearer '+token},stream=True,timeout=(30,120)) as response:
+        response.raise_for_status()
+        with weight.open('xb') as output:
+            weight.chmod(0o600)
+            for chunk in response.iter_content(1024*1024):
+                count+=len(chunk);assert count<=292870259
+                digest.update(chunk);output.write(chunk)
+    del token
+    assert count==292870259 and digest.hexdigest()=='f6a2007e7264fe5021cba4a4b58c0897a1e20f181078b7f566962ea10b2a04f4'
+    state=torch.load(weight,map_location='cpu',weights_only=True)
+    assert validate(state,BINDING['training'],BINDING['publication'],BINDING['model_sha256'])['epoch']==3
+    backbone=build_backbone('coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k',pretrained=False)
+    model=WholeStudyRaptor(backbone,F_dim=backbone.num_features)
+    model.load_state_dict(state['model'],strict=True)
+    assert sum(p.numel() for p in model.parameters())==73136096 and all(p.requires_grad for p in model.parameters())
+    parent_head=torch.load('/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt',map_location='cpu',weights_only=True)
+    assert parent_head['format']=='licensed_parent_MIL_readout_v1' and parent_head['parent_checkpoint_sha256']==PARENT_SHA
+    norm=copy.deepcopy(model.norm).cpu().float().eval();att=copy.deepcopy(model.att).cpu().float().eval()
+    norm.load_state_dict({n.removeprefix('norm.'):t for n,t in parent_head['model'].items() if n.startswith('norm.')},strict=True)
+    att.load_state_dict({n.removeprefix('att.'):t for n,t in parent_head['model'].items() if n.startswith('att.')},strict=True)
+    clsw=parent_head['model']['clsW'].float();clsb=parent_head['model']['clsb'].float()
+    def parent_readout(features,logq):
+        h=norm(features);scores=att(h).float()
+        if logq is not None:scores=scores-logq[None,:,None]
+        pooled=torch.einsum('bkn,bkf->bnf',scores.softmax(1),h)
+        return (pooled*clsw).sum(-1)+clsb
+    pixel=Path('/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected/index.private.json')
+    feature=Path('/tmp/rsna-released-context-head-fit-20261016-v1/features32/index.private.json')
+    def retained_index(size,sha):
+        assert pixel.stat().st_size==size and hashlib.sha256(pixel.read_bytes()).hexdigest()==sha
+        return pixel
+    def retained_features():
+        assert hashlib.sha256(feature.read_bytes()).hexdigest()=='a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100'
+        return feature,json.loads(feature.read_text())['records']
+    globals()['exact_index']=retained_index;globals()['_pixel_original32']=retained_features
+    original=PixelCases(json.loads((root/'targets.private.json').read_text()),list(range(4)))
+    model.eval().to(device);torch.cuda.reset_peak_memory_stats(device)
+    started=time.monotonic();results=[]
+    for index in range(4):
+        assert time.monotonic()-started<2400
+        row=original.frows[index];raw=(original.features/row['file']).read_bytes()
+        assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+        with np.load(io.BytesIO(raw),allow_pickle=False) as arrays:features=torch.from_numpy(arrays['features'].copy())
+        weights,votes,bias,_=readout_moments(parent_head,features);q=torch.from_numpy(proposal(weights,votes,bias))
+        views=[original.case(index,list(range(94)),mirror) for mirror in (False,True)]
+        def progress(event):
+            assert time.monotonic()-started<2400
+            assert sum(p.stat().st_size for p in root.rglob('*') if p.is_file())<8*2**20
+            (root/'progress.json').write_text(json.dumps({'case_index':index,**event}))
+        result=measure_case(model,views,features,parent_readout,q,original.uids[index],Recipe(role='influence'),device=device,expected_parameters=73136096,reference_draws=16,paired_draws=32,progress=progress)
+        result['case_index']=index;results.append(result)
+        (root/('case-'+str(index)+'.private.json')).write_text(json.dumps(result))
+        del views,features;gc.collect();torch.cuda.empty_cache()
+    assert all(torch.equal(t,model.state_dict()[name].detach().cpu()) for name,t in state['model'].items())
+    groups={}
+    for group in ('all','encoder','head'):
+        rows=[r['views'][i]['groups'][group] for r in results for i in (0,1)]
+        groups[group]={'parameters':rows[0]['parameters'],'ordinary_MSE':sum(x['ordinary']['MSE_against_estimated_dense_gradient'] for x in rows)/8,'controlled_MSE':sum(x['controlled']['MSE_against_estimated_dense_gradient'] for x in rows)/8,'reference_MCSE':sum(x['reference_mean_squared_standard_error'] for x in rows)/8}
+    receipt={'status':'actual_H100_trained_encoder_paired_noise_measured','GPU_job':os.environ['SLURM_JOB_ID'],'hardware':'one_H100_not_two_T4','admission_sha256':payload['admission_sha256'],'trained_model_sha256':digest.hexdigest(),'new_model_RAM_bytes':count,'temporary_RAM_cap_bytes':8*2**30,'groups':groups,'cases':4,'views':2,'reference_draws_per_view':16,'paired_draws_per_view':32,'complete_trained_state_unchanged':True,'peak_VRAM_bytes':torch.cuda.max_memory_allocated(device),'elapsed_seconds':time.monotonic()-started,'optimizer_updates_entries':0,'two_T4_recovery_cost_production_or_accuracy_accepted':False}
+    (root/'actual-result.json').write_text(json.dumps(receipt,indent=2));print(json.dumps(receipt),flush=True)
+
+if __name__=='__main__':main()
