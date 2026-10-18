@@ -1,0 +1,23 @@
+"""Stream source counts privately to the owning node; return aggregate coverage."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+import pyarrow as pa
+import pyarrow.dataset as ds
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/full-fitting-raw-source-coverage-20261018-v1';L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists()
+pa.set_cpu_count(2)
+p=R/'initiative/source/inventory-provenance.json';provenance=json.loads(p.read_text());assert provenance['round_trip_equal'] is True
+source=ds.dataset(str(R/'initiative/source/inventory'),format='parquet');table=source.to_table(columns=['study_uid','series_uid','bytes'],filter=ds.field('split')=='train_series')
+rows=table.group_by(['study_uid']).aggregate([('bytes','sum'),('bytes','count'),('series_uid','count_distinct')]).to_pylist();assert len(rows)>0
+metadata=json.dumps(rows,sort_keys=True,separators=(',',':'));assert len(metadata.encode())<2**20
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();name='rsna/competitive/raw_source_coverage.py';core=subprocess.check_output(['git','show',git+':'+name],text=True);assert (R/name).read_text()==core
+program=(D/'program.py.txt').read_text();assert subprocess.check_output(['git','show',git+':'+D.relative_to(R).as_posix()+'/program.py.txt'],text=True)==program
+v={'source_git':git,'source_provenance':provenance,'source_provenance_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'source_count_rows':rows,'source_count_rows_sha256':hashlib.sha256(metadata.encode()).hexdigest(),'core':core,'core_sha256':hashlib.sha256(core.encode()).hexdigest()}
+with (L/'intent.json').open('x') as f:json.dump({'source_git':git,'source_provenance_sha256':v['source_provenance_sha256'],'metadata_bytes_in_RAM_only':len(metadata.encode()),'source_studies':len(rows),'new_child_cap_inside_S6_remaining5MiB':2**20,'automatic_retry':False,'GPU_pixels_models_or_labels':0},f,indent=2)
+p=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('same_stdin_only_transport',p);t=importlib.util.module_from_spec(spec);spec.loader.exec_module(t)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:04:00','--job-name=rsna-full-source-coverage','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',t.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=t.envelope(program,v),capture_output=True,text=True,timeout=340)
+with (L/'response.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Original source-only observation stopped; inspect its retained intent without replay: '+x.stderr[-900:]
+out=json.loads(x.stdout)
+with (D/'actual-source-coverage.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)

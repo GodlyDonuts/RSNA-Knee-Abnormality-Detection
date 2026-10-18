@@ -1,0 +1,24 @@
+"""One original fitting UID/source-count join in RAM, zero clinical/data reads."""
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+import numpy as np
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'full-fitting-raw-source-coverage-v1';assert not D.exists()
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+prepaid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in prepaid) and p.suffix not in ('.pt','.whl'));assert controls+4*2**20+2**20<16*2**20
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert sha(family/'completed-fixed3-unspent512MiB-retirement-v1.json')=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+F=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert F.stat().st_size==483656 and sha(F)=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(F,allow_pickle=False) as z:uids=z['uids'].tolist()
+assert hashlib.sha256(v['core'].encode()).hexdigest()==v['core_sha256'] and hashlib.sha256(json.dumps(v['source_count_rows'],sort_keys=True,separators=(',',':')).encode()).hexdigest()==v['source_count_rows_sha256']
+assert v['source_provenance']['round_trip_equal'] is True
+ns={};exec(compile(v['core'],'source_coverage_only','exec'),ns);result=ns['summarize'](uids,v['source_count_rows'])
+D.mkdir(mode=0o700);(D/'core.py').write_text(v['core']);(D/'core.py').chmod(0o600)
+out={'status':'actual_original_fitting_roster_to_pinned_HF_source_inventory_coverage_complete','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_provenance_sha256':v['source_provenance_sha256'],'source_revision':v['source_provenance']['source_revision'],'source_counts_SHA256_RAM_only':v['source_count_rows_sha256'],'core_sha256':v['core_sha256'],'result':result,'raw_pixels_models_labels_reports_or_protected_clinical_values_read':False,'new_GPU_or_large_asset_transfers_or_shared_storage':False,'new_small_source_cap_inside_original16MiB':2**20,'remaining_original_future_small_source_cap':4*2**20}
+with (D/'result.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+assert paid(D)<2**20
+print(json.dumps(out),flush=True)
