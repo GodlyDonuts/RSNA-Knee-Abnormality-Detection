@@ -1,0 +1,115 @@
+"""Synthetic compiler/continuation tests; no clinical or GPU acceptance."""
+
+import base64
+import copy
+import importlib.util
+import json
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+from test_licensed_importance_production import inputs
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "new_complete_targets", SourceFileLoader("new_complete_targets", str(D / "compiler.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+overlay = Path(
+    "initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/teacher_overlay.py.txt"
+).read_text()
+ready = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "population": 3887,
+    "population_sha256": m.POP,
+    "labels_masks_and_original_targets_modified": False,
+    "labels_masks_or_protected_values_decoded": False,
+    "target_file": {"bytes": 500000, "sha256": "a" * 64},
+    "complete_teacher_file_sha256": "b" * 64,
+    "complete_teacher_journal_sha256": "c" * 64,
+    "roles": {
+        r: {"role": r, "population": 3887, "population_sha256": m.POP, "diagnostic_only": False}
+        for r in m.ROLES
+    },
+}
+checks = 0
+with pytest.MonkeyPatch.context() as mp:
+    args = inputs.__wrapped__(mp)
+    for role in m.ROLES:
+        previous = None
+        worker_sha = None
+        for epoch in (1, 2, 3):
+            source, meta = m.build(
+                *args,
+                ready=ready,
+                role=role,
+                overlay_source=overlay,
+                segment=epoch,
+                previous=previous,
+            )
+            values = m.values(source)
+            worker = base64.b64decode(values["WORKER"]).decode()
+            assert "fit_with_teacher_targets(model,data,output" in worker
+            assert "Recipe(epochs=3,role=_ROLE)" in worker
+            assert values["FILES"][m.MODULE] == overlay
+            assert "TeacherOverlay(original" in worker
+            assert "state['binding']['teacher_transport']==" in source
+            assert meta["actual_changed_target_GPU_recovery_claim"] is False
+            if worker_sha is not None:
+                assert meta["worker_sha256"] == worker_sha
+            worker_sha = meta["worker_sha256"]
+            previous = {
+                "status": m.STATUS,
+                "teacher_target_role": role,
+                "segment": epoch,
+                "completed": 486 * epoch,
+                "worker_sha256": worker_sha,
+                "binding": meta["binding"],
+                "checkpoint": {"bytes": 100, "sha256": "d" * 64},
+                "run": {"bytes": 100, "sha256": "e" * 64},
+            }
+            checks += 1
+        bad = copy.deepcopy(previous)
+        bad["segment"], bad["completed"] = 1, 486
+        bad["teacher_target_role"] = m.ROLES[1 - m.ROLES.index(role)]
+        with pytest.raises(ValueError):
+            m.build(*args, ready=ready, role=role, overlay_source=overlay, segment=2, previous=bad)
+        checks += 1
+    for key, value in [
+        ("population", 292),
+        ("status", "partial"),
+        ("labels_masks_and_original_targets_modified", True),
+        ("complete_teacher_file_sha256", None),
+    ]:
+        bad = {**ready, key: value}
+        with pytest.raises(ValueError):
+            m.build(*args, ready=bad, role="parent_only", overlay_source=overlay, segment=1)
+        checks += 1
+    for kw in [
+        {"role": "unknown"},
+        {"overlay_source": overlay + "\n"},
+        {"segment": 0},
+        {"previous": {"status": "old fit"}},
+    ]:
+        options = {
+            "ready": ready,
+            "role": "parent_only",
+            "overlay_source": overlay,
+            "segment": 1,
+            **kw,
+        }
+        with pytest.raises(ValueError):
+            m.build(*args, **options)
+        checks += 1
+print(
+    json.dumps(
+        {
+            "status": "matched_teacher_target_compiler_synthetic_contracts_passed",
+            "checks": checks,
+            "roles": 2,
+            "epochs_per_role": 3,
+            "actual_MRI_GPU_or_accuracy_claim": False,
+        }
+    )
+)
