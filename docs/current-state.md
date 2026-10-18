@@ -52,6 +52,14 @@ The original wrapper-only missing-schema failure960753 is preserved; the distinc
 CPU recovery succeeded without any model, training or competition mutation.
 [Source and actual receipt](../initiative/research/R6-paired-member-replacement-20261018-v1/README.md).
 
+A separate finite CPU-only controller87761 (session81627) is now live after
+actual cluster staging960864. It waits for controller84527's exact fixed-final
+qualification, then compiles the replacement ensemble once from its original
+source bytes and a read-only canonical ledger snapshot. It creates no GPU run,
+model transfer or entry; subsequent runtime and exact R6v1 input admission remain
+required. This removes a manual delay between qualification and integration.
+[Preparation controller](../initiative/experiments/competitive-v1/R6-paired-final-preparation-20261018-v1/README.md).
+
 ## What the new mechanism actually demonstrated
 
 Actual two-T4 experiment139446429 reduced encoder gradient MSE to0.4347097 of
