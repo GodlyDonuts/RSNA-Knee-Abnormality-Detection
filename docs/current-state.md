@@ -15,7 +15,7 @@ The active full-encoder experiments use **73M CoAtNet, not DINOv3**.
 
 | Experiment | Actual evidence | Next result |
 | --- | --- | --- |
-| Paired-logit correction | Original139451532v1 RUNNING, latest controller receipt CPU960202. All3887 fitting studies, three fixed epochs/1458 updates, all73M learned parameters. Sole owner81735; original E1 was not restarted. | Complete the fixed fit and compare its exact full94-window predictions against the ordinary influence parent. Optimizer progress inside this epoch is not yet observable. |
+| Paired-logit correction | Original139451532v1 RUNNING, actual UI logs show264 updates in epoch1. All3887 fitting studies, three fixed epochs/1458 updates, all73M learned parameters. Sole owner81735; original E1 was not restarted. | Complete the fixed fit and compare its exact full94-window predictions against the ordinary influence parent. Both original T4 headers and finite logged loss/gradients are now observed; the full per-update history is not yet collected. |
 | Higher encoder learning rate | Epoch2 completed972 contiguous updates; five private objects fully downloaded/size/SHA verified at HF44645205d6ec8655883b32c3de6f427235d125d8 viaCPU960141. Original owner66083 pushed final epoch3 ONCE as139454218v1; its latest status is unreported, not terminal. | Fixed-final encoderLR3e-5 versus original3e-6, same headLR3e-5. Scoring owner66215 waits actual final preservation and fresh execution allowance. |
 | Family supervision | Full fit, qualification and public example completed; original owner43079 remains live. | Actual hidden competition outcome after a permitted entry; no new score recorded here. |
 | Finding-stratified fitting | Full fit/private preservation and qualification completed. Its public controller stopped on the original draft/source guard before a push. | Reconcile the original mismatched draft read-only. Public execution is postponed; owner66217 is terminal and must not be restarted. |
@@ -56,8 +56,8 @@ its internal score is not comparable to the public Kaggle numbers above.
 Healthy original controllers continue; no duplicate training, notebook push or
 entry is authorized by a missing log/status. Each new paired epoch is preserved
 through bounded RAM, including the resumable optimizer checkpoint, before resume.
-Latest small source milestone through285377d3 is fully verified at private
-HF2b615c4130c0fb5cd4cba557b7738a060dc911e5; do not repeat it.
+Latest small source milestone through023a9fb0 is fully verified at private
+HF4adb19d201d75bb6ec1f7b72607201b3f5fb3376; do not repeat it.
 
 Accepted labels/masks/folds and protected gold/confirmation remain unchanged.
 Daenerys study9 original reviews and81408-byte addendum are now collected unchanged
