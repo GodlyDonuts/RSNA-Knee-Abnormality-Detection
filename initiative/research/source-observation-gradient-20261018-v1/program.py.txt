@@ -1,0 +1,40 @@
+"""Read-only fitting source-state gradient attribution, never clinical truth."""
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+torch.set_num_threads(1)
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+retirement=F/'completed-fixed3-unspent512MiB-retirement-v1.json';assert hashlib.sha256(retirement.read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+fund=json.loads(retirement.read_text());assert fund['new_family_cap_bytes']==3758096384 and fund['retired_previous_N3_eightGiB_again'] is False
+paid=lambda r:sum(p.stat().st_size for p in r.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(P))+max(0,fund['new_family_cap_bytes']-paid(F))
+R=Path('/tmp/rsna-S6-training-release-20261017-v1/primitive-supervision-v1')
+paths={'original':Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz'),'family':R/'targets.private.npz','annotations':R/'annotation-tensor.private.npz'}
+expected={'original':'48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285','family':'65d3730702a098c8c819396dba6122902a4f3720dde9b2cb3f9ffd7ac5eca3b5','annotations':'54f1c94943bd7049b3e3da79fdcffb1f7083ecb373a64b9e2642aa2fe9230df9'}
+assert all(hashlib.sha256(p.read_bytes()).hexdigest()==expected[k] for k,p in paths.items())
+with np.load(paths['original'],allow_pickle=False) as a:
+ uids=a['uids'].tolist();original=a['labels'].copy();mask=a['masks'].copy();teacher=a['parent_logits'].copy()
+assert len(uids)==3887 and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+with np.load(paths['family'],allow_pickle=False) as a:
+ assert a['uids'].tolist()==uids and np.array_equal(a['masks'],mask) and np.array_equal(a['parent_logits'],teacher)
+ family=a['labels'].copy()
+with np.load(paths['annotations'],allow_pickle=False) as a:
+ codes=a['state_codes'].copy();preserve=a['preserve_unresolved'].copy();assert np.array_equal(a['original_mask'],mask)
+assert mask.all() and preserve.sum()==2
+scope={'__name__':'read_only_source_observation_attribution'};assert hashlib.sha256(v['module_source'].encode()).hexdigest()==v['module_sha256'];exec(compile(v['module_source'],'frozen_source_state_attribution','exec'),scope)
+results={name:scope['assess'](labels,mask,teacher,codes,preserve) for name,labels in [('original',original),('family',family)]}
+# The existing loss's denominator remains N*12; this hypothetical mask is never written/admitted.
+sys.path.insert(0,'/tmp/rsna-licensed-importance-encoder-20261017-v1/code')
+from rsna.competitive.released_context import anchored_loss
+silent=(codes==0).all(2)&~preserve;hypothetical=mask&~silent
+max_error=0.0
+for m in (mask,hypothetical):
+ x=torch.from_numpy(teacher[:32,0].astype(np.float64)).requires_grad_();y=torch.from_numpy(family[:32].astype(np.float64));keep=torch.from_numpy(m[:32])
+ loss=anchored_loss(x,x.detach().clone(),y,keep,source_weight=.25);loss.backward()
+ exact=.25*(x.detach().sigmoid()-y)*keep/(32*12)
+ max_error=max(max_error,float((x.grad-exact).abs().max()))
+assert max_error<1e-14
+out={'status':'actual_fitting3887_source_observation_gradient_attribution_CPU_complete','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'module_sha256':v['module_sha256'],'source_files':expected,'results':results,'actual32_row_canonical_loss_autograd_max_error':max_error,'original_and_hypothetical_masks_both_used_same_all12_denominator':True,'hypothetical_silent_mask_changes_no_files_or_accepted_mask':True,'all_original_source_mismatches_preserved':2,'weak_source_observation_not_ground_truth':True,'fitting_only_prior_admission_CPU':952617,'no_clinical_reports_Gold_confirmation_read':True,'no_node_or_shared_files_written':True,'new_GPU_model_Dataset_or_competition_actions':0}
+print(json.dumps(out),flush=True)
