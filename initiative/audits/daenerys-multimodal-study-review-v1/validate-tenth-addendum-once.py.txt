@@ -1,0 +1,30 @@
+"""Preserve the original tenth addendum and bind its eleven source views."""
+import hashlib,json
+from pathlib import Path
+from rsna.schema import TARGETS
+D=Path(__file__).resolve().parent;raw=(D/'addendum-003.original.json').read_bytes();assert len(raw)==115504 and hashlib.sha256(raw).hexdigest()=='a547c06a42f1365bf9ce7528fbccfa76b7fba9d82fbacaba12095bdce03a3e2e'
+v=json.loads(raw);packet=json.loads((D/'packet.json').read_text());A=D/'alternate-windows-v1';mr=(A/'manifest.json').read_bytes();m=json.loads(mr);hosted=json.loads((A/'hosted-confirmed.json').read_text())
+assert v['packet_id']==packet['packet_id'] and v['candidate_annotation_only'] is True and v['accepted_labels_changed'] is False and v['next_study_started'] is False
+assert v['source_binding']['new_manifest']['sha256']==hashlib.sha256(mr).hexdigest() and v['source_binding']['source_geometry_and_window_bounds']==m
+refs={x['reference']:x for x in hosted['images']};sources={x['sha256']:x for x in m['images']};access=v['image_access_log'];c=v['coverage']
+assert c['new_references_expected']==c['new_references_accessed_and_reviewed']==c['unique_original_slices_revisited']==len(access)==11 and c['new_panels_reviewed']==22
+assert c['inaccessible_references']==c['unreviewed_requested_references']==[] and c['total_unique_mri_references_on_page']==41
+assert {x['reference'] for x in access}==set(refs)
+for x in access:
+ meta=x['metadata'];s=x['source'];r=refs[x['reference']];assert s==sources[s['sha256']]
+ assert meta['sha256']==s['sha256']==r['sha256'] and meta['byte_size']==s['size']==r['byte_size']
+ assert x['status']=='accessed_and_personally_visually_reviewed' and x['panels_inspected']==['left_contrast','right_wide']
+ original=packet['series'][s['series_index']-1];i=s['slice_number']-1
+ assert original['ordered_sop_uids'][i]==s['original_sop_uid'] and original['source_sha256'][i]==s['source_sha256']
+for p in v['prior_files']:
+ candidates=[D/n for n in ('provisional-001.original.json','report-informed-002.original.json') if hashlib.sha256((D/n).read_bytes()).hexdigest()==p['sha256']]
+ assert len(candidates)==1 and candidates[0].stat().st_size==p['byte_count'] and p['verified_unchanged'] is True
+old=json.loads((D/'report-informed-002.original.json').read_text());assert [x['target'] for x in v['targets']]==list(TARGETS)
+for a,b in zip(v['targets'],old['targets'],strict=True):
+ assert a['status']==b['status'] and a['confidence']==b['confidence']
+ assert a['previous_same_study_report_informed_assessment']==b
+assert v['report']['sha256']==packet['report_sha256'] and v['report']['text']==(D/'matching-original-report.txt').read_text()
+assert v['reading_order']['prior_report_known'] is True and v['additional_material_requested']==[]
+out={'status':'tenth_original_addendum_bytes_and_all11_requested_native_views_source_bound','original_bytes':len(raw),'original_sha256':hashlib.sha256(raw).hexdigest(),'targets':12,'new_source_bound_image_access_records':11,'panels':22,'source_slices':171,'total_MRI_references':41,'target_status_or_confidence_changes':0,'prior_original_reviews_unchanged':True,'independent_underlying_tool_call_trace_collected':False,'image_access_and_reading_order_remain_reviewer_reported':True,'report_known_before_addendum':True,'accepted_labels_changed':False,'clinical_gold_or_accuracy_claim':False}
+with (D/'addendum-validated.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out))
