@@ -1,0 +1,18 @@
+"""Compile once on the original node; no account or GPU mutation."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+
+D=Path(__file__).resolve().parent;L=Path('artifacts/finding-final-serving-20261018-v1');L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'serving-stage.intent.json').exists()
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();prefix=D.relative_to(Path.cwd()).as_posix()
+def content(name):return subprocess.check_output(['git','show',source+':'+prefix+'/'+name],text=True)
+program=content('stage_worker.py.txt');compile(program,'owning_node_influence_CPU_stage','exec')
+payload={'source_git':source,'files':{name:content(name) for name in ('serving.py','notebook.py')}}
+with (L/'serving-stage.intent.json').open('x') as f:json.dump({'source_git':source,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'automatic_retry':False,'new_GPU_or_account_mutation':False},f,indent=2)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-finding-serving-compile','env','PYTHONDONTWRITEBYTECODE=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps(payload),capture_output=True,text=True,timeout=260)
+(L/'serving-stage.result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,x.stderr[-1500:]
+out=json.loads(x.stdout);(D/'actual-serving-CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

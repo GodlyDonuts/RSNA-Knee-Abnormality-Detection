@@ -1,0 +1,39 @@
+"""CPU-only serving preparation on existing original private assets."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import sqlite3
+import sys
+
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/finding-strata-production-v1');R=P/'final-serving-v1';assert not R.exists()
+S=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/code')
+expected={'rsna/competitive/licensed_importance_serving.py':'e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d','scripts/kaggle/licensed_importance_serving.py':'9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2'}
+assert all(hashlib.sha256((S/n).read_bytes()).hexdigest()==sha for n,sha in expected.items())
+root=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');family_paid=sum(p.stat().st_size for p in family.rglob('*') if p.is_file());assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+max(0,4*2**30-family_paid)
+size=sum(len(text.encode()) for text in v['files'].values())+65536
+assert size<2*2**20 and sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+2*2**20<4*2**20
+for name,text in v['files'].items():compile(text,name,'exec')
+key='finding-strata-full:5989537de157ec2c7b4b53e8617a0dc1c27bccdbd3c119fac41533fe882c8db4'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:actual=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0])
+assert actual['kernel_id']==139354995 and actual['epoch']==1 and actual['source_git']=='bf362cdd34dd6cdc375e2867a6a2eab44731ad66'
+q=__import__('subprocess').check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+R.mkdir(mode=0o700)
+for name,text in v['files'].items():p=R/name;p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(S))
+spec=importlib.util.spec_from_file_location('private_family_serving_compiler',R/'notebook.py');compiler=importlib.util.module_from_spec(spec);spec.loader.exec_module(compiler)
+helper=compiler.standalone((S/'rsna/competitive/licensed_importance_serving.py').read_text(),v['files']['serving.py']);namespace={};exec(compile(helper,'isolated_family_full94_scope','exec'),namespace)
+assert namespace['RAW']=='a2753d69e8a23aef5f26fe3037baad64e93a40c6e6f0c0903f0d50c9b0a61441'
+assert namespace['SOURCE']==actual['source_git'] and namespace['RECOVERY']['kernel_id']==139349540
+training={'status':'RUNNING' if actual['state']=='finding_strata_full_pushed' else 'COMPLETE','kernel_id':139354995,'role':'influence','epoch':1,'receipt':actual.get('receipt',{'binding':actual['binding']['binding']})}
+parent=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text()
+helpers=[(S/n).read_text() for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_importance_serving.py')]+[v['files']['serving.py']]+[(S/n).read_text() for n in ('rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')]
+try:compiler.build(parent,*helpers,training,{},mode='competition')
+except ValueError as error:assert 'final sampling-only' in str(error)
+else:raise RuntimeError('Actual unfinished/non-final E1 incorrectly admitted')
+out={'status':'actual_original_assets_finding_serving_standalone_CPU_template_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_files':{n:hashlib.sha256(text.encode()).hexdigest() for n,text in v['files'].items()},'original_base_scope_and_compiler_unchanged':expected,'actual_nonfinal_kernel_refused':139354995,'actual_nonfinal_canonical_state':actual['state'],'existing_source_root_cap_bytes':4*2**20,'private_template_cap_bytes':2*2**20,'new_GPU_or_Dataset_or_weight_or_pixel_transfer_or_competition_entry':0,'completed_model_or_GPU_runtime_acceptance':False}
+(R/'accepted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
