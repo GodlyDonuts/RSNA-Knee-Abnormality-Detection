@@ -18,9 +18,9 @@ Goal remains active; no completion or blocker claim.
   It can push only E1 and has no competition entry authority. Read its original
   result/progress plus exact API/UI before action. Healthy job stays unchanged.
 - **3950**: canonical full QA is actually terminal:4717passed/8skipped and
-  118-module mypy passed; ignored same root`QA-canonical-*`. Two skipped clean-tree
-  packaging cases need a focused check after commit; archive needs a refreshed
-  snapshot because receipts were added concurrently. Read the actual result. Initial global-environment runner stopped before mypy/tests;
+  118-module mypy passed; ignored same root`QA-canonical-*`. The two skipped clean-tree
+  packaging cases subsequently passed2/2 at e0e6495d. Archive refresh and exact
+  verification both passed after concurrent receipt changes. Read the actual result. Initial global-environment runner stopped before mypy/tests;
   canonical `artifacts/qa-env` is the correction, not a second training job.
 - **18386**: downstream finite owner waits for original17423's actual E1 success,
   then privately preserves E1 before preparing/resuming E2 and E3, preserving each

@@ -59,9 +59,10 @@ Source c9349ae5 and66 distinct small objects were privately fully downloaded/
 size/SHA verified viaCPU953109 at HF**cfb51524d9865ddf6a6b229007745da4a6b70350**.
 No private arrays/weights were in that source mirror; never repeat it.
 Original full QA3950 is terminal:4717passed/8skipped,118-module mypy passed.
-Two working-tree-dependent packaging tests need a clean-commit focused check.
-The concurrent archive checksum snapshot needs refresh/reverification; no clinical
-artifact was changed. New focused checks pass.
+The two clean-commit packaging cases subsequently passed2/2 at e0e6495d.
+Archive was refreshed and exactly checksum/membership verified after concurrent
+new receipts; legacy review completeness remains intentionally false.
+New focused checks pass; no clinical artifact was changed.
 Historical global Ruff debt1327errors/57format files is unchanged.
 
 ## Other research and compute authority

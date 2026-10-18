@@ -67,8 +67,8 @@ prediction arrays or checkpoint weights were copied into that small source mirro
 [Actual private proof](../initiative/audits/hf-family-influence-20261018-v1/verified.json).
 
 New focused source/optimizer/compiler/verifier checks pass. Canonical full QA
-3950 completed4717passed/8skipped;118-module mypy passed. Two working-tree-dependent
-packaging cases need a clean-commit focused check; concurrent archive snapshot
-needs refresh/reverification. Global historical Ruff debt1327/57 remains.
+3950 completed4717passed/8skipped;118-module mypy passed. The two clean-commit packaging cases subsequently
+passed2/2 at e0e6495d. Archive refresh and exact checksum/membership verification
+passed after concurrent receipt changes. Global historical Ruff debt1327/57 remains.
 Current v2 evidence coverage is89/89; that is coverage, not clinical validation.
 See [continuation](codex-continuation.md) for exact original handles and next work.
