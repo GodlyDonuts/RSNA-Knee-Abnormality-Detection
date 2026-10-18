@@ -1,0 +1,100 @@
+"""One private evc26 fixture admission; original hashes, no extraction shortcuts."""
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import shutil
+import subprocess
+import sys
+import tarfile
+import time
+
+assert os.uname().nodename == 'evc26' and not os.environ.get('SLURM_JOB_GPUS')
+os.umask(0o077)
+source_git, program_sha = sys.argv[1:]
+assert hashlib.sha256(sys.orig_argv[sys.orig_argv.index('-c') + 1].encode()).hexdigest() == program_sha
+root = Path('/tmp/rsna-path-recovery-evc26-20261018-v2')
+assert not root.exists()
+cap = 3 * 2**30
+assert shutil.disk_usage('/tmp').free > 20 * 2**30 + cap
+quota = subprocess.check_output(['lfs', 'quota', '-u', 'sa305415', '/home/sa305415'], text=True)
+q = next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 and int(q[6]) - int(q[5]) > 5000
+import torch,numpy,pandas
+assert str(torch.__version__)=='2.14.0+cu130' and numpy.__version__=='2.2.1' and pandas.__version__=='2.2.3'
+start = time.monotonic()
+
+def metadata(archive, name, limit):
+    member = archive.next()
+    assert member is not None and member.isfile() and member.name == name and 0 < member.size <= limit
+    source = archive.extractfile(member)
+    data = source.read(limit + 1)
+    assert len(data) == member.size
+    return data
+
+with tarfile.open(fileobj=sys.stdin.buffer, mode='r|') as archive:
+    raw_index = metadata(archive, 'pilot-recovery-v2-accepted.json', 16 * 2**20)
+    assert hashlib.sha256(raw_index).hexdigest() == 'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'
+    raw_membership = metadata(archive, 'membership.private.json', 2 * 2**20)
+    raw_parent = metadata(archive, 'parent-run-binding.json', 8 * 2**20)
+    rows = json.loads(raw_index)['private_records']
+    membership = json.loads(raw_membership)
+    assert set(membership) == {'fitting', 'outer'}
+    assert len(membership['fitting']) == 2247 and len(membership['outer']) == 1156
+    assert not set(membership['fitting']) & set(membership['outer'])
+    expected_rosters = {'fitting': '850f170598e5ddd09a80317950acba29c03799f1a620eb2d4d9793d22a2f4e74', 'outer': '2983434d353efee3b3f13af5bb8cb7520e43f8fc23c329cfd0351def93da62cd'}
+    for role, digest in expected_rosters.items():
+        assert hashlib.sha256(json.dumps(membership[role]).encode()).hexdigest() == digest
+        assert [r['study_uid'] for r in rows if r['role'] == role] == membership[role][:16]
+    parent = json.loads(raw_parent)['binding']
+    assert parent['release']['manifest_sha256'] == '2bf49fd2a8ae0b7c5af7e8c105fc3f2337845a92654d136fe67bc41a1e52fae7'
+    assert len(rows) == 32 and sum(r['windows'] for r in rows) == 2345
+    expected = {'features/' + r['file']: r for r in rows}
+    assert len(expected) == 32
+    total = sum(r['bytes'] for r in rows) + len(raw_index) + len(raw_membership) + len(raw_parent)
+    assert total + 128 * 2**20 < cap
+    root.mkdir(mode=0o700)
+    (root / 'intent.json').write_text(json.dumps({'source_git': source_git, 'receiver_program_sha256': program_sha, 'CPU_job': os.environ['SLURM_JOB_ID'], 'node_root_cap_bytes': cap, 'expected_feature_members': 32, 'expected_private_input_bytes': total, 'original_full_rosters_retained': True, 'node_future_reserve_bytes': 20 * 2**30, 'other_existing_node26_assets_retained': True, 'new_shared_bytes_files': 0, 'automatic_retry': False}, indent=2) + '\n')
+    (root / 'intent.json').chmod(0o600)
+    for name, data in [('pilot-recovery-v2-accepted.json', raw_index), ('membership.private.json', raw_membership), ('parent-run-binding.json', raw_parent)]:
+        target = root / name
+        with target.open('xb') as f:
+            f.write(data)
+        target.chmod(0o600)
+    seen = set()
+    while True:
+        member = archive.next()
+        if member is None:
+            break
+        assert member.isfile() and member.name in expected and member.name not in seen
+        row = expected[member.name]
+        assert member.size == row['bytes'] and 0 < member.size < 128 * 2**20
+        relative = PurePosixPath(member.name)
+        assert not relative.is_absolute() and '..' not in relative.parts
+        target = root / member.name
+        assert target.resolve().is_relative_to(root.resolve()) and not target.exists()
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        partial = target.with_name(target.name + '.partial')
+        digest = hashlib.sha256()
+        copied = 0
+        source = archive.extractfile(member)
+        with partial.open('xb') as f:
+            while True:
+                block = source.read(4 * 2**20)
+                if not block:
+                    break
+                copied += len(block)
+                assert copied <= member.size
+                digest.update(block)
+                f.write(block)
+        assert copied == row['bytes'] and digest.hexdigest() == row['sha256']
+        partial.chmod(0o600)
+        partial.replace(target)
+        seen.add(member.name)
+    assert seen == set(expected)
+paid = sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid < cap and shutil.disk_usage('/tmp').free > 20 * 2**30 + max(0, cap - paid)
+out = {'status': 'actual_original32_private_N3_full_maps_and_original_rosters_whole_transfer_verified', 'receiver_CPU_job': os.environ['SLURM_JOB_ID'], 'node': 'evc26', 'staging_control_git': source_git, 'receiver_program_sha256': program_sha, 'original_private32_index_sha256': hashlib.sha256(raw_index).hexdigest(), 'parent_run_binding_sha256': hashlib.sha256(raw_parent).hexdigest(), 'original_parent_checkpoint_sha256': '5bec977964231fe67009d7106ad63ec71fdbd9cde5ddeb2cc2883ac59b0a7be5', 'existing_private_parent_epoch16_HF_revision': 'b346ee1409d871ab3eef865156ed1207114d58b7', 'feature_files_fully_stream_download_size_SHA_verified': 32, 'fitting_prediction_only_cases': [16, 16], 'original_full_fitting_outer_rosters': [2247, 1156], 'all_original_input_bytes': total, 'elapsed_seconds': time.monotonic() - start, 'new_node_root_cap_bytes': cap, 'future_node_local_reserve_bytes': 20 * 2**30, 'new_shared_bytes_files': 0, 'data_transport': 'allocated_evc33_CPU_to_allocated_evc26_CPU_through_Newton_login_pipe', 'raw_pixels_weights_or_private_features_labels_rosters_exported_to_Mac_Git_or_HF': False, 'MRI_arrays_decoded_CUDA_or_optimizer_executed': False, 'GPU_training_or_full_production_admission': False}
+(root / 'fixture-verified.json').write_text(json.dumps(out, indent=2) + '\n')
+(root / 'fixture-verified.json').chmod(0o600)
+print(json.dumps(out), flush=True)

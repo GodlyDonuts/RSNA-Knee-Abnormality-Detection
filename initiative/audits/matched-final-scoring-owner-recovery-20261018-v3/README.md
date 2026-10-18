@@ -13,3 +13,10 @@ max5 daily. It requires each actual hidden outcome before the next entry.
 Existing mutation intents/uncertainty stop it for read-only reconciliation.
 No public three-row CSV upload or clinical score inferred from public execution.
 Actual launch/PID/progress and submitted/scored receipts determine execution.
+
+Actual original fixed-final uniform code entry57329796 was accepted ONCE after
+authoritative live allowance permitted it, exact private notebook
+`godlydonuts/rsna-final-uniform-e3-offline-24af4c2fefdf` v1. Public CSV was not
+uploaded. The actual hidden outcome has null status/score at latest live check;
+never infer a result or repeat this entry. Finite owner97513 monitors it before
+label/influence entries.

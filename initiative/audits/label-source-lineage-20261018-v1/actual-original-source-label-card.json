@@ -1,0 +1,25 @@
+{
+  "status": "original_source_card_explicitly_identifies_report_pseudo_labels",
+  "repository": "GodlyDonuts/RSNA-Data",
+  "revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+  "README_sha256": "4af9adebc64973d4c0f2664f4db0f357112023ffed175ef1eed43f8751628404",
+  "relevant_original_lines": [
+    {
+      "line": 23,
+      "text": "* **Labels:** 12-class knee abnormality labels. 58 studies have competition-supplied gold labels; the remaining 4,349 studies have labels derived from their radiologist reports using an inspectable rule + sentence-level multilingual NLI pipeline, calibrated on the 58 gold rows. Both hard (0/1) and soft (probability) labels are provided."
+    },
+    {
+      "line": 125,
+      "text": "## Label generation summary"
+    },
+    {
+      "line": 127,
+      "text": "The 58 gold-labelled studies define the 12-class schema. For the remaining 4,349 training studies we used an inspectable multilingual rule teacher (`report_teacher.py`) plus a sentence-level multilingual `MoritzLaurer/multilingual-MiniLMv2-L6-mnli-xnli` NLI model. The raw scores were calibrated with a `LogisticRegression(C=0.5)` on the 58 gold rows, and the gold rows override the weak targets. Spot checks and the zero-gold-mismatch check confirm the 58 expert labels are preserved exactly."
+    },
+    {
+      "line": 131,
+      "text": "* The labels are **pseudo-labels** derived from radiologist reports, not from direct image inspection. They are strongest for common, clearly described findings and weakest for rare, subtle, or ambiguous findings."
+    }
+  ],
+  "scope": "Historical card is documentary evidence of declared method, not independent proof that an image-review export never existed. No label rows or gold target values were read."
+}

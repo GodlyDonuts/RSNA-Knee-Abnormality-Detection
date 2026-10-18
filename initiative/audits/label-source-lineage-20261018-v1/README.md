@@ -34,3 +34,13 @@ was absent from its stated Downloads location and not found by filename search
 of Downloads/attachments. Its contents were not read or implemented. Recover
 the brief and any separate original image-label path before deciding its scope.
 No MRI/cache/label/mask/fold, healthy training or Kaggle controller changed.
+
+Further original-source inspection found six root legacy label CSVs. The card
+at the ORIGINAL source revision52f995f4568e36bfa5fbbaf69a89af41226b4f5d
+explicitly says they were report-derived multilingual rule/NLI pseudo-labels,
+calibrated on58gold rows, and not direct image inspection. This predates the
+corrected report-review release; it is not evidence that older labels would
+restore a whole-cohort Astra image review. Root file content identities and
+historical card hash/line evidence are preserved separately without reading
+clinical/gold label rows. A separate original image-review export is still
+unlocated, and the owner-provided brief is still unavailable.
