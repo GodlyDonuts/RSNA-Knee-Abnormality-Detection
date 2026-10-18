@@ -1,0 +1,3 @@
+# Exact raw-input recovery and paired epoch-two source milestone
+
+Publishes only the distinct sanitized source/receipts through sourcef6752968 after prior fully verified source88d26608. Excludes the prior v49 mirror and archive catalog. Includes original renderer failure, exact successful metadata-only recovery, bounded source-stream preparation and paired epoch-two private verification/final-epoch dispatch receipts. No pixels, source UID rows, clinical records, per-study predictions or model weights. A new2MiB child must fit inside the original evc39 small16MiB source envelope and fresh existing all-paid resource floors; canonical shared lock and full re-download/size/SHA verification remain mandatory.
