@@ -31,3 +31,21 @@ and current free space gate dispatch. This is a new wrapper execution test,
 not a repeat of old independent recovery or a production/competition model.
 Original955582/955711/955712 and Kaggle owners remain unchanged. Only actual
 GPU online-input acceptance could justify replacing pending independent work.
+
+## Actual new real-MRI execution
+
+CPU956378 stopped during source compilation with system Python3.6, before
+creating the output root or submitting any fit. Distinct CPU956387 used the
+existing original Python3.12 runtime, confirmed the root was absent and original
+32-case copy proof present, then staged the same two files and submitted956388
+ONCE. At dispatch753479561216bytes were free, above the explicit retained
+612022943803-byte floor plus entire old3GiB fixture and new16MiB output caps.
+No old data re-copy or bulk rehash ran. Scientific source881aa020 is immutable.
+
+Actual956388 is RUNNING on evc26 with zero GPUs/two CPUs. CPU956391 observed
+one completed optimizer update in EACH arm, eight original provider reads and
+eight shared reuses,399377976peak retained tensor bytes and empty stderr. The
+frozen encoder is never instantiated by this cached-feature CPU trial. Neither
+terminal success nor online/GPU acceleration nor disease accuracy is inferred
+from this progress. Inspect its original result/checkpoints before any next use.
+No original955582/955711/955712 or active Kaggle owner was replaced.

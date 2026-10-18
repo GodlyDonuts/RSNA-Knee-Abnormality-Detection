@@ -1,0 +1,37 @@
+"""Stage only the new two-file wrapper and one bounded CPU actual-MRI trial."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/shared-frozen-encoder-pair-20261018-v1');L.mkdir(parents=True,exist_ok=True)
+intent=L/'dispatch.intent.json';assert not intent.exists(),'Existing mutation: reconcile read-only'
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+files={name:subprocess.check_output(['git','show',git+':'+(D/name).relative_to(Path.cwd()).as_posix()],text=True) for name in ('shared_pair.py','worker.py.txt')}
+files['worker.py']=files.pop('worker.py.txt')
+payload={'source_git':git,'files':files,'files_sha256':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()}}
+program='''import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+p=json.load(sys.stdin);r=Path('/tmp/rsna-shared-path-pair-CPU-20261018-v1');old=Path('/tmp/rsna-path-recovery-evc26-20261018-v2')
+assert os.uname().nodename=='evc26' and not r.exists()
+assert old.is_dir() and (old/'reader-engine-v1/code/cached_inputs26.py').is_file()
+proof=json.loads((old/'fixture-verified.json').read_text());assert proof['feature_files_fully_stream_download_size_SHA_verified']==32
+free=shutil.disk_usage('/tmp').free
+assert free>612022943803+3*2**30+16*2**20+256*1024
+runtime=Path('/tmp/rsna-environment-906337-gdraqwzl/environment/bin/python');assert runtime.is_file()
+for n,s in p['files'].items():
+ assert n in ('shared_pair.py','worker.py') and hashlib.sha256(s.encode()).hexdigest()==p['files_sha256'][n]
+ compile(s,n,'exec')
+r.mkdir(mode=0o700)
+for n,s in p['files'].items():(r/n).write_text(s)
+admit={'source_git':p['source_git'],'files_sha256':p['files_sha256'],'new_node_local_cap_bytes':16*2**20,'retained_original_fixture_cap_bytes':3*2**30,'node_free_bytes_at_dispatch':free,'new_shared_bytes':0,'old_feature_transfers_or_hash_replays':0,'GPU_requested':False}
+(r/'admitted.json').write_text(json.dumps(admit,indent=2))
+script='#!/bin/bash\\nset -eu\\nexport CUDA_VISIBLE_DEVICES="" PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2\\n'+str(runtime)+' -B '+str(r/'worker.py')+'\\n'
+(r/'run.sbatch').write_text(script)
+args=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=none','--mem=32G','--time=01:00:00','--no-requeue','--job-name=rsna-new-shared-path-CPU','--output='+str(r/'%j.stdout'),'--error='+str(r/'%j.stderr'),str(r/'run.sbatch')]
+(r/'dispatch-intent.json').write_text(json.dumps({'args':args,'admitted':admit}))
+x=subprocess.run(args,universal_newlines=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+out=dict(admit,returncode=x.returncode,stdout=x.stdout,stderr=x.stderr,CPU_stager=os.environ['SLURM_JOB_ID'])
+(r/'dispatch-result.json').write_text(json.dumps(out,indent=2));print(json.dumps(out));raise SystemExit(x.returncode)
+'''
+intent.write_text(json.dumps({'source_git':git,'payload_hashes':payload['files_sha256'],'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'one_CPU_fitting_job_only':True,'old_GPU_jobs_unchanged':[955582,955711,955712]},indent=2)+'\n')
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--nodes=1','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','--job-name=rsna-new-pair-CPU-stage','env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','python3','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps(payload),capture_output=True,text=True)
+(L/'dispatch.response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');print(x.stdout);print(x.stderr);raise SystemExit(x.returncode)

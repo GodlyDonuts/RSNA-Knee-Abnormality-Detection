@@ -1,5 +1,15 @@
 # Execution handoff
 
+October18 new compute-sharing work is actually running: CPU956388on evc26,
+zeroGPU/twoCPU, full1024/64path heads over original16cached-MRI fitting cases.
+Actual first completed update in EACH arm,8source reads/8shared reuses,399377976
+peak retained tensor bytes/empty stderr observed by956391. Nine NEW synthetic
+CPU cases show exact independent-vs-shared complete states/CSV and fresh-process
+recovery. No online-encoder/GPU speed or accuracy gain is claimed. Original
+955582/955711/12 and all four Kaggle/follow-through owners unchanged. Read
+shared-frozen-encoder-pair-20261018-v1; never resubmit956388.
+
+
 October18 queue acceleration attempt: NEW assigned-context probe956315 actually
 allocated evc26 and FAILED1:0/3seconds with CUDAError101 invalid device ordinal,
 before MRI/model/optimizer reads. No asset transfer, training restart or device
