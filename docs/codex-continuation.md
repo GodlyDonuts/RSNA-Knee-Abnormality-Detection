@@ -1,5 +1,39 @@
 # Execution handoff
 
+## October18 actual source and encoder progress
+
+Uniform fixed-final entry57329796 actually COMPLETE/publicAUC0.947, no error;
+reference S6remains0.950. Original finite owner97513 accepted label57331631 once
+and monitors its still-unreported hidden outcome before influence. Never restart
+or duplicate those entries. The previous goal turn made concrete progress by
+implementing/publishing the missingness/ancestry-aware target constructor.
+
+Actual public parent cards reveal Steven ancestry in BOTH branches of S6's
+report blend. Do not count Steven+S6 as independent votes. Primitive Gemini and
+separate source-mask tables were acquired privately once; original952331schema
+stop retained,952341reconciled files and952374completed fitting-only audit with
+explicit schema mapping. Of46644current targets,35418would change under equal
+safe-common family values; all original masks/coverage stay fixed and two
+Synovitis baseline mismatches remain untouched. This is target evidence, not
+accuracy or an executed fit. No protected gold target columns were requested.
+See `initiative/experiments/competitive-v1/multisource-supervision-v1`.
+
+Corrected FP32probe952317 COMPLETED0:0/104seconds. All32original MRI cases have
+bit-exact sparse maps/logits;4898dense windows keep the same sparse teacher and
+all parent parameters unchanged. Sparse23.31s/dense51.92s on this engineering
+set,2.82GBpeak allocated. No optimizer or clinical accuracy was tested.
+
+Evc26assigned-device probe952314 finds its original assigned GPU unavailable in
+NVML; do not retry training or clear masks there. Distinct physical2-H100 evc48
+actual952353UUID/context/memory pass and952372matching runtime allowed a new
+private fixture transfer952414(all32/1312738510bytes verified). CPU952430admitted
+unchanged inputs/labels/geometry/source. Distinct cached-reader GPU952440 is
+actually RUNNING: aligned full4updates and stop1recorded. Both-arm full/resume
+terminal acceptance is not yet established. All original26/33/40assets retained;
+node48new3GiB/engineering64MiB cap preserves20GiBfuture reserve, no shared data.
+The original two-H100 benchmark950940 remains pending; do not duplicate.
+
+
 ## October18 source-supervision brief and terminal corrections
 
 The owner brief is now available, read and preserved in

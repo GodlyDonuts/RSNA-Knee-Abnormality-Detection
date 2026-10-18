@@ -281,3 +281,13 @@ sourceaf6f439a. Latest actual state PENDING(Priority). Original951853 and950940
 remain queued and unchanged. [Original dispatch](actual-dense-GPU-submitted.json).
 The finite read-only `observe_dense_gpu.py.txt` can collect its source-bound
 receipt after actual0:0; it has no GPU retries/production authority.
+
+## Actual corrected FP32 deployment-input acceptance
+
+Distinct952317 COMPLETED0:0/104seconds after the preserved v1precision failure.
+CPU952412 collected all32MRI input proofs: sparse2345full maps/logits exactly
+original, dense4898windows supported with common sparse teacher, frozen parent
+fingerprint unchanged and both path arms zero-start at first fit/outer cases.
+Sparse23.31s/dense51.92s measured input time,2.8215GBpeak device allocated.
+These timings do not extrapolate Kaggle hidden runtime or establish accuracy.
+[Actual original receipt](actual-dense-FP32-GPU-observed.json).

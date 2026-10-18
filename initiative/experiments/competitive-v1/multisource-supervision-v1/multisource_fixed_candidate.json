@@ -1,0 +1,59 @@
+{
+  "status": "fixed_label_values_only_candidate_predeclared_not_training_admission",
+  "question": "Does primitive Gemini add useful supervision beyond the existing composite report targets?",
+  "reference": {
+    "source_compiler_sha256": "8155b3803c5a4ccd6646c21ead1a8a4eb6d0000ed84106b10befae9901f35081",
+    "source_worker_sha256": "670cef5d628de28960d6de5750241ebfeaacb0ee1198df7d976e555f39fead3b",
+    "original_target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+    "fitting_roster_sha256": "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42",
+    "fitting_studies": 3887,
+    "epochs": 3,
+    "optimizer_updates": 1458,
+    "sampled_windows": 16,
+    "effective_batch": 8,
+    "source_loss_fraction": 0.25,
+    "parent_loss_fraction": 0.75,
+    "full_inference_windows": 94,
+    "views": 2,
+    "actual_submission": 57329796,
+    "actual_public_AUC": 0.947
+  },
+  "new_objective": {
+    "family_weights": "equal composite-baseline and primitive-Gemini on safe-common cells only",
+    "baseline_composite_ancestry": [
+      "Steven_v2",
+      "lixin73_Sol56"
+    ],
+    "primitive_Gemini_ancestry": "fresh report reread per pinned source card; same underlying reports induce correlated errors",
+    "source_mask_and_exact_baseline_correspondence_required": true,
+    "proposed_changed_cells": 35418,
+    "baseline_source_mismatch_Synovitis_cells_preserved": 2,
+    "unmentioned_uncertain_unsupported_cells": "legacy fallback unchanged, not repaired or called observed",
+    "coverage_expansion": false,
+    "source_parent_fraction_changed": false,
+    "new_MRI_passes_per_annotation_source": 0,
+    "new_patients": 0
+  },
+  "held_fixed": [
+    "MRI inputs and cohort",
+    "initial learned parameters and frozen-BN state",
+    "order and IID views",
+    "masks and denominators",
+    "teacher and source-parent mixture",
+    "AdamW schedule and total steps",
+    "precision and full inference"
+  ],
+  "primary_endpoint": "fixed-final all12 disease-ranking comparison; source-exposed internal data cannot establish independent clinical gain; actual competition outcome needed for deployable evidence",
+  "prohibited_selection": [
+    "Gold58/confirmation values",
+    "best epoch",
+    "per-target leaderboard weight search"
+  ],
+  "remaining": [
+    "private immutable target+source tensor and exclusions",
+    "actual wrapper preserving original masks/teacher/images/resume identity",
+    "matched actual GPU recovery and measured resource funding before production"
+  ],
+  "training_dispatched": false,
+  "result": null
+}
