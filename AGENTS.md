@@ -1,5 +1,15 @@
 # RSNA Knee: current agent guide
 
+October18 NEW shared-input actual-MRI CPU trial956388 COMPLETED0:0/51seconds,
+42.842818fit seconds,16fitting cases/twoepochs/fourupdates in EACH full1024/64
+head.32source reads/32shared reuses/399377976peak retained tensor bytes; empty
+stderr, all original finite-gradient/state checks passed. Nine NEW synthetic
+cases establish exact independent/shared decoded trajectories/CSV and recovery.
+This is cached-MRI execution evidence, NOT an encoder/GPU speed or accuracy gain.
+Actual online-GPU evidence still precedes replacing any original queued job.
+Source/decision: shared-frozen-encoder-pair-20261018-v1. Never repeat956388.
+
+
 October18 new compute-sharing work is actually running: CPU956388on evc26,
 zeroGPU/twoCPU, full1024/64path heads over original16cached-MRI fitting cases.
 Actual first completed update in EACH arm,8source reads/8shared reuses,399377976

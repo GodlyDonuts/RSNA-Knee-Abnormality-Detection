@@ -49,3 +49,14 @@ frozen encoder is never instantiated by this cached-feature CPU trial. Neither
 terminal success nor online/GPU acceleration nor disease accuracy is inferred
 from this progress. Inspect its original result/checkpoints before any next use.
 No original955582/955711/955712 or active Kaggle owner was replaced.
+
+## Actual terminal result
+
+956388 COMPLETED0:0 in51seconds. The new full-size pair completed both epochs
+and all four updates per arm in42.842818seconds of fit time. All finite-gradient
+and learned-state checks in the original trainer passed. It made32source reads
+and32shared reuses; peak retained tensor bytes399377976. CPU956393 collected
+the original terminal/progress with empty stderr. No clinical endpoint or
+encoder ran. This admits the new cached-MRI execution path only. Actual online
+GPU sharing/equivalence and total runtime still need evidence before replacing
+any pending original production or using it for a future matched replication.
