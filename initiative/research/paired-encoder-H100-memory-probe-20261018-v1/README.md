@@ -48,3 +48,20 @@ also include the unpaid remainder of the separately funded2MiB correction-
 transport sibling; do not raise old owners'32MiB cap or claim deletion credit.
 The old two-T4 source cannot accept a new H100 outcome by renaming a device or
 receipt; source/hardware/objective bindings and decision scope must be explicit.
+
+Actual CPU959559 now accepts the new retained-input location bridge: four original
+fitting studies, both views, all94windows, eight exact original tensor checks;
+labels/masks and separation from the16 engineering cases also equal. No encoder,
+model download, GPU or optimizer ran. Individual MRI tensor signatures stay in
+ignored private artifacts; the sanitized aggregate is actual-four-inputs.json.
+The first two input-only wrappers failed before image processing because they
+retained unused model dependencies (timm, then CheckpointedEncode). The distinct
+v3 executes only the unchanged renderer/codec and PixelCases, removing model
+imports/definitions rather than installing dependencies for a CPU input task.
+All original attempts are preserved; do not rerun their once wrappers.
+
+Next missing items remain the H100-specific model/gradient wrapper, exact
+trained-model RAM transport, fresh resource admission and actual GPU outcome.
+This CPU result does not substitute for the original queued two-T4 recovery.
+The existing higher-encoder-LR epoch2 was independently observed RUNNING via
+original owner66083/CPU959537; it was not restarted or duplicated.

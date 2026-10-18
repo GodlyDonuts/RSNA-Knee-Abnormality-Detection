@@ -1,5 +1,8 @@
 # RSNA Knee: current agent guide
 
+October18 new CPU959559 accepts the H100 retained-input bridge for4original fitting cases×2views×94windows with eight exact original tensor hashes and identical masks/labels; no model/download/GPU/optimizer. First two wrappers failed on unused model dependencies before tensors; distinct v3 isolates unchanged renderer/codec/PixelCases. Individual image signatures private. See paired-encoder-H100-memory-probe-20261018-v1/actual-four-inputs.json. H100 model wrapper/RAM transport/resource/GPU acceptance still missing; never replay executed input wrappers or duplicate original T4 owners. Higher-LR SAMEE2 139415974v1 actually RUNNING atCPU959537; no new result inferred.
+
+
 October18 ACTUAL dense spatial final result CPU959391 after wrapper-only __file__ recovery: aligned0.9212176612/null0.9205166745/unchangedFP32parent0.9205878230 on1156weak-label studies. Aligned-null+.00070099 conditional95%[-.00092435,+.00236799]; aligned-parent+.00062984[-.00429430,+.00486056],1186/4000undefineddraws. No established overall/alignment-specific gain. Lateral-meniscus gain shared with null; no target cherry-picking. Both955711/955712COMPLETED0:0; all6checkpoints privateverified. STOPunchangedfrozenreader expansion/promotion, preserve negatives; keep encoder-learning priority. Original48097terminal on analysis wrapper beforemetrics; distinct959391recovered onlyanalysis, no fit/publication repeated. Read path-fixed-final-analysis-recovery-20261018-v2/result.md and scientific-decision.json.
 
 
