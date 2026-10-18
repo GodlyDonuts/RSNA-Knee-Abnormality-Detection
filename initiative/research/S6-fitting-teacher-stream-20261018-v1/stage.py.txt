@@ -1,0 +1,142 @@
+"""Admit own streaming controls against existing source/model/input proofs."""
+
+import hashlib
+import importlib.util
+import inspect
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+E = P / "engine-v1"
+assert P.is_dir() and not E.exists()
+B = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+
+
+def paid(p):
+    return sum(x.stat().st_size for x in p.rglob("*") if x.is_file())
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+index = json.loads((P / "source-index-verified.json").read_text())
+assert (
+    index["CPU_job"] == "961481"
+    and index["fitting_studies"] == 3887
+    and index["source_files"] == 720851
+    and index["private_index_sha256"]
+    == "b340e77ee09de2c7695355ac9559dc49f2be0254105e633e718caf4b7bd4fc11"
+)
+location = json.loads((P / "RAM-location.private.json").read_text())
+assert Path(location["path"]).stat().st_size == 53202254
+N = Path("/tmp/rsna-paired-full-fitting-20261018-v1")
+reader = Path("/tmp/rsna-criterion-N3-features-20261017-v1")
+family = Path("/tmp/rsna-family-label-epoch-preservation-20261018-v1")
+assert (
+    sha(family / "completed-fixed3-unspent512MiB-retirement-v1.json")
+    == "f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a"
+)
+floor = 603433009211 + max(0, 3 * 2**30 - paid(reader)) + max(0, 3758096384 - paid(family))
+for root, cap in (
+    ("/tmp/rsna-paired-fixed-correction-transport-v3", 2 * 2**20),
+    ("/tmp/rsna-paired-encoder-H100-gradient-20261018-v1", 8 * 2**20),
+    ("/tmp/rsna-paired-full-actual-source-20261018-v1", 2 * 2**20),
+    ("/tmp/rsna-paired-correction-CPU-chain-20261018-v1", 6 * 2**20),
+    (str(N), 8 * 2**20),
+    (str(P), 8 * 2**20),
+):
+    floor += max(0, cap - paid(Path(root)))
+assert shutil.disk_usage("/tmp").free > floor
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(line.split() for line in q.splitlines() if line.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 and int(a[6]) - int(a[5]) > 5000
+mem = {
+    x.split(":")[0]: int(x.split()[1]) * 1024
+    for x in Path("/proc/meminfo").read_text().splitlines()
+    if ":" in x
+}
+assert mem["MemAvailable"] > 188 * 2**30 and shutil.disk_usage("/dev/shm").free > 92 * 2**30
+bridge = json.loads((B / "HF-raw-input-bridge-v2/result.json").read_text())
+assert (
+    bridge["CPU_job"] == "961406"
+    and bridge["all_image_tensor_bytes_equal"] is True
+    and bridge["all_metadata_tensor_bytes_equal"] is True
+)
+original_gpu = json.loads((B / "H100-teacher8-20261018-v1/fp32/H100-accepted.json").read_text())
+assert original_gpu["mode"] == "fp32" and original_gpu["maximum_CPU_FP32_probability_error"] < 1e-4
+assert (
+    json.loads((B / "CPU32-recovered-numerics-20261018-v1/numerical-result.json").read_text())[
+        "CPU_job"
+    ]
+    == "960928"
+)
+model = (B / "E_prior_s42_fall.pt").stat()
+assert model.st_size == 200185003
+assert sorted(p.name for p in B.glob("E_prior_s*_f*.pt")) == ["E_prior_s42_fall.pt"]
+sys.path.insert(0, str(B / "runtime-opencv-v1/site-packages"))
+sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+torch = importlib.import_module("torch")
+
+assert hasattr(torch.nn.modules.module, "register_module_forward_hook")
+s = importlib.util.spec_from_file_location(
+    "original_teacher_stage_only", B / "source-tree-v1/launcher.private.py"
+)
+launch = importlib.util.module_from_spec(s)
+sys.modules[s.name] = launch
+s.loader.exec_module(launch)
+assert (
+    hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()
+    == "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946"
+)
+launch.install_paths()
+CT = importlib.import_module("compact_train")
+
+assert list(CT.LABELS) == v["targets"]
+node = subprocess.check_output(["scontrol", "show", "node", "evc33", "-o"], text=True)
+assert "Gres=gpu:nvidia_h100_pcie:2" in node
+E.mkdir(mode=0o700)
+for name, text in v["files"].items():
+    p = E / name
+    assert p.resolve().is_relative_to(E.resolve())
+    compile(text, name, "exec")
+    p.write_text(text)
+    p.chmod(0o600)
+assert paid(P) < 2**20
+ram = Path(tempfile.mkdtemp(prefix="rsna-S6-fitting-teacher-pipeline-", dir="/dev/shm"))
+ram.chmod(0o700)
+(E / "RAM-location.private.json").write_text(
+    json.dumps({"path": str(ram), "cap_bytes": 64 * 2**30})
+)
+result = {
+    "status": "actual_original_source_teacher_stream_controls_and_backend_admitted_CPU",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "files": {n: sha(E / n) for n in v["files"]},
+    "model_stat": {"bytes": model.st_size, "mtime_ns": model.st_mtime_ns, "inode": model.st_ino},
+    "model_original_sha256_proof_reused": "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12",
+    "targets": v["targets"],
+    "original_source_index_job": "961481",
+    "original_raw_parity_job": "961406",
+    "original_H100_benchmark_job": "960986",
+    "prefill_resources": {"GPU": 0, "CPU": 9, "memory_GiB": 160, "wall_minutes": 30},
+    "GPU_phase_resources": {"GPU": 1, "CPU": 10, "memory_GiB": 224, "wall_hours": 4},
+    "pipeline_RAM_cap_bytes": 64 * 2**30,
+    "decoder_heap_broker_bytes": 80 * 2**30,
+    "source_per_study_bytes": 2**30,
+    "all_controls_and_final_small_outputs_within_prepaid8MiB": True,
+    "new_disease_inference_or_raw_transfer": False,
+    "actual_prefill_or_GPU_generation_started": False,
+}
+with (E / "staged.json").open("x") as f:
+    json.dump(result, f, indent=2)
+assert paid(P) < 2**20
+print(json.dumps(result), flush=True)

@@ -1,0 +1,663 @@
+"""Bounded raw-MRI -> unchanged S6 FP32 teacher, one resumable phase.
+
+Only original fitting identities are accepted. Completed raw logits are fsynced
+per study; no disease labels, reports or optimizer are read. CPU source/render
+processes use stdin-only credentials. Public stdout contains aggregates only.
+"""
+
+from __future__ import annotations
+
+import concurrent.futures
+import contextlib
+import gc
+import gzip
+import hashlib
+import importlib.util
+import inspect
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import time
+import traceback
+from pathlib import Path
+
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+E = P / "engine-v1"
+B = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+GIB = 2**30
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def atomic(path, value):
+    path = Path(path)
+    temp = path.with_suffix(path.suffix + ".temporary")
+    with temp.open("w") as f:
+        json.dump(value, f, sort_keys=True, allow_nan=False)
+        f.flush()
+        os.fsync(f.fileno())
+    temp.replace(path)
+
+
+def main():
+    os.umask(0o077)
+    secret = json.load(sys.stdin)
+    phase = int(secret["phase"])
+    mode = secret.get("mode", "GPU")
+    assert mode in ("prefill", "GPU")
+    assert 0 <= phase < 16 and os.uname().nodename == "evc33"
+    assert (
+        bool(os.environ.get("SLURM_JOB_GPUS"))
+        if mode == "GPU"
+        else not os.environ.get("SLURM_JOB_GPUS")
+    )
+    staged = json.loads((E / "staged.json").read_text())
+    for name, digest in staged["files"].items():
+        assert sha(E / name) == digest
+    spec = importlib.util.spec_from_file_location("teacher_stream_contract", E / "contract.py")
+    contract = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(contract)
+    Stop = contract.PipelineStopped
+    phase_dir = E / (("prefill-%03d" if mode == "prefill" else "phase-%03d") % phase)
+    assert not phase_dir.exists()
+    phase_dir.mkdir(mode=0o700)
+    execution_lock = E / "execution.lock"
+    execution_lock.mkdir(mode=0o700)
+    atomic(
+        execution_lock / "owner.json",
+        {"Slurm_job": os.environ["SLURM_JOB_ID"], "mode": mode, "phase": phase},
+    )
+    atomic(
+        phase_dir / "intent.json",
+        {
+            "Slurm_job": os.environ["SLURM_JOB_ID"],
+            "source_git": staged["source_git"],
+            "phase": phase,
+            "automatic_retry": False,
+        },
+    )
+    ram = Path(json.loads((E / "RAM-location.private.json").read_text())["path"])
+    assert ram.is_relative_to("/dev/shm") and ram.is_dir()
+    run = ram / (("prefill-%03d" if mode == "prefill" else "phase-%03d") % phase)
+    assert not run.exists()
+    run.mkdir(mode=0o700)
+    os.environ.update(
+        HF_HUB_OFFLINE="1",
+        TRANSFORMERS_OFFLINE="1",
+        PIP_NO_INDEX="1",
+        HF_HOME=str(run / "hf"),
+        TORCH_HOME=str(run / "torch"),
+        XDG_CACHE_HOME=str(run / "cache"),
+        PYTHONDONTWRITEBYTECODE="1",
+    )
+    sys.path.insert(0, str(B / "runtime-opencv-v1/site-packages"))
+    sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+    import numpy as np
+    import torch
+
+    if mode == "GPU":
+        assert (
+            torch.cuda.is_available()
+            and torch.cuda.device_count() == 1
+            and "H100" in torch.cuda.get_device_name(0)
+        )
+        torch.cuda.init()
+        torch.cuda.set_device(0)
+    else:
+        assert not torch.cuda.is_available()
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(1)
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    node = subprocess.check_output(["scontrol", "show", "node", "evc33", "-o"], text=True)
+    assert "Gres=gpu:nvidia_h100_pcie:2" in node
+    with np.load(
+        "/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz",
+        allow_pickle=False,
+    ) as z:
+        uids = z["uids"].tolist()
+    assert (
+        len(uids) == 3887
+        and uids == sorted(set(uids))
+        and hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+        == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+    )
+    journal = contract.Journal(P / "completed-logits.private.jsonl", uids)
+    original32 = B / "CPU32-recovered-numerics-20261018-v1"
+    seed_proof = json.loads((original32 / "numerical-result.json").read_text())
+    assert seed_proof["CPU_job"] == "960928"
+    pixels = json.loads((original32 / "pixel-hashes.private.json").read_text())
+    with np.load(original32 / "probabilities.private.npz", allow_pickle=False) as z:
+        seed_ids = z["uids"].tolist()
+        seed = z["logits"].copy()
+    assert len(seed_ids) == 32 and seed.shape == (32, 12) and np.isfinite(seed).all()
+    gpu8 = json.loads((B / "H100-teacher8-20261018-v1/fp32/logits.private.json").read_text())
+    assert len(gpu8) == 8 and set(gpu8) <= set(seed_ids)
+    if not journal.rows:
+        for i, uid in enumerate(seed_ids):
+            value = np.asarray(gpu8[uid], dtype=np.float64)[0] if uid in gpu8 else seed[i]
+            journal.append(
+                {
+                    "uid": uid,
+                    "logits": value.astype(np.float64).tolist(),
+                    "windows": pixels[uid]["n"],
+                    "origin": "original_H100_FP32" if uid in gpu8 else "original_CPU_FP32",
+                    "image_tensor_sha256": pixels[uid]["img_sha256"],
+                    "metadata_tensor_sha256": pixels[uid]["meta_sha256"],
+                    "original_CPU32_collection_job": "960928",
+                    "original_H1008_job": "960986" if uid in gpu8 else None,
+                }
+            )
+    else:
+        assert set(seed_ids) <= set(journal.rows)
+    index_location = json.loads((P / "RAM-location.private.json").read_text())
+    index_path = Path(index_location["path"])
+    assert (
+        index_path.stat().st_size == 53202254
+        and index_location["sha256"]
+        == "b340e77ee09de2c7695355ac9559dc49f2be0254105e633e718caf4b7bd4fc11"
+    )
+    records = {}
+    with gzip.open(index_path, "rt") as f:
+        for line in f:
+            row = json.loads(line)
+            assert row["uid"] in set(uids) and row["uid"] not in records
+            records[row["uid"]] = row
+    assert set(records) == set(uids)
+    todo = [uid for uid in uids if uid not in journal.rows]
+    assert todo, "Complete journal requires CPU final reconciliation, not another GPU phase"
+    model = B / "E_prior_s42_fall.pt"
+    actual = model.stat()
+    assert {
+        "bytes": actual.st_size,
+        "mtime_ns": actual.st_mtime_ns,
+        "inode": actual.st_ino,
+    } == staged["model_stat"]
+    stopped = threading.Event()
+    broker = contract.HeapBroker(80 * GIB)
+    lock = threading.RLock()
+    pending_path = P / "pending-render.private.json"
+    pending = json.loads(pending_path.read_text()) if pending_path.exists() else {}
+    before = len(journal.rows)
+    start = time.perf_counter()
+    console = sys.stdout
+    slots = []
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+    futures = {}
+    next_submit = 0
+    active = None
+    watchdog_error = []
+    succeeded = False
+
+    def stop(reason):
+        stopped.set()
+        if threading.current_thread() is not threading.main_thread():
+            os.kill(os.getpid(), signal.SIGTERM)
+        raise Stop(reason)
+
+    def write_pending():
+        atomic(pending_path, pending)
+
+    def check_resources(initial=False):
+        mem = {
+            line.split(":")[0]: int(line.split()[1]) * 1024
+            for line in Path("/proc/meminfo").read_text().splitlines()
+            if ":" in line
+        }
+        memory_floor = (188 if mode == "prefill" else 252) * GIB if initial else 32 * GIB
+        tmpfs_floor = 92 * GIB if initial else 28 * GIB
+        if mem["MemAvailable"] < memory_floor or shutil.disk_usage("/dev/shm").free < tmpfs_floor:
+            raise RuntimeError("Host or tmpfs reserve breached")
+        if sum(p.stat().st_size for p in ram.rglob("*") if p.is_file()) > 64 * GIB:
+            raise RuntimeError("Bounded pipeline RAM scratch exceeded")
+        if sum(p.stat().st_size for p in P.rglob("*") if p.is_file()) > 8 * 2**20:
+            raise RuntimeError("Original stream control/output envelope exceeded")
+
+    def watchdog():
+        while not stopped.wait(2):
+            try:
+                check_resources()
+            except BaseException as error:
+                watchdog_error.append(type(error).__name__)
+                os.kill(os.getpid(), signal.SIGTERM)
+                return
+
+    def terminate(signum, frame):
+        stop("Signal or resource-watchdog stop; retain completed journal and buffers")
+
+    signal.signal(signal.SIGTERM, terminate)
+    signal.signal(signal.SIGINT, terminate)
+
+    class Slot:
+        def __init__(self, n):
+            self.n = n
+            self.root = ram / ("slot-%02d" % n)
+            self.root.mkdir(mode=0o700, exist_ok=True)
+            self.err = (run / ("worker-%02d.private.log" % n)).open("x")
+            env = {
+                k: v
+                for k, v in os.environ.items()
+                if not any(s in k.upper() for s in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+            }
+            env.update(
+                CUDA_VISIBLE_DEVICES="",
+                OMP_NUM_THREADS="2",
+                OPENBLAS_NUM_THREADS="1",
+                MKL_NUM_THREADS="2",
+            )
+            self.child = subprocess.Popen(
+                [sys.executable, "-B", str(E / "render_worker.py")],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=self.err,
+                text=True,
+                env=env,
+            )
+            self.child.stdin.write(
+                json.dumps(
+                    {
+                        "scratch_root": str(self.root),
+                        "HF_token": secret["HF_token"],
+                        "slot_cap_bytes": 16 * GIB,
+                        "source_buffer_helper": str(E / "source_buffer.py"),
+                        "source_buffer_helper_sha256": staged["files"]["source_buffer.py"],
+                    }
+                )
+                + "\n"
+            )
+            self.child.stdin.flush()
+
+        def render(self, uid):
+            request = dict(records[uid])
+            lease = 0
+            with lock:
+                previous = pending.get(uid, {})
+                owned = previous.get("owned_scratch")
+                if owned:
+                    q = Path(owned).resolve()
+                    assert q.is_relative_to(ram) and q.name.startswith("fitting-study-")
+                    ready_file = q / "render-result.private.json"
+                    if ready_file.exists():
+                        value = json.loads(ready_file.read_text())
+                        assert value["uid"] == uid and Path(value["tensor_path"]).is_file()
+                        return value
+                    assert (q / "source-proof.private.json").exists(), (
+                        "Partial source transport needs explicit reconciliation, never automatic replay"
+                    )
+                    # Reuse verified original bytes, irrespective of previous worker slot.
+                    request["resume_owned"] = str(q)
+                pending[uid] = {**previous, "slot": self.n, "state": "source_requested"}
+                write_pending()
+            try:
+                self.child.stdin.write(json.dumps(request) + "\n")
+                self.child.stdin.flush()
+                line = self.child.stdout.readline()
+                if not line:
+                    stop("CPU source worker exited; preserve private logs")
+                ready = json.loads(line)
+                if ready.get("stage") != "source_ready" or ready.get("uid") != uid:
+                    stop("CPU source acquisition/identity admission failed")
+                with lock:
+                    pending[uid] = {
+                        "slot": self.n,
+                        "state": "source_verified",
+                        "owned_scratch": ready["owned_scratch"],
+                    }
+                    write_pending()
+                broker.acquire(ready["decoder_heap_bytes"], stopped)
+                lease = ready["decoder_heap_bytes"]
+                self.child.stdin.write(json.dumps({"uid": uid, "render": True}) + "\n")
+                self.child.stdin.flush()
+                line = self.child.stdout.readline()
+                if not line:
+                    stop("CPU renderer exited; preserve private logs")
+                value = json.loads(line)
+                if value.get("error") is not None or value.get("uid") != uid:
+                    stop("Original CPU MRI renderer stopped")
+                with lock:
+                    pending[uid] = {
+                        "slot": self.n,
+                        "state": "rendered",
+                        "owned_scratch": value["owned_scratch"],
+                    }
+                    write_pending()
+                return value
+            finally:
+                if lease:
+                    broker.release(lease)
+
+        def close(self):
+            if self.child.poll() is None:
+                self.child.terminate()
+            try:
+                self.child.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                self.child.kill()
+                self.child.wait()
+            self.err.close()
+
+    def retire_active():
+        nonlocal active
+        if active is None:
+            return
+        uid = active["uid"]
+        if uid not in journal.rows:
+            stop("Previous MRI forward did not produce a durable finite logit record")
+        owned = Path(active["owned_scratch"]).resolve()
+        assert owned.is_relative_to(ram) and owned.name.startswith("fitting-study-")
+        # Only new owned transient source/render buffers; original assets/index remain untouched.
+        shutil.rmtree(owned)
+        with lock:
+            pending.pop(uid, None)
+            write_pending()
+        active = None
+        gc.collect()
+
+    def pump():
+        nonlocal next_submit
+        while len(futures) < 4 and next_submit < len(todo):
+            i = next_submit
+            uid = todo[i]
+            futures[i] = pool.submit(slots[i % 4].render, uid)
+            next_submit += 1
+
+    thread = None
+    CT = None
+    original_net = None
+    forward_observer = None
+    try:
+        check_resources(initial=True)
+        slots.extend(Slot(i) for i in range(4))
+        thread = threading.Thread(target=watchdog, daemon=True)
+        thread.start()
+        if mode == "prefill":
+            pump()
+            prepared = [future.result(timeout=1200) for future in futures.values()]
+            assert len(prepared) == 4 and len({x["uid"] for x in prepared}) == 4
+            pool.shutdown(wait=True)
+            result = {
+                "status": "actual_first4_new_fitting_MRI_studies_rendered_and_retained_once",
+                "Slurm_job": os.environ["SLURM_JOB_ID"],
+                "source_git": staged["source_git"],
+                "mode": mode,
+                "new_studies": 4,
+                "new_DICOM_files": sum(x["source_files"] for x in prepared),
+                "new_windows": sum(x["windows"] for x in prepared),
+                "new_source_bytes": sum(x["source_bytes"] for x in prepared),
+                "completed_teacher_rows": len(journal.rows),
+                "new_disease_inference_or_GPU": False,
+                "source_indices_or_original_32_inference_repeated": False,
+                "seconds": time.perf_counter() - start,
+            }
+            atomic(phase_dir / "terminal.json", result)
+            print(json.dumps(result), file=console, flush=True)
+            succeeded = True
+            return
+        spec = importlib.util.spec_from_file_location(
+            "original_S6_stream_classifier", B / "source-tree-v1/launcher.private.py"
+        )
+        launch = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = launch
+        spec.loader.exec_module(launch)
+        assert (
+            hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()
+            == "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946"
+        )
+
+        class StreamInputs(torch.utils.data.Dataset):
+            def __init__(self, data, split, ids, *args, **kwargs):
+                if split != "train" or list(ids) != todo:
+                    stop("Unexpected source identity/recovery path in original classifier")
+                self.uids = list(ids)
+
+            def __len__(self):
+                return len(self.uids)
+
+            def __getitem__(self, i):
+                nonlocal active
+                retire_active()
+                pump()
+                value = futures.pop(i).result(timeout=2400)
+                if value["uid"] != self.uids[i]:
+                    stop("Prefetched study identity differs")
+                with np.load(value["tensor_path"], allow_pickle=False) as z:
+                    images = z["images"]
+                    meta = z["meta"]
+                if (
+                    images.dtype != np.uint8
+                    or images.shape != (value["windows"], 3, 320, 320)
+                    or meta.shape != (len(images), 6)
+                    or meta.dtype != np.float32
+                ):
+                    stop("Rendered MRI tensor contract differs")
+                if (
+                    hashlib.sha256(memoryview(images).cast("B")).hexdigest()
+                    != value["image_tensor_sha256"]
+                    or hashlib.sha256(memoryview(meta).cast("B")).hexdigest()
+                    != value["metadata_tensor_sha256"]
+                ):
+                    stop("Private rendered tensor digest differs before GPU consumption")
+                active = value
+                return {
+                    "uid": value["uid"],
+                    "error": None,
+                    "images": torch.from_numpy(images),
+                    "meta": torch.from_numpy(meta),
+                    "anchor": value["anchor"],
+                    "side": None,
+                    "seconds": value["seconds"],
+                }
+
+        launch.CI.CStudies = StreamInputs
+        launch.install_paths()
+        import compact_train as CT
+
+        original_net = CT.Net
+        net_calls = set()
+
+        def capture(module, inputs, output):
+            net_calls.add(id(module))
+            if len(net_calls) != 1:
+                stop("Original single-teacher graph changed")
+            if (
+                active is None
+                or not isinstance(output, torch.Tensor)
+                or output.shape != (1, 12)
+                or not torch.isfinite(output).all()
+            ):
+                stop("Invalid original FP32 teacher output")
+            uid = active["uid"]
+            values = output.detach().float().cpu().numpy()[0].astype(np.float64).tolist()
+            journal.append(
+                {
+                    "uid": uid,
+                    "logits": values,
+                    "windows": active["windows"],
+                    "origin": "stream_H100_FP32",
+                    "image_tensor_sha256": active["image_tensor_sha256"],
+                    "metadata_tensor_sha256": active["metadata_tensor_sha256"],
+                    "source_proof_sha256": active["source_proof_sha256"],
+                    "source_files": active["source_files"],
+                    "source_bytes": active["source_bytes"],
+                    "phase": phase,
+                    "whole_source_render_seconds": active["whole_seconds"],
+                }
+            )
+            if len(journal.rows) <= 35 or len(journal.rows) % 16 == 0:
+                print(
+                    json.dumps(
+                        {
+                            "status": "actual_finite_teacher_rows_preserved",
+                            "completed": len(journal.rows),
+                            "of": 3887,
+                            "new_this_phase": len(journal.rows) - before,
+                            "elapsed_seconds": round(time.perf_counter() - start, 1),
+                        }
+                    ),
+                    file=console,
+                    flush=True,
+                )
+
+        forward_observer = contract.install_forward_observer(original_net, capture)
+        geometry = json.loads(
+            (B / "CPU-fitting8-UID-view-v2/collected/index.private.json").read_text()
+        )["geometry"]
+        assignment = run / "assignment.private.json"
+        assignment.write_text(json.dumps(todo))
+        out = run / "original-main"
+        out.mkdir(mode=0o700)
+        deadline = time.time() + 3 * 3600 + 20 * 60
+        sys.argv = [
+            "original_S6_stream_FP32",
+            "--data",
+            str(ram),
+            "--split",
+            "train",
+            "--code",
+            str(B / "source-tree-v1/code/cloud_code"),
+            "--models",
+            str(B),
+            "--arm",
+            "E_prior",
+            "--backbone",
+            geometry["backbone"],
+            "--size",
+            str(geometry["size"]),
+            "--crop",
+            str(geometry["crop"]),
+            "--views",
+            geometry["views"],
+            "--slices",
+            str(geometry["slices"]),
+            "--phys-mm",
+            str(geometry["phys_mm"]),
+            "--eval-stride",
+            str(geometry["eval_stride"]),
+            "--anchor-weights",
+            str(B / "source-tree-v1/anatomy.pt"),
+            "--amp",
+            "fp32",
+            "--chunk",
+            str(geometry["chunk"]),
+            "--workers",
+            "0",
+            "--assignment",
+            str(assignment),
+            "--output",
+            str(out),
+            "--tmp",
+            str(run / "unused-cached-input-tmp"),
+            "--dump-logits",
+            str(out / "logits.private.json"),
+            "--deadline",
+            str(deadline),
+        ]
+        with (
+            (run / "original-main.private.log").open("x") as log,
+            contextlib.redirect_stdout(log),
+            contextlib.redirect_stderr(log),
+        ):
+            launch.CI.main()
+        retire_active()
+        # Finish already acquired prefetched studies, retaining tensors for next phase.
+        for future in futures.values():
+            future.result(timeout=1200)
+        pool.shutdown(wait=True)
+        receipt = json.loads((out / "receipt.json").read_text())
+        old_receipt = json.loads((B / "H100-teacher8-20261018-v1/fp32/receipt.json").read_text())
+        assert (
+            receipt["models"] == ["E_prior_s42_fall.pt"]
+            and receipt["amp"] == "fp32"
+            and receipt["spatial_models"] == 1
+            and receipt["sha256"] == old_receipt["sha256"]
+        )
+        raw = json.loads((out / "logits.private.json").read_text())
+        new = set(journal.rows) - set(seed_ids)
+        # Every current-phase raw output must exactly equal its durable forward-hook values.
+        for uid, value in raw.items():
+            assert np.array_equal(np.asarray(value)[0], np.asarray(journal.rows[uid]["logits"]))
+        assert receipt["scored"] == len(raw) == len(journal.rows) - before
+        complete = len(journal.rows) == 3887
+        if complete:
+            assert receipt["fallback"] == {} and receipt["timed_out"] is False
+            logits = np.asarray([journal.rows[u]["logits"] for u in uids], dtype=np.float64)
+            assert logits.shape == (3887, 12) and np.isfinite(logits).all()
+            probabilities = 1 / (1 + np.exp(-logits))
+            assert np.isfinite(probabilities).all()
+            target = P / "teacher-final.private.npz"
+            assert not target.exists()
+            np.savez_compressed(
+                target, uids=np.asarray(uids), logits=logits, probabilities=probabilities
+            )
+        result = {
+            "status": "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission"
+            if complete
+            else "actual_planned_partial_teacher_prefix_preserved",
+            "Slurm_job": os.environ["SLURM_JOB_ID"],
+            "source_git": staged["source_git"],
+            "phase": phase,
+            "completed": len(journal.rows),
+            "original_reused": 32,
+            "new_this_phase": len(journal.rows) - before,
+            "new_total": len(new),
+            "original_main_source_unmodified": True,
+            "forward_hook_returned_no_replacement": True,
+            "original_source_hashes_equal": True,
+            "original_F32_model_used": True,
+            "GPU": torch.cuda.get_device_name(0),
+            "GPU_count": 1,
+            "peak_GPU_bytes": torch.cuda.max_memory_allocated(),
+            "seconds": time.perf_counter() - start,
+            "original_main_timed_out": receipt["timed_out"],
+            "pending_private_buffers": len(pending),
+            "journal_bytes": journal.path.stat().st_size,
+            "journal_sha256": sha(journal.path),
+            "teacher_file_sha256": sha(P / "teacher-final.private.npz") if complete else None,
+            "clinical_accuracy_or_student_training_claim": False,
+            "no_automatic_retry_of_failed_phase": True,
+        }
+        atomic(phase_dir / "terminal.json", result)
+        if complete:
+            atomic(P / "teacher-complete.json", result)
+        print(json.dumps(result), file=console, flush=True)
+        succeeded = True
+    except BaseException as error:
+        stopped.set()
+        atomic(
+            phase_dir / "failed.json",
+            {
+                "status": "teacher_phase_failed_prefix_and_private_buffers_preserved",
+                "Slurm_job": os.environ["SLURM_JOB_ID"],
+                "phase": phase,
+                "completed": len(journal.rows),
+                "error_type": type(error).__name__,
+                "watchdog_errors": watchdog_error,
+                "automatic_retry": False,
+            },
+        )
+        (run / "failure-traceback.private.txt").write_text(traceback.format_exc())
+        raise
+    finally:
+        stopped.set()
+        for slot in slots:
+            slot.close()
+        pool.shutdown(wait=False, cancel_futures=True)
+        if forward_observer is not None:
+            forward_observer.remove()
+        if succeeded:
+            assert (
+                json.loads((execution_lock / "owner.json").read_text())["Slurm_job"]
+                == os.environ["SLURM_JOB_ID"]
+            )
+            (execution_lock / "owner.json").unlink()
+            execution_lock.rmdir()
+
+
+if __name__ == "__main__":
+    main()

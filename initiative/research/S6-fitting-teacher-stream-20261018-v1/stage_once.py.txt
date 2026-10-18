@@ -1,0 +1,94 @@
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+from rsna.schema import TARGETS
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-fitting-teacher-stream-20261018-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "stage-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+paths = {
+    "driver.py": D / "driver.py.txt",
+    "contract.py": D / "contract.py.txt",
+    "render_worker.py": D / "render_worker.py.txt",
+    "source_buffer.py": R
+    / "initiative/research/S6-fitting-source-stream-20261018-v1/source_stream.py.txt",
+}
+files = {}
+for name, p in paths.items():
+    b = subprocess.check_output(["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True)
+    assert p.read_text() == b
+    files[name] = b
+program = (D / "stage.py.txt").read_text()
+assert (
+    subprocess.check_output(
+        ["git", "show", git + ":" + D.relative_to(R).as_posix() + "/stage.py.txt"], text=True
+    )
+    == program
+)
+with (L / "stage-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": git,
+            "files": {k: hashlib.sha256(t.encode()).hexdigest() for k, t in files.items()},
+            "new_raw_pixel_model_or_GPU": False,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+p = R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+s = importlib.util.spec_from_file_location("same_stdin_transport", p)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:04:00",
+    "--job-name=rsna-S6-stream-admit",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {"source_git": git, "files": files, "targets": list(TARGETS)}),
+    capture_output=True,
+    text=True,
+    timeout=340,
+)
+with (L / "stage-response.json").open("x") as f:
+    json.dump({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, f, indent=2)
+assert x.returncode == 0, x.stderr[-1200:]
+out = json.loads(x.stdout)
+with (D / "actual-staged.json").open("x") as f:
+    json.dump(out, f, indent=2)
+    f.write("\n")
+print(json.dumps(out), flush=True)

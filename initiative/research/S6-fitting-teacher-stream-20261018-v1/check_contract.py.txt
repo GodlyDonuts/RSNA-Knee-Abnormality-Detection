@@ -1,0 +1,112 @@
+import importlib.util
+import json
+import tempfile
+import threading
+import unittest
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "stream_contract", SourceFileLoader("stream_contract", str(D / "contract.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+
+
+class Contracts(unittest.TestCase):
+    def row(self, uid="a"):
+        return {"uid": uid, "logits": [0.1] * 12, "windows": 4, "origin": "stream_H100_FP32"}
+
+    def test_journal_durable_replay_and_duplicate_refusal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "teacher.jsonl"
+            j = m.Journal(p, ["a", "b"])
+            j.append(self.row())
+            self.assertEqual(m.Journal(p, ["a", "b"]).rows, j.rows)
+            with self.assertRaises(ValueError):
+                j.append(self.row())
+            self.assertEqual(len(p.read_text().splitlines()), 1)
+
+    def test_bad_identity_logits_origin_and_write_bound(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            j = m.Journal(Path(tmp) / "teacher.jsonl", ["a"], cap=100)
+            for row in [
+                self.row("b"),
+                dict(self.row(), logits=[float("nan")] * 12),
+                dict(self.row(), logits=[0] * 11),
+                dict(self.row(), origin="unverified"),
+                dict(self.row(), windows=0),
+                self.row(),
+            ]:
+                with self.subTest(row=row), self.assertRaises(ValueError):
+                    j.append(row)
+            self.assertFalse(j.path.exists())
+
+    def test_truncated_or_repeated_saved_prefix_is_not_replayed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "teacher.jsonl"
+            for data in ["{", json.dumps(self.row()) + "\n" + json.dumps(self.row()) + "\n"]:
+                p.write_text(data)
+                with self.assertRaises(ValueError):
+                    m.Journal(p, ["a"])
+
+    def test_memory_broker_wait_release_and_shutdown(self):
+        b = m.HeapBroker(10)
+        stop = threading.Event()
+        b.acquire(8, stop)
+        granted = threading.Event()
+
+        def task():
+            b.acquire(5, stop)
+            granted.set()
+            b.release(5)
+
+        t = threading.Thread(target=task)
+        t.start()
+        self.assertFalse(granted.wait(0.05))
+        b.release(8)
+        t.join(1)
+        self.assertFalse(t.is_alive())
+        self.assertEqual(b.used, 0)
+        with self.assertRaises(ValueError):
+            b.acquire(11, stop)
+        stop.set()
+        with self.assertRaises(m.PipelineStopped):
+            b.acquire(1, stop)
+
+
+class Observer(unittest.TestCase):
+    def test_actual_torch_observer_preserves_output_and_original_class(self):
+        import torch
+
+        class Root(torch.nn.Module):
+            def __init__(self):
+                super(Root, self).__init__()
+                self.linear = torch.nn.Linear(2, 12, bias=False)
+                with torch.no_grad():
+                    self.linear.weight.copy_(torch.arange(24).reshape(12, 2))
+
+            def forward(self, x):
+                return self.linear(x)
+
+        model = Root().eval()
+        x = torch.tensor([[1.0, 2.0]])
+        expected = model(x).detach().clone()
+        seen = []
+
+        def callback(module, inputs, output):
+            seen.append(output.detach().clone())
+            return torch.zeros_like(output)
+
+        observer = m.install_forward_observer(Root, callback)
+        try:
+            self.assertTrue(torch.equal(model(x), expected))
+            self.assertTrue(torch.equal(seen[0], expected))
+            self.assertEqual(len(seen), 1)
+            self.assertIs(type(model), Root)
+        finally:
+            observer.remove()
+
+
+unittest.main()

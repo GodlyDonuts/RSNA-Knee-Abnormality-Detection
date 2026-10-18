@@ -1,0 +1,97 @@
+"""Durable per-study teacher journal and a bounded decoder-memory broker."""
+
+from __future__ import annotations
+
+import json
+import math
+import os
+import threading
+from pathlib import Path
+
+
+class PipelineStopped(BaseException):
+    """Bypass the upstream inference loop's recover-and-continue handlers."""
+
+
+class Journal:
+    def __init__(self, path: Path, population: list[str], *, cap=6 * 2**20):
+        if len(population) != len(set(population)):
+            raise ValueError("Duplicate fitting identities")
+        self.path, self.population, self.cap = path, set(population), cap
+        self.rows = {}
+        if path.exists():
+            data = path.read_bytes()
+            if data and not data.endswith(b"\n"):
+                raise ValueError("Uncertain partial journal line; reconcile without replay")
+            for line in data.splitlines():
+                self._validate(json.loads(line))
+                row = json.loads(line)
+                self.rows[row["uid"]] = row
+            if len(data) > cap:
+                raise ValueError("Journal cap exceeded")
+
+    def _validate(self, row):
+        uid = row["uid"]
+        if uid not in self.population or uid in self.rows:
+            raise ValueError("Unknown or already scored study")
+        values = row["logits"]
+        if len(values) != 12 or any(
+            not isinstance(x, (float, int)) or not math.isfinite(x) for x in values
+        ):
+            raise ValueError("Exactly twelve finite raw logits required")
+        if not isinstance(row.get("windows"), int) or row["windows"] < 1:
+            raise ValueError("Original nonempty MRI windows required")
+        if row.get("origin") not in ("original_CPU_FP32", "original_H100_FP32", "stream_H100_FP32"):
+            raise ValueError("Explicit admitted prediction lineage required")
+
+    def append(self, row):
+        self._validate(row)
+        payload = (json.dumps(row, separators=(",", ":"), allow_nan=False) + "\n").encode()
+        size = self.path.stat().st_size if self.path.exists() else 0
+        if size + len(payload) > self.cap:
+            raise ValueError("Journal write exceeds funded cap")
+        fd = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+        try:
+            if os.write(fd, payload) != len(payload):
+                raise ValueError("Uncertain partial journal write")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        self.rows[row["uid"]] = row
+
+
+class HeapBroker:
+    def __init__(self, cap):
+        self.cap, self.used = cap, 0
+        self.condition = threading.Condition()
+
+    def acquire(self, amount, stopped):
+        if not isinstance(amount, int) or not 0 < amount <= self.cap:
+            raise ValueError("Decoder heap estimate exceeds admitted capacity")
+        with self.condition:
+            while self.used + amount > self.cap:
+                if stopped.is_set():
+                    raise PipelineStopped("Decoder admission stopped")
+                self.condition.wait(0.2)
+            if stopped.is_set():
+                raise PipelineStopped("Decoder admission stopped")
+            self.used += amount
+
+    def release(self, amount):
+        with self.condition:
+            if not 0 < amount <= self.used:
+                raise ValueError("Invalid decoder memory release")
+            self.used -= amount
+            self.condition.notify_all()
+
+
+def install_forward_observer(root_type, callback):
+    """Observe only the complete root output; never replace a forward result."""
+    import torch
+
+    def observe(module, inputs, output):
+        if isinstance(module, root_type):
+            callback(module, inputs, output)
+        return None
+
+    return torch.nn.modules.module.register_module_forward_hook(observe)
