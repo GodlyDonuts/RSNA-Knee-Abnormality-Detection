@@ -1,0 +1,164 @@
+"""Four new original teacher predictions using already verified MRI tensors."""
+
+import concurrent.futures
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+E = P / "engine-v1"
+D = P / "CPU-score-prefilled4-v1"
+assert not D.exists()
+assert not (E / "execution.lock").exists()
+prefill = json.loads((E / "prefill-000/terminal.json").read_text())
+assert (
+    prefill["Slurm_job"] == "961960"
+    and prefill["new_studies"] == 4
+    and prefill["new_disease_inference_or_GPU"] is False
+)
+assert "961960|COMPLETED|0:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "961960", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(line.split() for line in q.splitlines() if line.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 and int(a[6]) - int(a[5]) > 5000
+mem = {
+    x.split(":")[0]: int(x.split()[1]) * 1024
+    for x in Path("/proc/meminfo").read_text().splitlines()
+    if ":" in x
+}
+assert mem["MemAvailable"] > 92 * 2**30 and shutil.disk_usage("/dev/shm").free > 28 * 2**30
+stage = json.loads((E / "staged.json").read_text())
+model = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1/E_prior_s42_fall.pt").stat()
+assert {"bytes": model.st_size, "mtime_ns": model.st_mtime_ns, "inode": model.st_ino} == stage[
+    "model_stat"
+]
+pending = json.loads((P / "pending-render.private.json").read_text())
+assert len(pending) == 4 and all(x["state"] == "rendered" for x in pending.values())
+spec = importlib.util.spec_from_file_location(
+    "existing_durable_journal_contract", E / "contract.py"
+)
+c = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(c)
+np = importlib.import_module("numpy")
+
+with np.load(
+    "/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz",
+    allow_pickle=False,
+) as z:
+    uids = z["uids"].tolist()
+journal = c.Journal(P / "completed-logits.private.jsonl", uids)
+assert len(journal.rows) == 32 and not set(pending) & set(journal.rows)
+D.mkdir(mode=0o700)
+lock = E / "execution.lock"
+lock.mkdir(mode=0o700)
+(lock / "owner.json").write_text(
+    json.dumps({"Slurm_job": os.environ["SLURM_JOB_ID"], "mode": "CPU_prefilled4"})
+)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "studies": 4,
+            "new_source_downloads_or_rendering": 0,
+            "GPU": 0,
+            "automatic_retry": False,
+        }
+    )
+)
+assert hashlib.sha256(v["worker"].encode()).hexdigest() == v["worker_sha256"]
+(D / "worker.py").write_text(v["worker"])
+(D / "worker.py").chmod(0o600)
+ram = Path(json.loads((E / "RAM-location.private.json").read_text())["path"])
+R = ram / "CPU-score-prefilled4-v1"
+assert not R.exists()
+R.mkdir(mode=0o700)
+start = time.perf_counter()
+
+
+def run(item):
+    uid, record = item
+    owned = Path(record["owned_scratch"]).resolve()
+    assert owned.is_relative_to(ram) and owned.name.startswith("fitting-study-")
+    value = json.loads((owned / "render-result.private.json").read_text())
+    assert value["uid"] == uid and value["error"] is None
+    out = R / ("case-" + hashlib.sha256(uid.encode()).hexdigest()[:16])
+    env = {
+        k: x
+        for k, x in os.environ.items()
+        if not any(s in k.upper() for s in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+    }
+    env.update(
+        CUDA_VISIBLE_DEVICES="",
+        HF_HUB_OFFLINE="1",
+        TRANSFORMERS_OFFLINE="1",
+        HF_HOME=str(R / "hf"),
+        TORCH_HOME=str(R / "torch"),
+        XDG_CACHE_HOME=str(R / "cache"),
+        PYTHONNOUSERSITE="1",
+        PYTHONDONTWRITEBYTECODE="1",
+        OMP_NUM_THREADS="2",
+        MKL_NUM_THREADS="2",
+        OPENBLAS_NUM_THREADS="1",
+    )
+    with (
+        (R / (out.name + "-stdout.private.log")).open("x") as stdout,
+        (R / (out.name + "-stderr.private.log")).open("x") as stderr,
+    ):
+        x = subprocess.run(
+            [sys.executable, "-B", str(D / "worker.py")],
+            input=json.dumps({"render": value, "output": str(out)}),
+            text=True,
+            stdout=stdout,
+            stderr=stderr,
+            env=env,
+            timeout=1200,
+        )
+    assert x.returncode == 0, "Original CPU classifier stopped; retain outputs without retry"
+    r = json.loads((out / "verified.private.json").read_text())
+    assert r["uid"] == uid and r["windows"] == value["windows"]
+    return uid, r, owned
+
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    results = list(pool.map(run, pending.items()))
+for uid, result, owned in results:
+    journal.append(result)
+assert len(journal.rows) == 36
+for uid, result, owned in results:
+    shutil.rmtree(owned)
+    pending.pop(uid)
+assert not pending
+(P / "pending-render.private.json").write_text(json.dumps(pending))
+out = {
+    "status": "actual4_new_fitting_original_CPU_FP32_teacher_predictions_preserved",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "new_studies": 4,
+    "windows": sum(r["windows"] for _, r, _ in results),
+    "complete_teacher_rows": len(journal.rows),
+    "of": 3887,
+    "new_raw_downloads_or_rendering": 0,
+    "new_GPUs_or_entries": 0,
+    "all_original_main_device_only_AST_equal": True,
+    "all4_finite_12_target_outputs": True,
+    "source_tensor_proof_and_original_model_bindings_preserved": True,
+    "seconds": time.perf_counter() - start,
+    "clinical_accuracy_or_full_cohort_admission": False,
+}
+with (D / "verified.json").open("x") as f:
+    json.dump(out, f, indent=2)
+(lock / "owner.json").unlink()
+lock.rmdir()
+assert sum(x.stat().st_size for x in P.rglob("*") if x.is_file()) < 8 * 2**20
+print(json.dumps(out), flush=True)

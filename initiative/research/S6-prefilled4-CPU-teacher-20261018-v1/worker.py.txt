@@ -1,0 +1,232 @@
+"""Score only the four already rendered new fitting studies, unchanged CPU main."""
+
+import ast
+import hashlib
+import importlib.util
+import inspect
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def stable_ast(node):
+    if isinstance(node, ast.AST):
+        return {
+            "node": type(node).__name__,
+            "fields": [
+                [k, stable_ast(v)]
+                for k, v in ast.iter_fields(node)
+                if not (k == "type_params" and v == [])
+            ],
+        }
+    if isinstance(node, list):
+        return [stable_ast(v) for v in node]
+    if node is None or type(node) in (str, int, float, bool):
+        return node
+    raise TypeError("Unexpected AST scalar")
+
+
+def stable_ast_sha(node):
+    return hashlib.sha256(
+        json.dumps(
+            stable_ast(node), sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    ).hexdigest()
+
+
+class CPUDeviceOnly(ast.NodeTransformer):
+    def __init__(self):
+        self.changes = {
+            "torch.device(cuda)": 0,
+            "torch.cuda.get_device_capability": 0,
+            "torch.cuda.get_device_name": 0,
+        }
+
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        name = ast.unparse(node.func)
+        if name == "torch.device":
+            assert (
+                len(node.args) == 1
+                and isinstance(node.args[0], ast.Constant)
+                and node.args[0].value == "cuda"
+            )
+            node.args[0] = ast.Constant("cpu")
+            self.changes["torch.device(cuda)"] += 1
+        elif name == "torch.cuda.get_device_capability":
+            assert not node.args and not node.keywords
+            self.changes[name] += 1
+            return ast.copy_location(
+                ast.Tuple(elts=[ast.Constant(0), ast.Constant(0)], ctx=ast.Load()), node
+            )
+        elif name == "torch.cuda.get_device_name":
+            assert not node.args and not node.keywords
+            self.changes[name] += 1
+            return ast.copy_location(ast.Constant("CPU FP32 original classifier reference"), node)
+        return node
+
+
+def main():
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == "" and not torch.cuda.is_available()
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(1)
+    v = json.load(sys.stdin)
+    P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+    B = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+    D = Path(v["output"])
+    assert not D.exists()
+    D.mkdir(mode=0o700)
+    value = v["render"]
+    uid = value["uid"]
+    sys.path.insert(0, str(B / "runtime-opencv-v1/site-packages"))
+    sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+    spec = importlib.util.spec_from_file_location(
+        "original_S6_prefilled_CPU_classifier", B / "source-tree-v1/launcher.private.py"
+    )
+    launch = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = launch
+    spec.loader.exec_module(launch)
+    original = inspect.getsource(launch.CI.main)
+    assert (
+        hashlib.sha256(original.encode()).hexdigest()
+        == "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946"
+    )
+    patch = CPUDeviceOnly()
+    tree = ast.fix_missing_locations(patch.visit(ast.parse(original)))
+    assert patch.changes == {
+        "torch.device(cuda)": 1,
+        "torch.cuda.get_device_capability": 1,
+        "torch.cuda.get_device_name": 2,
+    }
+    assert (
+        stable_ast_sha(tree) == "7d3b7523848d3af0fe83550009eb073168b706d3826c22a71f3392a191c91116"
+    )
+    exec(compile(tree, "original_S6_CPU_device_only_main", "exec"), launch.CI.__dict__)
+
+    class OriginalPrefilledInput(torch.utils.data.Dataset):
+        def __init__(self, data, split, ids, *args, **kwargs):
+            assert list(ids) == [uid] and split == "train"
+
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, i):
+            assert i == 0
+            with np.load(value["tensor_path"], allow_pickle=False) as z:
+                images = z["images"]
+                meta = z["meta"]
+            assert (
+                images.dtype == np.uint8
+                and images.shape == (value["windows"], 3, 320, 320)
+                and meta.shape == (len(images), 6)
+                and meta.dtype == np.float32
+            )
+            assert (
+                hashlib.sha256(memoryview(images).cast("B")).hexdigest()
+                == value["image_tensor_sha256"]
+                and hashlib.sha256(memoryview(meta).cast("B")).hexdigest()
+                == value["metadata_tensor_sha256"]
+            )
+            return {
+                "uid": uid,
+                "error": None,
+                "images": torch.from_numpy(images),
+                "meta": torch.from_numpy(meta),
+                "anchor": value["anchor"],
+                "side": None,
+                "seconds": [0.0, 0.0, 0.0],
+            }
+
+    launch.CI.CStudies = OriginalPrefilledInput
+    g = json.loads((B / "CPU-fitting8-UID-view-v2/collected/index.private.json").read_text())[
+        "geometry"
+    ]
+    assignment = D / "assignment.private.json"
+    assignment.write_text(json.dumps([uid]))
+    out = D / "original-main"
+    sys.argv = [
+        "original_prefilled_CPU_FP32",
+        "--data",
+        str(D),
+        "--split",
+        "train",
+        "--code",
+        str(B / "source-tree-v1/code/cloud_code"),
+        "--models",
+        str(B),
+        "--arm",
+        "E_prior",
+        "--backbone",
+        g["backbone"],
+        "--size",
+        str(g["size"]),
+        "--crop",
+        str(g["crop"]),
+        "--views",
+        g["views"],
+        "--slices",
+        str(g["slices"]),
+        "--phys-mm",
+        str(g["phys_mm"]),
+        "--eval-stride",
+        str(g["eval_stride"]),
+        "--anchor-weights",
+        str(B / "source-tree-v1/anatomy.pt"),
+        "--amp",
+        "fp32",
+        "--chunk",
+        str(g["chunk"]),
+        "--workers",
+        "0",
+        "--assignment",
+        str(assignment),
+        "--output",
+        str(out),
+        "--tmp",
+        str(D / "unused-tmp"),
+        "--dump-logits",
+        str(out / "logits.private.json"),
+    ]
+    start = time.perf_counter()
+    launch.CI.main()
+    r = json.loads((out / "receipt.json").read_text())
+    assert (
+        r["status"] == "PASS"
+        and r["studies"] == r["scored"] == 1
+        and r["fallback"] == {}
+        and r["timed_out"] is False
+        and r["models"] == ["E_prior_s42_fall.pt"]
+        and r["spatial_models"] == 1
+        and r["amp"] == "fp32"
+    )
+    logits = np.asarray(
+        json.loads((out / "logits.private.json").read_text())[uid], dtype=np.float64
+    )
+    assert logits.shape == (1, 12) and np.isfinite(logits).all()
+    result = {
+        "uid": uid,
+        "logits": logits[0].tolist(),
+        "windows": value["windows"],
+        "origin": "original_CPU_FP32",
+        "phase_role": "new_prefilled4_original_CPU_FP32",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "image_tensor_sha256": value["image_tensor_sha256"],
+        "metadata_tensor_sha256": value["metadata_tensor_sha256"],
+        "source_proof_sha256": value["source_proof_sha256"],
+        "source_files": value["source_files"],
+        "source_bytes": value["source_bytes"],
+        "original_device_only_CPU_AST_sha256": stable_ast_sha(tree),
+        "original_CNN_mathematics_unchanged": True,
+        "seconds": time.perf_counter() - start,
+    }
+    with (D / "verified.private.json").open("x") as f:
+        json.dump(result, f)
+
+
+if __name__ == "__main__":
+    main()
