@@ -1,5 +1,7 @@
 # Execution handoff
 
+October18 actual spatial-path fitting: original integration955582COMPLETED0:0; original955711aligned/955712null now RUNNING on evc33, oneH100each. CPU957040observed123/100finite updates of843, empty stderr. Exact new integration acceptance collected once, SHA2f50aeb8d03353b9eecb52892399eaa0ed4a957f50c708459e549d4e7fe42989. No old recovery rerun or recipe change. Owner48097continues six immutable epoch publications and fixed-final1156study comparison. No spatial accuracy gain yet. Read path-full-training-20261018-v1/actual-first-live-training.json.
+
 October18 source preservation completed: CPU957007 fully privately downloaded/size/SHA verified139new small source/receipt objects, sourcece6f6f6b, HF105ecfb617ae757ec8a29bad1936e9fe2033e50d. No clinical data or weights mirrored; no accuracy claim. Read hf-encoder-finding-and-review-20261018-v24; never repeat.
 
 October18 current owners supersede older snapshots: finding full3epochs/1458

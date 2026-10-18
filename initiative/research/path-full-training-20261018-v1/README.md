@@ -46,3 +46,9 @@ missing binding and recorded execution-wrapper sourcebfd121d3; original source
 released successfully and are again PENDING Dependency afterok955582. No new
 GPU jobs or restart. See actual-constructor-correction.json. This is a new
 wrapper fix, not an old-model verification or an accuracy result.
+
+## Actual full training started
+
+Integration955582 actually completed0:0 in8:47; its original acceptance receipt binds exact complete full/stop/resume states and predictions for both arms. Receipt SHA `2f50aeb8d03353b9eecb52892399eaa0ed4a957f50c708459e549d4e7fe42989`. This is new mechanism engineering acceptance, not a clinical gain.
+
+Original full jobs955711/955712 are RUNNING on evc33 with one H100 each. Actual CPU957040 observed123/100 finite updates out of843 per arm and empty stderr. No new job, restart, recipe change or old MRI/recovery replay occurred. The unchanged owner48097 continues epoch preservation and fixed-final1156-study comparison. No accuracy outcome is available yet.
