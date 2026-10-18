@@ -1,5 +1,10 @@
 # Execution handoff
 
+Latest source/serving/QA/current-guide milestone27986249 is privately fully
+23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
+viaCPU953355. Never repeat it or preceding cfb51524. Model training remains
+healthy:209 finite updates observed on both T4s. No new accuracy result exists.
+
 Read [AGENTS](../AGENTS.md) and [current measured state](current-state.md).
 Previous chronological handoff is preserved verbatim in
 [continuation.history-20261018-0200.md](continuation.history-20261018-0200.md).

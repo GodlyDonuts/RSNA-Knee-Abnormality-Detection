@@ -1,5 +1,10 @@
 # RSNA Knee: current agent guide
 
+Latest source/serving/QA/current-guide milestone27986249 is privately fully
+23-object re-download/size/SHA verified at HFd92991385ac07faf168525fc48f74ca23265df34
+viaCPU953355. Never repeat it or preceding cfb51524. Model training remains
+healthy:209 finite updates observed on both T4s. No new accuracy result exists.
+
 Serving preparation now has25 focused passing checks and actual owning-node
 CPU953320 acceptance on the original private assets. It refuses actual non-final
 E1 kernel139338298 and binds the full family target/annotation/eligibility/teacher/
