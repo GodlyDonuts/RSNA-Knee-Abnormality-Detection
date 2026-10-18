@@ -1,5 +1,12 @@
 # RSNA Knee: current agent guide
 
+October18 forward deployment: run_two_t4.py now composes the NEW path model's
+complete image-to-CSV serving modules with two persistent GPU processes,
+metadata-only work balancing, shared8hour(default) deadline, exact final roster
+merge and actual future VRAM/RSS telemetry. Fourteen focused launcher tests and
+CLIhelp pass; no actual T4run or new GPU/notebook/entry. This does not change
+queued955582/955711/12 or findingE3. Actual final path-head weights still absent.
+
 October18 final finding epoch3 is now ACTUALLY RUNNING: exact kernel139381056
 version1/source6faa618a0f73, authenticatedCPU956042. This supersedes its earlier
 queued/null observation; no optimizer count or final score is inferred from

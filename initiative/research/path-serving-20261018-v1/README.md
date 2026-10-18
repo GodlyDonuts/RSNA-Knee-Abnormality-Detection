@@ -63,3 +63,52 @@ dataset wiring on synthetic DICOMs with only the encoder-provider stubbed. Other
 cases cover pre-decode capacity refusal, immutable scratch, required test.csv
 and safe DICOM identities. This is new glue acceptance, not real MRI/path
 inference or T4time/VRAM acceptance. Both full scientific jobs stay unchanged.
+
+## Executable two-T4 runner
+
+`run_two_t4.py` now composes the complete new serving path: actual test metadata,
+existing native384decode/recovery, one exact parent+head per T4, private per-study
+scratch, complete lane prediction, original-order13column submission.csv merge.
+Use it from the exact source bundle with its existing offline dependencies:
+
+```sh
+python run_two_t4.py --competition /kaggle/input/rsna-knee-abnormality-detection \
+  --work /kaggle/working/path-serving-v1 \
+  --output /kaggle/working/submission.csv \
+  --parent /path/to/exact-N3E16.pt --parent-sha256 EXACT_PARENT_SHA \
+  --head /path/to/actual-fixed-final-head.pt --head-sha256 EXACT_HEAD_SHA \
+  --max-seconds 28800
+```
+
+This is usage, not an executed Kaggle request; final path-head weights do not
+exist until actual training completes. The scientific/core source tree layout
+must be preserved in the bundle. Optional --vectorized-scoring defaultsOFF and
+still needs actual target-device equivalence/runtime evidence.
+
+The parent counts image paths (never pixels/clinical values) to estimate per-study
+work, assigning largest estimated studies first to the currently lighter lane.
+This improves estimated load balance over fixed alternating study order without
+filtering images or changing per-study operations. Counts are estimates, not a
+measured makespan guarantee. Both GPUs keep a complete model; memory is not
+pooled. With only one test study, one lane is sufficient; actual twoT4hardware
+is still required by this target runner.
+
+All child processes use spawn, one TorchCPUthread and explicit cuda:rank. An
+absolute deadline is shared from launcher startup, including child/model setup;
+it is not reset per lane/study. Default8hours leaves notebook-installation and
+other overhead headroom; the future notebook must account for those phases too.
+A failed/timed-out lane stops only this launcher's owned children and cannot
+publish partial predictions as submission.csv. Existing source assets/work/output
+cannot be overwritten. Raw competition images are never modified.
+
+Future actual run receipts record per-GPU peak allocated/reserved memory, total
+VRAM, per-process OSpeakRSS and decode/cache statistics. Sum of individual process
+RSSpeaks is a conservative bound for these processes, not a measurement of all
+Kaggle auxiliary processes;2GiB RAM headroom is required before final merge.
+No actual T4execution or nine-hour whole-notebook admission is claimed yet.
+
+Fourteen focused NEW tests pass for scheduling/coverage, shared deadlines,
+owned-process shutdown, immutable asset paths, subset ordering, metadata-only
+cost discovery and budget rejection. The CLIhelp runs without touching GPUs.
+These tests are engineering acceptance only; old MRI/model recovery and full
+repository test suites were not replayed. No GPU job or competition entry added.
