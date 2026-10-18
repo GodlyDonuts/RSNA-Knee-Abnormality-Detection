@@ -51,3 +51,12 @@ These checks are software evidence only. The actual original recovery notebook
 139417155 has no observed terminal acceptance yet. No new noise GPU probe has
 been dispatched; its later admission needs that outcome and fresh capacity and
 runtime funding. No production or accuracy claim is made.
+
+Actual CPU staging **958257** completed successfully from source `e442961f`.
+Exact new notebook source is `78c4b58bad6bb2ba58bebedc259b19b85b006c32813d69a63e1b1c5212ea6dfb`;
+worker `5bd7a81a253ebc771f3e5710c3cbb5f6907d0f6a35a04c57130499c520240700`.
+The private child consumes 522,417 bytes within the existing 32 MiB controls
+cap, with 4,401,102 parent-cap bytes still free at admission. Fresh owning-node
+and shared reserves passed. No model/pixel transfer, GPU push or entry occurred.
+All 17 focused numerical/compiler tests, scoped Ruff and two-module mypy passed.
+See `staging/actual-staged.json`. This is prepared execution, not GPU acceptance.
