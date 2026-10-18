@@ -475,3 +475,13 @@ is actually live, immutable sources/private pin accepted, waiting actual
 labelE3/private proof. Maximum6GPU pushes/3code entries; no model/weightDataset
 copies. Do not restart owner61037or78386or repeat either private publication.
 [Exact new preservation](../initiative/audits/hf-matched-final-scoring-ready-20261017-v1/README.md).
+
+## Label provenance clarification, October18
+
+Owner reports original Astra image-based annotations. Actual baseline four label
+files match September22 Git and original/current HF LFS identities exactly; no
+later Devin change to those files was found, so no rollback was performed. Their
+bound release describes report-derived weak supervision. A separate image-label
+export remains unlocated; do not conflate these sources or assert image review
+never happened. The newly mentioned multi-source brief was absent at its supplied
+path. [Exact read-only audit](../initiative/audits/label-source-lineage-20261018-v1/README.md).
