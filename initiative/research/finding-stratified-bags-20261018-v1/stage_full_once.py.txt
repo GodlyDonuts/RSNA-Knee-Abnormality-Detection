@@ -1,0 +1,13 @@
+"""One owning-node full-input admission; never duplicate an uncertain stage."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/finding-stratified-bags-20261018-v1');assert not (L/'full-stage-intent.json').exists()
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+def content(n):return subprocess.check_output(['git','show',source+':'+D.relative_to(Path.cwd()).as_posix()+'/'+n],text=True)
+program=content('stage_full_program.py.txt');files={n:content(n) for n in ('production.py','sampling.py','fit.py')};compile(program,'actual_finding_full_source_inputs','exec')
+payload={'source_git':source,'files':files,'files_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in files.items()},'recovery':json.loads((D/'actual-GPU-accepted.json').read_text())}
+with (L/'full-stage-intent.json').open('x') as f:json.dump({k:val for k,val in payload.items() if k not in ('files','recovery')},f,indent=2)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=3G','--time=00:05:00','--job-name=rsna-finding-full-inputs','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps(payload),capture_output=True,text=True,timeout=550)
+(L/'full-stage-result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original stage; never repeat intent: '+x.stderr[-1000:]
+out=json.loads(x.stdout);(D/'actual-full-CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

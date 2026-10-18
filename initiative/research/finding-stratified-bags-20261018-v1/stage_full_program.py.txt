@@ -1,0 +1,44 @@
+"""Actual original full-input/compiler admission and bounded private model funding."""
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+import numpy as np
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1)
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');T=R/'finding-strata-production-v1';P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');A=P/'finding-strata-full-proposals-v2';F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');S=P/'finding-strata-epoch-preservation-v1'
+assert not T.exists() and not S.exists();paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid(R)+4*2**20<32*2**20 and paid(P)+512*2**20+80*2**20+2**30<3*2**30
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(F))
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+shm=shutil.disk_usage('/dev/shm');mem={l.split(':')[0]:int(l.split()[1])*1024 for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:')};assert min(shm.free,mem['MemAvailable'])>28*2**30
+assert all(hashlib.sha256(t.encode()).hexdigest()==v['files_sha256'][n] for n,t in v['files'].items())
+ns={};exec(compile(v['files']['production.py'],'finding_full_compiler','exec'),ns)
+recovery=json.loads((R/'finding-strata-audit-v1/GPU-actual-accepted.json').read_text());assert recovery==v['recovery']
+original=(R/'full-comparison/influence-epoch-1/source.private.py').read_text()
+values,worker,files=ns['prepare'](original,v['files']['sampling.py'],v['files']['fit.py']);ns['accept_recovery'](recovery,files)
+dataset=json.loads((A/'dataset-v1/verified.json').read_text());assert dataset['dataset']=={'id':12671054,'version':1,'slug':'godlydonuts/rsna-finding-strata-3581baf78d76','private':True} and dataset['objects']==6
+# Reuse original full target/proposal provenance, and exercise the EXACT new input loader.
+oldpath=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert hashlib.sha256(oldpath.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(oldpath,allow_pickle=False) as a:uids=a['uids'].tolist()
+class ArraysOnly:
+ def __len__(self):return len(uids)
+data=ArraysOnly();data.uids=uids
+tensor=np.load(A/'components.private.npy',allow_pickle=False);rawsha=hashlib.sha256(tensor.tobytes()).hexdigest()
+def private_path(s):
+ if str(s) in ('/kaggle/input/rsna-finding-strata-3581baf78d76','/kaggle/input/datasets/godlydonuts/rsna-finding-strata-3581baf78d76'):return A if str(s).startswith('/kaggle/input/rsna-') else Path('/nonexistent')
+ return Path(s)
+scope={'Path':private_path,'np':np,'json':json,'hashlib':hashlib,'_BINDING':{'component_raw_sha256':rawsha}}
+exec(compile(ns['HELPER'],'exact_full_component_loader','exec'),scope);loaded=scope['_full_components'](data);assert np.array_equal(loaded,tensor)
+sys.path.insert(0,str(R/'code'));sampler={};exec(compile(v['files']['sampling.py'],'accepted_sampler','exec'),sampler)
+oldq=np.load(R/'proposal-table/proposals.private.npy',allow_pickle=False)
+for i in range(3887):sampler['draw'](loaded[i],oldq[i],np.zeros((1,16)))
+source,bound=ns['build'](original,v['files']['sampling.py'],v['files']['fit.py'],recovery,v['source_git'],1,rawsha)
+assert len(source.encode())<768*2**10 and all(files[n]==t for n,t in values['FILES'].items())
+T.mkdir(mode=0o700);S.mkdir(mode=0o700)
+for n,t in v['files'].items():
+ with (T/n).open('x') as f:os.fchmod(f.fileno(),0o600);f.write(t)
+funding={'kind':'three_finding_strata_model_snapshots_and_metadata_inside_original_P3GiB_v1','cap_bytes':2**30,'fixed_final_epochs':3,'P_paid_at_admission':paid(P),'original_P_cap_bytes':3*2**30,'entire_original_reader_budget_retained':512*2**20,'component_subcap_retained':80*2**20,'no_additional_global_disk_obligation':True,'full_optimizer_publication':'Private HF six-object publication with transient allocated CPU RAM tmpfs; immutable original Kaggle outputs retained. Epoch2 cannot resume before actual epoch1 full verification.','transient_RAM_job_mem_bytes':8*2**30,'required_physical_MemAvailable_and_tmpfs_free_bytes':28*2**30,'no_original_deletion':True}
+with (S/'funding.json').open('x') as f:json.dump(funding,f,indent=2)
+out={'status':'actual_original_full3887_finding_strata_source_inputs_and_model_storage_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'files_sha256':v['files_sha256'],'component_raw_sha256':rawsha,'component_file_sha256':ns['TENSOR'],'fitting_roster_sha256':ns['ROSTER'],'dataset':dataset['dataset'],'all13_original_modules_unchanged':True,'all3887_original_q_densities_and_order_exact':True,'original_label_masks_teacher_and_images_unchanged':True,'original_control_source_sha256':ns['CONTROL_SOURCE'],'original_control_worker_sha256':ns['CONTROL_WORKER'],'worker_template_sha256':hashlib.sha256(worker.encode()).hexdigest(),'actual_MRI_recovery_kernel':139349540,'preservation_funding':funding,'new_GPU_pushes_or_competition_entries':0,'disease_accuracy_claim':False}
+with (T/'CPU-admitted.json').open('x') as f:json.dump(out,f,indent=2)
+assert paid(T)<4*2**20 and paid(R)<32*2**20 and paid(P)+512*2**20+80*2**20+2**30<3*2**30
+print(json.dumps(out),flush=True)
