@@ -12,7 +12,6 @@ import torch
 from path_reader import PathReader
 from variable_paths import REFERENCE_GAP_MM, inputs
 
-
 SCORING_VERSION = "varying_path_serving_batched_starts_v1"
 
 
