@@ -1,5 +1,15 @@
 # RSNA Knee: current agent guide
 
+October18 post-fit evaluation update: CPU954761 staged the distinct family-final
+scoring controller; finite owner40013 is actually live waiting for original
+training owner18386. It will qualify only the completed privately preserved E3,
+then run the exact offline public example and enter its code version once after
+fresh allowance. Maximum one qualification, one public run and one code entry;
+API uncertainty stops for reconciliation. No new score or GPU qualification is
+claimed. Original family/finding training owners remain unchanged. Read
+initiative/experiments/competitive-v1/family-final-scoring-20261018-v1.
+
+
 Latest distinct private source milestone: e3480a43/45small objects,212256bytes,
 fully re-downloaded/size/SHA verified at HFa19b0381212fb85069c866d722260b0a563aa85f
 viaCPU954598 under the canonical shared lock. Never repeat this v16 publication.
