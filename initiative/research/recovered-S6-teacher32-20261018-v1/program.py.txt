@@ -1,0 +1,68 @@
+"""Collect only completed numerical outputs of the original failed CPU scout."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+from urllib.parse import urljoin,urlparse
+import numpy as np,requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');D=P/'CPU32-recovered-numerics-20261018-v1';assert not D.exists()
+paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+prepaid=[P/'source-tree-v1',P/'runtime-opencv-v1',P/'CPU-MRI-v1/collected',P/'CPU-fitting8-UID-view-v2/collected']
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not any(p.is_relative_to(q) for q in prepaid) and p.suffix not in ('.pt','.whl'))
+assert controls+7*2**20+2*2**20<16*2**20
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+assert sha(family/'completed-fixed3-unspent512MiB-retirement-v1.json')=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in quota.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+S=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison/final-matched-serving-v1/code')
+spec=importlib.util.spec_from_file_location('same_auth_only_workflow',S/'scripts/kaggle/workflow.py');w=importlib.util.module_from_spec(spec);sys.modules[spec.name]=w;spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token']
+i=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert i['active'] is True and i['username']=='godlydonuts';r.username='godlydonuts'
+slug='godlydonuts/rsna-s6-cpu32-scout-66047373f227';source_sha='64c7290e3e964184c8e54a646d9803966708da03916af524b400c18fbd156ba1'
+k=r.kernel('GetKernel',slug,2);assert k['metadata']['id']==139205901 and hashlib.sha256(k['blob']['source'].encode()).hexdigest()==source_sha and not k['metadata'].get('enableGpu',False)
+assert r.kernel('GetKernelSessionStatus',slug,2)['status']=='ERROR'
+failure=r.output_json(slug,2,'S6-fitting32-CPU-scout/failure.private.json');assert failure=={'stage':'original_CPU_FP32_classifier','error_type':'AssertionError','reason':'','traceback_frames':[['<module>',72]]}
+assert hashlib.sha256(v['core'].encode()).hexdigest()==v['core_sha256']
+D.mkdir(mode=0o700)
+def new(p,value):
+ with p.open('x') as f:json.dump(value,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n')
+new(D/'collection-intent.json',{'original_kernel':139205901,'version':2,'source_sha256':source_sha,'original_terminal':'ERROR','scope':'recover completed arrays only, no resource pass','source_git':v['source_git'],'automatic_retry':False})
+(D/'core.py').write_text(v['core']);(D/'core.py').chmod(0o600)
+files={}
+for name in ('selection.private.json','probabilities.private.npz','pixel-hashes.private.json','fp32/receipt.json'):
+ response=r.session.post(w.API+'kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':'godlydonuts','kernelSlug':slug.split('/')[1],'versionNumber':2,'filePath':'S6-fitting32-CPU-scout/'+name},timeout=(10,90),stream=True,allow_redirects=False)
+ for _ in range(6):
+  if response.status_code==200:break
+  assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();host=urlparse(url).hostname
+  assert urlparse(url).scheme=='https' and (host in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or host.endswith('.googleusercontent.com'))
+  response=(r.session if host=='api.kaggle.com' else requests).get(url,timeout=(10,90),stream=True,allow_redirects=False)
+ assert response.status_code==200
+ data=bytearray()
+ try:
+  for b in response.iter_content(65536):
+   assert len(data)+len(b)<2**20 and sum(x['bytes'] for x in files.values())+len(data)+len(b)<2**20
+   data.extend(b)
+ finally:response.close()
+ p=D/name;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+ with p.open('xb') as f:os.fchmod(f.fileno(),0o600);f.write(data)
+ files[name]={'bytes':len(data),'sha256':sha(p)}
+new(D/'collection-verified.json',{'source_kernel':139205901,'version':2,'files':files,'authenticated_exact_version_streams':True,'no_prior_output_manifest_available':True})
+selection=json.loads((D/'selection.private.json').read_text());pixels=json.loads((D/'pixel-hashes.private.json').read_text());classifier=json.loads((D/'fp32/receipt.json').read_text())
+with np.load(D/'probabilities.private.npz',allow_pickle=False) as z:
+ assert set(z.files)=={'uids','probabilities','logits'} and z['uids'].tolist()==selection['selected_uids'];prob=z['probabilities'];logits=z['logits']
+O=P/'CPU-fitting8-UID-view-v2/collected';old_proof=json.loads((O/'verified.json').read_text());assert old_proof['kernel_id']==139165316 and old_proof['all_original_lossless_inputs_and_fitting_roster_equal'] is True
+assert sha(O/'index.private.json')==old_proof['receipt']['index_sha256'] and sha(O/'selection.private.json')==old_proof['receipt']['selection_sha256']
+old_selection=json.loads((O/'selection.private.json').read_text());old_rows=json.loads((O/'index.private.json').read_text())['records']
+old_classifier=json.loads((P/'CPU-fitting8-classifier-v1/accepted.json').read_text());old_logit=P/'CPU-fitting8-classifier-v1/fp32/logits.private.json';assert sha(old_logit)==old_classifier['logits_sha256']
+F=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert F.stat().st_size==483656 and sha(F)=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(F,allow_pickle=False) as z:parent_uids=z['uids'].tolist();teacher=z['parent_logits']
+summary_path=P/'fitting8-cross-lineage-v1/core.py'
+# Reuse the already accepted descriptive summary by exact original source SHA.
+summary=v['summary'];assert hashlib.sha256(summary.encode()).hexdigest()=='837b3dfa508767ae171e70368dbdd31d760c382dc04356fee2daa9bd03ccb09f'
+ns={};exec(compile(v['core'],'recovered_teacher_scout','exec'),ns);ss={};exec(compile(summary,'original_cross_lineage_summary','exec'),ss)
+result=ns['compare'](selection,pixels,prob,logits,old_selection,old_rows,json.loads(old_logit.read_text()),parent_uids,teacher,classifier,ss['summarize'])
+out={'status':'actual_original_failed_CPU32_completed_predictions_recovered_and_independently_compared','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'original_kernel':139205901,'original_version':2,'original_source_sha256':source_sha,'original_terminal_preserved':'ERROR','core_sha256':v['core_sha256'],'original_failure_line':72,'original_failure_resource_assertion_not_disambiguated':True,'private_collection_bytes':sum(x['bytes'] for x in files.values()),'result':result,'new_GPU_or_CNN_or_training_or_entry_mutations':0,'new_private_small_controls_from_existing_future_bytes':2*2**20,'remaining_original_future_small_controls_bytes':7*2**20,'clinical_pixels_UIDs_or_predictions_returned_to_Mac_Git_HF':False}
+new(D/'numerical-result.json',out);assert paid(D)<2*2**20
+print(json.dumps(out),flush=True)
