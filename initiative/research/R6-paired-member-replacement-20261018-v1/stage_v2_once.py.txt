@@ -1,0 +1,16 @@
+"""Stage only committed own sources; keep original external source on its node."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;L=R/'artifacts/R6-paired-member-template-20261018-v2';L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists();git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();program=(D/'stage_v2.py.txt').read_text();assert subprocess.check_output(['git','show',git+':'+D.relative_to(R).as_posix()+'/stage_v2.py.txt'],text=True)==program
+names=['rsna/competitive/reference_member.py','scripts/kaggle/paired_reference_member.py','scripts/kaggle/public_reference_script.py','rsna/schema.py'];files={n:subprocess.check_output(['git','show',git+':'+n],text=True) for n in names};assert all((R/n).read_text()==s for n,s in files.items())
+helper=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('same_bounded_stdin_transport',helper);t=importlib.util.module_from_spec(spec);spec.loader.exec_module(t)
+old=['rsna/competitive/reference_member.py','scripts/kaggle/paired_reference_member.py','scripts/kaggle/public_reference_script.py'];prior={n:hashlib.sha256(subprocess.check_output(['git','show','325f8498:'+n])).hexdigest() for n in old}
+v={'source_git':git,'files':files,'prior_source_sha256':prior,'program_sha256':hashlib.sha256(program.encode()).hexdigest()}
+with (L/'intent.json').open('x') as f:json.dump({'source_git':git,'program_sha256':v['program_sha256'],'new_GPU_or_model_data_transfers_or_competition_entries':0},f,indent=2)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:03:00','--job-name=rsna-R6-paired-template','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','MKL_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',t.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=t.envelope(program,v),capture_output=True,text=True,timeout=250)
+with (L/'response.json').open('x') as f:json.dump({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},f,indent=2)
+assert x.returncode==0,'Original stage stopped; inspect original response without retrying uncertain work'
+out=json.loads(x.stdout)
+with (D/'actual-v2-CPU-admitted.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(out),flush=True)

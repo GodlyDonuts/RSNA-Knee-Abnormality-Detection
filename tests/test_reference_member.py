@@ -119,3 +119,31 @@ def test_reordered_or_extra_qualified_main_statements_refused():
                 "    calls.append('inference')\n    calls.append('extra')",
             ),
         )
+
+
+def test_reference_compiler_loads_with_original_schema_in_isolated_package(tmp_path):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    stage = root / "initiative/research/R6-paired-member-replacement-20261018-v1/stage_v2.py.txt"
+    node = next(
+        n
+        for n in ast.parse(stage.read_text()).body
+        if isinstance(n, ast.FunctionDef) and n.name == "load"
+    )
+    loader = ast.get_source_segment(stage.read_text(), node)
+    code = (
+        """import importlib.util,sys,types
+from pathlib import Path
+rsna=types.ModuleType('rsna');rsna.__path__=[];sys.modules['rsna']=rsna
+"""
+        + loader
+        + "\n"
+        + f"load('rsna.schema',Path({str(root / 'rsna/schema.py')!r}))\nbase=load('own_source_reference',Path({str(root / 'scripts/kaggle/public_reference_script.py')!r}))\nassert len(base.TARGETS)==12 and base.TARGETS[2]=='Medial Meniscus'\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=15
+    )
+    assert result.returncode == 0, result.stderr
