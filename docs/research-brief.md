@@ -1,3 +1,8 @@
+> **Current-state notice — October18:** The dated execution snapshots below are
+> historical. Use [current state](current-state.md) for the completed LR epoch2,
+> actual paired full fit, measured gradient result and stopped finding controller.
+> No new paired/LR accuracy gain has been measured.
+
 # Research brief
 
 October18 current owners supersede older snapshots: finding full3epochs/1458
