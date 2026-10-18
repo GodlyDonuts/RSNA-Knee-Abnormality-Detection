@@ -59,3 +59,43 @@ A favorable fidelity result can justify considering a separate exact-recovery
 sampler comparison against completed influence0.949; it does not authorize an
 accuracy claim or alter the healthy family fit. A negative result is preserved
 and the mechanism is not expanded merely because its coverage theorem is true.
+
+## Actual original CPU result and trainer integration
+
+CPU953779 completed the3887-study comparison in34.53seconds. The candidate
+reduced mean teacher-probability MSE by8.6365%, with lower MSE on all12targets.
+Every generated mixture density exactly equalled its original stored proposal.
+The largest FP32-versus-FP64 full-teacher probability discrepancy was1.8921e-7.
+Mean unique windows increased14.3098 to14.4480. These are fitting-population,
+frozen-teacher fidelity measurements, not held-out AUC or clinical improvements.
+
+| Finding | Teacher-probability MSE reduction |
+| --- | ---: |
+| ACL | 6.23% |
+| MCL | 6.22% |
+| Medial Meniscus | 8.89% |
+| Lateral Meniscus | 9.18% |
+| Medial OA | 7.33% |
+| Lateral OA | 6.88% |
+| PF OA | 6.29% |
+| Effusion | 5.96% |
+| Synovitis | 6.32% |
+| Baker's | 12.43% |
+| Contusion | 12.94% |
+| Fracture | 11.44% |
+
+The separate `fit.py` closes over the unchanged actual optimizer engine; no
+original module globals are modified. Its IID role reproduces the old complete
+numerical state/predictions, and both roles recover full/stop1/resume including
+AdamW/LR/cursors/all-RNG/epochs and predictions in synthetic MRI-shaped checks.
+A singleton final batch, changed-component/role resume refusals and unchanged
+global original engine are checked. The real-MRI diagnostic compiler preserves
+all original numerical modules and reuses original pixels/features/weights and
+old diagnostic output for complete old-control replay. It has no production or
+entry authority. Prepared compilation is not actual GPU acceptance.
+
+A separate capacity closure also recognizes the newer family and distinct serving
+ledger keys; the old shared helper only knew older campaign prefixes. Three
+zero/one/two-live-actor checks prevent silently ignoring the current family fit,
+without modifying any frozen live controller. Unregistered/manual sessions remain
+outside that registry; an uncertain push must stop rather than retry.

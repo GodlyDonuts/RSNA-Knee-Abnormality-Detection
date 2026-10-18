@@ -40,6 +40,14 @@ The influence result is+.002 against matched uniform, still below0.950. A single
 three-decimal public comparison does not establish a robust/private improvement.
 All completed fixed-final submissions are terminal/scored; never resubmit them.
 
+New bounded research: actual CPU953779 tested one draw per finding proposal
+plus4 uniform observations at the EXACT original mixture density/16-window
+budget,3887 fitting studies/128draws each. Frozen-teacher probability MSE fell
+8.64%, lower on all12findings; this is not clinical/held-out AUC.21 focused
+math/actual-engine synthetic recovery/compiler/capacity cases pass. Real-MRI GPU
+recovery is prepared, not accepted; do not launch a full fit from the CPU result.
+See `initiative/research/finding-stratified-bags-20261018-v1` (repository root).
+
 ## What is training and being scored
 
 One predeclared family-mixture candidate:3887 fitting studies,3epochs/1458updates,

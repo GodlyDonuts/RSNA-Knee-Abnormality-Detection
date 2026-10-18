@@ -1,0 +1,28 @@
+"""Compile only on the private owner, preserving all original modules and data."""
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'finding-strata-audit-v1';S=R/'code'
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+actual=json.loads((D/'actual.json').read_text());assert actual['CPU_job']=='953779' and actual['targets_with_lower_MSE']==12 and actual['macro_MSE_ratio']<1 and actual['module_sha256']==v['files_sha256']['sampling.py']
+assert not (D/'recovery-stage-intent.json').exists() and not (D/'recovery-staged.json').exists()
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid(D)+2**20<2*2**20 and paid(R)+2**20<32*2**20
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert paid(P)<3*2**30 and paid(F)<4*2**30 and shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(F))
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+meta=json.loads((R/'staged.json').read_text());assert all(sha(S/n)==h for n,h in meta['source_files'].items())
+assert all(hashlib.sha256(text.encode()).hexdigest()==v['files_sha256'][n] for n,text in v['files'].items())
+old=(R/'recovery.private.py').read_text();receipt=json.loads((R/'actual-accepted.json').read_text())['receipt']
+scope={'__name__':'private_finding_recovery_compiler'};exec(compile(v['files']['recovery.py'],'finding_recovery_compiler','exec'),scope)
+source,binding=scope['build'](old,v['files']['sampling.py'],v['files']['fit.py'],receipt)
+assert binding['original_numerical_modules_unchanged'] and len(source.encode())<768*2**10
+intent={'source_git':v['source_git'],'files_sha256':v['files_sha256'],'program_sha256':v['program_sha256'],'actual_CPU_fidelity_job':953779,'new_Dataset_pixels_weights_or_checkpoint_copies':False,'GPU_pushes':0,'automatic_retry':False}
+for name,value in [('recovery-stage-intent.json',json.dumps(intent,indent=2)+'\n'),('recovery.private.py',source)]:
+ with (D/name).open('x') as f:os.fchmod(f.fileno(),0o600);f.write(value)
+for name,text in v['files'].items():
+ with (D/('accepted-'+name)).open('x') as f:os.fchmod(f.fileno(),0o600);f.write(text)
+out={'status':'actual_finding_strata_original_MRI_recovery_source_CPU_compiled','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'files_sha256':v['files_sha256'],'binding':binding,'original_recovery_kernel':139130771,'existing_private32_pixels_features_and_parent_reused':True,'new_Dataset_or_asset_transfer':False,'new_GPU_pushes':0,'private_control_bytes':paid(D),'private_control_cap_bytes':2*2**20,'original_32MiB_cap_retained':True,'new_shared_bytes_files':0,'actual_GPU_recovery_or_model_accuracy_accepted':False}
+with (D/'recovery-staged.json').open('x') as f:os.fchmod(f.fileno(),0o600);f.write(json.dumps(out,indent=2)+'\n')
+assert paid(D)<2*2**20 and paid(R)<32*2**20
+print(json.dumps(out),flush=True)

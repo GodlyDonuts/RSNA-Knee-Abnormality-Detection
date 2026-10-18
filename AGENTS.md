@@ -25,6 +25,14 @@ in `docs/AGENTS.history-20261018-0200.md`. Do not use historical pending stateme
 as restart/duplication authority. Read `docs/current-state.md`,
 `docs/codex-continuation.md` and the exact experiment receipts before action.
 
+New bounded research: actual CPU953779 tested one draw per finding proposal
+plus4 uniform observations at the EXACT original mixture density/16-window
+budget,3887 fitting studies/128draws each. Frozen-teacher probability MSE fell
+8.64%, lower on all12findings; this is not clinical/held-out AUC.21 focused
+math/actual-engine synthetic recovery/compiler/capacity cases pass. Real-MRI GPU
+recovery is prepared, not accepted; do not launch a full fit from the CPU result.
+See `initiative/research/finding-stratified-bags-20261018-v1` (repository root).
+
 ## Objective and actual evidence
 
 The owner wants a competition-winning model and targets0.97. Best measured public

@@ -1,5 +1,11 @@
 # One exact stronger-reference entry, independent of new annotation fitting
 
+Current correction: influence57332456 actually scored0.949; the historical
+pending wording below is superseded. Exact R6submission57333150 was accepted
+once and remains unreported at the latest authenticated check. Observer3182
+follows that exact original entry; never repeat it. Best verified remains0.950.
+
+
 The owner authorizes useful competition entries within the fresh five/day limit.
 Uniform and label-only fixed finals scored0.947; influence57332456is pending.
 The already completed exact8-cell/R6reference139271768v2 is a different, ready
