@@ -1,5 +1,8 @@
 # Execution handoff
 
+October18 ACTUAL dense spatial final result CPU959391 after wrapper-only __file__ recovery: aligned0.9212176612/null0.9205166745/unchangedFP32parent0.9205878230 on1156weak-label studies. Aligned-null+.00070099 conditional95%[-.00092435,+.00236799]; aligned-parent+.00062984[-.00429430,+.00486056],1186/4000undefineddraws. No established overall/alignment-specific gain. Lateral-meniscus gain shared with null; no target cherry-picking. Both955711/955712COMPLETED0:0; all6checkpoints privateverified. STOPunchangedfrozenreader expansion/promotion, preserve negatives; keep encoder-learning priority. Original48097terminal on analysis wrapper beforemetrics; distinct959391recovered onlyanalysis, no fit/publication repeated. Read path-fixed-final-analysis-recovery-20261018-v2/result.md and scientific-decision.json.
+
+
 October18 new H100 alternative availability CPU959303: retained original32pixel archive326799360bytes/index/target membership/features32/readout available on evc33, no transfer/bulk rehash/GPU. Fresh extra458644034bytes over funded floor and269740019712bytes /dev/shm free support considering small-source+explicitRAM route. Actual CPU tensor binding, immutable H100 wrapper/source/runtime and memory admission still missing; NOnewGPU or modeldownload. OriginalT4 recovery/combined owners unchanged. See paired-encoder-H100-memory-probe-20261018-v1. Later authenticated Kaggle read at15:06UTC still had no correction Dataset in all76owned/fivepages; uncertain original503intent remains, no retry.
 
 
