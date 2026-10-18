@@ -10,7 +10,7 @@ from test_paired_logit_train import Corrected, dataset
 from rsna.competitive import licensed_importance_train as ordinary
 from rsna.competitive import paired_logit_train as corrected
 from rsna.competitive.licensed_parent_train import PARENT_SHA
-from rsna.competitive.paired_step_timing import timed_fit
+from rsna.competitive.paired_step_timing import _existing_output, timed_fit
 
 
 @pytest.mark.parametrize("arm", ["ordinary", "controlled"])
@@ -83,3 +83,18 @@ def test_existing_output_refused_before_any_fit(tmp_path):
             recipe,
             device=torch.device("cpu"),
         )
+
+
+def test_peer_uses_shared_prefit_directory_decision_not_a_racing_second_stat(tmp_path, monkeypatch):
+    from rsna.competitive import paired_step_timing as timing
+
+    output = tmp_path / "peer_created_after_shared_admission"
+    output.mkdir()
+    monkeypatch.setattr(timing.dist, "is_initialized", lambda: True)
+
+    def admitted_before_creation(value, src):
+        assert src == 0
+        value.fill_(0)
+
+    monkeypatch.setattr(timing.dist, "broadcast", admitted_before_creation)
+    assert _existing_output(output, 1, torch.device("cpu")) is False

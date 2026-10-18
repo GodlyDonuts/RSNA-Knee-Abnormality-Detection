@@ -22,6 +22,15 @@ from rsna.competitive import licensed_importance_train, paired_logit_train
 _LOCK = threading.Lock()
 
 
+def _existing_output(output, rank, device):
+    # Both ranks must use one pre-fit decision. Rank zero may create the directory
+    # before its peer reaches fit; a second per-rank stat would be a false refusal.
+    value = torch.tensor(int(output.exists()) if rank == 0 else 0, device=device)
+    if dist.is_initialized():
+        dist.broadcast(value, src=0)
+    return bool(value.item())
+
+
 def timed_fit(engine, model, data, output, binding, recipe, *, device):
     """Run one fresh bounded fit, retaining its actual new state on caller storage.
 
@@ -31,6 +40,7 @@ def timed_fit(engine, model, data, output, binding, recipe, *, device):
     really performs up to six new updates. Only rank zero emits step timings.
     """
     output = Path(output)
+    rank = dist.get_rank() if dist.is_initialized() else 0
     updates = math.ceil(len(data) / recipe.effective_batch) * recipe.epochs
     if (
         engine not in (licensed_importance_train, paired_logit_train)
@@ -38,12 +48,11 @@ def timed_fit(engine, model, data, output, binding, recipe, *, device):
         or recipe.epochs != 3
         or not 1 <= len(data) <= 16
         or updates != 6
-        or output.exists()
+        or _existing_output(output, rank, device)
     ):
         raise ValueError("Fresh original six-update engineering trainer call required")
     if not _LOCK.acquire(blocking=False):
         raise RuntimeError("Only one instrumented trainer per process")
-    rank = dist.get_rank() if dist.is_initialized() else 0
     old_factor, old_json = engine.lr_factor, engine.atomic_json
     pending = None
     rows: list[dict[str, float | int]] = []
