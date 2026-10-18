@@ -29,11 +29,10 @@ RECIPE = {
 }
 
 
-def binding_ok(binding):
+def source_binding_ok(binding):
     return (
         binding.get("source_git") == SOURCE
         and binding.get("production_plan") == "licensed_influence_encoderLR3e5_fixed3887_3epoch_v1"
-        and binding.get("recipe") == RECIPE
         and binding.get("single_factor")
         == {"encoder_lr_control": 3e-6, "encoder_lr_treatment": 3e-5}
         and binding.get("actual_new_LR_recovery_claim") is False
@@ -59,7 +58,7 @@ def provenance(training, publication, model_sha):
         or r.get("fixed_final_complete") is not True
         or publication.get("objects") != 5
         or r.get("worker_sha256") != WORKER
-        or not binding_ok(r.get("binding", {}))
+        or not source_binding_ok(r.get("binding", {}))
         or role != "influence"
         or r.get("role") != role
         or publication.get("role") != role
@@ -94,7 +93,8 @@ def validate(snapshot, training, publication, model_sha):
     binding = snapshot.get("binding", {})
     recipe = binding.get("recipe", {})
     if (
-        not binding_ok(binding)
+        not source_binding_ok(binding)
+        or recipe != RECIPE
         or snapshot.get("epoch") != epoch
         or snapshot.get("completed") != epoch * 486
         or not all(binding.get(k) == v for k, v in training["receipt"]["binding"].items())

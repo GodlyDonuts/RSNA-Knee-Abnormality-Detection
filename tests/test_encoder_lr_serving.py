@@ -1,5 +1,6 @@
 import ast
 import copy
+import json
 from pathlib import Path
 
 import pytest
@@ -38,6 +39,17 @@ def records():
         worker_sha256=scope.WORKER,
         binding=copy.deepcopy(binding),
     )
+    # The actual producer emits only its source binding in the receipt. Runtime
+    # recipe/version/population fields belong to the immutable checkpoint.
+    for name in (
+        "recipe",
+        "version",
+        "population",
+        "population_sha256",
+        "world_size",
+        "total_steps",
+    ):
+        training["receipt"]["binding"].pop(name, None)
     publication.update(
         epoch=3,
         completed=1458,
@@ -55,6 +67,8 @@ def records():
 
 def test_new_recipe_acceptance_is_separate_from_control(records):
     before = copy.deepcopy(records)
+    assert "recipe" not in records[1]["receipt"]["binding"]
+    assert records[0]["binding"]["recipe"] == scope.RECIPE
     result = scope.validate(*records)
     assert result["completed"] == 1458 and result["fixed_final_only"]
     assert result["encoder_lr"] == result["head_lr"] == 3e-5
@@ -135,3 +149,34 @@ def test_compiler_retains_original_full94_two_view_math(monkeypatch, records, mo
     assert not meta["new_weight_Dataset_required"]
     assert not meta["actual_new_final_model_GPU_qualification_claim"]
     assert isinstance(ast.parse(source).body[-1], ast.If)
+
+
+def test_actual_producer_binding_with_checkpoint_only_runtime_recipe(records):
+    snapshot, training, publication, sha = records
+    observed = json.loads(
+        (
+            ROOT
+            / "initiative/experiments/competitive-v1/encoder-lr-final-serving-20261018-v1/actual-E1-producer-binding.json"
+        ).read_text()
+    )
+    assert observed["actual_kernel"] == 139394879 and "recipe" not in observed["binding"]
+    runtime = {
+        k: copy.deepcopy(snapshot["binding"][k])
+        for k in (
+            "recipe",
+            "version",
+            "population",
+            "population_sha256",
+            "world_size",
+            "total_steps",
+        )
+    }
+    # Actual producer metadata, synthetic final model/CPU proof. No actual final
+    # trained model or GPU acceptance is represented by this format test.
+    snapshot["binding"] = {**copy.deepcopy(observed["binding"]), **runtime}
+    training["receipt"]["binding"] = copy.deepcopy(observed["binding"])
+    assert scope.validate(snapshot, training, publication, sha)["completed"] == 1458
+    assert "recipe" not in training["receipt"]["binding"]
+    snapshot["binding"]["recipe"]["head_lr"] = 3e-4
+    with pytest.raises(ValueError):
+        scope.validate(snapshot, training, publication, sha)

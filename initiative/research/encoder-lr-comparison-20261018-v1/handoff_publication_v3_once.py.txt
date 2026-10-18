@@ -1,0 +1,21 @@
+"""Replace only a finite coordinator between polls; never cancel its GPU notebook."""
+import datetime,json,os,signal,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/encoder-lr-comparison-20261018-v1');old=55986
+check=json.loads((D/'actual-new-funding-contract.json').read_text());assert check['status']=='new_separate_collection_funding_contract_actual_CPU_accepted' and check['actual_original_receipts']==6 and check['new_epoch1_collection_intent_absent']
+assert not (L/'owner-v3-intent.json').exists() and not (L/'publisher-v3-owner-handoff.json').exists() and not (L/'epoch-1-publication-intent.json').exists()
+cmd=subprocess.check_output(['ps','-p',str(old),'-o','command='],text=True);assert 'finish_v2_once.py.txt' in cmd
+os.kill(old,signal.SIGSTOP)
+children=subprocess.run(['pgrep','-P',str(old)],capture_output=True,text=True)
+if children.returncode==0:
+ os.kill(old,signal.SIGCONT);raise RuntimeError('Original child still live: leave owner intact and wait for this same poll')
+progress=json.loads((L/'owner-v2-progress.json').read_text());assert progress['epoch']==1 and progress['phase']=='status' and progress['actual']['kernel_id']==139394879
+handoff={'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'old_PID':old,'old_phase':progress,'old_verified_stopped_between_read_only_polls':True,'original_GPU_kernel':139394879,'GPU_cancel_or_repeat':False,'old_publication_intent_absent':True,'actual_new_guard_CPU':'956725','change':'separate old/new publication receipt contracts only','old_pinned_files_modified':False}
+(L/'publisher-v3-owner-handoff.json').write_text(json.dumps(handoff,indent=2)+'\n')
+os.kill(old,signal.SIGTERM);os.kill(old,signal.SIGCONT)
+for _ in range(20):
+ if subprocess.run(['ps','-p',str(old),'-o','command='],capture_output=True,text=True).returncode!=0:break
+ time.sleep(.1)
+else:raise RuntimeError('Old coordinator still present; do not launch another')
+with (L/'owner-v3.log').open('xb') as log:p=subprocess.Popen([sys.executable,'-u',str(D/'finish_v3_once.py.txt')],stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+out={**handoff,'new_PID':p.pid,'first_phase':'status','maximum_remaining_GPU_pushes':2,'new_first_epoch_pushes':0};(D/'actual-publication-owner-v3-handoff.json').write_text(json.dumps(out,indent=2)+'\n');(L/'owner-v3-launch.json').write_text(json.dumps({'PID':p.pid,'old_PID':old,'original_first_kernel':139394879},indent=2)+'\n');print(json.dumps({'new_PID':p.pid,'original_first_kernel':139394879,'GPU_restart_or_duplicate':False}))

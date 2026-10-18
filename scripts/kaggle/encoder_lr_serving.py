@@ -10,7 +10,7 @@ from rsna.competitive import encoder_lr_serving as scope
 from scripts.kaggle import licensed_importance_serving as original
 
 BASE_COMPILER_SHA = "9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2"
-HELPER_SHA = "d02ee89f9c31bf3927795bbcc2d6b68de0b6c3c8d952d77002ca6b3d460d08fa"
+HELPER_SHA = "07546c529833d33301b589e0897b9e4d03748ba538b027bb9f337300e134a02e"
 
 
 def build(parent, bounded, serving, codec, mixin, importance, training, publication, *, mode):
