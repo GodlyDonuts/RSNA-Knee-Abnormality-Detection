@@ -1,0 +1,16 @@
+"""One original CPU dispatch; no credential, GPU, model fit or duplicate intent."""
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/parent-delta-schedule-20261018-v1/funded-v2');L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'intent.json').exists()
+source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+def content(name):return subprocess.check_output(['git','show',source+':'+D.relative_to(Path.cwd()).as_posix()+'/'+name],text=True)
+program=content('materialize_funded_program.py.txt');module=content('schedule.py');compile(program,'one_finding_strata_CPU_assessment','exec')
+intent={'source_git':source,'module_sha256':hashlib.sha256(module.encode()).hexdigest(),'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'maximum_CPU_dispatches':1,'maximum_GPU_or_competition_mutations':0,'automatic_retry':False}
+with (L/'intent.json').open('x') as f:json.dump(intent,f,indent=2)
+terminal=subprocess.check_output(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton','sacct -j 955015 -X -n -P -o JobIDRaw,State,ExitCode,ElapsedRaw'],text=True);assert terminal.startswith('955015|FAILED|1:0|')
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:15:00','--job-name=rsna-parent-delta-schedule','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps({**intent,'module_source':module}),capture_output=True,text=True,timeout=1100)
+(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,'Preserve original intent; inspect exact actual job and private root without resubmitting: '+x.stderr[-1000:]
+out=json.loads(x.stdout);(D/'actual.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
