@@ -109,3 +109,17 @@ capacity and all remaining original family-work funding checks. It compares
 complete old influence-control state/predictions, then full/stop1/resume for
 both allocation roles. No production or competition model is accepted by this
 engineering decision; full fitting/storage/deployment require separate review.
+
+Actual diagnostic139349540v1/source7a4e7db6 was pushed ONCE viaCPU953953,
+finite owner22857. Expanded capacity actually identified the healthy family E2
+notebook as the one occupied lane. Fresh85118VMseconds covered51600seconds of
+all original remaining family work plus this1800s diagnostic. No new Dataset,
+weights or MRI transfer occurred. This is a push, not actual numerical recovery
+acceptance; follow the original owner and never retry an uncertain mutation.
+
+Independent preparation may materialize the already-tested fitting-only
+3887x94x12FP64 component distributions privately, in a distinct80MiB envelope
+covering the tensor, exact fitting roster and one future upload archive together.
+Fresh funding includes all original reader/family liabilities and no deletion
+credit. This does not fund classifier checkpoints, a Dataset creation, model
+fitting or serving. No case rows or arrays enter Git/source mirrors.
