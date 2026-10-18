@@ -22,3 +22,13 @@ public cap. Tiny controls reuse the existing16MiB envelope; original studies,
 weights, arrays and CSV stay private. Existing training owners stay untouched.
 Actual-pushed and actual-public-accepted receipts, not this preparation, establish
 execution. Entry requires a later fresh allowance and duplicate review.
+
+Actual public notebook139346231v1 was pushed once under owner20978, source
+af412cf7e6f20f18d14b7c5b39e9726ef3dc3bb0b85c60ef7ecf93e602450d86.
+An independent finite entry owner can follow only its exact successful acceptance,
+refresh allowance/duplicate/uncertain-state checks under the canonical claim,
+and make one CreateCodeSubmission for the exact version. It never uploads CSV
+or pushes a GPU notebook. Other known-ID pending submissions are recorded, not
+misrepresented as mutation uncertainty. Six simulated side-effect/failure cases
+passed, including no retry after uncertain submission and no entry after public
+failure. Actual entry/outcome receipts establish results, not these tests.

@@ -1,0 +1,48 @@
+"""Follow original public owner, submit one accepted code version, inspect outcome."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+D=Path(__file__).resolve().parent;P=Path('artifacts/whole94-final-public-20261018-v2');L=P/'entry';L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'owner.intent.json').exists()
+frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('entry_once.py.txt','entry_program.py.txt')}
+with (L/'owner.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_code_submissions':1,'maximum_GPU_pushes':0,'maximum_hours':20,'frozen_controls':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic();phase='waiting_original_public_owner'
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'phase':phase,**value}
+ (L/('owner.result.json' if terminal else 'owner.progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while time.monotonic()-start<20*3600:
+  assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==sha for p,sha in frozen.items())
+  if phase=='waiting_original_public_owner':
+   result=P/'recovery-owner.result.json'
+   if not result.exists():
+    launched=json.loads((P/'owner-launched.json').read_text());os.kill(launched['PID'],0)
+    record({'status':'verified_live_original_public_owner_wait','public_owner_PID':launched['PID']});time.sleep(90);continue
+   result=json.loads(result.read_text())
+   if result['status']!='actual_whole94_fixed_final_public_accepted_no_competition_entry':
+    record({'status':'original_public_owner_not_accepted_preserve_no_entry','original_status':result['status']},True);break
+   phase='eligibility'
+  x=subprocess.run([sys.executable,str(D/'entry_once.py.txt'),phase],capture_output=True,text=True,timeout=480)
+  assert x.returncode==0,x.stderr[-1200:]
+  actual=json.loads(x.stdout);record({'actual':actual})
+  if phase=='eligibility':
+   if actual['status']=='actual_whole94_fixed_final_entry_eligibility' and actual['eligible']:phase='submit';continue
+   assert actual['status'] in ('actual_whole94_fixed_final_entry_eligibility','waiting_canonical_claim_no_mutation','waiting_original_public_acceptance_no_mutation')
+  elif phase=='submit':
+   # A failed/uncertain call raises and terminates. A busy claim created no intent.
+   if actual['status']=='waiting_canonical_claim_no_mutation':phase='eligibility'
+   else:
+    assert actual['status']=='one_exact_whole94_fixed_final_code_submission_accepted';phase='outcome'
+  else:
+   if actual['status']=='waiting_canonical_claim_no_mutation':time.sleep(90);continue
+   assert actual['status']=='actual_whole94_fixed_final_hidden_outcome'
+   if actual['outcome'] in ('scored','failed'):record({'status':'actual_hidden_outcome_terminal','actual':actual},True);break
+  time.sleep(180)
+ else:record({'status':'finite_entry_observer_expired_preserve_original_no_retry'},True)
+except BaseException as error:
+ record({'status':'entry_owner_stopped_reconcile_original_no_retry','reason':str(error)},True);raise
