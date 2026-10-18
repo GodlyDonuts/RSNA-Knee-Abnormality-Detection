@@ -15,7 +15,7 @@ The active full-encoder experiments use **73M CoAtNet, not DINOv3**.
 
 | Experiment | Actual evidence | Next result |
 | --- | --- | --- |
-| Paired-logit correction | Original139451532v1 RUNNING, actual UI logs show264 updates in epoch1. All3887 fitting studies, three fixed epochs/1458 updates, all73M learned parameters. Sole owner81735; original E1 was not restarted. | Complete the fixed fit and compare its exact full94-window predictions against the ordinary influence parent. Both original T4 headers and finite logged loss/gradients are now observed; the full per-update history is not yet collected. |
+| Paired-logit correction | Epoch1 completed486 finite updates; all six objects, including the full optimizer state, privately re-downloaded/size/SHA verified at HFd371bb4683e49df13c2fdd3ebed842c3242c13d6 viaCPU960566. Epoch2 notebook139461009v1 is RUNNING (actualCPU960811). All3887 fitting studies, three fixed epochs/1458 updates, all73M learned parameters. Sole owner81735; no epoch was restarted. | Complete the fixed fit and compare its exact full94-window predictions against the ordinary influence parent. Epoch1 complete learned/AdamW/LR/two-rank RNG/scaler state and contiguous history were independently checked; no final accuracy result exists yet. |
 | Higher encoder learning rate | Epoch2 completed972 contiguous updates; five private objects fully downloaded/size/SHA verified at HF44645205d6ec8655883b32c3de6f427235d125d8 viaCPU960141. Original owner66083 pushed final epoch3 ONCE as139454218v1; actual Kaggle Logs show QUEUED, not terminal. | Fixed-final encoderLR3e-5 versus original3e-6, same headLR3e-5. Scoring owner66215 waits actual final preservation and fresh execution allowance. |
 | Family supervision | Full fit, qualification and public example completed; original owner43079 remains live. | Actual hidden competition outcome after a permitted entry; no new score recorded here. |
 | Finding-stratified fitting | Full fit/private preservation and qualification completed. Its public controller stopped on the original draft/source guard before a push. | Reconcile the original mismatched draft read-only. Public execution is postponed; owner66217 is terminal and must not be restarted. |
@@ -34,6 +34,18 @@ training-only, with no teacher feature cache or correction table at inference.
 The controller orders this comparison before unstarted later scoring while
 funding unfinished LR fitting and all already-started work. No quota refund,
 paid-plan change, original job cancellation or source overwrite is implied.
+
+## Integration with the strongest ensemble
+
+CPU960788 accepted the new R6 member compiler template. The complete original
+384-member Python module matches our adaptation parent after only CSV-export
+normalization. The proposed candidate replaces that existing member with the
+fixed-final paired model, preserving the other seven source cells and all blend
+weights. It adds no model or inference pass; runtime, memory and score still need
+actual candidate acceptance. This is source integration, not a new ensemble run.
+The original wrapper-only missing-schema failure960753 is preserved; the distinct
+CPU recovery succeeded without any model, training or competition mutation.
+[Source and actual receipt](../initiative/research/R6-paired-member-replacement-20261018-v1/README.md).
 
 ## What the new mechanism actually demonstrated
 

@@ -41,3 +41,10 @@ CPU template staging uses128KiB inside the existing paired8MiB controls, funding
 all unwritten epoch sources and the existing1MiB scoring child first. No new
 checkpoint/data/shared storage or GPU request is created. Source preparation
 cannot reserve speculative GPU time or bypass real prerequisites.
+
+Actual template admission: CPU960788 completed successfully with the complete
+module AST closure, exact dependency pins and original producer scope. Original
+CPU960753 failed only because the isolated compiler lacked rsna.schema; v2 adds
+the exact original schema source and stays within the combined128KiB control cap.
+No final candidate, GPU run, model transfer or competition entry occurred. See
+[actual receipt](actual-v2-CPU-admitted.json).
