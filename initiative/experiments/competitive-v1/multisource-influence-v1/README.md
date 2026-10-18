@@ -1,5 +1,18 @@
 # One multi-source candidate against the stronger completed control
 
+## October18 actual coupled recovery and first full fitting owner
+
+The exact influence-family MRI diagnostic139336728v1 actually COMPLETED;
+CPU953076 accepts both source roles' full/stop1/resume model/AdamW/LR/cursor/
+all-rank RNG/scaler/history/epoch/prediction-byte equality. The original influence
+control reproduces exactly except explicit label metadata. Actual diagnostic
+480.399seconds;411 final tensors differ between source roles, not an accuracy
+result. No new mixture score exists. Existing first-full owner17423 may prepare/
+push/observe at most epoch1 of the fixed3/1458-update3887-study candidate. It has
+no competition entry authority; preserve the exact epoch privately before resume.
+Use its actual intent/progress/result and canonical records; never repeat it.
+
+
 The original three fixed-final comparisons actually scored: uniform **0.947**,
 S6 source-label swap **0.947**, influence sampling **0.949**. Best remains **0.950**.
 The small single public difference is not a robust or private improvement.
@@ -54,3 +67,9 @@ check and adds exact family target/annotation/mask/teacher/recovery bindings.
 Twelve adverse synthetic state cases pass. The prepared owning-node collector
 retains optimizer locally and fully privately preserves/re-download-verifies the
 five immutable source/model/provenance objects. No collection has happened yet.
+
+Actual first full training notebook139338298v1 was pushed ONCE viaCPU953098,
+source8e22aacce4df at scientificGit11ce568c, under existing owner17423. No new
+Dataset/image acquisition or competition entry. Its actual current session/progress
+must be inspected; accepted push alone is not optimizer progress or completion.
+The recipe remains fixed3epochs/1458updates; preserve E1 before continuing E2.
