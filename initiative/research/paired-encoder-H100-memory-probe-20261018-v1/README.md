@@ -30,3 +30,21 @@ read-only and preserve it. Do not cancel or repeat the accepted two-T4 recovery.
 At most a useful bounded next experiment should be admitted; do not request a
 GPU while inputs/source/runtime prerequisites are missing. Physical4/8-GPU nodes
 remain prohibited. No new GPU work has been staged or dispatched here.
+
+A useful implementation route is a new location/device entry around the original
+compiled noise worker, leaving its numerical modules unchanged. Reuse the
+retained original32 pixel TAR/features and actual first-four fitting tensors;
+CPU-bind their94plain/mirrored tensor hashes before a GPU request. The trained
+E3 is292870259bytes/SHAf6a2007e7264fe5021cba4a4b58c0897a1e20f181078b7f566962ea10b2a04f4,
+privately verified at HF37abff1d3c521533738d6036f0d825d0c82e51ee, path
+models/licensed-parent-IID16-full3887-a420bd2ed38c/influence/epoch-003/model.pt.
+Its original source graph can be constructed without pretrained download and
+strictly loaded from that complete component. Use the retained original1.12MB
+parent MIL head for teacher proposals; no second full parent backbone is needed.
+A new temporary model copy should use an explicit owner-only RAM bound and
+host-memory allocation, not the small source-control disk cap. This is not yet
+implemented, downloaded or GPU-admitted. The future fresh resource decision must
+also include the unpaid remainder of the separately funded2MiB correction-
+transport sibling; do not raise old owners'32MiB cap or claim deletion credit.
+The old two-T4 source cannot accept a new H100 outcome by renaming a device or
+receipt; source/hardware/objective bindings and decision scope must be explicit.

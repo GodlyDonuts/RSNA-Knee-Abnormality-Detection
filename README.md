@@ -54,8 +54,8 @@ cherry-picking or new Kaggle promotion is supported.
   3e-6→3e-5, headLR stays3e-5. Original epoch1 is complete/privateverified;
   epoch2 is accepted, with no final score yet.
 - **Finding/family supervision:** full3epoch fits are complete and privately
-  preserved. Their final competition outcomes remain unreported; do not infer
-  scores from training or public-example completion.
+  preserved. Neither has a final hidden competition score recorded; execution stage is in
+  current-state receipts. Training/public-example completion is not hidden acceptance.
 - **Paired-logit correction:** production-objective frozen-feature diagnostic
   reduced head-gradient MSE88.48% on16fitting studies/64draws. This used CPUFP32,
   no dropout and both views averaged; it is not full-encoder or accuracy proof.
