@@ -1,0 +1,49 @@
+"""Owning-node CPU compilation only; reuse accepted arrays and exact source."""
+import ast
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-training-release-20261017-v1');old=P/'family-source-recovery-v1';R=P/'family-influence-recovery-v1'
+assert not R.exists()
+accepted=json.loads((old/'actual-accepted.json').read_text())
+assert accepted['status']=='COMPLETE' and accepted['kernel_id']==139334242
+assert accepted['receipt']['original_control_complete_state_and_predictions_exact_except_label_binding']
+original=(old/'recovery.private.py').read_text()
+source_root=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1')
+reference=json.loads((source_root/'actual-accepted.json').read_text())
+assert reference['kernel_id']==139130771
+checks=v['checks'];assert checks['status']=='actual_original_influence_optimizer_synthetic_family_label_integration_accepted'
+assert hashlib.sha256(v['files']['influence_fit.py'].encode()).hexdigest()==checks['source_sha256']
+module=type(sys)('immutable_influence_compiler');exec(compile(v['files']['recovery.py'],'immutable_influence_compiler','exec'),module.__dict__)
+source,binding=module.build(original,v['files']['influence_fit.py'],reference['receipt'])
+assert binding['accepted_class_sha256']==checks['class_source_sha256']
+def literals(text):
+ return {n.targets[0].id:ast.literal_eval(n.value) for n in ast.parse(text).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('FILES','WORKER')}
+before=literals(original);after=literals(source)
+assert set(after['FILES'])==set(before['FILES'])|{'multisource/influence_fit.py'}
+assert all(after['FILES'][k]==text for k,text in before['FILES'].items())
+worker=base64.b64decode(after['WORKER'],validate=True).decode();compile(worker,'influence_worker','exec')
+assert "Recipe(epochs=2,role='influence')" in worker and "engineering=PixelCases(targets,list(range(16,32)))" in worker
+assert "old/'influence/full/" in source and "old_receipt['roles']['influence']" in source
+gate=json.loads((old/'CPU-admitted.json').read_text())
+binding.update(target_sha256=gate['binding']['target_sha256'],annotation_sha256=gate['binding']['annotation_sha256'],original_recovery_source_sha256=gate['binding']['original_recovery_source_sha256'])
+root=Path('/tmp/rsna-criterion-N3-features-20261017-v1');paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)
+total=len(source.encode())+sum(len(t.encode()) for t in v['files'].values())+65536
+assert total<2*2**20 and sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+total<16*2**20
+storage=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+funding=json.loads((storage/'funding.json').read_text());assert funding['cap_bytes']==4*2**30 and funding['fixed_final_epochs']==3
+assert set(p.name for p in storage.iterdir())=={'funding.json'},'No mixture full fit may already exist'
+R.mkdir(mode=0o700)
+for name,text in {**v['files'],'recovery.private.py':source}.items():
+ p=R/name;p.write_text(text);p.chmod(0o600)
+out={'status':'actual_private_influence_family_CPU_compilation_accepted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'binding':binding,'all_previously_accepted_source_and_numerical_modules_byte_identical':True,'actual32_input_bridge_and_array_admission_reused':'952712','same_private_dataset':12668561,'same_single_candidate_preservation_cap_bytes':funding['cap_bytes'],'new_GPU_or_Dataset_or_competition_mutations':0,'actual_GPU_or_production_or_accuracy_accepted':False}
+(R/'CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

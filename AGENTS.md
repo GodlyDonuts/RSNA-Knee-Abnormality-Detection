@@ -1,5 +1,26 @@
 # RSNA Knee: current agent guide
 
+## October18 current results and multi-source decision
+
+All three original fixed finals actually scored: uniform57329796 **0.947**,
+label57331631 **0.947**, influence57332456 **0.949**. Best remains **0.950**;
+this single public result does not establish a robust/private gain. Original
+scoring owner97513 finished; never repeat its submissions. Exact independent
+R6reference57333150/v2 was submitted once; its hidden outcome remains unreported
+under existing read-only observer3182. Author-claimed0.958 is not our score.
+
+Actual family diagnostic139334242v1 COMPLETED: CPU952876 accepts original-control
+complete state/prediction replay and both labels' full/stop1/resume/all-RNG/epoch/
+prediction equality on real MRI/twoT4. This is not a clinical metric or full fit.
+The stronger completed influence sampler is now selected for the ONE family
+candidate before full fitting. The target/Dataset/masks/teacher/images/25%source
+anchor/schedule remain unchanged; existing4GiB candidate reservation is reused,
+not doubled. A separate exact influence diagnostic compiler and synthetic actual-
+engine checks are prepared; actual new GPU/full-fit admission is still required.
+See `initiative/experiments/competitive-v1/multisource-influence-v1/selection.json`.
+The historical uniform-family plan below is superseded for future full fitting.
+
+
 ## October18 immutable multi-source candidate
 
 Previous goal turn made progress: actual FP32MRI input acceptance, primitive

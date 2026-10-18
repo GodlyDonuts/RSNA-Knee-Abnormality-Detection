@@ -1,5 +1,12 @@
 # Multi-source supervision: source information before source cycling
 
+Latest: actual real-MRI two-T4 diagnostic139334242v1 passed (CPU952876).
+No uniform-family full fit was started. Completed matched scores favor influence
+0.949 over uniform0.947 and the label swap0.947; the one future family candidate
+therefore selects influence, reusing these exact targets and Dataset. See
+`../multisource-influence-v1/selection.json`. Historical pending paragraphs below
+remain chronological evidence and are superseded by the actual receipts.
+
 The owner brief is now available and preserved verbatim in `owner-brief.md`.
 The previous missing-file observation was correct when made and is superseded.
 This experiment adds a working target constructor, not a new trainer or accuracy
