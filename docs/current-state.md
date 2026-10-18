@@ -1,5 +1,17 @@
 # Current measured state
 
+October18 research priority: owner explicitly wants original measured gains,
+not another reproduction. Best0.958 is external R6; adaptation0.949 is not an
+improvement over S6reproduction0.950. R6branch substitution is deprioritized,
+with zero new GPU or entry actions. Existing family/finding owners stay active.
+New integrated original dense-path trainer recovery955582 was submitted ONCE
+by actual CPU955581/source46030b95 after source/runtime/input/funding admission.
+At dispatch it is PENDING, not a full scientific fit or accuracy result. One
+H100/twoCPU/30minutes, original16fitting/16prediction-only, aligned/null complete
+full/stop/resume checks; unchanged frozen N3parent and eight path/input modules.
+Only actual terminal acceptance plus measured cost can admit full paired work.
+Read initiative/research/online-path-training-20261018-v1. Never duplicate955582.
+
 October18 verified score update: exact public R6 reproduction57333150 is
 COMPLETE with actual publicAUC0.958, no error, authenticatedCPU955446. This
 supersedes all older pending/unreported R6 and best0.950 statements below.
