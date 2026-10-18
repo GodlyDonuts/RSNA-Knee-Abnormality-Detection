@@ -1,0 +1,88 @@
+"""Single original matched full fit; RAM publication and fresh canonical budgets."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+v=json.load(sys.stdin);phase=v['phase'];epoch=v.get('epoch',1)
+assert phase in ('stage','prepare','push','status') and epoch in (1,2,3) and os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');F=P/'full-comparison';S=F/'code';N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');sha=lambda b:hashlib.sha256(b).hexdigest();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert sha((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes())=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor and paid(P)<32*2**20 and paid(N)<8*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def load(path,name):
+ spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+assert sha((C/'workflow.py').read_bytes())=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900';w=load(C/'workflow.py','paired_full_canonical')
+if phase=='stage':
+ assert not N.exists() and v['decision']['eligible_for_funded_matched_full_fit'] is True
+ assert json.loads((P/'paired-encoder-noise-v2/actual-accepted.json').read_text())==v['measurement']
+ assert json.loads((P/'paired-logit-real-encoder-v1/actual-accepted.json').read_text())==v['recovery']
+ chain=Path('/tmp/rsna-paired-correction-CPU-chain-20261018-v1');inp=json.loads((chain/'part1-verified.json').read_text());assert inp==v['input'] and inp['complete_original_correction_input_accepted'] is True and inp['kernel_id']==139449229 and inp['version']==1
+ assert inp['receipt']['output_files']['corrections.private.npz']=={'bytes':1629919,'sha256':'bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619'}
+ assert shutil.disk_usage('/dev/shm').free>24*2**30
+ assert any(x[1]=='/dev/shm' and x[2]=='tmpfs' for l in Path('/proc/mounts').read_text().splitlines() if len(x:=l.split())>=3)
+ assert '959789|FAILED|1:0' in subprocess.check_output(['sacct','-X','-n','-P','-j','959789','--format=JobIDRaw,State,ExitCode'],text=True)
+ N.mkdir(mode=0o700)
+ for name,text in (('compiler.py',v['compiler']),('publisher.py',v['publisher'])):
+  p=N/name;p.write_text(text);p.chmod(0o600);compile(text,str(p),'exec')
+ for name,text in v['validators'].items():
+  p=N/'validators'/name;assert p.resolve().is_relative_to((N/'validators').resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+ original=Path('/tmp/rsna-paired-full-actual-source-20261018-v1');prepared=json.loads((original/'prepared.private.json').read_text());source=(original/'epoch-1-source.private.py').read_text();assert sha(source.encode())==prepared['source_sha256']=='028be731e2e15d4f0c5798c719762849679a66b20f80ccdca2ffb61f6c65df6a'
+ D=N/'epoch-1-source';D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600);w.new_json(D/'prepared.json',prepared)
+ funding={'status':'paired_full_fit_RAM_checkpoint_publication_and_controls_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'phase_sha256':sha(v['program'].encode()),'compiler_sha256':sha(v['compiler'].encode()),'publisher_sha256':sha(v['publisher'].encode()),'science_source_git':prepared['binding']['source_git'],'validator_sha256':{n:sha(t.encode()) for n,t in v['validators'].items()},'small_node_control_cap_bytes':8*2**20,'RAM_temporary_cap_bytes':4*2**30,'CPU_publication_host_RAM_bytes':16*2**30,'RAM_free_reserve_bytes':20*2**30,'new_permanent_model_checkpoint_bytes_node_or_shared':0,'new_shared_bytes_files':0,'all6_objects_including_full_optimizer_privately_preserved_HF_each_epoch':True,'temporary_RAM_copies_removed_only_after_full_HF_verification':True,'failure_prefix_and_journal_retained_no_automatic_retry':True,'immutable_originals_never_deleted_and_no_deletion_credit':True,'decision':v['decision'],'correction_input':inp,'finding_public_future_execution_postponed_until_separately_funded':True,'finding_original_owner_terminal_and_draft_source_unresolved':True,'no_finding_source_or_version_overwrite':True,'LR_original_fitting_untouched':True,'later_paired_and_LR_public_scoring_not_admitted_by_this_fit':True}
+ w.new_json(N/'funding.json',funding);print(json.dumps({'status':funding['status'],'CPU_job':funding['CPU_job'],'source_git':v['source_git'],'science_source_git':funding['science_source_git'],'RAM_temporary_cap_bytes':4*2**30,'host_RAM_bytes':16*2**30,'new_permanent_checkpoint_disk_bytes':0,'new_shared_bytes_files':0,'finding_public_priority_postponed_explicitly':True,'actual_first_source_sha256':prepared['source_sha256'],'GPU_jobs':0}),flush=True);raise SystemExit(0)
+funding=json.loads((N/'funding.json').read_text());assert funding['phase_sha256']==sha(v['program'].encode()) and funding['compiler_sha256']==sha((N/'compiler.py').read_bytes()) and funding['publisher_sha256']==sha((N/'publisher.py').read_bytes())
+sys.path.insert(0,str(S));compiler=load(N/'compiler.py','real_paired_fit_compiler')
+D=N/('epoch-'+str(epoch)+'-source')
+if phase=='prepare':
+ assert epoch>1 and not D.exists();prior=json.loads((N/('epoch-'+str(epoch-1)+'-source')/'actual-accepted.json').read_text());pub=json.loads((N/('epoch-'+str(epoch-1))/'verified.json').read_text());assert pub['status']=='actual_paired_epoch_RAM_private_all6_full_download_size_SHA_verified' and pub['original_kernel']==prior['kernel_id'] and pub['completed']==486*(epoch-1)
+ files={n:(S/n).read_text() for n in (*compiler.original.ACCEPTED_MODULES,*compiler.original.POPULATION_MODULES)}
+ for n in compiler.EXTRA:files[n]=(P/'paired-logit-real-encoder-v1/code'/n).read_text()
+ proofs=json.loads((Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')/'actual-original-Kaggle-inputs.json').read_text())['proofs']
+ source,meta=compiler.build((P/'recovery.private.py').read_text(),json.loads((F/'actual-recovery.json').read_text()),files,proofs,json.loads((F/'proposal-accepted.json').read_text()),funding['science_source_git'],epoch,paired_recovery=json.loads((P/'paired-logit-real-encoder-v1/actual-accepted.json').read_text()),correction=json.loads((P/'paired-logit-fixed-schedule-v1/accepted.json').read_text()),previous=prior['receipt'])
+ assert meta['worker_sha256']==json.loads((N/'epoch-1-source/prepared.json').read_text())['worker_sha256']
+ D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600);w.new_json(D/'prepared.json',meta);print(json.dumps({'status':'paired_next_original_epoch_prepared','epoch':epoch,'source_sha256':meta['source_sha256'],'worker_sha256':meta['worker_sha256'],'GPU_jobs':0}));raise SystemExit(0)
+source=(D/'source.private.py').read_text();meta=json.loads((D/'prepared.json').read_text());h=sha(source.encode());assert h==meta['source_sha256'];slug='godlydonuts/rsna-paired-full-e'+str(epoch)+'-'+h[:12];key='paired-logit-full-fit:'+h;alias='licensed-parent-full-epoch-serving:capacity-only:paired-full-fit:'+h
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts';assert r.call('security.OAuthService','IntrospectToken',{'token':v['token']}).get('username')=='godlydonuts'
+proofs=json.loads((Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')/'actual-original-Kaggle-inputs.json').read_text())['proofs'];dataset=json.loads((F/'dataset-verified.json').read_text())
+deps=['godlydonuts/rsna-parent-exact-pixels32-09254e97913d',*['godlydonuts/rsna-parent-pixels-full-s'+str(i)+'-'+x['source_sha256'][:12] for i,x in enumerate(proofs)],funding['correction_input']['slug']]
+if epoch>1:deps.append(json.loads((N/('epoch-'+str(epoch-1)+'-source')/'push-intent.json').read_text())['slug'])
+request={'slug':slug,'newTitle':slug.split('/')[1].replace('-',' '),'text':source,'language':'python','kernelType':'script','isPrivate':True,'enableGpu':True,'machineShape':'NvidiaTeslaT4','enableInternet':False,'datasetDataSources':['nartaa/rsna-knee-publication-swa-weights-20261007','godlydonuts/rsna-parent-fit-targets-48b4485f03b6',dataset['dataset']['slug']],'competitionDataSources':[],'kernelDataSources':deps,'sessionTimeoutSeconds':6000,'dockerImage':'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f','dockerImagePinningType':'original'}
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end;time.sleep(5)
+w.new_json(claim/'owner.json',{'kind':'new_paired_full_fit','phase':phase,'epoch':epoch,'CPU_job':os.environ['SLURM_JOB_ID']});retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r)
+  def save(row):
+   db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(alias,json.dumps({'kind':'capacity_only_existing_fit_alias_not_a_serving_model','canonical_original_key':key,'state':row['state'],'slug':slug,'version':1,'kernel_id':row.get('kernel_id'),'source_sha256':h,'competition_entries':0},sort_keys=True)));db.commit()
+  if phase=='push':
+   assert not (D/'push-intent.json').exists() and db.execute('SELECT value FROM meta WHERE key IN (?,?)',(key,alias)).fetchone() is None
+   cap=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert sha(cap.read_bytes())=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';capacity=load(cap,'paired_complete_capacity');capacity.FAMILIES=(*capacity.FAMILIES,'finding-strata-full:','encoder-lr-full-fit:');admission=capacity.admission(db,r,caller='sampling')
+   q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'));available=seconds(q['totalTimeAllowed'] if q.get('isPayToScaleEnabled') else q['minimumTimeAllowed'])-seconds(q.get('timeUsed','0s'))-seconds(q.get('timeReserved','0s'))
+   LR=Path('/tmp/rsna-encoderLR3e5-influence-20261018-v1');lr_future=sum(6000 for e in (1,2,3) if not (LR/('epoch-'+str(e))/'actual-accepted.json').exists());paired_future=sum(6000 for e in (1,2,3) if not (N/('epoch-'+str(e)+'-source')/'actual-accepted.json').exists())
+   familyroot=Path('/tmp/rsna-S6-training-release-20261017-v1');familyserve=familyroot/'family-final-scoring-v1/family';family_future=(0 if (familyroot/'family-influence-full-fitting-v1/epoch-3/actual-accepted.json').exists() else 6000)+(0 if (familyserve/'qualification-actual-accepted.json').exists() else 1800)+(0 if (familyserve/'competition-actual-accepted.json').exists() else 32400)
+   required=lr_future+paired_future+family_future+3600;budget={'available_VM_seconds':available,'required_complete_current_fit_and_original_LR_family_future_VM_seconds':required,'paired_unfinished_epoch_caps':paired_future,'original_LR_unfinished_epoch_caps':lr_future,'original_family_future_caps':family_future,'safety_seconds':3600,'finding_public_explicitly_postponed_not_admitted':True,'later_paired_and_LR_scoring_need_new_budget':True,'no_plan_purchase_or_quota_change':True}
+   if not admission['available'] or available<required:print(json.dumps({'status':'waiting_complete_fit_budget_or_capacity_no_mutation','budget':budget,'capacity':admission}),flush=True)
+   else:
+    for dep in deps:assert r.kernel('GetKernelSessionStatus',dep,1).get('status')=='COMPLETE'
+    absence=r.require_absent_kernel(slug);row={'state':'paired_logit_full_fit_push_intent','slug':slug,'version':1,'epoch':epoch,'source_sha256':h,'worker_sha256':meta['worker_sha256'],'binding':meta['binding'],'budget':budget,'capacity':admission,'absence':absence,'request_sha256':w.object_hash(request),'automatic_retry':False};w.new_json(D/'push-intent.json',row);db.execute('INSERT INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));save(row)
+    try:
+     response=r.call('kernels.KernelsApiService','SaveKernel',request);w.new_json(D/'push-response.json',response);assert response.get('ref')=='/code/'+slug and response.get('versionNumber')==1 and type(response.get('kernelId')) is int and not response.get('error')
+    except BaseException:row['state']='paired_logit_full_fit_push_uncertain';save(row);retain=True;raise
+    row.update(state='paired_logit_full_fit_pushed',kernel_id=response['kernelId']);save(row);print(json.dumps({'status':'one_new_paired_full_fit_epoch_pushed','CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'role':'influence','kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':h,'budget':budget,'competition_entries':0}),flush=True)
+  else:
+   row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);kernel=r.kernel('GetKernel',slug,1);assert kernel['blob']['source']==source
+   for n in ('isPrivate','enableGpu','enableInternet','machineShape','dockerImage'):assert kernel['metadata'].get(n,False if n=='enableInternet' else None)==request[n]
+   for n in ('datasetDataSources','competitionDataSources','kernelDataSources'):assert sorted(kernel['metadata'].get(n,[]))==sorted(request[n])
+   status=r.kernel('GetKernelSessionStatus',slug,1).get('status');out={'status':status,'CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'role':'influence','kernel_id':row['kernel_id'],'slug':slug,'version':1,'source_sha256':h,'competition_entries':0}
+   if status=='COMPLETE':
+    receipt=r.output_json(slug,1,'paired-logit-full-session-accepted.json');assert receipt['status']=='actual_paired_parent_logit_full3887_epoch_session_complete' and receipt['completed']==486*epoch and receipt['total']==1458 and receipt['worker_sha256']==meta['worker_sha256'] and receipt['binding']==meta['binding']
+    assert len(receipt['devices'])==2 and all(d['GPU']=='Tesla T4' and d['completed']==486*epoch and d['trainable_parameters']==73136096 and d['all_BN_buffers_equal_parent'] for d in receipt['devices']);out['receipt']=receipt
+    if not (D/'actual-accepted.json').exists():w.new_json(D/'actual-accepted.json',out);row.update(state='paired_logit_full_fit_actual_complete',receipt=receipt);save(row)
+   print(json.dumps(out),flush=True)
+finally:
+ if not retain:(claim/'owner.json').unlink();claim.rmdir()

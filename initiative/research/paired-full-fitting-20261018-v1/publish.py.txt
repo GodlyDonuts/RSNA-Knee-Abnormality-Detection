@@ -1,0 +1,64 @@
+"""New paired epoch publication: bounded RAM, private full state, no disk models."""
+import ast,hashlib,importlib.util,json,os,shutil,sqlite3,sys,tempfile
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+assert int(os.environ.get('SLURM_MEM_PER_NODE','0'))>=16384
+actual=v['actual'];receipt=actual['receipt'];epoch=actual['epoch'];assert actual['status']=='COMPLETE' and receipt['segment']==epoch and epoch in (1,2,3)
+R=Path('/tmp/rsna-paired-full-fitting-20261018-v1');funding=json.loads((R/'funding.json').read_text());assert hashlib.sha256(v['program'].encode()).hexdigest()==funding['publisher_sha256']
+assert funding['RAM_temporary_cap_bytes']==4*2**30 and funding['CPU_publication_host_RAM_bytes']==16*2**30
+D=R/('epoch-'+str(epoch));assert not D.exists();assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('paired-logit-full-fit:'+actual['source_sha256'],)).fetchone()[0])
+assert row['state']=='paired_logit_full_fit_actual_complete' and row['receipt']==receipt and row['kernel_id']==actual['kernel_id']
+assert receipt['status']=='actual_paired_parent_logit_full3887_epoch_session_complete' and receipt['completed']==486*epoch
+assert sum(receipt[k]['bytes'] for k in ('epoch','checkpoint','run'))<2*2**30 and max(receipt[k]['bytes'] for k in ('epoch','checkpoint','run'))<2**30
+assert any(parts[1]=='/dev/shm' and parts[2]=='tmpfs' for line in Path('/proc/mounts').read_text().splitlines() if len(parts:=line.split())>=3)
+assert shutil.disk_usage('/dev/shm').free>24*2**30
+D.mkdir(mode=0o700);W=Path(tempfile.mkdtemp(prefix='rsna-paired-epoch-'+str(epoch)+'-',dir='/dev/shm'));W.chmod(0o700)
+(D/'collection-intent.json').write_text(json.dumps({'original':actual,'RAM_path':str(W),'RAM_cap_bytes':4*2**30,'automatic_retry':False,'original_Kaggle_immutable_outputs_retained':True},indent=2))
+import requests
+from urllib.parse import urljoin,urlparse
+session=requests.Session();session.headers['Authorization']='Bearer '+v['kaggle_token'];owner,slug=actual['slug'].split('/')
+def download(remote,p,size,digest):
+ assert not p.exists() and sum(x.stat().st_size for x in W.rglob('*') if x.is_file())+size<4*2**30
+ session.cookies.clear();response=session.post('https://api.kaggle.com/v1/kernels.KernelsApiService/DownloadKernelOutput',json={'ownerSlug':owner,'kernelSlug':slug,'versionNumber':1,'filePath':remote},timeout=(10,90),allow_redirects=False,stream=True)
+ for _ in range(6):
+  if response.status_code==200:break
+  assert response.status_code in (301,302,303,307,308);url=urljoin(response.url,response.headers.get('Location',''));response.close();u=urlparse(url);host=u.hostname or '';assert u.scheme=='https' and (host in ('storage.googleapis.com','api.kaggle.com','www.kaggle.com','www.kaggleusercontent.com') or host.endswith('.googleusercontent.com'));response=(session if host=='api.kaggle.com' else requests).get(url,timeout=(10,90),allow_redirects=False,stream=True)
+ assert response.status_code==200;h=hashlib.sha256();n=0
+ try:
+  with p.open('xb') as f:
+   os.fchmod(f.fileno(),0o600)
+   for block in response.iter_content(2**20):n+=len(block);assert n<=size;f.write(block);h.update(block)
+ except requests.RequestException:raise RuntimeError('Original RAM epoch stream failed; preserve original journal and reconcile') from None
+ finally:response.close()
+ assert n==size and h.hexdigest()==digest
+for kind,remote,name in (('epoch','paired-full/fit/epoch-checkpoints/epoch-'+str(epoch).zfill(3)+'.pt','model.pt'),('checkpoint','paired-full/fit/checkpoint.pt','optimizer-checkpoint.pt'),('run','paired-full/fit/run.json','run.json')):download(remote,W/name,receipt[kind]['bytes'],receipt[kind]['sha256'])
+download('paired-full/source-permission.txt',W/'source-permission.txt',4411,'34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79')
+private_source=(R/('epoch-'+str(epoch)+'-source')/'source.private.py').read_text();assert hashlib.sha256(private_source.encode()).hexdigest()==actual['source_sha256']
+modules=[n for n in ast.parse(private_source).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id=='FILES'];assert len(modules)==1
+own_files=ast.literal_eval(modules[0].value);assert set(own_files)==set(receipt['binding']['source_module_sha256'])
+validators={n:(R/'validators'/n).read_text() for n in funding['validator_sha256']}
+assert all(hashlib.sha256(t.encode()).hexdigest()==funding['validator_sha256'][n] for n,t in validators.items())
+code=D/'code'
+for name,text in {**own_files,**validators,'rsna/__init__.py':'','rsna/competitive/__init__.py':''}.items():
+ p=code/name;assert p.resolve().is_relative_to(code.resolve());p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(code));import torch
+from rsna.competitive.paired_logit_epoch import verify
+state=torch.load(W/'optimizer-checkpoint.pt',map_location='cpu',weights_only=True);snapshot=torch.load(W/'model.pt',map_location='cpu',weights_only=True);checked=verify(state,snapshot,receipt);assert json.loads((W/'run.json').read_text())['binding']==state['binding'];binding=state['binding'];del state,snapshot
+for n,t in own_files.items():assert hashlib.sha256(t.encode()).hexdigest()==receipt['binding']['source_module_sha256'][n]
+(W/'own-source.json').write_text(json.dumps({'numerical':own_files,'validators':validators},sort_keys=True))
+(W/'provenance.json').write_text(json.dumps({'original_Kaggle':actual,'complete_binding':binding,'independent_whole_state_CPU_verification':checked,'upstream_author':'nartaa','upstream_weight_SHA':'7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef','upstream_source_SHA':'493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde','permission_SHA':'34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79','source_exposure_limits':'Parent exposed to development/gold; not independent OOF or clinical evidence. Protected data not used by this adaptation.','full_optimizer_model_RNG_state_privately_preserved_on_HF_and_original_Kaggle':True,'temporary_RAM_copies_removed_only_after_all_private_bytes_verified':True,'no_original_assets_deleted_or_storage_deletion_credit':True,'accuracy_claim':False},sort_keys=True))
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py');assert hashlib.sha256(core.read_bytes()).hexdigest()=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde';spec=importlib.util.spec_from_file_location('canonical_paired_RAM_publisher',core);pub=importlib.util.module_from_spec(spec);spec.loader.exec_module(pub)
+os.environ.update(HF_HUB_DISABLE_XET='1',HF_HUB_DISABLE_PROGRESS_BARS='1',HF_HOME=str(W/'hf-home'),HF_XET_CACHE=str(W/'hf-xet'))
+from huggingface_hub import HfApi,CommitOperationAdd
+names=('model.pt','optimizer-checkpoint.pt','run.json','source-permission.txt','own-source.json','provenance.json');files={n:W/n for n in names};table={n:{'bytes':p.stat().st_size,'sha256':pub.sha(p)} for n,p in files.items()};prefix='models/paired-parent-logit-full3887-'+receipt['binding']['source_git'][:12]+'/epoch-'+str(epoch).zfill(3)
+with pub.shared_publication_lock():
+ api=HfApi(token=v['hf_token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True and not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in names],repo_type='dataset'))
+ pub.atomic_new(D/'publication-intent.json',{'parent':info.sha,'prefix':prefix,'files':table,'original':actual,'automatic_retry':False});commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve immutable paired full3887 epoch '+str(epoch)+' including complete resumable state privately',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in files.items()]);pub.atomic_new(D/'publication-commit.json',{'revision':commit.oid})
+ for n,item in table.items():
+  assert sum(p.stat().st_size for p in W.rglob('*') if p.is_file())+item['bytes']<4*2**30
+  with tempfile.TemporaryDirectory(prefix='verified-',dir=W) as tmp:
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+n,repo_type='dataset',revision=commit.oid,local_dir=tmp,force_download=True));assert p.stat().st_size==item['bytes'] and pub.sha(p)==item['sha256']
+ result={'status':'actual_paired_epoch_RAM_private_all6_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'epoch':epoch,'completed':486*epoch,'original_kernel':actual['kernel_id'],'original_source_sha256':actual['source_sha256'],'revision':commit.oid,'prefix':prefix,'files':table,'objects':6,'independent_CPU_state_verification':checked,'permanent_model_checkpoint_bytes_on_node_or_shared_disk':0,'full_optimizer_included_private_HF':True,'RAM_cap_bytes':4*2**30,'accuracy_claim':False};pub.atomic_new(D/'verified.json',result)
+shutil.rmtree(W);pub.atomic_new(D/'temporary-copies-released.json',{'only_new_RAM_copies_removed_after_verified_HF':True,'original_Kaggle_and_HF_bytes_retained':True});assert sum(p.stat().st_size for p in R.rglob('*') if p.is_file())<8*2**20
+print(json.dumps(result),flush=True)
