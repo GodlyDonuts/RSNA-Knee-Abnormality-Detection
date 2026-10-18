@@ -83,3 +83,5 @@ owner56873 starts with status of SAME139394879v1, at most two future epoch pushe
 It pins corrected publication-v3 sources. The first handoff attempt safely deferred
 while an original read-only child existed. No E1push or original epoch is repeated.
 Use actual-publication-owner-v3-handoff and actual-new-funding-contract receipts.
+
+Original E1kernel139394879v1/source51aa28fcf645 is now ACTUALLY RUNNING, authenticated CPU957338. This supersedes queued/null snapshots; no optimizer count is inferred yet. Existing training56873 and scoring59572 remain unchanged; never repeat the E1push.
