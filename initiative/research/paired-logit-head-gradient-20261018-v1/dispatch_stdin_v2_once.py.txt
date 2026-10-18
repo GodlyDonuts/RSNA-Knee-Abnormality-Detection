@@ -1,0 +1,22 @@
+"""Extract only a small existing head in RAM, then run one new CPU mechanism test."""
+import ast,hashlib,json,shlex,subprocess,time
+from pathlib import Path
+ROOT=Path.cwd();D=Path(__file__).resolve().parent;L=ROOT/'artifacts/paired-logit-head-gradient-20261018-v1/stdin-v2';L.mkdir(mode=0o700,parents=True,exist_ok=True)
+files={name:(D/name).read_text() for name in ('extract_head_mmap_v2.py.txt','worker.py.txt','gradient_screen.py')};git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+for name,text in files.items():assert subprocess.check_output(['git','show',git+':'+D.relative_to(ROOT).as_posix()+'/'+name],text=True)==text;compile(text,name,'exec')
+reconciled=json.loads((D/'actual-transport-reconciled.json').read_text());assert reconciled['new_analysis_root_exists'] is False and reconciled['actual_read_only_reconciliation_CPU']==957252
+import importlib.util
+spec=importlib.util.spec_from_file_location('new_bounded_stdin_transport',D/'stdin_transport.py');transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
+assert subprocess.check_output(['git','show',git+':'+D.relative_to(ROOT).as_posix()+'/stdin_transport.py'],text=True)==(D/'stdin_transport.py').read_text()
+shapes=ast.literal_eval(next(n.value for n in ast.parse(files['gradient_screen.py']).body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='SHAPES' for t in n.targets)))
+p=L/'intent.json';assert not p.exists();p.write_text(json.dumps({'source_git':git,'source_hashes':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()},'new_node_local_cap_bytes':2*2**20,'inside_existing32MiB_controls':True,'new_CPU_jobs_maximum':2,'new_GPU_jobs':0,'old_training_or_recovery_repeats':0,'small_head_RAM_transport_only_no_Mac_weight_file':True,'automatic_retry':False},indent=2)+'\n')
+def run(node,program,payload,mem,minutes,name,timeout):
+ args=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem='+mem,'--time=00:'+str(minutes).zfill(2)+':00','--job-name='+name,'env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',transport.COMMAND]
+ return subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=transport.envelope(program,payload),capture_output=True,text=True,timeout=timeout)
+x=run('evc39',files['extract_head_mmap_v2.py.txt'],{'shapes':shapes},'4G',5,'rsna-new-gradient-head-extract',380)
+assert x.returncode==0,'Read-only head extraction stopped: '+x.stderr[-1200:]
+extracted=json.loads(x.stdout);(L/'head-extraction-metadata.json').write_text(json.dumps({'returncode':x.returncode,'proof':extracted['proof'],'private_head_bytes_not_logged':True},indent=2)+'\n');print(json.dumps({'phase':'new_head_extracted_to_RAM_only','proof':extracted['proof']}),flush=True)
+v={'source_git':git,'module_source':files['gradient_screen.py'],'module_sha256':hashlib.sha256(files['gradient_screen.py'].encode()).hexdigest(),'program_sha256':hashlib.sha256(files['worker.py.txt'].encode()).hexdigest(),'head_base64':extracted['head_base64'],'head_proof':extracted['proof']}
+x=run('evc33',files['worker.py.txt'],v,'6G',15,'rsna-new-paired-gradient-screen',1000);v.clear();extracted.clear()
+(L/'response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Inspect original new mechanism receipt without retry: '+x.stderr[-1000:]
+out=json.loads(x.stdout);raw=x.stdout.encode();(L/'actual-original.private.json').write_bytes(raw);out={k:value for k,value in out.items() if k!='per_study'};out['private_original_numeric_rows_retained_only_on_owning_node_and_ignored_artifact']={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()};(D/'actual.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:out[k] for k in ('status','CPU_job','fitting_studies','draws_per_study','paired_to_standard_ratios','head_gradient_mechanism_gate_only','elapsed_seconds')}),flush=True)
