@@ -5,6 +5,7 @@ ROOT=Path.cwd();D=Path(__file__).resolve().parent;L=ROOT/'artifacts/paired-logit
 files={name:(D/name).read_text() for name in ('extract_head_mmap_v2.py.txt','worker.py.txt','gradient_screen.py')};git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
 for name,text in files.items():assert subprocess.check_output(['git','show',git+':'+D.relative_to(ROOT).as_posix()+'/'+name],text=True)==text;compile(text,name,'exec')
 reconciled=json.loads((D/'actual-transport-reconciled.json').read_text());assert reconciled['new_analysis_root_exists'] is False and reconciled['actual_read_only_reconciliation_CPU']==957252
+for name in ('worker.py.txt','gradient_screen.py'):assert subprocess.check_output(['git','show',reconciled['original_source_git']+':'+D.relative_to(ROOT).as_posix()+'/'+name],text=True)==files[name]
 import importlib.util
 spec=importlib.util.spec_from_file_location('new_bounded_stdin_transport',D/'stdin_transport.py');transport=importlib.util.module_from_spec(spec);spec.loader.exec_module(transport)
 assert subprocess.check_output(['git','show',git+':'+D.relative_to(ROOT).as_posix()+'/stdin_transport.py'],text=True)==(D/'stdin_transport.py').read_text()
