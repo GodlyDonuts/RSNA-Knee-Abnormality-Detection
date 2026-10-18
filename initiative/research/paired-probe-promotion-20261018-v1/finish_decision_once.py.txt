@@ -1,0 +1,75 @@
+"""Finite receipt-only follow-through; no GPU, transfer or competition authority."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+os.chdir(ROOT)
+sys.path.insert(0, str(ROOT))
+from rsna.competitive.paired_probe_decision import decide
+
+D = Path(__file__).resolve().parent
+L = ROOT / 'artifacts/paired-probe-promotion-20261018-v1'
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+MODULE = ROOT / 'rsna/competitive/paired_probe_decision.py'
+SHA = hashlib.sha256(MODULE.read_bytes()).hexdigest()
+OUTPUT = D / 'actual-decision.json'
+MEASURE = ROOT / 'artifacts/paired-encoder-gradient-noise-v2-20261018-v1/execution/owner-result.json'
+RECOVERY = ROOT / 'artifacts/paired-logit-real-encoder-20261018-v1/owner-status-v2-result.json'
+OWNERS = {71891: 'paired-encoder-gradient-noise-v2-20261018-v1/execution/finish_once.py.txt',
+          66085: 'paired-logit-real-encoder-20261018-v1/finish_status_v2_once.py.txt'}
+
+def original_alive(pid):
+    answer = subprocess.run(['ps', '-p', str(pid), '-o', 'command='], capture_output=True, text=True)
+    return answer.returncode == 0 and OWNERS[pid] in answer.stdout
+
+assert all(original_alive(pid) for pid in OWNERS) and not OUTPUT.exists()
+with (L / 'owner-intent.json').open('x') as stream:
+    json.dump({'PID': os.getpid(), 'original_owners': OWNERS, 'maximum_hours': 12,
+               'decision_module_sha256': SHA, 'new_GPU_jobs_entries_transfers': 0,
+               'no_original_owner_mutation': True}, stream, indent=2)
+
+start = time.monotonic()
+try:
+    while time.monotonic() - start < 12 * 3600:
+        assert hashlib.sha256(MODULE.read_bytes()).hexdigest() == SHA
+        if MEASURE.exists() and RECOVERY.exists():
+            mraw, rraw = MEASURE.read_bytes(), RECOVERY.read_bytes()
+            try:
+                m, r = json.loads(mraw), json.loads(rraw)
+            except json.JSONDecodeError:
+                time.sleep(10)
+                continue  # Original terminal file may still be being written.
+            assert m['status'] == 'new_trained_encoder_noise_measurement_actual_complete'
+            assert r['status'] == 'new_paired_logit_encoder_engineering_trial_actual_complete'
+            result = decide(m['actual'], r['actual'])
+            result.update(original_measurement_owner_bytes_sha256=hashlib.sha256(mraw).hexdigest(),
+                          original_recovery_owner_bytes_sha256=hashlib.sha256(rraw).hexdigest(),
+                          decision_module_sha256=SHA)
+            with OUTPUT.open('x') as stream:
+                json.dump(result, stream, indent=2, allow_nan=False)
+                stream.write('\n')
+            with (L / 'owner-result.json').open('x') as stream:
+                json.dump({'status': 'actual_numerical_decision_recorded', 'PID': os.getpid(),
+                           'result': result, 'new_GPU_jobs_entries_transfers': 0}, stream, indent=2)
+            break
+        for pid, path in ((71891, MEASURE), (66085, RECOVERY)):
+            if not path.exists() and not original_alive(pid):
+                raise RuntimeError(f'Original owner {pid} missing without terminal receipt; no restart')
+        progress = {'PID': os.getpid(), 'phase': 'waiting_original_actual_terminal_receipts',
+                    'elapsed_seconds': time.monotonic()-start, 'new_GPU_jobs_entries_transfers': 0}
+        temporary = L / 'owner-progress.tmp'
+        temporary.write_text(json.dumps(progress, indent=2)+'\n')
+        temporary.replace(L / 'owner-progress.json')
+        time.sleep(30)
+    else:
+        raise TimeoutError('Finite numerical-decision wait expired; no experiment inferred terminal')
+except BaseException as error:
+    with (L / 'owner-failure.json').open('x') as stream:
+        json.dump({'PID': os.getpid(), 'reason': str(error), 'original_experiments_unchanged': True,
+                   'no_automatic_retry': True}, stream, indent=2)
+    raise
