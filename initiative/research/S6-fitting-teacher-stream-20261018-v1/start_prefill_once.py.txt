@@ -1,0 +1,128 @@
+"""One actual CPU production prefill; no new GPU/Kaggle mutation."""
+
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-fitting-teacher-stream-20261018-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "prefill-intent.json").exists()
+stage = json.loads((D / "actual-staged.json").read_text())
+assert (
+    stage["CPU_job"] == "961829"
+    and stage["files"]["driver.py"]
+    == "840204d740a080f55e53e1a1a74b2ccc5a5d64a6156da0db5e71e26227b9b80e"
+)
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): v.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, v in [line.partition("=")]
+    if sep
+}
+with (L / "prefill-intent.json").open("x") as f:
+    json.dump(
+        {
+            "science_source_git": stage["source_git"],
+            "stage_CPU_job": "961829",
+            "driver_sha256": stage["files"]["driver.py"],
+            "mode": "prefill",
+            "new_fitting_studies": 4,
+            "GPU": 0,
+            "CPU": 9,
+            "RAM_GiB": 160,
+            "wall_minutes": 30,
+            "automatic_retry": False,
+            "competition_entries": 0,
+        },
+        f,
+        indent=2,
+    )
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=9",
+    "--gres=none",
+    "--mem=160G",
+    "--time=00:30:00",
+    "--job-name=rsna-S6-stream-prefill",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=2",
+    "MKL_NUM_THREADS=2",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/engine-v1/driver.py",
+]
+with (
+    (L / "prefill-stdout.private.log").open("x") as out,
+    (L / "prefill-stderr.private.log").open("x") as err,
+):
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(a),
+        ],
+        input=json.dumps({"phase": 0, "mode": "prefill", "HF_token": values["HF_TOKEN"]}),
+        text=True,
+        stdout=out,
+        stderr=err,
+    )
+with (L / "prefill-transport.json").open("x") as f:
+    json.dump({"returncode": x.returncode, "automatic_retry": False}, f)
+assert x.returncode == 0, (
+    "Original prefill stopped; inspect retained exact phase/Slurm/private logs without retry"
+)
+rows = [
+    json.loads(t)
+    for t in (L / "prefill-stdout.private.log").read_text().splitlines()
+    if t.startswith("{")
+]
+assert (
+    rows
+    and rows[-1]["status"] == "actual_first4_new_fitting_MRI_studies_rendered_and_retained_once"
+)
+result = rows[-1]
+actual = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(
+            [
+                "sacct",
+                "-X",
+                "-n",
+                "-P",
+                "-j",
+                result["Slurm_job"],
+                "--format=JobIDRaw,State,ExitCode",
+            ]
+        ),
+    ],
+    text=True,
+)
+assert result["Slurm_job"] + "|COMPLETED|0:0" in actual
+with (D / "actual-prefill-complete.json").open("x") as f:
+    json.dump(result, f, indent=2)
+    f.write("\n")
+print(json.dumps(result), flush=True)
