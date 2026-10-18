@@ -121,3 +121,15 @@ remain distinct from this baseline bundle's masks. The stronger priorCPU946541
 soft-source ranking analysis did not establish a blanket anchoring barrier. No
 weight increase, label change or new fit follows this check.
 [Scope and decision](../initiative/research/teacher-source-mixture-signal-20261018-v1/interpretation.json).
+
+## Recovered cross-model teacher evidence
+
+Original S6 CPU32 scout139205901v2 remainsERROR on its final resource assertions.
+CPU960928 recovered its already-computed outputs without repeating inference:
+32fitting studies/20,317windows, original8 image/meta fingerprints equal, maximum
+FP32 reference probability error4.67e-7. The two teacher models disagree on
+10.08–20.77% of strict study pairs per target. These are descriptive fitting-data
+comparisons, not ground-truth errors, AUC or accepted resource bounds. They
+advance the existing rank-transport/distillation route; full-cohort teacher
+outputs and actual new training are still absent.
+[Exact recovery and limitations](../initiative/research/recovered-S6-teacher32-20261018-v1/README.md).
