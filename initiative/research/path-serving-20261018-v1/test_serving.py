@@ -200,3 +200,47 @@ def test_overlapping_lanes_cannot_be_published(exported, tmp_path):
     with pytest.raises(ValueError):
         m.merge_shards(paths, ["one"], out)
     assert not out.exists()
+
+
+def test_explicit_larger_encoder_batch_reaches_prediction_boundary(exported, tmp_path):
+    _, _, head, receipt = exported
+    model = m.PathInference(
+        head, receipt["sha256"], parent_sha256=m.PARENT, device="cpu", encoder_chunk_size=32
+    )
+    model.reader = Formula()
+    provider = Provider()
+    provider.binding = {**provider.binding, "encoder_chunk_size": 32}
+    output = tmp_path / "batch32.csv"
+    result = model.predict_csv(provider, output)
+    reference = tmp_path / "batch12.csv"
+    runner(exported).predict_csv(Provider(), reference)
+    assert output.read_bytes() == reference.read_bytes()
+    assert result["encoder_chunk_size"] == 32
+    assert result["changed_batching_requires_target_device_comparison"] is True
+    # This checks wrapper plumbing on synthetic precomputed maps, not actual
+    # encoder equivalence or speed when image batch size changes on T4.
+
+
+def test_encoder_execution_batch_mismatch_refused_before_study_reads(exported, tmp_path):
+    class Unreadable(Provider):
+        binding = {**Provider.binding, "encoder_chunk_size": 32}
+
+        def __getitem__(self, i):
+            raise AssertionError("Mismatched execution must fail before MRI reads")
+
+    output = tmp_path / "mismatch.csv"
+    with pytest.raises(ValueError):
+        runner(exported).predict_csv(Unreadable(), output)
+    assert not output.exists() and not output.with_name("mismatch.csv.partial").exists()
+
+
+@pytest.mark.parametrize("size", [0, 97, True, 12.0, "32"])
+def test_invalid_encoder_execution_batch_rejected_before_model_reads(size, tmp_path):
+    with pytest.raises(ValueError):
+        m.PathInference(
+            tmp_path / "not-read.pt",
+            "unused",
+            parent_sha256=m.PARENT,
+            device="cpu",
+            encoder_chunk_size=size,
+        )

@@ -117,6 +117,7 @@ def lane_worker(options, rank, indices, deadline):
         parent_sha256=PARENT,
         device=device,
         vectorized_scoring=options["vectorized_scoring"],
+        encoder_chunk_size=options["encoder_chunk_size"],
     )
     provider = CompetitionPathProvider(
         Path(options["competition"]),
@@ -229,6 +230,7 @@ def main(argv=None):
                 "head_sha256": args.head_sha256,
                 "shared_seconds": args.max_seconds,
                 "vectorized_scoring": args.vectorized_scoring,
+                "encoder_chunk_size": args.encoder_chunk_size,
                 "no_training_or_competition_entry": True,
             },
             f,

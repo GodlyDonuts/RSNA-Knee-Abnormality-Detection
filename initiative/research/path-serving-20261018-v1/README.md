@@ -129,3 +129,9 @@ speed claim follows from the wrapper. The training jobs and default serving
 recipe remain unchanged. The25 focused adapter/launcher cases pass, including
 new32-window propagation and rejection before scratch creation. No old clinical
 cohort replay, GPU dispatch, notebook push or competition submission occurred.
+
+## Encoder batch handoff correction
+
+The experimental runner previously accepted `--encoder-chunk-size32`, but the final prediction wrapper still required12, so that requested throughput experiment would fail before study reads. The wrapper now accepts an explicitly bound execution size1–96, defaults12, requires the provider to match that size, and records it in launch and prediction receipts. The exported scientific reference policy remains12; larger execution batches remain candidates requiring actual T4 logits/memory/time comparison.
+
+Seven new regression cases cover a32-window provider through actual prediction/output, pre-read rejection of mismatched execution, and invalid sizes. All43 focused serving/input/runner tests and scoped Ruff pass. The synthetic CSV comparison uses precomputed maps; it proves only plumbing, not actual encoder batch equivalence or speed. No live training source, GPU job or Kaggle version was changed.

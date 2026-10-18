@@ -110,7 +110,10 @@ class PathInference:
         parent_sha256: str,
         device,
         vectorized_scoring: bool = False,
+        encoder_chunk_size: int = 12,
     ):
+        if type(encoder_chunk_size) is not int or not 1 <= encoder_chunk_size <= 96:
+            raise ValueError("Explicit encoder execution chunk size from1through96 required")
         if head.stat().st_size > 2**20 or digest(head) != expected_sha256:
             raise ValueError("Exact small immutable path-head export required")
         value = torch.load(head, map_location="cpu", weights_only=True)
@@ -141,6 +144,7 @@ class PathInference:
             reader_class = FastPathReader
             self.scoring_version = SCORING_VERSION
         self.vectorized_scoring = vectorized_scoring
+        self.encoder_chunk_size = encoder_chunk_size
         self.reader = reader_class().to(self.device).eval()
         self.reader.load_state_dict(value["model"], strict=True)
         self.reader.requires_grad_(False)
@@ -163,7 +167,7 @@ class PathInference:
             binding["original"].get("parent_sha256") != PARENT
             or binding.get("sampling") != "dense"
             or binding.get("encoder_precision") != "float32"
-            or binding.get("encoder_chunk_size") != 12
+            or binding.get("encoder_chunk_size") != self.encoder_chunk_size
             or type(deadline_seconds) not in {int, float}
             or not math.isfinite(deadline_seconds)
             or deadline_seconds <= 0
@@ -225,6 +229,8 @@ class PathInference:
             "actual_T4_qualification_claim": False,
             "candidate_vectorized_scoring": self.vectorized_scoring,
             "scoring_execution_version": self.scoring_version,
+            "encoder_chunk_size": self.encoder_chunk_size,
+            "changed_batching_requires_target_device_comparison": self.encoder_chunk_size != 12,
         }
 
 
