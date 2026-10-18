@@ -264,3 +264,9 @@ or clinical blinding. The packet remains candidate-only; no case8 has been sent.
 No old source dataset/model/recovery audit was replayed. New local case cap512MiB
 leaves>20GiB reserve; no new cluster shared files/pixels. Original source, clinical
 text, native references, outputs and delivery proof remain ignored/private.
+
+## Seventh image-first and report-informed reviews collected; requested views delivered
+
+Both unchanged candidate files are preserved and exact-byte verified:67,450bytes/SHA b7ee07e6 and77,223bytes/SHA151a7373. Each has23access records covering128source slices, all12targets and37evidence records with valid original series/slice ranges. Ten literal report quotes in the report-informed version match the original. One target status changes after report access; this is a disagreement retained as uncertainty, not an accepted-label correction. The provisional timestamp error remains in its immutable original with a separate reviewer correction. Reading order and image access remain reviewer-reported: underlying tool-call chronology was not independently collected. No clinical-gold or accuracy claim.
+
+Sixteen requested original slices were rendered in paired acquisition-wide1/98and0/99.9percentile windows at their native320/384resolution. All17newimage/manifest uploads were size/SHA/access verified, and append-only Page readback has39uniqueimages with all prior blocks unchanged. One actual native image renders. The follow-up was sent once to the same Daenerys UI, Read6:53AM and Thinking. Await the separate original addendum before case8; do not resend or change accepted labels. Private original MRI/report/review/native references and screenshots stay ignored, outsideGit/HF.
