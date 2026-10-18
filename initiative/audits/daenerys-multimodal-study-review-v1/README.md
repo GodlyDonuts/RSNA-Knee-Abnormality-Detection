@@ -270,3 +270,22 @@ text, native references, outputs and delivery proof remain ignored/private.
 Both unchanged candidate files are preserved and exact-byte verified:67,450bytes/SHA b7ee07e6 and77,223bytes/SHA151a7373. Each has23access records covering128source slices, all12targets and37evidence records with valid original series/slice ranges. Ten literal report quotes in the report-informed version match the original. One target status changes after report access; this is a disagreement retained as uncertainty, not an accepted-label correction. The provisional timestamp error remains in its immutable original with a separate reviewer correction. Reading order and image access remain reviewer-reported: underlying tool-call chronology was not independently collected. No clinical-gold or accuracy claim.
 
 Sixteen requested original slices were rendered in paired acquisition-wide1/98and0/99.9percentile windows at their native320/384resolution. All17newimage/manifest uploads were size/SHA/access verified, and append-only Page readback has39uniqueimages with all prior blocks unchanged. One actual native image renders. The follow-up was sent once to the same Daenerys UI, Read6:53AM and Thinking. Await the separate original addendum before case8; do not resend or change accepted labels. Private original MRI/report/review/native references and screenshots stay ignored, outsideGit/HF.
+
+
+## Seventh addendum collected and eighth full study delivered
+
+The unchanged51,018-byte seventh addendum is source-bound to all16requested
+new views/32panels; no target status changed. Image access and reading order
+remain reviewer-reported, with no independent underlying tool-call trace. Both
+earlier originals and the timestamp correction are preserved.
+
+The next unused fitting study is now sent once and acknowledged in the same
+Daenerys chat: all152original slices/five complete series/26native sheets,
+including896×896 and792×800 pixels, plus a separate exact source report. All
+28hosted asset sizes/hashes/access matched, Page readback covers all26unique
+images and retains the review rubric, and an actual MRI preview renders. The
+old768pixel presentation guard stopped before rendering; a distinct1024cap
+renderer reused all152retained original DICOMs without a second download. No
+resizing or AI enhancement. Daenerys is Thinking; do not send case9 or interrupt.
+Accepted labels remain unchanged. See the sanitized new receipt; all private
+pixels/reports/reviews/native refs/UI proof stay ignored.

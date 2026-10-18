@@ -1,0 +1,24 @@
+"""Finite sole owner of one new diagnostic; never retries an uncertain mutation."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/paired-logit-real-encoder-20261018-v1');assert (D/'actual-staged.json').exists() and not (L/'owner-status-v2-intent.json').exists() and (D/'actual-pushed.json').exists();frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('program.py.txt','run_phase.py.txt')}
+with (L/'owner-status-v2-intent.json').open('x') as stream:json.dump({'PID':os.getpid(),'maximum_hours':12,'maximum_new_GPU_pushes':0,'maximum_competition_entries':0,'source_sha256':json.loads((D/'actual-staged.json').read_text())['binding']['source_sha256'],'frozen':frozen,'automatic_uncertain_retry':False},stream,indent=2)
+start=time.monotonic();phase='status'
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'phase':phase,**value};(L/('owner-status-v2-result.json' if terminal else 'owner-status-v2-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while True:
+  assert time.monotonic()-start<12*3600,'Finite diagnostic owner expired; preserve original intent/version'
+  assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in frozen.items())
+  child=subprocess.run([sys.executable,str(D/'run_phase.py.txt'),phase],capture_output=True,text=True,timeout=820)
+  if child.returncode and 'FileExistsError' in child.stderr and 'coordinator-claim' in child.stderr and 'line 31' in child.stderr:
+   record({'status':'waiting_pre_ledger_canonical_claim_no_mutation'});time.sleep(150);continue
+  assert child.returncode==0,child.stderr[-1600:];out=json.loads(child.stdout);record({'actual':out})
+  if out['status']=='one_new_paired_logit_encoder_recovery_pushed':phase='status'
+  elif out['status']=='COMPLETE':
+   assert 'receipt' in out;record({'status':'new_paired_logit_encoder_engineering_trial_actual_complete','actual':out,'accuracy_or_full_production_fit_admitted':False},True);break
+  elif out['status'] in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):raise RuntimeError('New actual diagnostic failed; retain original logs and version, no retry')
+  else:assert out['status'] in (None,'waiting_actual_capacity_or_budget_without_mutation','RUNNING','QUEUED','CREATED','STARTING','INITIALIZING','PENDING'),out['status']
+  time.sleep(150)
+except BaseException as error:
+ record({'status':'new_diagnostic_owner_stopped_reconcile_read_only','reason':str(error)},True);raise

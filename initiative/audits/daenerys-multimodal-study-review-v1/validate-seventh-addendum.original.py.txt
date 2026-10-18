@@ -1,0 +1,18 @@
+"""Bind the newly returned original candidate addendum; never edit accepted labels."""
+import hashlib,json
+from pathlib import Path
+from rsna.schema import TARGETS
+D=Path(__file__).resolve().parent;path=D/'addendum-003.original.json';raw=path.read_bytes();assert len(raw)==51018 and hashlib.sha256(raw).hexdigest()=='8f0bbe8347a43003d4c25a13a5e780b48e813ee77b883d2fe0a377b2cf752bc3';v=json.loads(raw);packet=json.loads((D/'packet.json').read_text());assert v['packet_id']==packet['packet_id'] and v['candidate_annotation_only'] is True and v['accepted_labels_changed'] is False
+A=D/'alternate-windows-v1';manifest_raw=(A/'manifest.json').read_bytes();manifest=json.loads(manifest_raw);proof=json.loads((A/'hosted-and-append-verified.json').read_text());assert v['provenance']['alternate_manifest_sha256']==hashlib.sha256(manifest_raw).hexdigest()
+rows={r['reference']:r for r in proof['uploads'][:16]};assert len(rows)==16;image={r['sha256']:r for r in manifest['images']};c=v['coverage'];assert c['expected_new_references']==c['personally_inspected_new_references']==c['unique_original_slices_revisited']==16 and c['panels_inspected']==32 and c['total_case_unique_original_slices_remains']==128 and c['total_case_image_references_reviewed']==39 and c['new_inaccessible_references']==[];assert {r['reference'] for r in c['access_log']}==set(rows)
+for access in c['access_log']:
+ hosted=rows[access['reference']];source=image[access['hosted_png_sha256']];assert hosted['file_access_confirmed'] is True and hosted['sha256']==source['sha256']==access['hosted_png_sha256'] and hosted['byte_size']==source['size']==access['hosted_png_byte_count'];assert (access['series'],access['slice'])==(source['series_index'],source['slice_number']);assert access['original_sop_uid']==source['original_sop_uid'] and access['source_sha256_from_manifest']==source['source_sha256'];assert access['source_identity_matches_baseline_manifest'] is True and access['hosted_bytes_match_alternate_manifest'] is True
+ series=packet['series'][access['series']-1];i=access['slice']-1;assert series['ordered_sop_uids'][i]==access['original_sop_uid'] and series['source_sha256'][i]==access['source_sha256_from_manifest']
+old=json.loads((D/'report-informed-002.original.json').read_text());assert [r['target'] for r in v['target_statuses']]==list(TARGETS)
+for current,previous in zip(v['target_statuses'],old['targets'],strict=True):
+ assert current['target']==previous['target'] and current['status']==previous['status'] and current['changed_from_report_informed_002'] is False
+ for quote in current['literal_report_quotes']:assert quote in packet['report']
+for item in v['prior_files_preserved']:
+ matches=[D/name for name in ('provisional-001.original.json','report-informed-002.original.json') if hashlib.sha256((D/name).read_bytes()).hexdigest()==item['sha256']];assert len(matches)==1 and matches[0].stat().st_size==item['byte_count']
+assert v['further_material']['additional_windows_requested'] is False
+out={'status':'seventh_original_candidate_addendum_bytes_and_all_requested_windows_source_bound','original_bytes':len(raw),'original_sha256':hashlib.sha256(raw).hexdigest(),'candidate_targets':12,'new_access_records_matched_to_hosted_and_original_slices':16,'new_panels':32,'original_unique_source_slices':128,'total_image_refs':39,'status_changes_after_alternate_windows':0,'prior_original_reviews_bytes_unchanged':True,'underlying_independent_tool_call_trace_collected':False,'image_access_and_reading_order_remain_reviewer_reported':True,'accepted_labels_changed':False,'clinical_gold_or_accuracy_claim':False};dest=D/'addendum-validated.json';assert not dest.exists();dest.write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

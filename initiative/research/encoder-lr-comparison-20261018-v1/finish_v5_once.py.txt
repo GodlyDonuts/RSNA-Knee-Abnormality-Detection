@@ -1,0 +1,29 @@
+"""One finite fixed-final LR treatment owner; no automatic uncertain retry."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/encoder-lr-comparison-20261018-v1');assert (D/'epoch-1-prepared.json').exists() and not (L/'owner-v5-intent.json').exists();frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('run_phase_v3.py.txt','cloud-v3.py.txt','publish-program-v3.py.txt','publish_epoch_v3.py.txt')}
+with (L/'owner-v5-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_hours':18,'maximum_new_GPU_pushes':1,'original_second_kernel':139415974,'never_repeat_epoch1_or_epoch2_push':True,'maximum_private_publications':2,'fixed_final_updates':1458,'competition_entries':0,'frozen_sources':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic()
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(L/('owner-v5-result.json' if terminal else 'owner-v5-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+def run(name,args,timeout):
+ assert time.monotonic()-start<18*3600 and all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in frozen.items())
+ p=subprocess.run([sys.executable,str(D/name),*args],capture_output=True,text=True,timeout=timeout)
+ if p.returncode and 'Canonical claim busy; no duplicate mutation' in p.stderr:return {'status':'waiting_existing_canonical_claim_no_mutation'}
+ assert p.returncode==0,p.stderr[-2000:];return json.loads(p.stdout)
+try:
+ for epoch in (2,3):
+  if epoch>2:
+   out=run('run_phase_v3.py.txt',['prepare',str(epoch)],820);assert out['status']=='new_encoderLR_epoch_prepared';record({'epoch':epoch,'phase':'prepare','actual':out})
+  phase='status' if epoch==2 else 'push'
+  while True:
+   out=run('run_phase_v3.py.txt',[phase,str(epoch)],820);record({'epoch':epoch,'phase':phase,'actual':out});status=out['status']
+   if status=='one_exact_encoderLR_treatment_epoch_pushed':phase='status'
+   elif status=='COMPLETE':assert 'receipt' in out;break
+   elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):raise RuntimeError('Actual original LR epoch failed; no automatic retry')
+   else:assert status in (None,'waiting_existing_canonical_claim_no_mutation','waiting_fresh_capacity_or_complete_fit_budget_no_mutation','QUEUED','RUNNING','INITIALIZING','CREATED','PENDING','STARTING'),status
+   time.sleep(150)
+  out=run('publish_epoch_v3.py.txt',[str(epoch)],1600);assert out['status']=='actual_encoderLR3e5_epoch_private_full_download_size_SHA_verified' and out['epoch']==epoch and out['completed']==486*epoch;record({'epoch':epoch,'phase':'private_preservation','actual':out})
+ record({'status':'new_fixed_final_encoderLR_treatment_complete_and_all_three_epochs_privately_verified','competition_entries':0,'next':'separately admit exact final inference/runtime and compare actual score; no gain inferred from fitting'},True)
+except BaseException as error:
+ record({'status':'new_LR_v4_owner_stopped_preserve_originals_reconcile_read_only','reason':str(error)},True);raise
