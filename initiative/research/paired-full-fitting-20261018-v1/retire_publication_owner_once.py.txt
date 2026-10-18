@@ -1,0 +1,21 @@
+"""Retire only idle status controller81354; original Kaggle training is untouched."""
+import json,os,signal,subprocess,time
+from pathlib import Path
+R=Path.cwd();A=R/'artifacts/paired-full-fitting-20261018-v1';assert not (A/'owner-retired-before-publication.json').exists();end=time.monotonic()+75
+while True:
+ p=A/'owner-progress.json';v=json.loads(p.read_text());age=time.time()-p.stat().st_mtime
+ children=subprocess.run(['pgrep','-P','81354'],capture_output=True,text=True)
+ command=subprocess.check_output(['ps','-p','81354','-o','command='],text=True).strip()
+ assert command.endswith('initiative/research/paired-full-fitting-20261018-v1/finish_once.py.txt')
+ if v.get('phase')=='status' and v.get('epoch')==1 and v['actual']['status']=='RUNNING' and 0<=age<15 and not children.stdout.strip():
+  # Original source sleeps60s after this exact status. No child or mutation is active.
+  os.kill(81354,signal.SIGTERM)
+  for _ in range(30):
+   if subprocess.run(['ps','-p','81354'],capture_output=True).returncode!=0:break
+   time.sleep(0.1)
+  assert subprocess.run(['ps','-p','81354'],capture_output=True).returncode!=0
+  out={'status':'original_status_owner_retired_before_publication_only','original_PID':81354,'last_actual_kernel':139451532,'last_actual_status':'RUNNING','last_status_age_seconds':age,'no_active_child':True,'Kaggle_model_training_cancelled_or_restarted':False,'new_GPU_pushes':0,'reason':'Explicit RAM cache routing before HF import/cache_dir; source and numerical training unchanged'}
+  with (A/'owner-retired-before-publication.json').open('x') as f:json.dump(out,f,indent=2)
+  print(json.dumps(out));break
+ assert time.monotonic()<end,'No safe idle status boundary; original owner left unchanged'
+ time.sleep(1)

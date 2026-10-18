@@ -1,0 +1,40 @@
+"""Finite single fit owner: three fixed epochs, RAM preservation, no submissions."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/paired-full-fitting-20261018-v1';A.mkdir(mode=0o700,parents=True,exist_ok=True)
+frozen={n:hashlib.sha256((D/n).read_bytes()).hexdigest() for n in ('phase.py.txt','publish_v2.py.txt','run_phase.py.txt','publish_epoch_v2_once.py.txt')}
+with (A/'owner-v2-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_new_GPU_epoch_notebooks':3,'maximum_hours':18,'per_epoch_GPU_limit_seconds':6000,'new_competition_submissions':0,'fixed_epochs':3,'fixed_total_updates':1458,'fixed_training_studies':3887,'frozen':frozen,'new_permanent_checkpoint_disk_bytes':0,'RAM_publication_cap_bytes':4*2**30,'automatic_retry':False},f,indent=2)
+assert json.loads((A/'owner-retired-before-publication.json').read_text())['original_PID']==81354
+assert json.loads((D/'epoch-1-push.json').read_text())['kernel_id']==139451532
+start=time.monotonic();last=None
+
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(A/('owner-v2-result.json' if terminal else 'owner-v2-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+
+def run(name,args,timeout):
+ assert all(hashlib.sha256((D/n).read_bytes()).hexdigest()==h for n,h in frozen.items()),'Original active owner source changed'
+ assert time.monotonic()-start<18*3600
+ x=subprocess.run([sys.executable,str(D/name),*args],capture_output=True,text=True,timeout=timeout)
+ assert x.returncode==0,'Original source/intent stopped: inspect retained response, never retry uncertainty'
+ return json.loads(x.stdout)
+
+try:
+ for epoch in (1,2,3):
+  if epoch>1:record({'epoch':epoch,'phase':'prepare','actual':run('run_phase.py.txt',['prepare',str(epoch)],600)})
+  if epoch>1:
+   while True:
+    out=run('run_phase.py.txt',['push',str(epoch)],600);record({'epoch':epoch,'phase':'push','actual':out})
+    if out['status']=='one_new_paired_full_fit_epoch_pushed':break
+    assert out['status']=='waiting_complete_fit_budget_or_capacity_no_mutation'
+    time.sleep(60)
+  while True:
+   out=run('run_phase.py.txt',['status',str(epoch)],600);record({'epoch':epoch,'phase':'status','actual':out})
+   if out['status']=='COMPLETE':break
+   assert out['status'] not in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED')
+   time.sleep(60)
+  out=run('publish_epoch_v2_once.py.txt',[str(epoch)],1950)
+  assert out['status']=='actual_paired_epoch_RAM_private_all6_full_download_size_SHA_verified' and out['epoch']==epoch and out['completed']==486*epoch and out['objects']==6
+  record({'epoch':epoch,'phase':'private_complete_state_preservation','actual':out})
+ record({'status':'matched_paired_full_fit_complete_all3_private_verified','epochs':3,'total_updates':1458,'accuracy_or_competition_submission_claim':False},True)
+except BaseException as error:
+ record({'status':'original_paired_full_owner_stopped_preserve_intents_and_actual_jobs','error_type':type(error).__name__,'requires_original_state_reconciliation_no_retry':True},True);raise

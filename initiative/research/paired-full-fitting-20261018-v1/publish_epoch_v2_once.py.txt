@@ -1,0 +1,17 @@
+"""One new immutable paired epoch through bounded RAM; no token in argv/logs."""
+import hashlib,json,shlex,subprocess,sys
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;epoch=int(sys.argv[1]);assert epoch in (1,2,3);A=R/'artifacts/paired-full-fitting-20261018-v1';actual=json.loads((D/('epoch-'+str(epoch)+'-status.json')).read_text());assert actual['status']=='COMPLETE' and actual['epoch']==epoch
+program=(D/'publish_v2.py.txt').read_text();E=R/'.env';assert E.stat().st_mode&0o077==0;values={k.strip():x.strip().strip('"\'') for l in E.read_text().splitlines() for k,s,x in [l.partition('=')] if s and not l.lstrip().startswith('#')}
+with (A/('publish-v2-'+str(epoch)+'-intent.json')).open('x') as f:json.dump({'actual':actual,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'RAM_cap_bytes':4*2**30,'host_RAM_bytes':16*2**30,'permanent_node_model_bytes':0,'automatic_retry':False},f,indent=2)
+v={'program':program,'actual':actual,'hf_token':values['HF_TOKEN'],'kaggle_token':values['KAGGLE_API_TOKEN']}
+launcher='''import io,json,sys,traceback
+v=json.load(sys.stdin);sys.stdin=io.StringIO(json.dumps(v))
+try:exec(compile(v['program'],'new_paired_RAM_epoch_publisher','exec'),{'__name__':'__main__'})
+except BaseException as e:
+ frames=traceback.extract_tb(e.__traceback__);print(json.dumps({'status':'paired_RAM_publication_stopped_preserve_original_intent','error_type':type(e).__name__,'site_line':frames[-1].lineno if frames else None,'no_exception_token_or_URL_text_logged':True}),file=sys.stderr,flush=True);raise SystemExit(1) from None
+'''
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=16G','--time=00:30:00','--job-name=rsna-paired-RAM-epoch'+str(epoch),'env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','MKL_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',launcher]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps(v),capture_output=True,text=True,timeout=1900)
+(A/('publish-v2-'+str(epoch)+'-response.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,'Original RAM publication stopped; reconcile exact original intent/commit before any action'
+out=json.loads(x.stdout);(D/('epoch-'+str(epoch)+'-private-verified.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
