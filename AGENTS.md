@@ -1,5 +1,27 @@
 # RSNA Knee: current agent guide
 
+Current October18 state supersedes phase snapshots below. Family-mixture full
+training139355023v1 is COMPLETE1458updates; all three epochs privately verified,
+finalHF8d8c1130/model275ec8d8. Original18386success; original40013terminal before
+preparation because its conservative reserve guard failed. Distinct reconciled
+evaluator43079 is live; qualification139366373v1/source8ccc3f536da1 was pushed
+once and is RUNNING. No new entry or score yet. Never duplicate either notebook.
+
+CPU955076 retired only512MiB UNUSED completed-family future capacity: cap4GiB
+to3.5GiB, all3.516GB originals retained plus242MB buffer. ReceiptSHAf210549e.
+New guards bind the exact retirement and substitute new cap in the existing
+603433009211+unpaidP3GiB+unpaidFamily expression; no second credit/deletion.
+Old frozen finding38017 remains live on original E1; do not alter it. Its old
+conservative guards may stop later phases; inspect actual terminal/intent before
+any distinct recovery. Scoring waiter41043 still belongs to that original fit.
+
+Parent-delta CPU955154 produced the private670668-byte exact-schedule FP32
+reference for all11661bags, SHA94229c1e, after explicit cross-precision diagnosis.
+FP32reference does NOT claim CUDAFP16/dropout replay.19focused actual CPU engine/
+synthetic-image checks pass; actual MRI/GPU training acceptance is still absent.
+No new Dataset or model fit. See parent-delta-schedule-20261018-v1 and
+family-final-scoring-recovery-20261018-v2 for original failed phases and receipts.
+
 New parent-delta CPU954924 completed all3887fitting cached-MRI studies with64
 paired draws at all five predeclared simulated-drift scales. Stable paired-logit
 residual reduces approximation MSE; this is simulated student drift, not a

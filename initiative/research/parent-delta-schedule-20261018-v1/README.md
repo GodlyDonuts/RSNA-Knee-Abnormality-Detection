@@ -40,3 +40,20 @@ before the original anchored loss, with the complete original optimizer engine
 source pinned.19focused CPU cases pass, including zero-correction control equality
 and full/stop1/resume state/RNG/epoch equality for both modes on synthetic images.
 These are not actual MRI/GPU acceptance. No live scientific source was changed.
+
+Actual diagnostic955123 identified the failed full-readout comparison as a
+cross-precision contract: FP32same-bag probabilities agree with independentFP64
+to1.346e-7, while stored CUDAFP16full anchors differ from FP64by up to4.677e-4.
+The original1e-5full-equality check remains FAILED; it is not relabelled passed.
+
+CPU955154 completed the distinct explicitly FP32reference protocol for all11661
+original bags in31seconds. Private compressed table670668bytes,
+SHA94229c1ecab91b74c6669e1a69dde7a3179ae4e27c12df897804ce688778d9b0,
+remains only on evc33 in original parent-delta-schedule-v1/reference-materialization-v3.
+Every UID/order, window, mirror and density was replayed; original full-teacher
+arrays equal source feature records exactly, and CPU Torch/NumPy RNG was unchanged.
+No labels/masks were loaded. The arithmetic corrected deterministic logits
+reconstruct the stored teacher probability within1.2e-7; that is NOT an actual
+FP16/dropout student result or an accuracy improvement. No new Dataset/GPU pilot
+has been dispatched. Next: immutable actual-MRI training recovery wrapper and
+resource funding, retaining all existing fits and evaluation owners.

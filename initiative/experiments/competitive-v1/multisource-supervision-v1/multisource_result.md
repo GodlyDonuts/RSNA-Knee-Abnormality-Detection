@@ -1,8 +1,10 @@
 # Multi-source supervision: actual implementation and unresolved result
 
-One deterministic label-values-only candidate is actually training. No disease
-score exists yet, so the benefit of combining supervision remains unproved.
-Original continuation owner18386 owns the unchanged fixed-final3epoch run.
+The deterministic label-values-only candidate completed all1458updates and all
+three private epoch backups. No disease score exists yet, so combining supervision
+remains unproved. Original training owner18386 is terminal success. Reconciled
+scoring owner43079 pushed actual qualification139366373v1, currently RUNNING.
+Original40013 stopped before preparation at a reserve check and was not restarted.
 
 The original licensed-parent control consumes the Steven composite report-label
 array, not the separately accepted report-review release used by the independent
@@ -42,8 +44,10 @@ full/stop/resume checks. Candidate E1kernel139338298v1 completed486finite update
 and all five private objects were fully re-downloaded/size/SHA verified at
 HFd4f35abe654c0505b67b51b1fc2952047347842c. E2kernel139346363v1 completed972updates and all five private objects were
 fully verified at HF2faaa9cf454e6e90cc2bb6ef428874e24216cdbf, CPU954363.
-Original owner18386 pushed final E3kernel139355023v1 once. No new score exists.
-This establishes fitting, not accuracy.
+Original E3kernel139355023v1 completed1458updates and all five private objects
+were fully verified at HF8d8c1130c0fe8171fc83ef618ee29f8ea16b6464/CPU954993.
+Final modelSHA275ec8d85ed115685080c4f693ea187ff8480646a9fbb81a442e4c46b868b798.
+This establishes completed fitting and preservation, not accuracy.
 
 Decision: finish this one fixed-final candidate and evaluate all12findings using
 the predeclared comparison. Do not launch epoch-source cycling or an unidentified
