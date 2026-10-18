@@ -1,0 +1,43 @@
+"""One final paired-logit checkpoint: qualification, public output, code entry and actual score."""
+import hashlib,json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/paired-final-scoring-recovery-20261018-v2');L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'owner-intent.json').exists();assert (D/'actual-staged.json').exists()
+names=('coordinate_once.py.txt','program.py.txt');frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in names}
+with (L/'owner-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_hours':36,'maximum_qualification_pushes':1,'maximum_public_pushes':1,'maximum_code_entries':1,'completed_original_training_owner_PID':81735,'frozen_controls':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic();phase='push';mode='qualification'
+def check():
+ assert time.monotonic()-start<36*3600,'Finite owner expired; original phases preserved'
+ assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in frozen.items())
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,'phase':phase,'mode':mode,**value};(L/('owner-result.json' if terminal else 'owner-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ while True:
+  check()
+  x=subprocess.run([sys.executable,str(D/'coordinate_once.py.txt'),phase,mode],capture_output=True,text=True,timeout=760)
+  assert x.returncode==0,x.stderr[-1000:]
+  actual=json.loads(x.stdout);record({'actual':actual});status=actual['status']
+  if isinstance(status,str) and status.startswith('waiting_'):time.sleep(150);continue
+  if phase=='prepare_paired':
+   assert status=='actual_completed_privately_preserved_paired_final_scoring_prepared';phase='push';continue
+  if phase=='push':
+   assert status=='one_exact_matched_final_'+mode+'_pushed';phase='status'
+  elif phase=='status':
+   if status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):raise RuntimeError('Actual original '+mode+' failure; inspect before another mutation')
+   if status=='COMPLETE':
+    assert 'receipt' in actual
+    if mode=='qualification':mode='competition';phase='push';continue
+    phase='eligibility';continue
+   assert status in (None,'QUEUED','RUNNING','INITIALIZING','CREATED','PENDING','STARTING')
+  elif phase=='eligibility':
+   assert status=='actual_paired_final_entry_eligibility'
+   if actual['fresh']['eligible']:phase='submit';continue
+  elif phase=='submit':
+   assert status=='one_exact_paired_final_code_entry_accepted';phase='outcome'
+  else:
+   assert phase=='outcome' and status=='actual_paired_final_hidden_outcome'
+   if actual['outcome'] in ('scored','failed'):
+    record({'status':'actual_original_paired_final_hidden_terminal','actual':actual},True);break
+  time.sleep(150)
+except BaseException as error:
+ record({'status':'paired_final_scoring_recovery_owner_stopped_originals_preserved','reason':str(error)},True);raise

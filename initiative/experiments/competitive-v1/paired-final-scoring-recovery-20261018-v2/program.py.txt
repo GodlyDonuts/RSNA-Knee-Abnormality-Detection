@@ -1,0 +1,123 @@
+"""Recover one finished paired candidate; preserve original phases and raw responses."""
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+OLD_SHA = '8aaf2cf53beb63c63969b1167a0e8be54d9b3a47e531679968b259498d288b11'
+REJECT_SHA = '9e58cf2b42a3934de333048aac6763cd54f1b1130ab09adecdb10e45c13e0a8b'
+FINDING = Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/finding-strata-production-v1/final-serving-v1/finding')
+DRAFT_SLUG = 'godlydonuts/rsna-final-finding-e3-offline-9b22f5a85716'
+DRAFT_SHA = 'd1c695eaa58de349080356624a4447be756c6d0410797285b2d2956f66dca07d'
+HOME = Path('/tmp/rsna-paired-full-fitting-20261018-v1')
+OLD = HOME / 'final-scoring-v1/single-scoring-coordinator-v1/program.py.txt'
+CONTROL = HOME / 'final-scoring-v1/single-scoring-recovery-v2'
+
+
+def validate_rejected_draft(raw, intent, metadata, source):
+    assert hashlib.sha256(raw).hexdigest() == REJECT_SHA
+    assert json.loads(raw) == {'error': 'Maximum batch GPU session count of 2 reached.'}
+    assert intent['slug'] == DRAFT_SLUG
+    assert metadata.get('id') == 139417644 and metadata.get('currentVersionNumber', 0) == 0
+    assert hashlib.sha256(source.encode()).hexdigest() == DRAFT_SHA
+    return True
+
+
+def phase_requirement(mode, lr_fit_future, other_future, paired_future):
+    assert mode in ('qualification', 'competition')
+    assert all(type(n) is int and n >= 0 for n in (lr_fit_future, other_future, paired_future))
+    assert paired_future == 0
+    # Only the immediately admitted execution is funded now. Competition execution
+    # remains forbidden until qualification passes AND its fresh 9h cap is funded.
+    return lr_fit_future + other_future + 3600 + (1800 if mode == 'qualification' else 32400)
+
+
+def other_future(root, rejected_live_verified):
+    total = 0
+    for mode, cap in (('qualification', 1800), ('competition', 32400)):
+        intent, response = root / (mode + '-push-intent.json'), root / (mode + '-push-response.json')
+        if intent.exists() and not response.exists():
+            raise ValueError('Uncertain original execution requires reconciliation')
+        if not response.exists():
+            continue
+        assert intent.exists()
+        raw = response.read_bytes()
+        if root == FINDING and mode == 'competition':
+            assert rejected_live_verified and hashlib.sha256(raw).hexdigest() == REJECT_SHA
+            assert json.loads(raw) == {'error': 'Maximum batch GPU session count of 2 reached.'}
+            assert json.loads(intent.read_text())['slug'] == DRAFT_SLUG
+            continue
+        actual = json.loads(raw)
+        assert type(actual.get('kernelId')) is int and actual['kernelId'] > 0
+        assert actual.get('versionNumber') == 1 and not actual.get('error')
+        terminals = []
+        for suffix, statuses in (('-actual-accepted.json', ('COMPLETE',)), ('-actual-failed.json', ('ERROR', 'CANCELLED', 'CANCEL_ACKNOWLEDGED'))):
+            p = root / (mode + suffix)
+            if p.exists():
+                receipt = json.loads(p.read_text())
+                assert receipt['kernel_id'] == actual['kernelId'] and receipt['version'] == 1
+                assert receipt['status'] in statuses
+                terminals.append(receipt)
+        assert len(terminals) <= 1
+        if not terminals:
+            total += cap
+    return total
+
+
+def execute(v):
+    old = OLD.read_text()
+    assert hashlib.sha256(old.encode()).hexdigest() == OLD_SHA
+    # Metadata only: numerical compiler, notebook text, model and timeout unchanged.
+    changes = {
+        "'current_public_cap':32400": "'current_public_cap':(32400 if mode=='competition' else 0),'public_requires_separate_fresh_admission':True",
+        "'original_failed_finding_public_remains_unreconciled_and_postponed':True": "'original_rejected_finding_public_live_version0_reconciled_and_postponed':True",
+    }
+    for a, b in changes.items():
+        assert old.count(a) == 1
+        old = old.replace(a, b)
+    g = {'__name__': 'frozen_original_paired_scoring'}
+    exec(compile(old, 'original_paired_with_admission_metadata_only', 'exec'), g)
+    assert v['program_sha256'] == OLD_SHA
+    g['bounds']()
+    if v['phase'] == 'stage_recovery':
+        assert not CONTROL.exists()
+        assert not Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim').exists()
+        assert hashlib.sha256(v['program'].encode()).hexdigest() == v['recovery_sha256']
+        original = HOME / 'final-scoring-v1/paired'
+        assert not any((original / (m + '-push-intent.json')).exists() for m in ('qualification', 'competition'))
+        g['bounds'](len(v['program'].encode()) + 65536)
+        CONTROL.mkdir(mode=0o700)
+        p = CONTROL / 'program.py.txt'; p.write_text(v['program']); p.chmod(0o600)
+        receipt = {'status': 'actual_paired_scoring_admission_recovery_staged', 'CPU_job': os.environ['SLURM_JOB_ID'], 'source_git': v['control_git'], 'recovery_sha256': v['recovery_sha256'], 'original_program_sha256': OLD_SHA, 'maximum_qualification_pushes': 1, 'maximum_public_pushes': 1, 'maximum_code_entries': 1, 'reuses_original_model_and_prepared_sources': True, 'original_files_modified': False, 'new_GPU_or_entry': False, 'control_child_cap_bytes': 128 * 1024, 'inside_existing_scoring_cap_bytes': 1024 * 1024}
+        (CONTROL / 'accepted.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        return receipt
+    assert v['phase'] in ('push', 'status', 'eligibility', 'submit', 'outcome')
+    assert hashlib.sha256((CONTROL / 'program.py.txt').read_bytes()).hexdigest() == v['recovery_sha256']
+    assert json.loads((CONTROL / 'accepted.json').read_text())['recovery_sha256'] == v['recovery_sha256']
+    assert sum(p.stat().st_size for p in CONTROL.rglob('*') if p.is_file()) < 128 * 1024
+    if v['phase'] == 'push':
+        w = g['load']('original_paired_readonly_precheck', g['S'] / 'scripts/kaggle/workflow.py')
+        import requests
+        r = w.Remote.__new__(w.Remote); r.session = requests.Session()
+        r.session.headers['Authorization'] = 'Bearer ' + v['token']; r.username = 'godlydonuts'
+        identity = r.call('security.OAuthService', 'IntrospectToken', {'token': v['token']})
+        assert identity.get('active') is True and identity.get('username') == 'godlydonuts'
+        owner, name = DRAFT_SLUG.split('/')
+        live = r.call('kernels.KernelsApiService', 'GetKernel', {'userName': owner, 'kernelSlug': name})
+        validate_rejected_draft((FINDING / 'competition-push-response.json').read_bytes(), json.loads((FINDING / 'competition-push-intent.json').read_text()), live['metadata'], live['blob']['source'])
+    g['vm_requirement'] = phase_requirement
+    g['actual_started_other_scoring_future'] = lambda root: other_future(root, True)
+    return g['execute'](v)
+
+
+if __name__ == '__main__':
+    v = json.load(sys.stdin)
+    try:
+        print(json.dumps(execute(v)), flush=True)
+    except BaseException as error:
+        import traceback
+        frames = traceback.extract_tb(error.__traceback__)
+        print(json.dumps({'status': 'paired_recovery_stopped_originals_preserved', 'exception_type': type(error).__name__, 'site_line': frames[-1].lineno if frames else None, 'phase': v.get('phase')}), file=sys.stderr, flush=True)
+        raise SystemExit(1) from None

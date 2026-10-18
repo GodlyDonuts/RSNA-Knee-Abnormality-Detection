@@ -1,0 +1,37 @@
+import copy, hashlib, json, runpy, tempfile
+from pathlib import Path
+D=Path(__file__).resolve().parent
+m=runpy.run_path(str(D/'program.py.txt'),run_name='scoring_recovery_check')
+assert m['phase_requirement']('qualification',0,0,0)==5400
+assert m['phase_requirement']('competition',0,0,0)==36000
+assert m['phase_requirement']('competition',6000,1800,0)==43800
+for a in [('other',0,0,0),('qualification',0,0,1),('competition',False,0,0),('qualification',0,-1,0)]:
+ try:m['phase_requirement'](*a)
+ except AssertionError:pass
+ else:raise AssertionError('Invalid budget accepted')
+with tempfile.TemporaryDirectory() as t:
+ p=Path(t);assert m['other_future'](p,False)==0
+ (p/'competition-push-intent.json').write_text('{}')
+ try:m['other_future'](p,False)
+ except ValueError:pass
+ else:raise AssertionError('Uncertain push skipped')
+ (p/'competition-push-response.json').write_text(json.dumps({'kernelId':123,'versionNumber':1}))
+ assert m['other_future'](p,False)==32400
+ (p/'competition-actual-accepted.json').write_text(json.dumps({'kernel_id':999,'version':1,'status':'COMPLETE'}))
+ try:m['other_future'](p,False)
+ except AssertionError:pass
+ else:raise AssertionError('Mismatched terminal skipped')
+ (p/'competition-actual-accepted.json').write_text(json.dumps({'kernel_id':123,'version':1,'status':'COMPLETE'}))
+ assert m['other_future'](p,False)==0
+ # Pin the special rejected draft to a temporary fixture; acceptance still needs
+ # exact bytes, slug, live zero saved versions, immutable ID and source hash.
+ raw=json.dumps({'error':'Maximum batch GPU session count of 2 reached.'}).encode()
+ source='fixture_not_model';f=m['validate_rejected_draft'];g=f.__globals__;g['REJECT_SHA']=hashlib.sha256(raw).hexdigest();g['DRAFT_SHA']=hashlib.sha256(source.encode()).hexdigest()
+ intent={'slug':g['DRAFT_SLUG']};meta={'id':139417644,'currentVersionNumber':0}
+ assert f(raw,intent,meta,source)
+ negatives=[(raw+b' ',intent,meta,source),(raw,{'slug':'other'},meta,source),(raw,intent,{**meta,'currentVersionNumber':1},source),(raw,intent,{**meta,'id':999},source),(raw,intent,meta,'changed')]
+ for args in negatives:
+  try:f(*args)
+  except AssertionError:pass
+  else:raise AssertionError('Unproven rejection accepted')
+print(json.dumps({'status':'admission_recovery_budget_uncertainty_and_exact_rejected_draft_checks_passed','new_GPU_or_entries':0}))
