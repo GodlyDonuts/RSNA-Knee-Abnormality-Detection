@@ -1,5 +1,6 @@
 """New adapter integration with synthetic DICOMs; no clinical/GPU accuracy claim."""
 
+import importlib
 import sys
 from pathlib import Path
 
@@ -12,7 +13,7 @@ from pydicom.uid import ExplicitVRLittleEndian, MRImageStorage
 
 HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE), str(HERE.parent / "connected-witness-paths-20261017-v1")]
-import competition_input as m
+m = importlib.import_module("competition_input")
 
 
 @pytest.fixture
