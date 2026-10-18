@@ -14,3 +14,14 @@ The existing H100 precision/cost benchmark remains unchanged.
 OneMiB metadata/control child is admitted from S6's existing future5MiB after the
 recovered scout and H100 benchmark, retaining4MiB. Original16MiB controls and all
 current node/shared reserves remain; no new large/shared storage or GPU request.
+
+Actual CPU961187 proves full coverage:3,887/3,887, zero missing;720,851original
+DICOMs/21,429series/500,897,467,290bytes. Median per-study source79,205,970bytes,
+95th442,853,433bytes, maximum768,147,502bytes. Whole-cohort copying is not funded
+and is unnecessary: a later exact renderer should stream bounded case groups,
+reuse any original retained bytes, and preserve the private teacher outputs.
+Metadata coverage does not yet prove HF-rendered tensor equality to S6's Kaggle
+inputs. That parity and fresh explicit transient source storage must be accepted
+before a full-cohort teacher job. The H100 scout remains the original960986.
+Six focused numerical/refusal tests and scoped Ruff passed; no clinical labels
+or teacher predictions were used for this coverage join.

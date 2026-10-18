@@ -139,3 +139,10 @@ original S6 GPU FP32/FP16 against the already verified CPU8reference and measure
 actual throughput/VRAM. No full-cohort teacher, training or accuracy is accepted.
 Original retained model/pixels are reused; this is not another CPU inference run.
 [Original dispatch and scope](../initiative/research/S6-H100-teacher-throughput-20261018-v1/README.md).
+
+CPU961187 independently joined the full3,887 fitting roster to the pinned HF
+source inventory: zero missing studies,720,851DICOMs/21,429series/about501GB.
+This supports a bounded streaming teacher route, not a funded full source copy.
+Exact HF-to-original-S6 tensor parity, actual H100 throughput and transient
+source-buffer admission remain required before full teacher generation.
+[Source coverage proof](../initiative/research/full-fitting-raw-source-coverage-20261018-v1/README.md).
