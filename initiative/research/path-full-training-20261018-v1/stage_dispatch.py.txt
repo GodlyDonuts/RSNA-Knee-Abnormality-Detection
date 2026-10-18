@@ -1,0 +1,35 @@
+"""Stage only new controls and queue two full arms after the existing integration."""
+import hashlib,json,os,re,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');B=R/'dense-online-input-fp32-v2';E=B/'integrated-recovery-v1';P=B/'full-path-production-v1'
+assert not P.exists()
+prior=json.loads((E/'submitted.json').read_text());assert prior['GPU_job']=='955582'
+state=subprocess.check_output(['sacct','-j','955582','-X','-n','-P','-o','JobIDRaw,State,ExitCode'],text=True).strip().split('|')
+assert state[0]=='955582' and state[1] in {'PENDING','RUNNING','COMPLETED'} and (state[1]!='COMPLETED' or state[2]=='0:0')
+paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+assert paid(B)+max(0,16*2**20-paid(E))+12*2**20<32*2**20
+F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert paid(R)<3*2**30 and paid(F)<3758096384
+required=603433009211+max(0,3*2**30-paid(R))+max(0,3758096384-paid(F));free=shutil.disk_usage('/tmp').free;assert free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+node=subprocess.check_output(['scontrol','show','node','evc33','-o'],text=True);assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',node)
+for key in ['worker','publisher']:compile(v[key],key,'exec')
+P.mkdir(mode=0o700);(P/'code').symlink_to(E/'code',target_is_directory=True)
+for key in ['worker','publisher']:(P/(key+'.py')).write_text(v[key])
+manifest=hashlib.sha256(json.dumps({'core':prior['original118'],'path':prior['files_sha256']},sort_keys=True).encode()).hexdigest()
+admit={'status':'conditional_full_dense_path_pair_prepared_afterok955582','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'publisher_sha256':hashlib.sha256(v['publisher'].encode()).hexdigest(),'source_manifest_sha256':manifest,'source_files_sha256':prior['files_sha256'],'original118':prior['original118'],'new_integrated_GPU_prerequisite':955582,'fitting':2247,'development':1156,'epochs':3,'updates_per_arm':843,'full_root_cap_bytes':12*2**20,'recovery_retained_cap_bytes':16*2**20,'both_inside_original_dense32MiB':True,'all_original_future_liabilities_preserved':True,'fresh_node_free_bytes':free,'required_free_bytes':required,'new_shared_bytes_files':0,'fresh_GPU_acceptance_required_at_start':True,'GPU_or_accuracy_claim':False}
+(P/'admitted.json').write_text(json.dumps(admit,indent=2)+'\n')
+script='#!/bin/bash\nset -euo pipefail\numask 077\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8\nexport CPATH=/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12\nexport TRITON_CACHE_DIR='+str(P/'kernels')+'-$1 TORCHINDUCTOR_CACHE_DIR='+str(P/'inductor')+'-$1 CUDA_CACHE_PATH='+str(P/'cuda-cache')+'-$1 XDG_CACHE_HOME='+str(P/'cache')+'-$1\nexec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B '+str(P/'worker.py')+' "$@"\n'
+(P/'run.sbatch').write_text(script)
+jobs={}
+for arm in ('aligned','null'):
+ with (P/('dispatch-'+arm+'.intent.json')).open('x') as f:json.dump({'arm':arm,'source_git':v['source_git'],'dependency':'afterok:955582','automatic_retry':False},f)
+ a=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--dependency=afterok:955582','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=24:00:00','--signal=B:USR1@180','--no-requeue','--job-name=rsna-path-full-'+arm,'--output='+str(P/(arm+'-%j.stdout')),'--error='+str(P/(arm+'-%j.stderr')),str(P/'run.sbatch'),arm]
+ x=subprocess.run(a,capture_output=True,text=True)
+ (P/('dispatch-'+arm+'.response.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr})+'\n')
+ assert x.returncode==0,'Reconcile existing exact per-arm submission; never duplicate the pair'
+ job=x.stdout.strip().split(';')[0];assert job.isdigit();jobs[arm]=job
+ (P/('submitted-'+arm+'.json')).write_text(json.dumps({'arm':arm,'GPU_job':job,'source_git':v['source_git'],'dependency':'afterok:955582'})+'\n')
+out={**admit,'status':'two_full_original_dense_path_arms_submitted_once_conditional_on_new_integration','jobs':jobs,'each_requests_one_H100_two_CPUs':True,'production_optimizer_progress_observed':False}
+(P/'pair-submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
