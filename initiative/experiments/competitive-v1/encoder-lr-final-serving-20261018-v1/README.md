@@ -37,3 +37,13 @@ This is CPU template preparation, not actual final-model or T4 acceptance.
 The actual E1 UI shows Queued.../GPU T4x2/output0B (edit-run359651595), explaining
 the original status API's null observation. Preserve its existing notebook and
 live55986 owner; queue delay does not authorize a duplicate push or restart.
+
+
+Correction: the first new inference template also over-required runtime recipe
+in the source-only receipt. The receipt is now kept verbatim; source metadata
+checks stay on the receipt and the complete exact LR recipe stays on the checkpoint.
+An actual canonical E1source binding (recipe absent) backs the production-shaped
+fixture; altered checkpoint LR/head/teacher/source fields still fail.15focused
+serving cases pass. Corrected CPU956871 staged final-serving-v2, accepted the real
+source-only binding and still refused unfinished E1. The old v1template remains
+preserved and must never be used for qualification. No GPU or entry was pushed.

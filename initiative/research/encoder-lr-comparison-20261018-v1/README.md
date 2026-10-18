@@ -65,3 +65,21 @@ Original family serving is actually complete. Later serving of this new model
 still requires fresh separate funding and exact recipe-aware inference acceptance.
 No competition entry was made. Fourteen focused new cases, scoped Ruff/format
 and mypy2sources pass; original full suites/MRI audits were not replayed.
+
+## Publisher contract correction before E1 preservation
+
+Daenerys's code review correctly identified an old/new receipt-class mix-up in
+this new publisher's accounting loop. The original six uniform/influence proofs
+must keep their original status, while new LR proofs use the new status. Eight
+NEW focused cases use all six actual sanitized old receipts plus synthetic new
+formats and corruption/duplicate/gap checks. Actual CPU956725 passed the new
+resource helper on all six original metadata receipts/7,031,761,868retained bytes
+and zero new receipts. No MRI/weight/optimizer bytes or old training/recovery were
+read/replayed by that guard check. The original faulty program is preserved.
+
+Original coordinator55986 was stopped only between read-only polls after no live
+child/publication intent was confirmed; no GPU notebook was cancelled. New finite
+owner56873 starts with status of SAME139394879v1, at most two future epoch pushes.
+It pins corrected publication-v3 sources. The first handoff attempt safely deferred
+while an original read-only child existed. No E1push or original epoch is repeated.
+Use actual-publication-owner-v3-handoff and actual-new-funding-contract receipts.

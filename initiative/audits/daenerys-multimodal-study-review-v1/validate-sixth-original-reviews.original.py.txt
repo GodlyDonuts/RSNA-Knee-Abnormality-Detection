@@ -1,0 +1,45 @@
+"""Validate new original candidate review bytes and source/coverage bindings only."""
+import collections,hashlib,json
+from pathlib import Path
+from rsna.schema import TARGETS
+D=Path(__file__).resolve().parent
+p=json.loads((D/'packet.json').read_text());r=json.loads((D/'review-001.original.json').read_text());a=json.loads((D/'addendum-002.original.json').read_text());h=json.loads((D/'hosted-receipts-restored-v2.json').read_text())['verified'];m=json.loads((D/'alternate-windows-v1/manifest.json').read_text());new=json.loads((D/'alternate-windows-v1/hosted-confirmed.json').read_text())['native_references']
+assert r['packet_id']==a['packet_id']==p['packet_id']=='daenerys-fitting-study-006-v1'
+assert r['source']['study_uid']==p['study_uid'] and r['source']['source_revision']==p['source_revision'] and r['source']['fitting_uid_sha256']==p['fitting_uid_sha256']
+assert r['source']['report_sha256_as_supplied']==p['report_sha256']==hashlib.sha256(p['report'].encode()).hexdigest()
+assert r['reading_order']['report_read_before_images'] is True
+assert [x['target'] for x in r['targets']]==[x['target'] for x in a['all_12_target_statuses']]==list(TARGETS)
+series={x['series_index']:x for x in p['series']};images={(x['series_index'],x['slice_start'],x['slice_end']):x for x in p['images']};host={x['reference']:x for x in h};seen=set();positions=set()
+assert len(series)==7 and len(images)==len(host)==39
+for row in r['coverage']['series']:
+ s=series[row['series_index']];assert row['series_uid']==s['series_uid'] and row['original_shape']==s['original_shape'] and row['reviewed_slice_range']==[1,s['slice_count']] and row['complete_as_supplied'] is True
+for row in r['coverage']['access_log']:
+ key=(row['series_index'],row['slice_start'],row['slice_end']);i=images[key];assert key not in seen;seen.add(key);ref=host[row['reference']];assert row['original_png_bytes']==i['size']==ref['byte_size'] and row['original_png_sha256']==i['sha256']==ref['sha256'];assert row['access_status']=='opened_image_pixels_and_personally_inspected';positions.update((key[0],j) for j in range(key[1],key[2]+1))
+assert len(seen)==39 and len(positions)==226 and r['coverage']['inaccessible_references']==r['coverage']['unreviewed_references']==r['coverage']['missing_slice_positions']==[]
+quotes=[];evidence=0
+for row in r['targets']:
+ assert row['candidate_status'] in ('positive','negative','uncertain','not_assessable') and row['confidence'] in ('high','medium','low')
+ quotes.extend(row['report']['literal_quotes'])
+ for key in ('supporting_image_evidence','contrary_or_qualifying_image_evidence'):
+  for item in row[key]:
+   assert item['series_index'] in series and item['slices'] and all(type(j) is int and 1<=j<=series[item['series_index']]['slice_count'] for j in item['slices']);evidence+=1
+assert all(q in p['report'] for q in quotes)
+new_images={(x['series_index'],x['slice_number']):x for x in m['images']};new_hosts={x['reference']:x for x in new};seen_new=set()
+assert len(new_images)==len(new_hosts)==18
+for row in a['coverage']['access_log']:
+ key=(row['series_index'],row['slice_number']);i=new_images[key];s=series[key[0]];ref=new_hosts[row['reference']];assert key not in seen_new;seen_new.add(key)
+ assert row['png_sha256']==i['sha256']==ref['sha256'] and row['png_bytes']==i['size']==ref['byte_size']
+ assert row['original_sop_uid']==i['original_sop_uid']==s['ordered_sop_uids'][key[1]-1] and row['source_sha256_as_manifest']==i['source_sha256']==s['source_sha256'][key[1]-1]
+ assert row['image_dimensions']==[i['width'],i['height']] and row['each_panel_dimensions']==[640,640]
+ assert row['access_status']=='opened_and_personally_inspected_both_panels'
+assert len(seen_new)==18 and a['coverage']['inaccessible_references']==a['coverage']['unreviewed_new_references']==[]
+assert a['original_review']['sha256']=='e2194d043fadd2d62d5aa792f2d541d0c8d62902081221725d856b51c85bd6bd' and a['original_review']['bytes']==69011 and a['original_review']['preserved_unchanged'] is True
+assert a['revised_findings']==[]
+for original,added in zip(r['targets'],a['all_12_target_statuses'],strict=True):assert original['candidate_status']==added['status']
+for row in a['focused_assessment']:
+ quotes.extend(row.get('literal_report_quotes',[]))
+assert all(q in p['report'] for q in quotes)
+assert r['integrity_and_actions']['accepted_labels_modified'] is False and a['actions']['accepted_labels_changed'] is False and a['actions']['original_review_reserialized'] is False
+assert a['disposition']['available_packet_review_complete'] is True and a['disposition']['additional_window_request_satisfied'] is True
+result={'status':'sixth_original_candidate_review_and_requested_window_addendum_bytes_source_bindings_verified','original_review_bytes':69011,'original_review_sha256':hashlib.sha256((D/'review-001.original.json').read_bytes()).hexdigest(),'original_addendum_bytes':40611,'original_addendum_sha256':hashlib.sha256((D/'addendum-002.original.json').read_bytes()).hexdigest(),'series':7,'original_slices':226,'reviewer_reported_original_reference_access':39,'reviewer_reported_new_reference_access':18,'new_panels':36,'all_original_and_new_reference_size_SHA_source_series_ranges_bound':True,'source_report_quotes_exact':len(quotes),'target_records':12,'image_evidence_records':evidence,'states':dict(collections.Counter(x['candidate_status'] for x in r['targets'])),'addendum_target_status_changes':0,'report_before_images_disclosed':True,'independent_tool_call_trace_collected':False,'image_access_evidence_scope':'Original versioned reviewer access records match hosted image byte/hash/range identities; no independent underlying tool-call trace was exposed by the current Dot UI. These are candidate annotations, not blinded clinical ground truth.','accepted_labels_changed':False,'model_or_accuracy_gain':False}
+(D/'review-and-addendum-validated.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

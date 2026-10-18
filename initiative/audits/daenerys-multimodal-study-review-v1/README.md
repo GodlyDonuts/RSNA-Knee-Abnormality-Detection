@@ -239,3 +239,28 @@ and Thinking. Preserve the original review and any later addendum separately.
 Original review bytes/actual access validation remain pending; no case7 send,
 accepted label update, clinical-ground-truth claim or model accuracy gain.
 Private images, source manifest, destination refs and screenshot stay ignored.
+
+## Sixth review and alternate-window addendum collected; seventh image-first case active
+
+Both unchanged sixth-case files are collected: original69,011bytes/SHAe2194d04
+and addendum40,611bytes/SHA3dc8c1cc. All57declared image-access records bind to
+hosted native hashes/sizes and correct source series/slice ranges, including18
+requested alternate-window views/36panels. All12targets,44image-evidence records
+and14literal report quotations match the packet. The addendum changes no target
+state; three remain uncertain. No accepted label changes or model gain follows.
+The current Dot UI did not expose the underlying image-tool-call trace: record
+these as reviewer-reported access, not independently collected call logs. Earlier
+report-first reading is disclosed. See sixth-review-and-addendum-transport-validation.
+
+The seventh original fitting study was delivered ONCE and read/acknowledged at
+6:13AMOctober18 by the existing Daenerys Dot: five complete series/128original
+slices on23native320–384pixel sheets. All source and hosted bytes/identities and
+ranges pass; the native image preview renders. The exact original612-byte report
+is a separate native file link, and the image manifest omits report text. The
+review order asks for an unchanged saved image-only provisional assessment BEFORE
+opening the report, followed by a separate report-informed review with explicit
+revisions. This is an attempt to reduce report anchoring, not proven better labels
+or clinical blinding. The packet remains candidate-only; no case8 has been sent.
+No old source dataset/model/recovery audit was replayed. New local case cap512MiB
+leaves>20GiB reserve; no new cluster shared files/pixels. Original source, clinical
+text, native references, outputs and delivery proof remain ignored/private.

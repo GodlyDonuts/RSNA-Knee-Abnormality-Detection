@@ -1,5 +1,20 @@
 # RSNA Knee: current agent guide
 
+October18 current owners supersede older snapshots: finding full3epochs/1458
+updates COMPLETE, all3six-object epochs privateverified; finalHF2c3e5136/model
+45f615a4. Original43912terminal success. Old scoring44793stopped BEFORE GPU push
+on a source-receipt/checkpoint-only allocation mismatch. Corrected scope passed
+on actual final modelCPU956927 and39focused cases; new58223accepted qualification
+139401749v1/source4b54c50b ONCE. Read finding-final-scoring-recovery-20261018-v3.
+LR E1remains original139394879v1; new56873replaced55986between polls and fixes
+separate old/new publisher receipt classes, actualCPU956725/eight focused cases.
+LR serving-v2CPU956871 fixes checkpoint-only recipe;15new serving cases pass.
+No training or E1push repeated. Family43079/path48097remain original owners.
+Daenerys sixth exact review/addendum collected; seventh5series/128slice/23native
+sheet packet sent ONCE, Read/acknowledged6:13AM and reviewing image-first before
+separate report. No accepted label changes or new accuracy result. Keep private
+clinical records/references/proofs ignored; see current queue and review guide.
+
 October18 new LR scoring preparation is ACTUALLY staged by CPU956680 under
 existing8MiBcontrol cap/256KiBchild: strict final3/1458update provenance with
 unchanged full94/two-view MRI math.14NEW focused cases/scopedRuff/mypy2 pass;
