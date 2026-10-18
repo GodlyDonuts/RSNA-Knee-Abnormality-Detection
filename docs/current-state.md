@@ -6,6 +6,8 @@ maximum probability difference0, peak allocated2,017,322,496bytes per device.
 This is not an accuracy or hidden-runtime result. Distinct public counterpart
 is prepared in `initiative/audits/whole94-final-public-20261018-v2`, retaining the
 original quarantined identity unchanged and reusing existing model/input assets.
+Distinct public-run owner20978 is live and waits for actual remaining VM funding
+(including all unpaid family work) before at most one push; it cannot submit.
 Family training's latest observed finite update is446/1458; original healthy
 owners17423/18386 remain active. No new score exists.
 
