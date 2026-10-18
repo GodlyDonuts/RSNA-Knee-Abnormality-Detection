@@ -1,0 +1,11 @@
+"""One new CPU source preparation; never impersonates completed-model acceptance."""
+import hashlib,importlib.util,json,shlex,subprocess
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/paired-fixed-final-serving-20261018-v1';A.mkdir(mode=0o700,parents=True,exist_ok=True)
+program=(D/'stage.py.txt').read_text();pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip();files={n:(R/n).read_text() for n in ('rsna/competitive/paired_logit_serving.py','scripts/kaggle/paired_logit_serving.py')}
+with (A/'intent.json').open('x') as f:json.dump({'source_git':pin,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'file_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in files.items()},'new_GPU_or_model_transfers':0},f,indent=2)
+T=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('new_serving_template_transport',T);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:04:00','--job-name=rsna-paired-serving-template','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',m.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=m.envelope(program,{'source_git':pin,'files':files}),capture_output=True,text=True,timeout=300)
+(A/'response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,x.stderr[-1500:]
+out=json.loads(x.stdout);(D/'actual-staged.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

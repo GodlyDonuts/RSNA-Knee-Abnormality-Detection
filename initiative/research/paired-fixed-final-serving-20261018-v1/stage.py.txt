@@ -1,0 +1,26 @@
+"""Bind the new serving template to the actual producer, without model/GPU work."""
+import ast,base64,hashlib,importlib.util,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-paired-full-fitting-20261018-v1');D=R/'fixed-final-serving-template-v1';assert not D.exists();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+assert paid(R)+256*1024<8*2**20
+# This child uses only already-funded small controls, no new model storage.
+assert (R/'funding.json').is_file() and (R/'publication-v2.json').is_file()
+source=(R/'epoch-1-source/source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()=='028be731e2e15d4f0c5798c719762849679a66b20f80ccdca2ffb61f6c65df6a'
+meta=json.loads((R/'epoch-1-source/prepared.json').read_text());assert meta['worker_sha256']=='d8536a2140123ab160c7770345a1262256815bc07f7bbf3ae7401e5551b18c94'
+values={}
+for n in ast.parse(source).body:
+ if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in ('WORKER','FILES'):values[n.targets[0].id]=ast.literal_eval(n.value)
+worker=base64.b64decode(values['WORKER'],validate=True).decode();assert hashlib.sha256(worker.encode()).hexdigest()==meta['worker_sha256']
+classes=[n for n in ast.parse(worker).body if isinstance(n,ast.ClassDef) and n.name=='WholeStudyRaptor'];assert len(classes)==1
+mro=[ast.unparse(x) for x in classes[0].bases];assert mro==['PairedLogitReadout','ImportanceReadout','CheckpointedEncode','RaptorClassifier']
+assert hashlib.sha256(values['FILES']['rsna/competitive/paired_logit_control.py'].encode()).hexdigest()=='c95b35b672654cabeac6a8d46432ef878c2e084d2d8ea7dbcb38b0f1fa0ce896'
+D.mkdir(mode=0o700)
+for name,text in v['files'].items():
+ p=D/name;assert p.resolve().is_relative_to(D.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600);compile(text,str(p),'exec')
+spec=importlib.util.spec_from_file_location('new_paired_offline_serving_scope',D/'rsna/competitive/paired_logit_serving.py');scope=importlib.util.module_from_spec(spec);spec.loader.exec_module(scope)
+assert scope.source_binding_ok(meta['binding']) and scope.WORKER==meta['worker_sha256']
+assert scope.SOURCE==meta['binding']['source_git'] and scope.RECOVERY==meta['binding']['paired_recovery'] and scope.TABLE==meta['binding']['correction_table']
+result={'status':'new_paired_serving_template_source_and_actual_producer_binding_CPU_staged_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'control_root':'existing_paired_full_fit_small8MiB_cap','child_cap_bytes':256*1024,'actual_producer_source_sha256':meta['source_sha256'],'actual_worker_sha256':meta['worker_sha256'],'actual_training_MRO':mro,'actual_producer_binding_passes_separate_serving_scope':True,'code_sha256':{n:hashlib.sha256(t.encode()).hexdigest() for n,t in v['files'].items()},'new_model_or_data_transfers_GPU_notebooks_or_competition_entries':0,'actual_fixed_final_model_or_GPU_qualification_or_score_accepted':False,'original_live_full_fit_and_LR_numerical_sources_unchanged':True}
+(D/'admitted.json').write_text(json.dumps(result,indent=2));assert paid(D)<256*1024 and paid(R)<8*2**20
+print(json.dumps(result),flush=True)
