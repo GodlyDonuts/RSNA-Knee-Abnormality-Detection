@@ -1,5 +1,15 @@
 # RSNA Knee: current agent guide
 
+New parent-delta CPU954924 completed all3887fitting cached-MRI studies with64
+paired draws at all five predeclared simulated-drift scales. Stable paired-logit
+residual reduces approximation MSE; this is simulated student drift, not a
+classifier/held-out/Kaggle result. Raw-moment CV is rejected for unguarded
+training because denominator failures occur. Read initiative/research/
+parent-delta-control-variate-20261018-v1/result.md and engineering-decision.json.
+Next bind compact exact scheduled teacher corrections, then review actual
+FP16/dropout/real-MRI recovery and funding before any trainer pilot. No new
+GPU fit or Dataset is admitted. Preserve the four original live owners.
+
 Finding final-scoring CPU954859 staged the exact controller; finite owner41043
 is actually live waiting for original full-fit38017 and all three private epoch
 proofs including optimizer. It owns one future both-T4qualification, offline
