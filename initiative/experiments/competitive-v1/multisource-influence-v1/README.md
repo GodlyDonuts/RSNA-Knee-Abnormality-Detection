@@ -81,3 +81,9 @@ gradient2.68768883. This proves training started, not an accuracy gain.
 Source c9349ae5 and66distinct small objects are privately fully re-downloaded/
 size/SHA verified at HFcfb51524d9865ddf6a6b229007745da4a6b70350 viaCPU953109.
 Do not repeat that mirror. No MRI/annotation/teacher/prediction arrays were copied.
+
+Downstream finite owner18386 is now launched. It waits for original17423's actual
+E1 success, privately verifies/preserves E1, then owns only E2/E3 in sequence,
+with private preservation before every resume. Four simulated side-effect/failure
+cases pass. No E1 repeat, duplicate publication or unqualified entry is allowed.
+Original live intents/results are in ignored artifacts; do not race this owner.

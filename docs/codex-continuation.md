@@ -17,10 +17,16 @@ Goal remains active; no completion or blocker claim.
   Actual both-device/input/initial-state admission and finite update1 observed.
   It can push only E1 and has no competition entry authority. Read its original
   result/progress plus exact API/UI before action. Healthy job stays unchanged.
-- **3950**: canonical full QA owner; ignored same root`QA-canonical-*`.
-  118-module mypy passed; full pytest still running at last observation. Read the
-  actual result. Initial global-environment runner stopped before mypy/tests;
+- **3950**: canonical full QA is actually terminal:4717passed/8skipped and
+  118-module mypy passed; ignored same root`QA-canonical-*`. Two skipped clean-tree
+  packaging cases need a focused check after commit; archive needs a refreshed
+  snapshot because receipts were added concurrently. Read the actual result. Initial global-environment runner stopped before mypy/tests;
   canonical `artifacts/qa-env` is the correction, not a second training job.
+- **18386**: downstream finite owner waits for original17423's actual E1 success,
+  then privately preserves E1 before preparing/resuming E2 and E3, preserving each
+  in turn. It can push only E2/E3 and cannot submit to competition. Original
+  ignored `continuation-owner.*` has the frozen source/intent/result. Never launch
+  another continuation owner or manually duplicate these phases while it is live.
 - **3182**: original outcome-only observer for exact R6submission**57333150**,
   notebookv2. Ignored `artifacts/exact-R6-entry-20261018-v1/observer.*`.
   Last authenticated hidden status/score unreported. Do not resubmit.
@@ -30,10 +36,10 @@ Goal remains active; no completion or blocker claim.
 
 ## Concrete next steps
 
-1. Confirm actual E1 optimizer progress/terminal. After completion, use only
+1. Confirm actual E1 optimizer progress/terminal and original owner18386 state. After completion, use only
    `initiative/experiments/competitive-v1/multisource-influence-v1/publish_epoch_once.py.txt 1`
-   to independently decode/check complete state and privately publish/re-download
-   verify that original immutable epoch once. Existing intent/path means read-only
+   only if original18386 is not already handling the phase, to independently
+   decode/check complete state and privately publish/re-download verify the epoch. Existing intent/path means read-only
    reconciliation. No premature E2: require actual E1 private preservation.
 2. Continue E2/E3 with the prepared same single coordinator after exact previous
    receipt/checkpoint/RNG/source/publication review and fresh resources. It supports

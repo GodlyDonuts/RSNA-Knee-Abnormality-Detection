@@ -51,13 +51,17 @@ Authenticated live logs show both allocated T4s/original inputs accepted,
 original run; no restart or duplicate. E1 must be independently fully privately
 preserved before E2 resumes. The prepared coordinator supports the same pinned
 three-epoch campaign; do not create a second candidate or new4GiB reservation.
+Downstream finite owner**18386** already waits for E1 success and owns private
+preservation/E2/E3 in sequence. Never race it or duplicate its phases.
 Read `initiative/experiments/competitive-v1/multisource-influence-v1`.
 
 Source c9349ae5 and66 distinct small objects were privately fully downloaded/
 size/SHA verified viaCPU953109 at HF**cfb51524d9865ddf6a6b229007745da4a6b70350**.
 No private arrays/weights were in that source mirror; never repeat it.
-Original full QA owner3950 remains active;118-module mypy/new focused checks pass,
-full suite must be read from its actual result before a new all-green claim.
+Original full QA3950 is terminal:4717passed/8skipped,118-module mypy passed.
+Two working-tree-dependent packaging tests need a clean-commit focused check.
+The concurrent archive checksum snapshot needs refresh/reverification; no clinical
+artifact was changed. New focused checks pass.
 Historical global Ruff debt1327errors/57format files is unchanged.
 
 ## Other research and compute authority
