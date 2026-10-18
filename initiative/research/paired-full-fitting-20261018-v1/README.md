@@ -39,3 +39,21 @@ The canonical claim/ledger guards a maximum of three original new epoch pushes.
 Capacity-only aliases make each actual fit visible to the legacy original live
 coordinators. Never repeat an intent/push/publication. Leave healthy original LR
 training untouched. No competition API submission is present in this owner.
+
+Actual source/resource admission CPU959960 accepted the new bounded RAM-backed
+publication/control path. Source474ab270, independent state validator7new cases,
+scoped Ruff and mypy1pass. Sole finite owner81354/session8137 then pushed E1
+ONCE viaCPU959971 as139451532v1, private offline twoT4 notebook
+`godlydonuts/rsna-paired-full-e1-028be731e2e1`. Actual status959972 is RUNNING;
+initial allocated headers/optimizer progress are not yet independently observed.
+Do not infer updates from session status. Actual authoritative availableVM54541.6
+seconds exceeded all new fit18000+unfinished original LR12000+safety3600=33600.
+Original family future0, its public acceptance already exists. Finding public is
+explicitly postponed as described; later candidate serving remains unfunded.
+
+The exact first source/worker and science binding are unchanged from CPU959661.
+Owner81354 alone owns source preparation, at most three new epoch notebook pushes,
+status and each new immutable six-object private preservation. Never restart it
+or duplicate one of its intents on an observation failure. It stops on uncertain
+mutation/publication and preserves the actual original job/namespace. No actual
+paired full-data checkpoint, private publication or accuracy result exists yet.
