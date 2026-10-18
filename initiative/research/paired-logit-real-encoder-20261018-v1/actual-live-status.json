@@ -1,0 +1,113 @@
+{
+  "status": "COMPLETE",
+  "CPU_job": "959624",
+  "kernel_id": 139417155,
+  "slug": "godlydonuts/rsna-paired-logit-recovery-4b129e1c5c76",
+  "version": 1,
+  "source_sha256": "4b129e1c5c76bcc226eff30f30e9e59b25df0ba91358771b795f7d65f68ad6b5",
+  "competition_entries": 0,
+  "receipt": {
+    "all_retained_bytes": 3514145258,
+    "clinical_or_competition_accuracy_claim": false,
+    "competition_entry": false,
+    "disjoint_engineering_studies": 16,
+    "distinct_final_learned_tensors": null,
+    "elapsed_seconds": 294.572820611,
+    "epochs": 3,
+    "fit_studies": 16,
+    "full_inference_windows": 94,
+    "full_production_fit_dispatched": false,
+    "parent_weights_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+    "phases": [
+      {
+        "elapsed_seconds": 137.17486005599997,
+        "phase": "full",
+        "role": "influence"
+      },
+      {
+        "elapsed_seconds": 173.687453487,
+        "phase": "stop",
+        "role": "influence"
+      },
+      {
+        "elapsed_seconds": 289.84953085300003,
+        "phase": "resume",
+        "role": "influence"
+      }
+    ],
+    "private_target_sha256": "87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834",
+    "proposal_uniform_fraction": 0.25,
+    "roles": {
+      "influence": {
+        "all16_full94_two_view_prediction_bytes_equal": true,
+        "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal": true,
+        "devices": [
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 108.50125504599998,
+            "finite_updates": 6,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "a9e5b0304c0e3908bf38155b7e79f6e67e2c2d17d3d7c97b31f84b13a405f9f1",
+              "python_rng": "447a3b3a3d66c3dee652f779b12bfabbd5c84ecf8ad22ed367625d2f9589d110",
+              "torch_cpu_rng": "1cdb12d4b8a3415e0944628a7bc8e1a407b9dc3ddbc7b36621d426ec7f6ce764",
+              "torch_cuda_rng": "94babe6ef039f65c3402d071b45d001a1a8831a167c74e862b898a614e2e0950"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 0,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          },
+          {
+            "CPU_threads_per_rank": 1,
+            "GPU": "Tesla T4",
+            "all_BN_buffers_equal_parent": true,
+            "elapsed_seconds": 108.50145381599998,
+            "finite_updates": 6,
+            "initial_identity": {
+              "model": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+              "numpy_rng": "651fbc9bc54fe2eae991072bfdf1fdca1d72e1c87a8d5ab294ea81b41aef3051",
+              "python_rng": "3ae4fbb2db9174c68a0067ca5f8253aa9ab630ce28fd8ec9a8316d53c70b4d7f",
+              "torch_cpu_rng": "5fac42909445a3db4c6c5d02da23ce8551877b2ad6dcec182b9ce0ad55066b49",
+              "torch_cuda_rng": "8968651a9fda22a66bb6af918e974070c963feba3c411adba17a3316cd9741db"
+            },
+            "no_independent_accuracy_claim": true,
+            "peak_allocated_bytes": 5866004480,
+            "rank": 1,
+            "status": "fixed_final_fit_complete",
+            "total_VRAM_bytes": 15636037632,
+            "trainable_parameters": 73136096
+          }
+        ],
+        "finite_updates": 6,
+        "prediction_SHA": "a2f8d302bd82f9418bf9b4beaabe2899a303b47947b6fb0f26671d2119a77498",
+        "proposal_SHA": "dc6cb876857f8e8d000ae816ea967952d4e1d4019a8c3aac7592b2a0298f691a"
+      }
+    },
+    "sampled_windows": 16,
+    "source_mode": "diagnostic_only_not_competition_model",
+    "source_module_sha256": {
+      "rsna/competitive/checkpoint.py": "a70ef871e200bac89e4f071d9394ce8b0abc1c2ba0017eaba3692d25dde31e21",
+      "rsna/competitive/licensed_full_bag.py": "74a4e19eb37570f66754fa3b4d8e2e117fadb7cc91c61345efc4e962cbf3983f",
+      "rsna/competitive/licensed_importance.py": "fc3fcedfc52fc922b82f7cb8e2034b6d7526d65c536c2ae8163aa8de1d3dafe4",
+      "rsna/competitive/licensed_importance_train.py": "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d",
+      "rsna/competitive/licensed_parent_train.py": "cf238d9154806a51cd92c80a61e39ca344ef865558305db51cbfdc86f89eeec0",
+      "rsna/competitive/mil_sampling.py": "f04b4e9ff0874d1809742fed4b9fafc57e77255a9908e2d56c7fdf8203a0a54e",
+      "rsna/competitive/paired_logit_cases.py": "6912ee44c6e3b2891de526471bbab2e32356577264382f15289fc5cfa99b19e3",
+      "rsna/competitive/paired_logit_control.py": "c95b35b672654cabeac6a8d46432ef878c2e084d2d8ea7dbcb38b0f1fa0ce896",
+      "rsna/competitive/paired_logit_train.py": "6e971e68c20a923d95a1f6115717aca97bb0761576ec1ca8a79c3ae34e3b9350",
+      "rsna/competitive/released_context.py": "4ed7cd1978a4acac6c233c734914dbe713aed818f229eabd7f23fa10580fbee9",
+      "rsna/competitive/released_context_infer.py": "4dbeb46a3e647a840047e6cede75328a9945a57ec2db4261250d03e28452cc34",
+      "rsna/competitive/released_context_train.py": "5addea8212501ba31021c739543a7fa627cf70066ad439fa0889ba5c5b3fa59f",
+      "rsna/schema.py": "d0775e4c91cc696aa771828c12b5f649edebd81fdb4a626b2c715d62f5394948"
+    },
+    "status": "actual_paired_logit_encoder_FP16_dropout_recovery_accepted",
+    "updates_per_role": 6,
+    "worker_source_sha256": "f888b4cc327bf1d09adb05376a4ef3c3fa804169a601e7dc7974fb5bb3e24a2e",
+    "world_size": 2
+  }
+}
