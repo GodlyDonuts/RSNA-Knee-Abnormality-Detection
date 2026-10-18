@@ -1,0 +1,11 @@
+"""Read existing verified model once for NEW head-gradient research; no rehash."""
+import base64,hashlib,io,json,os,sys
+from pathlib import Path
+import torch
+v=json.load(sys.stdin);assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS');torch.set_num_threads(1)
+D=Path('/tmp/rsna-licensed-importance-full-epochs-20261017-v1/influence/epoch-003');p=json.loads((D/'verified.json').read_text());assert p['status']=='actual_matched_IID16_parent_epoch_private_full_download_size_SHA_verified' and p['role']=='influence' and p['epoch']==3 and p['completed']==1458 and p['independent_CPU_state_verification']['full_learned_graph_exact'] is True
+source=D/'model.pt';assert source.stat().st_size==p['files']['model.pt']['bytes'];snapshot=torch.load(source,map_location='cpu',weights_only=True);assert snapshot['epoch']==3 and snapshot['completed']==1458
+shapes=v['shapes'];state={name:snapshot['model'][name].detach().cpu().clone() for name in shapes};assert all(list(t.shape)==shapes[n] and t.dtype==torch.float32 and torch.isfinite(t).all() for n,t in state.items());del snapshot
+buffer=io.BytesIO();torch.save({'model':state},buffer);raw=buffer.getvalue();assert len(raw)<2**21
+proof={'original_completed_model_sha256_from_existing_verification':p['files']['model.pt']['sha256'],'original_source_git':p['source_git'],'original_Kaggle_kernel':p['original_Kaggle_kernel'],'original_private_revision':p['revision'],'original_epoch':3,'original_updates':1458,'role':'influence','whole_model_rehash_repeated':False,'old_fit_or_recovery_repeated':False,'new_extracted_head_bytes':len(raw),'new_extracted_head_sha256':hashlib.sha256(raw).hexdigest(),'head_parameters':sum(t.numel() for t in state.values()),'CPU_job':os.environ['SLURM_JOB_ID'],'encoder_optimizer_pixels_labels_or_UIDs_in_export':False}
+print(json.dumps({'proof':proof,'head_base64':base64.b64encode(raw).decode()}),flush=True)
