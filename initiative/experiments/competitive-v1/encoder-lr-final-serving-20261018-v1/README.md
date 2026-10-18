@@ -1,0 +1,27 @@
+# Fixed-final encoder-LR scoring preparation
+
+The original influence recipe and the new encoder-LR3e-5 treatment use the same
+full94/two-view image inference. This preparation changes only the accepted
+training provenance and checkpoint identity. Original serving validators and
+renderer remain unchanged; no probability rounding, window dropping or TTA
+change is introduced.
+
+`rsna/competitive/encoder_lr_serving.py` requires actual epoch3/1458update
+completion, original source/teacher/proposal/seed/optimizer recipe, exact staged
+worker and scientific source, full learned graph, and all5 privately re-downloaded
+objects with complete independent CPU state admission. It rejects early or
+unpublished weights and other label/sampling recipes. It makes no claim that the
+new learning rate has an actual GPU recovery or an accuracy gain.
+
+`scripts/kaggle/encoder_lr_serving.py` uses an isolated copy of the exact original
+compiler function globals, with the new strict helper. Original parent classes,
+image preprocessing, full94/two-view math, bounded CPU/queue behavior, 13-column
+CSV schema and submission provenance are retained. Qualification remains unable
+to submit. No new weight Dataset is required: use the exact completed original
+E3 notebook output. Actual final-model T4 qualification, public MRI execution and
+hidden score are still future work and require fresh budget/allowance.
+
+Fourteen NEW focused synthetic cases pass: actual format admission/rejections and
+compiled original full94/two-view function behavior in both serving modes. They
+are software evidence only. No original MRI/recovery audit or full QA was replayed.
+The new inference code does not alter the live fitting recipe or its controller.
