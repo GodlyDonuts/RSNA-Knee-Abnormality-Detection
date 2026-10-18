@@ -1,0 +1,287 @@
+{
+  "status": "actual_fitting_only_safe_common_family_overlay_materialized",
+  "CPU_job": "952617",
+  "source_git": "74de4cafb62dfdf595f5725e833a26abe85fafca",
+  "constructor_sha256": "cb78e99a5339f5d71331a898af27746c347deb72008d8bea11a3b872f141068c",
+  "source_audit_CPU_job": "952374",
+  "source_files": {
+    "labels_v1_gemlow.parquet": {
+      "bytes": 189931,
+      "sha256": "77a3857a25a81d7e1ab4e360b1b86bb2fba8620cb43d14d02b97c6cd16004f00",
+      "columns": [
+        "StudyInstanceUID",
+        "ACL",
+        "MCL",
+        "Medial Meniscus",
+        "Lateral Meniscus",
+        "Medial OA",
+        "Lateral OA",
+        "PF OA",
+        "Effusion",
+        "Synovitis",
+        "Baker's",
+        "Contusion",
+        "Fracture"
+      ]
+    },
+    "train_labels_v0.parquet": {
+      "bytes": 231342,
+      "sha256": "43dc6ef049410fe916e0d3b5498b0ffd49a95be07282b88c06aa2306f3ead927",
+      "columns": [
+        "StudyInstanceUID",
+        "y_ACL",
+        "y_MCL",
+        "y_Medial_Meniscus",
+        "y_Lateral_Meniscus",
+        "y_Medial_OA",
+        "y_Lateral_OA",
+        "y_PF_OA",
+        "y_Effusion",
+        "y_Synovitis",
+        "y_Bakers",
+        "y_Contusion",
+        "y_Fracture",
+        "m_ACL",
+        "m_MCL",
+        "m_Medial_Meniscus",
+        "m_Lateral_Meniscus",
+        "m_Medial_OA",
+        "m_Lateral_OA",
+        "m_PF_OA",
+        "m_Effusion",
+        "m_Synovitis",
+        "m_Bakers",
+        "m_Contusion",
+        "m_Fracture",
+        "is_gold",
+        "gold_ACL",
+        "gold_MCL",
+        "gold_Medial_Meniscus",
+        "gold_Lateral_Meniscus",
+        "gold_Medial_OA",
+        "gold_Lateral_OA",
+        "gold_PF_OA",
+        "gold_Effusion",
+        "gold_Synovitis",
+        "gold_Bakers",
+        "gold_Contusion",
+        "gold_Fracture"
+      ]
+    },
+    "train_labels_v1.parquet": {
+      "bytes": 211780,
+      "sha256": "a134cfce2f751f90f4219d791a563ee677b6223ac28f32e456bb3759c1d3fba9",
+      "columns": [
+        "StudyInstanceUID",
+        "y_ACL",
+        "m_ACL",
+        "y_MCL",
+        "m_MCL",
+        "y_Medial_Meniscus",
+        "m_Medial_Meniscus",
+        "y_Lateral_Meniscus",
+        "m_Lateral_Meniscus",
+        "y_Medial_OA",
+        "m_Medial_OA",
+        "y_Lateral_OA",
+        "m_Lateral_OA",
+        "y_PF_OA",
+        "m_PF_OA",
+        "y_Effusion",
+        "m_Effusion",
+        "y_Synovitis",
+        "m_Synovitis",
+        "y_Bakers",
+        "m_Bakers",
+        "y_Contusion",
+        "m_Contusion",
+        "y_Fracture",
+        "m_Fracture"
+      ]
+    }
+  },
+  "original_target_file_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+  "fitting_roster_sha256": "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42",
+  "fitting_components_sha256": "e2ee33ef1f05382a078a67dba03d1ee841955ed8bd5b71ee07f44c8d5d96acc5",
+  "fitting_studies": 3887,
+  "excluded_studies": 520,
+  "excluded_component_overlap": 0,
+  "original_masks_and_parent_logits_unchanged": true,
+  "source_mismatch_Synovitis_preserved": 2,
+  "family_weights": "equal on source-declared addressed, exact-aligned common cells only; shared-report error dependence not removed",
+  "state_codes": {
+    "0": "source-declared unmentioned; legacy baseline fallback retained",
+    "1": "meaningful probability-space weak target, not clinical truth",
+    "2": "source-version mismatch preserved"
+  },
+  "files": {
+    "targets.private.npz": {
+      "bytes": 493839,
+      "sha256": "65d3730702a098c8c819396dba6122902a4f3720dde9b2cb3f9ffd7ac5eca3b5"
+    },
+    "annotation-tensor.private.npz": {
+      "bytes": 343927,
+      "sha256": "54f1c94943bd7049b3e3da79fdcffb1f7083ecb373a64b9e2642aa2fe9230df9"
+    }
+  },
+  "audit": {
+    "status": "target_construction_only_not_training_or_accuracy",
+    "fitting_studies": 3887,
+    "mask_unchanged": true,
+    "coverage_expansion_cells": 0,
+    "per_target": [
+      {
+        "target": "ACL",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3564,
+        "changed_cells": 3477,
+        "available_family_counts": {
+          "0": 182,
+          "1": 141,
+          "2": 3564
+        },
+        "mean_disagreement_on_safe_common_cells": 0.012025664699249646
+      },
+      {
+        "target": "MCL",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3493,
+        "changed_cells": 3486,
+        "available_family_counts": {
+          "0": 234,
+          "1": 160,
+          "2": 3493
+        },
+        "mean_disagreement_on_safe_common_cells": 0.020917836172635682
+      },
+      {
+        "target": "Medial Meniscus",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3644,
+        "changed_cells": 3574,
+        "available_family_counts": {
+          "0": 147,
+          "1": 96,
+          "2": 3644
+        },
+        "mean_disagreement_on_safe_common_cells": 0.005556529440101563
+      },
+      {
+        "target": "Lateral Meniscus",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3476,
+        "changed_cells": 3423,
+        "available_family_counts": {
+          "0": 202,
+          "1": 209,
+          "2": 3476
+        },
+        "mean_disagreement_on_safe_common_cells": 0.004004459090355137
+      },
+      {
+        "target": "Medial OA",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3100,
+        "changed_cells": 3078,
+        "available_family_counts": {
+          "0": 197,
+          "1": 590,
+          "2": 3100
+        },
+        "mean_disagreement_on_safe_common_cells": 0.03488588953295297
+      },
+      {
+        "target": "Lateral OA",
+        "supervised_cells": 3887,
+        "safe_common_cells": 2930,
+        "changed_cells": 2914,
+        "available_family_counts": {
+          "0": 221,
+          "1": 736,
+          "2": 2930
+        },
+        "mean_disagreement_on_safe_common_cells": 0.03446717396093948
+      },
+      {
+        "target": "PF OA",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3216,
+        "changed_cells": 3202,
+        "available_family_counts": {
+          "0": 212,
+          "1": 459,
+          "2": 3216
+        },
+        "mean_disagreement_on_safe_common_cells": 0.04373552585213745
+      },
+      {
+        "target": "Effusion",
+        "supervised_cells": 3887,
+        "safe_common_cells": 3500,
+        "changed_cells": 3386,
+        "available_family_counts": {
+          "0": 213,
+          "1": 174,
+          "2": 3500
+        },
+        "mean_disagreement_on_safe_common_cells": 0.05923754153895207
+      },
+      {
+        "target": "Synovitis",
+        "supervised_cells": 3887,
+        "safe_common_cells": 1809,
+        "changed_cells": 1796,
+        "available_family_counts": {
+          "0": 243,
+          "1": 1835,
+          "2": 1809
+        },
+        "mean_disagreement_on_safe_common_cells": 0.011039586064768181
+      },
+      {
+        "target": "Baker's",
+        "supervised_cells": 3887,
+        "safe_common_cells": 2002,
+        "changed_cells": 1963,
+        "available_family_counts": {
+          "0": 1432,
+          "1": 453,
+          "2": 2002
+        },
+        "mean_disagreement_on_safe_common_cells": 0.03819200229829101
+      },
+      {
+        "target": "Contusion",
+        "supervised_cells": 3887,
+        "safe_common_cells": 2968,
+        "changed_cells": 2932,
+        "available_family_counts": {
+          "0": 342,
+          "1": 577,
+          "2": 2968
+        },
+        "mean_disagreement_on_safe_common_cells": 0.007103623914139034
+      },
+      {
+        "target": "Fracture",
+        "supervised_cells": 3887,
+        "safe_common_cells": 2213,
+        "changed_cells": 2187,
+        "available_family_counts": {
+          "0": 343,
+          "1": 1331,
+          "2": 2213
+        },
+        "mean_disagreement_on_safe_common_cells": 0.0018284229799162641
+      }
+    ]
+  },
+  "target_array_sha256": "f88ee60e27b1673f3fa7934107c91cc8aef2e810b7cedd34aa725f6470571ddd",
+  "original_label_array_sha256": "8ce962aeef9b4ab5e0de65145e875e9caffeddc8fddd66065692f21ca9637444",
+  "mask_array_sha256": "e80fba0e4d304d013b49895ebe3d3201972a0afd158e95fc296b8c222685f9a1",
+  "parent_teacher_array_sha256": "d9853c7745161807705087bef505f1ceb488f2138264dea3902388662fe37566",
+  "new_coverage_cells": 0,
+  "new_shared_data_or_GPU_or_competition_mutations": 0,
+  "protected_gold_target_columns_requested": false,
+  "training_or_accuracy_accepted": false
+}

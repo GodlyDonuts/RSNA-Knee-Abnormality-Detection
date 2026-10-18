@@ -1,0 +1,90 @@
+"""Compile on the original private owning node; no API, MRI or GPU execution."""
+import ast
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+
+import numpy as np
+import torch
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+torch.set_num_threads(1)
+P=Path('/tmp/rsna-S6-training-release-20261017-v1')
+R=P/'family-source-recovery-v1';assert not R.exists()
+assert hashlib.sha256(v['files']['sampled_overlay.py'].encode()).hexdigest()==v['sampled_checks']['source_sha256']
+root=Path('/tmp/rsna-criterion-N3-features-20261017-v1')
+paid=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid)+2*2**20
+assert sum(p.stat().st_size for p in P.rglob('*') if p.is_file())+4*2**20<16*2**20
+source_root=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1')
+accepted=json.loads((source_root/'actual-accepted.json').read_text())
+assert accepted['kernel_id']==139130771 and accepted['receipt']['same_initial_complete_model_and_allrank_RNG_between_roles']
+original=(source_root/'recovery.private.py').read_text()
+assert hashlib.sha256(original.encode()).hexdigest()=='a01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554'
+data=P/'primitive-supervision-v1'
+meta=json.loads((data/'overlay-accepted.json').read_text())
+assert meta['CPU_job']=='952617' and meta['excluded_component_overlap']==0
+oldpath=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert hashlib.sha256(oldpath.read_bytes()).hexdigest()==meta['original_target_file_sha256']
+assert all(hashlib.sha256((data/name).read_bytes()).hexdigest()==row['sha256'] for name,row in meta['files'].items())
+with np.load(oldpath,allow_pickle=False) as a:old={k:a[k].copy() for k in a.files}
+with np.load(data/'targets.private.npz',allow_pickle=False) as a:new={k:a[k].copy() for k in a.files}
+with np.load(data/'annotation-tensor.private.npz',allow_pickle=False) as a:safe=a['eligible'].copy()
+assert all(np.array_equal(old[k],new[k]) for k in ('uids','masks','parent_logits'))
+assert int((new['labels']!=old['labels']).sum())==35418 and np.array_equal(new['labels'][~safe],old['labels'][~safe])
+# Retain a complete new source namespace under the existing16MiB root. All
+# source bodies are small; original payload and licensed code never leave Newton.
+R.mkdir(mode=0o700)
+code=R/'code/initiative/experiments/competitive-v1'
+for name,text in v['files'].items():
+    p=code/'multisource-supervision-v1'/name;compile(text,name,'exec');p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+for name,text in v['old_files'].items():
+    p=code/'s6-source-label-contrast-v1'/name;compile(text,name,'exec');p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+compiler=code/'multisource-supervision-v1/gpu_recovery.py'
+spec=importlib.util.spec_from_file_location('new_actual_family_recovery_compiler',compiler)
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+source,binding=m.build(original,v['files']['sampled_overlay.py'],v['old_files']['source_overlay.py.txt'],v['old_files']['sampled_fit.py.txt'])
+assert binding['original_module_sha256']==accepted['receipt']['source_module_sha256']
+assert binding['original_control_prediction_sha256']==accepted['receipt']['roles']['uniform']['prediction_SHA']
+parsed=m.literals(source)
+for name,text in parsed['FILES'].items():
+    p=R/'numerical'/name;assert p.resolve().is_relative_to((R/'numerical').resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+sys.path.insert(0,str(R/'numerical'))
+spec=importlib.util.spec_from_file_location('new_array_label_adapter',R/'numerical/multisource/sampled_overlay.py')
+h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
+original_literals=m.literals(original)
+targets=json.loads(base64.b64decode(original_literals['TARGETS']))
+assert len(targets['uids'])==32 and targets['eligible_fitting_only']
+lookup={u:i for i,u in enumerate(old['uids'].tolist())};assert all(u in lookup for u in targets['uids'])
+positions=[lookup[u] for u in targets['uids']]
+assert np.array_equal(old['labels'][positions],np.asarray(targets['labels'],dtype=np.float32))
+assert np.array_equal(old['masks'][positions],np.asarray(targets['masks'],dtype=np.bool_))
+bridge=json.loads(Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/actual32-bridge/verified.json').read_text())
+assert bridge['CPU_job']=='939362' and bridge['both_original_feature_teacher_views_bit_equal'] and bridge['exact_original_input_hashes']
+class ArraysOnly:
+    def __init__(self):
+        self.uids=targets['uids'];self.labels=torch.from_numpy(old['labels'][positions]);self.mask=torch.from_numpy(old['masks'][positions]);self.teacher=torch.from_numpy(old['parent_logits'][positions])
+    def __len__(self):return len(self.uids)
+    def case(self,*a,**k):raise RuntimeError('CPU source admission cannot decode MRI')
+data_old=ArraysOnly()
+for role in ('unchanged_reference','safe_family_mean'):
+    labels=data_old.labels if role=='unchanged_reference' else torch.from_numpy(new['labels'][positions])
+    eligible=torch.from_numpy(safe[positions])
+    policy={'version':h.VERSION,'role':role,'diagnostic_only':True,'parent_checkpoint_sha256':h.PARENT_SHA,'original_target_file_sha256':h.ORIGINAL_FILE,'population':len(data_old),'population_sha256':hashlib.sha256(json.dumps(data_old.uids,separators=(',',':')).encode()).hexdigest(),'original_labels_sha256':h.sha(data_old.labels),'labels_sha256':h.sha(labels),'mask_sha256':h.sha(data_old.mask),'teacher_sha256':h.sha(data_old.teacher),'eligible_sha256':h.sha(eligible),'target_file_sha256':h.ORIGINAL_FILE if role=='unchanged_reference' else h.PRODUCTION_TARGET,'annotation_file_sha256':h.PRODUCTION_ANNOTATIONS}
+    wrapped=h.ConsensusLabels(data_old,labels,eligible,policy,diagnostic_only=True)
+    assert len(wrapped)==32 and torch.equal(wrapped._mask,data_old.mask) and torch.equal(wrapped._teacher,data_old.teacher)
+assert np.any(new['labels'][positions[:16]]!=old['labels'][positions[:16]])
+worker=base64.b64decode(parsed['WORKER']).decode()
+assert "Recipe(epochs=2,role='uniform')" in worker and "engineering=PixelCases(targets,list(range(16,32)))" in worker
+assert 'same(normal,original)' in source and 'same(full,resumed)' in source and "if k!='multisource_supervision'" in source
+assert not any(k.startswith('s6_labels/') for k in parsed['FILES'])
+assert len(source.encode())+sum(p.stat().st_size for p in R.rglob('*') if p.is_file())+65536<2*2**20
+(R/'recovery.private.py').write_text(source);(R/'recovery.private.py').chmod(0o600)
+out={'status':'actual_private_family_source_GPU_compiler_and_original32_array_path_CPU_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'binding':binding,'all_original_numerical_modules_byte_identical':True,'actual32_old_masks_and_both_parent_views_equal':True,'actual32_source_labels_different_cases':int(np.any(new['labels'][positions]!=old['labels'][positions],axis=1).sum()),'original_input_bridge_reused_without_duplicate_feature_hashing':'939362','private_controls_cap_bytes':2*2**20,'existing_source_root_cap_bytes':16*2**20,'new_private_source_controls_bytes':sum(p.stat().st_size for p in R.rglob('*') if p.is_file()),'new_dataset_or_GPU_or_competition_mutations':0,'actual_GPU_or_production_or_accuracy_accepted':False}
+(R/'CPU-admitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
