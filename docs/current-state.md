@@ -1,5 +1,14 @@
 # Current measured state
 
+Finding final-scoring CPU954859 staged the exact controller; finite owner41043
+is actually live waiting for original full-fit38017 and all three private epoch
+proofs including optimizer. It owns one future both-T4qualification, offline
+public run and exact code entry, after fresh capacity/allowance. Active family
+fit/evaluation caps remain funded. Do not duplicate either owner.32focused
+control/order/uncertainty checks pass; no final-model qualification or new score
+is claimed. Read initiative/experiments/competitive-v1/
+finding-final-scoring-20261018-v1.
+
 Finding-stratified final-serving helpers are now actually CPU-staged by954823
 inside the original control budget.38focused checks pass and original full94
 inference is retained. Actual unfinished E1was refused; no final model/GPU
