@@ -1,0 +1,243 @@
+"""Admit controls now; build complete ordinal teacher targets only after actual success."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+
+v = json.load(sys.stdin)
+phase = v["phase"]
+assert phase in ("stage", "build")
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+D = Path("/tmp/rsna-S6-complete-target-admission-20261018-v1")
+POP = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+MODEL = "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12"
+TARGET = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")
+TARGET_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def paid(root):
+    total = 0
+    for p in root.rglob("*"):
+        try:
+            if p.is_file():
+                total += p.stat().st_size
+        except FileNotFoundError:
+            pass
+    return total
+
+
+reader = Path("/tmp/rsna-criterion-N3-features-20261017-v1")
+family = Path("/tmp/rsna-family-label-epoch-preservation-20261018-v1")
+assert (
+    sha(family / "completed-fixed3-unspent512MiB-retirement-v1.json")
+    == "f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a"
+)
+floor = 603433009211 + max(0, 3 * 2**30 - paid(reader)) + max(0, 3758096384 - paid(family))
+for root, cap in (
+    ("/tmp/rsna-paired-fixed-correction-transport-v3", 2 * 2**20),
+    ("/tmp/rsna-paired-encoder-H100-gradient-20261018-v1", 8 * 2**20),
+    ("/tmp/rsna-paired-full-actual-source-20261018-v1", 2 * 2**20),
+    ("/tmp/rsna-paired-correction-CPU-chain-20261018-v1", 6 * 2**20),
+    ("/tmp/rsna-paired-full-fitting-20261018-v1", 8 * 2**20),
+    (str(P), 8 * 2**20),
+    (str(D), 4 * 2**20),
+):
+    floor += max(0, cap - paid(Path(root)))
+assert shutil.disk_usage("/tmp").free > floor and paid(D) < 4 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 4 * 2**20 and int(a[6]) - int(a[5]) > 5048
+producer = json.loads((P / "CPU-full-stream-v1/staged.json").read_text())
+assert (
+    producer["CPU_job"] == "962215"
+    and producer["source_git"] == "a6b1d0e647d858476a790177ad953295966de252"
+    and producer["model_original_sha256_proof_reused"] == MODEL
+)
+expected = {
+    "program.py": "5f3205f1d2f706b8debe66b83fb5f4a6428a35509d6d0baaea153390d7716fc9",
+    "worker.py": "6d9e5e4a74fa7b44feda256a37a4353e434dbf02f10c88124ca05aa88c6faead",
+    "classifier.py": "29b1cac686f091bca0e6260abe4039a21d96a571498bb29e38ebd3d8d9994a61",
+}
+assert producer["files"] == expected and all(
+    sha(P / "CPU-full-stream-v1" / n) == h for n, h in expected.items()
+)
+model = (Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1") / "E_prior_s42_fall.pt").stat()
+assert {"bytes": model.st_size, "mtime_ns": model.st_mtime_ns, "inode": model.st_ino} == producer[
+    "model_stat"
+]
+assert TARGET.stat().st_size == 483656 and sha(TARGET) == TARGET_SHA
+with np.load(TARGET, allow_pickle=False) as z:
+    assert set(z.files) == {"uids", "labels", "masks", "parent_logits"}
+    uids = z["uids"].tolist()
+assert (
+    len(uids) == 3887
+    and len(set(uids)) == 3887
+    and hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest() == POP
+)
+
+
+def atomic(path, value):
+    assert not path.exists()
+    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    assert paid(D) + len(raw) < 4 * 2**20
+    with path.open("xb") as f:
+        f.write(raw)
+        f.flush()
+        os.fsync(f.fileno())
+
+
+if phase == "stage":
+    assert not D.exists()
+    assert set(v["files"]) == {"complete_teacher.py", "rank_transport.py", "program.py"}
+    assert hashlib.sha256(v["files"]["program.py"].encode()).hexdigest() == v["program_sha256"]
+    D.mkdir(mode=0o700)
+    for name, text in v["files"].items():
+        p = D / name
+        p.write_text(text)
+        p.chmod(0o600)
+    result = {
+        "status": "complete_teacher_target_builder_source_and_independent_small_funding_admitted",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "files": {n: sha(D / n) for n in v["files"]},
+        "original_teacher_producer_job": "962215",
+        "population": 3887,
+        "population_sha256": POP,
+        "parent_target_SHA": TARGET_SHA,
+        "S6_model_sha256": MODEL,
+        "new_separate_node_control_and_target_cap_bytes": 4 * 2**20,
+        "shared_file_reserve_after_new48": int(a[6]) - int(a[5]) - 48,
+        "free_bytes_after_all_liabilities_floor": shutil.disk_usage("/tmp").free - floor,
+        "partial_teacher_predictions_read": False,
+        "labels_or_masks_decoded": False,
+        "GPU_or_trainer_or_accuracy_acceptance": False,
+    }
+    atomic(D / "staged.json", result)
+    print(json.dumps(result), flush=True)
+    raise SystemExit(0)
+
+stage = json.loads((D / "staged.json").read_text())
+assert stage == v["stage"] and all(sha(D / n) == h for n, h in stage["files"].items())
+assert (
+    not (D / "build-intent.json").exists()
+    and not (D / "ready.json").exists()
+    and not (P / "engine-v1/execution.lock").exists()
+)
+terminal = json.loads((P / "teacher-complete.json").read_text())
+assert terminal == v["actual_complete"]
+assert (
+    terminal["source_git"] == producer["source_git"]
+    and terminal["completed"] == 3887
+    and terminal["of"] == 3887
+    and terminal["status"]
+    == "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission"
+)
+job = terminal["CPU_job"]
+assert str(int(job)) == job
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert job + "|COMPLETED|0:0" in state
+bfile = P / "teacher-final.private.npz"
+assert 0 < bfile.stat().st_size < 4 * 2**20 and sha(bfile) == terminal["teacher_file_sha256"]
+jfile = P / "completed-logits.private.jsonl"
+assert jfile.stat().st_size <= 6 * 2**20
+raw = jfile.read_bytes()
+
+
+def load(name, file):
+    spec = importlib.util.spec_from_file_location(name, file)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+core = load("actual_complete_teacher_core", D / "complete_teacher.py")
+rank = load("actual_frozen_rank_transport", D / "rank_transport.py")
+with np.load(bfile, allow_pickle=False) as z:
+    assert set(z.files) == {"uids", "logits", "probabilities"}
+    b = core.aligned_probabilities(
+        uids,
+        z["uids"].tolist(),
+        z["logits"],
+        z["probabilities"],
+        raw,
+        terminal,
+        population_sha=POP,
+        expected_origins={"original_H100_FP32": 8, "original_CPU_FP32": 3879},
+    )
+with np.load(TARGET, allow_pickle=False) as z:
+    parent = z["parent_logits"].copy()
+assert parent.dtype == np.float32 and parent.shape == (3887, 2, 12) and np.isfinite(parent).all()
+arrays = {}
+roles = {}
+metrics = {}
+for role in ("parent_only", "cross_lineage_equal_rank"):
+    arrays[role], metrics[role] = rank.build_targets(
+        parent, None if role == "parent_only" else b, role=role
+    )
+    roles[role] = core.target_binding(role, uids, parent, arrays[role], S6_model_sha=MODEL)
+assert (
+    jfile.read_bytes() == raw
+    and sha(bfile) == terminal["teacher_file_sha256"]
+    and sha(TARGET) == TARGET_SHA
+)
+atomic(
+    D / "build-intent.json",
+    {
+        "source_git": stage["source_git"],
+        "complete_teacher_file_sha256": terminal["teacher_file_sha256"],
+        "complete_teacher_journal_sha256": terminal["journal_sha256"],
+        "original_target_bundle_sha256": TARGET_SHA,
+        "both_roles_fixed_before_any_fit": True,
+        "automatic_retry": False,
+    },
+)
+path = D / "teacher-targets.private.npz"
+assert not path.exists()
+np.savez_compressed(path, uids=np.asarray(uids), **arrays)
+assert path.stat().st_size < 2 * 2**20
+with np.load(path, allow_pickle=False) as z:
+    assert set(z.files) == {"uids", *arrays} and z["uids"].tolist() == uids
+    assert all(np.array_equal(z[role], arrays[role]) for role in arrays)
+atomic(
+    D / "roles.private.json",
+    {
+        "source_git": stage["source_git"],
+        "target_file_sha256": sha(path),
+        "roles": roles,
+        "complete_S6_teacher": terminal,
+        "numerical_transport_metrics": metrics,
+    },
+)
+result = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": stage["source_git"],
+    "population": 3887,
+    "population_sha256": POP,
+    "target_file": {"bytes": path.stat().st_size, "sha256": sha(path)},
+    "roles": roles,
+    "metrics": metrics,
+    "complete_teacher_file_sha256": terminal["teacher_file_sha256"],
+    "complete_teacher_journal_sha256": terminal["journal_sha256"],
+    "labels_masks_and_original_targets_modified": False,
+    "labels_masks_or_protected_values_decoded": False,
+    "new_GPU_or_training_or_accuracy_claim": False,
+}
+atomic(D / "ready.json", result)
+assert paid(D) < 4 * 2**20
+print(json.dumps(result), flush=True)

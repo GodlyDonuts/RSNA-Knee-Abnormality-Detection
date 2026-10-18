@@ -1,0 +1,114 @@
+"""Stage or build one distinct private complete-target packet; no credentials/GPU."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-complete-target-admission-20261018-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("stage", "build")
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+files = {}
+for name, path in {
+    "complete_teacher.py": D / "complete_teacher.py.txt",
+    "rank_transport.py": R
+    / "initiative/experiments/competitive-v1/s6-rank-transport-v1/rank_transport.py.txt",
+    "program.py": D / "program.py.txt",
+}.items():
+    text = subprocess.check_output(
+        ["git", "show", git + ":" + path.relative_to(R).as_posix()], text=True
+    )
+    assert path.read_text() == text
+    files[name] = text
+v = {
+    "phase": phase,
+    "source_git": git,
+    "program_sha256": hashlib.sha256(files["program.py"].encode()).hexdigest(),
+}
+intent = L / (phase + "-intent.json")
+assert not intent.exists()
+if phase == "stage":
+    v["files"] = files
+else:
+    v["stage"] = json.loads((D / "actual-staged.json").read_text())
+    assert v["stage"]["files"] == {
+        n: hashlib.sha256(t.encode()).hexdigest() for n, t in files.items()
+    }
+    v["actual_complete"] = json.loads(
+        (R / "initiative/research/S6-full-CPU-teacher-20261018-v1/actual-complete.json").read_text()
+    )
+    assert v["actual_complete"]["completed"] == 3887
+with intent.open("x") as f:
+    json.dump(
+        {
+            "phase": phase,
+            "source_git": git,
+            "one_CPU_zero_GPU": True,
+            "new_model_or_data_transfers": False,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+s = importlib.util.spec_from_file_location(
+    "original_bounded_stdin",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-targets-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(files["program.py"], v),
+    capture_output=True,
+    text=True,
+    timeout=360,
+)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original target phase failed/uncertain; reconcile without retry: " + x.stderr[-1000:]
+)
+out = json.loads(x.stdout)
+(D / ("actual-staged.json" if phase == "stage" else "actual-ready.json")).write_text(
+    json.dumps(out, indent=2) + "\n"
+)
+print(json.dumps(out), flush=True)

@@ -1,0 +1,120 @@
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+from pathlib import Path
+
+import numpy as np
+
+D = Path(__file__).resolve().parent
+loader = importlib.machinery.SourceFileLoader(
+    "full_teacher_core", str(D / "complete_teacher.py.txt")
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+m = importlib.util.module_from_spec(spec)
+loader.exec_module(m)
+uids = ["fitting-fixture-" + str(i) for i in range(4)]
+a = np.arange(48, dtype=np.float64).reshape(4, 12) / 7 - 3
+p = np.exp(-np.logaddexp(0.0, -a))
+rows = [
+    {
+        "uid": u,
+        "logits": a[i].tolist(),
+        "windows": 14,
+        "origin": "CPU",
+        "image_tensor_sha256": "a" * 64,
+        "metadata_tensor_sha256": "b" * 64,
+    }
+    for i, u in enumerate(uids)
+]
+
+
+def payload(rows):
+    return ("\n".join(json.dumps(x) for x in rows) + "\n").encode()
+
+
+raw = payload(rows)
+terminal = {
+    "status": "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission",
+    "completed": 4,
+    "of": 4,
+    "teacher_file_sha256": "c" * 64,
+    "journal_bytes": len(raw),
+    "journal_sha256": hashlib.sha256(raw).hexdigest(),
+}
+
+
+def call(**kw):
+    args = dict(
+        uids=uids,
+        archive_uids=uids,
+        logits=a,
+        probabilities=p,
+        journal=raw,
+        terminal=terminal,
+        population_sha=m.roster_sha(uids),
+        expected_origins={"CPU": 4},
+    )
+    args.update(kw)
+    return m.aligned_probabilities(**args)
+
+
+assert np.array_equal(call(), p)
+assert not np.shares_memory(call(), p)
+negative = [
+    dict(archive_uids=list(reversed(uids))),
+    dict(uids=uids[:-1]),
+    dict(logits=a.astype(np.float32)),
+    dict(probabilities=np.ones_like(p)),
+    dict(probabilities=np.full_like(p, np.nan)),
+    dict(terminal={**terminal, "completed": 3}),
+    dict(terminal={**terminal, "status": "partial"}),
+    dict(journal=raw[:-1]),
+    dict(expected_origins={"CPU": 3, "GPU": 1}),
+]
+for changed in (
+    [*rows, rows[0]],
+    [{**rows[0], "uid": "unknown"}, *rows[1:]],
+    [{**rows[0], "image_tensor_sha256": "bad"}, *rows[1:]],
+    [{**rows[0], "windows": 0}, *rows[1:]],
+    [{**rows[0], "logits": [1.0] * 12}, *rows[1:]],
+):
+    b = payload(changed)
+    negative.append(
+        dict(
+            journal=b,
+            terminal={
+                **terminal,
+                "journal_bytes": len(b),
+                "journal_sha256": hashlib.sha256(b).hexdigest(),
+            },
+        )
+    )
+for kw in negative:
+    try:
+        call(**kw)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid complete teacher admitted: " + str(list(kw)))
+v = np.stack([a, a + 0.1], axis=1).astype(np.float32)
+b = m.target_binding("parent_only", uids, v, v.copy(), S6_model_sha="d" * 64)
+assert (
+    b["S6_model_sha256"] is None
+    and b["original_teacher_array_sha256"] == b["new_teacher_array_sha256"]
+)
+try:
+    m.target_binding("parent_only", uids, v, v + 1, S6_model_sha="d" * 64)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Changed control admitted")
+print(
+    json.dumps(
+        {
+            "status": "complete_teacher_identity_precision_journal_partial_and_binding_contracts_passed",
+            "negative_cases": len(negative) + 1,
+            "MRI_or_GPU_accuracy_claim": False,
+        }
+    )
+)

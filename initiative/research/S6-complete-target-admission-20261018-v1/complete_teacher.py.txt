@@ -1,0 +1,125 @@
+"""Complete-cohort numerical admission; never infer alignment from row counts alone."""
+
+import hashlib
+import json
+from collections import Counter
+
+import numpy as np
+
+
+def roster_sha(uids):
+    return hashlib.sha256(json.dumps(list(uids), separators=(",", ":")).encode()).hexdigest()
+
+
+def aligned_probabilities(
+    uids,
+    archive_uids,
+    logits,
+    probabilities,
+    journal,
+    terminal,
+    *,
+    population_sha,
+    expected_origins,
+):
+    if (
+        not uids
+        or len(set(uids)) != len(uids)
+        or roster_sha(uids) != population_sha
+        or list(archive_uids) != list(uids)
+    ):
+        raise ValueError("Exact unique ordered fitting population required")
+    n = len(uids)
+    if (
+        terminal.get("status")
+        != "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission"
+        or terminal.get("completed") != n
+        or terminal.get("of") != n
+        or not terminal.get("teacher_file_sha256")
+    ):
+        raise ValueError("Actual complete teacher terminal required; partial ranks forbidden")
+    if any(
+        not isinstance(x, np.ndarray)
+        or x.dtype != np.float64
+        or x.shape != (n, 12)
+        or not np.isfinite(x).all()
+        for x in (logits, probabilities)
+    ):
+        raise ValueError("Exact finite complete FP64 logits/probabilities required")
+    if np.min(probabilities) < 0 or np.max(probabilities) > 1:
+        raise ValueError("Probabilities outside unit interval")
+    expected = np.exp(-np.logaddexp(0.0, -logits))
+    if not np.allclose(expected, probabilities, atol=2e-15, rtol=0):
+        raise ValueError("Stored probabilities disagree with exact raw logits")
+    if (
+        not journal.endswith(b"\n")
+        or len(journal) != terminal.get("journal_bytes")
+        or hashlib.sha256(journal).hexdigest() != terminal.get("journal_sha256")
+    ):
+        raise ValueError("Complete immutable journal bytes/SHA required")
+    rows = {}
+    origins = Counter()
+    for line in journal.splitlines():
+        row = json.loads(line)
+        uid = row.get("uid")
+        if (
+            uid not in set(uids)
+            or uid in rows
+            or type(row.get("windows")) is not int
+            or row["windows"] < 1
+        ):
+            raise ValueError("Unknown/duplicate teacher identity or empty MRI")
+        values = np.asarray(row.get("logits"), dtype=np.float64)
+        if values.shape != (12,) or not np.isfinite(values).all():
+            raise ValueError("Exactly twelve finite raw logits per original MRI required")
+        for key in ("image_tensor_sha256", "metadata_tensor_sha256"):
+            h = row.get(key)
+            if (
+                not isinstance(h, str)
+                or len(h) != 64
+                or any(c not in "0123456789abcdef" for c in h)
+            ):
+                raise ValueError("Exact original MRI tensor hashes required")
+        rows[uid] = values
+        origins[row.get("origin")] += 1
+    if (
+        set(rows) != set(uids)
+        or dict(origins) != expected_origins
+        or not np.array_equal(np.stack([rows[u] for u in uids]), logits)
+    ):
+        raise ValueError("Complete exact journal/array and admitted precision lineage required")
+    return probabilities.copy()
+
+
+def target_binding(role, uids, original, changed, *, S6_model_sha):
+    if (
+        original.dtype != np.float32
+        or changed.dtype != np.float32
+        or original.shape != (len(uids), 2, 12)
+        or changed.shape != original.shape
+        or not np.isfinite(original).all()
+        or not np.isfinite(changed).all()
+    ):
+        raise ValueError("Complete original/new FP32 anatomical-view arrays required")
+    if (
+        role not in ("parent_only", "cross_lineage_equal_rank")
+        or role == "parent_only"
+        and not np.array_equal(original, changed)
+    ):
+        raise ValueError("Control must remain numerically exact")
+
+    def digest(x):
+        return hashlib.sha256(x.tobytes(order="C")).hexdigest()
+
+    return {
+        "version": "equal_rank_transport_target_overlay_v1",
+        "role": role,
+        "population": len(uids),
+        "population_sha256": roster_sha(uids),
+        "diagnostic_only": False,
+        "original_target_bundle_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+        "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "original_teacher_array_sha256": digest(original),
+        "new_teacher_array_sha256": digest(changed),
+        "S6_model_sha256": None if role == "parent_only" else S6_model_sha,
+    }

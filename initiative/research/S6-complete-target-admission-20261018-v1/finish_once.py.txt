@@ -1,0 +1,86 @@
+"""Wait for the original full producer, then construct targets exactly once."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-complete-target-admission-20261018-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+assert (D / "actual-staged.json").exists()
+frozen = {
+    str(p): hashlib.sha256(p.read_bytes()).hexdigest()
+    for p in (D / "program.py.txt", D / "coordinate_once.py.txt")
+}
+with (L / "owner-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "original_producer_PID": 8865,
+            "maximum_hours": 72,
+            "build_attempts": 1,
+            "GPU": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+start = time.monotonic()
+try:
+    while True:
+        assert time.monotonic() - start < 72 * 3600 and all(
+            hashlib.sha256(Path(p).read_bytes()).hexdigest() == h for p, h in frozen.items()
+        )
+        if (
+            R / "initiative/research/S6-full-CPU-teacher-20261018-v1/actual-complete.json"
+        ).exists():
+            break
+        x = subprocess.run(["ps", "-p", "8865", "-o", "command="], capture_output=True, text=True)
+        assert (
+            x.returncode == 0 and "S6-full-CPU-teacher-20261018-v1/finish_once.py.txt" in x.stdout
+        ), "Original producer absent before completion; reconcile without restart"
+        (L / "owner-progress.json").write_text(
+            json.dumps(
+                {
+                    "status": "verified_original_full_teacher_producer_live_wait",
+                    "PID": os.getpid(),
+                    "original_producer_PID": 8865,
+                    "partial_ranks_used": False,
+                }
+            )
+        )
+        time.sleep(120)
+    x = subprocess.run(
+        [sys.executable, str(D / "coordinate_once.py.txt"), "build"],
+        capture_output=True,
+        text=True,
+        timeout=400,
+    )
+    assert x.returncode == 0, x.stderr[-1000:]
+    value = json.loads(x.stdout)
+    assert value["status"] == "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+    (L / "owner-result.json").write_text(
+        json.dumps(
+            {"status": "original_complete_teacher_targets_constructed_once", "actual": value},
+            indent=2,
+        )
+    )
+    print(json.dumps(value), flush=True)
+except BaseException as e:
+    (L / "owner-result.json").write_text(
+        json.dumps(
+            {
+                "status": "target_builder_stopped_no_retry",
+                "exception_type": type(e).__name__,
+                "reason": str(e),
+            },
+            indent=2,
+        )
+    )
+    raise
