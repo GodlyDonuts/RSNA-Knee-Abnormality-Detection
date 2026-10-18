@@ -2,7 +2,7 @@
 
 Two full matched runs, aligned spatial paths versus the same conditional-marginal
 null:2247fitting studies,3epochs/843updates per arm,1156fixed-final development
-studies, all12targets. Same original N3E16encoder, labels, sampling, optimization
+studies, all12targets. Same original N3E16CoAtNet encoder, labels, sampling, optimization
 and image exposure; only path dependence differs. Dense source-slice evidence,
 not a slice-positive label assumption. Both arms include focal singleton paths.
 The encoder is frozen in this first architectural trial; this is not a claim
@@ -27,3 +27,8 @@ no best-epoch selection, target cherry-picking or protected gold/confirmation.
 This experiment can fail or show no useful gain. Compare with both its matched
 null and simultaneously scored unchanged parent; internal weak-label AUC is not
 Kaggle or clinical truth. No public deployment or competition entry is created.
+
+Actual dispatch: CPU955702 queued aligned955711 and null955712, each with
+afterok955582. Finite follow-through48097 is live for new epoch preservation and
+new fixed-final analysis. Old pending, nontraining benchmark950940 was cancelled
+with zero runtime to prioritize these experiments; its data/code remain intact.

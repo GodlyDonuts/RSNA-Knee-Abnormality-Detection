@@ -1,5 +1,20 @@
 # RSNA Knee: current agent guide
 
+October18 execution update: owner directed full throttle and no repeated
+verification of completed work. Full original dense-path runs955711(aligned)
+and955712(conditional-marginal null) are submitted once, source210036b6,
+2247fitting studies/3epochs/843updates each. Both have afterok955582 and cannot
+allocate GPUs until that NEW integration succeeds. They are queued, not scored.
+Finite follow-through48097 is live for six NEW epoch publications and one new
+fixed-final1156-study/all12target/component-uncertainty analysis. No rerunning
+old dataset/model audits. Source is path-full-training-20261018-v1.
+Old nontraining dualGPUbenchmark950940 was cancelled ONLY while PENDING with
+00:00:00runtime/no allocation under the owner's new directive. Preserve its
+code/data; never restart it or claim deletion/storage credit. Existing healthy
+family/finding training and scoring remain untouched. The path trial initially
+trains the new reader over the fixed N3CoAtNet encoder; it is not DINO or a new
+end-to-end backbone result. Best0.958 remains external reproduction.
+
 October18 research priority: owner explicitly wants original measured gains,
 not another reproduction. Best0.958 is external R6; adaptation0.949 is not an
 improvement over S6reproduction0.950. R6branch substitution is deprioritized,
