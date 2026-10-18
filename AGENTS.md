@@ -1,5 +1,14 @@
 # RSNA Knee: current agent guide
 
+October18 sixth Daenerys candidate review returned; original bytes/access proof
+collection pending. She requested cartilage-window evidence rather than forcing
+OA labels.18requested original slices now delivered ONCE as18native640by640
+two-window views; all confirmed upload hashes and append-only Page readback
+57unique refs(original39retained), actual native image renders. Delivery Read/
+Thinking; preserve original JSON and subsequent addendum separately, no case7
+or accepted-label change. Read daenerys-multimodal-study-review-v1.
+
+
 October18 NEW shared-input actual-MRI CPU trial956388 COMPLETED0:0/51seconds,
 42.842818fit seconds,16fitting cases/twoepochs/fourupdates in EACH full1024/64
 head.32source reads/32shared reuses/399377976peak retained tensor bytes; empty

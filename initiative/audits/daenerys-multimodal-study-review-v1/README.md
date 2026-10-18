@@ -215,3 +215,27 @@ active. The old durable thread identifier is historical and is not sufficient
 to identify the current recipient. Private destination references, reports, MRI
 images and delivery screenshot remain in ignored artifacts. Accepted labels and
 model weights are unchanged; no new accuracy gain is claimed.
+
+## Sixth candidate returned and requested alternative views delivered
+
+Daenerys reports actual access to all39sheets and226slices and saved a12-target
+candidate JSON. The original byte collection and structural/source/coverage
+validation are pending; her statement alone is not independent access proof.
+She requested two specific cartilage regions under alternative original
+intensity windows rather than forcing the OA thresholds from the first display.
+
+Eighteen requested original slices were re-rendered directly from retained
+DICOM intensities. Each native640by640slice appears in two side-by-side linear
+window panels: full-acquisition percentile1/98 and0/99.9, with numeric limits,
+DICOM slope/intercept, spacing/orientation/position/source-image binding recorded
+privately. No spatial resizing, enhancement or new source download occurred.
+All18newupload size/SHA/access receipts match; append-only Page readback has
+57unique native references while retaining all39originals/report. A new native
+image actually renders. Total new PNG bytes5563515; the32MiB addition fits the
+unchanged512MiB case cap and actual20GiB local reserve.
+
+The addendum request was sent ONCE to the same actual Daenerys UI, marked Read
+and Thinking. Preserve the original review and any later addendum separately.
+Original review bytes/actual access validation remain pending; no case7 send,
+accepted label update, clinical-ground-truth claim or model accuracy gain.
+Private images, source manifest, destination refs and screenshot stay ignored.
