@@ -1,5 +1,7 @@
 # RSNA Knee: current agent guide
 
+October18 higher-LR final scoring now has a separate finite owner59572, actualCPU957086/program1e6bd9b6/source25e69fa2. It currently verifies live original training56873 while waiting for final3/1458plus allthree private proofs; no new GPU or entry yet. At most one T4qualification, one offline public version and one code entry, each under canonical claim/fresh capacity/complete future budgets and allowance. Existing finding58223/family43079/path48097 unchanged. Eleven new controller cases pass; no accuracy claim. Read competitive-v1/encoder-lr-final-scoring-20261018-v1; never duplicate this owner.
+
 October18 actual spatial-path fitting: original integration955582COMPLETED0:0; original955711aligned/955712null now RUNNING on evc33, oneH100each. CPU957040observed123/100finite updates of843, empty stderr. Exact new integration acceptance collected once, SHA2f50aeb8d03353b9eecb52892399eaa0ed4a957f50c708459e549d4e7fe42989. No old recovery rerun or recipe change. Owner48097continues six immutable epoch publications and fixed-final1156study comparison. No spatial accuracy gain yet. Read path-full-training-20261018-v1/actual-first-live-training.json.
 
 October18 current owners supersede older snapshots: finding full3epochs/1458

@@ -9,3 +9,9 @@ Every GPU push requires fresh live two-batch capacity and enough reported quota 
 New controls fit a distinct2MiB child inside the already admitted8MiB LR node-local control envelope, separately from the accepted256KiB serving template. Fresh owning-node and shared quota bounds precede staging. This admission funds small controls only; actual future GPU time must pass the fresh budget gate. Source-derived clinical data and model weights stay private. No GPU, entry or accuracy result follows from preparing this controller.
 
 The new controller reuses the exact previous finding coordinator's canonical phase implementation (SHA7286feef...), with separate LR source, final receipt/metadata/compiler contract, storage child, budget obligations and candidate identity. Existing finding/family actors are not replaced or interrupted.
+
+## Actual admission and owner
+
+CPU957086 staged the exact new controller from25e69fa2 under fresh owning-node/shared quota bounds. Program SHA `1e6bd9b6556adf789088bdd60739dedabe01b591cafa393ddb46297ebac3f659`. It made zero GPU/Dataset/weight/entry mutations. Eleven new focused budget/dependency/request cases and scoped Ruff passed; this is not model/T4 accuracy acceptance.
+
+Finite owner59572 is live, currently waiting for actual original fitting owner56873. The first wait checked the live process and exact command; no training terminal was inferred from a file alone. Do not restart this owner or repeat staging/push phases. Inspect its original local intents and the canonical ledger on any interruption.
