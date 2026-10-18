@@ -50,3 +50,19 @@ bounded64KiB within unchanged32MiB, and its original child stays under2MiB.
 No shared storage, GPU, deletion credit or implicit checkpoint funding is used.
 The same absent canonical intent and authenticated Dataset absence still gate
 any FIRST create RPC.
+
+Actual relocated transport959064 passed fresh reserves, exact source/payload/ZIP
+validation, original terminal/canonical-intent and complete owned-absence checks.
+The FIRST CreateDataset RPC returned503ServiceUnavailable; no response receipt
+was fabricated and no mutation was retried. Actual read-only reconciliation959084
+found no target in all76owned Datasets over five authenticated pages. The original
+uncertain namespace row/create-intent remain: absence at this observation does
+not prove a delayed creation impossible. That read-only reconciliation released
+ONLY the dead959064 global coordinator mutex, so unrelated existing owners can
+continue. All eight original model/scoring/decision owners were confirmed live.
+
+There is NO accepted correction Dataset or GPU fit. Do not run any prior create
+wrapper again. Future work must reconcile this exact slug/version/intents
+read-only; if an artifact appears, fully verify its five original objects before
+using it. Actual post503receipt is preserved here; source construction/privateHF
+remain valid and untouched. No model or submission failure occurred here.

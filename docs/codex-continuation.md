@@ -1,5 +1,8 @@
 # Execution handoff
 
+October18 offline correction-input staging: originalCPU959030failed ZIP ordering BEFORE any Dataset RPC;959053refused old shared control cap BEFORE intent. Separate2MiB sibling ZIP959064preserved originals/live32MiBcap and made ONE CreateDataset RPC, which returned503ServiceUnavailable. Read-only959084found no target in complete76-owned/five-page listing; uncertain original ledger row/intent retained, dead959064globalclaim released, no retry. No accepted Dataset/GPUfit/entry. Existing model owners all live. See paired-correction-kaggle-input-20261018-v1; future exactslug reconciliation READ-ONLY, never rerun create wrappers.
+
+
 October18 both original spatial arms have completed843/843finite optimizerupdates; aligned955711is COMPLETED0:0, null955712still RUNNING through final evaluation. Owner48097continues originalnullE3preservation/fixed-finalpairedanalysis; no score inferred. New prospective encoder-correction decision module/CLI passed11focusedcases, scopedRuff/mypy2; sole receipt-onlyowner74590is live waiting original66085/71891terminalreceipts. It changes no GPU/entry/trainer: >=25%encoder/all-gradient+forward reduction, no empirical mean-error increase, <=10%measuredstepoverhead, explicit reference-noise inconclusive guard fixed BEFORE outcome. No provenbias/accuracy/fullfit admission. Read paired-probe-promotion-20261018-v1.
 
 

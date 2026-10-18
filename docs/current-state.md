@@ -43,6 +43,17 @@ views averaged. It is **not** full-encoder, production single-view FP16 or accur
 evidence. The GPU experiment measures the missing conditions before a full fit.
 [Actual production-objective decision](../initiative/research/paired-logit-head-gradient-20261018-v1/production-objective-decision.json).
 
+## New offline input staging
+
+One correction-table Dataset creation request returned **503 Service Unavailable**
+after local packaging was accepted. Read-only CPU959084 found no target in the
+complete authenticated owned listing (76 Datasets/five pages). Its original
+uncertain ledger row and create intent are preserved; the dead original global
+claim was released so existing work can continue. There is **no accepted new
+Dataset or new GPU fit**, and no submission slot was spent. Future reconciliation
+of the exact slug is read-only; never rerun the creation wrappers.
+[Exact receipts](../initiative/research/paired-correction-kaggle-input-20261018-v1/README.md).
+
 ## Data review
 
 Eight sequential fitting-study candidate reviews are collected. The eighth's
