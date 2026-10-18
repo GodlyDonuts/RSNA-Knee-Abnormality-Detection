@@ -57,3 +57,9 @@ reconstruct the stored teacher probability within1.2e-7; that is NOT an actual
 FP16/dropout student result or an accuracy improvement. No new Dataset/GPU pilot
 has been dispatched. Next: immutable actual-MRI training recovery wrapper and
 resource funding, retaining all existing fits and evaluation owners.
+
+Accuracy counterevidence matters: the completed matched full94training control
+already tied influence16at public0.949. Lower pooling approximation error alone
+cannot establish a ranking benefit or justify full production. Keep the next
+step bounded and measure the actual stochastic-encoder behavior; incorporate
+family/finding results and this negative control before any full CVfit decision.

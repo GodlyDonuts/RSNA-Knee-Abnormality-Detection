@@ -1,26 +1,35 @@
 # Current measured state
 
-Current October18 state supersedes phase snapshots below. Family-mixture full
-training139355023v1 is COMPLETE1458updates; all three epochs privately verified,
-finalHF8d8c1130/model275ec8d8. Original18386success; original40013terminal before
-preparation because its conservative reserve guard failed. Distinct reconciled
-evaluator43079 is live; qualification139366373v1/source8ccc3f536da1 was pushed
-once and is RUNNING. No new entry or score yet. Never duplicate either notebook.
+Current October18 state supersedes phase snapshots below. Family label-mixture
+139355023v1 completed1458finite updates; all three epochs privately verified,
+finalHF8d8c1130/model275ec8d8. Qualification139366373v1 and public offline
+139367736v1 both COMPLETE; actual32MRI/bothT4/graph and public3row13column
+CSV checks passed. Evaluator43079 is live waiting for authoritative allowance: at
+06:23UTC five entries today, zero slots. No family competition entry/score yet.
+Never upload publicCSV or duplicate those versions. Original18386success and
+40013pre-mutation reserve failure are terminal, not restart authority.
 
-CPU955076 retired only512MiB UNUSED completed-family future capacity: cap4GiB
-to3.5GiB, all3.516GB originals retained plus242MB buffer. ReceiptSHAf210549e.
-New guards bind the exact retirement and substitute new cap in the existing
-603433009211+unpaidP3GiB+unpaidFamily expression; no second credit/deletion.
-Old frozen finding38017 remains live on original E1; do not alter it. Its old
-conservative guards may stop later phases; inspect actual terminal/intent before
-any distinct recovery. Scoring waiter41043 still belongs to that original fit.
+Finding E1kernel139354995v1 completed486updates, all6private objects including
+optimizer fully verified at HF1a014f446e7d349f24dc54fc0d2bea8f68c78a1a viaCPU955239.
+Original38017stopped at pre-collection reserve gate955166; waiter41043terminal
+without scoring mutation. Distinct continuation43912preserved E1then pushed
+E2kernel139369133v1/source9f4c9837d530 ONCE, samebf362cddscience/recipe/inputs/
+optimizer state. It owns only E2/E3and preservation. Do not repeat E1 or old owners.
+Next rebind finding fixed-final scoring to this actual continuation; old41043is
+not an active evaluator. Read finding-full-funding-recovery-20261018-v2.
 
-Parent-delta CPU955154 produced the private670668-byte exact-schedule FP32
-reference for all11661bags, SHA94229c1e, after explicit cross-precision diagnosis.
-FP32reference does NOT claim CUDAFP16/dropout replay.19focused actual CPU engine/
-synthetic-image checks pass; actual MRI/GPU training acceptance is still absent.
-No new Dataset or model fit. See parent-delta-schedule-20261018-v1 and
-family-final-scoring-recovery-20261018-v2 for original failed phases and receipts.
+CPU955076 retired ONLY512MiB UNUSED completed-family future capacity:4to3.5GiB,
+all3.516GB originals retained plus242MB buffer. RetirementSHAf210549e. New guards
+bind exact receipt and substitute new family cap in603433009211+unpaidP3GiB+
+unpaidFamily; never subtract credit twice or delete originals. Finding's bridge
+changes only one resource assertion in each original CPU coordinator/publisher.
+
+Parent-delta CPU955154 built private670668-byte FP32reference for11661exact
+bags, SHA94229c1e. CPU19synthetic engine/schedule checks pass. Original FP32/
+CUDAFP16cross-precision equality gate remains FAILED and separately diagnosed;
+no actual GPU/stochastic replay or accuracy admission. No new Dataset or CVfit.
+Full94training already tied0.949, so better approximation alone cannot promote
+this mechanism. Keep any next real-MRI probe bounded. See parent-delta-schedule-v1.
 
 New parent-delta CPU954924 completed all3887fitting cached-MRI studies with64
 paired draws at all five predeclared simulated-drift scales. Stable paired-logit
