@@ -1,5 +1,11 @@
 # RSNA Knee: current agent guide
 
+Finding-stratified final-serving helpers are now actually CPU-staged by954823
+inside the original control budget.38focused checks pass and original full94
+inference is retained. Actual unfinished E1was refused; no final model/GPU
+qualification or sampling score is claimed. Read competitive-v1/
+finding-final-serving-20261018-v1 under initiative/experiments.
+
 October18 post-fit evaluation update: CPU954761 staged the distinct family-final
 scoring controller; finite owner40013 is actually live waiting for original
 training owner18386. It will qualify only the completed privately preserved E3,
@@ -10,10 +16,11 @@ claimed. Original family/finding training owners remain unchanged. Read
 initiative/experiments/competitive-v1/family-final-scoring-20261018-v1.
 
 
-Latest distinct private source milestone: e3480a43/45small objects,212256bytes,
-fully re-downloaded/size/SHA verified at HFa19b0381212fb85069c866d722260b0a563aa85f
-viaCPU954598 under the canonical shared lock. Never repeat this v16 publication.
+Latest distinct private source milestone: dfe89e4f/25small objects,124596bytes,
+fully re-downloaded/size/SHA verified at HF355c22ecb381b501c8e5d59d5212c23420f5639f
+viaCPU954835 under the canonical shared lock. Never repeat this v17 publication.
 No MRI/UID/label/teacher arrays or model weights are in that small source mirror.
+Actual CPU954823 staging receipt is newer and was not part of that source delta.
 
 
 October18 live execution update: the finding-allocation full comparison was

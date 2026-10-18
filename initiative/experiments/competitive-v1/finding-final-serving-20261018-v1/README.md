@@ -18,7 +18,9 @@ read directly from original epoch-003.pt output; no new weight Dataset is needed
 38 focused synthetic checks passed, including parent math and both compile
 modes. This does not prove actual checkpoint acceptance, runtime or accuracy.
 
-Next: stage these exact helpers under a funded original control envelope, then
-qualify the actual fully preserved final checkpoint before public execution and
+Actual CPU954823 staged the exact helpers under2MiB inside the original4MiB
+control envelope, verified original assets and refused the actual unfinished E1.
+No trained-model or GPU inference acceptance is claimed. Next qualify the actual
+fully preserved final checkpoint before public execution and
 one useful sampling-only competition comparison. Do not manufacture a terminal
 receipt or wait on unrelated source-label research. Best0.950 remains unchanged.
