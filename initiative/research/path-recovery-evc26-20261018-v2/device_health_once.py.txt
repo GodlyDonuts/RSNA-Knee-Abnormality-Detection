@@ -1,0 +1,26 @@
+"""One short allocated health probe per permitted physical2-H100 node."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+
+D=Path(__file__).resolve().parent;node=sys.argv[1];assert node in ('evc26','evc44','evc45','evc46')
+L=Path('artifacts/assigned-H100-health-20261018-v1');L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/(node+'.intent.json')).exists()
+ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+actual=subprocess.check_output(ssh+[shlex.join(['scontrol','show','node',node,'-o'])],text=True)
+assert 'h100' in actual.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',actual)
+assert 'MAINTENANCE' not in actual and 'RESERVED' not in actual
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+program=subprocess.check_output(['git','show',git+':'+D.relative_to(Path.cwd()).as_posix()+'/assigned_device_health.py.txt'],text=True)
+compile(program,'exact_allocated_H100_UUID_and_memory_health','exec')
+with (L/(node+'.intent.json')).open('x') as f:json.dump({'node':node,'source_git':git,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),
+    'physical_GPUs':2,'requested_GPUs':1,'CPUs':1,'minutes':1,'no_model_or_private_data':True,'new_node_shared_files_bytes':0},f,indent=2)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=gpu:1','--mem=1G','--time=00:01:00','--job-name=rsna-assigned-H100-health-'+node,'/usr/bin/python3','-B','-c',program]
+x=subprocess.run(ssh+[shlex.join(args)],capture_output=True,text=True,timeout=600)
+(L/(node+'.result.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,'Original health allocation failed/uncertain; reconcile the existing job, do not repeat'
+out=json.loads(x.stdout);(D/('actual-assigned-health-'+node+'.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

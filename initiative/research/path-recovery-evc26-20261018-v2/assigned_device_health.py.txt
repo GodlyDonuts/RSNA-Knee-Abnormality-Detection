@@ -1,0 +1,65 @@
+"""One Slurm-assigned GPU only. Never clear/remap CUDA_VISIBLE_DEVICES."""
+import ctypes as C
+import json
+import os
+import subprocess
+import uuid
+
+out={'status':'assigned_GPU_health_not_yet_accepted','GPU_job':os.environ.get('SLURM_JOB_ID'),
+     'node':os.uname().nodename,'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),
+     'CUDA_DEVICE_ORDER':os.environ.get('CUDA_DEVICE_ORDER'),'SLURM_JOB_GPUS':os.environ.get('SLURM_JOB_GPUS'),
+     'SLURM_STEP_GPUS':os.environ.get('SLURM_STEP_GPUS'),'mask_changed':False,
+     'assigned_driver_context_and_memory_verified':False,'model_or_training_or_data_loaded':False}
+try:
+    allocation=os.environ.get('SLURM_JOB_GPUS','')
+    assert allocation and ',' not in allocation,'Exactly one certified Slurm job GPU required'
+    query=subprocess.run(['nvidia-smi','-i',allocation,'--query-gpu=uuid,name,driver_version,pci.bus_id','--format=csv,noheader'],
+                         stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True,timeout=10)
+    out['NVML_assigned_query_returncode']=query.returncode
+    assert query.returncode==0,'Slurm-assigned physical index/UUID is unavailable in NVML'
+    lines=[line.strip() for line in query.stdout.splitlines() if line.strip()]
+    assert len(lines)==1
+    identity,name,version,bus=[field.strip() for field in lines[0].split(',')]
+    assert identity.startswith('GPU-') and 'H100' in name
+    out.update(assigned_NVML_UUID=identity,assigned_name=name,driver_version=version,pci_bus_id=bus)
+    driver=C.CDLL('libcuda.so.1')
+    def ok(name,*args):
+        result=getattr(driver,name)(*args)
+        out['last_driver_call']=name;out['last_driver_result']=int(result)
+        assert result==0,name+' failed with CUDA code '+str(result)
+    version_number=C.c_int();ok('cuDriverGetVersion',C.byref(version_number))
+    out['driver_CUDA_version']=version_number.value
+    ok('cuInit',0)
+    count=C.c_int();ok('cuDeviceGetCount',C.byref(count));out['driver_visible_devices']=count.value
+    class DeviceUUID(C.Structure):
+        _fields_=[('bytes',C.c_ubyte*16)]
+    matches=[]
+    uuid_function='cuDeviceGetUuid_v2' if hasattr(driver,'cuDeviceGetUuid_v2') else 'cuDeviceGetUuid'
+    for index in range(count.value):
+        device=C.c_int();ok('cuDeviceGet',C.byref(device),index)
+        identifier=DeviceUUID();ok(uuid_function,C.byref(identifier),device)
+        if 'GPU-'+str(uuid.UUID(bytes=bytes(identifier.bytes)))==identity:matches.append((index,device))
+    assert len(matches)==1,'No unique driver device matches the originally assigned NVML UUID; do not remap'
+    index,device=matches[0];out['matched_driver_ordinal']=index
+    context=C.c_void_p();ok('cuDevicePrimaryCtxRetain',C.byref(context),device)
+    try:
+        ok('cuCtxSetCurrent',context)
+        driver.cuMemAlloc_v2.argtypes=[C.POINTER(C.c_uint64),C.c_size_t]
+        driver.cuMemsetD32_v2.argtypes=[C.c_uint64,C.c_uint,C.c_size_t]
+        driver.cuMemcpyDtoH_v2.argtypes=[C.c_void_p,C.c_uint64,C.c_size_t]
+        driver.cuMemFree_v2.argtypes=[C.c_uint64]
+        pointer=C.c_uint64();ok('cuMemAlloc_v2',C.byref(pointer),4)
+        try:
+            ok('cuMemsetD32_v2',pointer,0x3f800000,1)
+            value=C.c_uint();ok('cuMemcpyDtoH_v2',C.byref(value),pointer,4)
+            ok('cuCtxSynchronize');assert value.value==0x3f800000
+        finally:ok('cuMemFree_v2',pointer)
+    finally:
+        ok('cuCtxSetCurrent',C.c_void_p())
+        ok('cuDevicePrimaryCtxRelease',device)
+    out['assigned_driver_context_and_memory_verified']=True
+    out['status']='actual_exact_Slurm_assigned_H100_UUID_context_and_four_byte_memory_accepted'
+except BaseException as error:
+    out['status']='assigned_GPU_diagnostic_not_accepted_no_model_or_training_attempt'
+    out['reason']=str(error)
+print(json.dumps(out),flush=True)

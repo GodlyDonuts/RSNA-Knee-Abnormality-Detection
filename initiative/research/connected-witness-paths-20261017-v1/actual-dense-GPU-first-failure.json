@@ -1,0 +1,15 @@
+{
+  "GPU_job": "951964",
+  "node": "evc33",
+  "actual_Slurm_state": "FAILED",
+  "exit_code": "1:0",
+  "elapsed_seconds": 18,
+  "read_only_collector_CPU": "952148",
+  "trace": "worker.py line81: assert torch.equal(actual[base_logits].cpu(),reference[base_logits]); AssertionError",
+  "optimizer_or_clinical_targets_used": false,
+  "source_audit": "StreamedPathData.encode forces CUDA BF16; actual DeploymentBagClassifier precision=float32 disables autocast.",
+  "distinct_correction": "online_inputs_fp32.py requires the actual explicit FP32 deployment class and disables encoder autocast.",
+  "correction_GPU_accepted": false,
+  "old_frozen_parent_or_118_numerical_modules_changed": false,
+  "old_original_probe_repeated": false
+}
