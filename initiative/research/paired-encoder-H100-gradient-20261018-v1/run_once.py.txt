@@ -1,0 +1,31 @@
+"""One Slurm H100 request; credentials only through stdin, originals unchanged."""
+import hashlib,json,os,shlex,subprocess,time
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/paired-encoder-H100-gradient-20261018-v1'
+admitted=json.loads((D/'actual-staged.json').read_text());assert admitted['CPU_job']=='959600'
+E=R/'.env';assert E.stat().st_mode&0o077==0
+values={k.strip():v.strip().strip('"\'') for line in E.read_text().splitlines() for k,sep,v in [line.partition('=')] if sep}
+program=r'''import hashlib,io,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin);D=Path('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1');a=json.loads((D/'admitted.json').read_text());assert hashlib.sha256((D/'admitted.json').read_bytes()).hexdigest()==v['admission_sha256'];p=D/'worker.private.py';assert hashlib.sha256(p.read_bytes()).hexdigest()==a['worker_sha256']
+code=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/paired-encoder-noise-v2/code')
+for n,h in a['source_closure_sha256'].items():assert hashlib.sha256((code/n).read_bytes()).hexdigest()==h
+paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');transport=Path('/tmp/rsna-paired-fixed-correction-transport-v3')
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))+max(0,2*2**20-paid(transport))+max(0,8*2**20-paid(D))
+assert shutil.disk_usage('/tmp').free>floor and paid(D)<8*2**20 and shutil.disk_usage('/dev/shm').free>8*2**30
+sys.path[:0]=[str(code),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay'];os.environ.update(CUBLAS_WORKSPACE_CONFIG=':4096:8',HF_HUB_DISABLE_TELEMETRY='1',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
+print(json.dumps({'status':'original_one_H100_measurement_allocated','GPU_job':os.environ['SLURM_JOB_ID'],'host':os.uname().nodename,'admission_sha256':v['admission_sha256']}),flush=True)
+sys.stdin=io.StringIO(json.dumps(v));exec(compile(p.read_text(),str(p),'exec'),{'__name__':'__main__','__file__':str(p)})
+'''
+with (A/'GPU-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'admission_sha256':admitted['admission_sha256'],'worker_sha256':admitted['worker_sha256'],'launcher_sha256':hashlib.sha256(program.encode()).hexdigest(),'maximum_GPU_jobs':1,'physical_node_GPUs':2,'requested_GPUs':1,'host_RAM_bytes':32*2**30,'GPU_runtime_seconds':2700,'automatic_retry':False,'new_model_bytes_RAM_only':292870259,'optimizer_updates_entries':0},f,indent=2)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=00:45:00','--job-name=rsna-H100-encoder-noise-v1','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=2','MKL_NUM_THREADS=2','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+with (A/'GPU-stdout.private.log').open('x') as output,(A/'GPU-stderr.private.log').open('x') as error:
+ child=subprocess.Popen(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],stdin=subprocess.PIPE,stdout=output,stderr=error,text=True)
+ (A/'GPU-owner.json').write_text(json.dumps({'PID':os.getpid(),'SSH_child_PID':child.pid,'admission_sha256':admitted['admission_sha256'],'role':'single_H100_gradient_measurement','original_T4_owners_unchanged':True},indent=2))
+ print(json.dumps({'owner_PID':os.getpid(),'SSH_child_PID':child.pid,'single_GPU_request_started':True}),flush=True)
+ child.communicate(json.dumps({'admission_sha256':admitted['admission_sha256'],'token':values['HF_TOKEN']}))
+code=child.returncode;result={'returncode':code,'owner_PID':os.getpid(),'stderr_bytes':(A/'GPU-stderr.private.log').stat().st_size,'stdout_bytes':(A/'GPU-stdout.private.log').stat().st_size}
+(A/'GPU-terminal.json').write_text(json.dumps(result,indent=2));assert code==0,'Inspect original Slurm job/output; never retry uncertainty'
+lines=(A/'GPU-stdout.private.log').read_text().splitlines();receipt=json.loads(lines[-1]);assert receipt['status']=='actual_H100_trained_encoder_paired_noise_measured'
+(D/'actual-result.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
