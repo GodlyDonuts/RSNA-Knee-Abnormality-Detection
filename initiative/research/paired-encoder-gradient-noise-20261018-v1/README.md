@@ -73,3 +73,31 @@ Three new execution simulations confirm that missing prerequisites wait without
 credentials/API writes, failed recovery stops and changed source stops, all
 without changing source files or creating an intent. Never launch another owner
 or restart this one after uncertainty. Actual numerical results remain absent.
+
+## Complete update timing instrumentation
+
+New `rsna/competitive/paired_step_timing.py` observes a fresh six-update call to
+either unchanged numerical engine. Rank zero clocks LR-factor entry through
+history construction after the actual AdamW update, scaler update and distributed
+loss reduction. It includes sampled case lookup, image inputs, forward/backward,
+finite-gradient checks and clipping. Per-step order construction, progress-file
+writes and epoch/resume checkpoint IO are outside that interval. Total trainer
+wall time is separately recorded with those setup/IO costs. This explicit scope
+must accompany any later overhead decision; the interval is not total end-to-end
+production time.
+
+Four new synthetic tests pass. For each actual small ordinary/corrected engine,
+the complete learned model, AdamW, RNG, scaler, history, schedule and binding are
+identical with and without instrumentation. Failure restores both original
+hooks without retry; existing output is refused. Scoped Ruff and mypy pass.
+The ordinary arm uses the original readout class, and the paired arm uses the
+explicit corrected class, with compatible identical initial tensor state. An
+ordinary optimizer call cannot silently omit a correction on the paired class.
+
+This instrumentation is not integrated into the already staged v1 GPU source,
+and original live owner68344 remains unchanged. A subsequent immutable wrapper
+must run both arms from matched starts, reverse arm order across fresh-process
+repetitions, expose all step timings and both-rank wall times, bound temporary
+diagnostic checkpoint storage and fund its actual session. It must reconcile any
+unexecuted v1 ownership before replacing it; no duplicated GPU run is authorized
+by this module. No actual GPU timing, accuracy or full-fit admission exists yet.
