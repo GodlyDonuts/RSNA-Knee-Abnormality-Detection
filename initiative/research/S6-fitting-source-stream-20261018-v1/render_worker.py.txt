@@ -1,0 +1,192 @@
+"""Persistent CPU renderer process for a future bounded H100 teacher pipeline.
+
+Private request/response JSON travels through pipes, not public logs. A future
+parent owns source-index/provenance admission, GPU scoring and scratch retirement.
+This file is prepared source; no worker or production job is dispatched by it.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import hashlib
+import importlib.util
+import inspect
+import json
+import os
+import sys
+import time
+import traceback
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+
+def main():
+    assert not os.environ.get("SLURM_JOB_GPUS") or os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    os.umask(0o077)
+    admission = json.loads(sys.stdin.readline())
+    root = Path(admission["scratch_root"]).resolve()
+    assert root.is_relative_to("/dev/shm") and root.is_dir()
+    token = admission.pop("HF_token")
+    slot_cap = int(admission["slot_cap_bytes"])
+    assert 8 * 2**30 <= slot_cap <= 16 * 2**30
+    os.environ.update(
+        HF_HUB_OFFLINE="1",
+        TRANSFORMERS_OFFLINE="1",
+        PIP_NO_INDEX="1",
+        HF_HOME=str(root / "hf"),
+        TORCH_HOME=str(root / "torch"),
+        XDG_CACHE_HOME=str(root / "cache"),
+    )
+    base = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+    sys.path.insert(0, str(base / "runtime-opencv-v1/site-packages"))
+    sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+    import numpy as np
+    import requests
+    import torch
+
+    assert not torch.cuda.is_available()
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(1)
+    helper_path = Path(admission["source_buffer_helper"])
+    assert (
+        hashlib.sha256(helper_path.read_bytes()).hexdigest()
+        == admission["source_buffer_helper_sha256"]
+    )
+    spec = importlib.util.spec_from_loader(
+        "bounded_teacher_source", SourceFileLoader("bounded_teacher_source", str(helper_path))
+    )
+    helper = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(helper)
+    spec = importlib.util.spec_from_file_location(
+        "original_S6_stream_renderer", base / "source-tree-v1/launcher.private.py"
+    )
+    launch = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = launch
+    spec.loader.exec_module(launch)
+    assert (
+        hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()
+        == "7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946"
+    )
+    source_revision = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+    geometry = json.loads(
+        (base / "CPU-fitting8-UID-view-v2/collected/index.private.json").read_text()
+    )["geometry"]
+    dataset = launch.CI.CStudies(
+        root,
+        "train",
+        [],
+        root,
+        base / "source-tree-v1/code/cloud_code",
+        geometry["size"],
+        eval_stride=geometry["eval_stride"],
+        views=geometry["views"],
+        slices=geometry["slices"],
+        anchor_weights=base / "source-tree-v1/anatomy.pt",
+        phys_mm=geometry["phys_mm"],
+    )
+    with np.load(
+        "/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz",
+        allow_pickle=False,
+    ) as data:
+        fitting = set(data["uids"].tolist())
+    reused = set(
+        json.loads(
+            (base / "CPU32-recovered-numerics-20261018-v1/selection.private.json").read_text()
+        )["selected_uids"]
+    )
+    assert len(fitting) == 3887 and len(reused) == 32 and reused <= fitting
+    seen = set()
+
+    @contextlib.contextmanager
+    def opener(row):
+        from urllib.parse import quote
+
+        url = (
+            "https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/"
+            + source_revision
+            + "/"
+            + quote(row["path"], safe="/")
+        )
+        with requests.get(
+            url, headers={"Authorization": "Bearer " + token}, timeout=(10, 90), stream=True
+        ) as response:
+            if response.status_code != 200:
+                raise RuntimeError("Source HTTP status " + str(response.status_code))
+            yield response.raw
+
+    for line in sys.stdin:
+        request = json.loads(line)
+        uid = request["uid"]
+        assert uid in fitting and uid not in reused and uid not in seen
+        seen.add(uid)
+        owned = None
+        started = time.perf_counter()
+        try:
+            data, proof = helper.acquire(
+                root,
+                uid=uid,
+                rows=request["source_files"],
+                series_csv=request["series_csv"],
+                cap=2**30,
+                workers=6,
+                opener=opener,
+            )
+            owned = data.parent
+            acquisition = time.perf_counter() - started
+            dataset.data, dataset.tmp, dataset.uids = str(data), str(owned / "native"), [uid]
+            with (
+                (owned / "renderer.private.log").open("x") as log,
+                contextlib.redirect_stdout(log),
+                contextlib.redirect_stderr(log),
+            ):
+                item = dataset[0]
+            assert item["error"] is None and len(item["images"]) > 0
+            images, meta = item["images"].numpy(), item["meta"].numpy()
+            assert images.dtype == np.uint8 and images.shape[1:] == (3, 320, 320)
+            assert (
+                meta.dtype == np.float32
+                and meta.shape == (len(images), 6)
+                and np.isfinite(meta).all()
+            )
+            tensor_file = owned / "rendered.private.npz"
+            current_bytes = sum(p.stat().st_size for p in owned.rglob("*") if p.is_file())
+            assert current_bytes + images.nbytes + meta.nbytes + 32768 < slot_cap
+            np.savez(tensor_file, images=images, meta=meta)
+            assert sum(p.stat().st_size for p in owned.rglob("*") if p.is_file()) < slot_cap
+            result = {
+                "uid": uid,
+                "tensor_path": str(tensor_file),
+                "owned_scratch": str(owned),
+                "windows": len(images),
+                "image_tensor_sha256": hashlib.sha256(images.tobytes()).hexdigest(),
+                "metadata_tensor_sha256": hashlib.sha256(meta.tobytes()).hexdigest(),
+                "source_files": len(proof["files"]),
+                "source_bytes": proof["source_bytes"],
+                "source_proof_path": str(owned / "source-proof.private.json"),
+                "anchor": item.get("anchor"),
+                "seconds": item["seconds"],
+                "acquisition_seconds": acquisition,
+                "whole_seconds": time.perf_counter() - started,
+                "error": None,
+            }
+            print(json.dumps(result), flush=True)
+        except BaseException as error:
+            if owned is not None:
+                (owned / "worker-traceback.private.txt").write_text(traceback.format_exc())
+            print(
+                json.dumps(
+                    {
+                        "uid_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+                        "error": type(error).__name__,
+                        "partial_bytes_retained": True,
+                        "automatic_retry": False,
+                    }
+                ),
+                flush=True,
+            )
+            raise
+
+
+if __name__ == "__main__":
+    main()

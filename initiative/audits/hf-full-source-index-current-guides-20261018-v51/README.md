@@ -1,0 +1,3 @@
+# Complete source-index admission and current guide preservation
+
+Only new sanitized source/aggregate receipts through ca7c2bcf since fully verified f6752968 are mirrored. Excludes prior v50 publication and the changing archive catalog. Includes original-index CPU admission and concise current guides with byte-preserved historical snapshots. No private compressed index, source rows, pixels, clinical records, per-study predictions or learned weights. Same canonical lock/full re-download/size/SHA and fresh original evc39 small16MiB/all-paid floors; a distinct2MiB child must fit without weakening any cap.
