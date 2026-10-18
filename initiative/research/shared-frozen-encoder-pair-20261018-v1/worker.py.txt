@@ -1,0 +1,42 @@
+"""Actual cached-MRI CPU execution of NEW shared-pair wrapper; no old recovery replay."""
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import time
+
+ROOT=Path('/tmp/rsna-shared-path-pair-CPU-20261018-v1')
+OLD=Path('/tmp/rsna-path-recovery-evc26-20261018-v2/reader-engine-v1')
+assert os.uname().nodename=='evc26'
+admit=json.loads((ROOT/'admitted.json').read_text())
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==admit['files_sha256']['worker.py']
+assert hashlib.sha256((ROOT/'shared_pair.py').read_bytes()).hexdigest()==admit['files_sha256']['shared_pair.py']
+assert not (ROOT/'run-start.json').exists()
+assert shutil.disk_usage('/tmp').free>612022943803+3*2**30+16*2**20
+sys.path[:0]=[str(ROOT),str(OLD/'code/mechanism'),str(OLD/'code/core'),str(OLD/'code')]
+import torch
+from path_reader import PathCachedData,PathTrainer
+from rsna.competitive.spatial_train import SpatialRecipe
+from shared_pair import SharedBatch,fit_pair
+assert os.environ.get('CUDA_VISIBLE_DEVICES')==''
+torch.set_num_threads(2);torch.use_deterministic_algorithms(True)
+spec=importlib.util.spec_from_file_location('original_cached_MRI_provider',OLD/'code/cached_inputs26.py')
+helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+old=json.loads((OLD/'admitted.json').read_text())
+original,parent,_=helper.inputs({},'cached');assert parent is None
+assert len(original['fitting'])==16 and len(original['outer'])==16
+assert original['fitting'].binding['fitting16_labels_masks_sha256']=='a2e8e852dd7e5d02efec61cd01a3b1b66ad5cd1f756914568d3d11f3d9ee0dc5'
+data=PathCachedData(original['fitting'],old['mechanism_binding'])
+cache=SharedBatch(data,torch.device('cpu'),max_bytes=4*2**30)
+engines={arm:PathTrainer(cache,SpatialRecipe(epochs=2),arm=arm,device=torch.device('cpu'),binding={'diagnostic_only':True,'path_mechanism_source':old['mechanism_binding'],'production_eligible':False,'new_shared_execution_source':admit['source_git'],'actual_original_cached_MRI_inputs':True}) for arm in ('aligned','null')}
+assert all(sum(p.numel() for p in e.model.parameters())==68560 for e in engines.values())
+(ROOT/'run-start.json').write_text(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'source_git':admit['source_git'],'new_execution_wrapper':True,'encoder_instantiated':False,'GPU_requested':False})+'\n')
+started=time.monotonic();result=fit_pair(engines,cache,ROOT/'paired')
+assert result['completed_per_arm']==4 and result['source_fetches']==32 and result['reused_fetches']==32
+assert all(len(e.history)==4 and e.history[-1]['projection_gradient_norm']>0 for e in engines.values())
+assert sum(p.stat().st_size for p in ROOT.rglob('*') if p.is_file())<16*2**20
+receipt={'status':'actual_cached_MRI_CPU_new_shared_pair_completed','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':admit['source_git'],'files_sha256':admit['files_sha256'],'fitting_studies':16,'epochs':2,'updates_per_arm':4,'channels_width':[1024,64],'learned_parameters_per_arm':68560,**result,'elapsed_seconds':time.monotonic()-started,'encoder_instantiated_or_trained':False,'source_reads_vs_two_independent_arms':[32,64],'original_cached_parent_and_inputs_reused_without_new_transfer':True,'GPU_online_encoder_throughput_or_accuracy_accepted':False,'clinical_metrics_computed':False,'private_checkpoint_publication_or_production_admitted':False}
+(ROOT/'result.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt),flush=True)
