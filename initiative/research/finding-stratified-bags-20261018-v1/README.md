@@ -167,3 +167,11 @@ a fresh publication plan: potentially node-local model snapshots inside truly
 unassigned3GiB-root capacity, with optimizer/full verification in RAM during an
 allocated CPU job and fully verified private backing. Such a plan remains
 unimplemented/unaccepted; never delete originals or spend its space speculatively.
+
+`dataset_once.py.txt` can create one private component-only Dataset after the
+actual GPU acceptance, fresh original-family/proposed-fitting VM funding,
+absence/dedup review and canonical claim. It uses the already qualified SDK
+create-once and bounded full-file download/size/SHA verifier. The tensor stays in
+place while its single archive is built inside the existing80MiB cap; no duplicate
+hardlink tree inflates that cap. No model fit, checkpoint/publication or serving
+is admitted by this input publication. Exact actual Dataset receipt is required.

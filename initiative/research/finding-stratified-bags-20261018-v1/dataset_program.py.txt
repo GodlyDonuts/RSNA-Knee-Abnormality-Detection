@@ -1,0 +1,62 @@
+"""One private input Dataset, using the existing canonical upload/verifier."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-criterion-N3-features-20261017-v1');A=P/'finding-strata-full-proposals-v2';J=A/'dataset-v1'
+proof=json.loads((A/'materialized.json').read_text());assert proof==v['proof'] and proof['tensor']['sha256']=='3581baf78d76d75e1e0514817ca3fba024b0d8febd8ab05e90ba21878478628e' and not J.exists()
+recovery=json.loads((Path('/tmp/rsna-licensed-importance-encoder-20261017-v1/finding-strata-audit-v1')/'GPU-actual-accepted.json').read_text());assert recovery['kernel_id']==139349540 and recovery['status']=='COMPLETE' and recovery['receipt']['original_influence_complete_control_state_and_prediction_bytes_equal'] is True
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+assert paid(A)<80*2**20 and paid(P)+max(0,80*2**20-paid(A))+512*2**20<3*2**30
+F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');assert paid(F)<4*2**30
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(P))+max(0,4*2**30-paid(F))
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def module(name,digest):
+ path=C/(name+'.py');assert hashlib.sha256(path.read_bytes()).hexdigest()==digest
+ spec=importlib.util.spec_from_file_location('finding_inputs_'+name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+w=module('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900');p=module('publication',v['publication_sha256'])
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');deadline=time.monotonic()+180
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<deadline;time.sleep(3)
+owner={'kind':'one_private_finding_component_Dataset','CPU_job':os.environ['SLURM_JOB_ID']};w.new_json(claim/'owner.json',owner);retain=False
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);target=proof['tensor']['sha256'];key='finding-strata-fitting-components:'+target;assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+  quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda x:float(x.removesuffix('s'));remaining=secs(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-secs(quota.get('timeUsed','0s'))-secs(quota.get('timeReserved','0s'))
+  FAM=Path('/tmp/rsna-S6-training-release-20261017-v1/family-influence-full-fitting-v1');future=sum(6000 for e in (1,2,3) if not (FAM/('epoch-'+str(e))/'actual-accepted.json').exists())+5400+32400
+  assert remaining>=future+18000,'No input mutation without all old family and proposed new fitting VM funding'
+  slug='godlydonuts/rsna-finding-strata-'+target[:12];absence=p.require_absent(r,slug)
+  J.mkdir(mode=0o700);U=J/'upload';U.mkdir(mode=0o700)
+  source_files={'components.private.npy':proof['tensor'],'uids.private.json':proof['private_uid_file'],'source-permission.txt':{'bytes':4411,'sha256':proof['source_permission_sha256']}}
+  for name,item in source_files.items():assert (A/name).stat().st_size==item['bytes'] and p.digest(A/name)==item['sha256']
+  scope={'kind':'private_finding_stratified_fixed_original_density_proposals_v1','source_git':v['source_git'],'component_materialization':proof,'actual_MRI_recovery':{'kernel_id':139349540,'version':1,'source_sha256':recovery['source_sha256']},'allocation':'one_each12_finding_proposals_plus4_uniform','original_proposal_file_sha256':'e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e','original_label_values_masks_teacher_and_images_unchanged':True,'parent_weights_sha256':'7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef','upstream_exposure_limit':'External parent includes upstream development/Gold recipe exposure; these components are not clinical truth or independent labels. No protected target values were read for this sampling mechanism.','new_production_or_serving_admitted':False}
+  w.new_json(A/'component-inputs.json',scope)
+  (A/'README.md').write_text('PRIVATE FITTING-ONLY sampling components. Original3887 accepted fitting studies; no new images, clinical labels, reports or source target values. Twelve class-specific frozen-parent influence proposals plus four uniform observations retain the original mixture density and sixteen-image budget. Derived from licensed nartaa MRI model; full CC BY-NC4.0/source permission retained in source-permission.txt. No independent clinical/Gold/private-final accuracy claim. Preserve all attribution and competition-data restrictions. Never mirror UID/tensor rows to public Git or small HF source milestones.\n')
+  files={**source_files,**{n:{'bytes':(A/n).stat().st_size,'sha256':p.digest(A/n)} for n in ('component-inputs.json','README.md')}}
+  w.new_json(A/'bundle-manifest.json',{'kind':scope['kind'],'files':files,'tensor_sha256':target,'fitting_uid_sha256':proof['fitting_roster_sha256']})
+  files['bundle-manifest.json']={'bytes':(A/'bundle-manifest.json').stat().st_size,'sha256':p.digest(A/'bundle-manifest.json')}
+  archive=p.build_zip(A,files,U/'bundle.zip');assert paid(A)<80*2**20
+  row={'state':'finding_components_create_intent','source_git':v['source_git'],'dataset_slug':slug,'version':1,'private':True,'files':files,'archive':archive,'absence':absence,'tensor_sha256':target,'actual_remaining_VM_seconds':remaining,'all_old_family_and_proposed_fitting_VM_seconds':future+18000,'serving_and_checkpoint_preservation_not_yet_admitted':True,'automatic_retry':False}
+  def save():db.execute('INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)',(key,json.dumps(row,sort_keys=True)));db.commit()
+  w.new_json(J/'create-intent.json',row);save()
+  try:
+   response=p.sdk_create_once(v['token'],slug,'RSNA private finding strata fitting components',U);w.new_json(J/'create-response.json',response)
+  except BaseException:
+   row['state']='finding_components_create_uncertain';save();retain=True
+   raise RuntimeError('Dataset creation uncertain; reconcile canonical original without retry') from None
+  row['state']='finding_components_create_returned';save();start=time.monotonic()
+  while True:
+   try:actual=p.metadata(r,slug);mapping=p.map_members(p.list_files(r,slug),files);break
+   except (ValueError,w.RemoteError):assert time.monotonic()-start<300;time.sleep(10)
+  try:verified={name:p.stream_file(r,slug,remote,files[name]) for name,remote in mapping.items()}
+  except requests.RequestException:raise RuntimeError('Private immutable Dataset verification stream failed; reconcile exact created version read-only') from None
+  assert p.metadata(r,slug)==actual and paid(A)<80*2**20 and paid(P)+max(0,80*2**20-paid(A))+512*2**20<3*2**30
+  out={'status':'one_private_finding_components_Dataset_created_all_objects_full_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'dataset':actual,'tensor_sha256':target,'objects':len(verified),'files':verified,'actual_remaining_VM_seconds':remaining,'all_old_family_and_proposed_fitting_VM_seconds':future+18000,'private_component_scope_bytes':paid(A),'scope_cap_bytes':80*2**20,'new_GPU_full_fit_or_competition_entries':0,'checkpoint_and_serving_not_admitted':True,'new_shared_data_files':0}
+  w.new_json(J/'verified.json',out);row.update(state='finding_components_fully_verified',dataset=actual,verified=out);save();print(json.dumps(out),flush=True)
+finally:
+ if not retain:
+  assert json.loads((claim/'owner.json').read_text())==owner;(claim/'owner.json').unlink();claim.rmdir()
