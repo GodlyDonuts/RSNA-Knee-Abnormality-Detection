@@ -73,3 +73,11 @@ source8e22aacce4df at scientificGit11ce568c, under existing owner17423. No new
 Dataset/image acquisition or competition entry. Its actual current session/progress
 must be inspected; accepted push alone is not optimizer progress or completion.
 The recipe remains fixed3epochs/1458updates; preserve E1 before continuing E2.
+
+Actual authenticated Kaggle live logs now confirm BOTH allocated T4s,3887studies,
+16windows,73136096 learned parameters, original inputs admitted and identical
+original initial model a75cb18d…. Update1 is real and finite: loss0.54812888,
+gradient2.68768883. This proves training started, not an accuracy gain.
+Source c9349ae5 and66distinct small objects are privately fully re-downloaded/
+size/SHA verified at HFcfb51524d9865ddf6a6b229007745da4a6b70350 viaCPU953109.
+Do not repeat that mirror. No MRI/annotation/teacher/prediction arrays were copied.

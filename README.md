@@ -1,5 +1,13 @@
 # RSNA Knee Abnormality Detection
 
+> **Current execution, October18:** best verified Kaggle AUC is **0.950**
+> (external S6 reproduction). Matched influence final scored **0.949** versus
+> uniform/label-swap **0.947**. The new provenance-aware family-mixture candidate
+> is actually training on two T4s; no new accuracy result exists. See the
+> [current state](docs/current-state.md) and [execution handoff](docs/codex-continuation.md).
+> Older phase snapshots below are historical; exact current receipts supersede them.
+
+
 Study-level MRI classification, data auditing, research experiments and offline
 inference for the [RSNA competition](https://www.kaggle.com/competitions/rsna-knee-abnormality-detection).
 
