@@ -88,3 +88,18 @@ the missing primitive small files privately once, reuse original fitting arrays,
 and test the baseline-versus-Gemini safe-cell contrast. Do not launch the naive
 Steven/S6 mean. Current cards do not reproduce every historical numeric ancestor.
 [Actual hashes, versions and source declarations](actual-overlapping-lineage.json).
+
+## Actual primitive fitting-only audit, CPU952374
+
+All three original files acquired by952331 were reused after schema-only
+reconciliation952341; no repeated download. Gemini meaningful-source y matches
+its probability file on every addressed cell. Recovered baseline y matches all
+current training targets except two Synovitis cells. A source-mask intersection
+and exact-value identity guard leaves those cells unchanged. Equal-family
+probabilities would change35418/46644fitting cells, with no mask/coverage change.
+Mean proposed changes are largest for Effusion(~.15955), PF OA(~.12959), lateral
+and medial OA(~.10636/.10625) on eligible cells. These are target movements, not
+ranking gains or clinically adjudicated corrections. This audit has NOT yet
+materialized an overlay, integrated the trainer, admitted a new GPU run or read
+protected gold target columns. Source-generation claims remain source-relative;
+shared reports can induce correlated errors. [Actual all12target evidence](actual-primitive-source.json).

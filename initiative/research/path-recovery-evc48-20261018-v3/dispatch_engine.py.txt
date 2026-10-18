@@ -1,0 +1,38 @@
+"""One recovery on separately proven evc48; no original cancellation/retry."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc48' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-path-recovery-evc48-20261018-v3');T=R/'reader-engine-v1'
+assert not (T/'dispatch.intent.json').exists() and not (T/'submitted.json').exists()
+raw=(T/'admitted.json').read_bytes()
+assert hashlib.sha256(raw).hexdigest()==v['CPU_admission_sha256']
+admission=json.loads(raw)
+assert admission['first_fitting_outer_case_both_arms_exact_parent_zero_start']
+assert hashlib.sha256((T/'worker.py').read_bytes()).hexdigest()==admission['worker_sha256']
+assert all(hashlib.sha256((T/'code'/n).read_bytes()).hexdigest()==h for n,h in admission['files_sha256'].items())
+old=subprocess.check_output(['sacct','-X','-j','952162','-n','-P','--format=JobIDRaw,State,ExitCode'],text=True)
+assert any(row.startswith('952162|FAILED|1:0') for row in old.splitlines())
+node=subprocess.check_output(['scontrol','show','node','evc48','-o'],text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',node)
+assert 'MAINTENANCE' not in node and 'RESERVED' not in node
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid<3*2**30 and shutil.disk_usage('/tmp').free>20*2**30+max(0,3*2**30-paid)
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+with (T/'dispatch.intent.json').open('x') as f:
+    json.dump({'source_git':admission['source_git'],'CPU_admission_sha256':v['CPU_admission_sha256'],'previous_GPU_job':'952162','previous_terminal':'FAILED_before_optimizer','distinct_owning_node':'evc48','no_original_job_changed':True,'no_automatic_retry':True},f,indent=2)
+args=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc48','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=16G','--time=00:15:00','--no-requeue','--job-name=rsna-variable-path-recovery-v3','--output='+str(T/'%j.stdout'),'--error='+str(T/'%j.stderr'),str(T/'run.sbatch')]
+x=subprocess.run(args,capture_output=True,text=True)
+assert x.returncode==0,'Original submission uncertain; reconcile only'
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={'status':'distinct_evc48_cached_path_recovery_submitted_once','GPU_job':job,'dispatch_CPU_job':os.environ['SLURM_JOB_ID'],'source_git':admission['source_git'],'node':'evc48_physical2_H100','worker_sha256':admission['worker_sha256'],'CPU_admission_sha256':v['CPU_admission_sha256'],'previous_failed_GPU_job':'952162','GPUs':1,'CPUs':2,'minutes':15,'same_original_numerical118_and_path_mechanism':True,'no_original_cancel_or_numerical_change':True,'new_clinical_accuracy_or_production_claim':False}
+(T/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
