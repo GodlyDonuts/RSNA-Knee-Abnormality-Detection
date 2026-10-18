@@ -1,0 +1,31 @@
+"""One new aggregate loss-target audit; fitting targets only, no pixels/model."""
+import hashlib,importlib.util,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+import numpy as np
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+N=Path('/tmp/rsna-paired-full-fitting-20261018-v1');D=N/'source-mixture-signal-v1';assert not D.exists();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file());cap=64*1024
+assert (N/'funding.json').is_file() and (N/'publication-v2.json').is_file()
+future_sources=sum((N/'epoch-1-source/source.private.py').stat().st_size+131072 for e in (2,3) if not (N/('epoch-'+str(e)+'-source/source.private.py')).exists())
+assert paid(N)+future_sources+max(0,1024*1024-paid(N/'final-scoring-v1'))+512*1024+cap<8*2**20
+P=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+retirement=family/'completed-fixed3-unspent512MiB-retirement-v1.json';assert hashlib.sha256(retirement.read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,limit in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20),('/tmp/rsna-paired-full-actual-source-20261018-v1',2*2**20),('/tmp/rsna-paired-correction-CPU-chain-20261018-v1',6*2**20),(str(N),8*2**20)):floor+=max(0,limit-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor and paid(P)<32*2**20
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in quota.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+assert hashlib.sha256(v['module'].encode()).hexdigest()==v['module_sha256']
+loss=P/'code/rsna/competitive/released_context.py';assert hashlib.sha256(loss.read_bytes()).hexdigest()==v['original_loss_sha256']
+F=Path('/tmp/rsna-released-context-head-fit-20261016-v1');accepted=json.loads((F/'full-input-admitted.json').read_text());assert accepted['status']=='actual3887_context_features_and_source_fitting_only_CPU_accepted'
+index=F/'full-features/index.private.json';assert hashlib.sha256(index.read_bytes()).hexdigest()==accepted['binding']['feature_index_sha256']=='5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113'
+records=json.loads(index.read_text())['records'];assert len(records)==3887
+source=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz');assert source.stat().st_size==483656 and hashlib.sha256(source.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(source,allow_pickle=False) as z:
+ assert z['uids'].tolist()==[r['study_uid'] for r in records]
+ labels=z['labels'];masks=z['masks'];parent=z['parent_logits'];assert labels.shape==masks.shape==(3887,12) and parent.shape==(3887,2,12)
+ assert labels.dtype==parent.dtype==np.float32 and masks.dtype==np.bool_
+D.mkdir(mode=0o700);(D/'module.py').write_text(v['module']);(D/'intent.json').write_text(json.dumps({k:x for k,x in v.items() if k!='module'},indent=2)+'\n')
+spec=importlib.util.spec_from_file_location('fitting_source_mixture_signal',D/'module.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);start=time.monotonic();result=m.audit(parent,labels,masks)
+out={'status':'actual3887_fitting_only_source_teacher_mixture_target_audit_complete','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'module_sha256':v['module_sha256'],'original_loss_sha256':v['original_loss_sha256'],'original_targets_sha256':'48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285','all3887_original_fitting_membership_bound':True,'loss_derivative_equivalence_to_original_objective_tested_locally':True,'measured':result,'elapsed_seconds':time.monotonic()-start,'new_control_child_cap_bytes':cap,'inside_original_paired8MiB_small_controls_and_reserved_future_sources':True,'new_GPU_or_optimizer_or_model_transfers':0,'original_targets_masks_training_and_live_owners_unchanged':True,'protected_or_heldout_or_clinical_report_or_pixels_read':False,'new_shared_bytes_files':0,'only_aggregate_output_no_UID_or_individual_labels':True}
+raw=(json.dumps(out,indent=2)+'\n').encode();assert paid(D)+len(raw)<cap
+with (D/'actual.json').open('xb') as f:f.write(raw)
+print(json.dumps(out),flush=True)
