@@ -1,0 +1,87 @@
+"""Immutable private fitting-only source tensor and unchanged-mask overlay."""
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import types
+
+import numpy as np
+import pandas as pd
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-training-release-20261017-v1/primitive-supervision-v1')
+D=P.parent;assert (P/'source-audit.json').exists() and not (P/'overlay-intent.json').exists()
+assert hashlib.sha256(v['constructor'].encode()).hexdigest()==v['constructor_sha256']
+audit=json.loads((P/'source-audit.json').read_text())
+assert audit['CPU_job']=='952374' and audit['hypothetical_safe_overlay_changed_cells']==35418
+for name,row in audit['files'].items():assert (P/name).stat().st_size==row['bytes']
+original=Path('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz')
+assert hashlib.sha256(original.read_bytes()).hexdigest()=='48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285'
+with np.load(original,allow_pickle=False) as a:base={k:a[k].copy() for k in a.files}
+assert set(base)=={'uids','labels','masks','parent_logits'}
+uids=base['uids'].tolist();old=base['labels'];mask=base['masks']
+assert old.dtype==np.float32 and mask.dtype==np.bool_ and mask.all() and old.shape==(3887,12)
+roster_sha=hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()
+assert roster_sha=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+meta=pd.read_parquet('/home/sa305415/rsna-knee/code-stopfix-1f486765/initiative/releases/report-supervision-v1/studies.parquet',columns=['study_uid','leakage_group','split','report_supervision_allowed'])
+assert not meta.study_uid.duplicated().any() and not meta.leakage_group.isna().any()
+fit=meta.set_index('study_uid').loc[uids];excluded=meta[~meta.study_uid.isin(uids)]
+assert fit.split.eq('train').all() and fit.report_supervision_allowed.eq(True).all()
+components=tuple(fit.leakage_group.tolist())
+assert not set(components)&set(excluded.leakage_group)
+targets=('ACL','MCL','Medial Meniscus','Lateral Meniscus','Medial OA','Lateral OA','PF OA','Effusion','Synovitis',"Baker's",'Contusion','Fracture')
+keys=[t.replace(' ','_').replace("'",'') for t in targets]
+def read(name,cols):
+    f=pd.read_parquet(P/name,columns=['StudyInstanceUID',*cols],filters=[('StudyInstanceUID','in',uids)])
+    assert len(f)==3887 and not f.StudyInstanceUID.duplicated().any()
+    return f.set_index('StudyInstanceUID').loc[uids]
+gem=read('labels_v1_gemlow.parquet',list(targets)).to_numpy(np.float32)
+cols=[p+t for p in ('y_','m_') for t in keys]
+b=read('train_labels_v0.parquet',cols);g=read('train_labels_v1.parquet',cols)
+base_y=b[['y_'+k for k in keys]].to_numpy(np.float32)
+gem_y=g[['y_'+k for k in keys]].to_numpy(np.float32)
+bm=b[['m_'+k for k in keys]].to_numpy();gm=g[['m_'+k for k in keys]].to_numpy()
+assert np.isin(bm,[0,1]).all() and np.isin(gm,[0,1]).all()
+assert np.array_equal(gem_y[gm.astype(bool)],gem[gm.astype(bool)])
+preserve=base_y!=old;assert preserve.sum()==2 and np.where(preserve)[1].tolist()==[8,8]
+values=np.stack([old,gem],axis=2)
+states=np.full(values.shape,'unmentioned',dtype='U16')
+states[:,:,0][bm.astype(bool)&~preserve]='probability'
+states[:,:,0][preserve]='incompatible'
+states[:,:,1][gm.astype(bool)]='probability'
+module=types.ModuleType('frozen_multisource_constructor');sys.modules[module.__name__]=module
+exec(compile(v['constructor'],'actual_frozen_multisource_constructor','exec'),module.__dict__)
+out=module.construct(old,mask,values,states,source_ids=('baseline_composite','gemini_primitive'),parents={'baseline_composite':('Steven_v2','lixin73_Sol56'),'Steven_v2':(),'lixin73_Sol56':(),'gemini_primitive':()},canonical_by_target=(('baseline_composite','gemini_primitive'),)*12,baseline_source='baseline_composite',admitted=np.ones((12,2),dtype=bool),fitting_ids=tuple(uids),fitting_components=components,excluded_ids=frozenset(excluded.study_uid),excluded_components=frozenset(excluded.leakage_group),accepted_override_mask=preserve)
+assert np.array_equal(out.mask,mask) and out.changed.sum()==35418 and not out.changed[preserve].any()
+assert np.array_equal(out.targets[~out.eligible],old[~out.eligible])
+assert [int(out.changed[:,c].sum()) for c in range(12)]==[r['label_values_only_changed_cells'] for r in audit['per_target']]
+def archive(**arrays):
+    stream=io.BytesIO();np.savez_compressed(stream,**arrays);return stream.getvalue()
+overlay=archive(**{**base,'labels':out.targets})
+state_codes=np.zeros(states.shape,dtype=np.uint8);state_codes[states=='probability']=1;state_codes[states=='incompatible']=2
+annotations=archive(values=values,state_codes=state_codes,effective_family_weights=out.effective_weights,family_count=out.family_count,disagreement_variance=out.disagreement_variance,eligible=out.eligible,changed=out.changed,preserve_unresolved=preserve,original_mask=mask,components=np.array(components))
+files={'targets.private.npz':overlay,'annotation-tensor.private.npz':annotations}
+paid=sum(p.stat().st_size for p in P.rglob('*') if p.is_file())
+assert paid+sum(map(len,files.values()))+65536<2*2**20
+assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())+sum(map(len,files.values()))+65536<16*2**20
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');rpaid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-rpaid)+2*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+row=next(r.split() for r in q.splitlines() if r.strip().startswith('/home/sa305415'))
+assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+proof={n:{'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()} for n,raw in files.items()}
+binding={'status':'actual_fitting_only_safe_common_family_overlay_materialized','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'constructor_sha256':v['constructor_sha256'],'source_audit_CPU_job':'952374','source_files':audit['files'],'original_target_file_sha256':'48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285','fitting_roster_sha256':roster_sha,'fitting_components_sha256':hashlib.sha256(json.dumps(components,separators=(',',':')).encode()).hexdigest(),'fitting_studies':3887,'excluded_studies':len(excluded),'excluded_component_overlap':0,'original_masks_and_parent_logits_unchanged':True,'source_mismatch_Synovitis_preserved':2,'family_weights':'equal on source-declared addressed, exact-aligned common cells only; shared-report error dependence not removed','state_codes':{'0':'source-declared unmentioned; legacy baseline fallback retained','1':'meaningful probability-space weak target, not clinical truth','2':'source-version mismatch preserved'},'files':proof,'audit':out.audit(targets),'target_array_sha256':hashlib.sha256(out.targets.tobytes()).hexdigest(),'original_label_array_sha256':hashlib.sha256(old.tobytes()).hexdigest(),'mask_array_sha256':hashlib.sha256(mask.tobytes()).hexdigest(),'parent_teacher_array_sha256':hashlib.sha256(base['parent_logits'].tobytes()).hexdigest(),'new_coverage_cells':0,'new_shared_data_or_GPU_or_competition_mutations':0,'protected_gold_target_columns_requested':False,'training_or_accuracy_accepted':False}
+with (P/'overlay-intent.json').open('x') as f:json.dump(binding,f,indent=2)
+for name,raw in files.items():
+    with (P/name).open('xb') as f:os.fchmod(f.fileno(),0o600);f.write(raw)
+    assert hashlib.sha256((P/name).read_bytes()).hexdigest()==proof[name]['sha256']
+with np.load(P/'targets.private.npz',allow_pickle=False) as a:
+    assert set(a.files)==set(base) and all(np.array_equal(a[k],base[k]) for k in ('uids','masks','parent_logits')) and np.array_equal(a['labels'],out.targets)
+with np.load(P/'annotation-tensor.private.npz',allow_pickle=False) as a:
+    assert np.array_equal(a['values'],values) and np.array_equal(a['changed'],out.changed) and np.array_equal(a['state_codes'],state_codes)
+(P/'overlay-accepted.json').write_text(json.dumps(binding,indent=2)+'\n');print(json.dumps(binding),flush=True)
