@@ -2,7 +2,8 @@
 
 Family-mixture E1 completed486 finite updates and is fully privately verified
 at HFd4f35abe654c0505b67b51b1fc2952047347842c (CPU953658). Original owner18386
-then pushed E2 kernel139346363v1 once, source32493d2ee501. The fixed3epoch/
+then pushed E2 kernel139346363v1 once, source32493d2ee501. Both T4s have
+accepted the original resume; actual finite optimizer update499 was observed. The fixed3epoch/
 1458-update recipe remains unchanged; no accuracy result exists yet.
 
 Whole94 fixed-final E3 passed exact32-MRI qualification on BOTH T4s, maximum
@@ -13,10 +14,11 @@ entry/outcome owner21510 follows its hidden result; score is unreported. No publ
 CSV was uploaded. Never repeat this entry. Public owner20978 is terminal success.
 The old qualification quarantine remains preserved and must never be retried.
 
-Source82fdaf75/25 distinct small objects are privately fully re-downloaded/
-size/SHA verified at HFb09914e22a98df951225bbf5b548f1fa8cadb2c8 viaCPU953657.
-Never repeat it or preceding d9299138/cfb51524. The later entry-controller code
-and E1/E2 receipts are on GitHub but not covered by that earlier source mirror.
+Source8b8441da/21 distinct small objects, including entry controls/public proof/
+entry57336190 and E1/E2 receipts, are privately fully re-downloaded/size/SHA
+verified at HF7889d6cb247ab3679a63cc64e08f6693ebec7517 viaCPU953715.
+Never repeat it or earlier b09914e/d9299138/cfb51524 mirrors. The later E2update499
+observation is an additional Git receipt, not part of that earlier source mirror.
 
 Read [AGENTS](../AGENTS.md) and [current measured state](current-state.md).
 Previous chronological handoff is preserved verbatim in
