@@ -1,0 +1,40 @@
+"""Two explicit committed phases, after the original private fixture transfer."""
+import hashlib
+import json
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+
+D=Path(__file__).resolve().parent;O=D.parent/'connected-witness-paths-20261017-v1'
+L=Path('artifacts/path-recovery-evc26-20261018-v2');phase=sys.argv[1];assert phase in ('stage','dispatch')
+assert (L/'result.json').exists() and not (L/(phase+'.intent.json')).exists()
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+def content(path):return subprocess.check_output(['git','show',git+':'+path],text=True)
+relative=D.relative_to(Path.cwd()).as_posix()+'/'
+if phase=='stage':
+    original=json.loads(content('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json'))['numerical_source_before']
+    files={'core/'+n:content(n) for n in original};assert len(original)==118
+    assert all(hashlib.sha256(files['core/'+n].encode()).hexdigest()==h for n,h in original.items())
+    names=('prototype.py','source_chains.py','variable_paths.py','variable_source_chains.py','path_reader.py')
+    files.update({'mechanism/'+n:content(O.relative_to(Path.cwd()).as_posix()+'/'+n) for n in names})
+    files['original_input_helper.py']=content('initiative/audits/spatial-reader-engine-20261017-v1/gpu-engine-v2.py.txt')
+    files['cached_inputs26.py']=content(relative+'cached_inputs26.py')
+    receipt=(D/'actual-evc26-fixture-verified.json').read_bytes()
+    payload={'source_git':git,'files':files,'original118':original,'worker':content(relative+'real_gpu_recovery.py.txt'),
+             'fixture_receipt_sha256':hashlib.sha256(receipt).hexdigest(),
+             'mechanism_binding':{'new_sources_sha256':{n:hashlib.sha256(files['mechanism/'+n].encode()).hexdigest() for n in names},
+                                  'original118_manifest':'3909bf501db49d0a1e921323866bbf77e848accfed7f012a143d8397992bef72',
+                                  'original_private32_index_sha256':'f058c0969c56d754874ceb3fbb1fb9c3fff2d2a5c9bb1554d94cf68d9a3bd18f'}}
+    program=content(relative+'admit_engine.py.txt')
+else:
+    receipt=(D/'actual-engine-CPU-admitted.json').read_bytes()
+    payload={'CPU_admission_sha256':hashlib.sha256(receipt).hexdigest()};program=content(relative+'dispatch_engine.py.txt')
+compile(program,'distinct26_engine_'+phase,'exec')
+with (L/(phase+'.intent.json')).open('x') as f:json.dump({'source_git':git,'phase':phase,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'no_retry':True},f,indent=2)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=4G','--time=00:05:00','--job-name=rsna-path26-'+phase,'env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-906337-gdraqwzl/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=json.dumps(payload),capture_output=True,text=True,timeout=370)
+(L/(phase+'.result.json')).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n')
+assert x.returncode==0,'Existing original26 phase uncertain or incomplete; reconcile without retry'
+out=json.loads(x.stdout);name='actual-engine-CPU-admitted.json' if phase=='stage' else 'actual-GPU-dispatch-result.json'
+(D/name).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:v for k,v in out.items() if k not in ('files_sha256','mechanism_binding')}))

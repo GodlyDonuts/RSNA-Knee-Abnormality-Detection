@@ -1,0 +1,59 @@
+"""Cancel only the unallocated original; never interrupt an allocated GPU run."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc26' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-path-recovery-evc26-20261018-v2');T=R/'reader-engine-v1'
+assert not (T/'dispatch.intent.json').exists() and not (T/'submitted.json').exists()
+raw=(T/'admitted.json').read_bytes();assert hashlib.sha256(raw).hexdigest()==v['CPU_admission_sha256']
+admission=json.loads(raw);assert admission['first_fitting_outer_case_both_arms_exact_parent_zero_start']
+assert hashlib.sha256((T/'worker.py').read_bytes()).hexdigest()==admission['worker_sha256']
+assert all(hashlib.sha256((T/'code'/n).read_bytes()).hexdigest()==h for n,h in admission['files_sha256'].items())
+node=subprocess.check_output(['scontrol','show','node','evc26','-o'],text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',node)
+allocated=re.search(r'AllocTRES=([^ ]*)',node);gpu=re.search(r'(?:^|,)gres/gpu=(\d+)',allocated.group(1)) if allocated else None
+if gpu and int(gpu.group(1))>=2:
+    print(json.dumps({'status':'node26_no_free_GPU_before_any_cancel_or_GPU_intent','mutations':0}));sys.exit(0)
+old=subprocess.check_output(['scontrol','show','job','951853','-o'],text=True)
+if 'JobState=PENDING' not in old or 'AllocTRES=(null)' not in old or 'RunTime=00:00:00' not in old:
+    print(json.dumps({'status':'original951853_no_longer_unallocated_PENDING_keep_it_untouched','mutations':0}));sys.exit(0)
+paid=sum(p.stat().st_size for p in R.rglob('*') if p.is_file())
+assert paid<3*2**30 and shutil.disk_usage('/tmp').free>20*2**30+max(0,3*2**30-paid)
+with (T/'dispatch.intent.json').open('x') as f:
+    json.dump({'source_git':admission['source_git'],'CPU_admission_sha256':v['CPU_admission_sha256'],
+               'old_job':'951853','old_state':'PENDING_unallocated_zero_runtime','cancel_only_PENDING':True,
+               'one_distinct_GPU_recovery_after_actual_cancellation':True,'no_automatic_retry':True},f,indent=2)
+# Slurm's state filter closes the race: if it allocated after the observation,
+# this command does not cancel the running job. Require actual terminal proof.
+subprocess.run(['scancel','--state=PENDING','951853'],check=True)
+record=None
+for _ in range(30):
+    rows=subprocess.check_output(['sacct','-X','-j','951853','-n','-P','--format=JobID,State,ElapsedRaw,AllocTRES'],text=True)
+    matches=[line.split('|') for line in rows.splitlines() if line.startswith('951853|')]
+    assert len(matches)==1
+    row=matches[0]
+    if row[1].startswith('CANCELLED'):
+        assert row[2]=='0' and not row[3]
+        record={'original_GPU_job':'951853','actual_terminal_state':row[1],'elapsed_seconds':0,'allocated_TRES':row[3],
+                'reason':'resource_driven_pending_only_relocation_to_ready_evc26','running_training_interrupted':False}
+        break
+    assert row[1]=='PENDING','Original allocated during pending-only cancellation; no replacement authority'
+    time.sleep(.2)
+assert record is not None,'Original terminal not proven; no replacement GPU dispatch'
+(T/'pending-only-relocation.json').write_text(json.dumps(record,indent=2)+'\n')
+args=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc26','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=16G','--time=00:15:00','--no-requeue','--job-name=rsna-variable-path-recovery-v2','--output='+str(T/'%j.stdout'),'--error='+str(T/'%j.stderr'),str(T/'run.sbatch')]
+x=subprocess.run(args,capture_output=True,text=True);assert x.returncode==0,'Original replacement submission uncertain; reconcile only'
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={'status':'distinct_ready_evc26_path_recovery_submitted_once_after_pending_only_original_cancellation',
+     'GPU_job':job,'dispatch_CPU_job':os.environ['SLURM_JOB_ID'],'source_git':admission['source_git'],'node':'evc26_physical2_H100',
+     'worker_sha256':admission['worker_sha256'],'CPU_admission_sha256':v['CPU_admission_sha256'],'original_cancellation':record,
+     'GPUs':1,'CPUs':2,'minutes':15,'same_original_numerical118_and_path_mechanism':True,'new_weights_or_accuracy_claim':False}
+(T/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
