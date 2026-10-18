@@ -1,0 +1,52 @@
+"""One fixed3 sampling comparison, private whole-state preservation before every resume."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+D=Path(__file__).resolve().parent;L=Path('artifacts/finding-stratified-bags-20261018-v1/full')
+L.mkdir(mode=0o700,parents=True,exist_ok=True)
+assert not (L/'continuation-owner.intent.json').exists()
+names=('full_once.py.txt','full_program.py.txt','publish_epoch_once.py.txt','publish_epoch_program.py.txt','epoch_verify.py','production.py','sampling.py','fit.py')
+frozen={str(D/n):hashlib.sha256((D/n).read_bytes()).hexdigest() for n in names}
+with (L/'continuation-owner.intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_new_GPU_pushes':3,'new_GPU_epochs':[1,2,3],'maximum_hours':12,'fixed_final_epochs':3,'competition_entries':0,'frozen_source':frozen,'automatic_uncertain_retry':False},f,indent=2)
+start=time.monotonic()
+def check():
+ assert time.monotonic()-start<12*3600,'Finite campaign owner expired; preserve existing originals'
+ assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==sha for p,sha in frozen.items())
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value}
+ (L/('continuation-owner.result.json' if terminal else 'continuation-owner.progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+def run(name,args,timeout):
+ check();p=subprocess.run([sys.executable,str(D/name),*args],capture_output=True,text=True,timeout=timeout)
+ assert p.returncode==0,p.stderr[-1500:]
+ return json.loads(p.stdout)
+def preserve(epoch):
+ check();actual=json.loads((D/f'epoch-{epoch}-actual-accepted.json').read_text())
+ assert actual['status']=='COMPLETE' and actual['epoch']==epoch and actual['role']=='influence'
+ proof=D/f'epoch-{epoch}-private-verified.json'
+ if proof.exists():out=json.loads(proof.read_text())
+ else:
+  assert not (L/f'epoch-{epoch}-publication.intent.json').exists(),'Reconcile original publication read-only, never retry'
+  out=run('publish_epoch_once.py.txt',[str(epoch)],1900)
+ assert out['status']=='actual_finding_strata_epoch_private_full_download_size_SHA_verified' and out['epoch']==epoch and out['completed']==486*epoch and out['original_Kaggle_kernel']==actual['kernel_id'] and out['original_source_sha256']==actual['source_sha256'] and out['full_optimizer_privately_verified'] is True
+ record({'status':'original_immutable_epoch_privately_fully_verified','epoch':epoch,'revision':out['revision']})
+try:
+ for epoch in (1,2,3):
+  assert not (D/f'epoch-{epoch}-prepared.json').exists() and not (D/f'epoch-{epoch}-pushed.json').exists(),'Existing downstream work requires read-only reconciliation'
+  phase='prepare'
+  while True:
+   out=run('full_once.py.txt',[phase,str(epoch)],480);record({'epoch':epoch,'phase':phase,'actual':out});status=out['status']
+   if status=='finding_strata_epoch_prepared_no_GPU':phase='push';continue
+   if status=='one_finding_strata_full_epoch_pushed':phase='status'
+   elif status=='COMPLETE':assert 'receipt' in out;break
+   elif status in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED'):raise RuntimeError('Original downstream full epoch failed; no automatic retry')
+   else:assert status in ('waiting_canonical_claim_no_mutation','waiting_fresh_capacity_or_all_future_VM_no_mutation','QUEUED','RUNNING','INITIALIZING','CREATED','PENDING','STARTING'),status
+   time.sleep(150)
+  preserve(epoch)
+ record({'status':'one_original_finding_strata_fixed_final3_fit_and_all_three_private_epochs_verified','fixed_updates':1458,'competition_entries':0,'next':'exact offline inference/runtime qualification; no unqualified entry'},True)
+except BaseException as error:
+ record({'status':'finite_continuation_stopped_preserve_original_reconcile_read_only','reason':str(error)},True);raise
