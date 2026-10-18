@@ -43,7 +43,7 @@ def fit(model, data, output, binding, recipe, *, device, resume=False, stop_afte
     """
     if not isinstance(recipe, Recipe) or not isinstance(data, PairedCases) or data.recipe != recipe:
         raise ValueError("Versioned recipe and admitted nonempty original population required")
-    if not isinstance(model, PairedLogitReadout):
+    if PairedLogitReadout not in type(model).__mro__:
         raise ValueError("Explicit corrected readout required before allocating training outputs")
     if len(set(data.uids)) != len(data) or binding.get("parent_checkpoint_sha256") != PARENT_SHA:
         raise ValueError("Unique fitting identities and exact parent binding required")
