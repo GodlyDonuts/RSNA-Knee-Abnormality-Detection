@@ -106,11 +106,11 @@ def lane_worker(options, rank, indices, deadline):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
     device = torch.device(f"cuda:{rank}")
+    if options["parent_sha256"] != PARENT:
+        raise ValueError("Same exact N3E16 parent as actual path training required")
     parent, parent_policy = load_model(
         Path(options["parent"]), options["parent_sha256"], precision="float32", device=device
     )
-    if options["parent_sha256"] != PARENT:
-        raise ValueError("Same exact N3E16 parent as actual path training required")
     head = PathInference(
         Path(options["head"]),
         options["head_sha256"],
@@ -146,6 +146,18 @@ def lane_worker(options, rank, indices, deadline):
         json.dump(result, f, indent=2, allow_nan=False)
 
 
+def stop_owned_children(children):
+    for p in children:
+        if p.pid is not None and p.is_alive():
+            p.terminate()
+    for p in children:
+        if p.pid is not None:
+            p.join(timeout=5)
+            if p.is_alive():
+                p.kill()
+                p.join(timeout=5)
+
+
 def supervise(children, deadline):
     """Stop only this launcher's owned children on failure or a shared timeout."""
     try:
@@ -159,14 +171,7 @@ def supervise(children, deadline):
         if any(p.exitcode != 0 for p in children):
             raise RuntimeError("A GPU lane did not complete successfully")
     except BaseException:
-        for p in children:
-            if p.is_alive():
-                p.terminate()
-        for p in children:
-            p.join(timeout=5)
-            if p.is_alive():
-                p.kill()
-                p.join(timeout=5)
+        stop_owned_children(children)
         raise
 
 
@@ -235,10 +240,7 @@ def main(argv=None):
             p.start()
         supervise(children, deadline)
     except BaseException:
-        for p in children:
-            if p.pid is not None and p.is_alive():
-                p.terminate()
-                p.join(timeout=5)
+        stop_owned_children(children)
         raise
     receipts = [
         json.loads((args.work / f"lane-{rank}.json").read_text()) for rank in range(len(lanes))

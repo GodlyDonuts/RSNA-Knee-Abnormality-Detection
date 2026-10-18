@@ -29,6 +29,7 @@ def test_invalid_schedule_cannot_silently_omit_studies(costs):
 
 class FakeProcess:
     def __init__(self, alive, code):
+        self.pid = 100
         self.alive = alive
         self.exitcode = code
         self.terminated = 0
