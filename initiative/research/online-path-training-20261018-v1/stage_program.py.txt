@@ -1,0 +1,46 @@
+"""One CPU admission and one distinct integrated dense trainer GPU recovery."""
+import hashlib,json,os,re,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-criterion-N3-features-20261017-v1');B=R/'dense-online-input-fp32-v2';T=B/'integrated-recovery-v1';assert not T.exists()
+CODE=R/'reader-engine-recovery-v2/code'
+actual=json.loads((B/'accepted.json').read_text())
+assert actual['GPU_job']=='952317' and actual['sparse_full_maps_and_parent_logits_original_byte_equal'] and actual['dense_all_windows_supported_and_same_sparse_teacher_byte_equal']
+assert hashlib.sha256((B/'accepted.json').read_bytes()).hexdigest()=='d1fbb064ac279d73290ea4a0517772ca2e5530c1a45174785898fb642bb082b6'
+for name,h in actual['source_sha256'].items():
+ assert hashlib.sha256(v['files'][name].encode()).hexdigest()==h
+assert len(v['original118'])==118 and all(hashlib.sha256((CODE/n).read_bytes()).hexdigest()==h for n,h in v['original118'].items())
+assert v['cached_recovery']['GPU_job']==952440 and v['cached_recovery']['CPU_acceptance_job']==952513 and v['cached_recovery']['complete_decoded_state_epoch_and_prediction_equality']
+node=subprocess.check_output(['scontrol','show','node','evc33','-o'],text=True)
+assert 'h100' in node.lower() and re.search(r'CfgTRES=\S*gres/gpu=2(?:\s|,)',node)
+paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+F=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1');retirement=F/'completed-fixed3-unspent512MiB-retirement-v1.json'
+assert hashlib.sha256(retirement.read_bytes()).hexdigest()=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+funding=json.loads(retirement.read_text());assert funding['new_family_cap_bytes']==3758096384 and funding['physical_deletion_or_free_space_credit']==0
+assert paid(R)<3*2**30 and paid(F)<3758096384 and paid(B)+16*2**20<32*2**20
+required=603433009211+max(0,3*2**30-paid(R))+max(0,3758096384-paid(F));free=shutil.disk_usage('/tmp').free;assert free>required
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);row=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(row[2])-int(row[1]))*1024>20*2**30 and int(row[6])-int(row[5])>5000
+for n,s in v['files'].items():assert n.endswith('.py') and '/' not in n;compile(s,n,'exec')
+compile(v['worker'],'integrated_dense_path_recovery','exec')
+assert sum(len(s.encode()) for s in v['files'].values())+len(v['worker'].encode())<512*2**10
+T.mkdir(mode=0o700);(T/'code').mkdir(mode=0o700)
+for n,s in v['files'].items():p=T/'code'/n;p.write_text(s);p.chmod(0o600)
+(T/'worker.py').write_text(v['worker'])
+admission={'source_git':v['source_git'],'CPU_job':os.environ['SLURM_JOB_ID'],'worker_sha256':hashlib.sha256(v['worker'].encode()).hexdigest(),'original118':v['original118'],'files_sha256':{n:hashlib.sha256(s.encode()).hexdigest() for n,s in v['files'].items()},'mechanism_binding':actual['source_sha256'],'prior_full_dense_input_acceptance_job':952317,'prior_cached_recovery_acceptance_job':952513,'new16MiB_child_inside_existing32MiB':True,'node_free_bytes':free,'required_after_all_original_liabilities_bytes':required,'new_shared_bytes_files':0,'diagnostic_only_no_accuracy_or_production_admission':True}
+(T/'admitted.json').write_text(json.dumps(admission,indent=2)+'\n')
+# Imports only source/binding/16 fitting labels; cached mode never invokes CUDA.
+sys.path[:0]=[str(T/'code'),str(CODE),'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay']
+import torch;torch.set_num_threads(1);assert str(torch.__version__)=='2.14.0+cu130'
+import original_input_helper as helper
+cached,parent,_=helper.inputs({},'cached');assert parent is None and len(cached['fitting'])==len(cached['outer'])==16
+assert cached['fitting'].binding['fitting16_labels_masks_sha256']=='a2e8e852dd7e5d02efec61cd01a3b1b66ad5cd1f756914568d3d11f3d9ee0dc5'
+assert not torch.as_tensor(cached['outer'].masks).any()
+script='#!/bin/bash\nset -euo pipefail\numask 077\nexport PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8\nexport CPATH=/tmp/rsna-python312-devel-20261016-v1/usr/include/python3.12\nexec /tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python -B '+str(T/'worker.py')+'\n'
+(T/'run.sbatch').write_text(script)
+with (T/'dispatch.intent.json').open('x') as f:json.dump({'source_git':v['source_git'],'worker_sha256':admission['worker_sha256'],'requested_GPUs':1,'requested_CPUs':2,'diagnostic_only':True,'automatic_retry':False},f)
+a=['sbatch','--parsable','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--nodes=1','--ntasks=1','--cpus-per-task=2','--gres=gpu:1','--mem=32G','--time=00:30:00','--no-requeue','--job-name=rsna-dense-path-trainer-recovery','--output='+str(T/'%j.stdout'),'--error='+str(T/'%j.stderr'),str(T/'run.sbatch')]
+x=subprocess.run(a,capture_output=True,text=True);assert x.returncode==0,'Reconcile exact existing Slurm intent; never retry uncertainty'
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+out={**admission,'status':'actual_integrated_dense_path_trainer_recovery_submitted_once','GPU_job':job,'node':'evc33_physical_two_H100','GPU_terminal_or_full_training_or_accuracy_accepted':False}
+(T/'submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)

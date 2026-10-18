@@ -1,0 +1,19 @@
+"""Single source-pinned CPU admission; uncertainty never authorizes a retry."""
+import hashlib,json,shlex,subprocess
+from pathlib import Path
+D=Path(__file__).resolve().parent;L=Path('artifacts/online-path-training-20261018-v1')
+L.mkdir(mode=0o700,parents=True,exist_ok=True);assert not (L/'intent.json').exists()
+git=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+def content(name):return subprocess.check_output(['git','show',git+':'+name],text=True)
+rel=D.relative_to(Path.cwd()).as_posix();prior='initiative/research/connected-witness-paths-20261017-v1/'
+names=['prototype.py','source_chains.py','variable_paths.py','variable_source_chains.py','path_reader.py','dense_inputs.py','online_inputs.py','online_inputs_fp32.py']
+files={n:content(prior+n) for n in names}
+files['integrated_provider.py']=content(rel+'/integrated_provider.py')
+files['original_input_helper.py']=content('initiative/audits/spatial-reader-engine-20261017-v1/gpu-engine-v2.py.txt')
+payload={'source_git':git,'files':files,'worker':content(rel+'/worker.py.txt'),'original118':json.loads(content('initiative/audits/spatial-reader-engine-20261017-v1/QA-source-frozen.json'))['numerical_source_before'],'cached_recovery':json.loads(content('initiative/research/path-recovery-evc48-20261018-v3/engineering-decision.json'))}
+program=content(rel+'/stage_program.py.txt');compile(program,'online_dense_path_source_admission','exec')
+with (L/'intent.json').open('x') as f:json.dump({'source_git':git,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'maximum_GPU_jobs':1,'automatic_retry':False},f,indent=2)
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-online-path-CPU-admission','env','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','OPENBLAS_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',program]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(a)],input=json.dumps(payload),capture_output=True,text=True,timeout=420)
+(L/'result.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2)+'\n');assert x.returncode==0,'Reconcile exact existing CPU/Slurm intents without duplicate dispatch: '+x.stderr[-900:]
+out=json.loads(x.stdout);(D/'actual-submitted.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

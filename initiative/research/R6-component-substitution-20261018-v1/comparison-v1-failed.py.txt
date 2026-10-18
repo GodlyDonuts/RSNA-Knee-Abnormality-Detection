@@ -1,0 +1,38 @@
+"""Compare source AST contracts only, with no source/model execution."""
+import ast,hashlib,json,os
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+p=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1/exact8cell.private.py');s=p.read_text();assert hashlib.sha256(s.encode()).hexdigest()=='b472091d7a323e0165958ca01e6f023b21db9c3d2b10d3f79ba8962fb83efc5b'
+top=ast.parse(s);cells=ast.literal_eval(next(n.value for n in top.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='_CELLS' for t in n.targets)))
+assert len(cells)==8 and hashlib.sha256(json.dumps(cells,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()=='300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+q=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py');parent=q.read_text();assert hashlib.sha256(parent.encode()).hexdigest()=='493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde'
+def nodes(text):
+ tree=ast.parse(text);d={}
+ for n in tree.body:
+  if isinstance(n,(ast.ClassDef,ast.FunctionDef)):d[n.name]=n
+  elif isinstance(n,ast.Assign):
+   for t in n.targets:
+    if isinstance(t,ast.Name):d[t.id]=n.value
+ return d
+left=nodes(parent);right=nodes(cells[0]);names=['RaptorClassifier','load_model','infer_probs','gpu_windows','_pre_one','rankpct','INPUT_RES','K_EVAL','SLOT_SIZES','NORM','MAXS','IMG','ARMS','LABELS','ARMW']
+proof={}
+for name in names:
+ a=left.get(name);b=right.get(name);row={'parent_present':a is not None,'R6_present':b is not None}
+ if a is not None and b is not None:
+  x=ast.dump(a,include_attributes=False);y=ast.dump(b,include_attributes=False);row.update(AST_equal=x==y,parent_AST_sha256=hashlib.sha256(x.encode()).hexdigest(),R6_AST_sha256=hashlib.sha256(y.encode()).hexdigest())
+  if name in ['INPUT_RES','K_EVAL','SLOT_SIZES','NORM','MAXS','IMG','ARMS','LABELS','ARMW']:
+   for key,node in [('parent_value',a),('R6_value',b)]:
+    try:row[key]=ast.literal_eval(node)
+    except (ValueError,TypeError):row[key]='nonliteral'
+ proof[name]=row
+# Reproduce only numeric/static blend assignments, not code bodies or row data.
+blend=[]
+for i in [6,7]:
+ for n in ast.parse(cells[i]).body:
+  if isinstance(n,ast.Assign):
+   for target in n.targets:
+    if isinstance(target,ast.Name):
+     try:value=ast.literal_eval(n.value)
+     except (ValueError,TypeError):continue
+     if isinstance(value,(int,float,list,dict)) and len(json.dumps(value))<1600:blend.append({'cell':i,'name':target.id,'value':value})
+print(json.dumps({'status':'actual_parent_to_R6_first_branch_static_contract_comparison','CPU_job':os.environ['SLURM_JOB_ID'],'R6_source_sha256':hashlib.sha256(s.encode()).hexdigest(),'original_parent_source_sha256':hashlib.sha256(parent.encode()).hexdigest(),'contracts':proof,'literal_blend_settings':blend,'source_execution_weights_pixels_labels_or_row_reads':False,'new_GPU_files_Dataset_or_competition_actions':0}),flush=True)

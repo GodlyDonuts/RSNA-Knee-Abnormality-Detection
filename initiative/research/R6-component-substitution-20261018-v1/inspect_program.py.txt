@@ -1,0 +1,42 @@
+"""Read-only static component compatibility inventory; never executes embedded code."""
+import ast,hashlib,json,os,re,sys
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+p=Path('/tmp/rsna-cached-MIL-factorial-20261017-v1/serving-v1/reference-script-recovery-v1/exact8cell.private.py')
+s=p.read_text();assert hashlib.sha256(s.encode()).hexdigest()=='b472091d7a323e0165958ca01e6f023b21db9c3d2b10d3f79ba8962fb83efc5b'
+top=ast.parse(s);a=next(n for n in top.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='_CELLS' for t in n.targets));cells=ast.literal_eval(a.value)
+assert len(cells)==8 and hashlib.sha256(json.dumps(cells,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()=='300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+# Literal embedded Python only: no eval, imports, run_cell, model or data execution.
+seen=set();out=[]
+def scan(code,origin,depth=0):
+ if depth>3:return
+ h=hashlib.sha256(code.encode()).hexdigest()
+ if h in seen:return
+ seen.add(h)
+ if code.startswith('%%'):
+  code='\n'.join(code.splitlines()[1:])
+ try:tree=ast.parse(code)
+ except SyntaxError:
+  out.append({'origin':origin,'sha256':h,'parseable_python':False});return
+ classes=[];loads=[];weights=[];embedded=[]
+ for n in ast.walk(tree):
+  if isinstance(n,ast.ClassDef):classes.append(n.name)
+  if isinstance(n,ast.Call):
+   fn=ast.unparse(n.func)
+   if any(x in fn.lower() for x in ['load','create_model','rank','blend']):
+    args=[x.value for x in n.args if isinstance(x,ast.Constant) and isinstance(x.value,(int,float,str)) and (not isinstance(x.value,str) or len(x.value)<180)]
+    if any('1.2.826.' in str(x) for x in args):raise ValueError('No clinical identifiers allowed')
+    loads.append({'call':fn,'literal_args':args,'line':n.lineno})
+  if isinstance(n,(ast.Assign,ast.AnnAssign)):
+   ts=n.targets if isinstance(n,ast.Assign) else [n.target];names=[ast.unparse(t) for t in ts]
+   if any(re.search(r'weight|blend|rank|alpha|coat|cnx|pred',x,re.I) for x in names):
+    val=n.value
+    if val is not None and len(ast.unparse(val))<300 and not any(isinstance(x,ast.Constant) and isinstance(x.value,str) and len(x.value)>180 for x in ast.walk(val)):
+     expr=ast.unparse(val)
+     if '1.2.826.' in expr:raise ValueError('No identifiers')
+     weights.append({'names':names,'expression':expr,'line':n.lineno})
+  if isinstance(n,ast.Constant) and isinstance(n.value,str) and len(n.value)>400 and ('import torch' in n.value or 'def ' in n.value):embedded.append(n.value)
+ out.append({'origin':origin,'sha256':h,'parseable_python':True,'class_names':classes,'load_rank_calls':loads[:100],'component_expressions':weights[:100],'embedded_python_candidates':len(embedded)})
+ for i,c in enumerate(embedded):scan(c,origin+'/embedded'+str(i),depth+1)
+for i,c in enumerate(cells):scan(c,'cell'+str(i))
+print(json.dumps({'status':'actual_exact_R6_source_static_component_inventory','CPU_job':os.environ['SLURM_JOB_ID'],'source_sha256':hashlib.sha256(s.encode()).hexdigest(),'all8cells_bound':True,'modules':out,'no_embedded_execution_or_model_pixel_label_reads':True,'new_file_GPU_Dataset_or_entry_actions':0}),flush=True)
