@@ -1,5 +1,10 @@
 # Execution handoff
 
+October18 final finding epoch3 is now ACTUALLY RUNNING: exact kernel139381056
+version1/source6faa618a0f73, authenticatedCPU956042. This supersedes its earlier
+queued/null observation; no optimizer count or final score is inferred from
+RUNNING. Existing43912preserves the final epoch and44793owns later scoring.
+
 October18 forward speed mechanism: path-serving-vectorization-20261018-v1
 adds an opt-in batched-start score for NEW reader inference. Thirteen focused
 synthetic CPU tests pass (scores/gradients/complete head/serving selection);
