@@ -1,0 +1,76 @@
+{
+  "status": "actual_original_H100_teacher_probe_terminal_observed",
+  "Slurm_job": "960986",
+  "Slurm_state": "COMPLETED",
+  "Slurm_exit_code": "0:0",
+  "actual": {
+    "CPU_job": "961190",
+    "node": "evc33",
+    "terminal_files": {
+      "terminal.json": {
+        "status": "actual_original_S6_retained8_H100_two_precision_inference_complete",
+        "Slurm_job": "960986",
+        "source_git": "0389c268e4df16b651b2fee0f4873e683fa6bdc9",
+        "results": [
+          {
+            "mode": "fp32",
+            "studies": 8,
+            "windows": 5372,
+            "device": "NVIDIA H100 PCIe",
+            "allocated_GPU_count": 1,
+            "elapsed_seconds": 24.0277213419904,
+            "inference_stats": {
+              "decode_s": 0.0,
+              "render_s": 0.0,
+              "gpu_s": 8.8,
+              "windows": 5372,
+              "wait_s": 9.4,
+              "rows": 8,
+              "anchor_s": 0.0
+            },
+            "maximum_CPU_FP32_probability_error": 2.9698073511497114e-07,
+            "predeclared_tolerance": 0.0001,
+            "peak_allocated_GPU_bytes": 5628577280,
+            "GPU_total_memory_bytes": 85017493504,
+            "original_classifier_main_unmodified": true,
+            "pixel_fixture_model_or_original_CPU_reference_transfers": 0
+          },
+          {
+            "mode": "fp16",
+            "studies": 8,
+            "windows": 5372,
+            "device": "NVIDIA H100 PCIe",
+            "allocated_GPU_count": 1,
+            "elapsed_seconds": 19.359153806988616,
+            "inference_stats": {
+              "decode_s": 0.0,
+              "render_s": 0.0,
+              "gpu_s": 4.2,
+              "windows": 5372,
+              "wait_s": 9.4,
+              "rows": 8,
+              "anchor_s": 0.0
+            },
+            "maximum_CPU_FP32_probability_error": 0.0005509172135481355,
+            "predeclared_tolerance": 0.003,
+            "peak_allocated_GPU_bytes": 4101850624,
+            "GPU_total_memory_bytes": 85017493504,
+            "original_classifier_main_unmodified": true,
+            "pixel_fixture_model_or_original_CPU_reference_transfers": 0
+          }
+        ],
+        "full3887_runtime_or_teacher_generation_accepted": false,
+        "clinical_accuracy_or_training_gain": false,
+        "GPU_nodes": 1,
+        "physical_GPU_node_size": 2,
+        "new_model_or_pixel_copies": 0
+      },
+      "run-intent.json": {
+        "Slurm_job": "960986",
+        "stage_source_git": "0389c268e4df16b651b2fee0f4873e683fa6bdc9",
+        "automatic_retry": false
+      }
+    }
+  },
+  "full_teacher_or_training_or_accuracy_accepted": false
+}
