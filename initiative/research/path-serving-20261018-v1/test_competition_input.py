@@ -136,3 +136,31 @@ def test_reject_uid_path_traversal(source, tmp_path):
     pd.DataFrame({"StudyInstanceUID": ["../private"]}).to_csv(source / "test.csv", index=False)
     with pytest.raises(ValueError):
         m.CompetitionPathProvider(source, tmp_path / "unsafe", object(), parent_sha256=m.PARENT)
+
+
+def test_larger_encoder_batches_reach_provider_without_changing_image_policy(
+    source, tmp_path, monkeypatch
+):
+    class LargerBatchFixture(EncodedFixture):
+        def __init__(self, dataset, parent, binding, **policy):
+            assert policy["chunk_size"] == 32
+            super().__init__(dataset, parent, binding, **dict(policy, chunk_size=12))
+
+    monkeypatch.setattr(m, "StreamedFP32PathData", LargerBatchFixture)
+    p = m.CompetitionPathProvider(
+        source, tmp_path / "batch32", object(), parent_sha256=m.PARENT, encoder_chunk_size=32
+    )
+    p[0]
+    assert p.binding["encoder_chunk_size"] == 32
+    assert p.statistics()["changed_batching_requires_target_device_comparison"]
+    assert p.statistics()["encoding_seconds"] >= 0
+
+
+@pytest.mark.parametrize("size", [0, -1, 97, True, 12.5])
+def test_invalid_encoder_batch_refused_before_scratch(source, tmp_path, size):
+    scratch = tmp_path / "uncreated"
+    with pytest.raises(ValueError):
+        m.CompetitionPathProvider(
+            source, scratch, object(), parent_sha256=m.PARENT, encoder_chunk_size=size
+        )
+    assert not scratch.exists()

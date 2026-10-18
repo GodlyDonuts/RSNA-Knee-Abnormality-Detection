@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
+import torch
 from online_inputs_fp32 import StreamedFP32PathData
 from serving import PARENT
 
@@ -42,9 +43,12 @@ class CompetitionPathProvider:
         *,
         parent_sha256: str,
         capacity_bytes: int = 2 * 2**30,
+        encoder_chunk_size: int = 12,
     ):
         if parent_sha256 != PARENT or type(capacity_bytes) is not int or capacity_bytes < 2**20:
             raise ValueError("Original parent identity and explicit cache budget required")
+        if type(encoder_chunk_size) is not int or not 1 <= encoder_chunk_size <= 96:
+            raise ValueError("Encoder chunk size must be an explicit integer from1through96")
         if scratch.exists():
             raise FileExistsError("Test scratch must be a fresh owned path")
         # Read only explicit image metadata and the actual test roster, never a
@@ -72,6 +76,7 @@ class CompetitionPathProvider:
         scratch.mkdir(mode=0o700, parents=True)
         self.root, self.scratch, self.parent = competition.resolve(), scratch.resolve(), parent
         self.ids, self.frame, self.capacity = ids, frame, capacity_bytes
+        self.encoder_chunk_size = encoder_chunk_size
         self.original_binding = {
             "parent_sha256": PARENT,
             "role": "competition_test_image_only",
@@ -84,10 +89,11 @@ class CompetitionPathProvider:
             "original": self.original_binding,
             "sampling": "dense",
             "encoder_precision": "float32",
-            "encoder_chunk_size": 12,
+            "encoder_chunk_size": encoder_chunk_size,
         }
         self.completed = 0
         self.decode_seconds = 0.0
+        self.encoding_seconds = 0.0
         self.peak_cache_bytes = 0
         self.failures = {}
 
@@ -147,9 +153,14 @@ class CompetitionPathProvider:
             self.original_binding,
             sampling="dense",
             seed=20261017,
-            chunk_size=12,
+            chunk_size=self.encoder_chunk_size,
         )
+        encoding_started = time.monotonic()
         row = data[0]
+        # Include completed GPU work, not just asynchronous launch latency.
+        if row["maps"].is_cuda:
+            torch.cuda.synchronize(row["maps"].device)
+        self.encoding_seconds += time.monotonic() - encoding_started
         if row["study_uid"] != uid or bool(row["label_mask"].any()):
             raise ValueError("Only current test-study pixels and geometry may enter serving")
         # All maps/geometry are now in the returned in-memory row. The provider
@@ -165,6 +176,9 @@ class CompetitionPathProvider:
         return {
             "completed_image_studies": self.completed,
             "native_decode_seconds": self.decode_seconds,
+            "encoding_seconds": self.encoding_seconds,
+            "encoder_chunk_size": self.encoder_chunk_size,
+            "changed_batching_requires_target_device_comparison": self.encoder_chunk_size != 12,
             "peak_owned_study_cache_bytes": self.peak_cache_bytes,
             "capacity_bytes": self.capacity,
             "skipped_series": dict(self.failures),

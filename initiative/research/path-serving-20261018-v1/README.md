@@ -112,3 +112,20 @@ owned-process shutdown, immutable asset paths, subset ordering, metadata-only
 cost discovery and budget rejection. The CLIhelp runs without touching GPUs.
 These tests are engineering acceptance only; old MRI/model recovery and full
 repository test suites were not replayed. No GPU job or competition entry added.
+
+## T4 memory and throughput experiment control
+
+The runner now exposes `--encoder-chunk-size` (default12, explicit range1–96).
+It reaches both GPU providers and is recorded in their input binding and final
+statistics. This changes encoder execution batches only: the same selected
+series, dense three-slice windows, FP32 weights and sparse16 parent are retained.
+No automatic OOM retry drops windows or silently changes batch size. Actual
+encoder time is recorded after CUDA synchronization, separately from decoding.
+
+Larger values are experimental until measured on the actual T4s against12 for
+full-study logits, finite outputs, peak memory and total wall time. Floating
+point batch-dependent kernels can change results, so no exact-equivalence or
+speed claim follows from the wrapper. The training jobs and default serving
+recipe remain unchanged. The25 focused adapter/launcher cases pass, including
+new32-window propagation and rejection before scratch creation. No old clinical
+cohort replay, GPU dispatch, notebook push or competition submission occurred.

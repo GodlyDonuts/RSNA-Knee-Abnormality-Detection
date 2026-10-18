@@ -123,6 +123,7 @@ def lane_worker(options, rank, indices, deadline):
         Path(options["work"]) / f"cache-{rank}",
         parent,
         parent_sha256=PARENT,
+        encoder_chunk_size=options["encoder_chunk_size"],
     )
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -183,7 +184,10 @@ def main(argv=None):
     parser.add_argument("--head-sha256", required=True)
     parser.add_argument("--max-seconds", type=float, default=8 * 3600)
     parser.add_argument("--vectorized-scoring", action="store_true")
+    parser.add_argument("--encoder-chunk-size", type=int, default=12)
     args = parser.parse_args(argv)
+    if not 1 <= args.encoder_chunk_size <= 96:
+        raise ValueError("Explicit encoder chunk size from1through96 required")
     if not math.isfinite(args.max_seconds) or not 0 < args.max_seconds <= 8.5 * 3600:
         raise ValueError("Finite shared inference budget of at most8.5hours required")
     if args.work.exists() or args.output.exists():

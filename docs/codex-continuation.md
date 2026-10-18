@@ -1,5 +1,14 @@
 # Execution handoff
 
+October18 hardware-utilization forward work: new path runner exposes explicit
+encoder chunk size1–96(default12), preserves window coverage/FP32/source identity,
+and records synchronized encoder time separately from decoding.25focused new
+adapter/launcher tests and scoped Ruff pass. Larger batches remain unqualified
+until actual T4full-study output/memory/throughput comparison; no GPUrun/gain is
+claimed. Live955582is PENDING Priority;955711/12 PENDING Dependency. All four
+original controller PIDs43079/43912/44793/48097were confirmed live unchanged.
+
+
 October18 forward deployment: run_two_t4.py now composes the NEW path model's
 complete image-to-CSV serving modules with two persistent GPU processes,
 metadata-only work balancing, shared8hour(default) deadline, exact final roster
