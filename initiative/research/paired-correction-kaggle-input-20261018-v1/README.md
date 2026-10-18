@@ -39,3 +39,14 @@ child (4MiB total), still within the original32MiB control cap and fresh reserve
 No deletion credit or model checkpoint funding is taken. The new focused ZIP
 regression passes and preserves the original archive unchanged. This is not a
 retry of an uncertain Dataset mutation.
+
+The distinct precreate recovery stopped BEFORE any Dataset intent on its fresh
+original32MiB cap check. Do not raise that common cap: existing owners depend
+on it. The next separately admitted transport places only the new sorted ZIP
+under a unique sibling node-local2MiB root, outside all existing owners' control
+roots. Original failed ZIP, metadata and inputs remain unchanged. Fresh global
+node reserve includes this NEW2MiB obligation; original-root new receipts are
+bounded64KiB within unchanged32MiB, and its original child stays under2MiB.
+No shared storage, GPU, deletion credit or implicit checkpoint funding is used.
+The same absent canonical intent and authenticated Dataset absence still gate
+any FIRST create RPC.
