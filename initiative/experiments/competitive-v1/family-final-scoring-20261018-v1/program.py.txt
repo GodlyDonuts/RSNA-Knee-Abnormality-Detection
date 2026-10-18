@@ -1,0 +1,340 @@
+"""One canonical phase for preserved fixed-final comparisons; no implicit retries."""
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+P = Path('/tmp/rsna-licensed-importance-encoder-20261017-v1')
+BASE = P / 'full-comparison/final-matched-serving-v1'
+HOME = Path('/tmp/rsna-S6-training-release-20261017-v1')
+R = HOME / 'family-final-scoring-v1'
+M = R / 'single-scoring-coordinator-v1'
+S = BASE / 'code'
+T = HOME / 'family-serving-template-v1'
+DOCKER = 'gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f'
+CODE_SOURCE = '86cfc7b673b11ca9440db312a90507b0097b1be1'
+SCIENCE = '990c8ded67d8158fc57fb1ce6c1a2a8bff9a7612'
+REFERENCE_KEY = 'public0958-native-UI:300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f'
+CANDIDATES = ('family',)
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def bounds(extra=0):
+    assert os.uname().nodename == 'evc33' and not os.environ.get('SLURM_JOB_GPUS')
+    paid=lambda root:sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
+    assert paid(R)+extra+131072<2*2**20 and paid(HOME)+extra+max(0,2*2**20-paid(R))<16*2**20
+    reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+    assert paid(reader)<3*2**30 and paid(family)<4*2**30
+    assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(reader))+max(0,4*2**30-paid(family))
+    q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+    a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+    assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+
+
+def existing_record(db, key):
+    found = db.execute('SELECT value FROM meta WHERE key=?', (key,)).fetchone()
+    assert found is not None, 'Exact original canonical record required'
+    return json.loads(found[0])
+
+
+def request_for(candidate, mode, base, source):
+    h = hashlib.sha256(source.encode()).hexdigest()
+    assert candidate in CANDIDATES and mode in ('qualification', 'competition')
+    slug = 'godlydonuts/rsna-final-' + candidate + '-e3-' + ('qual-' if mode == 'qualification' else 'offline-') + h[:12]
+    return {
+        'slug': slug, 'newTitle': slug.split('/')[1].replace('-', ' '), 'text': source,
+        'language': 'python', 'kernelType': 'script', 'isPrivate': True,
+        'enableGpu': True, 'machineShape': 'NvidiaTeslaT4', 'enableInternet': False,
+        'datasetDataSources': [],
+        'competitionDataSources': [] if mode == 'qualification' else ['rsna-knee-abnormality-detection'],
+        'kernelDataSources': [base['training']['slug']] + (['godlydonuts/rsna-parent-exact-pixels32-09254e97913d'] if mode == 'qualification' else []),
+        'sessionTimeoutSeconds': 1800 if mode == 'qualification' else 32400,
+        'dockerImage': DOCKER, 'dockerImagePinningType': 'original',
+    }
+
+
+def entry_eligibility(w, db, account, submissions, description, candidate):
+    assert candidate=='family'
+    assert not any(x.get('description')==description for x in submissions),'Exact original description exists; reconcile without retry'
+    records=[json.loads(x[0]) for x in db.execute('SELECT value FROM meta') if x[0].lstrip().startswith('{')]
+    assert not any('submit' in str(x.get('state','')) and str(x.get('state','')).endswith(('_intent','_uncertain')) for x in records),'Existing uncertain code entry needs read-only reconciliation'
+    model=description.split(':')[-1]
+    assert not any(x.get('model_sha256')==model and x.get('submission_id') for x in records),'Exact model has an existing entry'
+    reference=[x for x in submissions if x.get('ref')==57332456]
+    assert len(reference)==1 and w.submission_outcome(reference[0])=='scored'
+    slots=w.allowance(db,account)
+    return {'eligible':slots>0,'effective_allowance':slots,'active_unresolved_submission_ids':[x['ref'] for x in submissions if w.submission_outcome(x) in ('pending_or_unknown','complete_unscored')],'reference_submission':57332456,'reference_actual_outcome':'scored','unrelated_reference_outcome_not_a_blocker':True,'account':account}
+
+
+def execute(v):
+    phase = v['phase']
+    assert phase in ('stage', 'prepare_family', 'push', 'status', 'eligibility', 'submit', 'outcome')
+    candidate = v.get('candidate', 'family')
+    mode = v.get('mode', 'qualification')
+    assert candidate in CANDIDATES and mode in ('qualification', 'competition')
+    bounds()
+    meta = json.loads((BASE / 'prepared.json').read_text())
+    assert meta['CPU_job'] == '946894'
+    assert all(sha(S / n) == h for n, h in meta['source_files'].items())
+    accepted = json.loads((T / 'accepted.json').read_text())
+    assert accepted['CPU_job'] == '953320'
+    assert all(sha(T / n) == h for n, h in accepted['source_files'].items())
+    w = load('matched_final_actual_workflow', S / 'scripts/kaggle/workflow.py')
+    if phase == 'stage':
+        assert not M.exists()
+        assert v['code_source'] == CODE_SOURCE
+        assert hashlib.sha256(v['program'].encode()).hexdigest() == v['program_sha256']
+        bounds(len(v['program'].encode()) + 65536)
+        R.mkdir(mode=0o700)
+        M.mkdir(mode=0o700)
+        p = M / 'program.py.txt'
+        p.write_text(v['program'])
+        p.chmod(0o600)
+        result = {'status': 'actual_CPU_single_matched_final_scoring_coordinator_staged',
+                  'CPU_job': os.environ['SLURM_JOB_ID'], 'base_code_source_git': CODE_SOURCE, 'control_git':v['control_git'], 'code_source_git': CODE_SOURCE,
+                  'program_sha256': v['program_sha256'], 'candidates': list(CANDIDATES),
+                  'maximum_GPU_pushes': 2, 'maximum_competition_entries': 1,
+                  'label_fixed_final_required_before_any_GPU': True,
+                  'each_candidate_fresh_full_current_caps_and_original_future_VM_required': True,
+                  'new_dataset_model_copy_GPU_or_entry_mutations': 0,
+                  'existing_control_cap_bytes': 2 * 2**20}
+        w.new_json(M / 'accepted.json', result)
+        return result
+    assert sha(M / 'program.py.txt') == v['program_sha256']
+    assert json.loads((M / 'accepted.json').read_text())['code_source_git'] == CODE_SOURCE
+    import requests
+    r = w.Remote.__new__(w.Remote)
+    r.session = requests.Session()
+    r.session.headers['Authorization'] = 'Bearer ' + v['token']
+    identity = r.call('security.OAuthService', 'IntrospectToken', {'token': v['token']})
+    assert identity.get('active') is True and identity.get('username') == 'godlydonuts'
+    r.username = 'godlydonuts'
+    claim = Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim')
+    try:
+        claim.mkdir(mode=0o700)
+    except FileExistsError:
+        return {'status': 'waiting_existing_canonical_claim_no_mutation'}
+    owner = {'kind': 'matched_final_scoring_single_coordinator', 'phase': phase,
+             'candidate': candidate, 'mode': mode, 'CPU_job': os.environ['SLURM_JOB_ID']}
+    w.new_json(claim / 'owner.json', owner)
+    retain = False
+    try:
+        with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'), 'godlydonuts') as db:
+            w.verify_account(db, r)
+            if phase == 'prepare_family':
+                assert candidate == 'family'
+                actual, publication = v['actual'], v['publication']
+                assert actual['kernel_id']==139355023 and actual['source_sha256']=='3d6448b6d33b2c2202b2e2f517df16a1bb6c934e89ed79b3d047c89fe6d98083'
+                assert actual==json.loads((HOME/'family-influence-full-fitting-v1/epoch-3/actual-accepted.json').read_text())
+                assert publication==json.loads(Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1/epoch-003/verified.json').read_text())
+                sys.path.insert(0, str(S))
+                compiler=load('actual_original_family_notebook_compiler',T/'family_notebook.py')
+                build=compiler.build;provenance=compiler.label_scope.provenance
+                model_sha = actual['receipt']['epoch']['sha256']
+                assert provenance(actual, publication, model_sha) == 3
+                trained = existing_record(db, 'family-influence-full:' + actual['source_sha256'])
+                assert trained['state'] == 'family_influence_full_actual_complete' and trained['receipt'] == actual['receipt']
+                assert trained['kernel_id'] == actual['kernel_id'] and trained['slug'] == actual['slug']
+                assert r.kernel('GetKernelSessionStatus', actual['slug'], 1).get('status') == 'COMPLETE'
+                assert hashlib.sha256(r.kernel('GetKernel', actual['slug'], 1)['blob']['source'].encode()).hexdigest() == actual['source_sha256']
+                key = 'licensed-parent-full-epoch-serving:' + model_sha
+                D = R / 'family'
+                assert not D.exists() and db.execute('SELECT value FROM meta WHERE key=?', (key,)).fetchone() is None
+                parent = Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/original-parent.private.py').read_text()
+                args = [(S/n).read_text() for n in ('rsna/competitive/bounded_preparation.py','rsna/competitive/licensed_importance_serving.py')]+[(T/'family_serving.py').read_text()]+[(S/n).read_text() for n in ('rsna/competitive/licensed_pixel_cache.py','rsna/competitive/licensed_full_bag.py','rsna/competitive/licensed_importance.py')]
+                sources, bindings = {}, {}
+                for m in ('qualification', 'competition'):
+                    sources[m], bindings[m] = build(parent, *args, actual, publication, mode=m)
+                bounds(sum(len(s.encode()) for s in sources.values()) + 131072)
+                D.mkdir(mode=0o700)
+                for m, text in sources.items():
+                    p = D / (m + '.private.py'); p.write_text(text); p.chmod(0o600)
+                row = {'state': 'importance_epoch_serving_prepared', 'source_git': CODE_SOURCE,
+                       'candidate': 'family', 'role': 'influence', 'epoch': 3, 'model_sha256': model_sha,
+                       'training': actual, 'publication': publication, 'prepared': bindings,
+                       'new_weight_Dataset_or_copy': False}
+                w.new_json(D / 'prepared.json', row)
+                db.execute('INSERT INTO meta(key,value) VALUES(?,?)', (key, json.dumps(row, sort_keys=True)))
+                db.commit()
+                return {'status': 'actual_completed_privately_preserved_family_final_scoring_prepared',
+                        'model_sha256': model_sha, 'CPU_job': os.environ['SLURM_JOB_ID'], 'new_GPU_or_entry': False}
+            # All serving happens after the fixed-final treatment and private proof.
+            D = R / candidate
+            base = json.loads((D / 'prepared.json').read_text())
+            model_sha = base['model_sha256']
+            key = 'licensed-parent-full-epoch-serving:' + model_sha
+            row = existing_record(db, key)
+            assert base['epoch'] == 3 and base['training']['receipt']['completed'] == 1458
+            assert row['model_sha256'] == model_sha and row['training'] == base['training'] and row['publication'] == base['publication']
+            source = (D / (mode + '.private.py')).read_text()
+            source_sha = hashlib.sha256(source.encode()).hexdigest()
+            assert source_sha == base['prepared'][mode]['source_sha256']
+            request = request_for(candidate, mode, base, source)
+            slug = request['slug']
+
+            def save():
+                db.execute('UPDATE meta SET value=? WHERE key=?', (json.dumps(row, sort_keys=True), key))
+                db.execute('INSERT INTO events(at,sha,event) VALUES(?,?,?)', (w.utcnow(), model_sha, row['state']))
+                db.commit()
+
+            def exact_kernel():
+                actual = r.kernel('GetKernel', slug, 1)
+                m = actual['metadata']
+                assert actual['blob']['source'] == source
+                for n in ('isPrivate', 'enableInternet', 'enableGpu', 'machineShape', 'dockerImage'):
+                    assert m.get(n, False if n == 'enableInternet' else None) == request[n]
+                for n in ('datasetDataSources', 'competitionDataSources', 'kernelDataSources'):
+                    assert sorted(m.get(n, [])) == sorted(request[n])
+                return r.kernel('GetKernelSessionStatus', slug, 1).get('status')
+
+            if phase == 'push':
+                assert mode not in row and not (D / (mode + '-push-intent.json')).exists()
+                if mode == 'competition':
+                    assert row['state'] == 'full_parent_epoch_qualification_accepted'
+                else:
+                    assert row['state'] == 'importance_epoch_serving_prepared'
+                cap_path=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py')
+                assert sha(cap_path)=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2'
+                cap_base=load('original_family_scoring_capacity',cap_path)
+                ext_path=P/'finding-strata-audit-v1/accepted-capacity.py';assert sha(ext_path)=='1c915d09f5c39c341bf910818cdd45f234c054ccb3f1fe4225c352c7821a70ea'
+                from types import SimpleNamespace
+                cap=load('extended_family_scoring_capacity',ext_path).admission(SimpleNamespace(admission=cap_base.admission,FAMILIES=(*cap_base.FAMILIES,'finding-strata-full:')),db,r)
+                quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];seconds=lambda x:float(x.removesuffix('s'))
+                available=seconds(quota['totalTimeAllowed'] if quota.get('isPayToScaleEnabled') else quota['minimumTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s'))
+                finding=P/'finding-strata-full-fitting-v1'
+                finding_unpaid=sum(6000 for e in (1,2,3) if not (finding/('epoch-'+str(e))/'actual-accepted.json').exists())
+                required=finding_unpaid+(1800 if mode=='qualification' else 0)+32400
+                budget={'available_VM_seconds':available,'required_all_future_VM_seconds':required,'original_finding_unfinished_epoch_caps':finding_unpaid,'current_qualification_cap':1800 if mode=='qualification' else 0,'current_public_cap':32400,'later_candidates_require_fresh_admission':True}
+                if not cap['available'] or budget['available_VM_seconds'] < required:
+                    return {'status': 'waiting_actual_capacity_or_current_complete_VM_caps_no_mutation', 'capacity': cap, 'budget': budget}
+                for ref in request['kernelDataSources']:
+                    assert r.kernel('GetKernelSessionStatus', ref, 1).get('status') == 'COMPLETE'
+                absence = r.require_absent_kernel(slug)
+                intent = {'candidate': candidate, 'epoch': 3, 'mode': mode, 'model_sha256': model_sha,
+                          'source_sha256': source_sha, 'slug': slug, 'version': 1,
+                          'request_sha256': w.object_hash(request), 'absence': absence, 'budget': budget,
+                          'capacity': cap, 'automatic_retry': False}
+                bounds(len(json.dumps(intent).encode()) + 65536)
+                w.new_json(D / (mode + '-push-intent.json'), intent)
+                row.update(state='full_parent_epoch_' + mode + '_push_intent', **{mode: intent}); save()
+                try:
+                    response = r.call('kernels.KernelsApiService', 'SaveKernel', request)
+                    w.new_json(D / (mode + '-push-response.json'), response)
+                    assert response.get('ref') == '/code/' + slug and response.get('versionNumber') == 1 and not response.get('error')
+                except BaseException:
+                    row['state'] = 'full_parent_epoch_' + mode + '_push_uncertain'; save(); retain = True; raise
+                row[mode]['kernel_id'] = response['kernelId']
+                row['state'] = 'full_parent_epoch_' + mode + '_pushed'; save()
+                return {'status': 'one_exact_matched_final_' + mode + '_pushed', 'candidate': candidate,
+                        'kernel_id': response['kernelId'], 'slug': slug, 'version': 1,
+                        'model_sha256': model_sha, 'source_sha256': source_sha, 'competition_entry': False}
+            assert mode in row and row[mode]['source_sha256'] == source_sha
+            actual_status = exact_kernel()
+            if phase == 'status':
+                out = {'status': actual_status, 'candidate': candidate, 'mode': mode, 'kernel_id': row[mode]['kernel_id'],
+                       'slug': slug, 'version': 1, 'model_sha256': model_sha, 'source_sha256': source_sha, 'competition_entry': False}
+                if actual_status == 'COMPLETE':
+                    name = 'licensed-IID16-epoch-' + ('qualification' if mode == 'qualification' else 'public') + '-accepted.json'
+                    receipt = r.output_json(slug, 1, name)
+                    assert receipt['model_sha256'] == model_sha and receipt['epoch'] == 3
+                    assert receipt['training_source_sha256'] == base['training']['source_sha256']
+                    assert receipt['role'] == base['training']['role'] and receipt['training_windows'] == 16 and receipt['serving_windows'] == 94
+                    assert receipt['source_label_role']=='safe_family_mean' and receipt['actual_family_recovery_kernel']==139336728
+                    if mode == 'qualification':
+                        assert receipt['status'] == 'actual_matched_IID16_parent_epoch_bothT4_original32_MRI_and_training_graph_qualified'
+                        assert receipt['qualified_studies'] == 32 and receipt['qualification_cannot_submit'] is True
+                        assert len(receipt['devices']) == 2 and {d['index'] for d in receipt['devices']} == {0, 1}
+                        assert all('T4' in d['GPU'] and d['MRI_studies'] == 32 and d['both_original94_input_views_bit_equal'] is True
+                            and d['complete_learned_graph_tensor_values_equal'] is True
+                            and d['maximum_original_class_vs_training_graph_probability_error'] <= 1e-6
+                            and 0 < d['peak_allocated_bytes'] < 16 * 2**30 for d in receipt['devices'])
+                    else:
+                        assert receipt['status'] == 'actual_matched_IID16_parent_epoch_MRI_test_roster_CSV_complete'
+                        assert receipt['studies'] == 3 and receipt['columns'] == 13
+                        assert receipt['prediction_counts'] == {'started': 6, 'completed': 6, 'failed': 0, 'decode_errors': 0, 'empty_views': 0}
+                        csv = load('matched_final_strict_csv', S / 'scripts/kaggle/output_csv.py')
+                        checked = csv.verify_csv(csv.download_csv(r, slug, 1), meta['columns'], meta['expected_public_roster_sha256'])
+                        assert checked['CSV_sha256'] == receipt['CSV_sha256'] and checked['bytes'] == receipt['CSV_bytes']
+                        out['CSV_verified_in_RAM'] = checked
+                    out['receipt'] = receipt
+                    if not (D / (mode + '-actual-accepted.json')).exists():
+                        w.new_json(D / (mode + '-actual-accepted.json'), out)
+                        row[mode]['receipt'] = receipt; row['state'] = 'full_parent_epoch_' + mode + '_accepted'; save()
+                elif actual_status in ('ERROR', 'CANCELLED', 'CANCEL_ACKNOWLEDGED'):
+                    if not (D / (mode + '-actual-failed.json')).exists():
+                        w.new_json(D / (mode + '-actual-failed.json'), out)
+                        row['state'] = 'full_parent_epoch_' + mode + '_failed'; save()
+                return out
+            assert mode == 'competition' and actual_status == 'COMPLETE'
+            description = 'rsna-final-' + candidate + '-e3:' + model_sha
+            if phase in ('eligibility', 'submit'):
+                assert row['state'] == 'full_parent_epoch_competition_accepted'
+                assert not row.get('submission_id') and not (D / 'entry-submit-intent.json').exists()
+                accepted_public = json.loads((D / 'competition-actual-accepted.json').read_text())
+                assert accepted_public['receipt'] == row['competition']['receipt']
+                assert r.output_json(slug, 1, 'licensed-IID16-epoch-public-accepted.json') == row['competition']['receipt']
+                assert accepted_public['CSV_verified_in_RAM']['test_roster_sha256'] == meta['expected_public_roster_sha256']
+                fresh = entry_eligibility(w, db, r.account(), r.submissions(), description, candidate)
+                out = {'status': 'actual_family_final_entry_eligibility', 'candidate': candidate, 'fresh': fresh, 'new_mutations': 0}
+                if phase == 'submit':
+                    assert fresh['eligible'], 'Fresh quota/outcome changed; no entry intent'
+                    intent = {'candidate': candidate, 'model_sha256': model_sha, 'source_sha256': source_sha,
+                              'kernel_id': row['competition']['kernel_id'], 'slug': slug, 'version': 1,
+                              'fileName': 'submission.csv', 'description': description, 'fresh': fresh, 'automatic_retry': False}
+                    w.new_json(D / 'entry-submit-intent.json', intent)
+                    row.update(state='full_parent_epoch_submit_intent', description=description, attempted_at=w.utcnow()); save()
+                    try:
+                        owner_name, kernel_slug = slug.split('/')
+                        response = r.competition('CreateCodeSubmission', {'fileName': 'submission.csv', 'kernelOwner': owner_name,
+                            'kernelSlug': kernel_slug, 'kernelVersion': 1, 'submissionDescription': description})
+                        w.new_json(D / 'entry-submit-response.json', response)
+                        assert type(response.get('ref')) is int and response['ref'] > 0
+                    except BaseException:
+                        row['state'] = 'full_parent_epoch_submit_uncertain'; save(); retain = True; raise
+                    row.update(state='full_parent_epoch_submitted', submission_id=response['ref']); save()
+                    out = {'status': 'one_exact_family_final_code_entry_accepted', 'candidate': candidate, 'submission_id': response['ref'],
+                           'slug': slug, 'version': 1, 'public_CSV_uploaded': False, 'actual_score_known': False}
+                    w.new_json(D / 'actual-submitted.json', out)
+                return out
+            assert phase == 'outcome' and row['state'] in ('full_parent_epoch_submitted', 'full_parent_epoch_scored', 'full_parent_epoch_hidden_failed')
+            found = [x for x in r.submissions() if x['ref'] == row['submission_id']]
+            assert len(found) == 1
+            f = found[0]; outcome = w.submission_outcome(f)
+            out = {'status': 'actual_family_final_hidden_outcome', 'candidate': candidate,
+                   'submission_id': f['ref'], 'actual_status': f.get('status'), 'public_score': f.get('publicScore'),
+                   'outcome': outcome, 'error_present': bool(f.get('errorDescription')), 'new_mutations': 0}
+            if outcome in ('scored', 'failed'):
+                row.update(state='full_parent_epoch_scored' if outcome == 'scored' else 'full_parent_epoch_hidden_failed',
+                           public_score=f.get('publicScore'), actual_hidden_error_present=bool(f.get('errorDescription'))); save()
+                if not (D / 'actual-hidden-terminal.json').exists(): w.new_json(D / 'actual-hidden-terminal.json', out)
+            return out
+    finally:
+        if not retain:
+            assert json.loads((claim / 'owner.json').read_text()) == owner
+            (claim / 'owner.json').unlink(); claim.rmdir()
+
+
+if __name__ == '__main__':
+    payload = json.load(sys.stdin)
+    try:
+        print(json.dumps(execute(payload)), flush=True)
+    except BaseException as error:
+        import traceback
+        frames=traceback.extract_tb(error.__traceback__)
+        print(json.dumps({'status':'original_family_scoring_phase_stopped_no_automatic_retry','exception_type':type(error).__name__,'site_line':frames[-1].lineno if frames else None,'phase':payload.get('phase'),'no_exception_URL_or_credential_text_logged':True}),file=sys.stderr,flush=True)
+        raise SystemExit(1) from None
