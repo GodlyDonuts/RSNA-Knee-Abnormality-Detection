@@ -1,0 +1,34 @@
+"""Actually compile epoch1 with original terminal recovery; no execution authority."""
+import base64,hashlib,importlib.util,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+sha=lambda b:hashlib.sha256(b).hexdigest();paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');F=R/'full-comparison';S=F/'code';N=Path('/tmp/rsna-paired-full-actual-source-20261018-v1');assert N.is_dir() and {p.name for p in N.iterdir()}=={'compiler.py'}
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert sha((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes())=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+floor=603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))
+for root,cap in (('/tmp/rsna-paired-fixed-correction-transport-v3',2*2**20),('/tmp/rsna-paired-encoder-H100-gradient-20261018-v1',8*2**20)):floor+=max(0,cap-paid(Path(root)))
+assert shutil.disk_usage('/tmp').free>floor+2*2**20 and paid(R)<32*2**20
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+actual=json.loads((R/'paired-logit-real-encoder-v1/actual-accepted.json').read_text());assert actual==v['paired_recovery']
+sys.path.insert(0,str(S))
+from scripts.kaggle import licensed_importance_production as original
+assert sha(Path(original.__file__).read_bytes())==v['original_compiler_sha256']
+files={n:(S/n).read_text() for n in (*original.ACCEPTED_MODULES,*original.POPULATION_MODULES)}
+paired_code=R/'paired-logit-real-encoder-v1/code'
+for n in ('rsna/competitive/paired_logit_cases.py','rsna/competitive/paired_logit_control.py','rsna/competitive/paired_logit_train.py'):files[n]=(paired_code/n).read_text()
+proofs=json.loads((Path('/tmp/rsna-licensed-parent-whole94-production-20261016-v1')/'actual-original-Kaggle-inputs.json').read_text())['proofs']
+proposal=json.loads((F/'proposal-accepted.json').read_text());baseline=json.loads((F/'actual-recovery.json').read_text())
+p=N/'compiler.py';assert p.read_text()==v['compiler']
+spec=importlib.util.spec_from_file_location('actual_paired_full_compiler',p);compiler=importlib.util.module_from_spec(spec);spec.loader.exec_module(compiler)
+source,meta=compiler.build((R/'recovery.private.py').read_text(),baseline,files,proofs,proposal,v['source_git'],1,paired_recovery=actual,correction=v['correction'])
+assert meta['completed_target']==486 and meta['segment']==1
+assert meta['binding']['production_plan']=='paired_parent_logit_IID16_full3887_fixed3_continuous_v1'
+_,encoded=compiler._literal(source,'WORKER');worker=base64.b64decode(encoded,validate=True).decode()
+assert 'assert len(original)==3887' in worker and 'Recipe(epochs=3,role=_ROLE)' in worker
+assert meta['binding']['correction_table']==compiler.TABLE
+assert meta['prepared_template_only'] is True and meta['production_execution_admitted_by_compilation'] is False
+p=N/'epoch-1-source.private.py';p.write_text(source);p.chmod(0o600);(N/'prepared.private.json').write_text(json.dumps(meta,indent=2))
+assert paid(N)<2*2**20
+result={'status':'actual_full3887_paired_epoch1_source_compiled_from_real_accepted_recovery_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'compiler_sha256':sha(v['compiler'].encode()),'source_sha256':meta['source_sha256'],'worker_sha256':meta['worker_sha256'],'source_bytes':len(source.encode()),'population':3887,'epochs':3,'total_updates':1458,'epoch1_updates':486,'actual_recovery_kernel':139417155,'actual_recovery_version':1,'actual_recovery_receipt_sha256':sha(json.dumps(actual['receipt'],sort_keys=True,separators=(',',':')).encode()),'same_original_full_population_recipe_and_modules':True,'correction_table_SHA':compiler.TABLE['sha256'],'small_control_cap_bytes':2*2**20,'small_control_paid_bytes':paid(N),'new_model_pixel_transfers_GPU_submissions_entries':0,'noise_cost_decision_full_checkpoint_funding_and_Kaggle_input_acceptance_still_required':True,'production_execution_admitted':False}
+(N/'receipt.json').write_text(json.dumps(result,indent=2));print(json.dumps(result),flush=True)

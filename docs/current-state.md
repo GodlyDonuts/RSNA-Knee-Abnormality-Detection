@@ -1,3 +1,5 @@
+Actual two-T4 corrected trainer recovery139417155 completed with exact full/resume state and predictions. The combined full-encoder noise/optimizer-cost experiment139446429 is now RUNNING; no accuracy result. First actual full-data source compiled viaCPU959661, held pending the measurement decision and input/checkpoint/budget admission. Details: [actual paired full source](../initiative/research/paired-full-actual-source-20261018-v1/README.md).
+
 New H100 experiment: CPU959600 accepted the complete graph/runtime; Slurm959613 is submitted once and currently PENDING(Resources) on evc33. It tests paired sampled-gradient error through all73M parameters, with no optimizer updates. Original Kaggle runs continue. Source/owner/resource details: [H100 gradient measurement](../initiative/research/paired-encoder-H100-gradient-20261018-v1/README.md). No new accuracy result.
 
 # Current measured state
