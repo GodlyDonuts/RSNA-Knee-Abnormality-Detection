@@ -1,0 +1,69 @@
+"""Independently accept completed numerical work; retain failed GPU terminal.
+
+The GPU's six numerical phases and all equality assertions completed. It then
+failed while assembling a historical cancellation field in its final receipt.
+No GPU work is repeated, no checkpoint is edited and no GPU success is forged.
+"""
+import hashlib
+import importlib.util
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc48' and not os.environ.get('SLURM_JOB_GPUS')
+T=Path('/tmp/rsna-path-recovery-evc48-20261018-v3/reader-engine-v1')
+assert not (T/'cpu-recovery-acceptance.json').exists() and not (T/'accepted.json').exists()
+terminal=subprocess.check_output(['sacct','-X','-j','952440','-n','-P','--format=JobIDRaw,State,ExitCode,ElapsedRaw'],text=True)
+assert any(line=='952440|FAILED|1:0|166' for line in terminal.splitlines())
+error=(T/'952440.stderr').read_text()
+assert error.count('Traceback (most recent call last)')==1
+assert "FileNotFoundError: [Errno 2] No such file or directory:" in error and 'pending-only-relocation.json' in error
+admission=json.loads((T/'admitted.json').read_text())
+sha=lambda p:hashlib.sha256(Path(p).read_bytes()).hexdigest()
+assert sha(T/'worker.py')=='18ed4f9d1b41614a523e7952030f38a320281e91a9eed22904e93155982501eb'==admission['worker_sha256']
+assert all(sha(T/'code'/n)==h for n,h in admission['files_sha256'].items())
+run=json.loads((T/'run-start.json').read_text());assert run['GPU_job']=='952440' and run['diagnostic_only']
+sys.path[:0]=[str(T/'code/core'),str(T/'code/mechanism'),str(T/'code')]
+import torch
+torch.set_num_threads(1)
+assert str(torch.__version__)=='2.14.0+cu130'
+spec=importlib.util.spec_from_file_location('original_complete_state_identity_checker',T/'code/original_input_helper.py')
+h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
+def finite(value):
+    if isinstance(value,torch.Tensor):
+        if value.is_floating_point():assert torch.isfinite(value).all()
+    elif isinstance(value,dict):
+        for x in value.values():finite(x)
+    elif isinstance(value,(tuple,list)):
+        for x in value:finite(x)
+    elif isinstance(value,float):assert math.isfinite(value)
+proof={};phases=[];summaries={}
+for arm in ('aligned','null'):
+    full,replay=[T/(arm+suffix) for suffix in ('-full','-replay')]
+    values=[]
+    for path in (full,replay):
+        p=path/'checkpoint.pt';values.append(torch.load(p,map_location='cpu',weights_only=True));proof[str(p.relative_to(T))]={'bytes':p.stat().st_size,'sha256':sha(p)}
+    a,b=values;h.identical(a,b);finite(a)
+    assert a['completed']==4 and a['epoch']==2 and a['cursor']==0 and len(a['history'])==4
+    assert [r['step'] for r in a['history']]==[1,2,3,4]
+    assert a['history'][0]['projection_gradient_norm']==0 and a['history'][-1]['projection_gradient_norm']>0
+    for epoch in (1,2):
+        paths=[p/'epoch-checkpoints'/('epoch-%03d.pt'%epoch) for p in (full,replay)]
+        states=[torch.load(p,map_location='cpu',weights_only=True) for p in paths];h.identical(*states)
+        assert states[0]['completed']==2*epoch
+        for p in paths:proof[str(p.relative_to(T))]={'bytes':p.stat().st_size,'sha256':sha(p)}
+    assert (full/'predictions-private.csv').read_bytes()==(replay/'predictions-private.csv').read_bytes()
+    for path in (full,replay):
+        p=path/'predictions-private.csv';proof[str(p.relative_to(T))]={'bytes':p.stat().st_size,'sha256':sha(p)}
+    for path,phase,count in ((full,'full',4),(replay,'stop',1),(replay,'resume',4)):
+        record=json.loads((path/('phase-'+phase+'.json')).read_text())
+        assert record['GPU_job']=='952440' and record['arm']==arm and record['phase']==phase and record['actual_completed_updates']==count
+        phases.append(record)
+    summaries[arm]={'updates':4,'history_complete_finite':True,'final_projection_gradient_norm':a['history'][-1]['projection_gradient_norm'],'model_parameters':sum(t.numel() for t in a['model'].values())}
+assert (T/'aligned-full/initial.json').read_bytes()==(T/'null-full/initial.json').read_bytes()
+out={'status':'actual_completed_GPU_numerical_recovery_independently_CPU_accepted_after_final_provenance_collector_failure','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'original_GPU_job':'952440','original_GPU_terminal':'FAILED1:0_after166seconds','original_worker_sha256':admission['worker_sha256'],'original_terminal_failure':'missing historical cancellation field while composing final receipt after all numerical assertions','complete_model_AdamW_LR_order_cursor_allRNG_history_each_epoch_and16x12CSV_equal':True,'both_arms_same_initial_model':True,'original_fitting_outer_cases':[16,16],'summaries':summaries,'phases':phases,'checkpoint_prediction_proofs':proof,'GPU_or_optimizer_work_repeated':False,'encoder_instantiated_or_fitted':False,'outer_clinical_targets_read':False,'original_checkpoints_or_failed_GPU_terminal_modified':False,'historical_provenance_added_after_original_failure':True,'dense_online_trainer_production_or_accuracy_admission':False}
+(T/'cpu-recovery-acceptance.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
