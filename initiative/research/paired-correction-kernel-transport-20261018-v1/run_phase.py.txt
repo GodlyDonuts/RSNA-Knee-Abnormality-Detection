@@ -1,0 +1,19 @@
+"""One staged phase for an original private CPU chain; credentials stay stdin."""
+import hashlib,importlib.util,json,shlex,subprocess,sys
+from pathlib import Path
+R=Path.cwd();D=Path(__file__).resolve().parent;A=R/'artifacts/paired-correction-kernel-transport-20261018-v1/execution';A.mkdir(mode=0o700,parents=True,exist_ok=True)
+phase=sys.argv[1];part=int(sys.argv[2]) if len(sys.argv)>2 else 0;assert phase in ('stage','push','status') and part in (0,1)
+program=(D/'phase.py.txt').read_text();pin=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+E=R/'.env';assert E.stat().st_mode&0o077==0;values={k.strip():x.strip().strip('"\'') for line in E.read_text().splitlines() for k,s,x in [line.partition('=')] if s and not line.lstrip().startswith('#')}
+v={'program':program,'phase':phase,'part':part,'source_git':pin,'token':values['KAGGLE_API_TOKEN']}
+if phase=='stage':
+ v.update(compiler=(R/'scripts/kaggle/paired_input_chain.py').read_text(),output_verifier=(R/'scripts/kaggle/output_bytes.py').read_text())
+ with (A/'stage-intent.json').open('x') as f:json.dump({'source_git':pin,'program_sha256':hashlib.sha256(program.encode()).hexdigest(),'new_GPU_entries_or_Dataset_retries':0},f,indent=2)
+T=R/'initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py';spec=importlib.util.spec_from_file_location('private_CPU_transport',T);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+args=['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist=evc33','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:08:00','--job-name=rsna-paired-private-CPU-'+phase,'env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',m.COMMAND]
+x=subprocess.run(['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton',shlex.join(args)],input=m.envelope(program,v),capture_output=True,text=True,timeout=560)
+name=phase+'-part'+str(part)+'-'+str(len(list(A.glob(phase+'-part'+str(part)+'-*.json'))))+'.json';(A/name).write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr},indent=2));assert x.returncode==0,'Inspect original CPU input phase without retries: '+x.stderr[-1600:]
+out=json.loads(x.stdout)
+if phase=='stage':(D/'actual-staged.json').write_text(json.dumps(out,indent=2)+'\n')
+else:(D/('part'+str(part)+'-'+('actual-pushed' if phase=='push' else 'actual-status')+'.json')).write_text(json.dumps(out,indent=2)+'\n')
+print(json.dumps(out),flush=True)

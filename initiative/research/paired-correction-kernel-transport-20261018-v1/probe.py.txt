@@ -1,0 +1,23 @@
+"""Read-only original Dataset reconciliation and RAM-only CPU input feasibility."""
+import base64,hashlib,importlib.util,json,os,sqlite3,sys,zlib
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def load(n,h):
+ p=C/(n+'.py');assert hashlib.sha256(p.read_bytes()).hexdigest()==h;s=importlib.util.spec_from_file_location('correction_readonly_'+n,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=load('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900');p=load('publication','e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336')
+import requests
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+assert r.call('security.OAuthService','IntrospectToken',{'token':v['token']}).get('username')=='godlydonuts'
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ row=json.loads(db.execute('SELECT value FROM meta WHERE key=?',('paired-fixed-correction-dataset:bfd9d6d67afc7e7f3c9cd091bfccae8c8fc741b23ea1679deb3da122cd0fb619',)).fetchone()[0])
+assert row['state']=='paired_correction_dataset_create_or_verification_uncertain'
+result={'CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'new_network_mutations_transfers_jobs_entries':0,'original_Dataset_intent_unchanged':True}
+try:result['dataset']=p.metadata(r,row['slug']);result['status']='original_Dataset_now_visible_requires_original_full_verification'
+except w.RemoteError as e:
+ result['metadata_read_error']=str(e);result['absence']=p.require_absent(r,row['slug']);result['status']='original_Dataset_still_owned_absent_no_create_retry'
+archive=Path('/tmp/rsna-paired-fixed-correction-transport-v3/bundle.zip');raw=archive.read_bytes();assert len(raw)==row['archive']['bytes'] and hashlib.sha256(raw).hexdigest()==row['archive']['sha256']
+p.validate_zip(archive,row['files']);packed=zlib.compress(raw,9);encoded=base64.b85encode(packed)
+assert zlib.decompress(base64.b85decode(encoded))==raw
+result['alternative_private_CPU_only_input_feasibility']={'same_original_five_file_archive_bytes':len(raw),'zlib_bytes':len(packed),'base85_source_payload_bytes':len(encoded),'under_900000_byte_source_payload':len(encoded)<900000,'no_staging_or_push_yet':True,'would_leave_original_uncertain_Dataset_untouched':True,'would_run_no_GPU_model_training_or_competition_entry':True}
+print(json.dumps(result),flush=True)

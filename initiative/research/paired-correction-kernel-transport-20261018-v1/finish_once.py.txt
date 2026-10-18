@@ -1,0 +1,22 @@
+"""Finite single owner: at most2newprivateCPU notebooks/zeroGPU/entries/retries."""
+import json,os,subprocess,sys,time
+from pathlib import Path
+D=Path(__file__).resolve().parent;R=Path.cwd();A=R/'artifacts/paired-correction-kernel-transport-20261018-v1/execution';A.mkdir(mode=0o700,parents=True,exist_ok=True)
+with (A/'owner-intent.json').open('x') as f:json.dump({'PID':os.getpid(),'maximum_new_CPU_notebooks':2,'GPU_entries_Dataset_retries':0,'maximum_hours':2,'automatic_retry':False},f,indent=2)
+start=time.monotonic()
+def record(value,terminal=False):
+ out={'PID':os.getpid(),'elapsed_seconds':time.monotonic()-start,**value};(A/('owner-result.json' if terminal else 'owner-progress.json')).write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out),flush=True)
+try:
+ for part in (0,1):
+  for phase in ('push','status'):
+   while True:
+    assert time.monotonic()-start<7200
+    x=subprocess.run([sys.executable,str(D/'run_phase.py.txt'),phase,str(part)],capture_output=True,text=True,timeout=590)
+    assert x.returncode==0,'Original phase failed/uncertain; no automatic repetition. Inspect retained original response.'
+    out=json.loads(x.stdout);record({'part':part,'phase':phase,'actual':out})
+    if phase=='push' or out['status']=='COMPLETE':break
+    assert out['status'] not in ('ERROR','CANCELLED','CANCEL_ACKNOWLEDGED')
+    time.sleep(45)
+ record({'status':'private_exact_original_correction_CPU_input_chain_complete','input':out,'GPU_entries_Dataset_retries':0},True)
+except BaseException as e:
+ record({'status':'original_private_CPU_chain_stopped_no_retry','error_type':type(e).__name__,'requires_original_state_reconciliation':True},True);raise
