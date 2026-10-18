@@ -1,0 +1,23 @@
+"""Stage only the new gradient experiment; no credentials, GPU or Kaggle mutation."""
+import hashlib,json,os,shutil,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-licensed-importance-encoder-20261017-v1');D=R/'paired-encoder-noise-v1';S=D/'code';old=R/'paired-logit-real-encoder-v1';paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file());sha=lambda b:hashlib.sha256(b).hexdigest()
+reader=Path('/tmp/rsna-criterion-N3-features-20261017-v1');family=Path('/tmp/rsna-family-label-epoch-preservation-20261018-v1')
+assert sha((family/'completed-fixed3-unspent512MiB-retirement-v1.json').read_bytes())=='f210549eb1d2aa76a62140ce8bbc9ae03164f1d68542f191357710ee0a00c54a'
+assert not D.exists() and paid(R)+2**20<32*2**20
+assert shutil.disk_usage('/tmp').free>603433009211+max(0,3*2**30-paid(reader))+max(0,3758096384-paid(family))+2**20
+import subprocess
+quota=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in quota.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+source=(old/'source.private.py').read_text();assert sha(source.encode())=='4b129e1c5c76bcc226eff30f30e9e59b25df0ba91358771b795f7d65f68ad6b5'
+original=json.loads((old/'staged.json').read_text());files={n:(old/'code'/n).read_text() for n in original['source_files']};assert all(sha(t.encode())==original['source_files'][n] for n,t in files.items())
+files.update(v['files']);assert sum(len(t.encode()) for t in files.values())<700000
+training=json.loads((R/'full-comparison/influence-epoch-3/actual-accepted.json').read_text());assert training==v['training']
+D.mkdir(mode=0o700)
+for n,t in files.items():
+ p=S/n;assert p.resolve().is_relative_to(S.resolve());p.parent.mkdir(mode=0o700,parents=True,exist_ok=True);p.write_text(t);p.chmod(0o600)
+sys.path.insert(0,str(S));from scripts.kaggle import paired_encoder_noise_probe as compiler
+new,binding=compiler.build(source,{n:files[n] for n in compiler.EXTRA},training,v['publication']);(D/'source.private.py').write_text(new);(D/'source.private.py').chmod(0o600)
+assert paid(D)<2**20 and paid(R)<32*2**20
+result={'status':'new_trained_encoder_noise_source_CPU_staged_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'program_sha256':v['program_sha256'],'binding':binding,'code_sha256':{n:sha(t.encode()) for n,t in files.items()},'control_bytes':paid(D),'remaining_parent_control_bytes':32*2**20-paid(R),'new_model_or_pixel_transfers':0,'GPU_pushes':0,'competition_entries':0,'actual_recovery_still_required_before_GPU':139417155,'accuracy_or_production_acceptance':False};(D/'staged.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
