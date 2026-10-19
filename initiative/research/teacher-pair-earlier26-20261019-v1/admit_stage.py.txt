@@ -1,0 +1,183 @@
+# ruff: noqa: E402
+"""Actual real-MRI/model/source admission on26; no GPU or full-cohort claim."""
+
+import ast
+import base64
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc26" and not os.environ.get("SLURM_JOB_GPUS")
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+A = E / "auxiliary-v2"
+S = A / "source"
+F = Path("/tmp/rsna-teacher-pair-gradient-evc26-20261019-v1")
+assert not F.exists() and shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+actual = json.loads((E / "auxiliary-verified-v2.json").read_text())
+assert actual == v["auxiliary"]["receiver"] and actual["node"] == "evc26"
+raw = (A / "manifest.private.json").read_bytes()
+assert hashlib.sha256(raw).hexdigest() == actual["manifest_sha256"]
+for name, row in json.loads(raw).items():
+    assert (A / name).is_file() and (A / name).stat().st_size == row["bytes"]
+source = json.loads((S / "admitted.json").read_text())
+assert source["CPU_job"] == "969738"
+for name, h in source["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == h
+for name, h in v["original_dependencies"].items():
+    assert source["files"][name] == h
+assert (
+    hashlib.sha256((S / "source-permission.txt").read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+assert set(v["files"]) == {
+    "code/rsna/competitive/teacher_pair.py",
+    "code/rsna/competitive/teacher_pair_train.py",
+    "code/rsna/competitive/teacher_pair_inputs32.py",
+    "gpu_probe.py",
+}
+for name, text in v["files"].items():
+    assert hashlib.sha256(text.encode()).hexdigest() == v["hashes"][name]
+    compile(text, name, "exec")
+F.mkdir(mode=0o700)
+for name in source["files"]:
+    p = F / "code" / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    os.link(S / "code" / name, p)
+for name, text in v["files"].items():
+    p = F / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    assert not p.exists()
+    p.write_text(text)
+H = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+if not H.exists():
+    H.symlink_to(A / "headers", target_is_directory=True)
+assert (
+    hashlib.sha256((H / "verified.json").read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+assert Path(json.loads((H / "verified.json").read_text())["include_path"]).is_dir()
+sys.path[:0] = [str(F / "code"), str(A / "overlay"), str(A / "extensions")]
+import timm
+import torch
+from rsna.competitive.teacher_pair_inputs32 import load32
+
+assert (
+    torch.cuda.device_count() == 0
+    and str(torch.__version__) == "2.14.0+cu130"
+    and torch.version.git_version == "08187d9e0fba026dc8217405802ab5381dc88d90"
+)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+parent = (S / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+old = (A / "old_recovery/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+constants = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id in ("WORKER", "TARGETS")
+}
+tree = ast.parse(base64.b64decode(constants["WORKER"], validate=True).decode())
+end = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+renderer = {
+    "__name__": "original_renderer_node26",
+    "__file__": str(F / "original-renderer.private.py"),
+}
+exec(
+    compile(ast.Module(body=tree.body[:end], type_ignores=[]), "actual_unchanged_renderer", "exec"),
+    renderer,
+)
+targets = json.loads(base64.b64decode(constants["TARGETS"], validate=True))
+data, q, binding = load32(
+    A,
+    targets,
+    lambda volume, mask, mirror: renderer["eval_windows"](
+        volume, mask, 94, 320, norm=renderer["NORM"], mirror=mirror
+    ),
+)
+for index in (0, 1):
+    for mirror in (False, True):
+        case = data.case(index, list(range(16)), mirror)
+        assert case["images"].shape == (16, 3, 320, 320) and torch.isfinite(case["images"]).all()
+        del case
+namespace = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+nodes = [
+    n
+    for n in ast.parse(parent).body
+    if isinstance(n, (ast.ClassDef, ast.FunctionDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(nodes) == 3
+exec(
+    compile(ast.Module(body=nodes, type_ignores=[]), "canonical_original_model", "exec"), namespace
+)
+with contextlib.redirect_stdout(io.StringIO()):
+    model, res = namespace["load_model"](
+        str(A / "parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"),
+        "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k",
+        384,
+        torch.device("cpu"),
+    )
+assert (
+    res == 320
+    and sum(p.numel() for p in model.parameters()) == 73136096
+    and len(model.state_dict()) == 486
+    and all(p.requires_grad and p.dtype == torch.float32 for p in model.parameters())
+)
+(F / "private-input-binding.json").write_text(
+    json.dumps({"indices": list(range(8)), "original32_binding": binding}, indent=2) + "\n"
+)
+meta = {
+    "source_git": v["source_git"],
+    "node": "evc26",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "gpu_worker_sha256": v["hashes"]["gpu_probe.py"],
+    "new_source_sha256": {n: h for n, h in v["hashes"].items() if n.startswith("code/")},
+    "original_source_sha256": source["files"],
+    "proposal_array_sha256": hashlib.sha256(q.tobytes()).hexdigest(),
+    "engineering_packet_studies": 32,
+    "same_original_eight_UID_based_sampler_and_proposals": True,
+    "full_3887_MRI_pixel_admission": False,
+    "automatic_retry": False,
+}
+(F / "staged.json").write_text(json.dumps(meta, indent=2) + "\n")
+out = {
+    "status": "actual_evc26_original32_MRI_tensor_model_and_source_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "node": "evc26",
+    "trainable_parameters": 73136096,
+    "state_tensors": 486,
+    "FP32_parameters": True,
+    "source_fitting_population": 3887,
+    "engineering_packet_studies": 32,
+    "actual_original_plain_and_mirror_tensor_hashes_checked": 4,
+    "first_eight_original_UID_sampling_and_source_values_preserved": True,
+    "full_3887_pixel_or_GPU_or_optimizer_or_accuracy_admitted": False,
+    "gpu_worker_sha256": meta["gpu_worker_sha256"],
+    "GPU_jobs": 0,
+    "automatic_retry": False,
+}
+(F / "CPU-verified.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -104,3 +104,21 @@ def test_actual_reader_rejects_alignment_or_source_changes(monkeypatch, kind):
         full["uids"][0] = "changed"
     with pytest.raises(AssertionError):
         m.select(rows, full, q, e)
+
+
+def test_actual_probe_compiler_keeps_entire_three_phase_gradient_protocol_unchanged():
+    p = Path("initiative/research/teacher-pair-earlier26-20261019-v1/probe_compiler.py.txt")
+    loader = SourceFileLoader("actual_packet_probe_compiler", str(p))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    m = importlib.util.module_from_spec(spec)
+    loader.exec_module(m)
+    old = Path(
+        "initiative/research/teacher-pair-full-encoder-20261019-v1/gpu_probe.py.txt"
+    ).read_text()
+    new = m.build(old)
+    compile(new, "actual_new_node_gradient_probe", "exec")
+    assert new[new.index("versions =") :] == old[old.index("versions =") :]
+    assert "len(original) == 3887" not in new and "load32(A,targets" in new
+    assert 'torch.device("cpu")' in new and "p.dtype == torch.float32" in new
+    with pytest.raises(AssertionError):
+        m.build(old + "\n# changed\n")

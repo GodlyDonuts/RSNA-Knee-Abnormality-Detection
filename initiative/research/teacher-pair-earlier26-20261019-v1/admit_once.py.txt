@@ -1,0 +1,120 @@
+"""CPU-admit source, actual old MRI tensors and FP32 parent before any GPU move."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-earlier26-20261019-v1"
+assert not (L / "admission-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+
+
+def load(path, name):
+    s = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+probe = load(D / "probe_compiler.py.txt", "actual_packet32_gradient_compiler")
+engine = load(
+    R / "initiative/research/teacher-pair-full-encoder-20261019-v1/compiler.py.txt",
+    "actual_pair_engine_compiler",
+)
+files = {
+    "code/rsna/competitive/teacher_pair.py": (R / "rsna/competitive/teacher_pair.py").read_text(),
+    "code/rsna/competitive/teacher_pair_train.py": engine.build(
+        (R / "rsna/competitive/licensed_importance_train.py").read_text()
+    ),
+    "code/rsna/competitive/teacher_pair_inputs32.py": (D / "inputs32.py.txt").read_text(),
+    "gpu_probe.py": probe.build(
+        (
+            R / "initiative/research/teacher-pair-full-encoder-20261019-v1/gpu_probe.py.txt"
+        ).read_text()
+    ),
+}
+for p in (
+    D / "probe_compiler.py.txt",
+    D / "admit_once.py.txt",
+    D / "admit_stage.py.txt",
+    D / "inputs32.py.txt",
+    R / "rsna/competitive/teacher_pair.py",
+):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+old = json.loads(
+    (
+        R
+        / "initiative/research/S6-target-execution-inputs-20261019-v1/actual-source-input-admitted.json"
+    ).read_text()
+)
+dependencies = {n: old["files"][n] for n in old["old_control_numerical_modules_equal"]}
+payload = {
+    "source_git": git,
+    "auxiliary": json.loads((D / "actual-auxiliary.json").read_text()),
+    "original_dependencies": dependencies,
+    "files": files,
+    "hashes": {n: hashlib.sha256(b.encode()).hexdigest() for n, b in files.items()},
+}
+(L / "admission-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "CPU_only": True,
+            "maximum_admissions": 1,
+            "files_sha256": payload["hashes"],
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc26",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:08:00",
+    "--job-name=rsna-packet32-source-model-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope((D / "admit_stage.py.txt").read_text(), payload),
+    capture_output=True,
+    text=True,
+    timeout=700,
+)
+(L / "admission-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original node26 namespace/intent, no automatic retry"
+out = json.loads(x.stdout)
+(D / "actual-admitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
