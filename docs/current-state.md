@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October19,2026,22:14UTC. [Agent guide](../AGENTS.md) · [Continuation](codex-continuation.md). Goal active;0.97/first place unachieved. This page supersedes historical snapshots retained in Git and original audits.
+Updated October19,2026,22:55UTC. [Agent guide](../AGENTS.md) · [Continuation](codex-continuation.md). Goal active;0.97/first place unachieved. This page supersedes historical snapshots retained in Git and original audits.
 
 | Model | Actual Kaggle score | Entry |
 | --- | --- | --- |
@@ -17,11 +17,15 @@ The adapted backbone is full73M CoAtNet, not a small frozen head.0.958 is a repr
 
 ## Main improvement in progress
 
-Matched parent-only versus complementary S6 cross-lineage equal-rank supervision, same MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs. Full3887teacher outputs are required before ranking. **3837/3887 (98.7%) completed** at actual phase61/973554; original final phase62/973659 is RUNNING on39,23workers/two-thread FP32. No partial ranks or new accuracy result. Public teachers are not independent OOF evidence; all-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+The complete teacher pass has finished **3887/3887** (973659). CPU973723 built both complete target roles,794124bytes/SHA3d7014e7..., preserving parent-only tensors exactly and accepted labels/masks. Private handoff973737→973736, actual source compilation973750 and six-file bridge973766→973767 completed once. No partial ranks, raw records or private bodies crossed the handoff to Mac/Git/HF. All-fitting training is not held-out validation; public teachers are not independent OOF evidence. [Original complete receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/actual-owner-terminal.json).
 
-Original follow-through owners remain live:55175 full-target handoff39→33;56997 exact source compiler;67258 actual48 recovery;67269 matched full fitting/six private epoch publications;71311 CPU packaging;72340 canonical actual-T4/Kaggle qualification and outcome handling. No main student GPU dispatched yet. Metadata89734 promotes only their exact future unstarted GPU JobIds to normal. Do not duplicate/restart/edit frozen owners. [Actual execution](../initiative/research/S6-earlier-H100-execution-20261019-v1/README.md), [packaging](../initiative/research/S6-fixed-final-packaging-20261019-v1/README.md), [Kaggle execution](../initiative/research/S6-final-Kaggle-execution-20261019-v1/README.md).
+Original67258/67269/71311/72340 stopped after CPU973776 failed before any GPU intent: the storage adapter expected one working-path literal, but the real embedded parent contains five. It was not double conversion. The corrected compiler keeps exact source/worker/module/target/license hashes and all numerical acceptance, relocates every actual mount and compiles in RAM before staging recovery-v2. No model training was restarted.
 
-Node48 already has the original full38.87GB MRI inputs and678.56MB auxiliary packet, independently SHA verified once, matching runtime/strict73M FP32 model/full3887roster/eight94view tensors. Originals remain private/intact on33; no raw data/weights crossed Mac/Git/HF. [Actual admission](../initiative/research/S6-earlier-H100-route-20261019-v1/README.md).
+Corrected recovery **973904** is **PENDING Priority on48**, oneH100/twoCPU/64GiB/onehour/normal. Current producer **97036**, packaging **97047**, scoring **97060** are live, source3d0c1181, waiting actual recovery then the same matched parent-only versus cross-lineage teacher experiment: threeepochs/1458updates per role, effective8, same initial full73M encoder/optimizer/LR/IID16 and six immutable privately verified snapshots. No new full fit or accuracy result yet. [Actual corrected execution](../initiative/research/S6-complete-target-execution-v2-20261019/README.md).
+
+The original full38.87GB MRI/runtime/FP32 model admission on48 remains valid and intact, with original copies on33. No new bulk staging is needed. [Original input proof](../initiative/research/S6-earlier-H100-route-20261019-v1/README.md).
+
+There is also usable Kaggle account budget:9.6961free GPU VM hours,20unused TPU hours, refreshOct24. Authenticated existing-kernel metadata confirms all four full MRI cache shards and original32/model/target/proposal inputs already there. Investigate the original intendedtwoT4 recovery/throughput path as a concrete alternative to queue delays without a40GB upload. It is not a competition submission or an admitted full fit. [Exact refs and accounting caveats](../initiative/research/S6-complete-target-execution-v2-20261019/Kaggle-alternative.md).
 
 ## New objective and compute setback
 
@@ -37,7 +41,7 @@ An alternative ordinary2V100 node11 had one unallocated32GB GPU. Its bounded ass
 
 ## Evidence and next action
 
-Finish original final teacher phase and follow the existing matched training pipeline. Separately collect actual973601 gradients; only a positive result can dispatch the prepared real optimizer recovery. Require actual full/stop/resume state/CSV equality before any accuracy experiment. Queue predictions are not reliable ETAs. Protected gold/confirmation and accepted masks/labels remain untouched.
+Follow actual corrected973904 recovery and the restored matched training pipeline; teacher generation and complete target admission are finished. Separately collect actual973601 gradients; only a positive result can dispatch the prepared real optimizer recovery. Require actual full/stop/resume state/CSV equality before any accuracy experiment. Queue predictions are not reliable ETAs. Protected gold/confirmation and accepted masks/labels remain untouched.
 
 MedGemma native likelihood probes completed but failed letter/order/Unknown reliability criteria; no teacher labels adopted. Stanford weights remain private/noncompetition. No newly admitted KneeCoT. All raw clinical data/source bodies/arrays/weights stay private. GitHub contains own code and sanitized aggregate/hash receipts; private HF mirrors use the canonical shared lock and exact original proofs, never duplicate mutations.
 

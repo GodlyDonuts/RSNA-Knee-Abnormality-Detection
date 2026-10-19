@@ -1,6 +1,6 @@
 # RSNA Knee: current agent guide
 
-Updated October19,2026,22:14UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the exact original audits. Live handles and actual receipts supersede snapshots. Earlier guides remain in Git history.
+Updated October19,2026,22:55UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the exact original audits. Live handles and actual receipts supersede snapshots. Earlier guides remain in Git history.
 
 ## Actual results and scientific boundaries
 
@@ -8,18 +8,20 @@ Best Kaggle **0.958 external R6 reproduction57333150**. Released S6 reproduction
 
 Accepted labels/masks/folds/order stay unchanged. Original labels match pre-Devin versions. Protected gold/confirmation remain unused. Public teachers are not independent OOF evidence. All-fitting training is not held-out validation. Daenerys annotations remain candidates, not automatic labels. Stanford-derived weights stay private/noncompetition; no newly admitted KneeCoT. MRI, reports, identities, per-case arrays, restricted source bodies and large assets stay private on authorized cluster storage. Credentials only ignored0600.env/RAM/stdin/ASKPASS, never argv/logs.
 
-## Main live experiment: do not duplicate or edit frozen owners
+## Main complete-target experiment: sole current owners
 
-Matched parent-only versus complementary S6 cross-lineage equal-rank targets: identical original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8, threeepochs/1458updates per role. Require all3887 teacher outputs before any rank construction; no partial ranks.
+Matched parent-only versus complementary S6 cross-lineage equal-rank targets: identical original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8, threeepochs/1458updates per role. All3887teacher outputs are now complete; no partial ranks were used.
 
-- Original resident teacher **2320176/startticks480928901**, sourcea6b1d0e647d858476a790177ad953295966de252, node39,23workers/two-thread FP32. Actual phase61/973554 completed**3837/3887**; final phase62/973659 RUNNING. Shared control `/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1`. Read `initiative/research/S6-cluster-resident-owner-20261019-v1`.
-- Local **55175** waits full targets then one39→33 handoff; **56997** compiles original actual recovery source on33. Read `S6-target-execution-inputs-20261019-v1`.
-- Recovery **67258**, production/private-publication **67269**, source6500d1a8c71c332709c3f124241141f726f671ae, wait original56997 then bounded private33→48 target/source bridge, actual full/stop/resume acceptance, one matched fit and six immutable epoch publications. Read `S6-earlier-H100-execution-20261019-v1`; ignored original intents/results are authoritative. No main student GPU is dispatched at this snapshot.
-- CPU-only packaging **71311**, sourcee5ccdb0b; canonical Kaggle follower **72340**, source34c0f4ff, wait actual completed/preserved final models. Read `S6-fixed-final-packaging-20261019-v1` and `S6-final-Kaggle-execution-20261019-v1`. Never restart them or infer final models from source/tests.
-- Metadata follower **89734**, sourced1728419, can promote only the original future unstarted admitted GPU JobIds to account-defaultnormal; it cannot submit/cancel/requeue science. Account grants normal/ood/preemptable, defaultnormal. Do not unnecessarily use preemptable for new GPUs.
-- Old idle59992/61949 and89733 were deliberately retired with exact no-start proofs. Do not restart them or historical58132/37032/37034. No healthy scientific job was cancelled.
+- Resident2320176 finished naturally: teacher973659 complete3887, CPU973723 complete794124byte two-role targets, parent-only bit-identical. Sourcea6b1d0e... . Read `S6-cluster-resident-owner-20261019-v1/actual-owner-terminal.json`.
+- Original55175 handoff973737→973736 and56997 compilation973750 completed; private six-file source/target bridge973766→973767 passed once. Do not repeat any of them.
+- Original recovery67258 failed on CPU973776 before GPU intent because a path-count assertion expected one working-mount string while actual embedded parent has five. Production67269/packaging71311/scoring72340 stopped naturally. No double conversion occurred; their failures and compiler-only recovery-v1 remain preserved. Do not call them live/restart them.
+- Corrected source **3d0c1181**, `S6-complete-target-execution-v2-20261019`, accepted actual9-input/5-working source mounts and queued **973904**, oneH100/twoCPU/64GiB/onehour/normal on48. It is PENDING Priority, not accepted recovery. Recovery-v2 is distinct; original source modules/targets/labels/optimizer and complete-state acceptance unchanged. Original completed bridge is reused.
+- Current full producer **97036**, packaging **97047**, canonical scoring **97060** are live, source3d0c1181. Read actual-delivery-owners.json, original new intents/results under artifacts/S6-complete-target-execution-v2-20261019 and its README. They require actual973904 acceptance, one full matched fit, six privately verified epochs, actual model packaging/T4/public/source/CSV/live-quota acceptance. No full production model/score exists yet. Never duplicate/edit their frozen source.
+- Old metadata89734 was retired while idle after its original main owners stopped before GPU intent; new requests already use account-defaultnormal. Old idle59992/61949/89733 were previously retired with exact no-start proofs. Do not revive old owners. Account grants normal/ood/preemptable; normal has the highest granted priority.
 
 Node48 original runtime/MRI/model admission is real: CPU971665 strict73M/486tensor FP32 parent, full3887roster/eight exact94view tensors;971721 canonical aliases/imports. Full38,870,763,520pixel bytes and815auxiliary files/678,564,087bytes privately whole-SHA verified once; originals on33 remain intact. Read `S6-earlier-H100-route-20261019-v1`. Do not duplicate whole-byte checks/transfers without an actual concern.
+
+Fresh Kaggle query confirms34906.0296641free GPU VM seconds (9.6961h),72000unused TPU seconds, refreshOct24. Full MRI cache shards0–3, exact32 packet, original parent weights/targets/proposals already exist as Kaggle inputs. Read **S6-complete-target-execution-v2-20261019/Kaggle-alternative.md** and actual-existing-Kaggle-inputs.json. Prioritize a bounded original intendedtwoT4 actual recovery/throughput path without another40GB upload if it advances completion faster; no diagnostic competition entry, paid credits or duplicated healthy fit. The exact32 packet reference is a kernel output, not a Dataset. Review actual accounting before altering frozen serving budget guards; the9h hidden limit is distinct from account usage.
 
 ## New paired-ranking objective and actual hardware failure
 
