@@ -1,0 +1,110 @@
+"""Package actual fixed-final H100 models; never train, upload or submit."""
+
+import hashlib
+import json
+import zipfile
+from pathlib import Path
+
+ROLES = ("cross_lineage_equal_rank", "parent_only")
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def finished_owner(intent, result):
+    """Only the sole original producer's six verified actual epochs may pass."""
+    expected = {f"{role}-epoch-{epoch:03d}" for role in ROLES for epoch in (1, 2, 3)}
+    if (
+        result.get("PID") != intent.get("PID")
+        or type(intent.get("PID")) is not int
+        or result.get("source_git") != intent.get("source_git")
+        or result.get("status")
+        != "original_matched_full_fit_and_six_private_epoch_publications_finished"
+        or set(result.get("publications", {})) != expected
+    ):
+        raise ValueError("Exact original completed producer and six publications required")
+    for key, proof in result["publications"].items():
+        if (
+            key != f"{proof.get('role')}-epoch-{proof.get('epoch', 0):03d}"
+            or proof.get("source_git") != result["source_git"]
+            or proof.get("status")
+            != "actual_complete_target_oneH100_epoch_private_all_objects_download_size_SHA_verified"
+            or proof.get("objects") != 5
+            or proof.get("canonical_shared_publication_lock_used") is not True
+        ):
+            raise ValueError("Every original model publication must actually be verified")
+    return str(result["GPU_job"])
+
+
+def records(role, stage, gpu_intent, ready, verification, manifest, provenance, validator):
+    """Adapt actual native producer records, without replacing or inventing fields."""
+    if (
+        role not in ROLES
+        or ready.get("teacher_target_role") != role
+        or ready.get("segment") != 3
+        or ready.get("completed") != 1458
+        or ready.get("worker_sha256") != stage.get("roles", {}).get(role, {}).get("worker_sha256")
+        or ready.get("binding", {}).get("source_git") != stage.get("source_git")
+        or gpu_intent.get("source_git") != stage.get("source_git")
+        or gpu_intent.get("GPU_job") != provenance.get("actual_GPU_job")
+    ):
+        raise ValueError("Actual immutable full1458-update fixed-final role/source required")
+    training = {
+        "status": "COMPLETE",
+        "GPU_job": gpu_intent["GPU_job"],
+        "epoch": 3,
+        "role": role,
+        "source_sha256": ready["worker_sha256"],
+        "receipt": ready,
+    }
+    publication = {"verification": verification, "manifest": manifest, "provenance": provenance}
+    validator.provenance(training, publication, ready["model_snapshot"]["sha256"])
+    return training, publication
+
+
+def model_archive(path, model, expected, permission, *, maximum_bytes):
+    """Copy one immutable model once while SHA-checking the exact archived bytes."""
+    path, model, permission = Path(path), Path(model), Path(permission)
+    before = model.stat()
+    identity = (
+        before.st_dev,
+        before.st_ino,
+        before.st_size,
+        before.st_mtime_ns,
+        before.st_ctime_ns,
+    )
+    if (
+        model.is_symlink()
+        or before.st_size != expected["bytes"]
+        or maximum_bytes < before.st_size + 65536
+    ):
+        raise ValueError("Original regular model and complete archive capacity required")
+    h = hashlib.sha256()
+    count = 0
+    with zipfile.ZipFile(path, "x", compression=zipfile.ZIP_STORED, allowZip64=True) as z:
+        with model.open("rb") as source, z.open("epoch-003.pt", "w", force_zip64=True) as target:
+            for chunk in iter(lambda: source.read(4 * 2**20), b""):
+                target.write(chunk)
+                h.update(chunk)
+                count += len(chunk)
+        if {"bytes": count, "sha256": h.hexdigest()} != expected:
+            raise ValueError("Archived bytes differ from the original privately verified model")
+        z.write(permission, "source-permission.txt")
+        z.writestr("model-binding.json", json.dumps(expected, sort_keys=True) + "\n")
+    after = model.stat()
+    if identity != (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    ):
+        raise ValueError("Original immutable model changed during packaging")
+    if path.stat().st_size > maximum_bytes:
+        raise ValueError("Actual archive exceeds funded capacity")
+    with path.open("rb") as source:
+        return {
+            "bytes": path.stat().st_size,
+            "sha256": hashlib.file_digest(source, "sha256").hexdigest(),
+        }

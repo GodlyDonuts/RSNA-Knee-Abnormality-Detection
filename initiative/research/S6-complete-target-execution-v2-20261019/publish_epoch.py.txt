@@ -1,0 +1,169 @@
+"""CPU-only once-only private model preservation; token arrives only via stdin."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+S = P / "production-stage-v1"
+role, epoch = v["role"], v["epoch"]
+assert (
+    role in ("parent_only", "cross_lineage_equal_rank") and type(epoch) is int and 1 <= epoch <= 3
+)
+meta = json.loads((S / "staged.json").read_text())
+assert (
+    hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    == meta["control_sha256"]["publish_epoch.py"]
+)
+out = P / "runs" / role
+ready = json.loads((out / f"epoch-{epoch:03d}-ready.json").read_text())
+assert ready["segment"] == epoch and ready["teacher_target_role"] == role
+assert ready["worker_sha256"] == meta["roles"][role]["worker_sha256"]
+sys.path.insert(0, str(S / ("code-" + role)))
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+io = load("epoch_io", S / "epoch_io.py")
+checker = load("epoch_verify", S / "epoch_verify.py")
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+checkpoint = out / "optimizer-epochs" / f"epoch-{epoch:03d}.pt"
+snapshot = out / "epoch-checkpoints" / f"epoch-{epoch:03d}.pt"
+state = torch.load(checkpoint, map_location="cpu", weights_only=True)
+model = torch.load(snapshot, map_location="cpu", weights_only=True)
+checker.verify(state, model, ready)
+assert io.file_info(checkpoint) == ready["immutable_optimizer_checkpoint"]
+assert io.file_info(snapshot) == ready["model_snapshot"]
+del state, model
+D = P / "publication" / role / f"epoch-{epoch:03d}"
+assert not D.exists(), "Original publication stage/intent requires read-only reconciliation"
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 1024 * 2**20
+D.mkdir(mode=0o700, parents=True)
+permission = S / ("code-" + role) / "source-permission.txt"
+assert (
+    hashlib.sha256(permission.read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+provenance = {
+    "source_git": meta["source_git"],
+    "teacher_target_role": role,
+    "worker_sha256": ready["worker_sha256"],
+    "binding": ready["binding"],
+    "actual_GPU_job": json.loads((S / "GPU-intent.json").read_text())["GPU_job"],
+    "epoch": epoch,
+    "updates": epoch * 486,
+    "publication_includes_model_only_not_optimizer_or_per_case_arrays": True,
+    "MRI_only_competition_runtime_still_unaccepted": True,
+    "clinical_or_competition_accuracy_claim": False,
+}
+io.new_json(D / "provenance.json", provenance)
+files = {
+    "model.pt": snapshot,
+    "actual-epoch.json": out / f"epoch-{epoch:03d}-ready.json",
+    "source-permission.txt": permission,
+    "provenance.json": D / "provenance.json",
+}
+table = {n: io.file_info(p) for n, p in files.items()}
+io.new_json(
+    D / "manifest.json",
+    {"source_git": meta["source_git"], "files": table, "role": role, "epoch": epoch},
+)
+files["manifest.json"] = D / "manifest.json"
+table["manifest.json"] = io.file_info(files["manifest.json"])
+core = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py"
+)
+assert (
+    hashlib.sha256(core.read_bytes()).hexdigest()
+    == "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+)
+pub = load("original_canonical_publisher", core)
+os.environ.update(
+    HF_HUB_DISABLE_XET="1",
+    HF_HUB_DISABLE_PROGRESS_BARS="1",
+    HF_HOME=str(P / "publication/hf"),
+    HF_HUB_CACHE=str(P / "publication/hf-cache"),
+    HF_XET_CACHE=str(P / "publication/xet"),
+)
+from huggingface_hub import CommitOperationAdd, HfApi  # noqa: E402
+
+prefix = (
+    f"checkpoints/complete-S6-target-oneH100-{meta['source_git'][:12]}/{role}/epoch-{epoch:03d}"
+)
+with pub.shared_publication_lock():
+    api = HfApi(token=v["token"])
+    info = api.repo_info("GodlyDonuts/RSNA-Data", repo_type="dataset")
+    assert info.private is True
+    assert not list(
+        api.get_paths_info(
+            "GodlyDonuts/RSNA-Data", paths=[prefix + "/" + n for n in files], repo_type="dataset"
+        )
+    ), "Existing private path means reconcile, never duplicate"
+    io.new_json(
+        D / "intent.json",
+        {
+            "source_git": meta["source_git"],
+            "prefix": prefix,
+            "parent": info.sha,
+            "files": table,
+            "automatic_retry": False,
+        },
+    )
+    commit = api.create_commit(
+        "GodlyDonuts/RSNA-Data",
+        repo_type="dataset",
+        parent_commit=info.sha,
+        commit_message=f"Preserve actual matched complete-target {role} epoch {epoch}",
+        operations=[
+            CommitOperationAdd(path_in_repo=prefix + "/" + n, path_or_fileobj=p)
+            for n, p in files.items()
+        ],
+    )
+    io.new_json(D / "commit.json", {"revision": commit.oid})
+    for n, item in table.items():
+        with tempfile.TemporaryDirectory(prefix="epoch-byte-check-", dir=D) as tmp:
+            p = Path(
+                api.hf_hub_download(
+                    "GodlyDonuts/RSNA-Data",
+                    prefix + "/" + n,
+                    repo_type="dataset",
+                    revision=commit.oid,
+                    cache_dir=str(P / "publication/hf-cache"),
+                    local_dir=tmp,
+                    force_download=True,
+                )
+            )
+            assert p.stat().st_size == item["bytes"] and pub.sha(p) == item["sha256"]
+    actual = {
+        "status": "actual_complete_target_oneH100_epoch_private_all_objects_download_size_SHA_verified",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": meta["source_git"],
+        "role": role,
+        "epoch": epoch,
+        "updates": epoch * 486,
+        "revision": commit.oid,
+        "prefix": prefix,
+        "objects": len(table),
+        "bytes": sum(t["bytes"] for t in table.values()),
+        "canonical_shared_publication_lock_used": True,
+        "MRI_reports_UIDs_per_case_predictions_included": False,
+        "clinical_or_competition_accuracy_claim": False,
+        "automatic_retry": False,
+    }
+    io.new_json(D / "verified.json", actual)
+    print(json.dumps(actual), flush=True)

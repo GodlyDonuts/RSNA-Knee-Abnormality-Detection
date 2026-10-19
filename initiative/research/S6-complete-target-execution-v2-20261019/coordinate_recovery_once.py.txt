@@ -1,0 +1,135 @@
+"""One corrected stage after exact original CPU failure; reuse completed target bridge."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-complete-target-execution-v2-20261019/recovery-owner-v2"
+L.mkdir(parents=True, exist_ok=True)
+assert not (L / "recovery-intent.json").exists()
+old = R / "initiative/research/S6-earlier-H100-execution-20261019-v1"
+failed = json.loads(
+    (
+        R
+        / "artifacts/S6-earlier-H100-execution-20261019-v1/recovery-owner-v1/GPU-follower-v2-result.json"
+    ).read_text()
+)
+assert failed["PID"] == 67258 and failed["status"] == "original_oneH100_recovery_follower_stopped"
+bridge = json.loads((old / "actual-target-bridge.json").read_text())
+assert (
+    bridge["status"] == "actual_complete_teacher_target_and_compiled_source_bridge_to48_verified"
+    and bridge["files"] == 6
+    and bridge["CPU_job"] == "973767"
+)
+compiled = json.loads(
+    (
+        R
+        / "initiative/research/S6-target-execution-inputs-20261019-v1/actual-complete-recovery-source-compiled.json"
+    ).read_text()
+)
+assert (
+    compiled["CPU_job"] == "973750"
+    and compiled["source_sha256"] == bridge["compiled_source_sha256"]
+)
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {
+    n: (D / (n + ".py.txt")).read_text()
+    for n in ("recovery_compiler", "recovery_prepare", "recovery_entry")
+}
+for p in [D / "coordinate_recovery_once.py.txt", *[D / (n + ".py.txt") for n in parts]]:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+runtime = json.loads(
+    (old.parent / "S6-earlier-H100-route-20261019-v1/actual-input-model-admitted.json").read_text()
+)
+v = {
+    "source_git": git,
+    "compiler": parts["recovery_compiler"],
+    "compiler_sha256": hashlib.sha256(parts["recovery_compiler"].encode()).hexdigest(),
+    "entry": parts["recovery_entry"],
+    "runtime": runtime,
+    "compiled": compiled,
+    "failed_old_compiler_sha256": hashlib.sha256(
+        (old / "recovery_compiler.py.txt").read_bytes()
+    ).hexdigest(),
+}
+(L / "recovery-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "failed_CPU": "973776",
+            "reuse_original_bridge_CPU": "973767",
+            "maximum_GPU_jobs": 1,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+s = importlib.util.spec_from_file_location(
+    "stdin_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-corrected-source-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(parts["recovery_prepare"], v),
+    capture_output=True,
+    text=True,
+    timeout=800,
+)
+(L / "recovery-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original corrected stage/intent read-only; never retry"
+out = json.loads(x.stdout)
+(D / "actual-GPU-submitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
+
+(L / "GPU-follower-v2-intent.json").write_text(
+    json.dumps({"PID": os.getpid(), "source_git": git, "automatic_retry": False}) + "\n"
+)
+(L / "GPU-follower-v2-result.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "source_git": git,
+            "status": "original_oneH100_recovery_dispatch_finished",
+            "continuation_generation": 2,
+            "actual": out,
+        },
+        indent=2,
+    )
+    + "\n"
+)

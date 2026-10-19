@@ -1,0 +1,226 @@
+"""CPU-only actual-source admission followed by one conditional production dispatch."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+G = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1/recovery-v2")
+T = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+S = P / "production-stage-v1"
+assert not S.exists() and not (P / "runs").exists(), (
+    "Original stage/outputs require read-only reconciliation"
+)
+actual = json.loads((G / "verified.json").read_text())
+staged = json.loads((G / "staged.json").read_text())
+assert actual["status"] == "actual_complete_teacher_oneH100_recovery_accepted"
+for job in (actual["GPU_job"], "971665"):
+    x = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+    assert job + "|COMPLETED|0:0" in x
+owner = json.loads(
+    Path(
+        "/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1/owner-terminal.json"
+    ).read_text()
+)
+assert owner["status"] == "original_complete_teacher_and_targets_finished"
+source = (G / "recovery.H100.private.py").read_text()
+ready = json.loads((T / "complete-target-input-v1/complete-target-ready.json").read_text())
+assert ready == actual["receipt"]["complete_teacher_admission"]
+raw = (T / "complete-target-input-v1/teacher-targets.private.npz").read_bytes()
+assert (
+    len(raw) == ready["target_file"]["bytes"]
+    and hashlib.sha256(raw).hexdigest() == ready["target_file"]["sha256"]
+)
+inputs = json.loads((P / "inputs-verified-earlier-v1.json").read_text())
+proofs = json.loads(
+    Path(
+        "/tmp/rsna-licensed-parent-whole94-production-20261016-v1/actual-original-Kaggle-inputs.json"
+    ).read_text()
+)["proofs"]
+assert v["control_sha256"] == {
+    n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["controls"].items()
+}
+assert set(v["controls"]) == {
+    "compiler.py",
+    "target_compiler.py",
+    "epoch_verify.py",
+    "epoch_io.py",
+    "gpu_entry.py",
+    "prepare_once.py",
+    "publish_epoch.py",
+}
+assert sum(len(s.encode()) for s in v["controls"].values()) < 2**20
+for s in v["controls"].values():
+    compile(s, "admitted_own_control", "exec")
+# Completed teacher/recovery leave no unstarted future model obligations in those
+# closed scopes. Retained bytes still consume actual disk/quota: no deletion credit.
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 16 * 2**20
+assert int(a[6]) - int(a[5]) > 5000 + 128
+inodes = set()
+paid = 0
+for p in P.rglob("*"):
+    if p.is_symlink() or "input" in p.relative_to(P).parts:
+        continue
+    s = p.stat()
+    if p.is_file() and (s.st_dev, s.st_ino) not in inodes:
+        inodes.add((s.st_dev, s.st_ino))
+        paid += s.st_size
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+    0, 64 * 2**30 + 16 * 2**20 - paid
+)
+node = subprocess.check_output(["scontrol", "show", "node", "evc48", "-o"], text=True)
+assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
+S.mkdir(mode=0o700)
+for name, text in v["controls"].items():
+    (S / name).write_text(text)
+    (S / name).chmod(0o600)
+sys.path.insert(0, str(T / "code"))
+
+
+def load(name):
+    spec = importlib.util.spec_from_file_location(name, S / (name + ".py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+compiler = load("compiler")
+target = load("target_compiler")
+io = load("epoch_io")
+roles = {}
+for role in ("cross_lineage_equal_rank", "parent_only"):
+    bundle, item = compiler.build(
+        source, staged, actual, ready, inputs, proofs, role, v["source_git"], target
+    )
+    io.new_json(S / (role + ".private.json"), bundle)
+    roles[role] = item
+assert (
+    roles["parent_only"]["binding"]["source_module_sha256"]
+    == roles["cross_lineage_equal_rank"]["binding"]["source_module_sha256"]
+)
+assert not (P / "input/complete-targets").exists()
+(P / "input/complete-targets").symlink_to(T / "complete-target-input-v1", target_is_directory=True)
+original_receipts = [
+    G / "verified.json",
+    G / "staged.json",
+    P / "inputs-verified-earlier-v1.json",
+    T / "complete-target-input-v1/complete-target-ready.json",
+]
+meta = {
+    "source_git": v["source_git"],
+    "roles": roles,
+    "entry_sha256": v["control_sha256"]["gpu_entry.py"],
+    "control_sha256": v["control_sha256"],
+    "original_receipt_sha256": {
+        str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in original_receipts
+    },
+    "actual_recovery_GPU": actual["GPU_job"],
+    "funding": {
+        "node_total_cap_bytes": 64 * 2**30 + 16 * 2**20,
+        "shared_new_cap_bytes": 16 * 2**20,
+        "shared_new_cap_files": 128,
+        "completed_teacher_and_recovery_unused_future_scopes_closed_without_deletion_credit": True,
+    },
+}
+# Bind private bundle bytes, not just role names, before a GPU ever gets reserved.
+meta["control_sha256"].update(
+    {
+        role + ".private.json": hashlib.sha256(
+            (S / (role + ".private.json")).read_bytes()
+        ).hexdigest()
+        for role in roles
+    }
+)
+io.new_json(S / "staged.json", meta)
+command = [
+    "srun",
+    "--exact",
+    "--cpu-bind=none",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    str(S / "gpu_entry.py"),
+]
+H = Path("/home/sa305415/rsna-knee/kaggle")
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=12:00:00",
+    "--job-name=rsna-S6-complete-target-full",
+    "--output=" + str(H / "S6-complete-target-full-%j.stdout"),
+    "--error=" + str(H / "S6-complete-target-full-%j.stderr"),
+    "--wrap=" + shlex.join(command),
+]
+io.new_json(
+    S / "dispatch-intent.json",
+    {
+        "source_git": v["source_git"],
+        "actual_recovery_GPU": actual["GPU_job"],
+        "maximum_new_GPU_jobs": 1,
+        "two_roles_fixed3epochs_each": True,
+        "source_sha256": meta["control_sha256"],
+        "automatic_retry": False,
+    },
+)
+clean = {
+    k: value
+    for k, value in os.environ.items()
+    if not k.startswith(
+        ("SLURM_CPU_BIND", "SLURM_STEP_CPU_BIND", "SRUN_CPU_BIND", "SBATCH_CPU_BIND")
+    )
+    and k not in ("CUDA_VISIBLE_DEVICES", "SLURM_TRES_BIND", "SLURM_GPU_BIND")
+}
+x = subprocess.run(args, env=clean, capture_output=True, text=True)
+io.new_json(
+    S / "dispatch-response.json",
+    {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr},
+)
+assert x.returncode == 0, "Uncertain mutation must be reconciled read-only, never retried"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+out = {
+    "status": "actual_complete_teacher_full3887_two_role_oneH100_fit_submitted_once",
+    "GPU_job": job,
+    "node": "evc48",
+    "assigned_H100": 1,
+    "physical_node_GPUs": 2,
+    "CPU": 2,
+    "host_RAM_GiB": 64,
+    "maximum_hours": 12,
+    "actual_recovery_GPU": actual["GPU_job"],
+    "source_git": v["source_git"],
+    "epochs_per_role": 3,
+    "updates_per_role": 1458,
+    "actual_accuracy_or_completed_training_claim": False,
+    "automatic_retry": False,
+}
+io.new_json(S / "submitted.json", out)
+print(json.dumps(out), flush=True)

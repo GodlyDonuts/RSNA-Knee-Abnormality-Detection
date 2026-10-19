@@ -1,0 +1,215 @@
+"""Finite CPU-only packaging follower for the sole original matched producer."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+ROOT = Path.cwd()
+D = Path(__file__).resolve().parent
+L = ROOT / "artifacts/S6-complete-target-execution-v2-20261019/packaging-owner-v2"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists(), "Original follower exists: reconcile, never restart"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+paths = {
+    "package.py": D / "packaging_package.py.txt",
+    "compiler.py": ROOT
+    / "initiative/research/S6-complete-target-serving-20261019-v1/compiler.py.txt",
+    "validate.py": ROOT
+    / "initiative/research/S6-complete-target-serving-20261019-v1/validate.py.txt",
+    "legacy.py": ROOT / "scripts/kaggle/licensed_importance_serving.py",
+    "bounded.py": ROOT / "rsna/competitive/bounded_preparation.py",
+    "codec.py": ROOT / "rsna/competitive/licensed_pixel_cache.py",
+    "mixin.py": ROOT / "rsna/competitive/licensed_full_bag.py",
+    "importance.py": ROOT / "rsna/competitive/licensed_importance.py",
+    "worker.py": D / "packaging_worker.py.txt",
+    "follow.py": Path(__file__).resolve(),
+}
+sources = {n: p.read_text() for n, p in paths.items()}
+for n, p in paths.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(ROOT).as_posix()], text=True
+        )
+        == sources[n]
+    )
+frozen = {n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()}
+intent = json.loads(
+    (
+        ROOT / "artifacts/S6-complete-target-execution-v2-20261019/production-owner-v2/intent.json"
+    ).read_text()
+)
+expected_producer = int(sys.argv[1])
+assert intent["PID"] == expected_producer and intent["source_git"] == pin
+producer = (
+    ROOT / "artifacts/S6-complete-target-execution-v2-20261019/production-owner-v2/result.json"
+)
+
+
+def write(name, value):
+    with (L / name).open("x") as f:
+        json.dump(value, f, indent=2)
+        f.write("\n")
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+package = load("package_original_final", paths["package.py"])
+t = load(
+    "original_stdin_transport",
+    ROOT / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+write(
+    "owner-intent.json",
+    {
+        "PID": os.getpid(),
+        "source_git": pin,
+        "frozen_sources": frozen,
+        "original_producer_PID": expected_producer,
+        "maximum_CPU_packaging_jobs": 1,
+        "maximum_GPU_Dataset_or_competition_mutations": 0,
+        "maximum_hours": 40,
+        "automatic_retry": False,
+        "node_cap_bytes": 2 * 2**30,
+        "funding_reassignment": "2GiB within prior frozen full94 12GiB; remaining10GiB stays frozen; original2MiB24shared bound retained, not added twice",
+    },
+)
+begin = time.monotonic()
+try:
+    while not producer.exists():
+        assert time.monotonic() - begin < 40 * 3600
+        p = subprocess.run(
+            ["ps", "-p", str(expected_producer), "-o", "command="], capture_output=True, text=True
+        )
+        assert (
+            p.returncode == 0
+            and "S6-complete-target-execution-v2-20261019/follow_production_once.py.txt" in p.stdout
+        ), "Original producer absent; reconcile its original job rather than restart"
+        time.sleep(60)
+    # The original owner writes its small result with exclusive creation, not rename.
+    # File visibility can precede JSON completion; reobserve the same live handle.
+    while True:
+        try:
+            result = json.loads(producer.read_text())
+            break
+        except json.JSONDecodeError:
+            observed = subprocess.run(
+                ["ps", "-p", str(expected_producer), "-o", "command="],
+                capture_output=True,
+                text=True,
+            )
+            assert (
+                observed.returncode == 0
+                and "S6-complete-target-execution-v2-20261019/follow_production_once.py.txt"
+                in observed.stdout
+            )
+            assert time.monotonic() - begin < 40 * 3600
+            time.sleep(0.2)
+    job = package.finished_owner(intent, result)
+    assert all(hashlib.sha256(p.read_bytes()).hexdigest() == frozen[n] for n, p in paths.items())
+    # Exact completed publication records only; no model, label or teacher array crosses Mac.
+    payload = {
+        "source_git": pin,
+        "sources": {n: s for n, s in sources.items() if n not in ("worker.py", "follow.py")},
+        "original_GPU_job": job,
+        "original_source_git": result["source_git"],
+        "actual_publications": result["publications"],
+    }
+    payload["source_sha256"] = {
+        n: hashlib.sha256(s.encode()).hexdigest() for n, s in payload["sources"].items()
+    }
+    write(
+        "CPU-dispatch-intent.json",
+        {
+            "source_git": pin,
+            "original_GPU_job": job,
+            "worker_sha256": frozen["worker.py"],
+            "automatic_retry": False,
+            "maximum_GPU_Dataset_or_competition_mutations": 0,
+        },
+    )
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc48",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=6G",
+        "--time=00:12:00",
+        "--job-name=rsna-S6-fixed-final-packaging",
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=t.envelope(sources["worker.py"], payload),
+        capture_output=True,
+        text=True,
+        timeout=7200,
+    )
+    write(
+        "CPU-transport.json", {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}
+    )
+    assert x.returncode == 0, (
+        "Uncertain packaging requires original intent/output reconciliation; never retry"
+    )
+    actual = json.loads(x.stdout)
+    assert (
+        actual["status"]
+        == "actual_both_original_fixed_final_H100_models_packaged_for_separate_T4_qualification"
+    )
+    assert (
+        actual["original_GPU_job"] == job
+        and actual["new_GPU_Dataset_or_competition_mutations"] == 0
+    )
+    write(
+        "owner-result.json",
+        {
+            "status": "actual_two_original_models_packaged_not_deployed",
+            "PID": os.getpid(),
+            "source_git": pin,
+            "actual": actual,
+        },
+    )
+    (D / "actual-prepared.json").write_text(json.dumps(actual, indent=2) + "\n")
+except BaseException as error:
+    write(
+        "owner-result.json",
+        {
+            "status": "original_packaging_follower_stopped_no_retry",
+            "PID": os.getpid(),
+            "source_git": pin,
+            "reason": str(error),
+            "original_outputs_preserved": True,
+        },
+    )
+    raise

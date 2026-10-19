@@ -1,0 +1,186 @@
+"""Finite original two-candidate scoring owner, gated by actual produced models."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+ROOT = Path.cwd()
+D = ROOT / "initiative/research/S6-final-Kaggle-execution-20261019-v1"
+expected_packager = int(sys.argv[1])
+L = ROOT / "artifacts/S6-complete-target-execution-v2-20261019/scoring-owner-v2"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert (D / "actual-staged.json").exists() and not (L / "owner-intent.json").exists()
+spec = importlib.util.spec_from_loader(
+    "actual_final_coordinator",
+    SourceFileLoader("actual_final_coordinator", str(D / "coordinate_once.py.txt")),
+)
+client = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(client)
+source = json.loads((D / "actual-staged.json").read_text())["source_git"]
+client.sources_at(source)
+controls = {
+    str(p): hashlib.sha256(p.read_bytes()).hexdigest()
+    for p in [D / "coordinate_once.py.txt", Path(__file__).resolve()]
+}
+producer = (
+    ROOT / "artifacts/S6-complete-target-execution-v2-20261019/packaging-owner-v2/owner-result.json"
+)
+started = json.loads(
+    (
+        ROOT
+        / "initiative/research/S6-complete-target-execution-v2-20261019/actual-packaging-owner.json"
+    ).read_text()
+)
+assert started["PID"] == expected_packager
+begin = time.monotonic()
+role = "cross_lineage_equal_rank"
+phase = "waiting_original_packaging"
+mode = "qualification"
+
+
+def write(name, value):
+    with (L / name).open("x") as f:
+        json.dump(value, f, indent=2)
+        f.write("\n")
+
+
+def check():
+    assert time.monotonic() - begin < 40 * 3600
+    assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest() == h for p, h in controls.items())
+    client.sources_at(source)
+
+
+write(
+    "owner-intent.json",
+    {
+        "PID": os.getpid(),
+        "source_git": source,
+        "controls": controls,
+        "original_packaging_PID": expected_packager,
+        "maximum_hours": 40,
+        "maximum_Datasets": 2,
+        "maximum_GPU_pushes": 4,
+        "maximum_code_entries": 2,
+        "first_candidate_requires_actual_hidden_terminal_before_second": True,
+        "automatic_uncertain_retry": False,
+    },
+)
+try:
+    while True:
+        check()
+        if producer.exists():
+            try:
+                result = json.loads(producer.read_text())
+                break
+            except json.JSONDecodeError:
+                pass
+        observed = subprocess.run(
+            ["ps", "-p", str(expected_packager), "-o", "command="], capture_output=True, text=True
+        )
+        assert (
+            observed.returncode == 0
+            and "S6-complete-target-execution-v2-20261019/follow_packaging_once.py.txt"
+            in observed.stdout
+        ), "Original packaging producer absent; reconcile actual original handles"
+        time.sleep(60)
+    assert (
+        result["PID"] == expected_packager
+        and result["status"] == "actual_two_original_models_packaged_not_deployed"
+    )
+    scores = {}
+    for role in ("cross_lineage_equal_rank", "parent_only"):
+        phase, mode = "prepare", "qualification"
+        while True:
+            check()
+            actual = client.run(phase, role, mode)
+            status = actual.get("status")
+            if isinstance(status, str) and status.startswith("waiting_"):
+                time.sleep(120)
+                continue
+            if phase == "prepare":
+                assert status == "actual_original_final_model_transport_prepared"
+                phase = "create_dataset"
+            elif phase == "create_dataset":
+                assert status == "actual_one_private_final_model_Dataset_created_not_verified"
+                phase = "dataset_status"
+            elif phase == "dataset_status":
+                assert status == "actual_model_Dataset_all_objects_download_size_SHA_verified"
+                phase = "push"
+            elif phase == "push":
+                assert status == "one_exact_final_" + mode + "_pushed"
+                phase = "status"
+                write(role + "-" + mode + "-pushed.json", actual)
+            elif phase == "status":
+                if status in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+                    raise RuntimeError(
+                        "Actual original " + mode + " failure: stop before another candidate"
+                    )
+                if status == "COMPLETE":
+                    assert "receipt" in actual
+                    write(role + "-" + mode + "-accepted.json", actual)
+                    if mode == "qualification":
+                        phase, mode = "push", "competition"
+                    else:
+                        phase = "submit"
+                else:
+                    assert status in (
+                        None,
+                        "QUEUED",
+                        "RUNNING",
+                        "INITIALIZING",
+                        "CREATED",
+                        "PENDING",
+                        "STARTING",
+                    )
+                    time.sleep(120)
+            elif phase == "submit":
+                assert status == "one_exact_final_code_submission_accepted"
+                phase = "outcome"
+                write(role + "-actual-submitted.json", actual)
+                (D / (role + "-actual-submitted.json")).write_text(
+                    json.dumps(actual, indent=2) + "\n"
+                )
+            else:
+                assert phase == "outcome" and status == "actual_final_hidden_outcome"
+                if actual["outcome"] in ("scored", "failed"):
+                    scores[role] = actual
+                    write(role + "-actual-hidden-terminal.json", actual)
+                    (D / (role + "-actual-hidden-terminal.json")).write_text(
+                        json.dumps(actual, indent=2) + "\n"
+                    )
+                    assert actual["outcome"] == "scored", (
+                        "Actual hidden failure: stop before spending a second slot"
+                    )
+                    break
+                time.sleep(120)
+    write(
+        "owner-result.json",
+        {
+            "status": "actual_both_original_final_H100_models_have_scored_hidden_outcomes",
+            "PID": os.getpid(),
+            "source_git": source,
+            "actual": scores,
+            "no_best_epoch_or_target_selection": True,
+        },
+    )
+except BaseException as error:
+    write(
+        "owner-result.json",
+        {
+            "status": "original_final_S6_scoring_owner_stopped_no_retry",
+            "PID": os.getpid(),
+            "source_git": source,
+            "role": role,
+            "phase": phase,
+            "mode": mode,
+            "reason": str(error),
+            "all_original_intents_and_handles_preserved": True,
+        },
+    )
+    raise

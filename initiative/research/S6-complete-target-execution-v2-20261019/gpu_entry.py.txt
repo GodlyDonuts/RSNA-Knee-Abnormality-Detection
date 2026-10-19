@@ -1,0 +1,230 @@
+"""One admitted two-role full student fit; no retry or competition mutation."""
+
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+S = P / "production-stage-v1"
+R = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+meta = json.loads((S / "staged.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert 0 < len(os.sched_getaffinity(0)) <= 2 * int(os.environ["SLURM_CPUS_PER_TASK"])
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["entry_sha256"]
+for name, h in meta["control_sha256"].items():
+    assert hashlib.sha256((S / name).read_bytes()).hexdigest() == h
+for path, h in meta["original_receipt_sha256"].items():
+    assert Path(path).is_relative_to("/tmp")
+    assert hashlib.sha256(Path(path).read_bytes()).hexdigest() == h
+recovery = json.loads((R / "recovery-v2/verified.json").read_text())
+assert recovery["status"] == "actual_complete_teacher_oneH100_recovery_accepted"
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", recovery["GPU_job"], "--format=JobIDRaw,State,ExitCode"],
+    text=True,
+)
+assert recovery["GPU_job"] + "|COMPLETED|0:0" in terminal
+sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 1 and torch.cuda.get_device_capability(0) == (9, 0)
+assert torch.cuda.get_device_name(0).startswith("NVIDIA H100")
+assert torch.ones(1, device="cuda").item() == 1
+
+
+def load(name):
+    spec = importlib.util.spec_from_file_location(name, S / (name + ".py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+io = load("epoch_io")
+# The outer process is verification-only; updates run in fresh assigned-rank processes.
+verifier = None
+begin = time.monotonic()
+child = None
+assert not (P / "runs").exists() and not (S / "GPU-intent.json").exists()
+io.new_json(
+    S / "GPU-intent.json",
+    {
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": meta["source_git"],
+        "actual_recovery_GPU": recovery["GPU_job"],
+        "GPU": torch.cuda.get_device_name(0),
+        "two_roles": ["cross_lineage_equal_rank", "parent_only"],
+        "automatic_retry": False,
+    },
+)
+env = {
+    k: v
+    for k, v in os.environ.items()
+    if not any(x in k.upper() for x in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+}
+header = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json")
+assert (
+    hashlib.sha256(header.read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+env.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    PYTHONNOUSERSITE="1",
+    OMP_NUM_THREADS="1",
+    MKL_NUM_THREADS="1",
+    OPENBLAS_NUM_THREADS="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    C_INCLUDE_PATH=json.loads(header.read_text())["include_path"],
+    CPLUS_INCLUDE_PATH=json.loads(header.read_text())["include_path"],
+    XDG_CACHE_HOME=str(P / "cache"),
+    TRITON_CACHE_DIR=str(P / "cache/triton"),
+    CUDA_CACHE_PATH=str(P / "cache/cuda"),
+    CUDA_CACHE_MAXSIZE=str(32 * 2**20),
+)
+
+
+def check_bounds():
+    # Count private aliases/hardlinks once, never claim a directory alias is new space.
+    inodes = set()
+    used = 0
+    for p in P.rglob("*"):
+        if p.is_symlink() or "input" in p.relative_to(P).parts:
+            continue
+        try:
+            s = p.stat()
+            if p.is_file() and (s.st_dev, s.st_ino) not in inodes:
+                inodes.add((s.st_dev, s.st_ino))
+                used += s.st_size
+        except FileNotFoundError:
+            continue
+    cap = 64 * 2**30 + 16 * 2**20
+    assert used < cap
+    assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(0, cap - used)
+    assert time.monotonic() - begin < 11.8 * 3600
+
+
+try:
+    # Prioritize the original new mechanism; still run its matched control.
+    for role in ("cross_lineage_equal_rank", "parent_only"):
+        item = meta["roles"][role]
+        bundle = json.loads((S / (role + ".private.json")).read_text())
+        code = S / ("code-" + role)
+        code.mkdir(mode=0o700)
+        for name, text in {
+            **bundle["FILES"],
+            "rsna/__init__.py": "",
+            "rsna/competitive/__init__.py": "",
+        }.items():
+            path = code / name
+            assert path.resolve().is_relative_to(code.resolve())
+            path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            path.write_text(text)
+            path.chmod(0o600)
+        worker = code / "worker.private.py"
+        raw = base64.b64decode(bundle["WORKER"], validate=True)
+        assert hashlib.sha256(raw).hexdigest() == item["worker_sha256"]
+        worker.write_bytes(raw)
+        worker.chmod(0o600)
+        # Parent/adaptation permission travels with every role.
+        permission = base64.b64decode(bundle["PERMISSION"], validate=True)
+        assert (
+            hashlib.sha256(permission).hexdigest()
+            == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+        )
+        (code / "source-permission.txt").write_bytes(permission)
+        sys.path.insert(0, str(code))
+        verifier = load("epoch_verify")
+        env["PYTHONPATH"] = (
+            str(code)
+            + os.pathsep
+            + "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay"
+        )
+        for epoch in (1, 2, 3):
+            check_bounds()
+            command = [
+                sys.executable,
+                "-B",
+                "-m",
+                "torch.distributed.run",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc_per_node=1",
+                str(worker),
+            ]
+            if epoch > 1:
+                command.append("--resume")
+            if epoch < 3:
+                command += ["--stop-after", str(epoch * 486)]
+            with (
+                (S / f"{role}-epoch-{epoch}.stdout.private.log").open("x") as out,
+                (S / f"{role}-epoch-{epoch}.stderr.private.log").open("x") as err,
+            ):
+                child = subprocess.Popen(
+                    command, env=env, stdout=out, stderr=err, start_new_session=True
+                )
+                while child.poll() is None:
+                    check_bounds()
+                    time.sleep(10)
+                assert child.returncode == 0, (
+                    "Original trainer failed; preserve private logs/state and reconcile without retry"
+                )
+            record = io.retain_epoch(P / "runs" / role, item, epoch, verifier)
+            print(
+                json.dumps(
+                    {
+                        "status": record["status"],
+                        "role": role,
+                        "epoch": epoch,
+                        "completed": record["completed"],
+                    }
+                ),
+                flush=True,
+            )
+    identities = [
+        json.loads((P / "runs" / role / "session-486.json").read_text())["initial_identity"]
+        for role in ("cross_lineage_equal_rank", "parent_only")
+    ]
+    assert identities[0] == identities[1], (
+        "Matched full runs must retain identical complete initial model/RNG"
+    )
+    io.new_json(
+        S / "verified.json",
+        {
+            "status": "actual_full3887_matched_complete_teacher_oneH100_fixed3_fit_finished",
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "roles": meta["roles"],
+            "updates_per_role": 1458,
+            "source_git": meta["source_git"],
+            "clinical_or_competition_accuracy_claim": False,
+            "private_epoch_publication_is_separate": True,
+        },
+    )
+except BaseException as e:
+    if child is not None and child.poll() is None:
+        os.killpg(child.pid, signal.SIGTERM)
+        try:
+            child.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid, signal.SIGKILL)
+            child.wait(timeout=10)
+    io.new_json(
+        S / "terminal-failed.json",
+        {
+            "status": "original_full_student_fit_stopped_no_retry",
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "type": type(e).__name__,
+            "reason": str(e),
+            "all_original_outputs_preserved": True,
+            "automatic_retry": False,
+        },
+    )
+    raise

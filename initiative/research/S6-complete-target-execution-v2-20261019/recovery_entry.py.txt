@@ -1,0 +1,167 @@
+"""One actual hardware-bound recovery; preserve failures and all original output."""
+
+import hashlib
+import importlib.metadata
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+G = D / "recovery-v2"
+meta = json.loads((G / "staged.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert 0 < len(os.sched_getaffinity(0)) <= 2 * int(os.environ["SLURM_CPUS_PER_TASK"])
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["entry_sha256"]
+assert (
+    hashlib.sha256((G / "recovery.H100.private.py").read_bytes()).hexdigest()
+    == meta["source_sha256"]
+)
+assert (
+    hashlib.sha256((D / "runtime-inputs-verified.json").read_bytes()).hexdigest()
+    == meta["runtime_input_receipt_sha256"]
+)
+assert not (G / "GPU-intent.json").exists()
+assert not (D / "work/complete-teacher-recovery").exists()
+sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+import timm  # noqa: E402
+import torch  # noqa: E402
+import torchvision  # noqa: E402
+
+runtime = json.loads((D / "runtime-inputs-verified.json").read_text())
+assert torchvision.__version__.split("+", 1)[0] == runtime["torchvision"].split("+", 1)[0]
+assert (
+    str(timm.__version__) == runtime["timm"]
+    and importlib.metadata.version("torchvision") == runtime["torchvision"]
+)
+assert str(torch.__version__) == runtime["torch"] and torch.cuda.device_count() == 1
+assert torch.cuda.get_device_name(0).startswith("NVIDIA H100")
+assert torch.cuda.get_device_capability(0) == (9, 0)
+assert torch.ones(1, device="cuda").item() == 1
+(G / "GPU-intent.json").write_text(
+    json.dumps(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_sha256": meta["source_sha256"],
+            "GPU": torch.cuda.get_device_name(0),
+            "GPU_devices": 1,
+            "runtime_input_receipt_sha256": meta["runtime_input_receipt_sha256"],
+            "CUDA_initialization_and_real_tensor_passed": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+env = {
+    k: value
+    for k, value in os.environ.items()
+    if not any(word in k.upper() for word in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+}
+env.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    PYTHONNOUSERSITE="1",
+    OMP_NUM_THREADS="1",
+    MKL_NUM_THREADS="1",
+    OPENBLAS_NUM_THREADS="1",
+    XDG_CACHE_HOME=str(D / "work/cache"),
+    TORCHINDUCTOR_CACHE_DIR=str(D / "work/inductor"),
+    TRITON_CACHE_DIR=str(D / "work/triton"),
+    CUDA_CACHE_PATH=str(D / "work/cuda-cache"),
+    CUDA_CACHE_MAXSIZE=str(32 * 2**20),
+)
+header = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json")
+assert (
+    hashlib.sha256(header.read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+env.update(
+    C_INCLUDE_PATH=json.loads(header.read_text())["include_path"],
+    CPLUS_INCLUDE_PATH=json.loads(header.read_text())["include_path"],
+)
+child = None
+started = time.monotonic()
+
+
+def paid(root):
+    size = 0
+    for p in root.rglob("*"):
+        try:
+            if p.is_file() and not p.is_symlink():
+                size += p.stat().st_size
+        except FileNotFoundError:
+            continue
+    return size
+
+
+try:
+    with (G / "stdout.private.log").open("x") as out, (G / "stderr.private.log").open("x") as err:
+        child = subprocess.Popen(
+            [sys.executable, "-B", str(G / "recovery.H100.private.py")],
+            env=env,
+            stdout=out,
+            stderr=err,
+            start_new_session=True,
+        )
+        while child.poll() is None:
+            assert paid(D / "work") < 12 * 2**30 and paid(D) < 12 * 2**30 + 512 * 2**20 + 16 * 2**20
+            assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+                0, 12 * 2**30 + 512 * 2**20 + 16 * 2**20 - paid(D)
+            )
+            assert time.monotonic() - started < 3500
+            time.sleep(2)
+        assert child.returncode == 0, (
+            "Original recovery failed; inspect its private logs, never repeat"
+        )
+    result = json.loads(
+        (D / "work/licensed-importance-real-MRI-recovery-accepted.json").read_text()
+    )
+    assert (
+        result["status"]
+        == "actual_complete_S6_target_change_full_encoder_oneH100_MRI_recovery_accepted"
+    )
+    assert result["world_size"] == 1 and set(result["roles"]) == {
+        "parent_only",
+        "cross_lineage_equal_rank",
+    }
+    actual = {
+        "status": "actual_complete_teacher_oneH100_recovery_accepted",
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "source_sha256": meta["source_sha256"],
+        "receipt": result,
+        "T4_numerical_equivalence_or_clinical_accuracy_claim": False,
+        "production_dispatched": False,
+        "automatic_retry": False,
+    }
+    (G / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+    print(json.dumps(actual), flush=True)
+except BaseException as e:
+    if child is not None and child.poll() is None:
+        os.killpg(child.pid, signal.SIGTERM)
+        try:
+            child.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid, signal.SIGKILL)
+            child.wait(timeout=10)
+    (G / "terminal-failed.json").write_text(
+        json.dumps(
+            {
+                "status": "original_oneH100_recovery_stopped_no_retry",
+                "GPU_job": os.environ["SLURM_JOB_ID"],
+                "type": type(e).__name__,
+                "reason": str(e),
+                "private_logs_and_checkpoints_preserved": True,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
