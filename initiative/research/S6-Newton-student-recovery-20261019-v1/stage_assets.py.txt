@@ -1,0 +1,231 @@
+"""Admit retained MRI inputs and one exact public parent weight, without GPUs."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from urllib.parse import urljoin, urlparse
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+assert not D.exists(), "Existing asset intent requires read-only reconciliation"
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 16 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5000 + 128
+funded = 12 * 2**30 + 512 * 2**20 + 16 * 2**20
+free = shutil.disk_usage("/tmp").free
+assert free > 20 * 2**30 + 32 * 2**20 + funded
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+source = json.loads((S / "admitted.json").read_text())
+assert source["CPU_job"] == "969738"
+for name, h in source["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == h
+pixel = Path("/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected")
+features = Path("/tmp/rsna-released-context-head-fit-20261016-v1/features32")
+assert (pixel / "pixels.tar").stat().st_size == 326799360
+assert (
+    hashlib.sha256((pixel / "index.private.json").read_bytes()).hexdigest()
+    == "3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3"
+)
+assert (
+    hashlib.sha256((features / "index.private.json").read_bytes()).hexdigest()
+    == "a1bba9e618444f16ddd453efa1bb8650245f8259dcd9a00348b17efd87c1e100"
+)
+name = "raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"
+parent_sha = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+candidates = []
+# Bounded filename inventory of our retained roots only; never scan other users,
+# decode clinical records, or rehash the MRI archives/full feature population.
+for root in Path("/tmp").glob("rsna-*"):
+    if not root.is_dir() or root.stat().st_uid != os.getuid():
+        continue
+    for current, directories, files in os.walk(root, followlinks=False):
+        if len(Path(current).relative_to(root).parts) >= 5:
+            directories[:] = []
+        if name in files:
+            p = Path(current) / name
+            if p.is_file():
+                candidates.append(p)
+unique = {(p.stat().st_dev, p.stat().st_ino): p for p in candidates}
+assert len(unique) <= 1, "Multiple existing original-weight candidates require reconciliation"
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "node_free_bytes": free,
+            "new_private_cap_bytes": funded,
+            "private_recovery_output_cap_bytes": 12 * 2**30,
+            "original_weight_cap_bytes": 512 * 2**20,
+            "small_control_cap_bytes": 16 * 2**20,
+            "shared_metadata_obligation_bytes": 16 * 2**20,
+            "shared_metadata_obligation_files": 128,
+            "existing_student_control12MiB_separate": True,
+            "unstarted_legacy_bulk_work_still_deferred": True,
+            "deletion_credit": False,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+W = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(W.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+spec = importlib.util.spec_from_file_location("original_workflow", W)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+
+
+def safe_request(function, *args, **kwargs):
+    try:
+        return function(*args, **kwargs)
+    except w.requests.RequestException:
+        raise RuntimeError("Original public parent request failed; no automatic retry") from None
+
+
+def safe_blocks(response):
+    try:
+        yield from response.iter_content(1024 * 1024)
+    except w.requests.RequestException:
+        raise RuntimeError(
+            "Original public parent stream interrupted; preserve original partial bytes"
+        ) from None
+
+
+with tempfile.TemporaryDirectory(prefix="rsna-parent-access-", dir="/dev/shm") as tmp:
+    auth = Path(tmp) / ".env"
+    with auth.open("x") as f:
+        f.write("KAGGLE_API_TOKEN=" + v.pop("token") + "\n")
+    remote = w.Remote(auth)
+    auth.unlink()
+metadata = remote.dataset("nartaa/rsna-knee-publication-swa-weights-20261007")
+assert metadata["id"] == 12431568 and metadata.get("isPrivate", False) is False
+assert (
+    hashlib.sha256(metadata["description"].encode()).hexdigest()
+    == "247584531ee68bbdbd754158041c8c9728b38aaf1f14205edf6d710304229b7b"
+)
+if unique:
+    weight = next(iter(unique.values()))
+    assert 0 < weight.stat().st_size <= 512 * 2**20
+    with weight.open("rb") as f:
+        assert hashlib.file_digest(f, "sha256").hexdigest() == parent_sha
+    downloaded = False
+else:
+    weight = D / name
+    response = safe_request(
+        remote.session.post,
+        w.API + "datasets.DatasetApiService/DownloadDataset",
+        json={
+            "ownerSlug": "nartaa",
+            "datasetSlug": "rsna-knee-publication-swa-weights-20261007",
+            "datasetVersionNumber": 1,
+            "fileName": name,
+        },
+        stream=True,
+        allow_redirects=False,
+        timeout=(15, 90),
+    )
+    for _ in range(6):
+        if response.status_code == 200:
+            break
+        assert response.status_code in (301, 302, 303, 307, 308), (
+            "Pinned public parent download refused"
+        )
+        url = urljoin(response.url, response.headers.get("Location", ""))
+        response.close()
+        assert (
+            urlparse(url).scheme == "https"
+            and not urlparse(url).username
+            and (urlparse(url).hostname or "").endswith(
+                (".googleapis.com", ".googleusercontent.com", ".kaggle.com")
+            )
+        )
+        # Storage redirects use a fresh session: never forward Kaggle credentials.
+        response = safe_request(
+            w.requests.get, url, stream=True, allow_redirects=False, timeout=(15, 90)
+        )
+    assert response.status_code == 200
+    h = hashlib.sha256()
+    size = 0
+    with response, weight.open("xb") as f:
+        for block in safe_blocks(response):
+            size += len(block)
+            assert (
+                size <= 512 * 2**20
+                and shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + 12 * 2**30
+            )
+            h.update(block)
+            f.write(block)
+        f.flush()
+        os.fsync(f.fileno())
+    assert h.hexdigest() == parent_sha
+    downloaded = True
+input_root = D / "input"
+input_root.mkdir(mode=0o700)
+(input_root / "original32-pixels").symlink_to(pixel, target_is_directory=True)
+(input_root / "original32-features").symlink_to(features, target_is_directory=True)
+weights = input_root / "original-parent"
+weights.mkdir(mode=0o700)
+(weights / name).symlink_to(weight)
+(D / "work").mkdir(mode=0o700)
+assert (
+    hashlib.sha256((S / "source-permission.txt").read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+(D / "source-permission.txt").write_bytes((S / "source-permission.txt").read_bytes())
+for name, text in v["own_sources"].items():
+    assert name in ("compiler.py",) and len(text.encode()) < 128 * 1024
+    compile(text, name, "exec")
+    (D / name).write_text(text)
+(D / "asset-private.json").write_text(
+    json.dumps(
+        {
+            "weight_path": str(weight),
+            "stat": {
+                "bytes": weight.stat().st_size,
+                "mtime_ns": weight.stat().st_mtime_ns,
+                "inode": weight.stat().st_ino,
+            },
+            "source_admission": source,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+actual = {
+    "status": "actual_Newton_oneH100_recovery_assets_and_private_funding_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "source_admission_CPU": "969738",
+    "original_weight_bytes": weight.stat().st_size,
+    "original_weight_sha256": parent_sha,
+    "original_public_Dataset_id": 12431568,
+    "original_public_Dataset_version": 1,
+    "existing_exact_filename_candidates": len(unique),
+    "new_original_weight_download": downloaded,
+    "new_MRI_features_or_environment_copies": 0,
+    "original32_pixel_archive_stat_and_index_proof_reused": True,
+    "original32_feature_index_SHA_equal": True,
+    "private_cap_bytes": funded,
+    "recovery_output_cap_bytes": 12 * 2**30,
+    "physical_node_GPUs": 2,
+    "proposed_assigned_H100": 1,
+    "original_numerical_module_hashes_equal": True,
+    "GPU_reserved_or_dispatched": False,
+    "complete_targets_or_GPU_training_accepted": False,
+    "automatic_retry": False,
+}
+(D / "assets-verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
