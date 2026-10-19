@@ -1,0 +1,61 @@
+"""Exercise exact transfer bytes and pre-write path/cap checks on synthetic files."""
+
+import hashlib
+import io
+import json
+import tempfile
+from pathlib import Path
+
+import pytest
+
+ns = {"__name__": "private_auxiliary_contract"}
+exec(
+    compile(
+        Path(__file__).with_name("auxiliary_common.py.txt").read_text(), "auxiliary_common", "exec"
+    ),
+    ns,
+)
+payload = {alias + "/test": alias.encode() for alias in ns["ALIASES"]}
+table = {n: {"bytes": len(b), "sha256": hashlib.sha256(b).hexdigest()} for n, b in payload.items()}
+
+
+def packet(rows=table):
+    raw = json.dumps(rows, sort_keys=True).encode()
+    return (
+        ns["AUX_MAGIC"]
+        + len(raw).to_bytes(8, "big")
+        + raw
+        + b"".join(payload[n] for n in sorted(payload))
+    )
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    ns["receive_aux"](io.BytesIO(packet()), root / "complete")
+    assert all((root / "complete" / n).read_bytes() == b for n, b in payload.items())
+    with pytest.raises(AssertionError):
+        ns["receive_aux"](io.BytesIO(packet()), root / "complete")
+    for label, blob in (
+        ("truncated", packet()[:-1]),
+        ("extra", packet() + b"x"),
+        (
+            "wrong_SHA",
+            packet().replace(
+                payload[sorted(payload)[0]], b"x" * len(payload[sorted(payload)[0]]), 1
+            ),
+        ),
+    ):
+        with pytest.raises((ValueError, AssertionError, json.JSONDecodeError)):
+            ns["receive_aux"](io.BytesIO(blob), root / label)
+    for bad in ("../escape", "/parent/a", "parent/../escape", "other/a"):
+        with pytest.raises(AssertionError):
+            ns["valid_table"]({**table, bad: table["parent/test"]})
+    with pytest.raises(AssertionError):
+        ns["valid_table"](
+            {**table, "parent/large": {"bytes": ns["AUX_CAP"] + 1, "sha256": "0" * 64}}
+        )
+print(
+    json.dumps(
+        {"synthetic_auxiliary_transfer_contracts_passed": 10, "GPU_or_clinical_acceptance": False}
+    )
+)

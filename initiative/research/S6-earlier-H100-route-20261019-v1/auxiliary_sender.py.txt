@@ -1,0 +1,114 @@
+# ruff: noqa: F821
+"""Reuse only explicit immutable source assets; never export private file names."""
+
+import ipaddress
+import socket
+import sys
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc33"
+assert not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+T = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+R = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+S = Path("/tmp/rsna-environment-907632-7sr9a7i6/environment/lib/python3.12/site-packages")
+roots = {
+    "source": T,
+    "parent": R / "raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt",
+    "pixels32": Path("/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected"),
+    "features32": Path("/tmp/rsna-released-context-head-fit-20261016-v1/features32"),
+    "targets": Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz"),
+    "proposals": Path(
+        "/tmp/rsna-licensed-importance-encoder-20261017-v1/proposal-table/proposals.private.npy"
+    ),
+    "old_recovery": Path(
+        "/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py"
+    ),
+    "full_proofs": Path(
+        "/tmp/rsna-licensed-parent-whole94-production-20261016-v1/actual-original-Kaggle-inputs.json"
+    ),
+    "overlay": Path("/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay"),
+    "headers": Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1"),
+}
+paths = {}
+for alias, root in roots.items():
+    assert root.exists() and not root.is_symlink() and root.stat().st_uid == os.getuid()
+    candidates = [root] if root.is_file() else sorted(root.rglob("*"))
+    for p in candidates:
+        assert not p.is_symlink(), "Explicit original source may not escape via symlinks"
+        if not p.is_file() or "__pycache__" in p.parts:
+            continue
+        rel = p.name if root.is_file() else p.relative_to(root).as_posix()
+        if alias == "source" and not (
+            rel.startswith("code/")
+            or rel
+            in (
+                "admitted.json",
+                "parent_source.private.py",
+                "engineering-targets.private.json",
+                "source-permission.txt",
+            )
+        ):
+            continue
+        if alias == "headers" and p.suffix != ".h" and rel != "verified.json":
+            continue
+        paths[alias + "/" + rel] = p
+# Only the two missing classifier packages and their binary dependencies, no Torch copy.
+for root in sorted(S.iterdir()):
+    if not (
+        root.name in ("torchvision", "torchvision.libs", "timm")
+        or root.name.startswith(("torchvision-", "timm-"))
+        and root.name.endswith(".dist-info")
+    ):
+        continue
+    assert root.is_dir() and not root.is_symlink()
+    for p in sorted(root.rglob("*")):
+        assert not p.is_symlink()
+        if p.is_file() and "__pycache__" not in p.parts:
+            paths["extensions/" + p.relative_to(S).as_posix()] = p
+assert paths and len(paths) <= 4000
+stats, table = {}, {}
+for name, p in paths.items():
+    stat = p.stat()
+    stats[name] = (stat.st_ino, stat.st_size, stat.st_mtime_ns)
+    with p.open("rb") as f:
+        sha = hashlib.file_digest(f, "sha256").hexdigest()
+    assert (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+    table[name] = {"bytes": stat.st_size, "sha256": sha}
+valid_table(table)
+assert (
+    table["parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"]["sha256"]
+    == "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+)
+ready = v["ready"]
+address = socket.gethostbyname("ivc48")
+assert address == ready["private_address"] and ipaddress.ip_address(address).is_private
+with pinned_client(
+    socket.create_connection((address, ready["port"]), timeout=180), ready["certificate_sha256"]
+) as channel:
+    authenticate_client(channel, secret, ready["certificate_sha256"])
+    del secret
+    with channel.makefile("wb") as output:
+        raw = json.dumps(table, sort_keys=True).encode()
+        assert len(raw) <= 2**21
+        output.write(AUX_MAGIC + len(raw).to_bytes(8, "big") + raw)
+        for name in sorted(table):
+            p = paths[name]
+            assert (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+            with p.open("rb") as f:
+                while block := f.read(2**20):
+                    output.write(block)
+            assert (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+print(
+    json.dumps(
+        {
+            "status": "private_auxiliary_original_bytes_sent",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": len(table),
+            "bytes": sum(x["bytes"] for x in table.values()),
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+        }
+    ),
+    flush=True,
+)

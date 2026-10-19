@@ -1,0 +1,74 @@
+"""Private bounded auxiliary transfer. File tables remain on their owning nodes."""
+
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+
+AUX_MAGIC = b"RSNA-S6-AUXILIARY-v1\n"
+AUX_CAP = 2 * 2**30
+ALIASES = {
+    "source",
+    "parent",
+    "pixels32",
+    "features32",
+    "targets",
+    "proposals",
+    "old_recovery",
+    "full_proofs",
+    "overlay",
+    "extensions",
+    "headers",
+}
+
+
+def valid_table(table):
+    assert isinstance(table, dict) and 0 < len(table) <= 4000
+    assert sum(row["bytes"] for row in table.values()) <= AUX_CAP
+    for name, row in table.items():
+        p = PurePosixPath(name)
+        assert not p.is_absolute() and len(p.parts) >= 2
+        assert p.parts[0] in ALIASES and all(x not in (".", "..", "") for x in p.parts)
+        assert str(p) == name and set(row) == {"bytes", "sha256"}
+        assert type(row["bytes"]) is int and 0 <= row["bytes"] <= AUX_CAP
+        assert len(row["sha256"]) == 64 and all(c in "0123456789abcdef" for c in row["sha256"])
+    assert {PurePosixPath(x).parts[0] for x in table} == ALIASES
+    return table
+
+
+def read_exact(stream, count):
+    result = bytearray()
+    while len(result) < count:
+        block = stream.read(min(2**20, count - len(result)))
+        if not block:
+            raise ValueError("Private auxiliary stream truncated; retain existing intent")
+        result.extend(block)
+    return bytes(result)
+
+
+def receive_aux(stream, root):
+    assert read_exact(stream, len(AUX_MAGIC)) == AUX_MAGIC
+    size = int.from_bytes(read_exact(stream, 8), "big")
+    assert 0 < size <= 2**21
+    raw = read_exact(stream, size)
+    table = valid_table(json.loads(raw))
+    root = Path(root)
+    assert not root.exists(), "Existing private auxiliary mutation needs reconciliation"
+    root.mkdir(mode=0o700)
+    (root / "manifest.private.json").write_bytes(raw)
+    for name, row in sorted(table.items()):
+        path = root / name
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        h = hashlib.sha256()
+        remaining = row["bytes"]
+        with path.open("xb") as output:
+            while remaining:
+                block = read_exact(stream, min(2**20, remaining))
+                output.write(block)
+                h.update(block)
+                remaining -= len(block)
+            output.flush()
+            os.fsync(output.fileno())
+        assert h.hexdigest() == row["sha256"], "Private auxiliary bytes differ"
+    assert not stream.read(1), "Private auxiliary stream has trailing bytes"
+    return table, hashlib.sha256(raw).hexdigest()
