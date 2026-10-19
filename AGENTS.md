@@ -1,5 +1,10 @@
 # RSNA Knee: current agent guide
 
+## October19 latest actual continuation
+
+968696 failed on source-resolver HTTP429 after880durable predictions. Source-only968875 completed0:0, reused22complete buffers, filled only16,845,868missing bytes in the23rd and retained nine rendered inputs. Official bulk-LFS source transport is admitted. 968895 failed before phase/lock/inference on a stale speculative disk reservation;968904 failed before staging on an obsolete lock assertion. Corrected source-only968907 completed0:0 and admits the existing CPU/RAM-only policy on39: unstarted bulk work deferred,20GiB node/shared and5000files plus32MiB metadata preserved, no deletion credit. Sole36049 submitted968908/phase15 once with12workers/25CPU/192GiB, RUNNING on evc39; observer968917 verified the new phase and12retained input claims with880rows intact/no failure. Follower36051 waits complete3887; old34219/34222/35849/35898 are stopped. Read `initiative/research/S6-source-quota-recovery-20261019-v1/README.md` and original actual receipts. No new teacher inference/student/VLM accuracy gain has yet been observed. MedGemma968562 remains pending on33.
+
+
 Updated October19 2026 after actual paired score, higher-LR preservation/qualification, and private faster-node CPU staging. Exact original receipts are authoritative. Earlier operational snapshots are preserved unchanged in [history](docs/AGENTS.history-20261018-raw-renderer.md); their pending states and old best-score claims are historical.
 
 ## Objective and evidence
