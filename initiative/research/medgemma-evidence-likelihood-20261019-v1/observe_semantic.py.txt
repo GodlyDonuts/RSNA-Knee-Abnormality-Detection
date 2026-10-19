@@ -1,0 +1,108 @@
+"""Read only actual original GPU progress/terminal and anonymized control aggregates."""
+
+import hashlib
+import json
+import math
+import os
+import statistics
+import subprocess
+from pathlib import Path
+
+v = json.load(__import__("sys").stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+E = Path("/tmp/rsna-medgemma-evidence-likelihood-20261019-v1")
+P = E / "pilot-semantic-v1"
+assert json.loads((E / "GPU-submitted-semantic-v1.json").read_text()) == v["submitted"]
+job = v["submitted"]["GPU_job"]
+assert job.isdigit() and job != "972070"
+assert v["submitted"]["original_letter_GPU"] == "972070"
+assert (
+    hashlib.sha256((E / "pilot-semantic.py").read_bytes()).hexdigest()
+    == v["submitted"]["own_source_hashes"]["pilot-semantic.py"]
+)
+assert (
+    hashlib.sha256((E / "likelihood.py").read_bytes()).hexdigest()
+    == v["submitted"]["own_source_hashes"]["likelihood.py"]
+)
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode,Elapsed"], text=True
+)
+state = next(row.split("|")[1:4] for row in terminal.splitlines() if row.split("|")[0] == job)
+records = []
+if (P / "observations.private.jsonl").exists():
+    lines = (P / "observations.private.jsonl").read_text().splitlines()
+    for i, line in enumerate(lines):
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            assert i == len(lines) - 1
+if state[:2] != ["COMPLETED", "0:0"]:
+    safe = {
+        "status": "actual_original_likelihood_GPU_observed_not_accepted_terminal",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "GPU_job": job,
+        "Slurm_state": state,
+        "CUDA_context_intent_present": (P / "GPU-intent.json").exists(),
+        "completed_private_forward_rows": len(records),
+        "terminal_file_present": (P / "terminal.json").exists(),
+        "clinical_accuracy_or_student_gain_claim": False,
+        "new_mutations": 0,
+    }
+    if (P / "terminal-failed.json").exists():
+        safe["safe_failure"] = json.loads((P / "terminal-failed.json").read_text())
+    print(json.dumps(safe), flush=True)
+else:
+    t = json.loads((P / "terminal.json").read_text())
+    assert (
+        t["status"] == "actual_original_native_MRI_semantic_answer_likelihood_diagnostic_completed"
+    )
+    assert t["GPU_job"] == job and t["source_git"] == v["submitted"]["source_git"]
+    assert t["native_slices"] == 195 and t["native_series"] == 5
+    assert (
+        t["report_labels_or_protected_values_used"] is False
+        and t["accepted_labels_changed"] is False
+    )
+    assert len(records) == t["real_scored_forwards"] == 4 * t["within_series_chunks"]
+    groups = {}
+    for row in records:
+        assert math.isfinite(row["image_minus_blank_log_odds"])
+        key = (row["chunk"], row["question"])
+        groups.setdefault(key, {})
+        assert row["mapping"] not in groups[key]
+        groups[key][row["mapping"]] = row["image_minus_blank_log_odds"]
+    assert len(groups) == 2 * t["within_series_chunks"] and all(
+        set(row) == {0, 1} for row in groups.values()
+    )
+    noise = max(1e-4, t["repeat_max_abs_vocabulary_logit_difference"])
+    informative = []
+    ratios = []
+    for row in groups.values():
+        a, b = row[0], row[1]
+        ratios.append(abs(a - b) / (abs(a) + abs(b) + noise))
+        if abs(a) > noise and abs(b) > noise:
+            informative.append((a > 0) == (b > 0))
+    agreement = sum(informative) / len(informative) if informative else None
+    result = {
+        "status": "actual_original_native_likelihood_terminal_and_private_control_aggregates_verified",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "GPU_job": job,
+        "source_git": t["source_git"],
+        "actual_GPU_result": t,
+        "paired_chunk_question_controls": len(groups),
+        "informative_mapping_pairs": len(informative),
+        "mapping_effect_sign_agreement": agreement,
+        "median_mapping_difference_over_total_image_effect": statistics.median(ratios),
+        "case_or_per_task_diagnosis_probability_scores_exported": False,
+        "engineering_limits_not_clinical_accuracy": True,
+        "new_mutations": 0,
+    }
+    result["predeclared_engineering_disposition"] = (
+        "supports_further_blinded_teacher_evaluation_only"
+        if t["minimum_full_vocabulary_choice_mass"] >= 0.01
+        and agreement is not None
+        and agreement >= 0.8
+        and t["repeat_max_abs_vocabulary_logit_difference"] <= 1e-5
+        and t["blank_uncertain_argmax_fraction"] >= 0.8
+        else "do_not_use_as_teacher_without_protocol_rework"
+    )
+    print(json.dumps(result), flush=True)

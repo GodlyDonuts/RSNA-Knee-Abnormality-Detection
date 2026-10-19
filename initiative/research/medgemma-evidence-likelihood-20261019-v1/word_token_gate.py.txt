@@ -1,0 +1,87 @@
+"""Actual semantic-answer prefix gate for a distinct, predeclared protocol contrast."""
+
+import hashlib
+import json
+import os
+
+import torch
+from PIL import Image
+from transformers import AutoProcessor
+
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+processor = AutoProcessor.from_pretrained(
+    "/tmp/rsna-medgemma-evidence-likelihood-20261019-v1/assets-v2/model",
+    local_files_only=True,
+    trust_remote_code=False,
+)
+image = Image.new("RGB", (512, 512), "black")
+meanings = {
+    "present": "evidence supports presence",
+    "absent": "evidence supports absence",
+    "uncertain": "cannot determine from these images",
+}
+labels = {"present": "Yes", "absent": "No", "uncertain": "Unknown"}
+all_ids = []
+prompts = []
+for question in ["an anterior cruciate ligament tear", "joint effusion"]:
+    for order in [["present", "absent", "uncertain"], ["absent", "uncertain", "present"]]:
+        prompt = (
+            "Inspect the supplied consecutive knee MRI images for "
+            + question
+            + ". Use only visible image evidence. "
+            + " ".join(labels[meaning] + ": " + meanings[meaning] + "." for meaning in order)
+            + " Select the best option."
+        )
+        prompts.append(hashlib.sha256(prompt.encode()).hexdigest())
+
+        def inputs(suffix):
+            return processor.apply_chat_template(
+                [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "image", "image": image},
+                            {"type": "text", "text": prompt},
+                        ],
+                    },
+                    {
+                        "role": "assistant",
+                        "content": [{"type": "text", "text": "Answer:" + suffix}],
+                    },
+                ],
+                continue_final_message=True,
+                tokenize=True,
+                return_dict=True,
+                return_tensors="pt",
+                do_pan_and_scan=False,
+            )
+
+        base = inputs("")
+        ids = []
+        for suffix in [" Yes", " No", " Unknown"]:
+            v = inputs(suffix)
+            assert v["input_ids"].shape[1] == base["input_ids"].shape[1] + 1
+            assert torch.equal(v["input_ids"][:, :-1], base["input_ids"])
+            ids.append(int(v["input_ids"][0, -1]))
+        assert len(set(ids)) == 3
+        all_ids.append(ids)
+assert all(ids == all_ids[0] for ids in all_ids)
+print(
+    json.dumps(
+        {
+            "status": "actual_four_semantic_question_definition_order_prefixes_single_token_CPU_accepted",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "semantic_order": ["present", "absent", "uncertain"],
+            "answer_strings": [" Yes", " No", " Unknown"],
+            "answer_token_IDs": all_ids[0],
+            "fixed_prompt_hashes": prompts,
+            "question_and_definition_orders": 4,
+            "expanded_image_prefix_identity_checked": True,
+            "MRI_or_model_weights_or_GPU_loaded": False,
+            "clinical_accuracy_claim": False,
+        }
+    ),
+    flush=True,
+)

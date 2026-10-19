@@ -1,0 +1,74 @@
+"""A distinct semantic-word contrast, retaining original model/image/scoring math."""
+
+import ast
+import hashlib
+
+ORIGINAL_PILOT_SHA = "796e5e2df1d14d42aceaf0046dd1773ed8dfd4654fa4c4fd6a5f6ebf648a67d5"
+
+
+def once(source, old, new):
+    if source.count(old) != 1:
+        raise ValueError("Exact original source site required")
+    return source.replace(old, new)
+
+
+def build(source, gate):
+    if hashlib.sha256(source.encode()).hexdigest() != ORIGINAL_PILOT_SHA:
+        raise ValueError("Exact original accepted pilot source required")
+    if (
+        gate.get("status")
+        != "actual_four_semantic_question_definition_order_prefixes_single_token_CPU_accepted"
+        or gate.get("CPU_job") != "972114"
+        or gate.get("answer_token_IDs") != [8438, 2301, 60355]
+        or gate.get("expanded_image_prefix_identity_checked") is not True
+    ):
+        raise ValueError("Actual semantic-token CPU admission required")
+    new = (
+        source.replace('"GPU-staged-v1.json"', '"GPU-staged-semantic-v1.json"')
+        .replace('"GPU-allocation-header-v1.json"', '"GPU-allocation-header-semantic-v1.json"')
+        .replace('"pilot-v1"', '"pilot-semantic-v1"')
+    )
+    new = once(
+        new,
+        "ids = [562, 603, 565]",
+        'labels = {"present":"Yes", "absent":"No", "uncertain":"Unknown"}\n    ids = [8438, 2301, 60355]',
+    )
+    new = once(
+        new,
+        'f"{letter}: {explanations[meaning]}."\n                for letter, meaning in zip("ABC", order, strict=True)',
+        'f"{labels[meaning]}: {explanations[meaning]}."\n                for meaning in order',
+    )
+    new = once(
+        new,
+        "result = scorer.score(logits, ids, order)",
+        'result = scorer.score(logits, ids, ["present", "absent", "uncertain"])',
+    )
+    new = new.replace(
+        "actual_original_native_MRI_fixed_answer_likelihood_diagnostic_completed",
+        "actual_original_native_MRI_semantic_answer_likelihood_diagnostic_completed",
+    )
+    new = once(
+        new,
+        'for root in (P, E / "runtime-cache-v1"):',
+        'for root in (P, E / "pilot-v1", E / "runtime-cache-v1"):',
+    )
+    marker = '    (P / "terminal.json").write_text('
+    addition = """    actual.update(protocol="semantic_words_with_definition_order_contrast",original_letter_GPU="972070",actual_word_token_CPU="972114",answer_token_IDs=ids,blank_uncertain_argmax_fraction=sum(max(row["conditional_options"],key=row["conditional_options"].get)=="uncertain" for row in blank_cache.values())/len(blank_cache),minimum_blank_uncertain_conditional_probability=min(row["conditional_options"]["uncertain"] for row in blank_cache.values()))
+"""
+    new = once(new, marker, addition + marker)
+    compile(new, "distinct_semantic_likelihood_pilot", "exec")
+    # The only infer changes are prompt labels and stable semantic interpretation.
+    old_tree = ast.parse(source)
+    new_tree = ast.parse(new)
+
+    def calls(tree):
+        return sorted(
+            ast.dump(n, include_attributes=False)
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr in ("from_pretrained", "apply_chat_template", "inference_mode")
+        )
+
+    assert calls(old_tree) == calls(new_tree)
+    return new

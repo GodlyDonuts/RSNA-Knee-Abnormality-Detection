@@ -1,0 +1,59 @@
+"""Semantic contrast must retain actual baseline API/model/image numerical calls."""
+
+import copy
+import importlib.util
+import json
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+
+D = Path(__file__).resolve().parent
+
+
+def load(name):
+    spec = importlib.util.spec_from_loader(
+        name, SourceFileLoader(name, str(D / (name + ".py.txt")))
+    )
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+m = load("semantic_protocol")
+stage = load("semantic_stage")
+source = (D / "pilot.py.txt").read_text()
+gate = json.loads((D / "actual-word-token-gate.json").read_text())
+new = m.build(source, gate)
+assert "ids = [8438, 2301, 60355]" in new
+assert 'scorer.score(logits, ids, ["present", "absent", "uncertain"])' in new
+assert "for meaning in order" in new
+assert 'questions = ["an anterior cruciate ligament tear", "joint effusion"]' in new
+assert "model(**tensors, use_cache=False, logits_to_keep=1)" in new
+assert 'P = E / "pilot-semantic-v1"' in new
+assert 'original_letter_GPU="972070"' in new
+for key, value in [
+    ("CPU_job", "fake"),
+    ("answer_token_IDs", [1, 2, 3]),
+    ("expanded_image_prefix_identity_checked", False),
+]:
+    bad = copy.deepcopy(gate)
+    bad[key] = value
+    with pytest.raises(ValueError):
+        m.build(source, bad)
+with pytest.raises(ValueError):
+    m.build(source + "# changed", gate)
+program, sha = stage.build((D / "stage_pilot.py.txt").read_text())
+assert '"pilot-semantic.py"' in program and '"GPU-submitted-semantic-v1.json"' in program
+assert '"972114", "972070"' in program
+assert 'if name == "likelihood.py"' in program
+print(
+    json.dumps(
+        {
+            "semantic_protocol_source_and_refusal_contracts_passed": True,
+            "original_model_and_processor_calls_unchanged": True,
+            "new_GPU_or_clinical_acceptance": False,
+            "stage_program_SHA": sha,
+        }
+    )
+)

@@ -1,0 +1,64 @@
+"""Read the same exact GPU handle; no mutation/retry or private prediction export."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+submitted = json.loads((D / "actual-semantic-GPU-submitted.json").read_text())
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=512M",
+    "--time=00:02:00",
+    "--job-name=rsna-medgemma-semantic-observer",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope((D / "observe_semantic.py.txt").read_text(), {"submitted": submitted}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+assert x.returncode == 0, (
+    "Original read-only observer failed; preserve GPU handle, do not resubmit: " + x.stderr[-1200:]
+)
+actual = json.loads(x.stdout)
+name = (
+    "actual-semantic-terminal-verified.json"
+    if actual["status"]
+    == "actual_original_native_likelihood_terminal_and_private_control_aggregates_verified"
+    else "actual-semantic-live.json"
+)
+(D / name).write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

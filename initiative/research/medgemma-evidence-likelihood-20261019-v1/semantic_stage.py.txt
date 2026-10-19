@@ -1,0 +1,50 @@
+"""Adapt only operational namespaces for a distinct, admitted semantic contrast."""
+
+import hashlib
+
+
+def build(source):
+    if (
+        hashlib.sha256(source.encode()).hexdigest()
+        != "1b160bb89698364abca255bb20d7185d2bb2bf8968c558f9976bd31495f8dd27"
+    ):
+        raise ValueError("Exact original accepted staging control required")
+    for old, new in [
+        ("GPU-staged-v1.json", "GPU-staged-semantic-v1.json"),
+        ("GPU-dispatch-intent-v1.json", "GPU-dispatch-intent-semantic-v1.json"),
+        ("GPU-dispatch-response-v1.json", "GPU-dispatch-response-semantic-v1.json"),
+        ("GPU-submitted-v1.json", "GPU-submitted-semantic-v1.json"),
+        ('"pilot-v1"', '"pilot-semantic-v1"'),
+        ('"pilot.py"', '"pilot-semantic.py"'),
+        ("rsna-MedGemma-fixed-answer", "rsna-MedGemma-semantic-word"),
+        ("medgemma-likelihood-%j", "medgemma-semantic-%j"),
+        (
+            "actual_distinct_native_MRI_fixed_answer_likelihood_H100_diagnostic_submitted_once",
+            "actual_distinct_native_MRI_semantic_word_likelihood_H100_diagnostic_submitted_once",
+        ),
+    ]:
+        source = source.replace(old, new)
+    source = source.replace(
+        'for job in (inputs["CPU_job"], inputs["asset_CPU"]):',
+        'assert v["word_token_gate"]["CPU_job"] == "972114"\nfor job in (inputs["CPU_job"], inputs["asset_CPU"], "972114", "972070"):',
+    )
+    old = '    with (E / name).open("x") as f:\n        f.write(source)'
+    assert source.count(old) == 1
+    source = source.replace(
+        old,
+        '    if name == "likelihood.py":\n        assert (E / name).read_text() == source\n    else:\n        with (E / name).open("x") as f:f.write(source)',
+    )
+    marker = '(E / "GPU-staged-semantic-v1.json").write_text('
+    assert source.count(marker) == 1
+    source = source.replace(
+        marker,
+        'meta.update(original_letter_GPU="972070",actual_word_token_CPU="972114")\n' + marker,
+    )
+    marker = '(E / "GPU-submitted-semantic-v1.json").write_text('
+    assert source.count(marker) == 1
+    source = source.replace(
+        marker,
+        'actual.update(original_letter_GPU="972070",actual_word_token_CPU="972114")\n' + marker,
+    )
+    compile(source, "distinct_semantic_stage", "exec")
+    return source, hashlib.sha256(source.encode()).hexdigest()
