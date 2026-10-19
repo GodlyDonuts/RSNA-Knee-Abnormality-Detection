@@ -1,0 +1,425 @@
+"""One canonical private target transport / original twoT4 recovery phase."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+phase = v["phase"]
+assert phase in ("prepare", "create", "dataset_status", "push", "status")
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
+D = Path("/tmp/rsna-S6-Kaggle-target-recovery-20261019-v1")
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+KEY = "licensed-importance-full-fit:complete-S6-target-recovery-6747a9deaff1"
+DS = "godlydonuts/rsna-s6-targets-3d7014e7758c"
+SLUG = "godlydonuts/rsna-s6-target-recovery-6747a9deaff1"
+SOURCE_SHA = "6747a9deaff18122565bd0a6b9b58382be781d42dd9ab8c4f5ca18d066dd1ff5"
+OLD = "godlydonuts/rsna-importance-recovery-a01dd9643355"
+OLD_SHA = "a01dd9643355dfb1d2b2f7f43e3cda819e0c44e69a0cd7c2acd99440c0e25554"
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+
+
+def read(p):
+    return json.loads(Path(p).read_text())
+
+
+def sha(p):
+    return hashlib.file_digest(Path(p).open("rb"), "sha256").hexdigest()
+
+
+def bounds():
+    assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20 + 16 * 2**20
+    if D.exists():
+        assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 16 * 2**20
+    import subprocess
+
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(a[6]) - int(
+        a[5]
+    ) > 5000 + 128 + 128 + 24
+
+
+bounds()
+stage = read(F / "staged.json")
+assert stage["source_git"] == "34c0f4ff008ad5a0a6b6df6f242aad7ce7ed756c"
+
+
+def load(name):
+    p = F / "code" / (name + ".py")
+    assert sha(p) == stage["source_sha256"][name + ".py"]
+    s = importlib.util.spec_from_file_location("original_canonical_" + name, p)
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+w = load("workflow")
+p = load("publication")
+capacity = load("gpu_capacity")
+
+r = w.Remote.__new__(w.Remote)
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+r.username = "godlydonuts"
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == r.username
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}))
+    raise SystemExit(0)
+owner = {
+    "kind": "complete_S6_target_private_twoT4_recovery",
+    "phase": phase,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        found = db.execute("SELECT value FROM meta WHERE key=?", (KEY,)).fetchone()
+        if phase == "prepare":
+            assert found is None and not D.exists()
+            compiled = read(S / "recovery-source-v1/verified.json")
+            ready = read(S / "complete-target-input-v1/complete-target-ready.json")
+            assert compiled["CPU_job"] == "973750" and compiled["source_sha256"] == SOURCE_SHA
+            target = S / "complete-target-input-v1/teacher-targets.private.npz"
+            assert (
+                sha(target)
+                == ready["target_file"]["sha256"]
+                == "3d7014e7758c25bd4c39aa3676954fa6cd378e0aaf7c46d1510af05ad3c077ba"
+                and target.stat().st_size == 794124
+            )
+            source = S / "recovery-source-v1/recovery.private.py"
+            assert sha(source) == SOURCE_SHA and source.stat().st_size == 276489
+            compile(source.read_text(), "original_complete_twoT4_recovery", "exec")
+            previous = r.kernel("GetKernel", OLD, 1)
+            assert hashlib.sha256(previous["blob"]["source"].encode()).hexdigest() == OLD_SHA
+            meta = previous["metadata"]
+            assert (
+                meta["id"] == 139130771
+                and meta["isPrivate"]
+                and meta["enableGpu"]
+                and not meta.get("enableInternet", False)
+                and meta["dockerImage"] == DOCKER
+                and meta["machineShape"] == "NvidiaTeslaT4"
+            )
+            references = {
+                k: meta.get(k, [])
+                for k in ("kernelDataSources", "datasetDataSources", "competitionDataSources")
+            }
+            D.mkdir(mode=0o700)
+            data = D / "data"
+            data.mkdir()
+            upload = D / "upload"
+            upload.mkdir()
+            os.link(target, data / "teacher-targets.private.npz")
+            # Exact existing independent source/target/permission proofs, never case arrays in manifests.
+            manifest = {
+                "kind": "complete_teacher_training_target_overlay",
+                "source_git": v["source_git"],
+                "complete_teacher_admission": ready,
+                "actual_CPU_source_compilation": compiled,
+                "previous_positive_twoT4_kernel": {
+                    "slug": OLD,
+                    "id": 139130771,
+                    "version": 1,
+                    "source_sha256": OLD_SHA,
+                },
+                "references": references,
+                "private": True,
+                "competition_submission": False,
+            }
+            w.new_json(data / "bundle-manifest.json", manifest)
+            files = {
+                n: {"bytes": (data / n).stat().st_size, "sha256": sha(data / n)}
+                for n in ("teacher-targets.private.npz", "bundle-manifest.json")
+            }
+            archive = p.build_zip(data, files, upload / "bundle.zip")
+            row = {
+                "kind": "complete_teacher_diagnostic_recovery",
+                "state": "complete_teacher_target_transport_prepared",
+                "source_git": v["source_git"],
+                "dataset_slug": DS,
+                "files": files,
+                "archive": archive,
+                "references": references,
+                "source_sha256": SOURCE_SHA,
+                "source_bytes": 276489,
+                "maximum_GPU_seconds": 1800,
+                "competition_entries": 0,
+                "automatic_retry": False,
+            }
+            db.execute("INSERT INTO meta VALUES (?,?)", (KEY, json.dumps(row, sort_keys=True)))
+            db.commit()
+            w.new_json(D / "prepared.json", row)
+            out = {
+                "status": row["state"],
+                "source_git": v["source_git"],
+                "files": len(files),
+                "bytes": sum(x["bytes"] for x in files.values()),
+                "new_GPU_Dataset_or_competition_mutations": 0,
+                "source_sha256": SOURCE_SHA,
+                "references": references,
+            }
+        else:
+            assert found is not None
+            row = json.loads(found[0])
+            assert row["source_sha256"] == SOURCE_SHA
+
+            def save():
+                db.execute(
+                    "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), KEY)
+                )
+                db.execute(
+                    "INSERT INTO events(at,sha,event) VALUES(?,?,?)",
+                    (w.utcnow(), SOURCE_SHA, row["state"]),
+                )
+                db.commit()
+
+            if phase == "create":
+                assert (
+                    row["state"] == "complete_teacher_target_transport_prepared"
+                    and not (D / "dataset-journal/intent.json").exists()
+                )
+                row["state"] = "complete_teacher_target_dataset_create_intent"
+                save()
+                retain = True
+                os.environ["KAGGLE_CONFIG_DIR"] = str(D / "sdk-private-config")
+                created = p.create_once(
+                    r,
+                    v["token"],
+                    DS,
+                    row["files"],
+                    D / "upload",
+                    D / "dataset-journal",
+                    {
+                        "archive_sha256": row["archive"]["sha256"],
+                        "source_git": row["source_git"],
+                        "only_private_training_targets": True,
+                        "competition_submission": False,
+                    },
+                )
+                row.update(state="complete_teacher_target_dataset_created", create_response=created)
+                save()
+                retain = False
+                out = {
+                    "status": row["state"],
+                    "dataset_slug": DS,
+                    "new_Datasets": 1,
+                    "competition_entries": 0,
+                }
+            elif phase == "dataset_status":
+                assert row["state"] in (
+                    "complete_teacher_target_dataset_created",
+                    "complete_teacher_target_dataset_verified",
+                )
+                if row["state"] != "complete_teacher_target_dataset_verified":
+                    state = r.call(
+                        "datasets.DatasetApiService",
+                        "GetDatasetStatus",
+                        {"ownerSlug": "godlydonuts", "datasetSlug": DS.split("/")[1]},
+                    )
+                    if state.get("status") != "ready":
+                        out = {
+                            "status": "waiting_same_original_Dataset_ingestion",
+                            "actual": state.get("status"),
+                        }
+                    else:
+                        checked = p.reconcile(r, DS, row["files"])
+                        row.update(
+                            state="complete_teacher_target_dataset_verified", dataset=checked
+                        )
+                        save()
+                        w.new_json(D / "dataset-private-verified.json", checked)
+                        out = {
+                            "status": row["state"],
+                            "dataset": {
+                                k: checked[k] for k in ("slug", "id", "version", "private")
+                            },
+                            "objects": len(checked["files"]),
+                            "all_bytes_download_size_SHA_verified": True,
+                        }
+                else:
+                    out = {
+                        "status": row["state"],
+                        "dataset": {
+                            k: row["dataset"][k] for k in ("slug", "id", "version", "private")
+                        },
+                    }
+            elif phase == "push":
+                assert (
+                    row["state"] == "complete_teacher_target_dataset_verified"
+                    and "kernel_id" not in row
+                )
+                quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})
+                g = quota["gpuQuota"]
+                remaining = (
+                    float(g["totalTimeAllowed"].removesuffix("s"))
+                    - float(g.get("timeUsed", "0s").removesuffix("s"))
+                    - float(g.get("timeReserved", "0s").removesuffix("s"))
+                )
+                cap = capacity.admission(db, r, caller="sampling")
+                if remaining < 1800 + 600 + 30000 or not cap["available"]:
+                    out = {
+                        "status": "waiting_actual_GPU_budget_or_capacity_no_mutation",
+                        "remaining_VM_seconds": remaining,
+                        "capacity": cap,
+                    }
+                else:
+                    dataset = {k: row["dataset"][k] for k in ("slug", "id", "version", "private")}
+                    assert p.metadata(r, DS) == dataset
+                    source = (S / "recovery-source-v1/recovery.private.py").read_text()
+                    assert hashlib.sha256(source.encode()).hexdigest() == SOURCE_SHA
+                    absent = r.require_absent_kernel(SLUG)
+                    req = {
+                        "slug": SLUG,
+                        "newTitle": "RSNA complete teacher real MRI recovery",
+                        "text": source,
+                        "language": "python",
+                        "kernelType": "script",
+                        "isPrivate": True,
+                        "enableGpu": True,
+                        "machineShape": "NvidiaTeslaT4",
+                        "enableInternet": False,
+                        "datasetDataSources": sorted(
+                            set(row["references"]["datasetDataSources"] + [DS])
+                        ),
+                        "kernelDataSources": row["references"]["kernelDataSources"],
+                        "competitionDataSources": row["references"]["competitionDataSources"],
+                        "sessionTimeoutSeconds": 1800,
+                        "dockerImage": DOCKER,
+                        "dockerImagePinningType": "original",
+                    }
+                    row.update(
+                        state="complete_teacher_recovery_push_intent",
+                        request={k: z for k, z in req.items() if k != "text"},
+                        quota_before=quota,
+                        absence=absent,
+                    )
+                    save()
+                    w.new_json(
+                        D / "push-intent.json",
+                        {**row["request"], "source_sha256": SOURCE_SHA, "automatic_retry": False},
+                    )
+                    retain = True
+                    response = r.call("kernels.KernelsApiService", "SaveKernel", req)
+                    w.new_json(D / "push-response.json", response)
+                    result = w.save_kernel_response(response)
+                    assert result["version"] == 1 and result["kernel_id"] > 0
+                    row.update(
+                        state="complete_teacher_recovery_pushed",
+                        slug=SLUG,
+                        kernel_id=result["kernel_id"],
+                        version=1,
+                        save_result=result,
+                    )
+                    save()
+                    retain = False
+                    out = {
+                        "status": row["state"],
+                        "slug": SLUG,
+                        "kernel_id": row["kernel_id"],
+                        "version": 1,
+                        "source_sha256": SOURCE_SHA,
+                        "maximum_GPU_seconds": 1800,
+                        "competition_entries": 0,
+                        "remaining_VM_seconds_before": remaining,
+                    }
+            else:
+                assert row["state"] in (
+                    "complete_teacher_recovery_pushed",
+                    "complete_teacher_recovery_accepted",
+                    "complete_teacher_recovery_failed",
+                )
+                k = r.kernel("GetKernel", SLUG, 1)
+                meta = k["metadata"]
+                assert (
+                    hashlib.sha256(k["blob"]["source"].encode()).hexdigest() == SOURCE_SHA
+                    and meta["id"] == row["kernel_id"]
+                    and meta["isPrivate"]
+                    and meta["enableGpu"]
+                    and meta["machineShape"] == "NvidiaTeslaT4"
+                    and not meta.get("enableInternet", False)
+                    and meta["dockerImage"] == DOCKER
+                )
+                for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                    assert sorted(meta.get(name, [])) == sorted(row["request"][name])
+                state = r.kernel("GetKernelSessionStatus", SLUG, 1).get("status")
+                out = {
+                    "status": "waiting_same_original_twoT4_recovery",
+                    "actual_status": state,
+                    "slug": SLUG,
+                    "version": 1,
+                    "kernel_id": row["kernel_id"],
+                    "competition_entries": 0,
+                }
+                if state == "COMPLETE":
+                    receipt = r.output_json(
+                        SLUG, 1, "licensed-importance-real-MRI-recovery-accepted.json"
+                    )
+                    assert (
+                        receipt["status"]
+                        == "actual_complete_S6_target_change_full_encoder_twoT4_MRI_recovery_accepted"
+                        and receipt["world_size"] == 2
+                        and receipt["fit_studies"] == receipt["disjoint_engineering_studies"] == 16
+                        and receipt["updates_per_role"] == 4
+                    )
+                    assert (
+                        set(receipt["roles"]) == {"parent_only", "cross_lineage_equal_rank"}
+                        and receipt["same_initial_complete_model_and_allrank_RNG_between_roles"]
+                        and receipt["distinct_final_learned_tensors"] > 0
+                    )
+                    ready = read(S / "complete-target-input-v1/complete-target-ready.json")
+                    assert receipt["complete_teacher_admission"] == ready
+                    for arm in receipt["roles"].values():
+                        assert (
+                            arm[
+                                "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal"
+                            ]
+                            and arm["all16_full94_two_view_prediction_bytes_equal"]
+                        )
+                        assert len(arm["devices"]) == 2 and all(
+                            x["GPU"] == "Tesla T4"
+                            and x["trainable_parameters"] == 73136096
+                            and x["all_BN_buffers_equal_parent"]
+                            for x in arm["devices"]
+                        )
+                    row.update(state="complete_teacher_recovery_accepted", receipt=receipt)
+                    save()
+                    out = {
+                        "status": row["state"],
+                        "slug": SLUG,
+                        "kernel_id": row["kernel_id"],
+                        "version": 1,
+                        "source_sha256": SOURCE_SHA,
+                        "receipt": receipt,
+                        "competition_entries": 0,
+                        "clinical_accuracy_claim": False,
+                    }
+                    if not (D / "actual-accepted.json").exists():
+                        w.new_json(D / "actual-accepted.json", out)
+                elif state in ("ERROR", "CANCELLED"):
+                    row.update(state="complete_teacher_recovery_failed", actual_status=state)
+                    save()
+                    out.update(status=row["state"], automatic_retry=False)
+        bounds()
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert read(claim / "owner.json") == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()
