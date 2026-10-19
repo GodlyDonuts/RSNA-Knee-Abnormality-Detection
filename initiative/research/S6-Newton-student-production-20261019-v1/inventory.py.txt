@@ -1,0 +1,66 @@
+"""Read-only full-input availability; no MRI decode or bulk rehash/transfer."""
+
+import hashlib
+import json
+import os
+import shutil
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-licensed-parent-whole94-production-20261016-v1")
+proofs = json.loads((P / "actual-original-Kaggle-inputs.json").read_text())["proofs"]
+assert len(proofs) == 4
+C = Path("/tmp/rsna-licensed-parent-pixels-full-20261016-v1")
+shards = []
+for i, proof in enumerate(proofs):
+    d = C / ("shard-" + str(i)) / "collected"
+    archive = d / "pixels.tar"
+    index = d / "index.private.json"
+    marker = d / "verified.json"
+    exists = all(p.is_file() for p in (archive, index, marker))
+    accepted = False
+    if exists:
+        old = json.loads(marker.read_text())
+        accepted = (
+            archive.stat().st_size == proof["archive_bytes"]
+            and index.stat().st_size == proof["index_bytes"]
+            and hashlib.sha256(index.read_bytes()).hexdigest() == proof["index_sha256"]
+            and old.get("archive_sha256") == proof["archive_sha256"]
+        )
+    shards.append(
+        {
+            "shard": i,
+            "original_retained_archive_and_index_and_proof_present": exists,
+            "original_small_index_SHA_archive_stat_and_original_proof_equal": accepted,
+            "expected_archive_bytes": proof["archive_bytes"],
+            "expected_index_sha256": proof["index_sha256"],
+        }
+    )
+F = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison")
+Q = F.parent / "proposal-table/proposals.private.npy"
+T = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")
+result = {
+    "status": "actual_node33_full_student_input_availability_only",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "shards": shards,
+    "all4_original_archives_present_and_stat_proof_equal": all(
+        x["original_small_index_SHA_archive_stat_and_original_proof_equal"] for x in shards
+    ),
+    "original_full_target_present_and_SHA_equal": T.is_file()
+    and T.stat().st_size == 483656
+    and hashlib.sha256(T.read_bytes()).hexdigest()
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+    "original_proposals_present_and_SHA_equal": Q.is_file()
+    and Q.stat().st_size == 2923152
+    and hashlib.sha256(Q.read_bytes()).hexdigest()
+    == "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e",
+    "original_proposal_admission_and_GPU_recovery_receipts_present": (
+        F / "proposal-accepted.json"
+    ).is_file()
+    and (F / "actual-recovery.json").is_file(),
+    "node_free_bytes": shutil.disk_usage("/tmp").free,
+    "new_MRI_weight_feature_or_environment_transfers": 0,
+    "large_archive_rehash_or_MRI_decode": False,
+    "GPU_production_or_accuracy_admission": False,
+}
+print(json.dumps(result), flush=True)
