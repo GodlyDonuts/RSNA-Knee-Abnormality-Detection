@@ -1,0 +1,112 @@
+"""Move only a still-pending zero-runtime pilot to an actually admitted earlier node."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/multimodal-evidence-teacher-20261019-v1/earlier-slot-evc26-v1"
+assert not (L / "GPU-move-intent.json").exists()
+assets = json.loads((D / "actual-assets-accepted.json").read_text())
+assert assets["native_slices"] == 195 and assets["GPU_or_inference_started"] is False
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(
+            ["sacct", "-X", "-n", "-P", "-j", assets["CPU_job"], "--format=JobIDRaw,State,ExitCode"]
+        ),
+    ],
+    text=True,
+)
+assert assets["CPU_job"] + "|COMPLETED|0:0" in state
+program = """import hashlib,json,os,shlex,subprocess,time
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc26' and not os.environ.get('SLURM_JOB_GPUS')
+X=Path('/tmp/rsna-medgemma15-earlier-slot-20261019-v1');P=Path('/tmp/rsna-medgemma15-first-packet-20261019-v1')
+assert json.loads((X/'ready.json').read_text())==v['assets'] and not (X/'GPU-dispatch-intent.json').exists() and not (P/'actual-pilot').exists()
+assert hashlib.sha256((X/'run.py').read_bytes()).hexdigest()==v['assets']['location_entry_sha256']
+node=subprocess.check_output(['scontrol','show','node','evc26','--oneliner'],text=True);assert 'Gres=gpu:nvidia_h100_pcie:2' in node
+state=subprocess.check_output(['sacct','-X','-n','-P','-j','968352','--format=JobIDRaw,State,Elapsed,ExitCode'],text=True)
+assert '968352|PENDING|00:00:00|' in state
+X.joinpath('GPU-dispatch-intent.json').write_text(json.dumps({'original_pending_job':'968352','old_state':state,'assets':v['assets'],'automatic_retry':False}))
+# Server-side state filter never cancels an already running original.
+subprocess.run(['scancel','--state=PENDING','968352'],check=True)
+for _ in range(30):
+ state=subprocess.check_output(['sacct','-X','-n','-P','-j','968352','--format=JobIDRaw,State,Elapsed,ExitCode'],text=True)
+ if 'CANCELLED' in state:break
+ time.sleep(1)
+assert 'CANCELLED' in state and '|00:00:00|' in state
+cmd=['env','HF_HUB_OFFLINE=1','TRANSFORMERS_OFFLINE=1','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=2','MKL_NUM_THREADS=2','/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python','-B',str(X/'run.py')]
+H=Path('/home/sa305415/rsna-knee/kaggle')
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc26','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','--mem=64G','--time=00:30:00','--job-name=rsna-medgemma15-earlier-evidence','--output='+str(H/'medgemma15-earlier-pilot-%j.stdout'),'--error='+str(H/'medgemma15-earlier-pilot-%j.stderr'),'--wrap='+shlex.join(cmd)]
+x=subprocess.run(args,capture_output=True,text=True);X.joinpath('GPU-dispatch-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));assert x.returncode==0
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+print(json.dumps({'status':'actual_distinct_earlier_H100_pilot_submitted_original_cancelled_before_runtime','old_GPU_job':'968352','old_terminal':state.strip(),'new_GPU_job':job,'node':'evc26','physical_node_GPUs':2,'GPU':1,'CPU':2,'memory_GiB':64,'time_minutes':30,'original_numerical_pilot_sha256':v['assets']['pilot_sha256'],'source_MRI_or_model_reacquisitions':0,'changed_prompt_or_model_or_preprocessing':False,'clinical_accuracy_claim':False}))
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "GPU-move-intent.json").write_text(
+    json.dumps(
+        {
+            "assets_CPU_job": assets["CPU_job"],
+            "cancel_only_state_PENDING": True,
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc26",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-medgemma-earlier-dispatch",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {"assets": assets}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "GPU-move-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Move stopped/uncertain: reconcile both exact jobs without retry: " + x.stderr[-1200:]
+)
+(D / "actual-earlier-GPU-submitted.json").write_text(
+    json.dumps(json.loads(x.stdout), indent=2) + "\n"
+)
+print(x.stdout, flush=True)
