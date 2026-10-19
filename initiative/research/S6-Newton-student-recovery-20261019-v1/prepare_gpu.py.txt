@@ -1,0 +1,162 @@
+"""Prepare and dispatch once only after actual full targets and CPU runtime proof."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+G = D / "recovery-v1"
+assert not G.exists(), "An original GPU stage/intent requires read-only reconciliation"
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+compiled = json.loads((S / "recovery-source-v1/verified.json").read_text())
+assert (
+    compiled == v["compiled"]
+    and compiled["status"]
+    == "actual_complete_teacher_recovery_source_compiled_from_original_private_inputs"
+)
+runtime = json.loads((D / "runtime-inputs-verified.json").read_text())
+assert (
+    runtime == v["runtime"]
+    and runtime["status"] == "actual_Newton_private_mounts_original_model_and_real_MRI_CPU_admitted"
+)
+assert runtime["existing_runtime_overlay_reused_no_new_packages"] is True
+assert runtime["preserved_original_CPU_failure"] == "970429"
+for job in (compiled["CPU_job"], runtime["CPU_job"], "970393"):
+    terminal = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+    assert job + "|COMPLETED|0:0" in terminal
+raw = (S / "complete-target-input-v1/teacher-targets.private.npz").read_bytes()
+assert (
+    len(raw) == compiled["complete_target_file"]["bytes"]
+    and hashlib.sha256(raw).hexdigest() == compiled["complete_target_file"]["sha256"]
+)
+source = (S / "recovery-source-v1/recovery.private.py").read_text()
+metadata = json.loads((S / "recovery-source-v1/metadata.private.json").read_text())
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == compiled["source_sha256"]
+    == metadata["source_sha256"]
+)
+paid = sum(p.stat().st_size for p in D.rglob("*") if p.is_file() and not p.is_symlink())
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+    0, 12 * 2**30 + 512 * 2**20 + 16 * 2**20 - paid
+)
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 16 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5128
+assert not (D / "work/complete-teacher-recovery").exists()
+assert hashlib.sha256(v["compiler"].encode()).hexdigest() == v["compiler_sha256"]
+compile(v["compiler"], "new_oneH100_compiler", "exec")
+compile(v["entry"], "new_oneH100_GPU_entry", "exec")
+# All prerequisites and bounds exist before the first staging or GPU intent.
+G.mkdir(mode=0o700)
+(G / "compiler.py").write_text(v["compiler"])
+spec = importlib.util.spec_from_file_location("accepted_oneH100_compiler", G / "compiler.py")
+c = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(c)
+new, meta = c.build(source, metadata)
+(G / "recovery.H100.private.py").write_text(new)
+(G / "entry.py").write_text(v["entry"])
+(D / "input/complete-targets").symlink_to(S / "complete-target-input-v1", target_is_directory=True)
+meta.update(
+    source_git=v["source_git"],
+    entry_sha256=hashlib.sha256(v["entry"].encode()).hexdigest(),
+    runtime_input_receipt_sha256=hashlib.sha256(
+        (D / "runtime-inputs-verified.json").read_bytes()
+    ).hexdigest(),
+    original_compile_CPU=compiled["CPU_job"],
+    actual_CPU_runtime=runtime["CPU_job"],
+    complete_target_file=compiled["complete_target_file"],
+)
+(G / "staged.json").write_text(json.dumps(meta, indent=2) + "\n")
+H = Path("/home/sa305415/rsna-knee/kaggle")
+command = [
+    "srun",
+    "--exact",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    str(G / "entry.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=01:00:00",
+    "--job-name=rsna-S6-oneH100-recovery",
+    "--output=" + str(H / "S6-oneH100-recovery-%j.stdout"),
+    "--error=" + str(H / "S6-oneH100-recovery-%j.stderr"),
+    "--wrap=" + shlex.join(command),
+]
+with (G / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "exact_compilation": meta,
+            "actual_runtime_CPU": runtime["CPU_job"],
+            "original_complete_target_CPU": compiled["target_handoff_CPU"],
+            "maximum_new_GPU_jobs": 1,
+            "physical_node_GPUs": 2,
+            "assigned_H100": 1,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+x = subprocess.run(args, capture_output=True, text=True)
+(G / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Uncertain original sbatch mutation requires read-only reconciliation, never retry"
+)
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+actual = {
+    "status": "actual_complete_teacher_oneH100_recovery_submitted_once",
+    "GPU_job": job,
+    "node": "evc33",
+    "physical_node_GPUs": 2,
+    "assigned_H100": 1,
+    "CPU": 2,
+    "host_RAM_GiB": 64,
+    "maximum_minutes": 60,
+    "source_sha256": meta["source_sha256"],
+    "entry_sha256": meta["entry_sha256"],
+    "actual_runtime_CPU": runtime["CPU_job"],
+    "original_compile_CPU": compiled["CPU_job"],
+    "full_production_or_competition_dispatched": False,
+    "actual_GPU_acceptance_or_accuracy_claim": False,
+    "automatic_retry": False,
+}
+(G / "submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
