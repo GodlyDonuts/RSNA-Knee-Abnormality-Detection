@@ -1,0 +1,100 @@
+"""Add only missing root Python modules; no model, image or index is recopied."""
+
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+assert not (L / "root-code-supplement-intent.json").exists()
+sender = """import base64,hashlib,json
+from pathlib import Path
+r=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/source-tree-v1/code');files={}
+for p in sorted(r.glob('*.py')):
+ assert p.is_file() and not p.is_symlink()
+ raw=p.read_bytes();files[p.name]={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'base64':base64.b64encode(raw).decode()}
+assert 'compact_infer.py' in files and 'compact_train.py' in files and sum(x['bytes'] for x in files.values())<8*2**20
+print(json.dumps({'files':files}))
+"""
+receiver = """import base64,hashlib,json,os
+from pathlib import Path
+assert os.uname().nodename=='evc39';os.umask(0o077)
+M=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1');r=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1/source-tree-v1/code');assert not (M/'root-code-supplement-verified.json').exists()
+v=json.load(__import__('sys').stdin);files=v['files'];assert sum(x['bytes'] for x in files.values())<8*2**20
+for name,row in files.items():
+ assert Path(name).name==name and name.endswith('.py') and not (r/name).exists()
+ raw=base64.b64decode(row['base64'],validate=True);assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256'];compile(raw,name,'exec')
+(M/'root-code-supplement-intent.json').write_text(json.dumps({'files':list(files),'CPU_job':os.environ['SLURM_JOB_ID'],'automatic_retry':False}))
+for name,row in files.items():
+ raw=base64.b64decode(row['base64'],validate=True)
+ with (r/name).open('xb') as f:f.write(raw)
+ assert hashlib.sha256((r/name).read_bytes()).hexdigest()==row['sha256']
+out={'status':'actual_missing_original_root_Python_modules_copied_and_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'files':len(files),'bytes':sum(x['bytes'] for x in files.values()),'source_model_images_index_or_journal_recopied':False}
+(M/'root-code-supplement-verified.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+(L / "root-code-supplement-intent.json").write_text(
+    json.dumps(
+        {
+            "original_location_failure_job": "968046",
+            "failure_before_inference": "ModuleNotFoundError compact_infer",
+            "new_copies_only_root_Python_modules": True,
+            "no_model_or_pixel_replay": True,
+            "automatic_retry": False,
+        }
+    )
+)
+python = "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"
+a = [
+    "srun",
+    "--jobid=967851",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--mem=512M",
+    "--time=00:05:00",
+    python,
+    "-B",
+    "-c",
+    sender,
+]
+b = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=512M",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-root-source-supplement",
+    python,
+    "-B",
+    "-c",
+    receiver,
+]
+remote = shlex.join(["bash", "-o", "pipefail", "-c", shlex.join(a) + " | " + shlex.join(b)])
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        remote,
+    ],
+    capture_output=True,
+    text=True,
+    timeout=360,
+)
+(L / "root-code-supplement-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1200:]
+v = json.loads(x.stdout)
+(D / "actual-root-code-supplement.json").write_text(json.dumps(v, indent=2) + "\n")
+print(json.dumps(v))

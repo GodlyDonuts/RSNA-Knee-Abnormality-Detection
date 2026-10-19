@@ -1,0 +1,107 @@
+"""Admit only copied CPU runtime/input location; no second teacher or journal exists."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+assert not (L / "location-admission-v2-intent.json").exists()
+proof = json.loads((D / "actual-assets-verified.json").read_text())
+assert proof["CPU_job"] == "968002" and proof["new_producer_admitted"] is False
+program = """import hashlib,importlib.util,inspect,json,os,shutil,sys
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+os.umask(0o077)
+M=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1');B=Path('/tmp/rsna-S6-checkpoint-admission-20261017-v1');P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1');C=P/'CPU-full-stream-v1';E=P/'engine-v1'
+assert not (M/'location-accepted.json').exists() and not (E/'execution.lock').exists() and not (P/'completed-logits.private.jsonl').exists()
+proof=json.loads((M/'verified.json').read_text());assert proof['CPU_job']=='968002' and proof['bytes']==520397475
+manifest=json.loads((M/'files.private.json').read_text());assert manifest['sha256']['B/E_prior_s42_fall.pt']=='0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+stage=json.loads((C/'staged.json').read_text());assert stage['source_git']=='a6b1d0e647d858476a790177ad953295966de252' and stage['CPU_job']=='962215'
+assert all(sha(C/n)==h for n,h in stage['files'].items())
+for name in ('source_buffer.py','contract.py'):
+ assert sha(E/name)==json.loads((E/'staged.json').read_text())['files'][name]
+index_files=list(Path('/dev/shm/rsna-S6-index-node39-20261019-v1').iterdir());assert len(index_files)==1 and index_files[0].stat().st_size==53202254
+# Original whole-stream receipt already verified every copied byte. Reuse its proof.
+assert any(k.startswith('I/') and h=='b340e77ee09de2c7695355ac9559dc49f2be0254105e633e718caf4b7bd4fc11' for k,h in manifest['sha256'].items())
+assert shutil.disk_usage('/tmp').free>21*2**30 and shutil.disk_usage('/dev/shm').free>93*2**30
+os.environ.update(HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PIP_NO_INDEX='1',HF_HOME=str(M/'hf-private'),TORCH_HOME=str(M/'torch-private'),XDG_CACHE_HOME=str(M/'cache-private'))
+sys.path.insert(0,str(B/'runtime-opencv-v1/site-packages'));sys.path.insert(0,'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay')
+import torch,numpy,cv2,timm
+assert not torch.cuda.is_available()
+spec=importlib.util.spec_from_file_location('original_S6_cpu_location',B/'source-tree-v1/launcher.private.py');launch=importlib.util.module_from_spec(spec);sys.modules[spec.name]=launch;spec.loader.exec_module(launch)
+assert hashlib.sha256(inspect.getsource(launch.CI.main).encode()).hexdigest()=='7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946'
+launch.install_paths();import compact_train
+assert list(compact_train.LABELS)==stage['targets']
+with numpy.load('/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz',allow_pickle=False) as z:uids=z['uids'].tolist()
+assert len(uids)==len(set(uids))==3887 and hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()=='0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42'
+s=(B/'E_prior_s42_fall.pt').stat();actual_stat={'bytes':s.st_size,'mtime_ns':s.st_mtime_ns,'inode':s.st_ino};assert s.st_size==200185003
+ram=Path('/dev/shm/rsna-S6-CPU-node39-20261019-v1');assert not ram.exists();ram.mkdir(mode=0o700)
+for root in (E,C):
+ p=root/'staged.json';old=json.loads(p.read_text());(root/'staged.original-node33.private.json').write_text(p.read_text());old.update(original_node33_model_stat=old['model_stat'],model_stat=actual_stat,location_admission_CPU_job=os.environ['SLURM_JOB_ID'],location_original='evc33',location_current='evc39');p.write_text(json.dumps(old,indent=2))
+ (root/'RAM-location.private.json').write_text(json.dumps({'path':str(ram),'cap_bytes':64*2**30,'new_independent_node39_RAM_envelope':True}))
+(P/'RAM-location.private.json').write_text(json.dumps({'path':str(index_files[0]),'index_cap_bytes':2**30,'copied_original_index_stream_proof':proof['payload_sha256']}))
+out={'status':'actual_node39_CPU_source_runtime_and_input_location_accepted_no_inference','CPU_job':os.environ['SLURM_JOB_ID'],'original_source_git':stage['source_git'],'asset_copy_CPU_job':'968002','model_stat':actual_stat,'model_sha256_proof_reused':manifest['sha256']['B/E_prior_s42_fall.pt'],'torch':str(torch.__version__),'numpy':numpy.__version__,'cv2':cv2.__version__,'timm':timm.__version__,'source_main_AST_SHA':'7dac0d1616c2b9fc6e1f32a1846f03c3b5a051fd41665c9f15f6b185131d8946','fitting_studies':3887,'fitting_roster_sha256':'0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42','disease_labels_or_masks_decoded':False,'new_inference_or_GPU_or_journal':False,'ready_for_production':False,'remaining':'Actual original node33 terminal/clean writer handoff and exact complete current journal seed required before new production'}
+(M/'location-accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+s = importlib.util.spec_from_file_location(
+    "bounded_stdin",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "location-admission-v2-intent.json").write_text(
+    json.dumps({"asset_proof": proof, "source_and_input_only": True, "automatic_retry": False})
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-node39-location-admit",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {}),
+    capture_output=True,
+    text=True,
+    timeout=360,
+)
+(L / "location-admission-v2-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Location admission stopped; inspect original state without replay: " + x.stderr[-1500:]
+)
+v = json.loads(x.stdout)
+(D / "actual-location-accepted.json").write_text(json.dumps(v, indent=2) + "\n")
+print(json.dumps(v))
