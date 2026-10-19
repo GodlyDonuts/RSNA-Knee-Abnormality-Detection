@@ -1,0 +1,142 @@
+"""One remediated pilot: exact original model/prompt, private headers and outputs."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+os.umask(0o077)
+D = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+P = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+R = D / "pilot-recovery-v1"
+meta = json.loads((R / "staged.json").read_text())
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["entry_sha256"]
+assert os.uname().nodename == "evc33" and os.environ.get("SLURM_JOB_GPUS")
+assert not (R / "GPU-intent.json").exists()
+assert (
+    hashlib.sha256((D / "verified.json").read_bytes()).hexdigest()
+    == meta["header_admission_sha256"]
+)
+assert (
+    hashlib.sha256((R / "derived-pilot.private.py").read_bytes()).hexdigest()
+    == meta["derived_pilot_sha256"]
+)
+assert hashlib.sha256((P / "pilot.py").read_bytes()).hexdigest() == meta["original_pilot_sha256"]
+assert not (P / "actual-pilot-headers-v1").exists()
+with (R / "GPU-intent.json").open("x") as f:
+    json.dump(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "exact_source_and_header_admission": meta,
+            "original_failed_GPU_job": "968562",
+            "original_private_failure_output_preserved": True,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+env = {
+    k: v
+    for k, v in os.environ.items()
+    if not any(s in k.upper() for s in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+}
+env.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONNOUSERSITE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    OMP_NUM_THREADS="2",
+    MKL_NUM_THREADS="2",
+    OPENBLAS_NUM_THREADS="1",
+    C_INCLUDE_PATH=meta["include_path"],
+    CPLUS_INCLUDE_PATH=meta["include_path"],
+    TRITON_CACHE_DIR=str(D / "triton-cache"),
+    CUDA_CACHE_PATH=str(D / "cuda-cache"),
+    CUDA_CACHE_MAXSIZE=str(32 * 2**20),
+    XDG_CACHE_HOME=str(D / "xdg-cache"),
+)
+start = time.monotonic()
+child = None
+
+
+def paid(root):
+    total = 0
+    for p in root.rglob("*"):
+        try:
+            if p.is_file():
+                total += p.stat().st_size
+        except FileNotFoundError:
+            # Triton atomically retires its own temporary compiler files.
+            continue
+    return total
+
+
+try:
+    with (R / "stdout.private.log").open("x") as out, (R / "stderr.private.log").open("x") as err:
+        child = subprocess.Popen(
+            [sys.executable, "-B", str(R / "derived-pilot.private.py")],
+            env=env,
+            stdout=out,
+            stderr=err,
+            start_new_session=True,
+        )
+        while child.poll() is None:
+            if paid(D) >= 128 * 2**20 or paid(P) >= 256 * 2**20 or time.monotonic() - start > 1650:
+                child.terminate()
+                child.wait(timeout=30)
+                raise RuntimeError("Private dependency/output/time cap reached; no retry")
+            time.sleep(2)
+        assert child.returncode == 0, (
+            "Original blank/MRI child stopped; retain private logs and do not retry"
+        )
+    result = json.loads((P / "actual-pilot-headers-v1/terminal.json").read_text())
+    assert (
+        result["status"] == "actual_full_native_study_multimodal_evidence_chunks_completed"
+        and result["slices"] == 195
+        and result["series"] == 5
+        and result["blank_abstention_passed"] is True
+    )
+    assert (
+        result["label_or_probability_fusion_performed"] is False
+        and result["accepted_labels_changed"] is False
+    )
+    v = {
+        "status": "actual_medgemma_native_pilot_after_matching_private_header_recovery_complete",
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "original_failed_GPU_job": "968562",
+        "actual": result,
+        "derived_source": meta,
+        "new_weights_pixels_or_package_installation": False,
+        "model_or_clinical_accuracy_or_student_gain_claim": False,
+    }
+    (R / "terminal.json").write_text(json.dumps(v, indent=2) + "\n")
+    print(json.dumps(v), flush=True)
+except BaseException as e:
+    if child is not None and child.poll() is None:
+        child.terminate()
+        try:
+            child.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait(timeout=10)
+    control = P / "actual-pilot-headers-v1/control.json"
+    summary = json.loads(control.read_text()) if control.is_file() else None
+    (R / "terminal-failed.json").write_text(
+        json.dumps(
+            {
+                "status": "original_corrected_pilot_stopped_no_retry",
+                "GPU_job": os.environ["SLURM_JOB_ID"],
+                "type": type(e).__name__,
+                "reason": str(e),
+                "safe_blank_control_summary": summary,
+                "raw_clinical_outputs_exported": False,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise

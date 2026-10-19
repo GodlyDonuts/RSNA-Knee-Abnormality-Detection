@@ -1,0 +1,170 @@
+"""One distinct GPU pilot, only after actual matching-header compile acceptance."""
+
+import ast
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+P = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+R = D / "pilot-recovery-v1"
+assert not R.exists(), "Existing pilot admission/intent requires read-only reconciliation"
+header = json.loads((D / "verified.json").read_text())
+assert (
+    header["CPU_job"] == "970014"
+    and header["status"]
+    == "actual_matching_private_Python312_headers_and_original_Triton_driver_compile_accepted"
+)
+assert header["RPM_sha256"] == "d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3"
+for name, item in header["header_files"].items():
+    p = D / "headers" / name
+    assert (
+        p.stat().st_size == item["bytes"]
+        and hashlib.sha256(p.read_bytes()).hexdigest() == item["sha256"]
+    )
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "968562", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "968562|FAILED|1:0" in state
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+    0, 128 * 2**20 - sum(p.stat().st_size for p in D.rglob("*") if p.is_file())
+)
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 4 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5256
+source = (P / "pilot.py").read_text()
+original_tree = ast.parse(source)
+h = hashlib.sha256(source.encode()).hexdigest()
+assert h == "c3fecb8a2c36989dec7880ceab58beda9887a9bc50dfb813d08ed17854898cc5"
+old = 'assert proof["pilot_sha256"] == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()'
+new = 'assert proof["pilot_sha256"] == hashlib.sha256(Path("/tmp/rsna-medgemma15-first-packet-20261019-v1/pilot.py").read_bytes()).hexdigest()'
+assert source.count(old) == 1
+source = source.replace(old, new)
+old = 'OUTPUT = R / "actual-pilot"'
+assert source.count(old) == 1
+source = source.replace(old, 'OUTPUT = R / "actual-pilot-headers-v1"')
+derived_tree = ast.parse(source)
+changed = [
+    (a, b)
+    for a, b in zip(original_tree.body, derived_tree.body, strict=True)
+    if ast.dump(a) != ast.dump(b)
+]
+assert len(changed) == 2
+assert sum(isinstance(a, ast.Assert) for a, _ in changed) == 1
+assert (
+    sum(
+        isinstance(a, ast.Assign)
+        and len(a.targets) == 1
+        and isinstance(a.targets[0], ast.Name)
+        and a.targets[0].id == "OUTPUT"
+        for a, _ in changed
+    )
+    == 1
+)
+compile(source, "original_MedGemma_with_private_headers_and_distinct_output", "exec")
+compile(v["entry"], "private_header_pilot_entry", "exec")
+R.mkdir(mode=0o700)
+(R / "derived-pilot.private.py").write_text(source)
+(R / "entry.py").write_text(v["entry"])
+meta = {
+    "source_git": v["source_git"],
+    "original_pilot_sha256": h,
+    "derived_pilot_sha256": hashlib.sha256(source.encode()).hexdigest(),
+    "entry_sha256": hashlib.sha256(v["entry"].encode()).hexdigest(),
+    "header_admission_sha256": hashlib.sha256((D / "verified.json").read_bytes()).hexdigest(),
+    "header_CPU": "970014",
+    "include_path": header["include_path"],
+    "model_prompt_processor_generation_and_all_functions_unchanged": True,
+    "changes": [
+        "private header include environment and cache locations",
+        "distinct output namespace",
+        "self-source proof points to preserved original pilot",
+    ],
+    "new_models_or_MRI_or_accepted_labels": False,
+}
+(R / "staged.json").write_text(json.dumps(meta, indent=2) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 4 * 2**20
+H = Path("/home/sa305415/rsna-knee/kaggle")
+cmd = [
+    "srun",
+    "--exact",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "env",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=2",
+    "MKL_NUM_THREADS=2",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    str(R / "entry.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=00:30:00",
+    "--job-name=rsna-medgemma15-private-headers",
+    "--output=" + str(H / "medgemma15-private-headers-%j.stdout"),
+    "--error=" + str(H / "medgemma15-private-headers-%j.stderr"),
+    "--wrap=" + shlex.join(cmd),
+]
+with (R / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source": meta,
+            "one_distinct_GPU_job": True,
+            "actual_original_terminal": state.strip(),
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+x = subprocess.run(args, capture_output=True, text=True)
+(R / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile uncertain original sbatch result, never repeat"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+print(
+    json.dumps(
+        {
+            "status": "actual_distinct_header_corrected_MedGemma_pilot_submitted_once",
+            "GPU_job": job,
+            "node": "evc33",
+            "physical_GPUs": 2,
+            "GPU": 1,
+            "CPU": 2,
+            "memory_GiB": 64,
+            "minutes": 30,
+            "source": meta,
+            "existing_official_model_and_all195_images_reused": True,
+            "system_runtime_or_accepted_labels_changed": False,
+            "actual_GPU_or_clinical_success_not_yet_claimed": True,
+            "automatic_retry": False,
+        }
+    ),
+    flush=True,
+)
