@@ -1,0 +1,167 @@
+"""Bind the complete retained MRI population through actual private Newton mounts."""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+C = P / "original-pixel-replica-v2"
+copy = json.loads((C / "verified.json").read_text())
+assert (
+    copy["status"]
+    == "actual_original_four_pixel_shards_private_node39_to_node33_whole_bytes_verified"
+)
+assert copy["archive_bytes"] == 38870763520 and copy["new_shared_metadata_files"] == 128
+assert copy == v["copy"]
+for job in (copy["CPU_job"], v["sender_CPU"]):
+    terminal = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+    assert job + "|COMPLETED|0:0" in terminal
+assert not (P / "input-intent.json").exists() and not (P / "input").exists()
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+source = json.loads((S / "admitted.json").read_text())
+assert source["CPU_job"] == "969738"
+for name, h in source["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == h
+F = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison")
+proofs = json.loads(
+    Path(
+        "/tmp/rsna-licensed-parent-whole94-production-20261016-v1/actual-original-Kaggle-inputs.json"
+    ).read_text()
+)["proofs"]
+for i, proof in enumerate(proofs):
+    archive = C / f"shard-{i}/pixels.tar"
+    index = C / f"shard-{i}/index.private.json"
+    assert archive.stat().st_size == proof["archive_bytes"]
+    assert copy["files"][f"shard-{i}/pixels.tar"]["sha256"] == proof["archive_sha256"]
+    assert hashlib.sha256(index.read_bytes()).hexdigest() == proof["index_sha256"]
+(P / "input-intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "original_replica_CPU": copy["CPU_job"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+inputs = P / "input"
+inputs.mkdir(mode=0o700)
+for name, target in (
+    ("original32-pixels", Path("/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected")),
+    (
+        "original-parent",
+        Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1/input/original-parent"),
+    ),
+    *[(f"shard-{i}", C / f"shard-{i}") for i in range(4)],
+):
+    (inputs / name).symlink_to(target, target_is_directory=True)
+# Bind only each exact original target/proposal file, not unrelated old controls.
+for folder, target in (
+    (
+        "original-targets",
+        Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz"),
+    ),
+    ("original-proposals", F.parent / "proposal-table/proposals.private.npy"),
+):
+    (inputs / folder).mkdir(mode=0o700)
+    os.link(target, inputs / folder / target.name)
+sys.path.insert(0, str(S / "code"))
+from rsna.competitive.licensed_parent_population import load  # noqa: E402
+
+old = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+worker = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "WORKER"
+)
+tree = ast.parse(base64.b64decode(worker, validate=True).decode())
+boundary = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+ns = {
+    "__name__": "original_renderer_full_population_input_gate",
+    "__file__": "original_renderer_full_population_input_gate.py",
+}
+exec(
+    compile(
+        ast.Module(body=tree.body[:boundary], type_ignores=[]),
+        "original_exact_MRI_renderer",
+        "exec",
+    ),
+    ns,
+)
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+
+
+def render(volume, mask, mirror):
+    return ns["eval_windows"](volume, mask, 94, 320, norm=ns["NORM"], mirror=mirror)
+
+
+data = load(inputs, proofs, render)
+assert len(data) == 3887 and len(set(data.uids)) == 3887
+assert (
+    hashlib.sha256(json.dumps(data.uids, separators=(",", ":")).encode()).hexdigest()
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+proposal = inputs / "original-proposals/proposals.private.npy"
+assert (
+    hashlib.sha256(proposal.read_bytes()).hexdigest()
+    == "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+)
+with proposal.open("rb") as f:
+    q = np.load(f, allow_pickle=False)
+assert q.shape == (3887, 94) and q.dtype == np.float64 and np.isfinite(q).all()
+for shard in range(4):
+    index = next(i for i, row in enumerate(data.records) if row["holder"] == "s" + str(shard))
+    for mirror in (False, True):
+        row = data.case(index, list(range(94)), mirror)
+        assert row["images"].shape == (94, 3, 320, 320) and torch.isfinite(row["images"]).all()
+        assert torch.equal(row["labels"], data.labels[index]) and torch.equal(
+            row["mask"], data.mask[index]
+        )
+        del row
+actual = {
+    "status": "actual_full3887_original_MRI_population_on_Newton_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "original_replica_CPU": copy["CPU_job"],
+    "fitting_studies": 3887,
+    "population_sha256": "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42",
+    "source_numerical_modules_equal": True,
+    "all_four_original_shard_indices_and_original32_joined": True,
+    "whole_archives_rehashed_again": False,
+    "real_cases_decoded": 4,
+    "original_plain_and_mirrored94_tensor_hashes_checked": 8,
+    "original_target_arrays_and_proposals_SHA_equal": True,
+    "reports_or_protected_values_or_complete_new_teacher_consumed": False,
+    "GPU_or_optimizer_or_production_or_accuracy_acceptance": False,
+    "input_hardlink_and_directory_aliases_are_not_new_bulk_copies": True,
+    "automatic_retry": False,
+}
+(P / "inputs-verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
