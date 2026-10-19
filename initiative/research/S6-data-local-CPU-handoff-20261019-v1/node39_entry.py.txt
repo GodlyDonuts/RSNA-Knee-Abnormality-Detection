@@ -1,0 +1,114 @@
+"""CPU location/resource adaptation only; the original scientific loops stay intact."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+_LOC_M = Path("/tmp/rsna-S6-data-local-handoff-20261019-v1")
+_LOC_P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+_LOC_B = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+_LOC_T = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1")
+_LOC_C = Path("/tmp/rsna-S6-complete-target-admission-20261018-v1")
+PINS = {
+    "teacher": "5f3205f1d2f706b8debe66b83fb5f4a6428a35509d6d0baaea153390d7716fc9",
+    "targets": "885e2448b478a6cd82fab30bb6913bec1b0cf100030a363861a51ef2ded31c14",
+}
+
+
+def _paid(root):
+    return sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+
+
+def location_storage():
+    assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+    location = json.loads((_LOC_M / "location-accepted.json").read_text())
+    assert location["CPU_job"] == "968105" and location["torch"] == "2.14.0+cu130"
+    s = (_LOC_B / "E_prior_s42_fall.pt").stat()
+    assert {"bytes": s.st_size, "mtime_ns": s.st_mtime_ns, "inode": s.st_ino} == location[
+        "model_stat"
+    ]
+    cache = sum(
+        (lambda v: v["archive_bytes"] + v["index_bytes"])(json.loads(p.read_text()))
+        for p in Path("/tmp/rsna-licensed-parent-pixels-full-20261016-v1").glob(
+            "shard-*/collected/verified.json"
+        )
+    )
+    old = sum(
+        json.loads(p.read_text())["retained_original_bytes"]
+        for p in Path("/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1").glob(
+            "epoch-*/verified.json"
+        )
+    )
+    iid = sum(
+        json.loads(p.read_text())["retained_original_bytes"]
+        for p in Path("/tmp/rsna-licensed-importance-full-epochs-20261017-v1").glob(
+            "*/epoch-*/verified.json"
+        )
+    )
+    lr = sum(
+        json.loads(p.read_text())["retained_original_bytes"]
+        for p in Path("/tmp/rsna-encoderLR3e5-private-epochs-20261018-v1").glob(
+            "*/epoch-*/verified.json"
+        )
+    )
+    floor = (
+        689890867139
+        - cache
+        - old
+        + 12 * 2**30
+        + 16 * 2**20
+        - iid
+        + 256 * 1024
+        + 4 * 2**30
+        + 16 * 2**20
+        - lr
+    )
+    paid = sum(_paid(p) for p in (_LOC_M, _LOC_P, _LOC_B, _LOC_T, _LOC_C))
+    assert paid < 2**30 and _paid(_LOC_P) < 8 * 2**20 and _paid(_LOC_C) < 4 * 2**20
+    assert shutil.disk_usage("/tmp").free > floor + max(0, 2**30 - paid)
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 and int(a[6]) - int(a[5]) > 5000
+    return {
+        "old_remaining_floor_bytes": floor,
+        "current_paid_asset_bytes": paid,
+        "asset_cap_bytes": 2**30,
+    }
+
+
+def teacher_guard(phase):
+    location_storage()
+    assert (
+        int(os.environ["SLURM_CPUS_PER_TASK"]) >= 25
+        and int(os.environ["SLURM_MEM_PER_NODE"]) >= 196608
+    )
+    seed = json.loads((_LOC_M / "seed-accepted.json").read_text())
+    assert seed["status"] == "actual_original_clean_phase10_journal_seed_verified_node39"
+    assert seed["source_job"] == "967851" and seed["source_phase"] == 10 and phase >= 11
+    if phase == 11:
+        raw = (_LOC_P / "completed-logits.private.jsonl").read_bytes()
+        assert (
+            len(raw) == seed["journal_bytes"]
+            and hashlib.sha256(raw).hexdigest() == seed["journal_sha256"]
+        )
+
+
+def adapt(source, kind):
+    assert kind in PINS and hashlib.sha256(source.encode()).hexdigest() == PINS[kind]
+    old = 'os.uname().nodename == "evc33"'
+    assert source.count(old) == 1
+    changed = source.replace(old, 'os.uname().nodename == "evc39"')
+    begin = changed.index('reader = Path("/tmp/rsna-criterion-N3-features-20261017-v1")')
+    stop = (
+        changed.index("def mem():")
+        if kind == "teacher"
+        else changed.index("producer = json.loads(")
+    )
+    assert stop > begin
+    guard = "teacher_guard(phase)" if kind == "teacher" else "location_storage()"
+    changed = changed[:begin] + guard + "\n\n" + changed[stop:]
+    compile(changed, "original_" + kind + "_node39_CPU_location_only", "exec")
+    return changed

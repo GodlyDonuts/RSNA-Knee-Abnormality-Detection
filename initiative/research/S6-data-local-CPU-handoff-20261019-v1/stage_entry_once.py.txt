@@ -1,0 +1,100 @@
+"""Stage an immutable CPU-only entry that cannot run before an accepted journal seed."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+assert not (L / "entry-stage-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+p = D / "node39_entry.py.txt"
+helper = subprocess.check_output(
+    ["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True
+)
+assert helper == p.read_text()
+program = """import hashlib,json,os
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc39';os.umask(0o077)
+M=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1');P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1');C=Path('/tmp/rsna-S6-complete-target-admission-20261018-v1')
+assert not (M/'entry-accepted.json').exists() and not (M/'seed-accepted.json').exists() and not (P/'completed-logits.private.jsonl').exists()
+assert hashlib.sha256(v['helper'].encode()).hexdigest()==v['helper_sha256']
+n={};exec(compile(v['helper'],'new_node39_CPU_entry_scope','exec'),n);budget=n['location_storage']()
+source=P/'CPU-full-stream-v1/program.py';target=C/'program.py'
+for kind,p in [('teacher',source),('targets',target)]:n['adapt'](p.read_text(),kind)
+helper=M/'node39_entry.py';assert not helper.exists();helper.write_text(v['helper'])
+paths={}
+for kind,p in [('teacher',source),('targets',target)]:
+ entry=M/('run_'+kind+'.py');assert not entry.exists()
+ code="from pathlib import Path\\nimport hashlib\\np=Path("+repr(str(helper))+")\\nassert hashlib.sha256(p.read_bytes()).hexdigest()=="+repr(v['helper_sha256'])+"\\nn={}\\nexec(compile(p.read_text(),'admitted_node39_CPU_scope','exec'),n)\\ns=Path("+repr(str(p))+").read_text()\\nn.update(__name__='__main__',__file__="+repr(str(p))+")\\nexec(compile(n['adapt'](s,"+repr(kind)+"),'original_science_new_CPU_location','exec'),n)\\n"
+ code=code.replace('\\\\n','\\n');compile(code,'entry','exec');entry.write_text(code);paths[kind]={'path':str(entry),'sha256':hashlib.sha256(code.encode()).hexdigest()}
+out={'status':'actual_node39_CPU_entries_staged_seed_required_before_production','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'helper_sha256':v['helper_sha256'],'entries':paths,'original_numerical_source_pins':n['PINS'],'budget':budget,'new_GPU_or_inference':False,'seed_exists':False,'new_producer_started':False}
+(M/'entry-accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+s = importlib.util.spec_from_file_location(
+    "bounded", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "entry-stage-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "helper_sha256": hashlib.sha256(helper.encode()).hexdigest(),
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-S6-node39-entry-stage",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "helper": helper,
+            "helper_sha256": hashlib.sha256(helper.encode()).hexdigest(),
+            "source_git": git,
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=200,
+)
+(L / "entry-stage-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1200:]
+out = json.loads(x.stdout)
+(D / "actual-entry-staged.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out))
