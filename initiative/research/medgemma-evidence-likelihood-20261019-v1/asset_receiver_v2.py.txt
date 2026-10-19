@@ -1,0 +1,117 @@
+# ruff: noqa: F821
+"""One new private earlier-node copy with independently funded bounded pilot scope."""
+
+import ipaddress
+import shutil
+import socket
+import subprocess
+import sys
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+E = Path("/tmp/rsna-medgemma-evidence-likelihood-20261019-v1")
+assert not E.exists(), "Original asset intent requires reconciliation, never retry"
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 24) * 2**30 + 32 * 2**20
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "971999", "--format=JobIDRaw,State,ExitCode,Elapsed"],
+    text=True,
+)
+assert "971999|FAILED|1:0|00:00:01" in terminal
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+retained = [p for p in teacher.rglob("*") if p.is_file()]
+paid_files = len(retained)
+paid_bytes = sum(p.stat().st_size for p in retained)
+assert paid_files < 256 and paid_bytes < 4 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+future_files = 128 + max(0, 256 - paid_files) + 128 + 32
+future_bytes = (16 + 12 + 4) * 2**20 + max(0, 4 * 2**20 - paid_bytes)
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + future_bytes
+assert int(a[6]) - int(a[5]) > 5000 + future_files
+E.mkdir(mode=0o700)
+(E / "asset-intent-v2.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "new_asset_cap_bytes": 12 * 2**30,
+            "new_private_pilot_dependency_output_cap_bytes": 12 * 2**30,
+            "new_shared_small_metadata_cap_bytes": 4 * 2**20,
+            "new_shared_file_cap": 32,
+            "all_previous_87GiB_node48_obligations_and_20GiB_reserve_kept": True,
+            "originals_deleted_or_credit_taken": False,
+            "already_charged_teacher_files": paid_files,
+            "remaining_future_files_after_all_scopes": future_files,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+context, cert = server_context()
+address = socket.gethostbyname("ivc48")
+assert ipaddress.ip_address(address).is_private
+listener = socket.socket()
+listener.bind((address, 0))
+listener.listen(1)
+listener.settimeout(600)
+print(
+    json.dumps(
+        {
+            "status": "private_auxiliary_receiver_ready",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "node": "evc48",
+            "private_address": address,
+            "port": listener.getsockname()[1],
+            "certificate_sha256": cert,
+        }
+    ),
+    flush=True,
+)
+raw, _ = listener.accept()
+raw.settimeout(180)
+with context.wrap_socket(raw, server_side=True) as channel:
+    authenticate_server(channel, secret, cert)
+    del secret
+    with channel.makefile("rb") as stream:
+        table, digest = receive_aux(stream, E / "assets-v2")
+listener.close()
+assert len(table) == 213
+M = E / "assets-v2/model"
+R = E / "assets-v2/pixels"
+proof = json.loads((M / "original-source-verified.json").read_text())
+assert (
+    proof["model"] == "google/medgemma-1.5-4b-it"
+    and proof["revision"] == "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b"
+)
+for r in proof["files"]:
+    assert table["model/" + r["path"]] == {"bytes": r["bytes"], "sha256": r["sha256"]}
+native = json.loads((R / "original-source-verified.json").read_text())
+manifest = json.loads((R / "manifest.private.json").read_text())
+assert table["pixels/manifest.private.json"]["sha256"] == native["manifest_sha256"]
+assert (
+    len(manifest["images"]) == 195
+    and manifest["training_only"] is True
+    and manifest["reports_labels_predictions_included"] is False
+)
+for r in manifest["images"]:
+    assert table["pixels/" + r["file"]] == {"bytes": r["bytes"], "sha256": r["sha256"]}
+actual = {
+    "status": "actual_original_MedGemma_and_native_fitting_packet_private_copy_to48_all_bytes_SHA_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "node": "evc48",
+    "files": len(table),
+    "bytes": sum(r["bytes"] for r in table.values()),
+    "manifest_sha256": digest,
+    "model": "google/medgemma-1.5-4b-it",
+    "revision": proof["revision"],
+    "native_slices": 195,
+    "native_series": 5,
+    "model_redownloads_or_private_records_exported": 0,
+    "GPU_or_clinical_or_student_acceptance": False,
+    "automatic_retry": False,
+}
+(E / "assets-verified-v2.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

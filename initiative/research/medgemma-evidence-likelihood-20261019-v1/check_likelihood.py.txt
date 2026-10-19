@@ -1,0 +1,51 @@
+"""Synthetic evidence-score algebra and invalid-input contracts, no medical claims."""
+
+import importlib.util
+import math
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+import torch
+
+p = Path(__file__).with_name("likelihood.py.txt")
+spec = importlib.util.spec_from_loader("score", SourceFileLoader("score", str(p)))
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+x = torch.tensor([0.0, 2.0, -1.0, 1.0, 4.0], dtype=torch.float64)
+a = m.score(x, [1, 2, 3], ["present", "absent", "uncertain"])
+assert math.isclose(a["present_vs_absent_log_odds"], 3.0)
+assert math.isclose(sum(a["conditional_options"].values()), 1.0)
+expected = float(x[[1, 2, 3]].exp().sum() / x.exp().sum())
+assert math.isclose(a["full_vocabulary_choice_mass"], expected)
+b = m.score(x + 100, [1, 2, 3], ["present", "absent", "uncertain"])
+assert all(
+    math.isclose(a["conditional_options"][k], b["conditional_options"][k]) for k in m.SEMANTICS
+)
+y = x.clone()
+y[[1, 2, 3]] = x[[2, 3, 1]]
+c = m.score(y, [1, 2, 3], ["absent", "uncertain", "present"])
+assert (
+    a["conditional_options"] == c["conditional_options"]
+    and a["present_vs_absent_log_odds"] == c["present_vs_absent_log_odds"]
+)
+y = x.clone()
+y[4] = 100
+c = m.score(y, [1, 2, 3], ["present", "absent", "uncertain"])
+assert (
+    c["full_vocabulary_choice_mass"] < a["full_vocabulary_choice_mass"]
+    and c["present_vs_absent_log_odds"] == a["present_vs_absent_log_odds"]
+)
+assert m.effect(a, b) == 0
+for logits, ids, order in [
+    (x.reshape(1, 5), [1, 2, 3], ["present", "absent", "uncertain"]),
+    (torch.tensor([float("nan")] * 5), [1, 2, 3], ["present", "absent", "uncertain"]),
+    (x, [1, 1, 3], ["present", "absent", "uncertain"]),
+    (x, [1, 2, 9], ["present", "absent", "uncertain"]),
+    (x, [1, 2, 3], ["present", "present", "uncertain"]),
+]:
+    with pytest.raises(ValueError):
+        m.score(logits, ids, order)
+print(
+    "Synthetic fixed-answer score, option-mapping, full-vocabulary mass, shift and refusal contracts passed; no MRI/GPU/accuracy claim."
+)

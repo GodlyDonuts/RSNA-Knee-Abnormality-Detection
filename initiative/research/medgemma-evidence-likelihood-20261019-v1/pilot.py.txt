@@ -1,0 +1,257 @@
+"""One bounded full-native-packet likelihood diagnostic. No generation or labels."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import time
+from pathlib import Path
+
+os.umask(0o077)
+E = Path("/tmp/rsna-medgemma-evidence-likelihood-20261019-v1")
+meta = json.loads((E / "GPU-staged-v1.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert 0 < len(os.sched_getaffinity(0)) <= 2 * int(os.environ["SLURM_CPUS_PER_TASK"])
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["entry_sha256"]
+assert (
+    hashlib.sha256((E / "inputs-verified-v1.json").read_bytes()).hexdigest()
+    == meta["input_receipt_sha256"]
+)
+assert hashlib.sha256((E / "likelihood.py").read_bytes()).hexdigest() == meta["likelihood_sha256"]
+assert not (E / "pilot-v1").exists()
+os.environ.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    PYTHONNOUSERSITE="1",
+    OMP_NUM_THREADS="2",
+    MKL_NUM_THREADS="2",
+    OPENBLAS_NUM_THREADS="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    C_INCLUDE_PATH="/tmp/rsna-medgemma15-runtime-headers-20261019-v1/headers/usr/include/python3.12",
+    CPLUS_INCLUDE_PATH="/tmp/rsna-medgemma15-runtime-headers-20261019-v1/headers/usr/include/python3.12",
+    TRITON_CACHE_DIR=str(E / "runtime-cache-v1/triton"),
+    XDG_CACHE_HOME=str(E / "runtime-cache-v1/xdg"),
+    CUDA_CACHE_PATH=str(E / "runtime-cache-v1/cuda"),
+    CUDA_CACHE_MAXSIZE=str(32 * 2**20),
+)
+import torch  # noqa: E402
+from PIL import Image  # noqa: E402
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration  # noqa: E402
+
+assert torch.cuda.device_count() == 1 and torch.cuda.get_device_name(0).startswith("NVIDIA H100")
+assert torch.ones(1, device="cuda").item() == 1
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+torch.use_deterministic_algorithms(True)
+spec = importlib.util.spec_from_file_location("fixed_answer_likelihood", E / "likelihood.py")
+scorer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(scorer)
+P = E / "pilot-v1"
+P.mkdir(mode=0o700)
+(P / "GPU-intent.json").write_text(
+    json.dumps(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": meta["source_git"],
+            "source_sha256": meta["entry_sha256"],
+            "CUDA_context_and_tensor_passed": True,
+            "actual_CPU_input_receipt": meta["input_receipt_sha256"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+started = time.monotonic()
+phase = "model_load"
+
+
+def bounds():
+    assert time.monotonic() - started < 1650
+    assert shutil.disk_usage("/tmp").free > (20 + 87) * 2**30 + 32 * 2**20
+    paid = 0
+    for root in (P, E / "runtime-cache-v1"):
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            try:
+                if path.is_file():
+                    paid += path.stat().st_size
+            except FileNotFoundError:
+                continue
+    assert paid < 12 * 2**30
+
+
+try:
+    A = E / "assets-v2"
+    M = A / "model"
+    R = A / "pixels"
+    manifest = json.loads((R / "manifest.private.json").read_text())
+    assert (
+        manifest["training_only"] is True
+        and manifest["reports_labels_predictions_included"] is False
+    )
+    processor = AutoProcessor.from_pretrained(
+        str(M), local_files_only=True, trust_remote_code=False
+    )
+    model, loading = Gemma3ForConditionalGeneration.from_pretrained(
+        str(M),
+        local_files_only=True,
+        trust_remote_code=False,
+        dtype=torch.bfloat16,
+        low_cpu_mem_usage=False,
+        attn_implementation="sdpa",
+        output_loading_info=True,
+    )
+    assert all(
+        not loading.get(k)
+        for k in ("missing_keys", "unexpected_keys", "mismatched_keys", "error_msgs")
+    )
+    model = model.eval().requires_grad_(False).to("cuda:0")
+    state_tensors = len(model.state_dict())
+    groups = {}
+    for row in manifest["images"]:
+        groups.setdefault(row["series_index"], []).append(row)
+    chunks = []
+    for key in sorted(groups):
+        rows = sorted(groups[key], key=lambda x: x["slice_index"])
+        chunks.extend([rows[i : i + 12] for i in range(0, len(rows), 12)])
+    assert len(groups) == 5 and sum(map(len, chunks)) == 195
+    assert len({r["file"] for rows in chunks for r in rows}) == 195
+    orders = [["present", "absent", "uncertain"], ["absent", "uncertain", "present"]]
+    questions = ["an anterior cruciate ligament tear", "joint effusion"]
+    explanations = {
+        "present": "evidence supports presence",
+        "absent": "evidence supports absence",
+        "uncertain": "cannot determine from these images",
+    }
+    ids = [562, 603, 565]
+    blank_cache = {}
+    rows_private = []
+    masses = []
+    effects = []
+    repeat_error = None
+    phase = "native_fixed_answer_forwards"
+
+    def infer(images, question, order):
+        bounds()
+        prompt = (
+            "Inspect the supplied consecutive knee MRI images for "
+            + question
+            + ". Use only visible image evidence. "
+            + " ".join(
+                f"{letter}: {explanations[meaning]}."
+                for letter, meaning in zip("ABC", order, strict=True)
+            )
+            + " Select the best option."
+        )
+        content = [{"type": "image", "image": image} for image in images] + [
+            {"type": "text", "text": prompt}
+        ]
+        inputs = processor.apply_chat_template(
+            [
+                {"role": "user", "content": content},
+                {"role": "assistant", "content": [{"type": "text", "text": "Answer:"}]},
+            ],
+            continue_final_message=True,
+            tokenize=True,
+            return_dict=True,
+            return_tensors="pt",
+            do_pan_and_scan=False,
+        )
+        tensors = {
+            k: v.to("cuda:0", dtype=torch.bfloat16 if v.is_floating_point() else v.dtype)
+            for k, v in inputs.items()
+        }
+        with torch.inference_mode():
+            logits = model(**tensors, use_cache=False, logits_to_keep=1).logits[0, -1].float().cpu()
+        result = scorer.score(logits, ids, order)
+        del inputs, tensors
+        return result, logits
+
+    with (P / "observations.private.jsonl").open("x") as private:
+        for chunk_index, rows in enumerate(chunks):
+            images = [Image.open(R / row["file"]).convert("RGB") for row in rows]
+            for question_index, question in enumerate(questions):
+                for order_index, order in enumerate(orders):
+                    key = (tuple(image.size for image in images), question_index, order_index)
+                    if key not in blank_cache:
+                        flat = [Image.new("RGB", image.size, "black") for image in images]
+                        blank_cache[key] = infer(flat, question, order)[0]
+                    result, logits = infer(images, question, order)
+                    if repeat_error is None:
+                        second, repeat = infer(images, question, order)
+                        repeat_error = float((logits - repeat).abs().max())
+                        assert repeat_error <= 1e-5
+                    delta = scorer.effect(result, blank_cache[key])
+                    effects.append(delta)
+                    masses.append(result["full_vocabulary_choice_mass"])
+                    private.write(
+                        json.dumps(
+                            {
+                                "chunk": chunk_index,
+                                "question": question_index,
+                                "mapping": order_index,
+                                "actual_slices": len(rows),
+                                "image": result,
+                                "blank": blank_cache[key],
+                                "image_minus_blank_log_odds": delta,
+                            },
+                            allow_nan=False,
+                        )
+                        + "\n"
+                    )
+                    private.flush()
+            for image in images:
+                image.close()
+    bounds()
+    actual = {
+        "status": "actual_original_native_MRI_fixed_answer_likelihood_diagnostic_completed",
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": meta["source_git"],
+        "model": "google/medgemma-1.5-4b-it",
+        "revision": "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b",
+        "native_slices": 195,
+        "native_series": 5,
+        "within_series_chunks": len(chunks),
+        "questions": 2,
+        "option_mappings": 2,
+        "real_scored_forwards": len(effects),
+        "cached_matched_blank_forwards": len(blank_cache),
+        "repeat_max_abs_vocabulary_logit_difference": repeat_error,
+        "minimum_full_vocabulary_choice_mass": min(masses),
+        "visual_effects_above_repeat_noise": sum(abs(x) > max(1e-4, repeat_error) for x in effects),
+        "private_semantic_scores_and_diagnoses_exported": False,
+        "state_tensors": state_tensors,
+        "peak_GPU_allocated_bytes": torch.cuda.max_memory_allocated(),
+        "seconds": time.monotonic() - started,
+        "JSON_generation_used": False,
+        "report_labels_or_protected_values_used": False,
+        "clinical_accuracy_or_student_gain_claim": False,
+        "accepted_labels_changed": False,
+        "automatic_retry": False,
+    }
+    (P / "terminal.json").write_text(json.dumps(actual, indent=2) + "\n")
+    print(json.dumps(actual), flush=True)
+except BaseException as error:
+    (P / "error.private.json").write_text(
+        json.dumps({"type": type(error).__name__, "phase": phase, "error": str(error)}, indent=2)
+        + "\n"
+    )
+    safe = {
+        "status": "original_likelihood_pilot_failed_no_retry",
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "phase": phase,
+        "exception": type(error).__name__,
+        "clinical_accuracy_or_student_gain_claim": False,
+        "private_outputs_preserved": True,
+        "automatic_retry": False,
+    }
+    (P / "terminal-failed.json").write_text(json.dumps(safe, indent=2) + "\n")
+    print(json.dumps(safe), flush=True)
+    raise RuntimeError(
+        "Original bounded likelihood diagnostic failed; inspect private node output, never repeat"
+    ) from None

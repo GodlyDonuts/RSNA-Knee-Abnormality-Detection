@@ -1,0 +1,138 @@
+"""One private auxiliary transfer under pinned existing TLS, without GPU mutation."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/medgemma-evidence-likelihood-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "asset-copy-intent-v2.json").exists()
+token_gate = json.loads((D / "actual-token-gate.json").read_text())
+assert (
+    token_gate["CPU_job"] == "971972"
+    and token_gate["exact_expanded_image_prefix_unchanged_by_all_three_single_token_answers"]
+    is True
+)
+assert json.loads((D / "actual-preflight-evc48.json").read_text())["CPU_job"] == "971961"
+assert json.loads((D / "actual-source-assets-admitted.json").read_text())["CPU_job"] == "972029"
+assert json.loads((D / "actual-funding-reconciled.json").read_text())["CPU_job"] == "972027"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {
+    n: (D / n).read_text()
+    for n in (
+        "asset_common.py.txt",
+        "asset_sender.py.txt",
+        "asset_receiver_v2.py.txt",
+        "copy_assets_v2_once.py.txt",
+    )
+}
+for n, body in parts.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / n).relative_to(R).as_posix()], text=True
+        )
+        == body
+    )
+TLS = (
+    R / "initiative/research/S6-Newton-student-production-20261019-v1/tls_resume.py.txt"
+).read_text()
+assert (
+    subprocess.check_output(
+        [
+            "git",
+            "show",
+            "21e0598b:initiative/research/S6-Newton-student-production-20261019-v1/tls_resume.py.txt",
+        ],
+        text=True,
+    )
+    == TLS
+)
+with (L / "asset-copy-intent-v2.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "own_source_hashes": {
+                n: hashlib.sha256(s.encode()).hexdigest() for n, s in parts.items()
+            },
+            "maximum_bytes": 12 * 2**30,
+            "original_TLS_runtime_CPU": "970746",
+            "private_file_table_export": False,
+            "GPU_or_old_owner_mutations": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = """import json,os,select,subprocess,time
+v=json.load(__import__('sys').stdin);secret=os.urandom(32).hex()
+def command(node,body):
+ source=v['TLS']+'\\n'+v['common']+'\\n'+body
+ return ['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:15:00','--job-name=rsna-medgemma-original-assets-'+node,'env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',source]
+receiver=subprocess.Popen(command('evc48',v['receiver']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+receiver.stdin.write(json.dumps({'secret':secret,'source_git':v['pin']}).encode());receiver.stdin.close();receiver.stdin=None
+assert select.select([receiver.stdout],[],[],900)[0],'Original auxiliary receiver readiness not observed'
+line=receiver.stdout.readline(32769)
+if not line:raise RuntimeError('Original auxiliary receiver stopped before data: '+receiver.stderr.read().decode()[-1500:])
+assert len(line)<=32768,'Original receiver readiness cap exceeded'
+ready=json.loads(line);assert ready['status']=='private_auxiliary_receiver_ready'
+sender=subprocess.Popen(command('evc33',v['sender']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+sender.stdin.write(json.dumps({'secret':secret,'ready':ready}).encode());sender.stdin.close();sender.stdin=None;del secret
+left,le=sender.communicate(timeout=1200)
+if sender.returncode!=0 and receiver.poll() is None:subprocess.run(['scancel',ready['CPU_job']],check=True,capture_output=True)
+right,re=receiver.communicate(timeout=1200)
+assert sender.returncode==receiver.returncode==0,'Private auxiliary endpoints require read-only reconciliation; errors: '+le.decode()[-1000:]+' '+re.decode()[-1000:]
+a=json.loads(left);b=json.loads(right)
+assert all(a[k]==b[k] for k in ('bytes','files','manifest_sha256'))
+for job in (a['CPU_job'],b['CPU_job']):
+ for attempt in range(30):
+  terminal=subprocess.check_output(['sacct','-X','-n','-P','-j',job,'--format=JobIDRaw,State,ExitCode'],text=True)
+  if job+'|COMPLETED|0:0' in terminal:break
+  time.sleep(1)
+ else:raise RuntimeError('Original auxiliary terminal not verified; inspect handles')
+print(json.dumps({'status':'actual_private_auxiliary_both_original_CPU_endpoints_completed','sender_CPU':a['CPU_job'],'receiver':b,'raw_data_or_private_file_table_on_Mac_Git_HF':False,'original_owners_unchanged':True,'automatic_retry':False}),flush=True)
+"""
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(t.COMMAND),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "TLS": TLS,
+            "common": parts["asset_common.py.txt"],
+            "sender": parts["asset_sender.py.txt"],
+            "receiver": parts["asset_receiver_v2.py.txt"],
+            "pin": pin,
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=2700,
+)
+(L / "asset-copy-transport-v2.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original auxiliary mutation requires read-only reconciliation; never repeat"
+)
+actual = json.loads(x.stdout)
+(D / "actual-asset-copy.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

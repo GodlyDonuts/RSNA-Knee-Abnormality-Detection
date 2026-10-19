@@ -1,0 +1,113 @@
+"""Consume the actual node48 copy with installed processor; no weights or GPU."""
+
+import json
+import os
+from pathlib import Path
+
+import torch
+from PIL import Image
+from transformers import AutoProcessor
+
+v = json.load(__import__("sys").stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+assert torch.cuda.device_count() == 0
+os.umask(0o077)
+E = Path("/tmp/rsna-medgemma-evidence-likelihood-20261019-v1")
+assert not (E / "input-intent-v1.json").exists()
+proof = json.loads((E / "assets-verified-v2.json").read_text())
+assert proof == v["assets"]
+assert proof["native_slices"] == 195 and proof["files"] == 213
+A = E / "assets-v2"
+M = A / "model"
+R = A / "pixels"
+manifest = json.loads((R / "manifest.private.json").read_text())
+assert (
+    manifest["training_only"] is True and manifest["reports_labels_predictions_included"] is False
+)
+(E / "input-intent-v1.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "actual_asset_CPU": proof["CPU_job"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+rows = manifest["images"]
+assert len(rows) == 195
+series = {}
+for row in rows:
+    p = R / row["file"]
+    assert p.is_file() and p.stat().st_size == row["bytes"]
+    with Image.open(p) as image:
+        assert image.size == (row["width"], row["height"])
+        image.verify()
+    series.setdefault(row["series_index"], []).append(row)
+assert len(series) == 5
+for group in series.values():
+    group.sort(key=lambda x: x["slice_index"])
+    assert len({x["slice_index"] for x in group}) == len(group)
+processor = AutoProcessor.from_pretrained(str(M), local_files_only=True, trust_remote_code=False)
+prompt = "Inspect the supplied consecutive knee MRI images for joint effusion. Use only visible image evidence. A: evidence supports presence. B: evidence supports absence. C: cannot determine from these images. Select the best option."
+flat = Image.new("RGB", (512, 512), "black")
+
+
+def encode(suffix):
+    return processor.apply_chat_template(
+        [
+            {
+                "role": "user",
+                "content": [{"type": "image", "image": flat}, {"type": "text", "text": prompt}],
+            },
+            {"role": "assistant", "content": [{"type": "text", "text": "Answer:" + suffix}]},
+        ],
+        continue_final_message=True,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt",
+        do_pan_and_scan=False,
+    )
+
+
+base = encode("")
+ids = []
+for answer in (" A", " B", " C"):
+    x = encode(answer)
+    assert x["input_ids"].shape[1] == base["input_ids"].shape[1] + 1
+    assert torch.equal(x["input_ids"][:, :-1], base["input_ids"])
+    ids.append(int(x["input_ids"][0, -1]))
+assert ids == [562, 603, 565]
+# Same fixed path through actual original native pixels; no report or labels.
+image = Image.open(R / rows[0]["file"]).convert("RGB")
+x = processor.apply_chat_template(
+    [
+        {
+            "role": "user",
+            "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}],
+        },
+        {"role": "assistant", "content": [{"type": "text", "text": "Answer:"}]},
+    ],
+    continue_final_message=True,
+    tokenize=True,
+    return_dict=True,
+    return_tensors="pt",
+    do_pan_and_scan=False,
+)
+assert x["input_ids"].ndim == 2 and torch.isfinite(x["pixel_values"]).all()
+actual = {
+    "status": "actual_node48_original_native_packet_processor_and_fixed_answer_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "asset_CPU": proof["CPU_job"],
+    "native_slices_decoded": 195,
+    "native_series": 5,
+    "answer_token_IDs": ids,
+    "matching_original_token_gate_CPU": "971972",
+    "reports_labels_or_model_weights_read": False,
+    "GPU_or_clinical_acceptance": False,
+    "automatic_retry": False,
+}
+(E / "inputs-verified-v1.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

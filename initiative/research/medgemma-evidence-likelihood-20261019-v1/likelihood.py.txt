@@ -1,0 +1,35 @@
+"""Fixed-answer evidence scores; never treat option softmax as calibrated diagnosis."""
+
+import torch
+
+SEMANTICS = {"present", "absent", "uncertain"}
+
+
+def score(logits, ids, order):
+    if logits.ndim != 1 or not logits.is_floating_point() or not torch.isfinite(logits).all():
+        raise ValueError("Finite one-dimensional vocabulary logits required")
+    if (
+        len(ids) != 3
+        or len(set(ids)) != 3
+        or any(type(i) is not int or not 0 <= i < len(logits) for i in ids)
+    ):
+        raise ValueError("Three distinct admitted answer token IDs required")
+    if len(order) != 3 or set(order) != SEMANTICS:
+        raise ValueError("One explicit bijection between letters and all semantics required")
+    values = logits[ids].double()
+    conditional = values.softmax(0)
+    mapped = {k: float(v) for k, v in zip(order, conditional, strict=True)}
+    indices = {k: i for i, k in enumerate(order)}
+    mass = float(torch.exp(torch.logsumexp(values, 0) - torch.logsumexp(logits.double(), 0)))
+    return {
+        "conditional_options": mapped,
+        "full_vocabulary_choice_mass": mass,
+        "present_vs_absent_log_odds": float(values[indices["present"]] - values[indices["absent"]]),
+        "probabilities_clinically_calibrated": False,
+    }
+
+
+def effect(image, blank):
+    if image["probabilities_clinically_calibrated"] or blank["probabilities_clinically_calibrated"]:
+        raise ValueError("Evidence diagnostic must not imply calibrated medical probabilities")
+    return image["present_vs_absent_log_odds"] - blank["present_vs_absent_log_odds"]

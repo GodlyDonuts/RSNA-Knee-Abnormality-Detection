@@ -1,0 +1,51 @@
+"""Reconcile the original pre-data refusal and actual retained small obligations."""
+
+import json
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "971999", "--format=JobIDRaw,State,ExitCode,Elapsed"],
+    text=True,
+)
+assert "971999|FAILED|1:0|00:00:01" in terminal
+E = Path("/tmp/rsna-medgemma-evidence-likelihood-20261019-v1")
+assert not E.exists()
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+retained = [p for p in T.rglob("*") if p.is_file()]
+paid_files = len(retained)
+paid_bytes = sum(p.stat().st_size for p in retained)
+assert paid_files < 256 and paid_bytes < 4 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+free_files = int(a[6]) - int(a[5])
+free_bytes = (int(a[2]) - int(a[1])) * 1024
+future_files = 128 + max(0, 256 - paid_files) + 128 + 32
+assert free_files - future_files > 5000
+assert free_bytes - (16 + 12 + 4) * 2**20 - max(0, 4 * 2**20 - paid_bytes) > 20 * 2**30 + 32 * 2**20
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 24) * 2**30 + 32 * 2**20
+print(
+    json.dumps(
+        {
+            "status": "actual_original_pre_data_refusal_and_remaining_funded_small_scope_reconciled",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "original_failed_CPU": "971999",
+            "original_failed_before_root_intent_or_data": True,
+            "teacher_retained_files_already_physically_in_quota": paid_files,
+            "teacher_total_scope_files": 256,
+            "teacher_remaining_future_files": max(0, 256 - paid_files),
+            "teacher_retained_bytes": paid_bytes,
+            "shared_free_files": free_files,
+            "all_remaining_bound_future_files": future_files,
+            "files_after_all_bounds": free_files - future_files,
+            "new_pilot_shared_file_cap": 32,
+            "reserve_files": 5000,
+            "node_scope_and_physical_reserve_passed": True,
+            "deletion_credit_or_original_mutations": False,
+        }
+    ),
+    flush=True,
+)
