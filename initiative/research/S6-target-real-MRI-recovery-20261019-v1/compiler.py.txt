@@ -1,0 +1,131 @@
+"""Compile the real-MRI target-change recovery; complete teacher data required."""
+
+import base64
+import hashlib
+
+from scripts.kaggle import licensed_importance_recovery as original
+from scripts.kaggle.licensed_importance_production import POPULATION_MODULES
+
+MODULE = "rsna/competitive/complete_teacher_overlay.py"
+OVERLAY_SHA = "ca09ef0f2eb9712ec231d151b57769b6138e0d1d516918c8fdc1890c0034f18b"
+ROLES = ("parent_only", "cross_lineage_equal_rank")
+
+
+def once(source, old, new):
+    if source.count(old) != 1:
+        raise ValueError("Exact original numerical source site required")
+    return source.replace(old, new)
+
+
+def build(*args, permission, ready, overlay_source, target_compiler, population_sources):
+    """Keep original GPU math and independent engineering cases; vary targets only."""
+    for role in ROLES:
+        target_compiler.admit(ready, role)
+    if hashlib.sha256(overlay_source.encode()).hexdigest() != OVERLAY_SHA:
+        raise ValueError("Exact production overlay required, no recovery-only approximation")
+    if set(population_sources) != set(POPULATION_MODULES) or any(
+        hashlib.sha256(population_sources[n].encode()).hexdigest() != sha
+        for n, sha in POPULATION_MODULES.items()
+    ):
+        raise ValueError("Exact original production input/locator closure required")
+    source, metadata = original.build(*args, permission=permission)
+    values = target_compiler.values(source)
+    worker = base64.b64decode(values["WORKER"], validate=True).decode()
+    helper = r"""
+def _complete_target_overlay(data,role):
+    from rsna.competitive.complete_teacher_overlay import TeacherOverlay,tensor_sha
+    from rsna.competitive.licensed_parent_population import locate
+    item=_COMPLETE_TARGETS['target_file'];p=locate('/kaggle/input','teacher-targets.private.npz',item['bytes'],item['sha256'])
+    with np.load(p,allow_pickle=False) as z:
+        assert set(z.files)=={'uids','parent_only','cross_lineage_equal_rank'}
+        uids=z['uids'].tolist();assert len(uids)==3887 and len(set(uids))==3887
+        assert hashlib.sha256(json.dumps(uids,separators=(',',':')).encode()).hexdigest()==_COMPLETE_TARGETS['population_sha256']
+        lookup={u:i for i,u in enumerate(uids)};indices=[lookup[u] for u in data.uids]
+        assert len(indices)==16 and len(set(indices))==16
+        baseline=[]
+        for i in data.indices:
+            row=data.frows[i];raw=(data.features/row['file']).read_bytes()
+            assert len(raw)==row['bytes'] and hashlib.sha256(raw).hexdigest()==row['sha256']
+            with np.load(io.BytesIO(raw),allow_pickle=False) as a:baseline.append(torch.from_numpy(a['parent_logits'].copy()))
+        data.teacher=torch.stack(baseline)
+        assert torch.equal(torch.from_numpy(z['parent_only'][indices].copy()),data.teacher)
+        teacher=torch.from_numpy(z[role][indices].copy())
+    binding={**_COMPLETE_TARGETS['roles'][role],'population':16,'population_sha256':hashlib.sha256(json.dumps(data.uids,separators=(',',':')).encode()).hexdigest(),'diagnostic_only':True,'original_teacher_array_sha256':tensor_sha(data.teacher),'new_teacher_array_sha256':tensor_sha(teacher),'complete_population_admission':_COMPLETE_TARGETS}
+    return TeacherOverlay(data,data.uids,teacher,binding,engineering_only=True)
+
+"""
+    worker = once(
+        worker,
+        "def main():\n",
+        "_COMPLETE_TARGETS=" + repr(ready) + "\n" + helper + "def main():\n",
+    )
+    worker = once(
+        worker,
+        "from rsna.competitive.licensed_importance_train import fit",
+        "from rsna.competitive.complete_teacher_overlay import fit_with_teacher_targets as fit",
+    )
+    worker = once(
+        worker,
+        "parser.add_argument('role',choices=('uniform','influence'))",
+        "parser.add_argument('role',choices=" + repr(ROLES) + ")",
+    )
+    worker = once(
+        worker,
+        "original_data=PixelCases(targets,list(range(16)));data=ProposalCases(original_data,_teacher_proposals(model,original_data));",
+        "original_data=PixelCases(targets,list(range(16)));q=_teacher_proposals(model,original_data);overlay=_complete_target_overlay(original_data,a.role);data=ProposalCases(overlay,q);del q;",
+    )
+    worker = once(worker, "Recipe(epochs=2,role=a.role)", "Recipe(epochs=2,role='influence')")
+    files = {**values["FILES"], **population_sources, MODULE: overlay_source}
+    source = once(source, "FILES=" + repr(values["FILES"]), "FILES=" + repr(files))
+    source = once(
+        source,
+        "WORKER=" + repr(values["WORKER"]),
+        "WORKER=" + repr(base64.b64encode(worker.encode()).decode()),
+    )
+    assert source.count("for role in ('uniform','influence'):") == 2
+    source = source.replace(
+        "for role in ('uniform','influence'):", "for role in " + repr(ROLES) + ":"
+    )
+    source = once(
+        source,
+        "full['binding']['recipe']['role']==role",
+        "full['binding']['recipe']['role']=='influence' and full['binding']['teacher_transport']['role']==role and full['binding']['teacher_transport']['complete_population_admission']=="
+        + repr(ready),
+    )
+    source = once(
+        source,
+        "actual_matched_uniform_influence_full_encoder_twoT4_MRI_recovery_accepted",
+        "actual_complete_S6_target_change_full_encoder_twoT4_MRI_recovery_accepted",
+    )
+    source = once(
+        source,
+        "'proposal_uniform_fraction':0.25,",
+        "'complete_teacher_admission':" + repr(ready) + ",'proposal_uniform_fraction':0.25,",
+    )
+    source = source.replace(
+        "distinct learned tensors to justify full comparison",
+        "distinct learned tensors from the complete teacher target change",
+    )
+    source = source.replace("importance-recovery", "complete-teacher-recovery")
+    worker = worker.replace("importance-recovery", "complete-teacher-recovery")
+    # The worker literal is refreshed after the private output-root relocation.
+    old_worker = target_compiler.values(source)["WORKER"]
+    source = once(
+        source,
+        "WORKER=" + repr(old_worker),
+        "WORKER=" + repr(base64.b64encode(worker.encode()).decode()),
+    )
+    compile(worker, "complete_teacher_real_MRI_numerical_worker", "exec")
+    compile(source, "complete_teacher_real_MRI_recovery", "exec")
+    return source, {
+        **metadata,
+        "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+        "worker_sha256": hashlib.sha256(worker.encode()).hexdigest(),
+        "own_module_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()},
+        "roles": list(ROLES),
+        "sampling_role_both_arms": "influence",
+        "complete_teacher_admission": ready,
+        "actual_GPU_recovery": False,
+        "full_production_fit_dispatched": False,
+        "competition_entries": 0,
+    }

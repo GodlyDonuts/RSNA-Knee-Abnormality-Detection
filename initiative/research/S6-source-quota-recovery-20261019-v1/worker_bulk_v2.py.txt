@@ -1,0 +1,185 @@
+"""Original MRI worker with bulk source transport and retained-tensor recovery."""
+
+import fcntl
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import unquote
+
+import requests
+
+M = Path("/tmp/rsna-S6-source-quota-recovery-20261019-v1")
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+C = P / "CPU-full-stream-v1"
+assert os.uname().nodename == "evc39" and os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+admitted = json.loads((M / "source-admitted-v2.json").read_text())
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == admitted["worker_bulk_sha256"]
+for name, sha in admitted["original_files"].items():
+    assert hashlib.sha256((C / name).read_bytes()).hexdigest() == sha
+spec = importlib.util.spec_from_file_location(
+    "official_bulk_source_transport", M / "bulk_transport.py"
+)
+bulk = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bulk)
+raw_input, protocol = sys.stdin, sys.stdout
+original_get = requests.get
+
+
+def atomic(path, value):
+    temp = path.with_suffix(".next")
+    temp.write_text(json.dumps(value, sort_keys=True))
+    temp.replace(path)
+
+
+class Input:
+    def __init__(self):
+        self.admission = None
+        self.client = None
+        self.actions = {}
+        self.rows = {}
+        self.seen = set()
+
+    def readline(self, *args):
+        line = raw_input.readline(*args)
+        if self.admission is None:
+            self.admission = json.loads(line)
+            self.client = bulk.BulkSource(self.admission["HF_token"])
+            self.client._get = original_get
+        return line
+
+    def __iter__(self):
+        return self
+
+    def retained(self, uid):
+        with (M / "registry.lock").open("a+") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            registry = json.loads((M / "retained-v2.private.json").read_text())
+            row = registry["cases"].get(uid)
+            if row is None:
+                return None
+            assert row["state"] == "available", "Previously claimed recovery must be reconciled"
+            old = Path(row["owned"])
+            root = Path(self.admission["scratch_root"])
+            assert any(
+                old.is_relative_to(Path(p)) for p in registry["original_runs"]
+            ) and old.name.startswith("fitting-study-")
+            new = root / old.name
+            assert not new.exists() and root.is_dir()
+            old.rename(new)  # Same tmpfs/inodes, zero pixel-copy or reacquisition.
+            row.update(
+                state="claimed",
+                original_owned=str(old),
+                owned=str(new),
+                owner_job=os.environ["SLURM_JOB_ID"],
+            )
+            atomic(M / "retained-v2.private.json", registry)
+            return dict(row)
+
+    def cached(self, request, retained):
+        owned = Path(retained["owned"])
+        old = Path(json.loads((owned / "render-result.private.json").read_text())["owned_scratch"])
+        render = json.loads((owned / "render-result.private.json").read_text())
+        assert (
+            render["uid"] == request["uid"] and render["all_original_DICOM_identity_checks_passed"]
+        )
+        for key in ("tensor_path", "owned_scratch", "source_proof_path"):
+            value = Path(render[key])
+            assert value.is_relative_to(old)
+            render[key] = str(owned / value.relative_to(old))
+        assert (
+            hashlib.sha256(Path(render["source_proof_path"]).read_bytes()).hexdigest()
+            == render["source_proof_sha256"]
+        )
+        image_upper = len(request["source_files"]) * 12 * 3 * 320 * 320
+        ready = {
+            "stage": "source_ready",
+            "uid": request["uid"],
+            "owned_scratch": str(owned),
+            "decoder_heap_bytes": 4 * 2**30 + 6 * image_upper,
+            "retained_native_tensors_reused": True,
+        }
+        assert ready["decoder_heap_bytes"] <= 80 * 2**30
+        print(json.dumps(ready), file=protocol, flush=True)
+        assert json.loads(raw_input.readline()) == {"uid": request["uid"], "render": True}
+        prior = next(
+            (
+                p
+                for p in (
+                    owned / "CPU-teacher/verified.private.json",
+                    owned / "CPU-teacher-source-quota-recovery-v1/verified.private.json",
+                )
+                if p.exists()
+            ),
+            owned / "CPU-teacher/verified.private.json",
+        )
+        if prior.exists():
+            scored = json.loads(prior.read_text())
+        else:
+            output = owned / "CPU-teacher-source-quota-recovery-v2"
+            assert not output.exists()
+            env = {
+                k: v
+                for k, v in os.environ.items()
+                if not any(w in k.upper() for w in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+            }
+            with (
+                (owned / "quota-recovery-v2-classifier.stdout.private.log").open("x") as out,
+                (owned / "quota-recovery-v2-classifier.stderr.private.log").open("x") as err,
+            ):
+                x = subprocess.run(
+                    [sys.executable, "-B", str(C / "classifier.py")],
+                    input=json.dumps({"render": render, "output": str(output)}),
+                    text=True,
+                    stdout=out,
+                    stderr=err,
+                    env=env,
+                    timeout=1200,
+                )
+            assert x.returncode == 0, "Retained-tensor classifier stopped; preserve without replay"
+            scored = json.loads((output / "verified.private.json").read_text())
+        assert scored["uid"] == request["uid"] and scored["windows"] == render["windows"]
+        result = {**render, **scored, "phase_role": "full_fitting_CPU_FP32_stream"}
+        atomic(owned / "teacher-result.quota-recovery.private.json", result)
+        print(json.dumps(result), file=protocol, flush=True)
+
+    def __next__(self):
+        while True:
+            line = raw_input.readline()
+            if not line:
+                raise StopIteration
+            request = json.loads(line)
+            uid = request["uid"]
+            assert uid not in self.seen
+            self.seen.add(uid)
+            retained = self.retained(uid)
+            if retained:
+                if retained["rendered"]:
+                    self.cached(request, retained)
+                    continue
+                request["resume_owned"] = retained["owned"]
+            else:
+                self.rows = {r["path"]: r for r in request["source_files"]}
+                self.actions = self.client.actions(request["source_files"])
+            return json.dumps(request) + "\n"
+
+    def get(self, url, **kwargs):
+        prefix = bulk.REPO + "/resolve/" + bulk.REVISION + "/"
+        assert url.startswith(prefix), "Only exact original source requests may use this transport"
+        path = unquote(url[len(prefix) :])
+        row = self.rows[path]
+        return self.client.open(self.actions[row["sha256"]])
+
+
+proxy = Input()
+sys.stdin = proxy
+requests.get = proxy.get
+spec = importlib.util.spec_from_file_location(
+    "unchanged_original_CPU_source_renderer", C / "worker.py"
+)
+worker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(worker)
+worker.main()

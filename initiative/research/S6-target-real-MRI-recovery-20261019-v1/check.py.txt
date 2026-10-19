@@ -1,0 +1,235 @@
+"""Compile/refusal contracts and actual CPU execution of the target-input adapter."""
+
+import ast
+import base64
+import copy
+import hashlib
+import importlib.util
+import io
+import json
+import sys
+import tempfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import numpy as np
+import pytest
+import torch
+from test_licensed_importance_recovery import inputs
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    value = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(value)
+    return value
+
+
+compiler = load("complete_target_recovery", D / "compiler.py.txt")
+production = load(
+    "complete_target_production",
+    R / "initiative/research/S6-target-trainer-compiler-20261018-v1/compiler.py.txt",
+)
+overlay = (
+    R
+    / "initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/teacher_overlay.py.txt"
+)
+overlay_module = load("rsna.competitive.complete_teacher_overlay", overlay)
+sys.modules["rsna.competitive.complete_teacher_overlay"] = overlay_module
+population_sources = {n: (R / n).read_text() for n in compiler.POPULATION_MODULES}
+ready = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "population": 3887,
+    "population_sha256": production.POP,
+    "labels_masks_and_original_targets_modified": False,
+    "labels_masks_or_protected_values_decoded": False,
+    "target_file": {"bytes": 500000, "sha256": "a" * 64},
+    "complete_teacher_file_sha256": "b" * 64,
+    "complete_teacher_journal_sha256": "c" * 64,
+    "roles": {
+        role: {
+            "version": overlay_module.VERSION,
+            "role": role,
+            "population": 3887,
+            "population_sha256": production.POP,
+            "diagnostic_only": False,
+            "original_target_bundle_sha256": overlay_module.ORIGINAL_TARGET_SHA,
+            "parent_checkpoint_sha256": overlay_module.PARENT_SHA,
+            "S6_model_sha256": None if role == "parent_only" else overlay_module.S6_MODEL_SHA,
+        }
+        for role in compiler.ROLES
+    },
+}
+checks = 0
+with pytest.MonkeyPatch.context() as patch:
+    args = inputs(patch)
+    options = dict(
+        permission="synthetic permission",
+        ready=ready,
+        overlay_source=overlay.read_text(),
+        target_compiler=production,
+        population_sources=population_sources,
+    )
+    source, meta = compiler.build(*args, **options)
+    values = production.values(source)
+    worker = base64.b64decode(values["WORKER"]).decode()
+    assert "Recipe(epochs=2,role='influence')" in worker
+    assert "fit_with_teacher_targets as fit" in worker
+    assert "same(full,resumed)" in source
+    assert "same(identities[0],identities[1])" in source
+    assert "same(" in source and "epoch-checkpoints" in source
+    assert "engineering=PixelCases(targets,list(range(16,32)))" in worker
+    assert "importance-recovery" not in worker + source
+    assert values["FILES"][compiler.MODULE] == overlay.read_text()
+    assert meta["competition_entries"] == 0 and meta["actual_GPU_recovery"] is False
+    assert meta["worker_sha256"] == hashlib.sha256(worker.encode()).hexdigest()
+    assert args[3]["uids"][0] not in source
+    checks += 1
+    for change in (
+        {"ready": {**ready, "population": 880}},
+        {"ready": {**ready, "status": "partial"}},
+        {"overlay_source": overlay.read_text() + "\n"},
+        {"population_sources": {}},
+    ):
+        with pytest.raises(ValueError):
+            compiler.build(*args, **{**options, **change})
+        checks += 1
+    # Execute the exact compiled adapter against private synthetic feature files.
+    tree = ast.parse(worker)
+    helper = next(
+        n
+        for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name == "_complete_target_overlay"
+    )
+    with tempfile.TemporaryDirectory() as temp:
+        root = Path(temp)
+        uids = [f"synthetic-complete-{i}" for i in range(3887)]
+        baseline = np.arange(3887 * 24, dtype=np.float32).reshape(3887, 2, 12) / 10000
+        changed = baseline + np.float32(0.25)
+        target = root / "teacher-targets.private.npz"
+        np.savez(
+            target, uids=np.asarray(uids), parent_only=baseline, cross_lineage_equal_rank=changed
+        )
+        admission = copy.deepcopy(ready)
+        admission["population_sha256"] = hashlib.sha256(
+            json.dumps(uids, separators=(",", ":")).encode()
+        ).hexdigest()
+        admission["target_file"] = {
+            "bytes": target.stat().st_size,
+            "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        }
+        rows = []
+        for i in range(32):
+            p = root / (str(i) + ".npz")
+            np.savez(p, parent_logits=baseline[i])
+            rows.append(
+                {
+                    "file": p.name,
+                    "bytes": p.stat().st_size,
+                    "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+                }
+            )
+
+        class Cases:
+            indices = list(range(16))
+            features = root
+            frows = rows
+            uids = uids[:16]
+
+            def __len__(self):
+                return 16
+
+            def case(self, index, positions, mirror):
+                return {
+                    "images": torch.zeros(len(positions), 3, 2, 2),
+                    "labels": torch.full((12,), 0.5),
+                    "mask": torch.ones(12, dtype=torch.bool),
+                    "parent_logits": torch.from_numpy(baseline[index, int(mirror)].copy()),
+                }
+
+        namespace = dict(
+            np=np, torch=torch, hashlib=hashlib, json=json, io=io, _COMPLETE_TARGETS=admission
+        )
+        import rsna.competitive.licensed_parent_population as population
+
+        patch.setattr(
+            population,
+            "locate",
+            lambda inputs, name, size, sha: (
+                target
+                if size == target.stat().st_size
+                and sha == hashlib.sha256(target.read_bytes()).hexdigest()
+                else None
+            ),
+        )
+        exec(
+            compile(
+                ast.Module(body=[helper], type_ignores=[]), "actual_compiled_input_adapter", "exec"
+            ),
+            namespace,
+        )
+        for role in compiler.ROLES:
+            actual = namespace["_complete_target_overlay"](Cases(), role)
+            assert actual.binding["complete_population_admission"] == admission
+            for mirror in (False, True):
+                case = actual.case(3, [2, 2, 1], mirror)
+                expected = baseline if role == "parent_only" else changed
+                assert torch.equal(
+                    case["parent_logits"], torch.from_numpy(expected[3, int(mirror)].copy())
+                )
+                assert case["images"].shape == (3, 3, 2, 2)
+                reference = actual.original.case(3, [2, 2, 1], mirror)
+                assert all(torch.equal(case[k], reference[k]) for k in ("images", "labels", "mask"))
+            checks += 1
+print(
+    json.dumps(
+        {
+            "checks": checks,
+            "actual_compiled_adapter_CPU_executed": True,
+            "synthetic_only": True,
+            "GPU_or_MRI_or_production_acceptance": False,
+        }
+    )
+)
+
+# Verify the future complete-target resource bridge without running any remote code.
+builder = ast.parse((D / "build_targets_current_plan_once.py.txt").read_text())
+bridge = next(n for n in builder.body if isinstance(n, ast.FunctionDef) and n.name == "bridge")
+
+
+class Envelope:
+    @staticmethod
+    def envelope(program, payload):
+        return program
+
+
+namespace = {
+    "hashlib": hashlib,
+    "transport": Envelope,
+    "helper_sha": "adb68ef267eca33d6f47414877fc4974bddcf1ad8b09442293caf99409edd7db",
+}
+exec(
+    compile(ast.Module(body=[bridge], type_ignores=[]), "current_plan_target_bridge", "exec"),
+    namespace,
+)
+target_source = (
+    R / "initiative/research/S6-complete-target-admission-20261018-v1/program.py.txt"
+).read_text()
+wrapper = namespace["bridge"](target_source, {})
+compile(wrapper, "actual_complete_target_scope_wrapper", "exec")
+assert wrapper.index("n['location_storage']=resource['current_plan']") < wrapper.index(
+    "n.update(__name__='__main__')"
+)
+assert any(
+    isinstance(n, ast.Constant) and n.value == target_source for n in ast.walk(ast.parse(wrapper))
+)
+assert "'targets'" in wrapper
+with pytest.raises(AssertionError):
+    namespace["bridge"](target_source + "\n", {})
+
+print(
+    json.dumps({"complete_target_bridge_compiles": True, "actual_target_computation_or_GPU": False})
+)
