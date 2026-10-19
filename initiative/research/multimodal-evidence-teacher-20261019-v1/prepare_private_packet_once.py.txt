@@ -1,0 +1,172 @@
+"""Reuse existing original displays; extract native slice pixels without resizing."""
+
+import base64
+import hashlib
+import importlib.util
+import io
+import json
+import shlex
+import shutil
+import subprocess
+from pathlib import Path
+
+from PIL import Image
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/multimodal-evidence-teacher-20261019-v1"
+out = L / "native-first-packet"
+assert not out.exists()
+assert shutil.disk_usage(R).free > 20 * 2**30 + 128 * 2**20
+case = R / "artifacts/daenerys-study-review-v1/case-011"
+source = json.loads((case / "image-only-manifest.json").read_text())
+assert "report" not in source and source["source_files"] == 195
+assert (
+    source["fitting_uid_sha256"]
+    == "e71eb9ba952b9e4bc68e32b548b131c457b5c86c9381eb089012404923dc68cf"
+)
+assert source["all_source_bytes_verified"] and not source["spatial_resampling"]
+assert source["AI_enhancement"] is False
+series = {s["series_index"]: s for s in source["series"]}
+out.mkdir(mode=0o700)
+files, records, source_hashes = {}, [], []
+total = 0
+for sheet in source["images"]:
+    p = Path(sheet["file"])
+    assert p.parent == case / "sheets"
+    raw = p.read_bytes()
+    assert len(raw) == sheet["size"] and hashlib.sha256(raw).hexdigest() == sheet["sha256"]
+    source_hashes.append(sheet["sha256"])
+    image = Image.open(io.BytesIO(raw))
+    s = series[sheet["series_index"]]
+    _, height, width = s["original_shape"]
+    panels = sheet["slice_end"] - sheet["slice_start"] + 1
+    assert image.width == width * 3 and image.height == (height + 24) * ((panels + 2) // 3)
+    for offset, index in enumerate(range(sheet["slice_start"], sheet["slice_end"] + 1)):
+        x, y = (offset % 3) * width, (offset // 3) * (height + 24) + 24
+        native = image.crop((x, y, x + width, y + height))
+        assert native.size == (width, height)
+        buf = io.BytesIO()
+        native.save(buf, format="PNG")
+        data = buf.getvalue()
+        total += len(data)
+        assert total < 64 * 2**20
+        name = "series-%02d-slice-%03d.png" % (s["series_index"], index)
+        assert name not in files
+        files[name] = base64.b64encode(data).decode()
+        (out / name).write_bytes(data)
+        records.append(
+            {
+                "file": name,
+                "series_index": s["series_index"],
+                "slice_index": index,
+                "series_slices": s["slice_count"],
+                "width": width,
+                "height": height,
+                "plane": s["plane"],
+                "fluid_sensitive": s["fluid_sensitive"],
+                "fat_suppression": s["fat_suppression"],
+                "sha256": hashlib.sha256(data).hexdigest(),
+                "bytes": len(data),
+                "original_source_sheet_sha256": sheet["sha256"],
+            }
+        )
+assert len(files) == len(records) == 195
+manifest = {
+    "schema": "native_MRI_slice_evidence_pilot_v1",
+    "training_only": True,
+    "source_complete": True,
+    "source_slices": 195,
+    "source_series": 5,
+    "input_bytes": total,
+    "images": records,
+    "source_sheet_sha256": source_hashes,
+    "reports_labels_predictions_included": False,
+    "spatial_resizing_or_AI_enhancement": False,
+    "display": source["display"],
+    "fitting_roster_sha256": source["fitting_uid_sha256"],
+}
+manifest_raw = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+(out / "manifest.private.json").write_bytes(manifest_raw)
+receiver = (D / "receive_private_packet.py.txt").read_text()
+assert receiver == subprocess.check_output(
+    ["git", "show", "HEAD:" + (D / "receive_private_packet.py.txt").relative_to(R).as_posix()],
+    text=True,
+)
+spec = importlib.util.spec_from_file_location(
+    "stdin_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+pilot = (D / "pilot.py.txt").read_text()
+assert pilot == subprocess.check_output(
+    ["git", "show", "HEAD:" + (D / "pilot.py.txt").relative_to(R).as_posix()], text=True
+)
+compile(pilot, "original_frozen_multimodal_pilot", "exec")
+with (L / "private-packet-transfer-intent.json").open("x") as f:
+    json.dump(
+        {
+            "new_native_slices": 195,
+            "input_bytes": total,
+            "manifest_sha256": hashlib.sha256(manifest_raw).hexdigest(),
+            "original_MRI_downloads": 0,
+            "accepted_label_changes": False,
+            "automatic_retry": False,
+        },
+        f,
+    )
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-medgemma-native-packet",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        receiver,
+        {
+            "manifest_base64": base64.b64encode(manifest_raw).decode(),
+            "files": files,
+            "pilot_source": pilot,
+            "pilot_sha256": hashlib.sha256(pilot.encode()).hexdigest(),
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1200,
+)
+(L / "private-packet-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Packet transfer stopped/uncertain; reconcile exact original endpoint: " + x.stderr[-800:]
+)
+receipt = json.loads(x.stdout)
+assert receipt["status"] == "actual_complete_native_MRI_packet_private_node33"
+(D / "actual-private-packet-accepted.json").write_text(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(receipt), flush=True)

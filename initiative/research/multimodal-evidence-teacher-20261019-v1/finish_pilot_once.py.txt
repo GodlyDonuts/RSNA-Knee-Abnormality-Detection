@@ -1,0 +1,152 @@
+"""Wait for actual model/packet proofs, then submit one offline H100 pilot."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/multimodal-evidence-teacher-20261019-v1"
+assert not (L / "pilot-owner-intent.json").exists()
+pin = hashlib.sha256((D / "pilot.py.txt").read_bytes()).hexdigest()
+(L / "pilot-owner-intent.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "pilot_sha256": pin,
+            "maximum_hours": 24,
+            "maximum_GPU_jobs": 1,
+            "maximum_physical_node_GPUs": 2,
+            "checkpoint_or_competition_submission": False,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+start = time.monotonic()
+while not all(
+    (D / name).exists()
+    for name in ("actual-original-model-verified.json", "actual-private-packet-accepted.json")
+):
+    assert time.monotonic() - start < 2 * 3600
+    assert hashlib.sha256((D / "pilot.py.txt").read_bytes()).hexdigest() == pin
+    for name in ("acquisition-owner.stderr", "packet-owner.stderr"):
+        p = L / name
+        assert not p.exists() or not p.read_text().strip(), (
+            "Prior prerequisite stopped; do not reserve GPU"
+        )
+    time.sleep(30)
+model = json.loads((D / "actual-original-model-verified.json").read_text())
+packet = json.loads((D / "actual-private-packet-accepted.json").read_text())
+assert model["bytes"] == 8639646105 and packet["slices"] == 195 and packet["pilot_sha256"] == pin
+for v in (model, packet):
+    state = subprocess.check_output(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(
+                ["sacct", "-X", "-n", "-P", "-j", v["CPU_job"], "--format=JobIDRaw,State,ExitCode"]
+            ),
+        ],
+        text=True,
+    )
+    assert v["CPU_job"] + "|COMPLETED|0:0" in state
+node = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "scontrol show node evc33 --oneliner",
+    ],
+    text=True,
+)
+assert "Gres=gpu:nvidia_h100_pcie:2" in node and "NodeName=evc33 " in node
+spec = importlib.util.spec_from_file_location(
+    "stdin_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = """import hashlib,json,os,shlex,subprocess
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc33'
+P=Path('/tmp/rsna-medgemma15-first-packet-20261019-v1');M=Path('/tmp/rsna-medgemma15-evidence-teacher-20261019-v1')
+assert not (P/'GPU-dispatch-intent.json').exists() and not (P/'actual-pilot').exists()
+assert json.loads((P/'verified.json').read_text())==v['packet'] and json.loads((M/'verified.json').read_text())==v['model']
+assert hashlib.sha256((P/'pilot.py').read_bytes()).hexdigest()==v['pin']
+P.joinpath('GPU-dispatch-intent.json').write_text(json.dumps({'pilot_sha256':v['pin'],'automatic_retry':False}))
+# The original shared control folder already exists; new logs <1MiB. Pixels,
+# model, evidence and all detailed clinical output remain private node-local.
+H=Path('/home/sa305415/rsna-knee/kaggle');assert H.exists()
+cmd=['env','HF_HUB_OFFLINE=1','TRANSFORMERS_OFFLINE=1','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=2','MKL_NUM_THREADS=2','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B',str(P/'pilot.py')]
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc33','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','--mem=64G','--time=01:00:00','--job-name=rsna-medgemma15-image-evidence','--output='+str(H/'medgemma15-first-pilot-%j.stdout'),'--error='+str(H/'medgemma15-first-pilot-%j.stderr'),'--wrap='+shlex.join(cmd)]
+x=subprocess.run(args,capture_output=True,text=True)
+out={'status':'actual_one_offline_medgemma15_GPU_pilot_dispatch_response','returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}
+P.joinpath('GPU-dispatch-response.json').write_text(json.dumps(out));assert x.returncode==0
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+print(json.dumps({'status':'actual_one_offline_medgemma15_GPU_pilot_submitted','GPU_job':job,'pilot_sha256':v['pin'],'source_packet_slices':195,'physical_node_GPUs':2,'requested_GPU':1,'standalone_accuracy_claim':False}))
+"""
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-medgemma15-one-dispatch",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+with (L / "GPU-dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "pilot_sha256": pin,
+            "model_proof": model["CPU_job"],
+            "packet_proof": packet["CPU_job"],
+            "automatic_retry": False,
+        },
+        f,
+    )
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {"model": model, "packet": packet, "pin": pin}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "GPU-dispatch-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, "Uncertain dispatch must be reconciled read-only: " + x.stderr[-1200:]
+out = json.loads(x.stdout)
+(D / "actual-GPU-pilot-submitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,0 +1,37 @@
+"""Recover the same public status after the first metadata read outlived SSH wait."""
+
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+assert subprocess.run(["ps", "-p", "32198"], capture_output=True).returncode != 0
+old = R / "artifacts/encoder-LR-scoring-followthrough-20261019-v1/independent-CPU-owner"
+value = json.loads((old / "owner-result.json").read_text())
+assert value["phase"] == "status" and value["mode"] == "competition"
+assert value["status"] == "LR_scoring_owner_stopped_originals_preserved"
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "sacct -X -n -P -j 968240 --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert "968240|COMPLETED|0:0" in state
+original = D / "follow_existing_public_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+assert source.count("independent-CPU-owner") == 1
+source = source.replace("independent-CPU-owner", "independent-CPU-owner-v2")
+exec(
+    compile(source, "same_public_candidate_new_status_observer_after_actual_terminal_read", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)
