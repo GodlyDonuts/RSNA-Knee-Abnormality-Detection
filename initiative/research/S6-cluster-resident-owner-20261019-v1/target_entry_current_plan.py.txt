@@ -1,0 +1,28 @@
+import hashlib
+from pathlib import Path
+
+h = Path("/tmp/rsna-S6-data-local-handoff-20261019-v1/node39_entry.py")
+assert (
+    hashlib.sha256(h.read_bytes()).hexdigest()
+    == "adb68ef267eca33d6f47414877fc4974bddcf1ad8b09442293caf99409edd7db"
+)
+n = {}
+exec(compile(h.read_text(), "accepted_node39_location", "exec"), n)
+r = {}
+exec(
+    compile(
+        '"""Current-plan admission; old unstarted bulk writes require new explicit funding."""\n\nimport os\nimport shutil\nimport subprocess\nfrom pathlib import Path\n\nGIB = 2**30\nMIB = 2**20\n\n\ndef current_plan(extra=0):\n    if os.uname().nodename != "evc39" or os.environ.get("SLURM_JOB_GPUS"):\n        raise ValueError("Only existing CPU/RAM teacher and metadata scoring scope")\n    # No large new node disk writes: pixels/rendered tensors stay in existing\n    # bounded tmpfs; existing checkpoints/caches are never removed for credit.\n    future = 32 * MIB\n    free = shutil.disk_usage("/tmp").free\n    if type(extra) is not int or extra < 0 or free <= 20 * GIB + future + extra:\n        raise ValueError("Physical node reserve and current metadata envelope unavailable")\n    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)\n    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))\n    if (int(a[2]) - int(a[1])) * 1024 <= 20 * GIB + extra or int(a[6]) - int(a[5]) <= 5000:\n        raise ValueError("Shared physical byte/file reserve unavailable")\n    caps = {\n        "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1": 8 * MIB,\n        "/tmp/rsna-S6-complete-target-admission-20261018-v1": 4 * MIB,\n        "/tmp/rsna-paired-full-fitting-20261018-v1": 8 * MIB,\n    }\n    for root, cap in caps.items():\n        if sum(p.stat().st_size for p in Path(root).rglob("*") if p.is_file()) + extra >= cap:\n            raise ValueError("Existing current-plan control cap exceeded")\n    return {\n        "status": "current_CPU_RAM_and_metadata_only_resource_scope_accepted",\n        "actual_node_free_bytes": free,\n        "node_physical_reserve_bytes": 20 * GIB,\n        "future_current_metadata_bytes": future,\n        "shared_reserve_bytes": 20 * GIB,\n        "shared_reserve_files": 5000,\n        "new_bulk_disk_model_or_pixel_writes_allowed": False,\n        "unstarted_legacy_bulk_future_reservations": "deferred_requires_fresh_explicit_admission",\n        "physical_originals_deleted_or_moved": False,\n        "physical_deletion_credit": 0,\n        "RAM_memory_device_and_scientific_guards_unchanged": True,\n    }\n\n\ndef adapt_teacher(source):\n    old = \'assert shutil.disk_usage("/tmp").free > floor\'\n    if source.count(old) != 1:\n        raise ValueError("Exactly one original carried disk-resource guard required")\n    return source.replace(\n        old, "assert current_plan()[\'new_bulk_disk_model_or_pixel_writes_allowed\'] is False"\n    )\n\n\ndef scoring_bounds(extra=0):\n    current_plan(extra)\n    home = Path("/tmp/rsna-paired-full-fitting-20261018-v1")\n    r = home / "final-scoring-v1"\n\n    def paid(p):\n        return sum(x.stat().st_size for x in p.rglob("*") if x.is_file())\n\n    if paid(r) + extra + 131072 >= MIB or paid(home) + extra + max(0, MIB - paid(r)) >= 8 * MIB:\n        raise ValueError("Original scoring and parent control caps retained")\n    return True\n',
+        "existing_CPU_RAM_scope",
+        "exec",
+    ),
+    r,
+)
+n["location_storage"] = r["current_plan"]
+p = Path("/tmp/rsna-S6-complete-target-admission-20261018-v1/program.py")
+assert (
+    hashlib.sha256(p.read_bytes()).hexdigest()
+    == "885e2448b478a6cd82fab30bb6913bec1b0cf100030a363861a51ef2ded31c14"
+)
+s = n["adapt"](p.read_text(), "targets")
+n.update(__name__="__main__", __file__=str(p))
+exec(compile(s, "original_complete_targets_current_scope", "exec"), n)

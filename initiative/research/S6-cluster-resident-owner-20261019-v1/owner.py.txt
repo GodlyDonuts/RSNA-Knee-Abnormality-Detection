@@ -1,0 +1,244 @@
+"""Finite cluster-local orchestration. HF credentials exist only in RAM/stdin."""
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+os.umask(0o077)
+config = json.load(sys.stdin)
+D = Path(config["control_root"])
+assert D == Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+assert not (D / "owner-intent.json").exists()
+source = config["teacher_stage"]["source_git"]
+assert source == "a6b1d0e647d858476a790177ad953295966de252"
+
+
+def fresh_bounds():
+    files = [p for p in D.rglob("*") if p.is_file()]
+    paid = sum(p.stat().st_size for p in files)
+    assert paid < 4 * 2**20 and len(files) < 256
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + max(0, 4 * 2**20 - paid) + 32 * 2**20
+    assert int(a[6]) - int(a[5]) > 5000 + max(0, 256 - len(files))
+
+
+def write(name, value, exclusive=True):
+    raw = (json.dumps(value, sort_keys=True, indent=2) + "\n").encode()
+    fresh_bounds()
+    assert len(raw) < 64 * 1024
+    if exclusive:
+        with (D / name).open("xb") as f:
+            f.write(raw)
+            f.flush()
+            os.fsync(f.fileno())
+    else:
+        p = D / (name + ".next")
+        p.write_bytes(raw)
+        p.replace(D / name)
+
+
+write(
+    "owner-intent.json",
+    {
+        "PID": os.getpid(),
+        "controller_source_git": config["controller_source_git"],
+        "teacher_source_git": source,
+        "first_phase": 18,
+        "last_phase_maximum": 62,
+        "previous_job": "969113",
+        "previous_phase": 17,
+        "worker_count": 23,
+        "CPU_requested": 47,
+        "memory_GiB": 256,
+        "heap_GiB": 128,
+        "tmpfs_cap_GiB": 64,
+        "unchanged_model_threads": 2,
+        "shared_control_cap_bytes": 4 * 2**20,
+        "shared_control_cap_files": 256,
+        "credential_in_RAM_and_stdin_only": True,
+        "automatic_retry": False,
+    },
+)
+try:
+    for phase in range(18, 63):
+        fresh_bounds()
+        prefix = "phase-%03d" % phase
+        write(
+            prefix + "-intent.json",
+            {
+                "phase": phase,
+                "teacher_source_git": source,
+                "entry_SHA": config["entry_sha256"],
+                "original_program_SHA": config["teacher_stage"]["files"]["program.py"],
+                "afterok_original_job": "969113" if phase == 18 else None,
+                "one_original_CPU_job": True,
+                "automatic_retry": False,
+            },
+        )
+        a = [
+            "srun",
+            "--account=skattel",
+            "--partition=preemptable",
+            "--qos=preemptable",
+            "--nodelist=evc39",
+            *(["--dependency=afterok:969113"] if phase == 18 else []),
+            "--ntasks=1",
+            "--cpus-per-task=47",
+            "--gres=none",
+            "--mem=256G",
+            "--time=01:30:00",
+            "--job-name=rsna-S6-resident-p" + str(phase),
+            "env",
+            "CUDA_VISIBLE_DEVICES=",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "PYTHONNOUSERSITE=1",
+            "OMP_NUM_THREADS=2",
+            "MKL_NUM_THREADS=2",
+            "OPENBLAS_NUM_THREADS=1",
+            "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+            "-B",
+            "/tmp/rsna-S6-source-quota-recovery-20261019-v1/teacher_entry_23heap128.py",
+        ]
+        with (
+            (D / (prefix + "-stdout.private.log")).open("x") as out,
+            (D / (prefix + "-stderr.private.log")).open("x") as err,
+        ):
+            child = subprocess.Popen(a, stdin=subprocess.PIPE, stdout=out, stderr=err, text=True)
+            write(
+                "owner-progress.json",
+                {
+                    "PID": os.getpid(),
+                    "phase": phase,
+                    "srun_PID": child.pid,
+                    "state": "original_CPU_job_submitted_or_waiting_same_handle",
+                    "automatic_retry": False,
+                },
+                False,
+            )
+            child.stdin.write(
+                json.dumps({"phase": phase, "source_git": source, "HF_token": config["HF_token"]})
+            )
+            child.stdin.close()
+            code = child.wait()
+        write(
+            prefix + "-transport.json",
+            {"returncode": code, "phase": phase, "automatic_retry": False},
+        )
+        assert code == 0, "Original phase stopped; preserve all journals and buffers without retry"
+        terminal = [
+            json.loads(s)
+            for s in (D / (prefix + "-stdout.private.log")).read_text().splitlines()
+            if s.startswith("{")
+        ][-1]
+        assert (
+            terminal["phase"] == phase
+            and terminal["source_git"] == source
+            and terminal["new_studies"] > 0
+            and terminal["CPU_workers"] == 23
+            and terminal["CPU_threads_per_model"] == 2
+        )
+        assert terminal["status"] in (
+            "actual_CPU_full_teacher_production_checkpoint_preserved",
+            "actual_complete_S6_fitting_teacher_ready_for_separate_target_admission",
+        )
+        state = subprocess.check_output(
+            [
+                "sacct",
+                "-X",
+                "-n",
+                "-P",
+                "-j",
+                terminal["CPU_job"],
+                "--format=JobIDRaw,State,ExitCode",
+            ],
+            text=True,
+        )
+        assert terminal["CPU_job"] + "|COMPLETED|0:0" in state
+        write(prefix + "-actual.json", terminal)
+        write(
+            "owner-progress.json",
+            {"PID": os.getpid(), "state": "original_completed_phase_preserved", "actual": terminal},
+            False,
+        )
+        print(json.dumps(terminal), flush=True)
+        if terminal["completed"] == 3887:
+            write("actual-complete.json", terminal)
+            break
+    else:
+        raise RuntimeError("Explicit complete-cohort phase bound exhausted")
+    del config["HF_token"]
+    fresh_bounds()
+    target = {
+        "phase": "build",
+        "source_git": config["controller_source_git"],
+        "program_sha256": "885e2448b478a6cd82fab30bb6913bec1b0cf100030a363861a51ef2ded31c14",
+        "stage": config["target_stage"],
+        "actual_complete": terminal,
+    }
+    write(
+        "targets-build-intent.json",
+        {
+            "actual_complete_teacher_job": terminal["CPU_job"],
+            "complete_population": 3887,
+            "CPU": 1,
+            "GPU": 0,
+            "automatic_retry": False,
+        },
+    )
+    a = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=evc39",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:05:00",
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "/tmp/rsna-S6-source-quota-recovery-20261019-v1/target_entry_current_plan.py",
+    ]
+    x = subprocess.run(a, input=json.dumps(target), capture_output=True, text=True, timeout=900)
+    write(
+        "targets-transport.json",
+        {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr},
+    )
+    assert x.returncode == 0, (
+        "Original target construction stopped; reconcile exact intent without retry"
+    )
+    result = json.loads(x.stdout)
+    assert (
+        result["status"] == "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+    )
+    write("actual-targets-ready.json", result)
+    write(
+        "owner-terminal.json",
+        {
+            "status": "original_complete_teacher_and_targets_finished",
+            "PID": os.getpid(),
+            "teacher": terminal,
+            "targets": result,
+            "student_GPU_dispatched": False,
+        },
+    )
+except BaseException as error:
+    write(
+        "owner-terminal.json",
+        {
+            "status": "resident_owner_stopped_original_handles_and_evidence_preserved",
+            "PID": os.getpid(),
+            "exception_type": type(error).__name__,
+            "reason": str(error),
+            "automatic_retry": False,
+        },
+    )
+    raise

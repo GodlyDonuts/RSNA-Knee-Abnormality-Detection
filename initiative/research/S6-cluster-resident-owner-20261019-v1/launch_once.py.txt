@@ -1,0 +1,125 @@
+"""One cluster-resident owner launch; no token is written to files, argv or env."""
+
+import importlib.util
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-cluster-resident-owner-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "launch-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+files = {}
+for name in ("owner.py", "target_entry_current_plan.py"):
+    p = D / (name + ".txt")
+    text = p.read_text()
+    assert text == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True
+    )
+    compile(text, name, "exec")
+    files[name] = text
+admission = json.loads(
+    (
+        R
+        / "initiative/research/S6-source-quota-recovery-20261019-v1/actual-23heap128-admitted.json"
+    ).read_text()
+)
+assert admission["CPU_job"] == "969208" and admission["remaining_unallocated_host_MiB"] > 20480
+old = R / "artifacts/S6-source-quota-recovery-20261019-v1/producer-v3"
+assert (old / "handoff-after-current.json").exists()
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep
+}
+program = """import hashlib,json,os,shlex,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);os.umask(0o077)
+assert not os.uname().nodename.startswith('evc')
+D=Path('/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1');assert not D.exists()
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(l.split() for l in q.splitlines() if l.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30+36*2**20 and int(a[6])-int(a[5])>5256
+state=subprocess.check_output(['sacct','-X','-n','-P','-j','969113','--format=JobIDRaw,State,ExitCode'],text=True);assert '969113|RUNNING|0:0' in state or '969113|COMPLETED|0:0' in state
+# Stage only the unchanged target entry on its owning node; no new target computation.
+stage="import hashlib,json,os;from pathlib import Path;v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS');m=Path('/tmp/rsna-S6-source-quota-recovery-20261019-v1');p=m/'target_entry_current_plan.py';assert not p.exists();compile(v['entry'],'target_entry','exec');assert sum(x.stat().st_size for x in m.rglob('*') if x.is_file())+len(v['entry'].encode())+32768<4*2**20;p.write_text(v['entry']);p.chmod(0o600);print(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'entry_sha256':hashlib.sha256(v['entry'].encode()).hexdigest(),'target_computation':False}))"
+a=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc39','--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:02:00','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',stage]
+x=subprocess.run(a,input=json.dumps({'entry':v['files']['target_entry_current_plan.py']}),capture_output=True,text=True,timeout=300)
+assert x.returncode==0,'Target-entry staging stopped; inspect same original without retry: '+x.stderr[-800:]
+entry=json.loads(x.stdout)
+D.mkdir(mode=0o700)
+p=D/'owner.py';p.write_text(v['files']['owner.py']);p.chmod(0o600)
+public={'controller_source_git':v['source_git'],'owner_source_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'admitted_entry':v['admission'],'target_entry':entry,'shared_cap_bytes':4*2**20,'shared_cap_files':256,'no_Model_pixel_weight_copies':True,'credentials_RAM_stdin_only':True}
+(D/'launch-intent.json').write_text(json.dumps(public,indent=2))
+config={'control_root':str(D),'controller_source_git':v['source_git'],'teacher_stage':v['teacher_stage'],'target_stage':v['target_stage'],'entry_sha256':v['admission']['entry_sha256'],'HF_token':v['token']}
+with (D/'owner.stdout.private.log').open('x') as out,(D/'owner.stderr.private.log').open('x') as err:
+ child=subprocess.Popen(['/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-u',str(p)],stdin=subprocess.PIPE,stdout=out,stderr=err,text=True,start_new_session=True)
+ child.stdin.write(json.dumps(config));child.stdin.close()
+start_time=Path('/proc/'+str(child.pid)+'/stat').read_text().split()[21]
+out={**public,'status':'actual_cluster_resident_finite_teacher_owner_started','PID':child.pid,'process_start_ticks':start_time,'control_root':str(D),'previous_healthy_job':'969113','first_new_phase':18,'first_job_dependency':'afterok:969113','new_GPU_jobs':0,'maximum_new_source_studies_per_phase':64,'maximum_phases':45,'target_construction_only_after_full3887':True,'no_Mac_or_VPN_required_for_later_batches':True}
+(D/'actual-owner-started.json').write_text(json.dumps(out,indent=2));print(json.dumps(out),flush=True)
+"""
+(L / "launch-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "shared_cap_bytes": 4 * 2**20,
+            "shared_cap_files": 256,
+            "old_job": "969113",
+            "first_phase": 18,
+            "CPU": 47,
+            "memory_GiB": 256,
+            "max_new_owner_processes": 1,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+spec = importlib.util.spec_from_file_location(
+    "bounded", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+payload = {
+    "source_git": git,
+    "files": files,
+    "admission": admission,
+    "teacher_stage": json.loads(
+        (R / "initiative/research/S6-full-CPU-teacher-20261018-v1/actual-staged.json").read_text()
+    ),
+    "target_stage": json.loads(
+        (
+            R / "initiative/research/S6-complete-target-admission-20261018-v1/actual-staged.json"
+        ).read_text()
+    ),
+    "token": values["HF_TOKEN"],
+}
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + __import__("shlex").quote(t.COMMAND),
+    ],
+    input=t.envelope(program, payload),
+    capture_output=True,
+    text=True,
+    timeout=400,
+)
+(L / "launch-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Launch stopped/uncertain; inspect exact shared path/PID before any further mutation: "
+    + x.stderr[-1000:]
+)
+actual = json.loads(x.stdout)
+(D / "actual-owner-started.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
