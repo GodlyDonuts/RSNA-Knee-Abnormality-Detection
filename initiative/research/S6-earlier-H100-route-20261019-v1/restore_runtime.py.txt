@@ -1,0 +1,101 @@
+"""Restore the original cached runtime once on an earlier-release ordinary H100 node."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+assert not D.exists(), "Existing original runtime intent requires read-only reconciliation"
+assert shutil.disk_usage("/tmp").free > 108 * 2**30 + 32 * 2**20
+assert hashlib.sha256(v["extractor"].encode()).hexdigest() == v["extractor_SHA"]
+archive = Path(
+    "/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar"
+)
+assert archive.is_file() and not archive.is_symlink()
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(a[6]) - int(a[5]) > 5000
+D.mkdir(mode=0o700)
+(D / "runtime_environment.py").write_text(v["extractor"])
+(D / "runtime-intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "archive_sha256": "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+            "new_runtime_cap_bytes": 8 * 2**30,
+            "future_control_recovery_and_full_fit_cap_bytes": 79 * 2**30,
+            "reserve_bytes": 20 * 2**30,
+            "new_shared_bytes_or_files": 0,
+            "original_node33_assets_and_owners_unchanged": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+spec = importlib.util.spec_from_file_location(
+    "original_bounded_runtime_extractor", D / "runtime_environment.py"
+)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+runtime = m.extract(
+    archive,
+    "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+    40403,
+    6322691335,
+    Path("/tmp"),
+    102,
+    Path("/usr/bin/python3.12"),
+    os.environ["SLURM_JOB_ID"],
+)
+(D / "runtime-restored.json").write_text(json.dumps(runtime, indent=2) + "\n")
+probe = """import torch,numpy,json,sys,importlib.metadata as m
+assert torch.cuda.device_count()==0
+versions={}
+for name in ('torch','torchvision','timm','numpy'):
+ try:versions[name]=m.version(name)
+ except m.PackageNotFoundError:versions[name]=None
+print(json.dumps({'python':sys.version.split()[0],'torch_cuda_build':torch.version.cuda,'torch_git':torch.version.git_version,'versions':versions,'CUDA_devices':torch.cuda.device_count()}))
+"""
+x = subprocess.run(
+    [runtime["python"], "-B", "-c", probe],
+    env={
+        **os.environ,
+        "CUDA_VISIBLE_DEVICES": "",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "OMP_NUM_THREADS": "1",
+    },
+    capture_output=True,
+    text=True,
+    timeout=90,
+)
+(D / "probe-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original restored runtime probe stopped; preserve it, never automatically repeat"
+)
+actual = {
+    "status": "actual_earlier_H100_node_original_cached_runtime_restored_and_CPU_imported",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc48",
+    "source_git": v["source_git"],
+    "runtime": runtime,
+    "CPU_probe": json.loads(x.stdout),
+    "no_GPU_model_or_optimizer_or_new_environment_download": True,
+    "original_node33_assets_and_owners_unchanged": True,
+    "automatic_retry": False,
+}
+(D / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
