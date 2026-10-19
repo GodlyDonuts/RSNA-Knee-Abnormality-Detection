@@ -1,0 +1,89 @@
+"""Expose only the admitted original aliases for the distinct earlier-node execution."""
+
+import hashlib
+import importlib.metadata
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+A = E / "auxiliary-v2"
+actual = json.loads((E / "input-admitted-v1.json").read_text())
+assert actual == v["actual"] and actual["CPU_job"] == "971665"
+assert not (E / "route-setup-intent-v1.json").exists()
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + (12 + 24) * 2**30 + 32 * 2**20
+R = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+T = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+assert not R.exists() and not T.exists()
+H = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+N = Path("/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+old_recovery = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1")
+F = Path("/tmp/rsna-licensed-parent-whole94-production-20261016-v1")
+assert not H.exists() and not N.exists() and not old_recovery.exists() and not F.exists()
+runtime = Path("/tmp/rsna-environment-971427-pyk8rld8/environment/lib64/python3.12/site-packages")
+assert runtime.is_dir()
+for p in (A / "extensions").iterdir():
+    assert not (runtime / p.name).exists(), "Existing package requires read-only reconciliation"
+(E / "route-setup-intent-v1.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "actual_model_input_CPU": "971665",
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+for p in (A / "extensions").iterdir():
+    (runtime / p.name).symlink_to(p, target_is_directory=p.is_dir())
+T.symlink_to(A / "source", target_is_directory=True)
+H.symlink_to(A / "headers", target_is_directory=True)
+N.parent.mkdir(mode=0o700)
+N.symlink_to(A / "overlay", target_is_directory=True)
+old_recovery.symlink_to(A / "old_recovery", target_is_directory=True)
+F.symlink_to(A / "full_proofs", target_is_directory=True)
+R.mkdir(mode=0o700)
+(R / "input").mkdir(mode=0o700)
+(R / "work").mkdir(mode=0o700)
+for name, target in [
+    ("original32-pixels", A / "pixels32"),
+    ("original32-features", A / "features32"),
+    ("original-parent", A / "parent"),
+]:
+    (R / "input" / name).symlink_to(target, target_is_directory=True)
+os.link(E / "input-admitted-v1.json", R / "runtime-inputs-verified.json")
+weight = A / "parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"
+os.link(weight, R / weight.name)
+assert (
+    hashlib.sha256((H / "verified.json").read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+assert Path(json.loads((H / "verified.json").read_text())["include_path"]).is_dir()
+sys.path.insert(0, str(N))
+import timm  # noqa: E402
+import torch  # noqa: E402
+import torchvision  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+assert str(torch.__version__) == actual["torch"] and timm.__version__ == actual["timm"]
+assert importlib.metadata.version("torchvision") == actual["torchvision"]
+assert torchvision.__version__.split("+", 1)[0] == actual["torchvision"].split("+", 1)[0]
+accepted = {
+    "status": "actual_earlier_node_original_execution_aliases_and_runtime_imports_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "node": "evc48",
+    "actual_model_input_CPU": "971665",
+    "original_node33_and_all_owners_unchanged": True,
+    "new_bulk_copies_or_package_downloads": 0,
+    "real_GPU_or_optimizer_acceptance": False,
+    "automatic_retry": False,
+}
+(E / "route-setup-verified-v1.json").write_text(json.dumps(accepted, indent=2) + "\n")
+print(json.dumps(accepted), flush=True)
