@@ -1,0 +1,79 @@
+"""Exercise exact framing, bytes and prefix-preservation without clinical data."""
+
+import copy
+import hashlib
+import importlib.util
+import io
+import json
+import tempfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+
+D = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_loader(
+    "replica", SourceFileLoader("replica", str(D / "replica_transport.py.txt"))
+)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+files = {
+    f"shard-{i}/{name}": (f"synthetic-{i}-{name}-" * 50).encode()
+    for i in range(4)
+    for name in ("pixels.tar", "index.private.json", "source-proof.private.json")
+}
+table = {
+    name: {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+    for name, raw in files.items()
+}
+expected = {
+    name: None if name.endswith("source-proof.private.json") else item
+    for name, item in table.items()
+}
+
+
+def packet(value=table, body=None):
+    header = json.dumps(value, sort_keys=True).encode()
+    if body is None:
+        body = b"".join(files[name] for name in sorted(files))
+    return m.MAGIC + len(header).to_bytes(8, "big") + header + body
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp) / "complete"
+    assert m.receive(io.BytesIO(packet()), root, expected) == table
+    assert all((root / name).read_bytes() == raw for name, raw in files.items())
+    with pytest.raises(ValueError, match="Existing original copy"):
+        m.receive(io.BytesIO(packet()), root, expected)
+    for i, raw in enumerate((packet()[:-10], packet() + b"extra", b"wrong")):
+        with pytest.raises(ValueError):
+            m.receive(io.BytesIO(raw), Path(tmp) / str(i), expected)
+    partials = list((Path(tmp) / "0").rglob("*.partial"))
+    assert partials and (Path(tmp) / "0/intent.json").exists()
+    bad = copy.deepcopy(table)
+    bad["shard-0/pixels.tar"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="proof differs"):
+        m.receive(io.BytesIO(packet(bad)), Path(tmp) / "bad-digest", expected)
+    bad = copy.deepcopy(table)
+    bad["../escape"] = bad.pop("shard-0/pixels.tar")
+    with pytest.raises(ValueError):
+        m.receive(io.BytesIO(packet(bad)), Path(tmp) / "bad-path", expected)
+    bad = copy.deepcopy(table)
+    bad["shard-0/source-proof.private.json"]["bytes"] = 128 * 1024 + 1
+    with pytest.raises(ValueError, match="Small original source proof"):
+        m.receive(io.BytesIO(packet(bad)), Path(tmp) / "proof-cap", expected)
+    bad_body = bytearray(b"".join(files[name] for name in sorted(files)))
+    bad_body[0] ^= 1
+    with pytest.raises(ValueError, match="SHA mismatch"):
+        m.receive(io.BytesIO(packet(body=bad_body)), Path(tmp) / "changed-bytes", expected)
+print(
+    json.dumps(
+        {
+            "status": "private_original_file_replica_synthetic_transport_contracts_passed",
+            "exact12_file_roundtrip": True,
+            "failure_or_duplicate_refusals": 8,
+            "truncated_prefix_and_original_intent_preserved": True,
+            "clinical_data_or_live_transfer_or_GPU": False,
+        }
+    )
+)

@@ -1,0 +1,66 @@
+# ruff: noqa: F821
+"""Stream original retained files once; do not rehash the large donor archives."""
+
+import json
+import os
+import sys
+from pathlib import Path
+
+v = PACKAGE
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+C = Path("/tmp/rsna-licensed-parent-pixels-full-20261016-v1")
+table = {}
+paths = {}
+stats = {}
+for i in range(4):
+    d = C / ("shard-" + str(i)) / "collected"
+    source = d / "verified.json"
+    old = json.loads(source.read_text())
+    assert old["archive_sha256"] == v["expected"][f"shard-{i}/pixels.tar"]["sha256"]
+    assert old["index_sha256"] == v["expected"][f"shard-{i}/index.private.json"]["sha256"]
+    for suffix, p in (
+        ("pixels.tar", d / "pixels.tar"),
+        ("index.private.json", d / "index.private.json"),
+        ("source-proof.private.json", source),
+    ):
+        name = f"shard-{i}/{suffix}"
+        if suffix == "source-proof.private.json":
+            item = {"bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+        else:
+            item = v["expected"][name]
+            assert p.stat().st_size == item["bytes"]
+            if suffix == "index.private.json":
+                assert hashlib.sha256(p.read_bytes()).hexdigest() == item["sha256"]
+        assert not p.is_symlink()
+        paths[name] = p
+        table[name] = item
+        stats[name] = (p.stat().st_dev, p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns)
+raw = json.dumps(table, sort_keys=True, separators=(",", ":")).encode()
+assert len(raw) < 64 * 1024 and sum(row["bytes"] for row in table.values()) < CAP
+out = sys.stdout.buffer
+out.write(MAGIC + len(raw).to_bytes(8, "big") + raw)
+for name, item in sorted(table.items()):
+    p = paths[name]
+    with p.open("rb") as f:
+        remaining = item["bytes"]
+        while remaining:
+            block = f.read(min(2**20, remaining))
+            assert block, "Original retained source unexpectedly shortened"
+            out.write(block)
+            remaining -= len(block)
+        assert not f.read(1)
+    assert (p.stat().st_dev, p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+out.flush()
+print(
+    json.dumps(
+        {
+            "status": "original_four_pixel_shards_streamed_from_retained_cluster_copy",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": table,
+            "large_donor_archives_rehashed_again": False,
+            "automatic_retry": False,
+        }
+    ),
+    file=sys.stderr,
+    flush=True,
+)

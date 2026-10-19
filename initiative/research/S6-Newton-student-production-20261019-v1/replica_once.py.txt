@@ -1,0 +1,129 @@
+"""One direct private cluster replica; original bulk bytes never enter the Mac."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Newton-student-production-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "replica-intent.json").exists(), (
+    "Existing transfer requires read-only reconciliation"
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {
+    n: (D / n).read_text()
+    for n in (
+        "replica_transport.py.txt",
+        "replica_sender.py.txt",
+        "replica_receiver.py.txt",
+        "replica_once.py.txt",
+    )
+}
+for name, text in parts.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()], text=True
+        )
+        == text
+    )
+expected = {}
+for i in range(4):
+    proof = json.loads(
+        (
+            R
+            / f"initiative/audits/licensed-parent-pixels-full-20261016-v1/actual-Newton-replica-shard-{i}-verified.json"
+        ).read_text()
+    )
+    assert proof["status"] == "actual_full_pixel_shard_collected_verified" and proof["shard"] == i
+    for suffix, size_key, sha_key in (
+        ("pixels.tar", "archive_bytes", "archive_sha256"),
+        ("index.private.json", "index_bytes", "index_sha256"),
+    ):
+        expected[f"shard-{i}/{suffix}"] = {"bytes": proof[size_key], "sha256": proof[sha_key]}
+    expected[f"shard-{i}/source-proof.private.json"] = None
+with (L / "replica-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "source_hashes": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in parts.items()},
+            "files": expected,
+            "private_source": "evc39",
+            "private_receiver": "evc33",
+            "input_cap_bytes": 40 * 2**30,
+            "future_checkpoint_publication_cap_bytes": 24 * 2**30,
+            "raw_bytes_on_Mac_Git_HF": False,
+            "GPU_or_competition_mutations": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = """import json,subprocess,time
+v=json.load(__import__('sys').stdin)
+def command(node,body):
+ source=v['helper']+'\\nPACKAGE='+repr({'expected':v['expected']})+'\\n'+body
+ return ['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:30:00','--job-name=rsna-S6-original-pixels-'+node,'env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',source]
+receiver=subprocess.Popen(command('evc33',v['receiver']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+sender=subprocess.Popen(command('evc39',v['sender']),stdout=receiver.stdin,stderr=subprocess.PIPE)
+receiver.stdin.close();receiver.stdin=None
+try:
+ _,left_error=sender.communicate(timeout=3300)
+ output,right_error=receiver.communicate(timeout=3300)
+except BaseException:
+ raise RuntimeError('Original copy endpoints must be inspected; never repeat an uncertain transfer') from None
+assert sender.returncode==receiver.returncode==0,('Original private copy stopped; preserve prefixes, no retry. '+left_error.decode()[-1800:]+' '+right_error.decode()[-1800:])
+assert len(output)<32768
+left=[json.loads(s) for s in left_error.decode().splitlines() if s.startswith('{')][-1];right=json.loads(output)
+assert left['files']==right['files'] and right['archive_bytes']==38870763520
+for job in (left['CPU_job'],right['CPU_job']):
+ for attempt in range(30):
+  state=subprocess.check_output(['sacct','-X','-n','-P','-j',job,'--format=JobIDRaw,State,ExitCode'],text=True)
+  if job+'|COMPLETED|0:0' in state:break
+  time.sleep(1)
+ else:raise RuntimeError('Original endpoint terminal unverified; inspect existing handles')
+print(json.dumps({'status':'actual_original_pixel_replica_both_CPU_endpoints_completed','sender_CPU':left['CPU_job'],'receiver':right,'raw_bytes_on_Mac_Git_HF':False,'automatic_retry':False}),flush=True)
+"""
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(t.COMMAND),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "helper": parts["replica_transport.py.txt"],
+            "sender": parts["replica_sender.py.txt"],
+            "receiver": parts["replica_receiver.py.txt"],
+            "expected": expected,
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=6900,
+)
+(L / "replica-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original copy intents and endpoints require read-only reconciliation; never repeat"
+)
+actual = json.loads(x.stdout)
+(D / "actual-private-full-input-replica.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

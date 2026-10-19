@@ -1,0 +1,81 @@
+"""Bounded private original-file stream; no archive extraction or clinical parsing."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+
+MAGIC = b"RSNA-ORIGINAL-PIXEL-REPLICA-v1\n"
+CAP = 40 * 2**30
+
+
+def exact(stream, n):
+    out = bytearray()
+    while len(out) < n:
+        part = stream.read(min(1024 * 1024, n - len(out)))
+        if not part:
+            raise ValueError("Original private stream truncated; preserve the prefix")
+        out.extend(part)
+    return bytes(out)
+
+
+def header(stream, expected):
+    if exact(stream, len(MAGIC)) != MAGIC:
+        raise ValueError("Wrong original private stream magic")
+    size = int.from_bytes(exact(stream, 8), "big")
+    if not 0 < size <= 64 * 1024:
+        raise ValueError("Original private file-table header cap exceeded")
+    table = json.loads(exact(stream, size))
+    if set(table) != set(expected) or len(table) != 12:
+        raise ValueError("Exactly four original archive/index/proof triples required")
+    if sum(row.get("bytes", CAP + 1) for row in table.values()) > CAP:
+        raise ValueError("Original private input scope exceeded")
+    for name, row in table.items():
+        if not any(
+            name == f"shard-{i}/{suffix}"
+            for i in range(4)
+            for suffix in ("pixels.tar", "index.private.json", "source-proof.private.json")
+        ):
+            raise ValueError("Only exact original file names allowed")
+        if type(row.get("bytes")) is not int or not 0 < row["bytes"] <= CAP:
+            raise ValueError("Positive bounded original file size required")
+        sha = row.get("sha256", "")
+        if len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
+            raise ValueError("Exact original whole-byte SHA required")
+        if name.endswith("source-proof.private.json"):
+            if row["bytes"] > 128 * 1024 or expected[name] is not None:
+                raise ValueError("Small original source proof required")
+        elif row != expected[name]:
+            raise ValueError("Original immutable archive/index proof differs")
+    return table
+
+
+def receive(stream, root, expected):
+    table = header(stream, expected)
+    root = Path(root)
+    if root.exists():
+        raise ValueError("Existing original copy requires read-only reconciliation")
+    root.mkdir(mode=0o700, parents=True)
+    (root / "intent.json").write_text(
+        json.dumps({"files": table, "automatic_retry": False}, indent=2) + "\n"
+    )
+    for name, item in sorted(table.items()):
+        target = root / name
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        partial = target.with_name(target.name + ".partial")
+        digest = hashlib.sha256()
+        remaining = item["bytes"]
+        with partial.open("xb") as f:
+            while remaining:
+                block = exact(stream, min(1024 * 1024, remaining))
+                digest.update(block)
+                f.write(block)
+                remaining -= len(block)
+            f.flush()
+            os.fsync(f.fileno())
+        if digest.hexdigest() != item["sha256"]:
+            raise ValueError("Original private file SHA mismatch; preserve original prefix")
+        partial.rename(target)
+    if stream.read(1):
+        raise ValueError("Unexpected bytes after the original private file packet")
+    return table
