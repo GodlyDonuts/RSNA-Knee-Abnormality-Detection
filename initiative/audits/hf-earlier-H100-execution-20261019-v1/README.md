@@ -1,0 +1,5 @@
+# Earlier H100 execution handoff preservation
+
+Selected source ae16e303de2a48e46c002a9aace96da932dd5aed was privately preserved once at GodlyDonuts/RSNA-Data revision2a257ac10cc4dee7a633d4e88325b1f7bb965dcd, CPU971898. All40objects/173033bytes were fully re-downloaded/size/SHA checked under the original canonical shared publication lock. Exact source scope is in manifest.json. No raw MRI, reports, UIDs, per-case arrays, restricted parent body or learned weights were included. Never repeat the prefix or previous verified mirrors.
+
+This preserves actual idle-controller handoff to new recovery67258/full-production67269, their own frozen execution/bridge source, actual node48alias setup971721, concise current guides and newly collected aggregate teacher phases35–41. It is selected source/evidence preservation, not a whole repository mirror, GPU recovery, model checkpoint or accuracy result. Original healthy teacher and target handoff/compiler remained untouched; retired59992/61949 had no GPU stages or outputs by actual CPU971871. At preservation, new GPU stages still wait complete3887teacher targets and actual prerequisites.
