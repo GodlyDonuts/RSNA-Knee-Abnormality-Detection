@@ -1,0 +1,218 @@
+# ruff: noqa: E402
+"""CPU-admit distinct source then submit one bounded real-gradient probe; never retry."""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+F = Path("/tmp/rsna-teacher-pair-gradient-20261019-v1")
+A = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+assert not F.exists(), "Original stage/intent must be reconciled read-only"
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+# Keep every existing future liability; this lane adds zero shared files/bytes.
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+t = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+retained = [p for p in t.rglob("*") if p.is_file()]
+paid_files = len(retained)
+paid_bytes = sum(p.stat().st_size for p in retained)
+assert paid_files < 256 and paid_bytes < 4 * 2**20
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+)
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 24 + max(0, 256 - paid_files)
+node = subprocess.check_output(["scontrol", "show", "node", "evc48", "-o"], text=True)
+assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
+runtime = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/input-admitted-v1.json")
+r = json.loads(runtime.read_text())
+assert r["CPU_job"] == "971665" and r["strict_original_parent_load"] is True
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "971665", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "971665|COMPLETED|0:0" in terminal
+proof = v["private_source_mirror"]
+assert (
+    proof["status"]
+    == "selected_sanitized_mission_sources_all_objects_private_download_size_SHA_verified"
+    and proof["source_git"] == v["source_git"]
+)
+source = json.loads((A / "source/admitted.json").read_text())
+assert source["CPU_job"] == "969738"
+for name, sha in source["files"].items():
+    assert hashlib.sha256((A / "source/code" / name).read_bytes()).hexdigest() == sha
+for name, sha in v["original_dependencies"].items():
+    assert source["files"][name] == sha
+for name, text in v["files"].items():
+    assert hashlib.sha256(text.encode()).hexdigest() == v["files_sha256"][name]
+assert set(v["files"]) == {
+    "code/rsna/competitive/teacher_pair.py",
+    "code/rsna/competitive/teacher_pair_train.py",
+    "gpu_probe.py",
+}
+assert sum(len(text.encode()) for text in v["files"].values()) < 128 * 2**10
+header = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json")
+assert (
+    hashlib.sha256(header.read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+for name, text in v["files"].items():
+    compile(text, name, "exec")
+F.mkdir(mode=0o700)
+for name in source["files"]:
+    dst = F / "code" / name
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    os.link(A / "source/code" / name, dst)
+for name, text in v["files"].items():
+    dst = F / name
+    assert not dst.exists()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(text)
+sys.path[:0] = [str(F / "code"), str(A / "overlay"), str(A / "extensions")]
+import numpy as np
+import torch
+
+assert torch.cuda.device_count() == 0
+from rsna.competitive.teacher_pair_train import fit
+
+from rsna.competitive.teacher_pair import Recipe
+
+assert Recipe(objective="teacher_rank").rank_fraction == 0.5 and callable(fit)
+old = (A / "old_recovery/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+value = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "TARGETS"
+)
+targets = json.loads(base64.b64decode(value, validate=True))
+assert targets["eligible_fitting_only"] is True and len(targets["uids"]) == 32
+from rsna.competitive.licensed_parent_population import load
+
+proofs = json.loads((A / "full_proofs/actual-original-Kaggle-inputs.json").read_text())["proofs"]
+data = load(
+    Path("/tmp/rsna-S6-Newton-student-production-20261019-v1/input"), proofs, lambda *args: None
+)
+indices = [data.uids.index(uid) for uid in targets["uids"][:8]]
+assert len(set(indices)) == 8
+(F / "private-input-binding.json").write_text(json.dumps({"indices": indices}) + "\n")
+q = np.load(A / "proposals/proposals.private.npy", allow_pickle=False)
+assert q.shape == (3887, 94) and q.dtype == np.float64
+meta = {
+    "source_git": v["source_git"],
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "gpu_worker_sha256": v["files_sha256"]["gpu_probe.py"],
+    "new_source_sha256": {k: h for k, h in v["files_sha256"].items() if k.startswith("code/")},
+    "proposal_array_sha256": hashlib.sha256(q.tobytes()).hexdigest(),
+    "original_source_sha256": source["files"],
+    "original_input_CPU": "971665",
+    "private_source_mirror": proof,
+    "cap_bytes": 256 * 2**20,
+    "maximum_GPU_jobs": 1,
+    "automatic_retry": False,
+}
+(F / "staged.json").write_text(json.dumps(meta, indent=2) + "\n")
+env = [
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+    "CUDA_CACHE_MAXSIZE=" + str(32 * 2**20),
+]
+for name in ("XDG_CACHE_HOME", "TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR", "CUDA_CACHE_PATH"):
+    env.append(name + "=" + str(F / name.lower()))
+include = json.loads(header.read_text())["include_path"]
+env += ["C_INCLUDE_PATH=" + include, "CPLUS_INCLUDE_PATH=" + include]
+command = [
+    "srun",
+    "--exact",
+    "--cpu-bind=none",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    *env,
+    sys.executable,
+    "-B",
+    str(F / "gpu_probe.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=32G",
+    "--time=00:20:00",
+    "--job-name=rsna-teacher-pair-gradient",
+    "--output=" + str(F / "GPU-%j.stdout.private.log"),
+    "--error=" + str(F / "GPU-%j.stderr.private.log"),
+    "--wrap=" + shlex.join(command),
+]
+with (F / "dispatch-intent.json").open("x") as out:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "maximum_GPU_jobs": 1,
+            "no_optimizer": True,
+            "automatic_retry": False,
+            "args": args,
+        },
+        out,
+    )
+clean = {
+    k: val
+    for k, val in os.environ.items()
+    if not k.startswith(
+        ("SLURM_CPU_BIND", "SLURM_STEP_CPU_BIND", "SRUN_CPU_BIND", "SBATCH_CPU_BIND")
+    )
+    and k not in ("CUDA_VISIBLE_DEVICES", "SLURM_TRES_BIND", "SLURM_GPU_BIND")
+}
+x = subprocess.run(args, env=clean, capture_output=True, text=True)
+(F / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Uncertain mutation requires read-only reconciliation, never retry"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+actual = {
+    "status": "actual_new_teacher_pair_source_CPU_admitted_and_one_gradient_probe_submitted",
+    "source_git": v["source_git"],
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "GPU_job": job,
+    "physical_node_GPUs": 2,
+    "assigned_H100": 1,
+    "CPU": 2,
+    "maximum_minutes": 20,
+    "model_parameters": 73136096,
+    "fitting_studies": 8,
+    "new_pixel_or_model_copies": 0,
+    "optimizer_or_accuracy_or_full_training_acceptance": False,
+    "automatic_retry": False,
+}
+(F / "submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

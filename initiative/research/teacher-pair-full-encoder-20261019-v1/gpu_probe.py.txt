@@ -1,0 +1,286 @@
+# ruff: noqa: E402
+"""Eight real fitting studies: coupled objective gradients and actual H100 memory.
+
+No optimizer, checkpoints, model publication, validation metric or submission.
+Original model/images/labels/proposals remain private and unchanged.
+"""
+
+import ast
+import base64
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import math
+import os
+import random
+import sys
+import time
+from pathlib import Path
+
+F = Path("/tmp/rsna-teacher-pair-gradient-20261019-v1")
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+A = E / "auxiliary-v2"
+S = A / "source"
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert 0 < len(os.sched_getaffinity(0)) <= 4
+meta = json.loads((F / "staged.json").read_text())
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["gpu_worker_sha256"]
+for name, h in meta["new_source_sha256"].items():
+    assert hashlib.sha256((F / name).read_bytes()).hexdigest() == h
+for name, h in meta["original_source_sha256"].items():
+    assert hashlib.sha256((F / "code" / name).read_bytes()).hexdigest() == h
+sys.path[:0] = [str(F / "code"), str(A / "overlay"), str(A / "extensions")]
+import numpy as np
+import timm
+import torch
+
+from rsna.competitive.checkpoint import capture_rng, restore_rng
+from rsna.competitive.licensed_full_bag import CheckpointedEncode
+from rsna.competitive.licensed_importance import ImportanceReadout, ProposalCases, sample
+from rsna.competitive.licensed_parent_population import load
+from rsna.competitive.licensed_parent_train import train_with_frozen_bn
+from rsna.competitive.released_context import anchored_loss
+from rsna.competitive.teacher_pair import Recipe, coupled_batch
+
+assert (
+    str(torch.__version__) == "2.14.0+cu130"
+    and torch.version.git_version == "08187d9e0fba026dc8217405802ab5381dc88d90"
+)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+assert torch.cuda.device_count() == 1 and torch.cuda.get_device_capability(0) == (9, 0)
+device = torch.device("cuda", 0)
+assert torch.ones(1, device=device).item() == 1
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+torch.use_deterministic_algorithms(True)
+parent = (S / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+old = (A / "old_recovery/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+constants = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id in ("WORKER", "TARGETS")
+}
+worker = ast.parse(base64.b64decode(constants["WORKER"], validate=True).decode())
+boundary = next(
+    i
+    for i, n in enumerate(worker.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+renderer = {
+    "__name__": "original_renderer_for_new_teacher_pair_probe",
+    "__file__": str(F / "original-renderer.private.py"),
+}
+exec(
+    compile(
+        ast.Module(body=worker.body[:boundary], type_ignores=[]), "original_exact_renderer", "exec"
+    ),
+    renderer,
+)
+proofs = json.loads((A / "full_proofs/actual-original-Kaggle-inputs.json").read_text())["proofs"]
+original = load(
+    P / "input",
+    proofs,
+    lambda volume, mask, mirror: renderer["eval_windows"](
+        volume, mask, 94, 320, norm=renderer["NORM"], mirror=mirror
+    ),
+)
+assert (
+    len(original) == 3887
+    and hashlib.sha256(json.dumps(original.uids, separators=(",", ":")).encode()).hexdigest()
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+targets = json.loads(base64.b64decode(constants["TARGETS"], validate=True))
+assert targets["eligible_fitting_only"] is True and len(targets["uids"]) == 32
+mapping = {uid: i for i, uid in enumerate(original.uids)}
+indices = [mapping[uid] for uid in targets["uids"][:8]]
+assert (
+    len(set(indices)) == 8
+    and indices == json.loads((F / "private-input-binding.json").read_text())["indices"]
+)
+q = np.load(A / "proposals/proposals.private.npy", allow_pickle=False)
+assert q.shape == (3887, 94) and q.dtype == np.float64
+assert hashlib.sha256(q.tobytes()).hexdigest() == meta["proposal_array_sha256"]
+data = ProposalCases(original, torch.from_numpy(q))
+del q
+ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(parent).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(compile(ast.Module(body=selected, type_ignores=[]), "original_parent_graph", "exec"), ns)
+with contextlib.redirect_stdout(io.StringIO()):
+    base, res = ns["load_model"](
+        str(A / "parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"),
+        "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k",
+        384,
+        device,
+    )
+
+
+class Probe(ImportanceReadout, CheckpointedEncode, ns["RaptorClassifier"]):
+    pass
+
+
+model = Probe(base.backbone, F_dim=base.backbone.num_features).to(device)
+model.load_state_dict(base.state_dict(), strict=True)
+del base
+assert (
+    res == 320
+    and sum(p.numel() for p in model.parameters()) == 73136096
+    and len(model.state_dict()) == 486
+    and all(p.requires_grad for p in model.parameters())
+)
+train_with_frozen_bn(model)
+versions = {n: p._version for n, p in model.named_parameters()}
+bn = {
+    n: v.detach().clone()
+    for n, v in model.state_dict().items()
+    if any(k in n for k in ("running_mean", "running_var", "num_batches_tracked"))
+}
+random.seed(20261019)
+np.random.seed(20261019)
+torch.manual_seed(20261019)
+torch.cuda.manual_seed_all(20261019)
+initial = capture_rng(device)
+reference = None
+results = {}
+start_all = time.monotonic()
+for phase in ("sequential_pointwise", "joint_pointwise", "joint_teacher_rank"):
+    assert time.monotonic() - start_all < 1000
+    assert sum(p.stat().st_size for p in F.rglob("*") if p.is_file()) < 256 * 2**20
+    restore_rng(initial, device)
+    model.zero_grad(set_to_none=True)
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats(device)
+    torch.cuda.synchronize()
+    start = time.monotonic()
+    recipe = Recipe(
+        epochs=2, objective="teacher_rank" if phase == "joint_teacher_rank" else "pointwise"
+    )
+    if phase == "sequential_pointwise":
+        value = 0.0
+        for index in indices:
+            positions, mirror, logq = sample(data.uids[index], recipe, 0, data.proposal(index))
+            for view in (mirror, not mirror):
+                case = data.case(index, positions, view)
+                with torch.autocast("cuda", dtype=torch.float16):
+                    z = model(case["images"].to(device)[None], logq.to(device)[None]).float()
+                loss = anchored_loss(
+                    z,
+                    case["parent_logits"].to(device)[None].float(),
+                    case["labels"].to(device)[None].float(),
+                    case["mask"].to(device)[None],
+                ) / (2 * len(indices))
+                value += float(loss.detach())
+                (loss * 1024.0).backward()
+                del loss, z, case
+        batch = {"studies": 8, "anatomical_views": 16}
+    else:
+        loss, batch = coupled_batch(model, data, indices, recipe, 0, device)
+        value = float(loss.detach())
+        (loss * 1024.0).backward()
+        del loss
+    for p in model.parameters():
+        assert p.grad is not None and torch.isfinite(p.grad).all()
+        p.grad.div_(1024.0)
+    torch.cuda.synchronize()
+    elapsed = time.monotonic() - start
+    peak = torch.cuda.max_memory_allocated(device)
+    assert peak < 64 * 2**30 and all(p._version == versions[n] for n, p in model.named_parameters())
+    assert all(torch.equal(t, model.state_dict()[n]) for n, t in bn.items())
+    end = capture_rng(device)
+    if phase == "sequential_pointwise":
+        reference = {n: p.grad.detach().cpu().clone() for n, p in model.named_parameters()}
+        end_rng = end
+    else:
+        assert (
+            torch.equal(end["torch"], end_rng["torch"])
+            and torch.equal(end["cuda"], end_rng["cuda"])
+            and end["python"] == end_rng["python"]
+            and end["numpy"] == end_rng["numpy"]
+        )
+    sums = {group: [0.0, 0.0, 0.0, 0.0] for group in ("all", "encoder", "head")}
+    for name, p in model.named_parameters():
+        ref = reference[name].double()
+        current = p.grad.detach().cpu().double()
+        values = [
+            float(ref.square().sum()),
+            float(current.square().sum()),
+            float((current - ref).square().sum()),
+            float((current * ref).sum()),
+        ]
+        for group in ("all", "encoder" if name.startswith("backbone.") else "head"):
+            sums[group] = [a + b for a, b in zip(sums[group], values, strict=True)]
+    assert all(a > 0 and b > 0 for a, b, _, _ in sums.values())
+    metrics = {
+        g: {
+            "reference_squared_norm": a,
+            "current_squared_norm": b,
+            "squared_error": c,
+            "relative_L2_error": math.sqrt(c / a),
+            "cosine": d / math.sqrt(a * b),
+        }
+        for g, (a, b, c, d) in sums.items()
+    }
+    assert all(
+        v["reference_squared_norm"] > 0 and v["current_squared_norm"] > 0 for v in metrics.values()
+    )
+    if phase == "joint_pointwise":
+        assert all(
+            v["relative_L2_error"] <= 0.005 and v["cosine"] >= 0.99999 for v in metrics.values()
+        )
+    if phase == "joint_teacher_rank":
+        assert metrics["all"]["squared_error"] > 0
+    results[phase] = {
+        "loss": value,
+        "forward_backward_and_input_seconds": elapsed,
+        "peak_allocated_bytes": peak,
+        "gradient_comparison": metrics,
+        **batch,
+    }
+    (F / (phase + "-aggregate.json")).write_text(json.dumps(results[phase], indent=2) + "\n")
+actual = {
+    "status": "actual_full_encoder_paired_view_teacher_ranking_gradient_memory_probe_passed",
+    "GPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": meta["source_git"],
+    "device": torch.cuda.get_device_name(device),
+    "total_device_bytes": torch.cuda.get_device_properties(device).total_memory,
+    "trainable_parameters": 73136096,
+    "state_tensors": 486,
+    "fitting_studies": 8,
+    "views_per_study": 2,
+    "windows_per_view": 16,
+    "target_source": "original_complete_parent_only_not_partial_S6",
+    "all_parameter_gradients_present_finite": True,
+    "all_original_BN_buffers_and_parameter_versions_unchanged": True,
+    "same_forward_end_all_RNG_states": True,
+    "results": results,
+    "elapsed_seconds": time.monotonic() - start_all,
+    "new_optimizer_updates_or_checkpoint_publications": 0,
+    "actual_GPU_trainer_recovery_or_full_training_admitted": False,
+    "clinical_or_competition_accuracy_claim": False,
+    "automatic_retry": False,
+}
+(F / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

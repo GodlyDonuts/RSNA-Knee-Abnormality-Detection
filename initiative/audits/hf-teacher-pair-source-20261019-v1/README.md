@@ -1,0 +1,3 @@
+# Distinct full-encoder teacher-pair source preservation
+
+`publish_once.py.txt` preserves only the selected own numerical source/tests, predeclared gradient-probe controls/funding/protocol, current guides and new sanitized teacher51/52 aggregates. The private dataset must remain private. The original shared publication lock, compare-and-swap commit and complete independent download/size/SHA check apply. No pixel/report/case identities/per-case teacher arrays/restricted external implementation or model weights are included. Existing mirror intent/commit forbids another mutation; reconcile uncertainty read-only. This is provenance, not a new model or accuracy result.

@@ -1,0 +1,129 @@
+"""One CPU source/input admission plus at most one gradient GPU; no mutation retry."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-full-encoder-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+proof = json.loads(
+    (
+        R / "initiative/audits/hf-teacher-pair-source-20261019-v1/actual-private-verified.json"
+    ).read_text()
+)
+assert proof["source_git"] == git
+for name in ("teacher_pair.py", "licensed_importance_train.py"):
+    assert (R / "rsna/competitive" / name).read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":rsna/competitive/" + name]
+    )
+loader = SourceFileLoader("experimental_pair_compiler", str(D / "compiler.py.txt"))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+c = importlib.util.module_from_spec(spec)
+loader.exec_module(c)
+files = {
+    "code/rsna/competitive/teacher_pair.py": (R / "rsna/competitive/teacher_pair.py").read_text(),
+    "code/rsna/competitive/teacher_pair_train.py": c.build(
+        (R / "rsna/competitive/licensed_importance_train.py").read_text()
+    ),
+    "gpu_probe.py": (D / "gpu_probe.py.txt").read_text(),
+}
+expected = {}
+for name in (
+    "__init__.py",
+    "checkpoint.py",
+    "licensed_full_bag.py",
+    "licensed_importance.py",
+    "licensed_parent_population.py",
+    "licensed_parent_train.py",
+    "released_context.py",
+):
+    path = "rsna/competitive/" + name
+    expected[path] = hashlib.sha256((R / path).read_bytes()).hexdigest()
+# Verify executed operational programs are the exact privately preserved source.
+for name in ("stage_once.py.txt", "gpu_probe.py.txt", "compiler.py.txt", "coordinate_once.py.txt"):
+    relative = str((D / name).relative_to(R))
+    assert (D / name).read_bytes() == subprocess.check_output(["git", "show", git + ":" + relative])
+payload = {
+    "source_git": git,
+    "private_source_mirror": proof,
+    "original_dependencies": expected,
+    "files": files,
+    "files_sha256": {n: hashlib.sha256(b.encode()).hexdigest() for n, b in files.items()},
+}
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "maximum_CPU_stages": 1,
+            "maximum_GPU_probes": 1,
+            "no_optimizer": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:06:00",
+    "--job-name=rsna-teacher-pair-source-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope((D / "stage_once.py.txt").read_text(), payload),
+    text=True,
+    capture_output=True,
+    timeout=600,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Read-only reconcile original stage/intents; never retry: " + x.stderr[-1500:]
+)
+actual = json.loads(x.stdout)
+assert (
+    actual["status"]
+    == "actual_new_teacher_pair_source_CPU_admitted_and_one_gradient_probe_submitted"
+)
+(D / "actual-submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

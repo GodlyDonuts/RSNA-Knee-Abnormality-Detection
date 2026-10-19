@@ -1,0 +1,69 @@
+"""Derive a distinct one-rank engine without modifying the original live source."""
+
+import hashlib
+
+BASE_SHA = "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d"
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("Exact original engine transformation site required")
+    return source.replace(before, after)
+
+
+def build(source):
+    if hashlib.sha256(source.encode()).hexdigest() != BASE_SHA:
+        raise ValueError("Immutable original one/two-rank optimizer/recovery source required")
+    source = once(
+        source,
+        '"""Matched full-encoder IID16 training using a fixed frozen-teacher proposal.\n\nFork of the accepted licensed_parent_train optimizer/recovery engine; the live\nwhole94 numerical module remains untouched. Only window sampling, readout input\nand explicit proposal/version bindings change. No clinical accuracy is assumed.\n"""',
+        '"""Experimental paired-view study-coupled teacher objective; original engine immutable."""',
+    )
+    source = once(
+        source,
+        "from rsna.competitive.licensed_importance import VERSION, ProposalCases, Recipe, sample",
+        "from rsna.competitive.licensed_importance import ProposalCases\nfrom rsna.competitive.teacher_pair import VERSION, Recipe, coupled_batch",
+    )
+    source = once(source, "from rsna.competitive.released_context import anchored_loss\n", "")
+    source = once(
+        source,
+        "if world not in (1, 2) or recipe.effective_batch % world:",
+        "if world != 1 or rank != 0:",
+    )
+    source = once(
+        source,
+        '"Fixed one/two-rank divisible effective batch required"',
+        '"Separate experimental single-rank engine required"',
+    )
+    source = once(
+        source,
+        '        "world_size": world,\n        "torch_version":',
+        '        "world_size": world,\n        "anatomical_views_per_study": 2,\n        "study_coupled_batch_loss": True,\n        "torch_version":',
+    )
+    start = source.index(
+        "            local_loss = torch.zeros((), device=device, dtype=torch.float64)"
+    )
+    end = source.index("            scaler.unscale_(optimizer)", start)
+    original_micro = source[start:end]
+    if (
+        original_micro.count("loss = anchored_loss(") != 1
+        or original_micro.count("scaler.scale(weighted).backward()") != 1
+    ):
+        raise ValueError("Original pointwise accumulation region differs")
+    source = (
+        source[:start]
+        + """            loss, batch_record = coupled_batch(model, data, indices, recipe, epoch, device)
+            if not torch.isfinite(loss):
+                raise ValueError("Nonfinite coupled study-batch objective")
+            local_loss = loss.detach().double()
+            scaler.scale(loss).backward()
+"""
+        + source[end:]
+    )
+    source = once(
+        source,
+        '                    "studies": len(indices),',
+        '                    "studies": len(indices),\n                    "anatomical_views": batch_record["anatomical_views"],\n                    "retained_image_input_bytes": batch_record["retained_image_input_bytes"],\n                    "objective": recipe.objective,',
+    )
+    compile(source, "distinct_teacher_pair_one_rank_engine", "exec")
+    return source
