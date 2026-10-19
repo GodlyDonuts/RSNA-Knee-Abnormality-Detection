@@ -1,0 +1,63 @@
+"""Read the same actual submission without reserving a Newton CPU or changing ledger."""
+
+import json
+import os
+import time
+from pathlib import Path
+
+import requests
+
+from scripts.kaggle import workflow as w
+
+D = Path(__file__).resolve().parent
+L = Path("artifacts/reconnected-teacher-scoring-20261019-v1/local-score-follower")
+assert not L.exists()
+L.mkdir(mode=0o700, parents=True)
+assert json.loads((D / "actual-submit.json").read_text())["submission_id"] == 57392062
+E = Path(".env")
+assert E.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in E.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+r = w.Remote.__new__(w.Remote)
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + values["KAGGLE_API_TOKEN"]
+r.username = "godlydonuts"
+i = r.call("security.OAuthService", "IntrospectToken", {"token": values["KAGGLE_API_TOKEN"]})
+assert i.get("active") is True and i.get("username") == "godlydonuts"
+(L / "intent.json").write_text(
+    json.dumps(
+        {"PID": os.getpid(), "submission_id": 57392062, "maximum_hours": 12, "read_only": True}
+    )
+)
+start = time.monotonic()
+while time.monotonic() - start < 12 * 3600:
+    try:
+        rows = [x for x in r.submissions() if x.get("ref") == 57392062]
+        assert len(rows) == 1
+        x = rows[0]
+        out = {
+            "checked_at_utc": w.utcnow(),
+            "submission_id": x["ref"],
+            "actual_status": x.get("status"),
+            "public_score": x.get("publicScore"),
+            "outcome": w.submission_outcome(x),
+            "error_present": bool(x.get("errorDescription")),
+            "read_only": True,
+            "canonical_ledger_reconciliation_required_after_terminal": True,
+        }
+        (L / "progress.json").write_text(json.dumps(out, indent=2))
+        if out["outcome"] in ("scored", "failed"):
+            (D / "actual-local-hidden-terminal.json").write_text(json.dumps(out, indent=2) + "\n")
+            print(json.dumps(out), flush=True)
+            break
+    except (w.RemoteError, requests.RequestException):
+        (L / "observation-loss.json").write_text(
+            json.dumps({"read_only": True, "observation_loss_is_not_model_failure": True})
+        )
+    time.sleep(180)
+else:
+    raise RuntimeError("Inspect the same original submission after finite observation window")
