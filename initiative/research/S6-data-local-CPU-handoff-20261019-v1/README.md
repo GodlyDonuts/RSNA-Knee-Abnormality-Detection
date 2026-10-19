@@ -62,3 +62,12 @@ new phases on the SAME journal with zero new asset/data/record transfers. Follow
 34222 waits all3887 before target construction. This is staged/scheduled until the
 actual-23worker-owner-started receipt and Slurm progress exist; preserve healthy
 33020 until its current batch actually succeeds. No clinical gain is inferred.
+
+## Actual23-worker transition
+
+Original968547 completed0:0 with868total; old33020 stopped after its current batch.
+Actual handoff selected new phase13, retaining the same source journal and zero
+asset/data transfers. Current968696 is RUNNING on39 with47requested/48allocated
+CPUs,256GiB and23workers. First four new completed predictions bring the observed
+total to872. Sole34219/target34222 are current. Previous33020/33025 are stopped.
+This confirms real inference progress, not a clinical/student accuracy result.
