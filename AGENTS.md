@@ -2,6 +2,10 @@
 
 Updated October19,2026,23:20UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the exact original audits. Live handles and actual receipts supersede snapshots. Earlier guides remain in Git history.
 
+## Latest actual GPU outcome: collector failure, CPU replay next
+
+Kaggle139695847v1 is now **ERROR**,514.3seconds. All six full/stop/resume subprocesses finished successfully; the final collector failed at stale `roles['uniform']` after its two role equality loops. Do not call the notebook accepted or running. The source/worker outputs remain retained privately. Read `S6-Kaggle-existing-output-replay-20261019-v1`: a bounded zero-GPU original-output replay can correct only two reporting keys and local path, independently recheck complete states/predictions and preserve the notebook's actual ERROR. No new GPU attempt or clinical fit is authorized by a partial result. Original973904 is still PENDING until the exact replay hold receipt exists; no other job is changed.
+
 ## Actual results and scientific boundaries
 
 Best Kaggle **0.958 external R6 reproduction57333150**. Released S6 reproduction0.950/57300990. Our full73,136,096parameter CoAtNet adaptations0.949; R6 substituting our paired member0.957/57397292, below unchanged R6. No original breakthrough/new student accuracy gain. Tests, staging, training loss and more parameters are not accuracy. Full94 training already completed1458updates and scored0.949/57336190; never propose it again as new. MedGemma likelihood protocols failed reliability checks; no annotations adopted and no blind prompt retries.

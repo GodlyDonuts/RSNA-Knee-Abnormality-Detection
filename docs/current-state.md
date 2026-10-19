@@ -15,6 +15,10 @@ Updated October19,2026,23:20UTC. [Agent guide](../AGENTS.md) · [Continuation](c
 
 The adapted backbone is full73M CoAtNet, not a small frozen head.0.958 is a reproduction; no original breakthrough/new student improvement is established. R6 member substitution underperformed its unchanged baseline. Full94 training already completed1458updates; an unchanged repeat was withdrawn as a duplicate. Neither extra compute nor passing engineering checks proves accuracy.
 
+## Latest actual GPU outcome: collector failure, CPU replay next
+
+Kaggle139695847v1 is now **ERROR**,514.3seconds. All six full/stop/resume subprocesses finished successfully; the final collector failed at stale `roles['uniform']` after its two role equality loops. Do not call the notebook accepted or running. The source/worker outputs remain retained privately. Read `S6-Kaggle-existing-output-replay-20261019-v1`: a bounded zero-GPU original-output replay can correct only two reporting keys and local path, independently recheck complete states/predictions and preserve the notebook's actual ERROR. No new GPU attempt or clinical fit is authorized by a partial result. Original973904 is still PENDING until the exact replay hold receipt exists; no other job is changed.
+
 ## Kaggle GPU experiment now running
 
 Actual authenticated status confirms **kernel139695847 version1 RUNNING**: `godlydonuts/rsna-complete-teacher-real-mri-recovery`. The complete794124-byte target overlay is private Dataset12718845v1; both objects were fully re-downloaded/size/SHA verified. Existing exact MRI/model inputs are reused; original twoT4 sourceSHA6747a9deaff1... is unchanged. Maximum1800GPU VM seconds, zero competition entries. This is full/stop/resume engineering acceptance, not a full-population fit or accuracy gain. Newton973601/973904 remain PENDING Priority. Read [actual Kaggle execution](../initiative/research/S6-Kaggle-target-recovery-20261019-v1/README.md).
