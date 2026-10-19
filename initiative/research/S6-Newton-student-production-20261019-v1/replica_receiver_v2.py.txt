@@ -1,0 +1,64 @@
+# ruff: noqa: F821
+"""Receive original source bytes privately and check each full SHA once."""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = PACKAGE
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+assert not P.exists(), "Existing original transfer requires read-only reconciliation"
+# Fund both the input replica and the actual upcoming epoch/optimizer/publication
+# obligations, retaining the already admitted recovery/input/MedGemma scopes.
+R = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+
+
+def paid(root):
+    return sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.is_symlink())
+
+
+old_unpaid = (
+    max(0, 12 * 2**30 + 512 * 2**20 + 16 * 2**20 - paid(R)) + max(0, 12 * 2**20 - paid(S)) + 2**30
+)
+new = 40 * 2**30 + 24 * 2**30 + 16 * 2**20
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + old_unpaid + new
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 4) * 2**20
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 256
+# Parse the bounded header before creating the root/first intent. receive owns
+# the one copy root, preserves prefixes, and rejects an uncertain repeated copy.
+table = receive(sys.stdin.buffer, P / "original-pixel-replica-v2", v["expected"])
+for i in range(4):
+    old = json.loads(
+        (P / f"original-pixel-replica-v1/shard-{i}/source-proof.private.json").read_text()
+    )
+    assert old["archive_sha256"] == table[f"shard-{i}/pixels.tar"]["sha256"]
+    assert old["index_sha256"] == table[f"shard-{i}/index.private.json"]["sha256"]
+actual = {
+    "status": "actual_original_four_pixel_shards_private_node39_to_node33_whole_bytes_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "files": table,
+    "archive_bytes": sum(
+        row["bytes"] for name, row in table.items() if name.endswith("pixels.tar")
+    ),
+    "total_bytes": sum(row["bytes"] for row in table.values()),
+    "source_originals_preserved": True,
+    "raw_bytes_or_records_on_Mac_Git_HF": False,
+    "new_input_cap_bytes": 40 * 2**30,
+    "new_future_training_checkpoint_publication_cap_bytes": 24 * 2**30,
+    "new_private_metadata_cap_bytes": 16 * 2**20,
+    "new_shared_metadata_bytes": 16 * 2**20,
+    "new_shared_metadata_files": 128,
+    "old_scopes_preserved_without_deletion_credit": True,
+    "actual_GPU_or_MRI_decode_or_production_acceptance": False,
+    "automatic_retry": False,
+}
+(P / "original-pixel-replica-v1/verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
