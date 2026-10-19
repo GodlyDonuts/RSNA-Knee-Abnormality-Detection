@@ -1,0 +1,3 @@
+# Distinct source preservation after actual CUDA admission failure
+
+One canonical-lock private milestone of new coherent48 recovery controls, actual48 scout dispatch/observer, preserved26 negatives and newest sanitized teacher progress. Original verified0817→b7c2... mirror is not repeated. New own control sources and already-tested numerical helper remain exact Git bound; no clinical data, reports, UIDs, weights or private source bodies are included. Every object is independently downloaded/size/SHA verified before this source-bound recovery follower may be launched. This is source preservation, not a GPU or accuracy pass.

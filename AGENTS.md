@@ -80,3 +80,6 @@ Assigned-device diagnostics973573/973577 on26 actually completed: Slurm stepGPU1
 
 
 Actual fallback CPU973600 admitted the unchanged original32/helper/dependencies and queued scout973601 on48, oneH100/twoCPU/32GiB/20minutes/normal, without bulk transfers. Actual read-only observer94271 (source6816901f) follows only973601; it cannot submit or restart work. Source6816901f is pushed to GitHub main. Recovery is still unsubmitted and needs this exact scout’s positive result; do not reuse the failed26 receipt or start the old26 recovery follower.
+
+
+Prepared next-stage source `teacher-pair-real-recovery48-20261019-v2` binds every device assertion/path and resource request to48/scout973601. The old never-launched26 recovery wrapper had a mismatched48 sbatch request; it remains preserved and must not launch. New worker/decoder numerical functions are AST-identical to the original; seven focused tests (six fresh CPU processes plus state/CSV corruption refusals and host binding) pass. New finite recovery/terminal followers are not live until their exact source is privately preserved. They allow one recovery only after actual973601 positive gradients; no production or new accuracy claim. Main original teacher and six pipeline owners stay unchanged.

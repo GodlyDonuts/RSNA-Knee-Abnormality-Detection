@@ -1,0 +1,130 @@
+"""Wait for the exact original scout, then collect only sanitized terminal evidence."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-real-recovery48-20261019-v2"
+assert not (L / "observer-intent.json").exists()
+start_wait = time.monotonic()
+while not (D / "actual-submitted.json").exists():
+    if (L / "result.json").exists():
+        result = json.loads((L / "result.json").read_text())
+        if (
+            result["status"]
+            != "actual_positive_gradient_source_one_H100_optimizer_recovery_submitted_once"
+        ):
+            print(json.dumps({"status": "no_recovery_was_dispatched", "reason": result["status"]}))
+            raise SystemExit(0)
+    assert time.monotonic() - start_wait < 172800, (
+        "Submission observation deadline; not restart authority"
+    )
+    time.sleep(30)
+actual = json.loads((D / "actual-submitted.json").read_text())
+job = actual["GPU_job"]
+assert job.isdigit()
+(L / "observer-intent.json").write_text(
+    json.dumps({"GPU_job": job, "maximum_wait_seconds": 172800, "automatic_mutation_retry": False})
+    + "\n"
+)
+start = time.monotonic()
+terminal = None
+while time.monotonic() - start < 172800:
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(
+                ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode,Elapsed"]
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if x.returncode != 0:
+        raise RuntimeError(
+            "Observation lost; original GPU is not inferred terminal and must not restart"
+        )
+    rows = [row.split("|") for row in x.stdout.splitlines() if row.startswith(job + "|")]
+    if rows and rows[0][1] not in (
+        "PENDING",
+        "RUNNING",
+        "CONFIGURING",
+        "COMPLETING",
+        "SUSPENDED",
+        "RESIZING",
+    ):
+        terminal = rows[0]
+        break
+    time.sleep(30)
+assert terminal is not None, "Observation deadline, not GPU terminal; no restart or retry"
+program = """import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc48' and not os.environ.get('SLURM_JOB_GPUS')
+F=Path('/tmp/rsna-teacher-pair-optimizer-recovery48-20261019-v2');meta=json.loads((F/'staged.json').read_text());assert meta['source_git']==v['source_git']
+submitted=json.loads((F/'submitted.json').read_text());assert submitted['GPU_job']==v['GPU_job']
+out={'GPU_job':v['GPU_job'],'CPU_observer_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'actual_Slurm_terminal':v['terminal'],'status':'actual_optimizer_recovery_terminal_observed','automatic_retry':False,'private_logs_models_and_pixels_not_exported':True}
+if (F/'verified.json').exists():
+ raw=(F/'verified.json').read_bytes();receipt=json.loads(raw);assert receipt['GPU_job']==v['GPU_job'] and receipt['source_git']==v['source_git']
+ assert v['terminal'][1:3]==['COMPLETED','0:0'];out.update(receipt=receipt,receipt_sha256=hashlib.sha256(raw).hexdigest())
+else:
+ out['accepted']=False;out['partial_phase_aggregates']={}
+ if (F/'failed.json').exists():out['failure']=json.loads((F/'failed.json').read_text())
+ out['private_log_bindings']={p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in F.glob('GPU-*.private.log')}
+assert sum(p.stat().st_size for p in F.rglob('*') if p.is_file())<16*2**20
+with (F/'sanitized-terminal-observed.json').open('x') as f:json.dump(out,f,indent=2)
+print(json.dumps(out),flush=True)
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-teacher-pair-terminal-observer",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(
+        program, {"source_git": actual["source_git"], "GPU_job": job, "terminal": terminal}
+    ),
+    capture_output=True,
+    text=True,
+    timeout=300,
+)
+(L / "observer-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Original observer requires read-only reconciliation, no restart"
+out = json.loads(x.stdout)
+(D / "actual-terminal.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
