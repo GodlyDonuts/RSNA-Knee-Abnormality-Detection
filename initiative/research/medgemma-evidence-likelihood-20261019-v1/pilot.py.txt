@@ -36,6 +36,20 @@ os.environ.update(
     CUDA_CACHE_PATH=str(E / "runtime-cache-v1/cuda"),
     CUDA_CACHE_MAXSIZE=str(32 * 2**20),
 )
+with (E / "GPU-allocation-header-v1.json").open("x") as f:
+    json.dump(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"),
+            "SLURM_JOB_GPUS": os.environ.get("SLURM_JOB_GPUS"),
+            "SLURM_STEP_GPUS": os.environ.get("SLURM_STEP_GPUS"),
+            "CPU_affinity_count": len(os.sched_getaffinity(0)),
+            "source_sha256": meta["entry_sha256"],
+            "CUDA_mask_modified_by_pilot": False,
+        },
+        f,
+        indent=2,
+    )
 import torch  # noqa: E402
 from PIL import Image  # noqa: E402
 from transformers import AutoProcessor, Gemma3ForConditionalGeneration  # noqa: E402
