@@ -1,0 +1,3 @@
+# Selected Newton student recovery source preservation
+
+One distinct selected own-source/sanitized-receipt snapshot under the canonical shared HF lock. No public parent weights, original third-party implementation, MRI, labels, case IDs, per-case predictions or teacher arrays are included. The source worker stays inside the new admitted16MiB node33 control cap and respects its separately funded recovery scope. Requires original intent/commit plus every object independently re-downloaded/size/SHA verified. Unattempted until an actual receipt exists; no automatic retry and no repeat of prior mirrors.
