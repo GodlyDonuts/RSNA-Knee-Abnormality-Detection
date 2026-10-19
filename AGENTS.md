@@ -8,6 +8,10 @@ Best Kaggle **0.958 external R6 reproduction57333150**. Released S6 reproduction
 
 Accepted labels/masks/folds/order stay unchanged. Original labels match pre-Devin versions. Protected gold/confirmation remain unused. Public teachers are not independent OOF evidence. All-fitting training is not held-out validation. Daenerys annotations remain candidates, not automatic labels. Stanford-derived weights stay private/noncompetition; no newly admitted KneeCoT. MRI, reports, identities, per-case arrays, restricted source bodies and large assets stay private on authorized cluster storage. Credentials only ignored0600.env/RAM/stdin/ASKPASS, never argv/logs.
 
+## Actual Kaggle recovery now RUNNING
+
+Original private twoT4 kernel139695847v1 `godlydonuts/rsna-complete-teacher-real-mri-recovery` is actually RUNNING. Complete target Dataset12718845v1, both objects independently downloaded/size/SHA verified. Source6747a9deaff1... unchanged;1800s maximum, zero competition entries. Read `S6-Kaggle-target-recovery-20261019-v1/README.md` and actual-status.json. This is engineering recovery, not full fitting or accuracy. SaveKernel derived its actual slug from the title; original requested-slug403 was reconciled through response ref plus actual ID/version/source/settings/refs, never a repeat push. The observer follows only139695847v1; do not repeat create or push. Newton973601/973904 remain PENDING; no duplicate clinical fitting.
+
 ## Main complete-target experiment: sole current owners
 
 Matched parent-only versus complementary S6 cross-lineage equal-rank targets: identical original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8, threeepochs/1458updates per role. All3887teacher outputs are now complete; no partial ranks were used.
@@ -41,7 +45,7 @@ Use useful accessible ordinary physical1/2GPU nodes, minimum useful CPUs. **Phys
 
 Model publications need exact source/base/license/runtime/fold provenance and independent full download/size/SHA once under `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock`. Never bypass the shared lock or retry an uncertain mutation. Prior own-source mirrors in actual audit receipts must not repeat, including0817→HFb7c2e7b9/40objects and24e96→HF1f8155b3/25objects. Optimizer/RNG states remain node-private.
 
-Kaggle uses canonical `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`, single coordinator/claim, fresh authoritative allowance/max5daily, clean MRI-only offline candidate and actual bothT4/input/runtime acceptance. Competition limit9hours,2T4/4CPU/~29GiBRAM, outputsubmission.csv. Actual GPU budget is total-minus-used-minus-reserved; minimumTimeAllowed is not a ceiling. Never submit public3rowCSV/diagnostics/restricted/failed or uncertain versions. Existing72340 stops on hidden failure and handles only the two actual final models; do not duplicate it.
+Kaggle uses canonical `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`, single coordinator/claim, fresh authoritative allowance/max5daily, clean MRI-only offline candidate and actual bothT4/input/runtime acceptance. Competition limit9hours,2T4/4CPU/~29GiBRAM, outputsubmission.csv. Actual GPU budget is total-minus-used-minus-reserved; minimumTimeAllowed is not a ceiling. Never submit public3rowCSV/diagnostics/restricted/failed or uncertain versions. Existing97060 stops on hidden failure and handles only the two actual final models; do not duplicate it.
 
 ## Access and work practice
 

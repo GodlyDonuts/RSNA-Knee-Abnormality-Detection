@@ -15,6 +15,12 @@ Updated October19,2026,22:55UTC. [Agent guide](../AGENTS.md) · [Continuation](c
 
 The adapted backbone is full73M CoAtNet, not a small frozen head.0.958 is a reproduction; no original breakthrough/new student improvement is established. R6 member substitution underperformed its unchanged baseline. Full94 training already completed1458updates; an unchanged repeat was withdrawn as a duplicate. Neither extra compute nor passing engineering checks proves accuracy.
 
+## Kaggle GPU experiment now running
+
+Actual authenticated status confirms **kernel139695847 version1 RUNNING**: `godlydonuts/rsna-complete-teacher-real-mri-recovery`. The complete794124-byte target overlay is private Dataset12718845v1; both objects were fully re-downloaded/size/SHA verified. Existing exact MRI/model inputs are reused; original twoT4 sourceSHA6747a9deaff1... is unchanged. Maximum1800GPU VM seconds, zero competition entries. This is full/stop/resume engineering acceptance, not a full-population fit or accuracy gain. Newton973601/973904 remain PENDING Priority. Read [actual Kaggle execution](../initiative/research/S6-Kaggle-target-recovery-20261019-v1/README.md).
+
+SaveKernel derived the notebook slug from its title; the first requested-slug status lookup403 was an identity lookup error, not a GPU failure. The actual response ref was reconciled by exact kernelID/version/source/settings/input checks. No second push was made. Original requested-slug receipt remains preserved; actual-status.json is authoritative.
+
 ## Main improvement in progress
 
 The complete teacher pass has finished **3887/3887** (973659). CPU973723 built both complete target roles,794124bytes/SHA3d7014e7..., preserving parent-only tensors exactly and accepted labels/masks. Private handoff973737→973736, actual source compilation973750 and six-file bridge973766→973767 completed once. No partial ranks, raw records or private bodies crossed the handoff to Mac/Git/HF. All-fitting training is not held-out validation; public teachers are not independent OOF evidence. [Original complete receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/actual-owner-terminal.json).

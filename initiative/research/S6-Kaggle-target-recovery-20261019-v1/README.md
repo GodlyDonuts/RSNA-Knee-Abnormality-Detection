@@ -9,3 +9,7 @@ Budget: at most1800 GPU VM seconds, with a fresh quota check preserving30600seco
 Acceptance requires actual two-T4 full/stop/resume complete model/base/AdamW/LR/cursors/all-rank RNG/scaler/history/epoch-snapshot equality and identical16-case full94 two-view predictions for each of the two roles. All3887 teacher targets must bind exactly to the original completed admission; parent-only targets remain unchanged. This establishes engineering acceptance and measured runtime, not clinical gain or a competition score.
 
 Run each phase once using `client.py.txt` from the repository root after committing its source. Actual sanitized receipts are written beside this guide; private transport/intents remain under ignored artifacts. Do not duplicate any healthy Newton production fit if choosing a later Kaggle full-fit route.
+
+## Actual run
+
+Private Dataset12718845v1 was created once and both objects independently downloaded/size/SHA verified. Kernel139695847v1 was pushed once; actual authenticated status is RUNNING at `godlydonuts/rsna-complete-teacher-real-mri-recovery`. SaveKernel derives the actual slug from the title: the requested-slug lookup403 was reconciled read-only using the original response ref and exact kernelID/version/source/settings/input references. Original receipt preserves the requested slug; actual-status.json records the real identity. No second notebook or version was pushed. No accuracy claim or competition entry.
