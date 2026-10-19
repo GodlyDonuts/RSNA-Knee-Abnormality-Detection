@@ -1,0 +1,290 @@
+"""Canonical once-only changed-target epoch push and exact read-only outcome."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+phase, epoch = v["phase"], v["epoch"]
+assert phase in ("push", "status") and type(epoch) is int and 1 <= epoch <= 3
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+E = D / ("epoch-" + str(epoch))
+meta = json.loads((E / "prepared.json").read_text())
+compiled = json.loads((E / "compiled.json").read_text())
+source = (E / "source.private.py").read_text()
+sha = hashlib.sha256(source.encode()).hexdigest()
+assert sha == meta["source_sha256"] == compiled["source_sha256"]
+assert (
+    compiled["actual_new_recovery_kernel"] == 139695847 and compiled["control_retrained"] is False
+)
+C = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control")
+
+
+def module(name, h):
+    p = C / (name + ".py")
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == h
+    s = importlib.util.spec_from_file_location("canonical_" + name, p)
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+w = module("workflow", "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900")
+p = module("publication", "e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336")
+s = importlib.util.spec_from_loader("capacity", loader=None)
+capacity = importlib.util.module_from_spec(s)
+assert hashlib.sha256(v["capacity_source"].encode()).hexdigest() == v["capacity_sha256"]
+exec(compile(v["capacity_source"], "original_account_capacity", "exec"), capacity.__dict__)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}))
+    raise SystemExit(0)
+owner = {
+    "kind": "complete_S6_changed_role_full_fit",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "epoch": epoch,
+    "phase": phase,
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+slug = "godlydonuts/rsna-s6-cross-full-e" + str(epoch) + "-" + sha[:12]
+key = "licensed-importance-full-fit:complete-S6-cross:" + sha
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        raw = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+
+        def save(row):
+            db.execute(
+                "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+            )
+            db.commit()
+
+        if phase == "push":
+            assert raw is None and not (E / "push-intent.json").exists()
+            assert v["handoff"]["old_idle_owners_retired"] == [97036, 97047, 97060]
+            f = v["funding"]
+            assert (
+                f["status"]
+                == "actual_original12GiB_scope_complete_replay_and_new4GiB_epochs_funded"
+                and f["held_unstarted_job"] == 973904
+                and f["new_model_publication_cap_bytes"] == 4 * 2**30
+            )
+            assert p.metadata(r, "godlydonuts/rsna-s6-targets-3d7014e7758c") == {
+                "slug": "godlydonuts/rsna-s6-targets-3d7014e7758c",
+                "id": 12718845,
+                "version": 1,
+                "private": True,
+            }
+            if epoch > 1:
+                pub = json.loads(
+                    (
+                        D / ("epoch-" + str(epoch - 1)) / "publication-private-verified.json"
+                    ).read_text()
+                )
+                previous = json.loads(
+                    (D / ("epoch-" + str(epoch - 1)) / "actual-accepted.json").read_text()
+                )
+                assert (
+                    pub["status"]
+                    == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+                    and pub["epoch"] == epoch - 1
+                    and pub["model_sha256"] == previous["receipt"]["epoch"]["sha256"]
+                )
+            proofs = json.loads(
+                Path(
+                    "/tmp/rsna-licensed-parent-whole94-production-20261016-v1/actual-original-Kaggle-inputs.json"
+                ).read_text()
+            )["proofs"]
+            refs = [
+                "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+                *[
+                    "godlydonuts/rsna-parent-pixels-full-s" + str(i) + "-" + x["source_sha256"][:12]
+                    for i, x in enumerate(proofs)
+                ],
+            ]
+            if epoch > 1:
+                refs.append(
+                    json.loads((D / ("epoch-" + str(epoch - 1)) / "pushed.json").read_text())[
+                        "slug"
+                    ]
+                )
+            quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})
+            g = quota["gpuQuota"]
+
+            def secs(z):
+                return float(z.removesuffix("s"))
+
+            remaining = (
+                secs(g["totalTimeAllowed"])
+                - secs(g.get("timeUsed", "0s"))
+                - secs(g.get("timeReserved", "0s"))
+            )
+            required = (4 - epoch) * 6000 + 6000
+            cap = capacity.admission(db, r, caller="sampling")
+            if remaining < required or not cap["available"]:
+                out = {
+                    "status": "waiting_fresh_actual_budget_or_capacity_no_mutation",
+                    "remaining_VM_seconds": remaining,
+                    "required_remaining_training_and_serving_seconds": required,
+                    "capacity": cap,
+                }
+            else:
+                for ref in refs:
+                    assert r.kernel("GetKernelSessionStatus", ref, 1)["status"] == "COMPLETE"
+                absence = r.require_absent_kernel(slug)
+                request = {
+                    "slug": slug,
+                    "newTitle": slug.split("/")[1].replace("-", " "),
+                    "text": source,
+                    "language": "python",
+                    "kernelType": "script",
+                    "isPrivate": True,
+                    "enableGpu": True,
+                    "machineShape": "NvidiaTeslaT4",
+                    "enableInternet": False,
+                    "datasetDataSources": [
+                        "nartaa/rsna-knee-publication-swa-weights-20261007",
+                        "godlydonuts/rsna-parent-fit-targets-48b4485f03b6",
+                        "godlydonuts/rsna-parent-iid16-q-e812a9f90cd2",
+                        "godlydonuts/rsna-s6-targets-3d7014e7758c",
+                    ],
+                    "kernelDataSources": refs,
+                    "competitionDataSources": [],
+                    "sessionTimeoutSeconds": 6000,
+                    "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                    "dockerImagePinningType": "original",
+                }
+                row = {
+                    "state": "complete_teacher_cross_full_fit_push_intent",
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "epoch": epoch,
+                    "teacher_target_role": "cross_lineage_equal_rank",
+                    "request": {k: z for k, z in request.items() if k != "text"},
+                    "actual_compilation_CPU": compiled["CPU_job"],
+                    "fresh_quota": quota,
+                    "funding": f,
+                    "handoff": v["handoff"],
+                    "absence": absence,
+                    "coordinator_git": v["source_git"],
+                    "competition_entry": False,
+                    "automatic_retry": False,
+                }
+                w.new_json(E / "push-intent.json", row)
+                db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row, sort_keys=True)))
+                db.commit()
+                retain = True
+                result = r.call("kernels.KernelsApiService", "SaveKernel", request)
+                w.new_json(E / "push-response.json", result)
+                assert (
+                    result.get("ref") == "/code/" + slug
+                    and result.get("versionNumber") == 1
+                    and not result.get("error")
+                )
+                assert all(
+                    not result.get(n)
+                    for n in (
+                        "invalidDatasetSources",
+                        "invalidKernelSources",
+                        "invalidCompetitionSources",
+                    )
+                )
+                assert type(result.get("kernelId")) is int and result["kernelId"] > 0
+                row.update(
+                    state="complete_teacher_cross_full_fit_pushed", kernel_id=result["kernelId"]
+                )
+                save(row)
+                retain = False
+                out = {
+                    "status": row["state"],
+                    "kernel_id": row["kernel_id"],
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "epoch": epoch,
+                    "completed_target": epoch * 486,
+                    "fixed_final_updates": 1458,
+                    "fitting_studies": 3887,
+                    "maximum_GPU_seconds": 6000,
+                    "remaining_VM_seconds_before": remaining,
+                    "required_remaining_training_and_serving_seconds": required,
+                    "competition_entry": False,
+                }
+                w.new_json(E / "pushed.json", out)
+        else:
+            assert raw is not None
+            row = json.loads(raw[0])
+            k = r.kernel("GetKernel", slug, 1)
+            m = k["metadata"]
+            req = row["request"]
+            assert k["blob"]["source"] == source and m["id"] == row["kernel_id"]
+            for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerImage"):
+                assert m.get(n, False if n == "enableInternet" else None) == req[n]
+            for n in ("kernelDataSources", "datasetDataSources", "competitionDataSources"):
+                assert sorted(m.get(n, [])) == sorted(req[n])
+            status = r.kernel("GetKernelSessionStatus", slug, 1)["status"]
+            out = {
+                "status": status,
+                "kernel_id": row["kernel_id"],
+                "slug": slug,
+                "version": 1,
+                "source_sha256": sha,
+                "epoch": epoch,
+                "competition_entry": False,
+            }
+            if status == "COMPLETE":
+                z = r.output_json(slug, 1, "licensed-importance-full-session-accepted.json")
+                assert (
+                    z["status"] == "actual_complete_S6_target_full_encoder_epoch_session_complete"
+                    and z["teacher_target_role"] == "cross_lineage_equal_rank"
+                )
+                assert (
+                    z["binding"] == meta["binding"]
+                    and z["worker_sha256"] == meta["worker_sha256"]
+                    and z["segment"] == epoch
+                    and z["completed"] == epoch * 486
+                    and z["total"] == 1458
+                    and z["fixed_final_complete"] == (epoch == 3)
+                )
+                assert len(z["devices"]) == 2 and all(
+                    d["GPU"] == "Tesla T4"
+                    and d["trainable_parameters"] == 73136096
+                    and d["all_BN_buffers_equal_parent"]
+                    and d["peak_allocated_bytes"] < d["total_VRAM_bytes"]
+                    for d in z["devices"]
+                )
+                out["receipt"] = z
+                if not (E / "actual-accepted.json").exists():
+                    w.new_json(E / "actual-accepted.json", out)
+                    row.update(state="complete_teacher_cross_full_fit_actual_complete", receipt=z)
+                    save(row)
+            elif status in ("ERROR", "CANCELLED"):
+                row.update(state="complete_teacher_cross_full_fit_failed", actual_status=status)
+                save(row)
+                if not (E / "actual-failed.json").exists():
+                    w.new_json(E / "actual-failed.json", out)
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()

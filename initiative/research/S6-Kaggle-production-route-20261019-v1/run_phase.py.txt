@@ -1,0 +1,142 @@
+"""Single canonical epoch phase; no automatic mutation retry."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+L.mkdir(exist_ok=True)
+phase, epoch = sys.argv[1], int(sys.argv[2])
+assert phase in ("push", "status") and 1 <= epoch <= 3
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in ("cloud.py.txt", "run_phase.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+cap = R / "scripts/kaggle/gpu_capacity.py"
+assert cap.read_bytes() == subprocess.check_output(
+    ["git", "show", git + ":scripts/kaggle/gpu_capacity.py"]
+)
+actual = json.loads(
+    (
+        R / "initiative/research/S6-Kaggle-existing-output-replay-20261019-v1/actual-accepted.json"
+    ).read_text()
+)
+assert actual["status"] == "actual_existing_twoT4_outputs_independent_CPU_replay_accepted"
+s = importlib.util.spec_from_file_location(
+    "t", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+
+
+def cpu(node, program, payload, name):
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc" + str(node),
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=1G",
+        "--time=00:10:00",
+        "--job-name=" + name,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+        "-c",
+        t.COMMAND,
+    ]
+    return subprocess.run(
+        ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+        input=t.envelope(program, payload),
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+
+
+payload = {
+    "phase": phase,
+    "epoch": epoch,
+    "source_git": git,
+    "capacity_source": cap.read_text(),
+    "capacity_sha256": hashlib.sha256(cap.read_bytes()).hexdigest(),
+}
+if phase == "push":
+    intent = L / ("push-" + str(epoch) + "-intent.json")
+    assert not intent.exists()
+    handoff = json.loads((D / "actual-owner-handoff.json").read_text())
+    assert handoff["old_idle_owners_retired"] == [97036, 97047, 97060]
+    for pid in handoff["old_idle_owners_retired"]:
+        assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode != 0
+    payload["handoff"] = handoff
+    with intent.open("x") as f:
+        json.dump(
+            {
+                "source_git": git,
+                "epoch": epoch,
+                "automatic_retry": False,
+                "maximum_new_GPU_sessions": 1,
+            },
+            f,
+        )
+    program = """import json,os,shutil,subprocess
+from pathlib import Path
+assert os.uname().nodename=="evc48" and not os.environ.get("SLURM_JOB_GPUS")
+B=Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+a=subprocess.check_output(["scontrol","show","job","973904","-o"],text=True)
+assert "JobState=PENDING" in a and "Reason=JobHeldUser" in a and "RunTime=00:00:00" in a
+replay=json.loads((B/"kaggle-existing-output-replay-v1/accepted.json").read_text());assert replay["CPU_job"]=="974246"
+paid=sum(p.stat().st_size for p in B.rglob("*") if p.is_file() and not p.is_symlink())
+new=B/"Kaggle-target-epochs-v1";paid_models=sum(p.stat().st_size for p in new.rglob("*") if p.is_file()) if new.exists() else 0
+remaining_models=max(0,4*2**30-paid_models)
+assert paid+remaining_models<12*2**30
+free=shutil.disk_usage("/tmp").free
+assert free>(20+87)*2**30+max(0,12*2**30-paid)+32*2**20
+q=subprocess.check_output(["lfs","quota","-u","sa305415","/home/sa305415"],text=True);z=next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(z[2])-int(z[1]))*1024>20*2**30+32*2**20 and int(z[6])-int(z[5])>5128
+print(json.dumps({"status":"actual_original12GiB_scope_complete_replay_and_new4GiB_epochs_funded","CPU_job":os.environ["SLURM_JOB_ID"],"held_unstarted_job":973904,"new_model_publication_cap_bytes":4*2**30,"all_original_scope_paid_bytes":paid,"paid_new_model_bytes":paid_models,"node_free_bytes":free,"scope_cap_bytes":12*2**30,"physical_reserve_bytes":20*2**30,"old_route_liability_bytes":87*2**30,"deleted_originals":False,"new_GPU_jobs":0}))
+"""
+    x = cpu(48, program, {}, "rsna-S6-changed-epoch-funding")
+    (L / ("funding-" + str(epoch) + "-transport.json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, "Inspect original funding observer; no GPU push occurred"
+    funding = json.loads(x.stdout)
+    payload["funding"] = funding
+    (D / ("actual-funding-epoch-" + str(epoch) + ".json")).write_text(
+        json.dumps(funding, indent=2) + "\n"
+    )
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+payload["token"] = values["KAGGLE_API_TOKEN"]
+x = cpu(33, (D / "cloud.py.txt").read_text(), payload, "rsna-S6-changed-epoch-" + phase)
+(L / (phase + "-" + str(epoch) + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile the exact canonical state; do not repeat an uncertain push"
+z = json.loads(x.stdout)
+(D / ("actual-" + phase + "-epoch-" + str(epoch) + ".json")).write_text(
+    json.dumps(z, indent=2) + "\n"
+)
+print(json.dumps(z), flush=True)
