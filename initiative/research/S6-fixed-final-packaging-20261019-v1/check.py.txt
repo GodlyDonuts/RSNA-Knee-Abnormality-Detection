@@ -1,0 +1,159 @@
+"""New packaging-specific contracts; no original MRI/trainer replay."""
+
+import copy
+import hashlib
+import importlib.util
+import json
+import runpy
+import tempfile
+import zipfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+
+D = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_loader(
+    "package_tested", SourceFileLoader("package_tested", str(D / "package.py.txt"))
+)
+p = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(p)
+f = runpy.run_path(str(D.parent / "S6-complete-target-serving-20261019-v1/check.py.txt"))
+validator = f["m"]
+checks = 0
+for role in p.ROLES:
+    snapshot, t, pub = copy.deepcopy((f["snapshot"], f["training"], f["publication"]))
+    snapshot["epoch"] = t["epoch"] = 3
+    snapshot["completed"] = 1458
+    ready = t["receipt"]
+    ready.update(segment=3, completed=1458, teacher_target_role=role)
+    ready["independent_verification"]["finite_contiguous_updates"] = 1458
+    ready["binding"]["teacher_target_role"] = role
+    ready["binding"]["teacher_transport"] = ready["binding"]["complete_teacher_admission"]["roles"][
+        role
+    ]
+    snapshot["binding"] = ready["binding"]
+    t["role"] = role
+    pub["provenance"].update(epoch=3, updates=1458, binding=ready["binding"])
+    pub["verification"].update(
+        epoch=3,
+        updates=1458,
+        role=role,
+        prefix=f"checkpoints/complete-S6-target-oneH100-{ready['binding']['source_git'][:12]}/{role}/epoch-003",
+    )
+    pub["manifest"].update(epoch=3, role=role)
+    pub["manifest"]["files"]["actual-epoch.json"] = f["info"](ready)
+    pub["manifest"]["files"]["provenance.json"] = f["info"](pub["provenance"])
+    stage = {
+        "source_git": ready["binding"]["source_git"],
+        "roles": {role: {"worker_sha256": ready["worker_sha256"]}},
+    }
+    gpu = {"GPU_job": t["GPU_job"], "source_git": stage["source_git"]}
+    args = (role, stage, gpu, ready, pub["verification"], pub["manifest"], pub["provenance"])
+    training, publication = p.records(*args, validator)
+    assert training == t and publication == pub
+    assert (
+        validator.validate(snapshot, training, publication, ready["model_snapshot"]["sha256"])[
+            "completed"
+        ]
+        == 1458
+    )
+    checks += 1
+    for target, key, value in (
+        (1, "source_git", "bad"),
+        (2, "GPU_job", "789"),
+        (3, "segment", 2),
+        (3, "completed", 972),
+        (4, "objects", 4),
+        (4, "canonical_shared_publication_lock_used", False),
+        (5, "epoch", 2),
+    ):
+        bad = copy.deepcopy(list(args))
+        bad[target][key] = value
+        with pytest.raises(ValueError):
+            p.records(*bad, validator)
+        checks += 1
+intent = {"PID": 67269, "source_git": "a" * 40}
+result = {
+    **intent,
+    "GPU_job": "123",
+    "status": "original_matched_full_fit_and_six_private_epoch_publications_finished",
+    "publications": {
+        f"{r}-epoch-{e:03d}": {
+            "status": "actual_complete_target_oneH100_epoch_private_all_objects_download_size_SHA_verified",
+            "source_git": "a" * 40,
+            "role": r,
+            "epoch": e,
+            "objects": 5,
+            "canonical_shared_publication_lock_used": True,
+        }
+        for r in p.ROLES
+        for e in (1, 2, 3)
+    },
+}
+assert p.finished_owner(intent, result) == "123"
+checks += 1
+for key, value in (
+    ("PID", 1),
+    ("source_git", "b" * 40),
+    ("status", "running"),
+    ("publications", {}),
+):
+    bad = copy.deepcopy(result)
+    bad[key] = value
+    with pytest.raises(ValueError):
+        p.finished_owner(intent, bad)
+    checks += 1
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    model, permission = root / "model.pt", root / "permission.txt"
+    model.write_bytes(b"synthetic-not-a-model" * 32)
+    permission.write_text("synthetic-permission")
+    expected = {
+        "bytes": model.stat().st_size,
+        "sha256": hashlib.sha256(model.read_bytes()).hexdigest(),
+    }
+    target = root / "model.zip"
+    receipt = p.model_archive(target, model, expected, permission, maximum_bytes=2**20)
+    assert receipt["sha256"] == hashlib.sha256(target.read_bytes()).hexdigest()
+    with zipfile.ZipFile(target) as z:
+        assert z.namelist() == ["epoch-003.pt", "source-permission.txt", "model-binding.json"]
+        assert (
+            z.read("epoch-003.pt") == model.read_bytes()
+            and json.loads(z.read("model-binding.json")) == expected
+        )
+    checks += 1
+    with pytest.raises(FileExistsError):
+        p.model_archive(target, model, expected, permission, maximum_bytes=2**20)
+    checks += 1
+    with pytest.raises(ValueError):
+        p.model_archive(root / "capacity.zip", model, expected, permission, maximum_bytes=1)
+    assert not (root / "capacity.zip").exists()
+    checks += 1
+    with pytest.raises(ValueError):
+        p.model_archive(
+            root / "mismatch.zip",
+            model,
+            {**expected, "sha256": "0" * 64},
+            permission,
+            maximum_bytes=2**20,
+        )
+    assert (
+        root / "mismatch.zip"
+    ).exists()  # Preserve failed original; no ready receipt and no retry.
+    checks += 1
+    alias = root / "alias.pt"
+    alias.symlink_to(model)
+    with pytest.raises(ValueError):
+        p.model_archive(root / "alias.zip", alias, expected, permission, maximum_bytes=2**20)
+    assert not (root / "alias.zip").exists()
+    checks += 1
+print(
+    json.dumps(
+        {
+            "status": "new_actual_record_adaptation_and_archive_refusal_contracts_passed",
+            "checks": checks,
+            "real_MRI_or_model_training_or_T4_acceptance": False,
+        }
+    )
+)

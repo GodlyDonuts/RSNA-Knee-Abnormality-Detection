@@ -1,0 +1,190 @@
+"""CPU-only real-model preparation after the original full matched fit finishes."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+assert v["source_sha256"] == {
+    n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["sources"].items()
+}
+assert sum(len(s.encode()) for s in v["sources"].values()) < 256 * 2**10
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+D = Path("/tmp/rsna-S6-fixed-final-deployment-20261019-v1")
+assert not D.exists(), "Prior packaging intent/output requires read-only reconciliation"
+assert not Path("/tmp/rsna-full94-bag-engineering-20261019-v1").exists(), (
+    "Frozen duplicate scope was unexpectedly instantiated; reconcile before reassignment"
+)
+# Reassign2GiB of the frozen duplicate proposal's12GiB; leave the other10GiB frozen.
+# Conservatively reserve ALL original87GiB as unpaid, without deletion/paid-byte credit.
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+retained = [p for p in teacher.rglob("*") if p.is_file()]
+paid_teacher_bytes = sum(p.stat().st_size for p in retained)
+assert len(retained) <= 256 and paid_teacher_bytes < 4 * 2**20
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_teacher_bytes
+)
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 24 + max(0, 256 - len(retained))
+S = P / "production-stage-v1"
+stage = json.loads((S / "staged.json").read_text())
+gpu = json.loads((S / "GPU-intent.json").read_text())
+assert gpu["GPU_job"] == v["original_GPU_job"] and stage["source_git"] == v["original_source_git"]
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", gpu["GPU_job"], "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert gpu["GPU_job"] + "|COMPLETED|0:0" in terminal
+fit = json.loads((S / "verified.json").read_text())
+assert fit["status"] == "actual_full3887_matched_complete_teacher_oneH100_fixed3_fit_finished"
+assert (
+    fit["source_git"] == stage["source_git"]
+    and fit["GPU_job"] == gpu["GPU_job"]
+    and fit["updates_per_role"] == 1458
+)
+parent_path = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py")
+parent = parent_path.read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+D.mkdir(mode=0o700)
+(D / "source").mkdir(mode=0o700)
+for name, source in v["sources"].items():
+    assert name.endswith(".py") and "/" not in name
+    compile(source, name, "exec")
+    (D / "source" / name).write_text(source)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "source_sha256": v["source_sha256"],
+            "original_GPU_job": gpu["GPU_job"],
+            "node_cap_bytes": 2 * 2**30,
+            "automatic_retry": False,
+            "maximum_GPU_Dataset_or_competition_mutations": 0,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+
+
+def load(name):
+    spec = importlib.util.spec_from_file_location(
+        "actual_fixed_final_" + name, D / "source" / (name + ".py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+package, validator, compiler = load("package"), load("validate"), load("compiler")
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0 and str(torch.__version__) == "2.14.0+cu130"
+outputs = {}
+
+
+def read(path):
+    return json.loads(path.read_text())
+
+
+for role in package.ROLES:
+    out = P / "runs" / role
+    pub = P / "publication" / role / "epoch-003"
+    ready, checked = read(out / "epoch-003-ready.json"), read(pub / "verified.json")
+    assert checked == v["actual_publications"][role + "-epoch-003"]
+    training, publication = package.records(
+        role,
+        stage,
+        gpu,
+        ready,
+        checked,
+        read(pub / "manifest.json"),
+        read(pub / "provenance.json"),
+        validator,
+    )
+    snapshot_path = out / "epoch-checkpoints/epoch-003.pt"
+    snapshot = torch.load(snapshot_path, map_location="cpu", weights_only=True)
+    accepted = validator.validate(
+        snapshot, training, publication, ready["model_snapshot"]["sha256"]
+    )
+    assert accepted["epoch"] == 3 and accepted["completed"] == 1458
+    del snapshot
+    target = D / role
+    target.mkdir(mode=0o700)
+    source_meta = {}
+    for mode in ("qualification", "competition"):
+        text, meta = compiler.build(
+            parent,
+            v["sources"]["bounded.py"],
+            v["sources"]["validate.py"],
+            v["sources"]["codec.py"],
+            v["sources"]["mixin.py"],
+            v["sources"]["importance.py"],
+            training,
+            publication,
+            mode=mode,
+            legacy_source=v["sources"]["legacy.py"],
+        )
+        assert meta["competition_entry"] is False and meta["actual_T4_execution_accepted"] is False
+        compile(text, "actual_model_" + mode, "exec")
+        (target / (mode + ".private.py")).write_text(text)
+        source_meta[mode] = {
+            "bytes": len(text.encode()),
+            "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        }
+    permission = S / ("code-" + role) / "source-permission.txt"
+    assert (
+        hashlib.sha256(permission.read_bytes()).hexdigest()
+        == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+    )
+    archive = package.model_archive(
+        target / "model.zip",
+        snapshot_path,
+        ready["model_snapshot"],
+        permission,
+        maximum_bytes=384 * 2**20,
+    )
+    record = {
+        "status": "actual_fixed_final_model_sources_and_model_only_archive_prepared_not_T4_accepted",
+        "role": role,
+        "epoch": 3,
+        "updates": 1458,
+        "model_sha256": ready["model_snapshot"]["sha256"],
+        "original_GPU_job": gpu["GPU_job"],
+        "source_git": v["source_git"],
+        "original_training_source_git": stage["source_git"],
+        "publication_revision": checked["revision"],
+        "source": source_meta,
+        "model_archive": archive,
+        "MRI_reports_UIDs_per_case_arrays_or_optimizer_in_archive": False,
+        "new_GPU_Dataset_or_competition_mutations": 0,
+    }
+    (target / "prepared.private.json").write_text(
+        json.dumps({**record, "training": training, "publication": publication}, indent=2) + "\n"
+    )
+    outputs[role] = record
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2 * 2**30
+actual = {
+    "status": "actual_both_original_fixed_final_H100_models_packaged_for_separate_T4_qualification",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "original_GPU_job": gpu["GPU_job"],
+    "candidates": outputs,
+    "separate_actual_T4_and_public_acceptance_required": True,
+    "new_GPU_Dataset_or_competition_mutations": 0,
+    "automatic_retry": False,
+}
+(D / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
