@@ -31,7 +31,7 @@ control = R / "initiative/experiments/competitive-v1/paired-final-scoring-budget
 old = committed(control / "program.py.txt")
 h = hashlib.sha256(old.encode()).hexdigest()
 assert h == json.loads((control / "actual-staged.json").read_text())["recovery_sha256"]
-site = "    g['vm_requirement'] = phase_requirement"
+site = "    g['qualification_training_provenance'] = qualification_training_provenance"
 assert old.count(site) == 1
 patched = old.replace(site, "    g['bounds'] = scoring_bounds\n" + site)
 program = policy + "\n" + patched
