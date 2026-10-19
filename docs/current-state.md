@@ -1,5 +1,7 @@
 # Current RSNA Knee research state
 
+Latest phase15/968908 has now produced a new durable prediction: **881/3887** at94.7seconds after restart. Sole36049/follower36051 remain active. This confirms retained-input scoring resumed; it is not yet a full-cohort, sustained fresh-download, student-training or accuracy result.
+
 Updated October19 2026. Target0.97 and an original breakthrough remain unachieved. Exact original receipts take precedence over historical summaries; [AGENTS.md](../AGENTS.md) records active owners and execution rules.
 
 | Actual scored model | Kaggle public score | Submission |

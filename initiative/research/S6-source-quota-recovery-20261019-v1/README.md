@@ -15,3 +15,5 @@ The higher-encoder-LR model scored0.949, the same displayed precision as paired 
 MedGemma job968562 remains pending on original evc33; no model/MRI inference or clinical improvement exists yet. Earlier evc26 attempts failed before model load with allocated-device errors. Preserve those failures and do not pick an unassigned device.
 
 Verification:15source-integrity cases pass; all new modules compile; mypy134source files passes; current evidence89/89 complete. Archive refresh preserves historical76/89 draft coverage separately. Full4924pass/8skip suite was already run for the unchanged canonical numerical code; it was not repeated for this transport wrapper. The staged entry preserves its original formatting, including three lint findings (combined/unused imports); do not silently edit the staged bytes. These checks establish engineering properties, not accuracy.
+
+Actual follow-through: phase15/968908 produced the first new durable prediction at94.7seconds,881/3887total. The original880 were not replayed. This validates resumed retained-input scoring; sustained fresh-source transport and full completion remain to be observed.
