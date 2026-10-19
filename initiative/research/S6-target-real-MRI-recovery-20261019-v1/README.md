@@ -1,3 +1,5 @@
+Current execution update, October19 13:27UTC: full teacher is1,032/3,887 with original phase18/969332 RUNNING. Old local teacher/followers are retired; cluster-resident PID2320176 owns sequential continuation and full-target construction. The earlier owner/job statements below are dated history, not live handles. Actual full targets/GPU student recovery remain absent. See ../S6-cluster-resident-owner-20261019-v1/README.md.
+
 # Complete-teacher target change: real-MRI recovery compiler
 
 This prepares the actual next student execution while original teacher968908 runs. No new student/GPU model or accuracy improvement is claimed. It is distinct from the completed higher-LR/paired fits, both scored0.949. The complete teacher target file does not yet exist; partial ranks remain forbidden.

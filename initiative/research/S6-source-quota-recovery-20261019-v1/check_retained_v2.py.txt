@@ -1,0 +1,111 @@
+"""Execute original recovery methods on synthetic retained files, with no ML/network."""
+
+import ast
+import fcntl
+import hashlib
+import io
+import json
+import os
+import tempfile
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+source = ast.parse((D / "worker_bulk_v2.py.txt").read_text())
+parts = [
+    n
+    for n in source.body
+    if isinstance(n, ast.FunctionDef)
+    and n.name == "atomic"
+    or isinstance(n, ast.ClassDef)
+    and n.name == "Input"
+]
+with tempfile.TemporaryDirectory() as temp:
+    root = Path(temp)
+    oldrun = root / "phase15"
+    old = oldrun / "slot-3/fitting-study-synthetic"
+    old.mkdir(parents=True)
+    nextroot = root / "phase16/slot-0"
+    nextroot.mkdir(parents=True)
+    registry = {
+        "original_runs": [str(root / "phase13"), str(oldrun)],
+        "cases": {"synthetic": {"owned": str(old), "rendered": True, "state": "available"}},
+    }
+    (root / "retained-v2.private.json").write_text(json.dumps(registry))
+    sourceproof = b'{"synthetic":"source proof"}'
+    (old / "source-proof.private.json").write_bytes(sourceproof)
+    proof_inode = (old / "source-proof.private.json").stat().st_ino
+    # Original descriptor predates the previous zero-copy move.
+    descriptor_root = root / "phase13/slot-8/fitting-study-synthetic"
+    render = {
+        "uid": "synthetic",
+        "windows": 2,
+        "all_original_DICOM_identity_checks_passed": True,
+        "tensor_path": str(descriptor_root / "rendered.private.npz"),
+        "owned_scratch": str(descriptor_root),
+        "source_proof_path": str(descriptor_root / "source-proof.private.json"),
+        "source_proof_sha256": hashlib.sha256(sourceproof).hexdigest(),
+    }
+    (old / "render-result.private.json").write_text(json.dumps(render))
+    scores = old / "CPU-teacher-source-quota-recovery-v1"
+    scores.mkdir()
+    (scores / "verified.private.json").write_text(
+        json.dumps({"uid": "synthetic", "windows": 2, "logits": [0.1] * 12})
+    )
+    protocol = io.StringIO()
+    namespace = dict(
+        Path=Path,
+        fcntl=fcntl,
+        json=json,
+        os=os,
+        hashlib=hashlib,
+        M=root,
+        protocol=protocol,
+        raw_input=io.StringIO('{"uid":"synthetic","render":true}\n'),
+    )
+    exec(
+        compile(ast.Module(body=parts, type_ignores=[]), "actual_recovery_methods", "exec"),
+        namespace,
+    )
+    proxy = namespace["Input"]()
+    proxy.admission = {"scratch_root": str(nextroot)}
+    previous = os.environ.get("SLURM_JOB_ID")
+    os.environ["SLURM_JOB_ID"] = "synthetic-job"
+    try:
+        row = proxy.retained("synthetic")
+        owned = Path(row["owned"])
+        assert not old.exists() and owned.is_dir()
+        assert (owned / "source-proof.private.json").stat().st_ino == proof_inode
+        assert (owned / "source-proof.private.json").read_bytes() == sourceproof
+        try:
+            proxy.retained("synthetic")
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError("Claimed inputs were accepted twice")
+        proxy.cached({"uid": "synthetic", "source_files": [{}, {}]}, row)
+        ready, value = map(json.loads, protocol.getvalue().splitlines())
+        assert ready["stage"] == "source_ready" and ready["retained_native_tensors_reused"]
+        assert value["owned_scratch"] == str(owned)
+        assert value["source_proof_path"] == str(owned / "source-proof.private.json")
+        assert value["tensor_path"] == str(owned / "rendered.private.npz")
+        assert value["logits"] == [0.1] * 12
+        assert not (owned / "CPU-teacher-source-quota-recovery-v2").exists()
+        assert (owned / "render-result.private.json").read_text() == json.dumps(render)
+    finally:
+        if previous is None:
+            del os.environ["SLURM_JOB_ID"]
+        else:
+            os.environ["SLURM_JOB_ID"] = previous
+print(
+    json.dumps(
+        {
+            "actual_recovery_methods_executed": True,
+            "zero_copy_inode_preserved": True,
+            "repeated_claim_refused": True,
+            "twice_moved_descriptor_rebased": True,
+            "prior_completed_score_reused_without_inference": True,
+            "original_descriptor_bytes_unchanged": True,
+            "synthetic_only": True,
+        }
+    )
+)
