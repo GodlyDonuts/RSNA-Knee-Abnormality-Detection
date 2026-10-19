@@ -1,0 +1,194 @@
+"""Private matching RPM headers only. Never install/modify the system runtime."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import requests
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+assert not D.exists(), "Original header acquisition must be reconciled, not repeated"
+assert sys.version_info[:3] == (3, 12, 13)
+cap = 128 * 2**20
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + cap
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 4 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5256
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "968562", "--format=JobIDRaw,State,ExitCode,Elapsed"],
+    text=True,
+)
+assert "968562|FAILED|1:0|00:00:34" in state
+error = Path("/home/sa305415/rsna-knee/kaggle/medgemma15-source-step-968562.stderr").read_bytes()
+assert (
+    hashlib.sha256(error).hexdigest()
+    == "c469c29b8fdf2298be7c70316e877fa44719da45d5091669dd7dc2218893a0f7"
+)
+assert b"fatal error: Python.h: No such file or directory" in error
+base = subprocess.check_output(["rpm", "-q", "python3.12"], text=True).strip()
+assert base == "python3.12-3.12.13-2.el8_10.x86_64"
+pkg = base.replace("python3.12-", "python3.12-devel-", 1)
+urls = subprocess.check_output(
+    [
+        "dnf",
+        "-q",
+        "--cacheonly",
+        "--setopt=cachedir=/var/cache/dnf",
+        "repoquery",
+        "--location",
+        pkg,
+    ],
+    text=True,
+).splitlines()
+urls = [s for s in urls if s.endswith("/" + pkg + ".rpm")]
+assert len(set(urls)) == 1 and urls[0].startswith(
+    "https://us.mirrors.cicku.me/rocky/8.10/AppStream/x86_64/os/Packages/p/"
+)
+D.mkdir(mode=0o700)
+rpm = D / (pkg + ".rpm")
+(D / "acquisition-intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "base_RPM": base,
+            "matching_devel_RPM": pkg,
+            "source_url": urls[0],
+            "private_headers_only": True,
+            "system_package_installation": False,
+            "cap_bytes": cap,
+            "GPU_or_MRI_or_model_changes": False,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+with requests.get(urls[0], stream=True, timeout=(15, 60)) as response:
+    response.raise_for_status()
+    if response.headers.get("Content-Length"):
+        assert 0 < int(response.headers["Content-Length"]) < 8 * 2**20
+    size = 0
+    with rpm.open("xb") as f:
+        for chunk in response.iter_content(2**16):
+            size += len(chunk)
+            assert size < 8 * 2**20
+            f.write(chunk)
+        f.flush()
+        os.fsync(f.fileno())
+verify = subprocess.run(["rpm", "-Kv", str(rpm)], capture_output=True, text=True)
+assert (
+    verify.returncode == 0
+    and "NOKEY" not in verify.stdout + verify.stderr
+    and "NOT OK" not in verify.stdout + verify.stderr
+)
+identity = subprocess.check_output(
+    ["rpm", "-qp", "--qf", "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}|%{LICENSE}", str(rpm)], text=True
+)
+assert identity.startswith(pkg + "|")
+extract = D / "headers"
+extract.mkdir(mode=0o700)
+with subprocess.Popen(
+    ["rpm2cpio", str(rpm)], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+) as left:
+    right = subprocess.run(
+        [
+            "cpio",
+            "--extract",
+            "--make-directories",
+            "--no-absolute-filenames",
+            "--no-preserve-owner",
+            "--quiet",
+            "usr/include/python3.12/*",
+            "./usr/include/python3.12/*",
+            "usr/share/licenses/python3.12-devel/*",
+            "./usr/share/licenses/python3.12-devel/*",
+        ],
+        stdin=left.stdout,
+        cwd=extract,
+        capture_output=True,
+    )
+    left.stdout.close()
+    _, e = left.communicate()
+    assert left.returncode == right.returncode == 0
+include = extract / "usr/include/python3.12"
+for name in ("Python.h", "patchlevel.h", "pyconfig.h", "pyconfig-64.h"):
+    assert (include / name).is_file()
+for p in extract.rglob("*"):
+    assert p.resolve().is_relative_to(extract.resolve())
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 24 * 2**20
+# Reproduce the exact failed driver-extension build with only a private include
+# path added. Compiling/linking does not initialize CUDA or reserve a GPU.
+triton = Path(
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages/triton/backends/nvidia"
+)
+output = D / "cuda_utils.cpython-312-x86_64-linux-gnu.so"
+cmd = [
+    "/usr/bin/gcc",
+    str(triton / "driver.c"),
+    "-O3",
+    "-shared",
+    "-fPIC",
+    "-Wno-psabi",
+    "-o",
+    str(output),
+    "-l:libcuda.so.1",
+    "-L" + str(triton / "lib"),
+    "-L/lib64",
+    "-L/lib",
+    "-I" + str(triton / "include"),
+    "-I" + str(include),
+]
+built = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+(D / "compile-result.json").write_text(
+    json.dumps(
+        {
+            "returncode": built.returncode,
+            "stdout": built.stdout,
+            "stderr": built.stderr,
+            "command": cmd,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+assert built.returncode == 0, "Matching private headers failed original driver compile"
+files = {
+    p.relative_to(extract).as_posix(): {
+        "bytes": p.stat().st_size,
+        "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
+    }
+    for p in extract.rglob("*")
+    if p.is_file()
+}
+out = {
+    "status": "actual_matching_private_Python312_headers_and_original_Triton_driver_compile_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "original_failed_GPU_job": "968562",
+    "base_RPM": base,
+    "devel_RPM": identity,
+    "RPM_bytes": rpm.stat().st_size,
+    "RPM_sha256": hashlib.sha256(rpm.read_bytes()).hexdigest(),
+    "RPM_signature_check": verify.stdout.strip(),
+    "include_path": str(include),
+    "header_files": files,
+    "original_Triton_driver_source_sha256": hashlib.sha256(
+        (triton / "driver.c").read_bytes()
+    ).hexdigest(),
+    "compiled_extension_bytes": output.stat().st_size,
+    "compiled_extension_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+    "dependency_cap_bytes": cap,
+    "retained_bytes": sum(p.stat().st_size for p in D.rglob("*") if p.is_file()),
+    "system_packages_or_original_runtime_modified": False,
+    "new_weights_images_or_GPU_inference": False,
+    "clinical_or_accuracy_claim": False,
+}
+(D / "verified.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
