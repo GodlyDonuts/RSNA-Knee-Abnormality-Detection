@@ -312,6 +312,13 @@ def state_trial(phase, fail_save=False):
                 program.execute(value)["status"] == "waiting_existing_canonical_claim_no_mutation"
             )
             assert calls.count("SaveKernel") == 1
+        elif phase == "push":
+            out = program.execute(value)
+            assert out["status"] == "one_exact_final_qualification_pushed" and out["version"] == 1
+            assert not (root / "claim").exists()
+            with pytest.raises(AssertionError):
+                program.execute(value)
+            assert calls.count("SaveKernel") == 1
         else:
             out = program.execute(value)
             assert (
@@ -331,6 +338,8 @@ with patch.dict(os.environ, {"SLURM_JOB_ID": "123"}):
     state_trial("push", fail_save=True)
     checks += 1
     state_trial("submit")
+    checks += 1
+    state_trial("push")
     checks += 1
 print(
     json.dumps(
