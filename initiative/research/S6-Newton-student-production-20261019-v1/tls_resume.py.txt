@@ -1,0 +1,153 @@
+"""Direct TLS and authenticated, exact-prefix continuation of original private files."""
+
+import hashlib
+import hmac
+import os
+import ssl
+import subprocess
+from pathlib import Path
+
+
+def prefix_states(root, table):
+    states, digests, stats = {}, {}, {}
+    for name, item in sorted(table.items()):
+        target = Path(root) / name
+        partial = target.with_name(target.name + ".partial")
+        assert not (target.exists() and partial.exists()), "Ambiguous original prefix"
+        path = target if target.exists() else partial
+        h = hashlib.sha256()
+        size = 0
+        before = None
+        if path.exists():
+            assert not path.is_symlink() and path.is_file()
+            before = (path.stat().st_ino, path.stat().st_size, path.stat().st_mtime_ns)
+            size = path.stat().st_size
+            assert size <= item["bytes"]
+            with path.open("rb") as f:
+                for block in iter(lambda: f.read(2**20), b""):
+                    h.update(block)
+            assert (path.stat().st_ino, path.stat().st_size, path.stat().st_mtime_ns) == before
+            if path == target:
+                assert size == item["bytes"] and h.hexdigest() == item["sha256"]
+        states[name] = {
+            "offset": size,
+            "prefix_sha256": h.hexdigest(),
+            "complete": path == target and target.exists(),
+        }
+        digests[name] = h
+        stats[name] = before
+    return states, digests, stats
+
+
+def receive_remaining(stream, root, table, states, digests, stats):
+    root = Path(root)
+    for name, item in sorted(table.items()):
+        target = root / name
+        partial = target.with_name(target.name + ".partial")
+        state = states[name]
+        path = target if state["complete"] else partial
+        if stats[name] is not None:
+            assert (path.stat().st_ino, path.stat().st_size, path.stat().st_mtime_ns) == stats[name]
+        else:
+            assert not path.exists()
+        if state["complete"]:
+            continue
+        target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        remaining = item["bytes"] - state["offset"]
+        h = digests[name].copy()
+        with partial.open("ab" if partial.exists() else "xb") as f:
+            while remaining:
+                block = stream.read(min(2**20, remaining))
+                if not block:
+                    raise ValueError("Original TLS suffix truncated; preserve the prefix")
+                f.write(block)
+                h.update(block)
+                remaining -= len(block)
+            f.flush()
+            os.fsync(f.fileno())
+        assert h.hexdigest() == item["sha256"], "Original complete file SHA differs"
+        partial.rename(target)
+    assert not stream.read(1), "Unexpected suffix bytes after the original files"
+
+
+def server_context():
+    # The ephemeral private key never becomes a disk file or an argv/log value.
+    key = os.memfd_create("rsna-private-copy-key", os.MFD_CLOEXEC)
+    cert = os.memfd_create("rsna-private-copy-cert", os.MFD_CLOEXEC)
+    try:
+        result = subprocess.run(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-sha256",
+                "-keyout",
+                f"/proc/self/fd/{key}",
+                "-out",
+                f"/proc/self/fd/{cert}",
+                "-days",
+                "1",
+                "-subj",
+                "/CN=rsna-private-copy",
+            ],
+            pass_fds=(key, cert),
+            capture_output=True,
+        )
+        assert result.returncode == 0, "Ephemeral in-memory TLS identity generation failed"
+        os.lseek(cert, 0, os.SEEK_SET)
+        der = ssl.PEM_cert_to_DER_cert(os.read(cert, 32768).decode())
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.load_cert_chain(f"/proc/self/fd/{cert}", f"/proc/self/fd/{key}")
+        return context, hashlib.sha256(der).hexdigest()
+    finally:
+        os.close(key)
+        os.close(cert)
+
+
+def token(secret, challenge, certificate):
+    return hmac.new(
+        secret, b"RSNA-original-copy-v3:" + challenge + bytes.fromhex(certificate), hashlib.sha256
+    ).digest()
+
+
+def pinned_client(connection, certificate):
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    channel = context.wrap_socket(connection)
+    assert hashlib.sha256(channel.getpeercert(binary_form=True)).hexdigest() == certificate, (
+        "Pinned original receiver identity differs"
+    )
+    return channel
+
+
+def socket_exact(channel, size):
+    result = bytearray()
+    while len(result) < size:
+        part = channel.recv(size - len(result))
+        if not part:
+            raise ValueError("Original authenticated channel closed early")
+        result.extend(part)
+    return bytes(result)
+
+
+def authenticate_server(channel, secret, certificate):
+    challenge = os.urandom(32)
+    channel.sendall(challenge)
+    assert hmac.compare_digest(socket_exact(channel, 32), token(secret, challenge, certificate)), (
+        "Original private sender authentication failed"
+    )
+    channel.sendall(token(secret, b"ack:" + challenge, certificate))
+
+
+def authenticate_client(channel, secret, certificate):
+    challenge = socket_exact(channel, 32)
+    channel.sendall(token(secret, challenge, certificate))
+    assert hmac.compare_digest(
+        socket_exact(channel, 32), token(secret, b"ack:" + challenge, certificate)
+    ), "Original private receiver authentication failed"

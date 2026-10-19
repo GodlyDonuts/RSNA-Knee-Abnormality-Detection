@@ -1,0 +1,92 @@
+"""One Linux-only, synthetic authenticated direct-channel runtime test."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Newton-student-production-20261019-v1"
+assert not (L / "TLS-test-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {}
+for name in (
+    "replica_transport.py.txt",
+    "tls_resume.py.txt",
+    "check_tls.py.txt",
+    "check_tls_once.py.txt",
+):
+    parts[name] = (D / name).read_text()
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()], text=True
+        )
+        == parts[name]
+    )
+program = "\n".join(
+    parts[n] for n in ("replica_transport.py.txt", "tls_resume.py.txt", "check_tls.py.txt")
+)
+compile(program, "one_Linux_TLS_RAM_key_synthetic_runtime", "exec")
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+with (L / "TLS-test-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "one_CPU_zero_GPU": True,
+            "clinical_data_or_real_replica": False,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:03:00",
+    "--job-name=rsna-private-TLS-synthetic",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope(program, {}),
+    capture_output=True,
+    text=True,
+    timeout=7200,
+)
+(L / "TLS-test-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Original synthetic runtime needs read-only reconciliation"
+actual = json.loads(x.stdout)
+assert actual["status"] == "actual_Linux_memfd_TLS_authenticated_suffix_runtime_synthetic_passed"
+(D / "actual-TLS-runtime-accepted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

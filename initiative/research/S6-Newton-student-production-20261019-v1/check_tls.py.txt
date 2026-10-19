@@ -1,0 +1,119 @@
+# ruff: noqa: F821
+"""Actual Linux TLS/memfd and suffix-only transfer with synthetic original files."""
+
+import json
+import socket
+import tempfile
+import threading
+import time
+from pathlib import Path
+
+secret = os.urandom(32)
+context, certificate = server_context()
+with tempfile.TemporaryDirectory(prefix="rsna-private-TLS-synthetic-", dir="/tmp") as tmp:
+    source = Path(tmp) / "source"
+    target = Path(tmp) / "target"
+    source.mkdir(mode=0o700)
+    target.mkdir(mode=0o700)
+    files = {
+        f"shard-{i}/{name}": (f"synthetic-{i}-{name}-" * 300).encode()
+        for i in range(4)
+        for name in ("pixels.tar", "index.private.json", "source-proof.private.json")
+    }
+    table = {
+        name: {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+        for name, raw in files.items()
+    }
+    expected = {
+        name: None if name.endswith("source-proof.private.json") else item
+        for name, item in table.items()
+    }
+    for name, raw in files.items():
+        p = source / name
+        p.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        p.write_bytes(raw)
+    first = sorted(files)[0]
+    p = target / first
+    p.parent.mkdir(mode=0o700, parents=True)
+    p.write_bytes(files[first])
+    second = sorted(files)[1]
+    p = target / second
+    p.with_name(p.name + ".partial").write_bytes(files[second][:3000])
+    states, digests, stats = prefix_states(target, table)
+    before = sum(row["offset"] for row in states.values())
+    errors = []
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(2)
+    address = listener.getsockname()
+
+    def server():
+        try:
+            raw, _ = listener.accept()
+            with context.wrap_socket(raw, server_side=True) as channel:
+                authenticate_server(channel, secret, certificate)
+                with channel.makefile("rb") as stream:
+                    assert header(stream, expected) == table
+                    receive_remaining(stream, target, table, states, digests, stats)
+        except BaseException as e:
+            errors.append(type(e).__name__ + ":" + str(e))
+
+    thread = threading.Thread(target=server)
+    thread.start()
+    start = time.monotonic()
+    with pinned_client(socket.create_connection(address, timeout=10), certificate) as channel:
+        authenticate_client(channel, secret, certificate)
+        with channel.makefile("wb") as stream:
+            raw = json.dumps(table, sort_keys=True).encode()
+            stream.write(MAGIC + len(raw).to_bytes(8, "big") + raw)
+            for name in sorted(files):
+                prefix = states[name]["offset"]
+                assert (
+                    hashlib.sha256(files[name][:prefix]).hexdigest()
+                    == states[name]["prefix_sha256"]
+                )
+                stream.write(files[name][prefix:])
+    thread.join(timeout=10)
+    listener.close()
+    assert not thread.is_alive() and not errors
+    assert all((target / name).read_bytes() == data for name, data in files.items())
+    assert before > 0
+    # The certificate pin is checked immediately after TLS, before a byte of
+    # original data can be sent. A wrong pin must be refused.
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    address = listener.getsockname()
+
+    def no_data_server():
+        raw, _ = listener.accept()
+        with context.wrap_socket(raw, server_side=True) as channel:
+            assert channel.recv(1) == b""
+
+    thread = threading.Thread(target=no_data_server)
+    thread.start()
+    try:
+        pinned_client(socket.create_connection(address, timeout=10), "0" * 64)
+    except AssertionError:
+        pin_refused = True
+    else:
+        pin_refused = False
+    thread.join(timeout=10)
+    listener.close()
+    assert pin_refused and not thread.is_alive()
+    print(
+        json.dumps(
+            {
+                "status": "actual_Linux_memfd_TLS_authenticated_suffix_runtime_synthetic_passed",
+                "CPU_job": os.environ["SLURM_JOB_ID"],
+                "certificate_pin_refusal_before_data": True,
+                "mutual_HMAC_authentication": True,
+                "all12_synthetic_original_file_bytes_equal": True,
+                "existing_prefix_bytes_not_resent": before,
+                "private_key_RAM_only": True,
+                "elapsed_seconds": time.monotonic() - start,
+                "clinical_data_or_live_replica_or_GPU": False,
+            }
+        ),
+        flush=True,
+    )
