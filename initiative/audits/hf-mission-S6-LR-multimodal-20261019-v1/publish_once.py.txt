@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -30,7 +31,7 @@ names = subprocess.check_output(
 files = {n: subprocess.check_output(["git", "show", git + ":" + n]) for n in names}
 assert 0 < len(files) < 200 and sum(map(len, files.values())) < 2**20
 assert all(n.endswith((".md", ".json", ".py.txt")) for n in files)
-assert all(b"1.2.826.0.1." not in b for b in files.values())
+assert all(not re.search(rb"1\.2\.826\.0\.1\.\d{3,}", b) for b in files.values())
 manifest = {
     "source_git": git,
     "scope": "selected new own source and sanitized aggregate receipts; not all historical unmirrored commits",

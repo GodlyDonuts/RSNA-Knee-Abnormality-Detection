@@ -1,4 +1,19 @@
-# Final higher-LR experiment follow-through
+# Higher-encoder-LR: actual scored result
+
+October19 terminal outcome supersedes earlier running/public-only snapshots below.
+Original qualification139590522v1 passed, public139591990v1/source4dae9b7874b4
+completed with exact CSV binding, and code entry57394237 was submitted ONCE.
+Authenticated hidden result is COMPLETE/public0.949. Canonical outcome handling
+saved the terminal score through its original single coordinator. Current owner
+32852 is complete; never restart old30512/32198 or duplicate a notebook/entry.
+
+This matches ordinary influence0.949 and paired0.949 at displayed precision.
+No score improvement from encoder LR3e-6to3e-5 is established. It does not prove
+identical unrounded performance or a causal explanation for the plateau. Preserve
+all trained/private-verified epochs and this negative. The next substantive work
+is complete cross-lineage teacher targets and new image-evidence supervision,
+not another unchanged higher-LR fit. See actual-hidden-terminal.json.
+
 
 Original fixed3 encoderLR3e-5/headLR3e-5 treatment139454218v1 completed1458 updates. Its original publication962596 stopped before any epoch3 directory/HF objects existed. Read-only967889 proved absence, old owners are absent, and unchanged original publisher967898 then completed0:0 with all5 primary objects fully privately re-downloaded/size/SHA verified at HF8fbf227b68c2c004d59c7ed03629a5a8fa439ebc. Original AdamW/RNG/scaler/history/full-model verification passed; optimizer remains private on evc39. No repeated E1/E2 transfer/publication.
 
