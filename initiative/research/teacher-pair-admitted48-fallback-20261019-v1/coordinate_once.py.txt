@@ -1,0 +1,118 @@
+"""One distinct48 scout after actual zero-CUDA26 failure, without another data copy."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-admitted48-fallback-20261019-v1"
+L.mkdir(exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+
+
+def load(path, name):
+    s = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+B = R / "initiative/research/teacher-pair-earlier26-20261019-v1"
+C = R / "initiative/research/teacher-pair-full-encoder-20261019-v1"
+probe = load(B / "probe_compiler.py.txt", "probe48_compiler").build(
+    (C / "gpu_probe.py.txt").read_text()
+)
+probe = probe.replace(
+    "/tmp/rsna-teacher-pair-gradient-evc26-20261019-v1",
+    "/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3",
+).replace('"evc26"', '"evc48"')
+original = (C / "gpu_probe.py.txt").read_text()
+assert probe[probe.index("versions = ") :] == original[original.index("versions = ") :]
+compile(probe, "same_protocol_admitted48", "exec")
+files = {
+    "gpu_probe.py": probe,
+    "code/rsna/competitive/teacher_pair_inputs32.py": (B / "inputs32.py.txt").read_text(),
+    "code/rsna/competitive/teacher_pair.py": (R / "rsna/competitive/teacher_pair.py").read_text(),
+    "code/rsna/competitive/teacher_pair_train.py": load(
+        C / "compiler.py.txt", "pair48_compiler"
+    ).build((R / "rsna/competitive/licensed_importance_train.py").read_text()),
+}
+for p in (
+    D / "coordinate_once.py.txt",
+    D / "stage.py.txt",
+    B / "probe_compiler.py.txt",
+    B / "inputs32.py.txt",
+    R / "rsna/competitive/teacher_pair.py",
+):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+failed = json.loads((B / "actual-gradient-terminal.json").read_text())
+assert (
+    failed["actual_Slurm_terminal"][1:3] == ["FAILED", "1:0"]
+    and not failed["partial_phase_aggregates"]
+)
+v = {
+    "source_git": git,
+    "files": files,
+    "hashes": {n: hashlib.sha256(body.encode()).hexdigest() for n, body in files.items()},
+    "failed26": failed,
+}
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "files_sha256": v["hashes"],
+            "maximum_distinct_GPU_scouts": 1,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+t = load(
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    "transport48",
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=3G",
+    "--time=00:05:00",
+    "--job-name=rsna-teacher-pair48-fallback-stage",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope((D / "stage.py.txt").read_text(), v),
+    capture_output=True,
+    text=True,
+    timeout=700,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read-only reconcile actual48 stage; no automatic retry"
+out = json.loads(x.stdout)
+(D / "actual-submitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

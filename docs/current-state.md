@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October19,2026,20:48UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
+Updated October19,2026,22:00UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
 
 | Model | Actual Kaggle score | Entry |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ The adapted backbone is full73M CoAtNet. The0.958 is a reproduction; no original
 
 ## Original improvement being executed
 
-The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed3,325/3,887 fitting studies (phase53/972761). The original resident2320176 runs phase54/972870 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed3,773/3,887 fitting studies (phase60/973457). The original resident2320176 runs phase61/973554 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
 The earlier node48 route is now real CPU/input acceptance: whole38.87GB MRI copy,815auxiliary files/678.56MB fully SHA verified, matching cached Torch build, strict73,136,096parameter/486tensor original parent, full3887roster and eight exact94view tensors (CPU971665); canonical aliases/imports passed971721. Original copies remain private/intact. No data, weights, private file tables or parent body crossed Mac/Git/HF. [Original staging and preserved failure](../initiative/research/S6-earlier-H100-route-20261019-v1/README.md).
 
@@ -70,3 +70,9 @@ The new paired-objective library full regression completed4942passed/8skipped/2w
 
 
 Actual earlier-node route: node26 runtime973344 restores the pinned archive, auxiliary973368/973367 fully verifies815files/678564087bytes, and CPU973418 admits the exact32-case engineering packet, original4view tensor hashes, strict73M/486tensor FP32 parent and unchanged first8 UID-keyed proposals. No full3887-pixel admission or clinical gain is implied. Prepared resource handoff keeps GPUJobId972928, holds/rechecks it at zero runtime, retires only idle observer89733, updates ReqNodeList to26 via documented Slurm support and releases the same job. Node48 sources and all six original scientific/deployment owners remain unchanged. Recovery control is rebound to26 before any new recovery actor is started; it still requires the actual original scout's terminal positive evidence.
+
+
+Latest actual teacher phase60/973457 completed3,773/3,887; original resident2320176 is executing phase61/973554. All six original followers remain live. New scout972928 actually failed at CUDA visibility/capability admission in8seconds on node26, before gradients; recovery is not admitted. Read `teacher-pair-earlier26-20261019-v1/actual-gradient-terminal.json` and its README for the preserved negative/assigned-device diagnostic. Source0817e61d was privately preserved once at HFb7c2e7b93517395170576e6f5adb97e3cca347cd/CPU973519,40own small objects184652bytes fully independently downloaded/size/SHA verified; no private MRI/weights. No new score improvement.
+
+
+Assigned-device diagnostics973573/973577 on26 actually completed: Slurm stepGPU1/CUDA_VISIBLE_DEVICES0 but Torch count0, NVML no devices and CUDA initialization "No CUDA GPUs are available". The failed scout is not a model/data result. A distinct source-only fallback `teacher-pair-admitted48-fallback-20261019-v1` queues the unchanged protocol on already admitted48 with original MRI/runtime copies and its own namespace; no new bulk staging or production duplication. Physical26 cause remains unproven; no isolation bypass. Seven original32/compiler tests pass and scoped Ruff/format pass. The4942 numerical suite remains the original completed result; no numerical library changed. Fallback is prepared until actual submitted receipt exists.

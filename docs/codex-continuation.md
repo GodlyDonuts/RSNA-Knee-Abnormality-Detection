@@ -1,6 +1,6 @@
 # RSNA Knee continuation
 
-Updated October19,2026,20:48UTC. Read [AGENTS](../AGENTS.md), [current state](current-state.md) and actual original receipts. Goal active; no new student accuracy gain.
+Updated October19,2026,22:00UTC. Read [AGENTS](../AGENTS.md), [current state](current-state.md) and actual original receipts. Goal active; no new student accuracy gain.
 
 1. Inspect actual original teacher2320176/startticks480928901 and shared `/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1`. Phase50/972468 completed3,133/3,887; phase51/972565 RUNNING. Preserve healthy FP32/two-thread/23worker recipe. Collect only newly completed aggregate receipts. All3,887 required before rank targets; no partial ranks.
 2. Preserve original55175 full-target39→33 handoff and56997 actual CPU compilation. Distinct earlier-node recovery67258 and production67269, source6500d1a8, are now the sole future GPU owners. Read `initiative/research/S6-earlier-H100-execution-20261019-v1` and ignored artifacts of the same name. Actual node48 input/model CPU971665 and alias/import CPU971721 passed. Retired idle59992/61949 must never be restarted; actual idle proof971871 and handoff receipt supersede old instructions.
@@ -44,3 +44,9 @@ The new paired-objective library full regression completed4942passed/8skipped/2w
 
 
 Actual earlier-node route: node26 runtime973344 restores the pinned archive, auxiliary973368/973367 fully verifies815files/678564087bytes, and CPU973418 admits the exact32-case engineering packet, original4view tensor hashes, strict73M/486tensor FP32 parent and unchanged first8 UID-keyed proposals. No full3887-pixel admission or clinical gain is implied. Prepared resource handoff keeps GPUJobId972928, holds/rechecks it at zero runtime, retires only idle observer89733, updates ReqNodeList to26 via documented Slurm support and releases the same job. Node48 sources and all six original scientific/deployment owners remain unchanged. Recovery control is rebound to26 before any new recovery actor is started; it still requires the actual original scout's terminal positive evidence.
+
+
+Latest actual teacher phase60/973457 completed3,773/3,887; original resident2320176 is executing phase61/973554. All six original followers remain live. New scout972928 actually failed at CUDA visibility/capability admission in8seconds on node26, before gradients; recovery is not admitted. Read `teacher-pair-earlier26-20261019-v1/actual-gradient-terminal.json` and its README for the preserved negative/assigned-device diagnostic. Source0817e61d was privately preserved once at HFb7c2e7b93517395170576e6f5adb97e3cca347cd/CPU973519,40own small objects184652bytes fully independently downloaded/size/SHA verified; no private MRI/weights. No new score improvement.
+
+
+Assigned-device diagnostics973573/973577 on26 actually completed: Slurm stepGPU1/CUDA_VISIBLE_DEVICES0 but Torch count0, NVML no devices and CUDA initialization "No CUDA GPUs are available". The failed scout is not a model/data result. A distinct source-only fallback `teacher-pair-admitted48-fallback-20261019-v1` queues the unchanged protocol on already admitted48 with original MRI/runtime copies and its own namespace; no new bulk staging or production duplication. Physical26 cause remains unproven; no isolation bypass. Seven original32/compiler tests pass and scoped Ruff/format pass. The4942 numerical suite remains the original completed result; no numerical library changed. Fallback is prepared until actual submitted receipt exists.
