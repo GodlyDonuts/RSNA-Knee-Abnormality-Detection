@@ -1,0 +1,66 @@
+"""Actual retained tokenizer/image-prefix admission, without model weights or MRI."""
+
+import hashlib
+import inspect
+import json
+import os
+
+import torch
+from PIL import Image
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+processor = AutoProcessor.from_pretrained(
+    "/tmp/rsna-medgemma15-evidence-teacher-20261019-v1",
+    local_files_only=True,
+    trust_remote_code=False,
+)
+prompt = "Inspect the supplied consecutive knee MRI images for joint effusion. Use only visible image evidence. A: evidence supports presence. B: evidence supports absence. C: cannot determine from these images. Select the best option."
+image = Image.new("RGB", (512, 512), "black")
+
+
+def inputs(answer):
+    return processor.apply_chat_template(
+        [
+            {
+                "role": "user",
+                "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}],
+            },
+            {"role": "assistant", "content": [{"type": "text", "text": "Answer:" + answer}]},
+        ],
+        continue_final_message=True,
+        tokenize=True,
+        return_dict=True,
+        return_tensors="pt",
+        do_pan_and_scan=False,
+    )
+
+
+base = inputs("")
+ids = []
+for answer in (" A", " B", " C"):
+    value = inputs(answer)
+    assert value["input_ids"].shape[1] == base["input_ids"].shape[1] + 1
+    assert torch.equal(value["input_ids"][:, :-1], base["input_ids"])
+    ids.append(int(value["input_ids"][0, -1]))
+assert len(set(ids)) == 3
+assert "logits_to_keep" in inspect.signature(Gemma3ForConditionalGeneration.forward).parameters
+print(
+    json.dumps(
+        {
+            "status": "actual_original_MedGemma_three_answer_single_token_prefix_and_forward_API_CPU_accepted",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "prompt_SHA": hashlib.sha256(prompt.encode()).hexdigest(),
+            "answer_token_IDs": ids,
+            "prefix_tokens": base["input_ids"].shape[1],
+            "input_fields": sorted(base),
+            "exact_expanded_image_prefix_unchanged_by_all_three_single_token_answers": True,
+            "logits_to_keep_supported": True,
+            "MRI_or_model_weights_or_GPU_loaded": False,
+            "clinical_accuracy_or_label_change": False,
+        }
+    ),
+    flush=True,
+)

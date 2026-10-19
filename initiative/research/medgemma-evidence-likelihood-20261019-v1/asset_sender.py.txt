@@ -1,0 +1,86 @@
+# ruff: noqa: F821
+"""Reuse original verified public model and native fitting packet; no redownload."""
+
+import ipaddress
+import socket
+import sys
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS") and len(secret) == 32
+M = Path("/tmp/rsna-medgemma15-evidence-teacher-20261019-v1")
+R = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+proof = json.loads((M / "verified.json").read_text())
+assert (
+    proof["model"] == "google/medgemma-1.5-4b-it"
+    and proof["revision"] == "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b"
+)
+assert len(proof["files"]) == 15
+paths = {}
+table = {}
+for row in proof["files"]:
+    name = row["path"]
+    assert Path(name).name == name
+    p = M / name
+    assert p.is_file() and not p.is_symlink() and p.stat().st_size == row["bytes"]
+    assert p.stat().st_mtime_ns <= (M / "verified.json").stat().st_mtime_ns
+    paths["model/" + name] = p
+    table["model/" + name] = {"bytes": row["bytes"], "sha256": row["sha256"]}
+manifest = json.loads((R / "manifest.private.json").read_text())
+native = json.loads((R / "verified.json").read_text())
+assert (
+    hashlib.sha256((R / "manifest.private.json").read_bytes()).hexdigest()
+    == native["manifest_sha256"]
+)
+assert manifest["training_only"] is True and manifest["source_complete"] is True
+assert manifest["reports_labels_predictions_included"] is False
+assert native["slices"] == 195 and native["series"] == 5 and len(manifest["images"]) == 195
+for row in manifest["images"]:
+    name = row["file"]
+    assert Path(name).name == name
+    p = R / name
+    assert p.is_file() and not p.is_symlink() and p.stat().st_size == row["bytes"]
+    paths["pixels/" + name] = p
+    table["pixels/" + name] = {"bytes": row["bytes"], "sha256": row["sha256"]}
+for name, p in [
+    ("model/original-source-verified.json", M / "verified.json"),
+    ("pixels/manifest.private.json", R / "manifest.private.json"),
+    ("pixels/original-source-verified.json", R / "verified.json"),
+]:
+    raw = p.read_bytes()
+    paths[name] = p
+    table[name] = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+assert len(table) == 213
+valid_table(table)
+stats = {n: (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) for n, p in paths.items()}
+ready = v["ready"]
+address = socket.gethostbyname("ivc48")
+assert address == ready["private_address"] and ipaddress.ip_address(address).is_private
+with pinned_client(
+    socket.create_connection((address, ready["port"]), timeout=180), ready["certificate_sha256"]
+) as channel:
+    authenticate_client(channel, secret, ready["certificate_sha256"])
+    del secret
+    with channel.makefile("wb") as out:
+        raw = json.dumps(table, sort_keys=True).encode()
+        assert len(raw) <= 2**21
+        out.write(AUX_MAGIC + len(raw).to_bytes(8, "big") + raw)
+        for name in sorted(table):
+            p = paths[name]
+            assert (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+            with p.open("rb") as f:
+                while block := f.read(2**20):
+                    out.write(block)
+            assert (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) == stats[name]
+print(
+    json.dumps(
+        {
+            "status": "private_auxiliary_original_bytes_sent",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": len(table),
+            "bytes": sum(x["bytes"] for x in table.values()),
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+        }
+    ),
+    flush=True,
+)

@@ -1,0 +1,66 @@
+"""Read only original MedGemma source structure; never collect clinical text."""
+
+import ast
+import hashlib
+import json
+import os
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+raw = (P / "pilot.py").read_bytes()
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == "c3fecb8a2c36989dec7880ceab58beda9887a9bc50dfb813d08ed17854898cc5"
+)
+tree = ast.parse(raw)
+imports = []
+for n in ast.walk(tree):
+    if isinstance(n, ast.Import):
+        imports.extend(a.name for a in n.names)
+    elif isinstance(n, ast.ImportFrom):
+        imports.append(n.module)
+roots = {}
+for node in tree.body:
+    if (
+        not isinstance(node, ast.Assign)
+        or len(node.targets) != 1
+        or not isinstance(node.targets[0], ast.Name)
+    ):
+        continue
+    name = node.targets[0].id
+    value = node.value
+    if (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id == "Path"
+        and len(value.args) == 1
+        and isinstance(value.args[0], ast.Constant)
+        and isinstance(value.args[0].value, str)
+        and value.args[0].value.startswith("/tmp/rsna-")
+    ):
+        roots[name] = value.args[0].value
+functions = {
+    n.name: {
+        "arguments": [a.arg for a in n.args.args],
+        "calls": sorted(set(ast.unparse(x.func) for x in ast.walk(n) if isinstance(x, ast.Call))),
+    }
+    for n in tree.body
+    if isinstance(n, ast.FunctionDef)
+}
+print(
+    json.dumps(
+        {
+            "status": "read_only_original_MedGemma_source_structure_inventory",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "original_source_sha256": hashlib.sha256(raw).hexdigest(),
+            "imports": sorted(set(imports)),
+            "private_roots": roots,
+            "functions": functions,
+            "private_root_regular_files": sum(p.is_file() for p in P.iterdir()),
+            "clinical_text_or_records_exported": False,
+            "new_GPU_or_asset_mutations": 0,
+        }
+    ),
+    flush=True,
+)

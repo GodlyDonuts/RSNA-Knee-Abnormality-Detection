@@ -1,0 +1,270 @@
+{
+  "CPU_job": "971948",
+  "public_model_loader_statements": [
+    "processor = AutoProcessor.from_pretrained(str(M), local_files_only=True, trust_remote_code=False)",
+    "model = Gemma3ForConditionalGeneration.from_pretrained(str(M), local_files_only=True, trust_remote_code=False, dtype=torch.bfloat16, low_cpu_mem_usage=False, attn_implementation='sdpa').eval().to('cuda:0')"
+  ],
+  "original_public_model_metadata": {
+    "acquisition-intent.json": {
+      "keys": [
+        "CPU_job",
+        "automatic_retry",
+        "cap_bytes",
+        "extra_dependency_cap_bytes",
+        "model",
+        "originals_deleted",
+        "private_input_output_cap_bytes",
+        "revision",
+        "status"
+      ],
+      "public_model_only_fields": {
+        "status": "single_original_model_acquisition_intent",
+        "model": "google/medgemma-1.5-4b-it",
+        "revision": "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b"
+      }
+    },
+    "added_tokens.json": {
+      "keys": [
+        "<image_soft_token>"
+      ],
+      "public_model_only_fields": {}
+    },
+    "config.json": {
+      "keys": [
+        "architectures",
+        "boi_token_index",
+        "dtype",
+        "eoi_token_index",
+        "eos_token_id",
+        "image_token_index",
+        "initializer_range",
+        "mm_tokens_per_image",
+        "model_type",
+        "text_config",
+        "torch_dtype",
+        "transformers_version",
+        "vision_config"
+      ],
+      "public_model_only_fields": {}
+    },
+    "generation_config.json": {
+      "keys": [
+        "cache_implementation",
+        "eos_token_id",
+        "transformers_version"
+      ],
+      "public_model_only_fields": {}
+    },
+    "model.safetensors.index.json": {
+      "keys": [
+        "metadata",
+        "weight_map"
+      ],
+      "public_model_only_fields": {}
+    },
+    "preprocessor_config.json": {
+      "keys": [
+        "do_convert_rgb",
+        "do_normalize",
+        "do_pan_and_scan",
+        "do_rescale",
+        "do_resize",
+        "image_mean",
+        "image_processor_type",
+        "image_seq_length",
+        "image_std",
+        "pan_and_scan_max_num_crops",
+        "pan_and_scan_min_crop_size",
+        "pan_and_scan_min_ratio_to_activate",
+        "processor_class",
+        "resample",
+        "rescale_factor",
+        "size"
+      ],
+      "public_model_only_fields": {}
+    },
+    "processor_config.json": {
+      "keys": [
+        "image_seq_length",
+        "processor_class"
+      ],
+      "public_model_only_fields": {}
+    },
+    "special_tokens_map.json": {
+      "keys": [
+        "boi_token",
+        "bos_token",
+        "eoi_token",
+        "eos_token",
+        "image_token",
+        "pad_token",
+        "unk_token"
+      ],
+      "public_model_only_fields": {}
+    },
+    "tokenizer.json": {
+      "keys": [
+        "added_tokens",
+        "decoder",
+        "model",
+        "normalizer",
+        "padding",
+        "post_processor",
+        "pre_tokenizer",
+        "truncation",
+        "version"
+      ],
+      "public_model_only_fields": {}
+    },
+    "tokenizer_config.json": {
+      "keys": [
+        "add_bos_token",
+        "add_eos_token",
+        "added_tokens_decoder",
+        "boi_token",
+        "bos_token",
+        "clean_up_tokenization_spaces",
+        "eoi_token",
+        "eos_token",
+        "extra_special_tokens",
+        "image_token",
+        "model_max_length",
+        "pad_token",
+        "padding_side",
+        "processor_class",
+        "sp_model_kwargs",
+        "spaces_between_special_tokens",
+        "tokenizer_class",
+        "unk_token",
+        "use_default_system_prompt"
+      ],
+      "public_model_only_fields": {}
+    },
+    "verified.json": {
+      "keys": [
+        "CPU_job",
+        "GPU_or_clinical_inference",
+        "accuracy_claim",
+        "additional_dependencies_and_private_IO_reserved_bytes",
+        "bytes",
+        "files",
+        "model",
+        "new_model_footprint_cap_bytes",
+        "objects",
+        "revision",
+        "runtime",
+        "seconds",
+        "status",
+        "weights_publication"
+      ],
+      "public_model_only_fields": {
+        "status": "actual_original_medgemma15_model_downloaded_and_verified_private_node33",
+        "model": "google/medgemma-1.5-4b-it",
+        "revision": "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b",
+        "files": [
+          {
+            "path": ".gitattributes",
+            "bytes": 1570,
+            "sha256": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930"
+          },
+          {
+            "path": "README.md",
+            "bytes": 41503,
+            "sha256": "f27a352b40f1437ad0ef1cc070702cc15d5d0869fbb0c48c740d2bad09c01c95"
+          },
+          {
+            "path": "added_tokens.json",
+            "bytes": 35,
+            "sha256": "50b2f405ba56a26d4913fd772089992252d7f942123cc0a034d96424221ba946"
+          },
+          {
+            "path": "chat_template.jinja",
+            "bytes": 1532,
+            "sha256": "7de1c58e208eda46e9c7f86397df37ec49883aeece39fb961e0a6b24088dd3c4"
+          },
+          {
+            "path": "config.json",
+            "bytes": 2551,
+            "sha256": "300c724c2c1fcdea39f1e21865cb1b14a605f1e3bb5ef50550faaa48da944fc8"
+          },
+          {
+            "path": "generation_config.json",
+            "bytes": 115,
+            "sha256": "921a391e0d387377b4c4a05273a68b7bc2196cf2a272ee605007853ea37f3224"
+          },
+          {
+            "path": "model-00001-of-00002.safetensors",
+            "bytes": 4961251752,
+            "sha256": "5e4c75b0ef1fb009caee567ab244f9e354e915fda748d1b76179cc453a39b4b5"
+          },
+          {
+            "path": "model-00002-of-00002.safetensors",
+            "bytes": 3639026128,
+            "sha256": "958e39df78c35ddb812fbcb8b5e7f46e07f1b153c1589f2d3f0b41c3b0748d30"
+          },
+          {
+            "path": "model.safetensors.index.json",
+            "bytes": 90558,
+            "sha256": "77f4b67de084c31c7bcd373b039908108eee6c6181607e6d53da730e5f0bc659"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "bytes": 570,
+            "sha256": "5b2f684b616a25f3cd4a700e5e471a07fcaabc5ec07871d2231b7e376e8648ce"
+          },
+          {
+            "path": "processor_config.json",
+            "bytes": 70,
+            "sha256": "3ffd5f11778dc73e2b69b3c00535e4121e1badf7018136263cd17b5b34fbaa53"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "bytes": 662,
+            "sha256": "2f7b0adf4fb469770bb1490e3e35df87b1dc578246c5e7e6fc76ecf33213a397"
+          },
+          {
+            "path": "tokenizer.json",
+            "bytes": 33384570,
+            "sha256": "7d4046bf0505a327dd5a0abbb427ecd4fc82f99c2ceaa170bc61ecde12809b0c"
+          },
+          {
+            "path": "tokenizer.model",
+            "bytes": 4689074,
+            "sha256": "1299c11d7cf632ef3b4e11937501358ada021bbdf7c47638d13c0ee982f2e79c"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "bytes": 1155415,
+            "sha256": "88269475414d45d3e59892d3519b0d4e28ec6416fecf6b523fb986cbe452075f"
+          }
+        ]
+      }
+    }
+  },
+  "package_versions": {
+    "torch": {
+      "version": "2.14.0",
+      "root": "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages"
+    },
+    "transformers": {
+      "version": "5.6.1",
+      "root": "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages"
+    },
+    "accelerate": null,
+    "safetensors": {
+      "version": "0.7.0",
+      "root": "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages"
+    },
+    "sentencepiece": null,
+    "tokenizers": {
+      "version": "0.22.2",
+      "root": "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages"
+    },
+    "huggingface_hub": {
+      "version": "1.32.0",
+      "root": "/tmp/rsna-environment-907632-7sr9a7i6/environment/lib64/python3.12/site-packages"
+    }
+  },
+  "original_model_root_directories": [],
+  "private_patient_inputs_or_text_collected": false
+}
