@@ -1,0 +1,86 @@
+"""Local source integrity contracts; no clinical labels, network or model execution."""
+
+import hashlib
+import importlib.util
+import io
+import tempfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "bulk", SourceFileLoader("bulk", str(D / "bulk_transport.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+payload = b"source bytes, not diagnostic data"
+row = {"sha256": hashlib.sha256(payload).hexdigest(), "bytes": len(payload)}
+valid = {
+    "objects": [
+        {
+            "oid": row["sha256"],
+            "size": len(payload),
+            "actions": {"download": {"href": "https://us.aws.cdn.hf.co/object"}},
+        }
+    ]
+}
+assert set(m.validate_actions([row], valid)) == {row["sha256"]}
+count = 1
+for bad in [
+    {"objects": []},
+    {"objects": valid["objects"] * 2},
+    {"objects": [{**valid["objects"][0], "size": 1}]},
+    {"objects": [{**valid["objects"][0], "error": {"code": 404}}]},
+    *[
+        {"objects": [{**valid["objects"][0], "actions": {"download": {"href": url}}}]}
+        for url in (
+            "http://us.aws.cdn.hf.co/object",
+            "https://unrelated.invalid/object",
+            "https://cdn.hf.co/resolve/other",
+        )
+    ],
+]:
+    try:
+        m.validate_actions([row], bad)
+    except ValueError:
+        count += 1
+    else:
+        raise AssertionError("Wrong object/source/transport unexpectedly accepted")
+assert m.delay({"RateLimit": '"api";r=0;t=21'}) == 22
+assert m.delay({"Retry-After": "15"}) == 16
+client = m.BulkSource("synthetic-unused-token")
+
+
+class Response:
+    def __init__(self, offset):
+        self.raw = io.BytesIO(payload[offset:])
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.raw.close()
+
+
+client.open = lambda action, offset=0: Response(offset)
+for prefix in (None, b"", payload[:7], payload):
+    with tempfile.TemporaryDirectory() as temp:
+        path = Path(temp) / "original.dcm"
+        if prefix is not None:
+            path.write_bytes(prefix)
+        old, fetched = client.complete_file(path, row, {})
+        assert path.read_bytes() == payload and old == len(prefix or b"")
+        assert fetched == len(payload) - old
+        count += 1
+with tempfile.TemporaryDirectory() as temp:
+    path = Path(temp) / "original.dcm"
+    corrupted = b"x" * len(payload)
+    path.write_bytes(corrupted)
+    try:
+        client.complete_file(path, row, {})
+    except ValueError:
+        assert path.read_bytes() == corrupted
+        count += 1
+    else:
+        raise AssertionError("Complete corrupt original was silently overwritten")
+print({"passed": count + 2, "no_network_or_clinical_model_execution": True})

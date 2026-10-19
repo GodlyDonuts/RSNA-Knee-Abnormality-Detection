@@ -1,0 +1,141 @@
+"""Official LFS batch download transport; exact source hashes remain authoritative."""
+
+import hashlib
+import re
+import time
+from urllib.parse import urlparse
+
+import requests
+
+REPO = "https://huggingface.co/datasets/GodlyDonuts/RSNA-Data"
+REVISION = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+
+
+def delay(headers):
+    retry = headers.get("Retry-After", "")
+    if retry.isdigit():
+        return max(1, int(retry)) + 1
+    found = re.search(r"(?:^|;)t=(\d+)", headers.get("RateLimit", ""))
+    return int(found[1]) + 1 if found else 60
+
+
+def validate_actions(rows, payload):
+    expected = {r["sha256"]: r["bytes"] for r in rows}
+    objects = payload.get("objects", [])
+    if len(objects) != len(expected) or {r.get("oid") for r in objects} != set(expected):
+        raise ValueError("Exact complete requested LFS object set required")
+    result = {}
+    for row in objects:
+        if "error" in row or row.get("size") != expected[row["oid"]]:
+            raise ValueError("Original LFS object missing or byte count differs")
+        action = row.get("actions", {}).get("download", {})
+        url = action.get("href", "")
+        host = urlparse(url).hostname or ""
+        if (
+            urlparse(url).scheme != "https"
+            or not any(host.endswith(s) for s in (".hf.co", ".huggingface.co", ".xethub.hf.co"))
+            or "/resolve/" in urlparse(url).path
+            or not isinstance(action.get("header", {}), dict)
+        ):
+            raise ValueError("Expected authorized first-party direct HTTPS download action")
+        result[row["oid"]] = action
+    return result
+
+
+class BulkSource:
+    def __init__(self, token):
+        self._token = token
+        self._get, self._post = requests.get, requests.post
+
+    @staticmethod
+    def request(method, *args, **kwargs):
+        for _ in range(5):
+            try:
+                response = method(*args, **kwargs)
+            except requests.RequestException:
+                raise RuntimeError(
+                    "Source transport connection failed; preserve partial bytes"
+                ) from None
+            if response.status_code != 429:
+                return response
+            wait = delay(response.headers)
+            response.close()
+            if wait > 600:
+                raise RuntimeError("Provider quota reset exceeds bounded retry window")
+            time.sleep(wait)
+        raise RuntimeError(
+            "Provider rate limit persisted; preserve source without further requests"
+        )
+
+    def actions(self, rows):
+        result = {}
+        for i in range(0, len(rows), 100):
+            block = rows[i : i + 100]
+            objects = {r["sha256"]: r["bytes"] for r in block}
+            response = self.request(
+                self._post,
+                REPO + ".git/info/lfs/objects/batch",
+                headers={
+                    "Authorization": "Bearer " + self._token,
+                    "Accept": "application/vnd.git-lfs+json",
+                    "Content-Type": "application/vnd.git-lfs+json",
+                },
+                json={
+                    "operation": "download",
+                    "transfers": ["basic"],
+                    "hash_algo": "sha256",
+                    "objects": [{"oid": h, "size": n} for h, n in objects.items()],
+                },
+                timeout=(10, 90),
+            )
+            try:
+                if response.status_code != 200:
+                    raise RuntimeError("Original LFS metadata endpoint refused download")
+                result.update(validate_actions(block, response.json()))
+            finally:
+                response.close()
+        return result
+
+    def open(self, action, offset=0):
+        headers = dict(action.get("header", {}))
+        if offset:
+            headers["Range"] = "bytes=%d-" % offset
+        response = self.request(
+            self._get, action["href"], headers=headers, stream=True, timeout=(10, 90)
+        )
+        if response.status_code != (206 if offset else 200):
+            response.close()
+            raise RuntimeError("Original source download/range response refused")
+        if offset and not response.headers.get("Content-Range", "").startswith(
+            "bytes %d-" % offset
+        ):
+            response.close()
+            raise ValueError("Range start differs from retained source prefix")
+        response.raw.decode_content = True
+        return response
+
+    def complete_file(self, path, row, action):
+        size = path.stat().st_size if path.exists() else 0
+        if size > row["bytes"]:
+            raise ValueError("Retained source exceeds original exact bound")
+        h = hashlib.sha256()
+        if size:
+            with path.open("rb") as stream:
+                for block in iter(lambda: stream.read(2**20), b""):
+                    h.update(block)
+        if size == row["bytes"]:
+            if h.hexdigest() != row["sha256"]:
+                raise ValueError("Retained complete source differs; quarantine, never overwrite")
+            return size, 0
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        fetched = 0
+        with self.open(action, size) as response, path.open("ab" if path.exists() else "xb") as out:
+            for block in iter(lambda: response.raw.read(65536), b""):
+                fetched += len(block)
+                if size + fetched > row["bytes"]:
+                    raise ValueError("Source exceeded its exact remaining byte bound")
+                h.update(block)
+                out.write(block)
+        if size + fetched != row["bytes"] or h.hexdigest() != row["sha256"]:
+            raise ValueError("Completed source size/SHA differs; retain without replay")
+        return size, fetched

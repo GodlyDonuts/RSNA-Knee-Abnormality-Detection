@@ -1,0 +1,193 @@
+"""Recover only retained source bytes; never repeat completed predictions or rendering."""
+
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import pydicom
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+C = P / "CPU-full-stream-v1"
+E = P / "engine-v1"
+M = Path("/tmp/rsna-S6-source-quota-recovery-20261019-v1")
+assert not M.exists()
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "968696", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "968696|FAILED|1:0" in state
+owner = json.loads((E / "execution.lock/owner.json").read_text())
+assert owner["Slurm_job"] == "968696" and owner["phase"] == 13
+raw = (P / "completed-logits.private.jsonl").read_bytes()
+assert len(raw.splitlines()) == 880
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == "e91fd276cdfd6f19b814ef597514e1055d382188f244df6d2f3cf90b5b531b0a"
+)
+done = {json.loads(line)["uid"] for line in raw.splitlines()}
+pending = json.loads((C / "phase-013/pending.private.json").read_text())
+assert len(pending) == 23 and not done.intersection(pending)
+ram = Path(json.loads((E / "RAM-location.private.json").read_text())["path"])
+run = ram / "CPU-full-phase-013"
+index = json.loads((P / "RAM-location.private.json").read_text())
+records = {}
+with gzip.open(index["path"], "rt") as stream:
+    for line in stream:
+        row = json.loads(line)
+        if row["uid"] in pending:
+            records[row["uid"]] = row
+assert set(records) == set(pending)
+# Separately admit4MiB tiny recovery control, using existing node-local/RAM
+# source envelopes. No new model or original-source copy; missing bytes only.
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 4 * 2**20
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 4 * 2**20 and int(a[6]) - int(a[5]) > 5000
+assert sum(p.stat().st_size for p in ram.rglob("*") if p.is_file()) < 64 * 2**30
+M.mkdir(mode=0o700)
+for name, text in v["sources"].items():
+    assert name in {"bulk_transport.py", "worker_bulk.py"}
+    (M / name).write_text(text)
+spec = importlib.util.spec_from_file_location("bulk_source", M / "bulk_transport.py")
+bulk = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bulk)
+client = bulk.BulkSource(v["token"])
+spec = importlib.util.spec_from_file_location("original_source_contract", E / "source_buffer.py")
+contract = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(contract)
+registry = {
+    "original_job": "968696",
+    "original_run": str(run),
+    "journal_before_sha256": hashlib.sha256(raw).hexdigest(),
+    "cases": {},
+}
+retained_bytes = fetched_bytes = reused_rendered = reused_scored = complete_sources = 0
+for uid, status in pending.items():
+    request = records[uid]
+    rows = request["source_files"]
+    expected = contract.validate(uid, rows, request["series_csv"], 2**30)
+    if status["state"] == "source_verified":
+        owned = Path(status["owned_scratch"])
+    else:
+        assert status["state"] == "requested"
+        candidates = []
+        for owned_case in (run / ("slot-%02d" % status["slot"])).glob("fitting-study-*"):
+            if (owned_case / "data/train.csv").read_text() == "StudyInstanceUID\n" + uid + "\n":
+                candidates.append(owned_case)
+        assert len(candidates) == 1
+        owned = candidates[0]
+    assert owned.is_relative_to(run) and owned.is_dir()
+    data = owned / "data"
+    assert (data / "train_series.csv").read_text() == request["series_csv"]
+    proof_path = owned / "source-proof.private.json"
+    if proof_path.exists():
+        proof = json.loads(proof_path.read_text())
+        assert [(x["source_path"], x["bytes"], x["sha256"]) for x in proof["files"]] == [
+            (x["path"], x["bytes"], x["sha256"]) for x in rows
+        ]
+        for row in rows:
+            path = data / "train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+            assert path.stat().st_size == row["bytes"]
+        retained_bytes += expected
+        complete_sources += 1
+    else:
+        missing = []
+        for row in rows:
+            path = data / "train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+            if path.exists() and path.stat().st_size == row["bytes"]:
+                assert hashlib.sha256(path.read_bytes()).hexdigest() == row["sha256"]
+                retained_bytes += row["bytes"]
+            else:
+                assert not path.exists() or path.stat().st_size < row["bytes"]
+                missing.append(row)
+        actions = client.actions(missing)
+
+        def finish(row):
+            path = data / "train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+            return client.complete_file(path, row, actions[row["sha256"]])
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            for old, new in pool.map(finish, missing):
+                retained_bytes += old
+                fetched_bytes += new
+        for row in rows:
+            header = pydicom.dcmread(
+                data / "train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm"),
+                stop_before_pixels=True,
+            )
+            assert (
+                str(header.StudyInstanceUID) == uid
+                and str(header.SeriesInstanceUID) == row["series_uid"]
+                and str(header.SOPInstanceUID) == row["sop_uid"]
+            )
+        proof = {
+            "study_uid_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+            "files": [
+                {"source_path": r["path"], "bytes": r["bytes"], "sha256": r["sha256"]} for r in rows
+            ],
+            "source_bytes": expected,
+            "source_cap_bytes": 2**30,
+            "series_csv_sha256": hashlib.sha256(request["series_csv"].encode()).hexdigest(),
+            "diagnosis_labels_read": False,
+            "transport": "official_LFS_batch_signed_download_exact_hashes",
+            "old_source_prefixes_reused": True,
+            "source_revision": bulk.REVISION,
+            "new_source_bytes": fetched_bytes,
+        }
+        with proof_path.open("x") as f:
+            json.dump(proof, f, sort_keys=True)
+    rendered = (owned / "render-result.private.json").exists()
+    scored = (owned / "CPU-teacher/verified.private.json").exists()
+    reused_rendered += int(rendered)
+    reused_scored += int(scored)
+    registry["cases"][uid] = {
+        "owned": str(owned),
+        "rendered": rendered,
+        "verified_scored": scored,
+        "state": "available",
+    }
+assert (P / "completed-logits.private.jsonl").read_bytes() == raw
+(M / "retained.private.json").write_text(json.dumps(registry, sort_keys=True))
+original = json.loads((C / "staged.json").read_text())["files"]
+assert original == {
+    "program.py": "5f3205f1d2f706b8debe66b83fb5f4a6428a35509d6d0baaea153390d7716fc9",
+    "worker.py": "6d9e5e4a74fa7b44feda256a37a4353e434dbf02f10c88124ca05aa88c6faead",
+    "classifier.py": "29b1cac686f091bca0e6260abe4039a21d96a571498bb29e38ebd3d8d9994a61",
+}
+admitted = {
+    "original_files": original,
+    "worker_bulk_sha256": hashlib.sha256((M / "worker_bulk.py").read_bytes()).hexdigest(),
+    "bulk_transport_sha256": hashlib.sha256((M / "bulk_transport.py").read_bytes()).hexdigest(),
+    "source_revision": bulk.REVISION,
+}
+(M / "source-admitted.json").write_text(json.dumps(admitted, sort_keys=True))
+out = {
+    "status": "actual_failed13_retained_sources_completed_via_LFS_and_recovery_registry_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "original_failed_job": "968696",
+    "confirmed_cause": "HTTP429 original resolver",
+    "journal_rows_preserved": 880,
+    "journal_before_sha256": registry["journal_before_sha256"],
+    "retained_source_cases": len(registry["cases"]),
+    "already_complete_source_cases": complete_sources,
+    "retained_original_source_bytes": retained_bytes,
+    "only_missing_source_bytes_downloaded": fetched_bytes,
+    "rendered_inputs_reused": reused_rendered,
+    "completed_unconsumed_classifier_outputs": reused_scored,
+    "new_model_or_render_or_teacher_inference": False,
+    "no_completed_study_prediction_replayed": True,
+    "worker_bulk_sha256": admitted["worker_bulk_sha256"],
+    "bulk_transport_sha256": admitted["bulk_transport_sha256"],
+    "original_files": original,
+}
+(M / "reconciled.json").write_text(json.dumps(out, indent=2))
+print(json.dumps(out), flush=True)
