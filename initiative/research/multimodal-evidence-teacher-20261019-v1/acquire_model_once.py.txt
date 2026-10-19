@@ -1,0 +1,107 @@
+"""Acquire the pinned official safetensors once on private node-local storage."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+import torch
+import transformers
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+R = Path("/tmp/rsna-medgemma15-evidence-teacher-20261019-v1")
+assert not R.exists(), "Existing or partial acquisition must be reconciled without retry"
+manifest = v["manifest"]
+assert manifest["model"] == "google/medgemma-1.5-4b-it"
+assert manifest["revision"] == "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b"
+cap = 9 * 2**30
+total = sum(x["bytes"] for x in manifest["files"])
+assert total == 8639646105 and total < cap
+# New explicit model9GiB + runtime-overlay128MiB + private input/output256MiB
+# admission, above current32MiB metadata and20GiB physical reserves. Historical
+# unstarted bulk fitting promises remain deferred, never deletion credit.
+assert shutil.disk_usage("/tmp").free > (20 + 9) * 2**30 + (32 + 128 + 256) * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 2**20
+assert int(a[6]) - int(a[5]) > 5000
+runtime = {}
+assert AutoProcessor is not None and Gemma3ForConditionalGeneration is not None
+runtime.update(torch=torch.__version__, transformers=transformers.__version__)
+R.mkdir(mode=0o700)
+intent = {
+    "status": "single_original_model_acquisition_intent",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "model": manifest["model"],
+    "revision": manifest["revision"],
+    "cap_bytes": cap,
+    "extra_dependency_cap_bytes": 128 * 2**20,
+    "private_input_output_cap_bytes": 256 * 2**20,
+    "originals_deleted": False,
+    "automatic_retry": False,
+}
+(R / "acquisition-intent.json").write_text(json.dumps(intent, indent=2))
+proofs = []
+start = time.monotonic()
+for entry in manifest["files"]:
+    name = entry["path"]
+    assert Path(name).name == name and not name.endswith((".py", ".bin", ".pt"))
+    assert entry["bytes"] > 0
+    url = (
+        "https://huggingface.co/"
+        + manifest["model"]
+        + "/resolve/"
+        + manifest["revision"]
+        + "/"
+        + name
+    )
+    request = urllib.request.Request(url, headers={"Authorization": "Bearer " + v["token"]})
+    h = hashlib.sha256()
+    size = 0
+    with urllib.request.urlopen(request, timeout=120) as response, (R / name).open("xb") as out:
+        assert response.status == 200
+        while True:
+            block = response.read(8 * 2**20)
+            if not block:
+                break
+            size += len(block)
+            assert size <= entry["bytes"]
+            h.update(block)
+            out.write(block)
+        out.flush()
+        os.fsync(out.fileno())
+    assert size == entry["bytes"]
+    if entry["lfs"]:
+        assert h.hexdigest() == entry["lfs"]["sha256"]
+    proofs.append({"path": name, "bytes": size, "sha256": h.hexdigest()})
+    print(
+        json.dumps({"status": "original_model_file_verified", "path": name, "bytes": size}),
+        flush=True,
+    )
+v["token"] = None
+out = {
+    "status": "actual_original_medgemma15_model_downloaded_and_verified_private_node33",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "model": manifest["model"],
+    "revision": manifest["revision"],
+    "objects": len(proofs),
+    "bytes": total,
+    "files": proofs,
+    "runtime": runtime,
+    "seconds": time.monotonic() - start,
+    "GPU_or_clinical_inference": False,
+    "weights_publication": False,
+    "new_model_footprint_cap_bytes": cap,
+    "additional_dependencies_and_private_IO_reserved_bytes": (128 + 256) * 2**20,
+    "accuracy_claim": False,
+}
+(R / "verified.json").write_text(json.dumps(out, indent=2))
+print(json.dumps(out), flush=True)
