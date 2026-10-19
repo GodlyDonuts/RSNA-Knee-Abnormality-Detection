@@ -1,0 +1,24 @@
+import hashlib, json, os
+from pathlib import Path
+
+M = Path("/tmp/rsna-S6-source-quota-recovery-20261019-v1")
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+a = json.loads((M / "source-admitted.json").read_text())
+for name, key in [
+    ("worker_bulk.py", "worker_bulk_sha256"),
+    ("bulk_transport.py", "bulk_transport_sha256"),
+]:
+    assert hashlib.sha256((M / name).read_bytes()).hexdigest() == a[key]
+h = Path("/tmp/rsna-S6-data-local-handoff-20261019-v1/node39_entry.py")
+assert (
+    hashlib.sha256(h.read_bytes()).hexdigest()
+    == "adb68ef267eca33d6f47414877fc4974bddcf1ad8b09442293caf99409edd7db"
+)
+n = {}
+exec(compile(h.read_text(), "accepted_CPU_location", "exec"), n)
+s = n["adapt"]((P / "CPU-full-stream-v1/program.py").read_text(), "teacher")
+old = 'str(C / "worker.py")'
+assert s.count(old) == 1
+s = s.replace(old, 'str(Path("/tmp/rsna-S6-source-quota-recovery-20261019-v1/worker_bulk.py"))')
+n.update(__name__="__main__", __file__=str(P / "CPU-full-stream-v1/program.py"))
+exec(compile(s, "original_teacher_bulk_source_recovery", "exec"), n)
