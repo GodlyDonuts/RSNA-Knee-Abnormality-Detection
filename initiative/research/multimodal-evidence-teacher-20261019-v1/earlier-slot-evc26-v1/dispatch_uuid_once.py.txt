@@ -1,0 +1,90 @@
+"""One exact-assigned-UUID context recovery, then the unchanged pilot if it passes."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/multimodal-evidence-teacher-20261019-v1/earlier-slot-evc26-v1"
+assert not (L / "UUID-dispatch-intent.json").exists()
+p = D / "assigned_uuid_entry.py.txt"
+source = p.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + p.relative_to(R).as_posix()], text=True
+)
+program = """import hashlib,json,os,shlex,subprocess
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc26' and not os.environ.get('SLURM_JOB_GPUS')
+X=Path('/tmp/rsna-medgemma15-earlier-slot-20261019-v1');P=Path('/tmp/rsna-medgemma15-first-packet-20261019-v1')
+state=subprocess.check_output(['sacct','-X','-n','-P','-j','968456','--format=JobIDRaw,State,ExitCode,Elapsed'],text=True);assert '968456|FAILED|1:0|00:00:13' in state
+assert not (P/'actual-pilot').exists() and not (X/'UUID-dispatch-intent.json').exists()
+err=Path('/home/sa305415/rsna-knee/kaggle/medgemma15-assigned-pilot-968456.stderr').read_text();assert 'Error 101: invalid device ordinal' in err
+entry=X/'assigned_uuid_entry.py';assert not entry.exists();compile(v['source'],'exact_assigned_UUID_entry','exec');entry.write_text(v['source'])
+X.joinpath('UUID-dispatch-intent.json').write_text(json.dumps({'original_failed_assigned_step':'968456','actual_CUDA_error':101,'new_binding':'exact Slurm-assigned physical index resolved through NVML to same UUID; isolation unchanged','source_sha256':hashlib.sha256(v['source'].encode()).hexdigest(),'automatic_retry':False}))
+cmd=['srun','--exact','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','env','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=2','/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python','-B',str(entry)]
+H=Path('/home/sa305415/rsna-knee/kaggle')
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc26','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','--mem=64G','--time=00:30:00','--job-name=rsna-medgemma15-exact-UUID','--output='+str(H/'medgemma15-UUID-pilot-%j.stdout'),'--error='+str(H/'medgemma15-UUID-pilot-%j.stderr'),'--wrap='+shlex.join(cmd)]
+x=subprocess.run(args,capture_output=True,text=True);X.joinpath('UUID-dispatch-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));assert x.returncode==0
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+print(json.dumps({'status':'actual_distinct_exact_assigned_UUID_GPU_context_then_pilot_submitted','GPU_job':job,'old_failed_batch':'968429','old_failed_step':'968456','node':'evc26','GPU':1,'same_physical_assigned_device_only':True,'Slurm_device_isolation_unchanged':True,'model_prompt_preprocessing_unchanged':True,'model_or_MRI_data_reacquisitions':0,'accuracy_claim':False}))
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "UUID-dispatch-intent.json").write_text(
+    json.dumps(
+        {
+            "original_failed_assigned_step": "968456",
+            "actual_CUDA_error": 101,
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc26",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-medgemma-UUID-dispatch",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {"source": source}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "UUID-dispatch-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Uncertain context dispatch requires read-only reconciliation: " + x.stderr[-1200:]
+)
+(D / "actual-UUID-GPU-submitted.json").write_text(json.dumps(json.loads(x.stdout), indent=2) + "\n")
+print(x.stdout, flush=True)

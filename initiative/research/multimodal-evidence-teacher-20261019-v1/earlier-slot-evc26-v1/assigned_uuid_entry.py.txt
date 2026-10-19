@@ -1,0 +1,89 @@
+"""Resolve only the scheduler-assigned GPU to its stable UUID, preserving isolation."""
+
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+assert os.uname().nodename == "evc26" and os.environ.get("SLURM_JOB_GPUS")
+X = Path("/tmp/rsna-medgemma15-earlier-slot-20261019-v1")
+P = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+assert not (P / "actual-pilot").exists() and not (X / "assigned-UUID-intent.json").exists()
+ready = json.loads((X / "ready.json").read_text())
+assert hashlib.sha256((X / "run.py").read_bytes()).hexdigest() == ready["location_entry_sha256"]
+job_gpu = os.environ["SLURM_JOB_GPUS"]
+step_gpu = os.environ.get("SLURM_STEP_GPUS")
+assert re.fullmatch(r"[0-9]+", job_gpu) and step_gpu == job_gpu, (
+    "Exactly one explicit assigned GPU required"
+)
+# Query exactly the physical index Slurm assigned, not a guessed/default device.
+# CUDA visibility is never removed, and Slurm's cgroup remains in force.
+query = subprocess.check_output(
+    [
+        "nvidia-smi",
+        "--id=" + job_gpu,
+        "--query-gpu=index,uuid,pci.bus_id,name",
+        "--format=csv,noheader",
+    ],
+    text=True,
+).strip()
+rows = query.splitlines()
+assert len(rows) == 1
+index, uuid, pci, name = [x.strip() for x in rows[0].split(",")]
+assert index == job_gpu and re.fullmatch(r"GPU-[a-fA-F0-9-]+", uuid) and "H100" in name
+binding = {
+    "status": "exact_scheduler_assigned_GPU_UUID_resolved_no_visibility_widening",
+    "GPU_job": os.environ["SLURM_JOB_ID"],
+    "assigned_job_GPU_index": job_gpu,
+    "assigned_step_GPU_index": step_gpu,
+    "original_CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    "assigned_GPU_uuid": uuid,
+    "assigned_GPU_pci": pci,
+    "GPU_name": name,
+    "Slurm_device_cgroup_unchanged": True,
+    "other_devices_requested_or_accessed": False,
+}
+(X / "assigned-UUID-intent.json").write_text(json.dumps(binding, indent=2))
+env = {
+    k: v
+    for k, v in os.environ.items()
+    if not any(s in k.upper() for s in ("TOKEN", "SECRET", "PASSWORD", "AUTHORIZATION"))
+}
+env.update(
+    CUDA_VISIBLE_DEVICES=uuid,
+    CUDA_DEVICE_ORDER="PCI_BUS_ID",
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    PYTHONNOUSERSITE="1",
+    OMP_NUM_THREADS="2",
+    MKL_NUM_THREADS="2",
+)
+probe = "import json,torch;assert torch.cuda.is_available() and torch.cuda.device_count()==1;x=torch.ones(1,device='cuda');torch.cuda.synchronize();assert float(x.cpu()[0])==1;print(json.dumps({'status':'actual_exact_assigned_UUID_CUDA_operation_passed','torch':torch.__version__,'visible_devices':torch.cuda.device_count(),'device_name':torch.cuda.get_device_name(0),'pixel_or_model_load':False}))"
+x = subprocess.run(
+    [sys.executable, "-B", "-c", probe], env=env, capture_output=True, text=True, timeout=90
+)
+(X / "assigned-UUID-CUDA-probe.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Exact assigned UUID still has no usable CUDA context; no model/MRI inference attempted"
+)
+accepted = dict(binding, actual_CUDA=json.loads(x.stdout))
+(X / "assigned-UUID-accepted.json").write_text(json.dumps(accepted, indent=2))
+print(
+    json.dumps(
+        {
+            "status": "actual_exact_assigned_UUID_CUDA_context_accepted",
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "one_assigned_GPU_only": True,
+            "MRI_or_model_inference_yet": False,
+        }
+    ),
+    flush=True,
+)
+result = subprocess.run([sys.executable, "-B", str(X / "run.py")], env=env, timeout=1500)
+assert result.returncode == 0, "Original pilot stopped; preserve actual private partial outputs"
