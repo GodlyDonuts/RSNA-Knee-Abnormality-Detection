@@ -1,0 +1,123 @@
+# ruff: noqa: F821
+"""Continue the stopped original input copy over a private authenticated TLS socket."""
+
+import io
+import ipaddress
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "970650,970651", "--format=JobIDRaw,State,ExitCode"],
+    text=True,
+)
+assert all(
+    any(row.startswith(job + "|CANCELLED") for row in terminal.splitlines())
+    for job in ("970650", "970651")
+)
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+C = P / "original-pixel-replica-v2"
+N = P / "transport-v3"
+assert not N.exists() and not (C / "verified.json").exists()
+old = json.loads((C / "intent.json").read_text())["files"]
+encoded = json.dumps(old, sort_keys=True).encode()
+assert header(io.BytesIO(MAGIC + len(encoded).to_bytes(8, "big") + encoded), v["expected"]) == old
+
+
+def paid(root):
+    return sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.is_symlink())
+
+
+R = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+old_unpaid = (
+    max(0, 12 * 2**30 + 512 * 2**20 + 16 * 2**20 - paid(R)) + max(0, 12 * 2**20 - paid(S)) + 2**30
+)
+unpaid = max(0, 40 * 2**30 + 24 * 2**30 + 16 * 2**20 - paid(P))
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + old_unpaid + unpaid
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 4) * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5000 + 128 + 128 + 256
+states, digests, stats = prefix_states(C, old)
+N.mkdir(mode=0o700)
+(N / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "old_original_jobs_terminal": terminal.strip(),
+            "prefixes": states,
+            "secret_or_private_key_recorded": False,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+context, certificate = server_context()
+address = socket.gethostbyname("ivc33")
+assert ipaddress.ip_address(address).is_private and not ipaddress.ip_address(address).is_loopback
+listener = socket.socket()
+listener.bind((address, 0))
+listener.listen(3)
+listener.settimeout(1800)
+port = listener.getsockname()[1]
+ready = {
+    "status": "original_private_TLS_receiver_ready",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc33",
+    "private_address": address,
+    "port": port,
+    "certificate_sha256": certificate,
+    "files": old,
+    "prefixes": states,
+}
+print(json.dumps(ready), flush=True)
+raw, _ = listener.accept()
+raw.settimeout(180)
+with context.wrap_socket(raw, server_side=True) as channel:
+    authenticate_server(channel, secret, certificate)
+    del secret
+    with channel.makefile("rb") as stream:
+        assert header(stream, v["expected"]) == old
+        receive_remaining(stream, C, old, states, digests, stats)
+listener.close()
+for i in range(4):
+    proof = json.loads((C / f"shard-{i}/source-proof.private.json").read_text())
+    assert (
+        proof["archive_sha256"] == old[f"shard-{i}/pixels.tar"]["sha256"]
+        and proof["index_sha256"] == old[f"shard-{i}/index.private.json"]["sha256"]
+    )
+actual = {
+    "status": "actual_original_four_pixel_shards_private_node39_to_node33_whole_bytes_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "files": old,
+    "archive_bytes": sum(row["bytes"] for name, row in old.items() if name.endswith("pixels.tar")),
+    "total_bytes": sum(row["bytes"] for row in old.values()),
+    "retained_prefix_bytes_not_resent": sum(row["offset"] for row in states.values()),
+    "source_originals_preserved": True,
+    "raw_bytes_or_records_on_Mac_Git_HF": False,
+    "transport": "direct_pinned_TLS_mutual_HMAC_RAM_key_suffix_only",
+    "private_key_and_secret_RAM_only": True,
+    "new_input_cap_bytes": 40 * 2**30,
+    "new_future_training_checkpoint_publication_cap_bytes": 24 * 2**30,
+    "new_private_metadata_cap_bytes": 16 * 2**20,
+    "new_shared_metadata_bytes": 16 * 2**20,
+    "new_shared_metadata_files": 128,
+    "old_scopes_preserved_without_deletion_credit": True,
+    "actual_GPU_or_MRI_decode_or_production_acceptance": False,
+    "automatic_retry": False,
+}
+with (C / "verified.json").open("x") as f:
+    json.dump(actual, f, indent=2)
+(N / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
