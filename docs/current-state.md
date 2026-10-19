@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October19,2026,19:10UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
+Updated October19,2026,19:26UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
 
 | Model | Actual Kaggle score | Entry |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ The adapted backbone is full73M CoAtNet. The0.958 is a reproduction; no original
 
 ## Original improvement being executed
 
-The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed2,813/3,887 fitting studies (phase45/972071). The original resident2320176 runs phase46/972157 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed2,941/3,887 fitting studies (phase47/972242). The original resident2320176 runs phase48/972322 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
 The earlier node48 route is now real CPU/input acceptance: whole38.87GB MRI copy,815auxiliary files/678.56MB fully SHA verified, matching cached Torch build, strict73,136,096parameter/486tensor original parent, full3887roster and eight exact94view tensors (CPU971665); canonical aliases/imports passed971721. Original copies remain private/intact. No data, weights, private file tables or parent body crossed Mac/Git/HF. [Original staging and preserved failure](../initiative/research/S6-earlier-H100-route-20261019-v1/README.md).
 
@@ -39,6 +39,6 @@ GitHub records exact source, negatives and sanitized actual receipts. Latest sel
 
 Two actual MedGemma likelihood protocols completed all195native slices/five series.972070 used arbitrary answer letters;972145 used semantic words Yes/No/Unknown. Both repeat logits exactly and put substantial probability mass on the offered answers, yet the first reversed evidence sign on every mapping pair and the second achieved only46.9percent definition-order agreement, with zero blank controls preferring Unknown. We reject both as training teachers; this is an engineering/reliability negative, not a clinical benchmark. Labels remain unchanged; private outputs stay on48. [Exact protocols/results](../initiative/research/medgemma-evidence-likelihood-20261019-v1/README.md).
 
-The next proposed experiment addresses training on16sampled windows while scoring94: use a full94window study loss with memory-bounded encoder recomputation, keeping the classifier graph/targets and controlled recipe. [Full-bag mechanism and primary method sources](../initiative/research/full94-bag-training-20261019-v1/README.md). Actual CPU972253 identified its encoder/head interface and engineering-only12GiB/2MiB24shared funding is reassigned from closed MedGemma obligations (972222); full training/production is not funded or dispatched. No implementation/GPU acceptance/score exists yet. Original teacher and earlier-H100 pipeline continue; no score improvement has been established.
+The proposed new full94 training direction was a duplicate and is withdrawn before execution. The existing `licensed_full_bag.py` already trained all94windows with chunk8/nonreentrant recomputation, full73Mencoder and1458updates; entry57336190 actually scored0.949. [Correction and original evidence](../initiative/research/full94-bag-training-20261019-v1/README.md). No new GPU was dispatched. Its engineering reservation is frozen, conservatively retained without deletion/free-space credit. Completing complementary-S6 supervision and the matched student comparison remains the active improvement experiment; it is not yet a proven gain.
 
 Latest selected measured-research source192965eb is privately preserved at HF88049189eacdfd121173043454c8596152f0eb5e viaCPU972286:62objects191476bytes fully re-downloaded/size/SHA verified under canonical lock. Scope: own likelihood protocols/negatives, scored R6 outcome, new teacher aggregates, full94interface/funding proposal and concise guides; no private clinical data/weights. See initiative/audits/hf-native-likelihood-R6-outcome-20261019-v1; never repeat. No original accuracy gain or full94GPU acceptance is implied.

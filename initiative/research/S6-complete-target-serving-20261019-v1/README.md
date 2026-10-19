@@ -1,6 +1,6 @@
 # Complete-target H100 checkpoints to qualified two-T4 serving
 
-This is preparation, not a new model, GPU execution or competition submission. Best actual Kaggle remains externalR6 reproduction0.958; no original accuracy gain is established. The full matched student owner61949 and its original teacher/recovery owners are unchanged.
+This is preparation, not a new model, GPU execution or competition submission. Best actual Kaggle remains externalR6 reproduction0.958; no original accuracy gain is established. The retired idle owner61949 must not restart. Current sole recovery67258 and matched student owner67269 are documented in S6-earlier-H100-execution-20261019-v1; they preserve the original teacher and target handoff.
 
 The old `licensed_importance_serving` compiler only admits the historical two-T4 sampling fits. Reusing its receipt schema unchanged would misrepresent the new one-H100 complete-target experiment. `validate.py.txt` instead binds the real one-H100 epoch, exact target role, full3887population, original parent/source/proposal, complete independent model/73MAdamW/one-rank RNG acceptance and actual five-object private publication. The manifest must bind the exact model, canonical actual-epoch JSON, provenance JSON and original permission bytes. GPU job, source Git, worker SHA, private prefix and revision must match; incomplete/old/two-rank/changed-target receipts cannot qualify.
 
