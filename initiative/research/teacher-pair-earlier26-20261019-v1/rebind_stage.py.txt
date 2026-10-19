@@ -1,0 +1,105 @@
+"""Move the same held, unstarted GPU JobId only after real32-packet admission."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+F = Path("/tmp/rsna-teacher-pair-gradient-evc26-20261019-v1")
+assert os.uname().nodename == "evc26" and not os.environ.get("SLURM_JOB_GPUS")
+admitted = json.loads((F / "CPU-verified.json").read_text())
+assert admitted == v["admitted"] and admitted["FP32_parameters"] is True
+for job in (admitted["CPU_job"], "973367", "973368", "973344"):
+    assert job + "|COMPLETED|0:0" in subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", job, "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+old = subprocess.check_output(["scontrol", "show", "job", "972928", "-o"], text=True)
+assert (
+    "JobState=PENDING" in old
+    and "RunTime=00:00:00" in old
+    and "Reason=JobHeldUser" in old
+    and "ReqNodeList=evc48" in old
+)
+proof = v["private_source_proof"]
+assert (
+    proof["source_git"] == v["source_git"]
+    and proof["status"]
+    == "selected_sanitized_mission_sources_all_objects_private_download_size_SHA_verified"
+)
+meta = json.loads((F / "staged.json").read_text())
+assert meta["CPU_job"] == admitted["CPU_job"] and meta["source_git"] == admitted["source_git"]
+assert (
+    hashlib.sha256((F / "gpu_probe.py").read_bytes()).hexdigest()
+    == admitted["gpu_worker_sha256"]
+    == meta["gpu_worker_sha256"]
+)
+for name, h in {
+    **meta["new_source_sha256"],
+    **{"code/" + k: s for k, s in meta["original_source_sha256"].items()},
+}.items():
+    assert hashlib.sha256((F / name).read_bytes()).hexdigest() == h
+assert not (F / "dispatch-intent.json").exists() and not (F / "verified.json").exists()
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+node = subprocess.check_output(["scontrol", "show", "node", "evc26", "-o"], text=True)
+assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(a[6]) - int(a[5]) > 5000
+# The original batch body uses these stable paths; both are compatibility aliases
+# to fully admitted fresh assets, not fabricated node48 receipts.
+compat = Path("/tmp/rsna-teacher-pair-gradient-20261019-v2")
+assert not compat.exists()
+compat.symlink_to(F, target_is_directory=True)
+assert Path("/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python").exists()
+control = {
+    "source_git": v["source_git"],
+    "admission_source_git": admitted["source_git"],
+    "private_source_proof": proof,
+    "same_pending_GPU_job": "972928",
+    "GPU_worker_sha256": meta["gpu_worker_sha256"],
+    "old_snapshot": old,
+    "new_GPU_job_submissions": 0,
+    "automatic_retry": False,
+}
+with (F / "pending-job-rebind-intent.json").open("x") as f:
+    json.dump(control, f, indent=2)
+x = subprocess.run(
+    ["scontrol", "update", "JobId=972928", "ReqNodeList=evc26"], capture_output=True, text=True
+)
+(F / "pending-job-rebind-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Reconcile the same held job read-only; no mutation retry"
+after = subprocess.check_output(["scontrol", "show", "job", "972928", "-o"], text=True)
+assert "ReqNodeList=evc26" in after and "JobState=PENDING" in after and "RunTime=00:00:00" in after
+x = subprocess.run(["scontrol", "release", "972928"], capture_output=True, text=True)
+(F / "release-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Reconcile held/released state read-only; no repeat"
+out = {
+    "status": "actual_same_pending_scout_rebound_to_CPU_admitted_evc26_and_released",
+    "GPU_job": "972928",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": admitted["source_git"],
+    "execution_control_source_git": v["source_git"],
+    "node": "evc26",
+    "gradient_root": str(F),
+    "gpu_worker_sha256": admitted["gpu_worker_sha256"],
+    "actual_GPU_runtime_before_handoff_seconds": 0,
+    "same_original_eight_UIDs_teacher_labels_masks_proposals_and_core_objectives": True,
+    "new_GPU_job_submissions": 0,
+    "physical_node_GPUs": 2,
+    "assigned_H100": 1,
+    "CPU": 2,
+    "maximum_minutes": 20,
+    "new_full_training_or_accuracy_or_competition_admission": False,
+    "automatic_retry": False,
+}
+(F / "submitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

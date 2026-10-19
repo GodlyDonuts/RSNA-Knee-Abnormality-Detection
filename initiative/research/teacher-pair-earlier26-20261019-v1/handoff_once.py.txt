@@ -1,0 +1,137 @@
+"""Rebind the same proven unstarted scout; retire only its idle old observer."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import signal
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-earlier26-20261019-v1"
+assert not (L / "GPU-handoff-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+admitted = json.loads((D / "actual-admitted.json").read_text())
+assert admitted["status"] == "actual_evc26_original32_MRI_tensor_model_and_source_CPU_admitted"
+proof = json.loads(
+    (
+        R
+        / "initiative/audits/hf-teacher-pair-recovery-source-20261019-v1/actual-private-verified.json"
+    ).read_text()
+)
+assert proof["source_git"] == git
+for p in (D / "handoff_once.py.txt", D / "rebind_stage.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+before = subprocess.check_output(ssh + ["scontrol show job 972928 -o"], text=True)
+assert (
+    "JobState=PENDING" in before
+    and "RunTime=00:00:00" in before
+    and "ReqNodeList=evc48" in before
+    and "JobName=rsna-teacher-pair-gradient" in before
+)
+(L / "GPU-handoff-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "old_job": "972928",
+            "before": before,
+            "new_admitted_CPU": admitted,
+            "maximum_new_GPU_jobs": 0,
+            "healthy_training_may_not_be_cancelled": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+x = subprocess.run(ssh + ["scontrol hold 972928"], capture_output=True, text=True)
+(L / "hold-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Read-only reconcile the same job; do not retry"
+held = subprocess.check_output(ssh + ["scontrol show job 972928 -o"], text=True)
+if "JobState=PENDING" not in held or "RunTime=00:00:00" not in held:
+    raise RuntimeError(
+        "Old job started during handoff; preserve the healthy run and reconcile hold read-only"
+    )
+assert "Reason=JobHeldUser" in held
+# The old observer waits exactly this still-PENDING job and has not reached its
+# CPU collection block. It cannot correctly collect a different node/job.
+source = R / "initiative/research/teacher-pair-full-encoder-20261019-v1/observe_v2_once.py.txt"
+assert (
+    hashlib.sha256(source.read_bytes()).hexdigest()
+    == "a0cab3892c6f676d8b9d9d6c0ff5deba9dd799ae1c4b8a793f2056766be20a1a"
+)
+cmd = subprocess.check_output(["ps", "-p", "89733", "-o", "command="], text=True).strip()
+assert str(source) in cmd
+assert not (
+    R / "initiative/research/teacher-pair-full-encoder-20261019-v1/actual-terminal-v2.json"
+).exists()
+os.kill(89733, signal.SIGTERM)
+for _ in range(30):
+    p = subprocess.run(["ps", "-p", "89733", "-o", "state="], capture_output=True, text=True)
+    if p.returncode != 0 or p.stdout.strip().startswith("Z"):
+        break
+    time.sleep(0.1)
+else:
+    raise RuntimeError("Original idle observer not confirmed terminal; no cancellation/replacement")
+retired = {
+    "status": "actual_old_idle_observer_retired_and_same_zero_runtime_pending_job_held_for_data_local_move",
+    "GPU_job": "972928",
+    "idle_old_observer_retired": 89733,
+    "new_GPU_submissions_or_running_job_cancellations": 0,
+    "original_model_teacher_training_and_six_owners_unchanged": True,
+    "automatic_retry": False,
+}
+(D / "actual-pending-handoff-proof.json").write_text(json.dumps(retired, indent=2) + "\n")
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc26",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-gradient26-rebind-after-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ssh + [shlex.join(a)],
+    input=t.envelope(
+        (D / "rebind_stage.py.txt").read_text(),
+        {"source_git": git, "admitted": admitted, "private_source_proof": proof},
+    ),
+    text=True,
+    capture_output=True,
+    timeout=400,
+)
+(L / "GPU-submit-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile actual node26 dispatch intent/read-only; never retry"
+out = json.loads(x.stdout)
+(D / "actual-gradient-submitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -12,8 +12,8 @@ from pathlib import Path
 v = json.load(sys.stdin)
 os.umask(0o077)
 R = Path("/tmp/rsna-teacher-pair-optimizer-recovery-20261019-v1")
-F = Path("/tmp/rsna-teacher-pair-gradient-20261019-v2")
-assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS") and not R.exists()
+F = Path("/tmp/rsna-teacher-pair-gradient-evc26-20261019-v1")
+assert os.uname().nodename == "evc26" and not os.environ.get("SLURM_JOB_GPUS") and not R.exists()
 raw = (F / "verified.json").read_bytes()
 receipt = json.loads(raw)
 meta = json.loads((F / "staged.json").read_text())
@@ -64,7 +64,7 @@ assert (
     shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
     and shutil.disk_usage("/dev/shm").free > (20 + 8) * 2**30 + 32 * 2**20
 )
-node = subprocess.check_output(["scontrol", "show", "node", "evc48", "-o"], text=True)
+node = subprocess.check_output(["scontrol", "show", "node", "evc26", "-o"], text=True)
 assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
 q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
 a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))

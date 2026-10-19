@@ -126,7 +126,7 @@ def main():
     os.umask(0o077)
     root = Path("/tmp/rsna-teacher-pair-optimizer-recovery-20261019-v1")
     stage = json.loads((root / "staged.json").read_text())
-    assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+    assert os.uname().nodename == "evc26" and os.environ.get("SLURM_JOB_GPUS")
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["driver_sha256"]
     assert hashlib.sha256((root / "worker.py").read_bytes()).hexdigest() == stage["worker_sha256"]
     assert not (root / "GPU-intent.json").exists()

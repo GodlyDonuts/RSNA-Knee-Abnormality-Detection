@@ -49,7 +49,9 @@ s = importlib.util.spec_from_file_location(
 )
 t = importlib.util.module_from_spec(s)
 s.loader.exec_module(t)
-original = R / "initiative/research/teacher-pair-full-encoder-20261019-v1/actual-terminal-v2.json"
+original = (
+    R / "initiative/research/teacher-pair-earlier26-20261019-v1/actual-gradient-terminal.json"
+)
 start = time.monotonic()
 while not original.exists():
     assert time.monotonic() - start < 172800, (
@@ -85,7 +87,7 @@ args = [
     "--account=skattel",
     "--partition=normal",
     "--qos=normal",
-    "--nodelist=evc48",
+    "--nodelist=evc26",
     "--ntasks=1",
     "--cpus-per-task=1",
     "--gres=none",

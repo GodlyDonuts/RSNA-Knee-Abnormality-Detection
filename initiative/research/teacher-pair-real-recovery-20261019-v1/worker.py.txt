@@ -137,7 +137,7 @@ def run(context, phase, objective, work):
 def main():
     os.umask(0o077)
     root = Path("/tmp/rsna-teacher-pair-optimizer-recovery-20261019-v1")
-    F = Path("/tmp/rsna-teacher-pair-gradient-20261019-v2")
+    F = Path("/tmp/rsna-teacher-pair-gradient-evc26-20261019-v1")
     stage = json.loads((root / "staged.json").read_text())
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["worker_sha256"]
     probe = (F / "gpu_probe.py").read_bytes()
@@ -147,7 +147,7 @@ def main():
         == admitted["gpu_worker_sha256"]
         == stage["gradient_worker_sha256"]
     )
-    assert os.environ.get("SLURM_JOB_GPUS") and os.uname().nodename == "evc48"
+    assert os.environ.get("SLURM_JOB_GPUS") and os.uname().nodename == "evc26"
     tree = ast.parse(probe)
     boundary = next(
         i
