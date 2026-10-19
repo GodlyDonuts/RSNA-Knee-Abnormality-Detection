@@ -1,0 +1,79 @@
+"""Reuse verified RPM headers and the exact installed configuration header."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+extract = D / "headers"
+include = extract / "usr/include/python3.12"
+cap = 128 * 2**20
+assert (
+    D.is_dir()
+    and not (D / "verified.json").exists()
+    and not (D / "compile-result.json").exists()
+    and not (D / "system-config-copy-intent.json").exists()
+)
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "969970", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "969970|FAILED|1:0" in state
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + cap
+source = v["original_source"]
+assert hashlib.sha256(source.encode()).hexdigest() == v["original_source_sha256"]
+rpm = next(D.glob("*.rpm"))
+assert (
+    rpm.stat().st_size == 299160
+    and hashlib.sha256(rpm.read_bytes()).hexdigest()
+    == "d822aa263492b730c391f19d7614ad05c9acdc33ba165964565548ffa54ea3e3"
+)
+verify = subprocess.run(["rpm", "-Kv", str(rpm)], capture_output=True, text=True)
+assert verify.returncode == 0 and "NOKEY" not in verify.stdout + verify.stderr
+base = subprocess.check_output(["rpm", "-q", "python3.12"], text=True).strip()
+assert base == "python3.12-3.12.13-2.el8_10.x86_64"
+identity = subprocess.check_output(
+    ["rpm", "-qp", "--qf", "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}|%{LICENSE}", str(rpm)], text=True
+)
+assert identity.startswith("python3.12-devel-3.12.13-2.el8_10.x86_64|")
+config = Path("/usr/include/python3.12/pyconfig-64.h")
+owner = subprocess.check_output(["rpm", "-qf", str(config)], text=True).strip()
+assert owner == "python3.12-libs-3.12.13-2.el8_10.x86_64"
+for name in ("Python.h", "patchlevel.h", "pyconfig.h"):
+    assert (include / name).is_file()
+assert not (include / "pyconfig-64.h").exists()
+raw = config.read_bytes()
+assert 0 < len(raw) < 65536
+proof = {
+    "original_failed_acquisition_CPU": "969970",
+    "current_CPU": os.environ["SLURM_JOB_ID"],
+    "old_RPM_download_and_signature_reused": True,
+    "installed_config_owner": owner,
+    "config_bytes": len(raw),
+    "config_sha256": hashlib.sha256(raw).hexdigest(),
+    "new_network_downloads": 0,
+    "system_runtime_changed": False,
+    "new_GPU_or_MRI": False,
+    "automatic_retry": False,
+}
+with (D / "system-config-copy-intent.json").open("x") as f:
+    json.dump(proof, f, indent=2)
+with (include / "pyconfig-64.h").open("xb") as f:
+    f.write(raw)
+anchor = 'for p in extract.rglob("*"):'
+assert source.count(anchor) == 1
+exec(
+    compile(
+        source[source.index(anchor) :],
+        "original_driver_compile_after_exact_config_recovery",
+        "exec",
+    ),
+    globals(),
+)
+(D / "system-config-recovery.json").write_text(json.dumps(proof, indent=2) + "\n")
