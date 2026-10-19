@@ -1,0 +1,35 @@
+"""One continued owner for the already-pushed LR public notebook; no pushes."""
+
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+assert subprocess.run(["ps", "-p", "30512"], capture_output=True).returncode != 0
+assert (D / "actual-scoring-owner-handoff.json").exists()
+original = (
+    R
+    / "initiative/experiments/competitive-v1/encoder-LR-scoring-followthrough-20261019-v1/finish_once.py.txt"
+)
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+public = json.loads((original.parent / "actual-push-competition.json").read_text())
+assert public["kernel_id"] == 139591990 and public["version"] == 1
+assert public["source_sha256"] == "4dae9b7874b444bca98eaa39a00bb7eaf4d157ba121668ec90caca3b23bb14cf"
+assert not (original.parent / "actual-submit-competition.json").exists()
+changes = {
+    'L = Path("artifacts/encoder-LR-scoring-followthrough-20261019-v1")': 'L = Path("artifacts/encoder-LR-scoring-followthrough-20261019-v1/independent-CPU-owner")\nL.mkdir(mode=0o700, parents=True, exist_ok=True)',
+    'phase, mode = "status", "qualification"': 'phase, mode = "status", "competition"',
+    'D / "coordinate_once.py.txt"': "Path(" + repr(str(D / "scoring_metadata_once.py.txt")) + ")",
+    '"maximum_new_public_pushes": 1,': '"maximum_new_public_pushes": 0,',
+}
+for a, b in changes.items():
+    assert source.count(a) >= 1, a
+    source = source.replace(a, b)
+exec(
+    compile(source, "continued_same_public_LR_candidate_new_CPU_placement", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

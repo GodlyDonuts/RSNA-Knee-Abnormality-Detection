@@ -1,0 +1,84 @@
+"""Accept original journal bytes on the new node, with no clinical record export."""
+
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+import numpy as np
+
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+M = Path("/tmp/rsna-S6-data-local-handoff-20261019-v1")
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+assert not (M / "seed-accepted.json").exists()
+assert not (P / "completed-logits.private.jsonl").exists()
+assert not (P / "engine-v1/execution.lock").exists()
+assert not (P / "CPU-full-stream-v1/phase-011").exists()
+entry = json.loads((M / "entry-accepted.json").read_text())
+assert entry["CPU_job"] == "968171"
+for proof in entry["entries"].values():
+    assert hashlib.sha256(Path(proof["path"]).read_bytes()).hexdigest() == proof["sha256"]
+helper = (M / "node39_entry.py").read_text()
+assert hashlib.sha256(helper.encode()).hexdigest() == entry["helper_sha256"]
+scope = {}
+exec(compile(helper, "original_accepted_node39_resource_scope", "exec"), scope)
+scope["location_storage"]()
+packet = json.loads(sys.stdin.buffer.read(9 * 2**20))
+assert not sys.stdin.buffer.read(1)
+terminal = packet["terminal"]
+assert terminal["CPU_job"] == "967851" and terminal["phase"] == 10
+assert terminal["source_git"] == "a6b1d0e647d858476a790177ad953295966de252"
+assert terminal["status"] == "actual_CPU_full_teacher_production_checkpoint_preserved"
+raw = base64.b64decode(packet["journal_base64"], validate=True)
+assert 0 < len(raw) == terminal["journal_bytes"] < 6 * 2**20
+assert raw.endswith(b"\n")
+assert hashlib.sha256(raw).hexdigest() == terminal["journal_sha256"]
+with np.load(
+    "/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz",
+    allow_pickle=False,
+) as z:
+    uids = z["uids"].tolist()
+assert len(uids) == 3887
+assert (
+    hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+spec = importlib.util.spec_from_file_location(
+    "original_teacher_contract", P / "engine-v1/contract.py"
+)
+contract = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(contract)
+journal = contract.Journal(P / "completed-logits.private.jsonl", uids)
+assert not journal.rows
+for line in raw.splitlines():
+    row = json.loads(line)
+    journal._validate(row)
+    journal.rows[row["uid"]] = row
+assert len(journal.rows) == terminal["completed"]
+assert sum(r["origin"] == "original_H100_FP32" for r in journal.rows.values()) == 8
+with journal.path.open("xb") as f:
+    f.write(raw)
+    f.flush()
+    os.fsync(f.fileno())
+assert journal.path.read_bytes() == raw
+out = {
+    "status": "actual_original_clean_phase10_journal_seed_verified_node39",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_job": "967851",
+    "source_phase": 10,
+    "first_new_phase": 11,
+    "source_git": terminal["source_git"],
+    "completed": len(journal.rows),
+    "journal_bytes": len(raw),
+    "journal_sha256": hashlib.sha256(raw).hexdigest(),
+    "originals_preserved_node33": True,
+    "clinical_rows_exported": False,
+    "new_predictions_or_GPU": False,
+}
+with (M / "seed-accepted.json").open("x") as f:
+    json.dump(out, f, indent=2)
+print(json.dumps(out))

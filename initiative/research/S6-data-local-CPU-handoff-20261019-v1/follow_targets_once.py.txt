@@ -1,0 +1,41 @@
+"""Follow the sole migrated teacher owner; build only complete original targets."""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+pid = json.loads(
+    (R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer/handoff-intent.json").read_text()
+)["PID"]
+x = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True)
+assert x.returncode == 0 and "move_and_continue_once.py.txt" in x.stdout
+original = R / "initiative/research/S6-complete-target-admission-20261018-v1/finish_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+source = source.replace("8865", str(pid)).replace(
+    "S6-full-CPU-teacher-20261018-v1/finish_once.py.txt",
+    "S6-data-local-CPU-handoff-20261019-v1/move_and_continue_once.py.txt",
+)
+changes = {
+    'L = R / "artifacts/S6-complete-target-admission-20261018-v1"': 'L = R / "artifacts/S6-complete-target-admission-20261018-v1/node39-follower"',
+    'str(D / "coordinate_once.py.txt")': repr(str(D / "build_targets_once.py.txt")),
+}
+for a, b in changes.items():
+    assert source.count(a) == 1
+    source = source.replace(a, b)
+pins = {
+    str(D / n): hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("build_targets_once.py.txt", "node39_entry.py.txt")
+}
+source = source.replace(
+    "start = time.monotonic()", "frozen.update(" + repr(pins) + ")\nstart = time.monotonic()"
+)
+exec(
+    compile(source, "complete_target_follower_migrated_producer", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

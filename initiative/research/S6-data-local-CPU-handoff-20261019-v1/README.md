@@ -9,3 +9,18 @@ Initial runtime admission968046/968066 stopped at the missing upstream compact_i
 Actual runtime/location admission968105 passed: original source-main inspect.getsourceSHA7dac0d16..., all3887ordered fitting IDs/rosterSHA0485d1..., original model bytes/proof, source/worker/classifier modules and twelve-target order match. Runtime Torch2.14.0+cu130/NumPy2.2.1/OpenCV4.12.0/timm1.0.30 is available. The source_main_AST_SHA field hashes exact inspect.getsource bytes, not a normalized AST. Private fresh model stat and node-local RAM pointers are explicit; original node33 metadata snapshots are preserved alongside adapted location records.
 
 **Not yet production:** no new teacher journal, model inference, GPU, optimizer or accuracy result exists on node39. Before production require the actual successful original phase10 terminal, clean writer handoff, exact private journal/seed transfer, and separately accepted node39 CPU entry/controller with fresh25CPU/192GiB admission. Reuse all completed logits. Do not repeat the asset copy or start simultaneous writers. After complete3887, only then admit rank targets and the matched trainable-encoder experiment. The purpose is to restore twelve-worker throughput; no measured speedup is claimed before actual work.
+
+CPU968171 has now staged the two immutable new-location entries. The unchanged
+original numerical function/class ASTs match for both teacher and target builder.
+`move_and_continue_once.py.txt` waits for original967851's actual0:0 and the old
+owner's explicit between-phase handoff, then privately streams only the exact
+journal bytes between allocated endpoints. It preserves the source copy, checks
+every row with the original contract, and resumes at distinct phase11 with twelve
+two-thread workers. No active journal may be copied. Any uncertain transfer stops
+without retry. Original controls and all prior predictions remain unchanged.
+
+The independent one-CPU LR metadata continuation preserves the already-pushed
+139591990v1 notebook, exact model/source, canonical ledger, quota and mutation
+intents. It permits no new notebook pushes. Its old owner must first be observed
+between read-only status calls and stopped; the replacement records the handoff
+before following the same public run and at most one original code entry.

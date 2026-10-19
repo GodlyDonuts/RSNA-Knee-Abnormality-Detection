@@ -1,0 +1,28 @@
+"""Read the exact stopped producer once; stream private rows only inside Newton."""
+
+import base64
+import hashlib
+import json
+import os
+import subprocess
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+C = P / "CPU-full-stream-v1"
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "967851", "--format=JobIDRaw,State,ExitCode"],
+    text=True,
+)
+assert "967851|COMPLETED|0:0" in state
+assert not (P / "engine-v1/execution.lock").exists() and not (C / "phase-011").exists()
+terminal = json.loads((C / "phase-010/terminal.json").read_text())
+assert terminal["CPU_job"] == "967851" and terminal["phase"] == 10
+assert terminal["source_git"] == "a6b1d0e647d858476a790177ad953295966de252"
+assert terminal["status"] == "actual_CPU_full_teacher_production_checkpoint_preserved"
+assert 676 < terminal["completed"] < 3887 and not (C / "phase-010/failed.json").exists()
+raw = (P / "completed-logits.private.jsonl").read_bytes()
+assert 0 < len(raw) == terminal["journal_bytes"] < 6 * 2**20
+assert hashlib.sha256(raw).hexdigest() == terminal["journal_sha256"]
+assert len(raw.splitlines()) == terminal["completed"]
+print(json.dumps({"terminal": terminal, "journal_base64": base64.b64encode(raw).decode()}))

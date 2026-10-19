@@ -1,0 +1,56 @@
+"""Use the original complete-target coordinator at the accepted new CPU location."""
+
+import hashlib
+import importlib.util
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+original = R / "initiative/research/S6-complete-target-admission-20261018-v1/coordinate_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+helper = (D / "node39_entry.py.txt").read_text()
+helper_sha = hashlib.sha256(helper.encode()).hexdigest()
+assert helper_sha == "adb68ef267eca33d6f47414877fc4974bddcf1ad8b09442293caf99409edd7db"
+s = importlib.util.spec_from_file_location(
+    "bounded_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+transport = importlib.util.module_from_spec(s)
+s.loader.exec_module(transport)
+
+
+def bridge(program, value):
+    assert (
+        hashlib.sha256(program.encode()).hexdigest()
+        == "885e2448b478a6cd82fab30bb6913bec1b0cf100030a363861a51ef2ded31c14"
+    )
+    wrapper = (
+        "from pathlib import Path\nimport hashlib\n"
+        "p=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1/node39_entry.py')\n"
+        + "assert hashlib.sha256(p.read_bytes()).hexdigest()=="
+        + repr(helper_sha)
+        + "\n"
+        "n={}\nexec(compile(p.read_text(),'original_accepted_location_scope','exec'),n)\n"
+        + "n.update(__name__='__main__')\nexec(compile(n['adapt']("
+        + repr(program)
+        + ",'targets'),'original_complete_targets_new_CPU_location','exec'),n)\n"
+    )
+    return transport.envelope(wrapper, value)
+
+
+changes = {
+    '"--nodelist=evc33"': '"--nodelist=evc39"',
+    'L = R / "artifacts/S6-complete-target-admission-20261018-v1"': 'L = R / "artifacts/S6-complete-target-admission-20261018-v1/node39"',
+    'input=t.envelope(files["program.py"], v),': 'input=current_bridge(files["program.py"], v),',
+}
+for a, b in changes.items():
+    assert source.count(a) == 1
+    source = source.replace(a, b)
+exec(
+    compile(source, "original_target_coordinator_new_CPU_location", "exec"),
+    {"__name__": "__main__", "__file__": str(original), "current_bridge": bridge},
+)

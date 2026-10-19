@@ -1,0 +1,37 @@
+"""Original LR coordinator on one independent CPU after the teacher leaves node33."""
+
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+original = (
+    R
+    / "initiative/experiments/competitive-v1/encoder-LR-scoring-followthrough-20261019-v1/coordinate_once.py.txt"
+)
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+# Preserve the exact scoring program, notebook/version receipts, ledger, claims,
+# generated code, quota tests and intents. Only replace Slurm step placement.
+begin = source.index("rows = subprocess.check_output(")
+end = source.index("s = importlib.util.spec_from_file_location(", begin)
+source = source[:begin] + source[end:]
+old = """    "--jobid=" + active[0],
+    "--overlap","""
+new = """    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--gres=none",
+    "--job-name=rsna-LR-existing-candidate-metadata","""
+assert source.count(old) == 1
+source = source.replace(old, new)
+source = source.replace(
+    "no_additional_CPU_or_GPU_allocation=True",
+    "no_additional_GPU_allocation=True,metadata_CPU_allocation=True",
+)
+exec(
+    compile(source, "same_LR_candidate_independent_metadata_CPU_placement", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

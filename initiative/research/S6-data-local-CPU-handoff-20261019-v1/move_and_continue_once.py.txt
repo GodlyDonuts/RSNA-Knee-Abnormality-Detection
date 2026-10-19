@@ -1,0 +1,163 @@
+"""Wait for the original clean boundary, move rows once, then resume new identities."""
+
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer"
+old = R / "artifacts/S6-full-CPU-teacher-20261018-v1/reconnected-owner-v3"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+pins = {}
+for name in (
+    "send_seed.py.txt",
+    "receive_seed.py.txt",
+    "node39_entry.py.txt",
+    "move_and_continue_once.py.txt",
+):
+    p = D / name
+    assert p.read_text() == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True
+    )
+    pins[str(p)] = hashlib.sha256(p.read_bytes()).hexdigest()
+with (L / "handoff-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "source_git": git,
+            "original_PID": 29552,
+            "maximum_wait_hours": 6,
+            "pins": pins,
+            "automatic_retry": False,
+        },
+        f,
+    )
+start = time.monotonic()
+while not (old / "clean-handoff-ready.json").exists():
+    assert time.monotonic() - start < 6 * 3600
+    assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest() == h for p, h in pins.items())
+    assert (
+        subprocess.run(["ps", "-p", "29552", "-o", "command="], capture_output=True).returncode == 0
+    )
+    time.sleep(30)
+proof = json.loads((old / "clean-handoff-ready.json").read_text())
+assert proof["next_phase"] == 11 and proof["no_active_child"]
+for _ in range(10):
+    if subprocess.run(["ps", "-p", "29552"], capture_output=True).returncode != 0:
+        break
+    time.sleep(1)
+else:
+    raise RuntimeError("Original producer still active after handoff")
+terminal = json.loads(
+    (R / "initiative/research/S6-full-CPU-teacher-20261018-v1/phase-010-actual.json").read_text()
+)
+assert terminal["CPU_job"] == "967851" and terminal["phase"] == 10
+assert not (
+    R / "initiative/research/S6-full-CPU-teacher-20261018-v1/phase-011-actual.json"
+).exists()
+python = "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"
+
+
+def endpoint(node, source):
+    return [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=" + node,
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:05:00",
+        "--job-name=rsna-S6-clean-seed-" + node,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        python,
+        "-B",
+        "-c",
+        source,
+    ]
+
+
+script = (
+    shlex.join(endpoint("evc33", (D / "send_seed.py.txt").read_text()))
+    + " | "
+    + shlex.join(endpoint("evc39", (D / "receive_seed.py.txt").read_text()))
+)
+with (L / "seed-intent.json").open("x") as f:
+    json.dump({"original_terminal": terminal, "stream_between_cluster_nodes_only": True}, f)
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(["bash", "-o", "pipefail", "-c", script]),
+    ],
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "seed-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Seed transfer stopped/uncertain; reconcile original endpoints without replay: "
+    + x.stderr[-1200:]
+)
+seed = json.loads(x.stdout)
+assert (
+    seed["journal_sha256"] == terminal["journal_sha256"]
+    and seed["completed"] == terminal["completed"]
+)
+(D / "actual-clean-seed.json").write_text(json.dumps(seed, indent=2) + "\n")
+original = R / "initiative/research/S6-full-CPU-teacher-20261018-v1/finish_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", git + ":" + original.relative_to(R).as_posix()], text=True
+)
+changes = {
+    'L = R / "artifacts/S6-full-CPU-teacher-20261018-v1"': 'L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer"',
+    "for phase in range(128):": "for phase in range(11, 128):",
+    '"--nodelist=evc33"': '"--nodelist=evc39"',
+    "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py": "/tmp/rsna-S6-data-local-handoff-20261019-v1/run_teacher.py",
+    '"preserve_existing_teacher_rows": 36,': '"preserve_existing_teacher_rows": '
+    + str(seed["completed"])
+    + ",",
+}
+for a, b in changes.items():
+    assert source.count(a) == 1
+    source = source.replace(a, b)
+(D / "actual-new-owner-started.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "source_git": git,
+            "first_new_phase": 11,
+            "preserved_completed": seed["completed"],
+            "CPU": 25,
+            "workers": 12,
+            "memory_GiB": 192,
+            "GPU": 0,
+            "numerical_teacher_unchanged": True,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+exec(
+    compile(source, "original_complete_teacher_new_CPU_location", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)
