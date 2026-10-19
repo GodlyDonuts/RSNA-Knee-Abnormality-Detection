@@ -106,6 +106,18 @@ previous = (
         "receipt"
     ]
 )
+if epoch > 1:
+    publication = json.loads(
+        (D / ("epoch-" + str(epoch - 1)) / "publication-private-verified.json").read_text()
+    )
+    assert (
+        publication["status"]
+        == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+    )
+    assert (
+        publication["epoch"] == epoch - 1
+        and publication["model_sha256"] == previous["epoch"]["sha256"]
+    )
 source, meta = c.build(
     old_source,
     old_recovery,
