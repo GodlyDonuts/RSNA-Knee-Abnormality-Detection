@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,11 +29,17 @@ from scripts.kaggle import licensed_importance_production as original  # noqa: E
 
 actual = v["actual_new_recovery"]
 assert (
-    actual["status"] == "complete_teacher_recovery_accepted"
+    actual["status"] == "actual_existing_twoT4_outputs_independent_CPU_replay_accepted"
     and actual["kernel_id"] == 139695847
     and actual["version"] == 1
 )
 assert actual["source_sha256"] == "6747a9deaff18122565bd0a6b9b58382be781d42dd9ab8c4f5ca18d066dd1ff5"
+assert actual["original_kernel_status"] == "ERROR" and actual["new_GPU_jobs"] == 0
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", actual["CPU_job"], "--format=JobIDRaw,State,ExitCode"],
+    text=True,
+)
+assert actual["CPU_job"] + "|COMPLETED|0:0" in terminal
 r = actual["receipt"]
 assert r["status"] == "actual_complete_S6_target_change_full_encoder_twoT4_MRI_recovery_accepted"
 assert r["world_size"] == 2 and r["updates_per_role"] == 4

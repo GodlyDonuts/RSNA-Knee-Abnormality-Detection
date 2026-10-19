@@ -15,10 +15,10 @@ epoch = int(sys.argv[1])
 assert 1 <= epoch <= 3
 actual = json.loads(
     (
-        R / "initiative/research/S6-Kaggle-target-recovery-20261019-v1/actual-terminal.json"
+        R / "initiative/research/S6-Kaggle-existing-output-replay-20261019-v1/actual-accepted.json"
     ).read_text()
 )
-assert actual["status"] == "complete_teacher_recovery_accepted"
+assert actual["status"] == "actual_existing_twoT4_outputs_independent_CPU_replay_accepted"
 L.mkdir(exist_ok=True)
 intent = L / ("prepare-" + str(epoch) + "-intent.json")
 assert not intent.exists(), "Existing actual preparation must be reconciled"

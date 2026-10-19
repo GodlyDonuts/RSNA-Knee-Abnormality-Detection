@@ -1,0 +1,246 @@
+"""Replay only the original final collector over immutable existing GPU outputs."""
+
+import ast
+import base64
+import contextlib
+import hashlib
+import importlib.util
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path, PurePosixPath
+from urllib.parse import urljoin, urlparse
+
+import requests
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+B = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+D = B / "kaggle-existing-output-replay-v1"
+assert sorted(p.name for p in D.iterdir()) == [
+    "intent.json",
+    "original-job-held.private.json",
+    "read-only-first-listing.private.json",
+]
+assert "974227|FAILED|1:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "974227", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert not (D / "restored").exists(), "No original bulk transfer started"
+
+source = Path(
+    "/tmp/rsna-S6-target-execution-inputs-20261019-v1/recovery-source-v1/recovery.private.py"
+).read_text()
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == "6747a9deaff18122565bd0a6b9b58382be781d42dd9ab8c4f5ca18d066dd1ff5"
+)
+F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
+staged = json.loads((F / "staged.json").read_text())
+p = F / "code/workflow.py"
+assert hashlib.sha256(p.read_bytes()).hexdigest() == staged["source_sha256"]["workflow.py"]
+spec = importlib.util.spec_from_file_location("exact_canonical_workflow", p)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+slug = "godlydonuts/rsna-complete-teacher-real-mri-recovery"
+k = r.kernel("GetKernel", slug, 1)
+assert (
+    k["metadata"]["id"] == 139695847
+    and k["metadata"]["isPrivate"]
+    and k["blob"]["source"] == source
+)
+assert r.kernel("GetKernelSessionStatus", slug, 1)["status"] == "ERROR"
+# Original CPU974227 held the exact zero-runtime alternative, then stopped
+# before any transfer because the API log is JSON rows, not plain text.
+after = subprocess.check_output(["scontrol", "show", "job", "973904", "-o"], text=True)
+assert "JobState=PENDING" in after and "Reason=JobHeldUser" in after and "RunTime=00:00:00" in after
+paid = sum(p.stat().st_size for p in B.rglob("*") if p.is_file() and not p.is_symlink())
+assert shutil.disk_usage("/tmp").free > (20 + 87) * 2**30 + max(0, 12 * 2**30 - paid) + 32 * 2**20
+w.new_json(
+    D / "resume-v2-intent.json",
+    {
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "original_failed_CPU": "974227",
+        "original_bulk_transfers": 0,
+        "new_GPU_jobs": 0,
+        "automatic_retry": False,
+    },
+)
+z = json.loads((D / "read-only-first-listing.private.json").read_text())
+assert not z.get("nextPageToken")
+files = [item for item in z["files"] if item["fileName"].startswith("complete-teacher-recovery/")]
+assert 0 < len(files) < 128 and len({x["fileName"] for x in files}) == len(files)
+for item in files:
+    rel = PurePosixPath(item["fileName"])
+    assert not rel.is_absolute() and ".." not in rel.parts
+log = z["log"]
+assert "KeyError: 'uniform'" in log
+
+
+def phase_events(log):
+    phases = []
+    rows = json.loads(log)
+    assert isinstance(rows, list)
+    for row in rows:
+        assert isinstance(row, dict) and isinstance(row.get("data"), str)
+        try:
+            item = json.loads(row["data"])
+        except ValueError:
+            continue
+        if isinstance(item, dict) and set(item) == {"role", "phase", "elapsed_seconds"}:
+            phases.append(item)
+    expected = [
+        (a, b)
+        for a in ("parent_only", "cross_lineage_equal_rank")
+        for b in ("full", "stop", "resume")
+    ]
+    assert [(x["role"], x["phase"]) for x in phases] == expected
+    assert all(math.isfinite(x["elapsed_seconds"]) and x["elapsed_seconds"] > 0 for x in phases)
+    return phases
+
+
+phases = phase_events(log)
+w.new_json(
+    D / "original-output-listing.private.json", {"files": files, "log": log, "phases": phases}
+)
+retained = 0
+proof = {}
+for item in files:
+    name = item["fileName"]
+    dest = D / "restored" / name
+    dest.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    url = item["url"]
+    for redirect in range(6):
+        u = urlparse(url)
+        assert (
+            u.scheme == "https"
+            and u.hostname
+            and (
+                u.hostname
+                in (
+                    "storage.googleapis.com",
+                    "api.kaggle.com",
+                    "www.kaggle.com",
+                    "www.kaggleusercontent.com",
+                )
+                or u.hostname.endswith(".googleusercontent.com")
+            )
+        )
+        response = requests.get(url, stream=True, timeout=(15, 180), allow_redirects=False)
+        if response.status_code == 200:
+            break
+        assert response.status_code in (301, 302, 303, 307, 308)
+        url = urljoin(url, response.headers["Location"])
+        response.close()
+    assert response.status_code == 200
+    length = response.headers.get("Content-Length")
+    if length is not None:
+        assert int(length) >= 0 and retained + int(length) < 12 * 2**30
+    h = hashlib.sha256()
+    n = 0
+    try:
+        with dest.open("xb") as f:
+            for block in response.iter_content(2**20):
+                n += len(block)
+                retained += len(block)
+                assert paid + retained < 12 * 2**30
+                f.write(block)
+                h.update(block)
+    finally:
+        response.close()
+    if length is not None:
+        assert n == int(length)
+    proof[name] = {"bytes": n, "sha256": h.hexdigest()}
+assert 5 * 2**30 < retained < 6 * 2**30
+w.new_json(
+    D / "downloaded.private.json",
+    {"files": proof, "bytes": retained, "all_original_version_bytes_TLS_size_SHA_bound": True},
+)
+assert r.kernel("GetKernel", slug, 1)["blob"]["source"] == source
+# Execute the original collector after the process-launch loop. Only two stale
+# dictionary keys and the final local output path change; no trainer executes.
+tree = ast.parse(source)
+first = next(n.lineno for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "same")
+tail = "\n".join(source.splitlines()[first - 1 :]) + "\n"
+assert tail.count("roles['uniform']") == tail.count("roles['influence']") == 1
+assert "subprocess.run" not in tail and "torch.distributed.run" not in tail
+patched = tail.replace("roles['uniform']", "roles['parent_only']").replace(
+    "roles['influence']", "roles['cross_lineage_equal_rank']"
+)
+assert patched.count("Path('/kaggle/working')") == 1
+patched = patched.replace("Path('/kaggle/working')", "Path(" + repr(str(D)) + ")")
+literals = {}
+for node in tree.body:
+    if (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+    ):
+        try:
+            value = ast.literal_eval(node.value)
+        except (ValueError, TypeError):
+            continue
+        literals[node.targets[0].id] = value
+assert {"FILES", "WORKER", "TARGETS", "PERMISSION"} <= set(literals)
+ctx = {
+    **literals,
+    "__name__": "original_existing_GPU_outputs_CPU_collector",
+    "torch": torch,
+    "json": json,
+    "hashlib": hashlib,
+    "base64": base64,
+    "Path": Path,
+    "time": time,
+    "root": D / "restored/complete-teacher-recovery",
+    "FILES": literals["FILES"],
+    "WORKER": literals["WORKER"],
+    "phases": phases,
+    "roles": {},
+    "identities": [],
+    "finals": [],
+    "start": time.monotonic() - phases[-1]["elapsed_seconds"],
+}
+with (D / "collector.stdout.private.log").open("x") as collector_log:
+    with contextlib.redirect_stdout(collector_log):
+        exec(compile(patched, "corrected_role_keys_only_original_final_collector", "exec"), ctx)
+receipt = ctx["receipt"]
+assert (
+    receipt["status"] == "actual_complete_S6_target_change_full_encoder_twoT4_MRI_recovery_accepted"
+)
+assert receipt["world_size"] == 2 and receipt["updates_per_role"] == 4
+out = {
+    "status": "actual_existing_twoT4_outputs_independent_CPU_replay_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "kernel_id": 139695847,
+    "version": 1,
+    "slug": slug,
+    "original_kernel_status": "ERROR",
+    "original_failure": "final collector stale roles['uniform'] key after all six successful GPU processes",
+    "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+    "original_collector_sha256": hashlib.sha256(tail.encode()).hexdigest(),
+    "corrected_collector_sha256": hashlib.sha256(patched.encode()).hexdigest(),
+    "original_outputs": {
+        "objects": len(proof),
+        "bytes": retained,
+        "manifest_sha256": hashlib.sha256(
+            json.dumps(proof, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+    },
+    "held_original_unstarted_H100_job": 973904,
+    "receipt": receipt,
+    "new_GPU_jobs": 0,
+    "clinical_or_competition_accuracy_claim": False,
+}
+w.new_json(D / "accepted.json", out)
+print(json.dumps(out), flush=True)
