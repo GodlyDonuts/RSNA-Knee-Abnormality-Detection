@@ -1,0 +1,201 @@
+"""Actual original model and full MRI admission on the earlier ordinary H100 node."""
+
+import ast
+import base64
+import contextlib
+import gc
+import hashlib
+import importlib.metadata
+import io
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+A = E / "auxiliary-v2"
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+C = P / "original-pixel-replica-v2"
+actual = json.loads((E / "auxiliary-verified-v2.json").read_text())
+assert actual == v["copy"]["receiver"]
+raw = (A / "manifest.private.json").read_bytes()
+assert hashlib.sha256(raw).hexdigest() == actual["manifest_sha256"]
+table = json.loads(raw)
+assert not (E / "input-admission-intent-v1.json").exists()
+assert not (P / "input").exists()
+assert shutil.disk_usage("/tmp").free > (20 + 24 + 12) * 2**30 + 32 * 2**20
+# Whole auxiliary bytes were verified at receipt. Reuse stats for bulk MRI;
+# recheck source code and small exact indices at their actual consumers below.
+for name, row in table.items():
+    path = A / name
+    assert path.is_file() and not path.is_symlink() and path.stat().st_size == row["bytes"]
+(E / "input-admission-intent-v1.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "original_auxiliary_CPU": actual["CPU_job"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+S = A / "source"
+source = json.loads((S / "admitted.json").read_text())
+assert source["CPU_job"] == "969738"
+for name, sha in source["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == sha
+parent = (S / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+weight = A / "parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"
+assert (
+    table["parent/" + weight.name]["sha256"]
+    == "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+)
+old = (A / "old_recovery/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+sys.path[:0] = [str(A / "overlay"), str(A / "extensions"), str(S / "code")]
+import numpy as np  # noqa: E402
+import timm  # noqa: E402
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+assert torch.version.git_version == "08187d9e0fba026dc8217405802ab5381dc88d90"
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+namespace = dict(torch=torch, timm=timm, nn=torch.nn, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(parent).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(
+    compile(
+        ast.Module(body=selected, type_ignores=[]), "unchanged_original_parent_model_graph", "exec"
+    ),
+    namespace,
+)
+with contextlib.redirect_stdout(io.StringIO()):
+    model, resolution = namespace["load_model"](
+        str(weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert resolution == 320 and sum(p.numel() for p in model.parameters()) == 73136096
+assert len(model.state_dict()) == 486 and all(p.requires_grad for p in model.parameters())
+del model
+gc.collect()
+copy = json.loads((C / "verified.json").read_text())
+assert (
+    copy["status"]
+    == "actual_original_four_pixel_shards_private_node33_to_node48_whole_bytes_verified"
+)
+assert copy["archive_bytes"] == 38870763520
+proofs = json.loads((A / "full_proofs/actual-original-Kaggle-inputs.json").read_text())["proofs"]
+for i, proof in enumerate(proofs):
+    assert (C / f"shard-{i}/pixels.tar").stat().st_size == proof["archive_bytes"]
+    assert copy["files"][f"shard-{i}/pixels.tar"]["sha256"] == proof["archive_sha256"]
+    assert (
+        hashlib.sha256((C / f"shard-{i}/index.private.json").read_bytes()).hexdigest()
+        == proof["index_sha256"]
+    )
+inputs = P / "input"
+inputs.mkdir(mode=0o700)
+for name, path in (
+    ("original32-pixels", A / "pixels32"),
+    ("original-parent", A / "parent"),
+    *[(f"shard-{i}", C / f"shard-{i}") for i in range(4)],
+    ("original-targets", A / "targets"),
+    ("original-proposals", A / "proposals"),
+):
+    (inputs / name).symlink_to(path, target_is_directory=True)
+worker = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "WORKER"
+)
+tree = ast.parse(base64.b64decode(worker, validate=True).decode())
+boundary = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+ns = {
+    "__name__": "original_renderer_full_population_input_gate",
+    "__file__": "original_renderer_full_population_input_gate.py",
+}
+exec(
+    compile(
+        ast.Module(body=tree.body[:boundary], type_ignores=[]),
+        "original_exact_MRI_renderer",
+        "exec",
+    ),
+    ns,
+)
+from rsna.competitive.licensed_parent_population import load  # noqa: E402
+
+
+def render(volume, mask, mirror):
+    return ns["eval_windows"](volume, mask, 94, 320, norm=ns["NORM"], mirror=mirror)
+
+
+data = load(inputs, proofs, render)
+assert len(data) == 3887 and len(set(data.uids)) == 3887
+population_sha = hashlib.sha256(json.dumps(data.uids, separators=(",", ":")).encode()).hexdigest()
+assert population_sha == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+proposal = A / "proposals/proposals.private.npy"
+assert (
+    hashlib.sha256(proposal.read_bytes()).hexdigest()
+    == "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+)
+with proposal.open("rb") as f:
+    q = np.load(f, allow_pickle=False)
+assert q.shape == (3887, 94) and q.dtype == np.float64 and np.isfinite(q).all()
+for shard in range(4):
+    index = next(i for i, row in enumerate(data.records) if row["holder"] == "s" + str(shard))
+    for mirror in (False, True):
+        row = data.case(index, list(range(94)), mirror)
+        assert row["images"].shape == (94, 3, 320, 320) and torch.isfinite(row["images"]).all()
+        assert torch.equal(row["labels"], data.labels[index]) and torch.equal(
+            row["mask"], data.mask[index]
+        )
+        del row
+accepted = {
+    "status": "actual_earlier_H100_node_original_model_and_full_MRI_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc48",
+    "source_git": v["source_git"],
+    "auxiliary_receiver_CPU": actual["CPU_job"],
+    "fitting_studies": 3887,
+    "population_sha256": population_sha,
+    "model_parameters": 73136096,
+    "model_state_tensors": 486,
+    "strict_original_parent_load": True,
+    "source_numerical_modules_equal": True,
+    "original_plain_and_mirror94_tensor_hashes_checked": 8,
+    "torch": str(torch.__version__),
+    "torch_git": torch.version.git_version,
+    "timm": str(timm.__version__),
+    "torchvision": importlib.metadata.version("torchvision"),
+    "new_downloads": 0,
+    "whole_MRI_archive_rehash": False,
+    "old_node33_owners_unchanged": True,
+    "GPU_or_training_or_accuracy_acceptance": False,
+    "automatic_retry": False,
+}
+(E / "input-admitted-v1.json").write_text(json.dumps(accepted, indent=2) + "\n")
+(P / "inputs-verified-earlier-v1.json").write_text(json.dumps(accepted, indent=2) + "\n")
+print(json.dumps(accepted), flush=True)

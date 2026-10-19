@@ -1,0 +1,71 @@
+# ruff: noqa: F821
+"""Fresh private auxiliary destination; all original source bytes stay untouched."""
+
+import ipaddress
+import shutil
+import socket
+import sys
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc48"
+assert not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+assert not (E / "auxiliary-v1").exists(), "Original transfer must have stopped before data"
+assert not (E / "auxiliary-v2").exists() and not (E / "auxiliary-intent-v2.json").exists()
+assert shutil.disk_usage("/tmp").free > (20 + 79 + 2) * 2**30 + 32 * 2**20
+(E / "auxiliary-intent-v2.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "cap_bytes": AUX_CAP,
+            "source_git": v["source_git"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+context, certificate = server_context()
+address = socket.gethostbyname("ivc48")
+assert ipaddress.ip_address(address).is_private
+listener = socket.socket()
+listener.bind((address, 0))
+listener.listen(1)
+listener.settimeout(600)
+print(
+    json.dumps(
+        {
+            "status": "private_auxiliary_receiver_ready",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "node": "evc48",
+            "private_address": address,
+            "port": listener.getsockname()[1],
+            "certificate_sha256": certificate,
+        }
+    ),
+    flush=True,
+)
+raw, _ = listener.accept()
+raw.settimeout(180)
+with context.wrap_socket(raw, server_side=True) as channel:
+    authenticate_server(channel, secret, certificate)
+    del secret
+    with channel.makefile("rb") as stream:
+        table, digest = receive_aux(stream, E / "auxiliary-v2")
+listener.close()
+actual = {
+    "status": "actual_private_auxiliary_original_copy_all_bytes_SHA_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc48",
+    "source_git": v["source_git"],
+    "files": len(table),
+    "bytes": sum(x["bytes"] for x in table.values()),
+    "manifest_sha256": digest,
+    "patient_file_table_exported": False,
+    "GPU_or_model_acceptance": False,
+    "originals_preserved": True,
+    "automatic_retry": False,
+}
+(E / "auxiliary-verified-v2.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
