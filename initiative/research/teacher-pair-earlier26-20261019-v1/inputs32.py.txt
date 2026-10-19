@@ -1,0 +1,77 @@
+"""Lossless original32 engineering view; never claims full-cohort pixel admission."""
+
+import hashlib
+import json
+from pathlib import Path
+
+import numpy as np
+
+from rsna.competitive.licensed_pixel_bags import POPULATION_SHA, PixelBags
+
+INDEX_SHA = "3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3"
+TARGET_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+PROPOSAL_SHA = "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+
+
+def select(records, full, proposals, engineering):
+    uids = list(full["uids"])
+    chosen = engineering["uids"]
+    assert (
+        len(uids) == 3887
+        and len(set(uids)) == 3887
+        and hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+        == POPULATION_SHA
+    )
+    assert engineering["eligible_fitting_only"] is True and len(chosen) == len(set(chosen)) == 32
+    by_uid = {r["study_uid"]: r for r in records}
+    assert len(by_uid) == len(records) == 32 and set(chosen) == set(by_uid)
+    assert proposals.shape == (3887, 94) and proposals.dtype == np.float64
+    mapping = {uid: i for i, uid in enumerate(uids)}
+    indices = [mapping[uid] for uid in chosen]
+    selected = {
+        name: np.asarray(full[name])[indices].copy()
+        for name in ("uids", "labels", "masks", "parent_logits")
+    }
+    assert selected["masks"].dtype == np.bool_ and selected["masks"].shape == (32, 12)
+    assert np.array_equal(selected["masks"], np.asarray(engineering["masks"], dtype=np.bool_))
+    # Masked values may be original NaNs; compare observed labels without inventing them.
+    mask = selected["masks"]
+    assert np.array_equal(
+        np.asarray(selected["labels"], dtype=np.float32)[mask],
+        np.asarray(engineering["labels"], dtype=np.float32)[mask],
+    )
+    rows = [{**by_uid[uid], "holder": "probe32"} for uid in chosen]
+    return rows, selected, proposals[indices].copy(), indices
+
+
+def load32(auxiliary, engineering, render):
+    A = Path(auxiliary)
+    index = A / "pixels32/index.private.json"
+    target = A / "targets/targets.private.npz"
+    proposal = A / "proposals/proposals.private.npy"
+    for p, sha in ((index, INDEX_SHA), (target, TARGET_SHA), (proposal, PROPOSAL_SHA)):
+        assert hashlib.sha256(p.read_bytes()).hexdigest() == sha
+    with np.load(target, allow_pickle=False) as f:
+        assert set(f.files) == {"uids", "labels", "masks", "parent_logits"}
+        full = {n: f[n].copy() for n in f.files}
+    q = np.load(proposal, allow_pickle=False)
+    rows, tensors, q, indices = select(
+        json.loads(index.read_text())["records"], full, q, engineering
+    )
+    pixels = A / "pixels32/pixels.tar"
+    assert pixels.stat().st_size == 326799360
+    data = PixelBags(rows, {"probe32": pixels}, tensors, render, diagnostic_only=True)
+    assert len(data) == 32 and data.uids == engineering["uids"]
+    metadata = {
+        "full_source_population": 3887,
+        "full_source_population_sha256": POPULATION_SHA,
+        "engineering_studies": 32,
+        "full_MRI_pixel_cohort_admitted": False,
+        "original_proposal_file_sha256": PROPOSAL_SHA,
+        "selected_proposal_array_sha256": hashlib.sha256(q.tobytes()).hexdigest(),
+        "selected_labels_sha256": hashlib.sha256(data.labels.numpy().tobytes()).hexdigest(),
+        "selected_masks_sha256": hashlib.sha256(data.mask.numpy().tobytes()).hexdigest(),
+        "selected_teacher_sha256": hashlib.sha256(data.teacher.numpy().tobytes()).hexdigest(),
+        "original_full_population_indices": indices,
+    }
+    return data, q, metadata
