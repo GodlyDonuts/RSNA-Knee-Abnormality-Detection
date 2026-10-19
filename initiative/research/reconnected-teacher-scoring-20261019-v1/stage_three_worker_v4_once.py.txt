@@ -1,0 +1,102 @@
+"""Stage a resource-only entry around the unchanged original numerical program."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/reconnected-teacher-scoring-20261019-v1/stage-v5"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "stage-intent.json").exists()
+source = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+policy = subprocess.check_output(
+    [
+        "git",
+        "show",
+        source + ":" + (D / "resource_three_worker_v4.py.txt").relative_to(R).as_posix(),
+    ],
+    text=True,
+)
+assert policy == (D / "resource_three_worker_v4.py.txt").read_text()
+program = """import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert hashlib.sha256(v['policy'].encode()).hexdigest()==v['policy_sha256']
+ns={};exec(compile(v['policy'],'explicit_current_plan_resource_policy','exec'),ns)
+funding=ns['current_plan'](65536)
+P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1');D=P/'reconnected-three-worker-v4'
+assert not D.exists() and not (P/'engine-v1/execution.lock').exists() and not (P/'CPU-full-stream-v1/phase-010').exists()
+t=json.loads((P/'CPU-full-stream-v1/phase-009/terminal.json').read_text());assert t['CPU_job']=='963591' and t['completed']==676
+raw=(P/'completed-logits.private.jsonl').read_bytes();assert hashlib.sha256(raw).hexdigest()==t['journal_sha256'] and len(raw.splitlines())==676
+old=P/'CPU-full-stream-v1/program.py';old_sha=hashlib.sha256(old.read_bytes()).hexdigest();st=json.loads((P/'CPU-full-stream-v1/staged.json').read_text());assert st['files']['program.py']==old_sha
+D.mkdir(mode=0o700);(D/'resource_policy.py').write_text(v['policy'])
+entry="from pathlib import Path\\nimport hashlib\\nns={}\\nexec(compile(Path("+repr(str(D/'resource_policy.py'))+").read_text(),'current_resource_policy','exec'),ns)\\nold=Path("+repr(str(old))+")\\nassert hashlib.sha256(old.read_bytes()).hexdigest()=="+repr(old_sha)+"\\nns.update(__name__='__main__',__file__=str(old))\\nexec(compile(ns['adapt_teacher'](old.read_text()),'original_teacher_resource_entry_v2','exec'),ns)\\n"
+entry=entry.replace('\\\\n','\\n')
+compile(entry,'entry','exec');(D/'run.py').write_text(entry)
+out={'status':'actual_current_plan_CPU_RAM_metadata_resource_entry_staged','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'policy_sha256':v['policy_sha256'],'entry_sha256':hashlib.sha256(entry.encode()).hexdigest(),'original_program_sha256':old_sha,'original_phase9_preserved':676,'first_new_phase':10,'funding':funding,'new_GPU_or_training':False}
+(D/'accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+# The remote source contains no credentials; the bounded envelope handles stdin.
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "stage-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": source,
+            "policy_sha256": hashlib.sha256(policy.encode()).hexdigest(),
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=512M",
+    "--time=00:03:00",
+    "--job-name=rsna-reconnected-resource-entry",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "policy": policy,
+            "policy_sha256": hashlib.sha256(policy.encode()).hexdigest(),
+            "source_git": source,
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=200,
+)
+(L / "stage-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1000:]
+v = json.loads(x.stdout)
+(D / "actual-three-worker-v4-staged.json").write_text(json.dumps(v, indent=2) + "\n")
+print(json.dumps(v))

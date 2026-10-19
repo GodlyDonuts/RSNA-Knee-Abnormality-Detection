@@ -55,12 +55,12 @@ L.mkdir(mode=0o700, parents=True)
         indent=2,
     )
 )
-stage = json.loads((D / "actual-three-worker-staged.json").read_text())
+stage = json.loads((D / "actual-three-worker-v4-staged.json").read_text())
 assert stage["original_phase9_preserved"] == 676 and stage["first_new_phase"] == 10
 old_path = "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py"
 assert text.count(old_path) == 1
 text = text.replace(
-    old_path, "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/reconnected-three-worker-v3/run.py"
+    old_path, "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/reconnected-three-worker-v4/run.py"
 )
 assert text.count("--cpus-per-task=25") == text.count("--mem=192G") == 1
 text = text.replace("--cpus-per-task=25", "--cpus-per-task=7").replace("--mem=192G", "--mem=128G")
