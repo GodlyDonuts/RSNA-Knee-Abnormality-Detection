@@ -429,6 +429,10 @@ try:
                     row.update(state="complete_teacher_recovery_failed", actual_status=state)
                     save()
                     out.update(status=row["state"], automatic_retry=False)
+        if phase == "status":
+            out["fresh_accelerator_quota"] = r.call(
+                "kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {}
+            )
         bounds()
         print(json.dumps(out), flush=True)
 finally:
