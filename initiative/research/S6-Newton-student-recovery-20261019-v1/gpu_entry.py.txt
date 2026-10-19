@@ -4,6 +4,7 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -110,6 +111,9 @@ try:
         )
         while child.poll() is None:
             assert paid(D / "work") < 12 * 2**30 and paid(D) < 12 * 2**30 + 512 * 2**20 + 16 * 2**20
+            assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+                0, 12 * 2**30 + 512 * 2**20 + 16 * 2**20 - paid(D)
+            )
             assert time.monotonic() - started < 3500
             time.sleep(2)
         assert child.returncode == 0, (
