@@ -1,0 +1,48 @@
+# ruff: noqa: F821
+"""Retain only exact complete targets and their compiled original source on48."""
+
+import os
+import shutil
+import sys
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+assert json.loads((E / "route-setup-verified-v1.json").read_text())["CPU_job"] == "971721"
+assert not (E / "target-bridge-intent-v1.json").exists()
+assert shutil.disk_usage("/tmp").free > (20 + 12 + 24) * 2**30 + 32 * 2**20
+packet = v["packet"]
+decoded = decode_packet(packet)
+ready, compiled = verify_binding(decoded)
+assert compiled == v["compiled"]
+(E / "target-bridge-intent-v1.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "sender_CPU": packet["source_CPU"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+root = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+write_packet(root, packet)
+actual = {
+    "status": "actual_complete_teacher_target_and_compiled_source_bridge_to48_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "sender_CPU": packet["source_CPU"],
+    "node": "evc48",
+    "source_git": v["source_git"],
+    "files": 6,
+    "bytes": sum(map(len, decoded.values())),
+    "complete_target_file": ready["target_file"],
+    "compiled_source_sha256": compiled["source_sha256"],
+    "original_compilation_CPU": compiled["CPU_job"],
+    "private_records_or_source_on_Mac_Git_HF": False,
+    "GPU_dispatched": False,
+    "automatic_retry": False,
+}
+(E / "target-bridge-verified-v1.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

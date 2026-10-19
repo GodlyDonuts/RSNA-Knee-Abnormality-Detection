@@ -1,0 +1,129 @@
+"""Private target transport contracts with synthetic values only."""
+
+import ast
+import base64
+import copy
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+D = Path(__file__).resolve().parent
+ns = {"__name__": "bridge_contract"}
+exec(compile((D / "bridge_common.py.txt").read_text(), "bridge_common", "exec"), ns)
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+source = b"# synthetic source only\n"
+target = b"synthetic target bytes only"
+ready = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "population": 3887,
+    "target_file": {"bytes": len(target), "sha256": sha(target)},
+}
+compiled = {
+    "status": "actual_complete_teacher_recovery_source_compiled_from_original_private_inputs",
+    "complete_target_file": ready["target_file"],
+    "source_sha256": sha(source),
+}
+raw = {n: b"{}" for n in ns["NAMES"]}
+raw.update(
+    {
+        "complete-target-input-v1/teacher-targets.private.npz": target,
+        "complete-target-input-v1/complete-target-ready.json": json.dumps(ready).encode(),
+        "recovery-source-v1/recovery.private.py": source,
+        "recovery-source-v1/metadata.private.json": json.dumps(
+            {"source_sha256": sha(source)}
+        ).encode(),
+        "recovery-source-v1/verified.json": json.dumps(compiled).encode(),
+    }
+)
+packet = {
+    "source_CPU": "123",
+    "source_git": "a" * 40,
+    "files": {
+        n: {"bytes": len(b), "sha256": sha(b), "data": base64.b64encode(b).decode()}
+        for n, b in raw.items()
+    },
+}
+with tempfile.TemporaryDirectory() as tmp:
+    ns["write_packet"](tmp, packet)
+    assert all((Path(tmp) / n).read_bytes() == b for n, b in raw.items())
+    with pytest.raises(AssertionError):
+        ns["write_packet"](tmp, packet)
+for mode in ("missing", "wrong_SHA", "bad_base64", "extra_name", "size"):
+    p = copy.deepcopy(packet)
+    if mode == "missing":
+        del p["files"][next(iter(p["files"]))]
+    elif mode == "extra_name":
+        p["files"]["../escape"] = next(iter(p["files"].values()))
+    elif mode == "wrong_SHA":
+        p["files"]["recovery-source-v1/recovery.private.py"]["sha256"] = "0" * 64
+    elif mode == "size":
+        p["files"]["recovery-source-v1/recovery.private.py"]["bytes"] = ns["CAP"] + 1
+    else:
+        p["files"]["recovery-source-v1/recovery.private.py"]["data"] = "!"
+    with pytest.raises((AssertionError, ValueError)):
+        ns["decode_packet"](p)
+for mode in ("population", "target", "source"):
+    values = copy.deepcopy(raw)
+    if mode == "population":
+        r = copy.deepcopy(ready)
+        r["population"] = 32
+        values["complete-target-input-v1/complete-target-ready.json"] = json.dumps(r).encode()
+    elif mode == "target":
+        values["complete-target-input-v1/teacher-targets.private.npz"] = b"changed"
+    else:
+        values["recovery-source-v1/recovery.private.py"] = b"changed"
+    with pytest.raises(AssertionError):
+        ns["verify_binding"](values)
+# Exercise the exact nested stdin command format used by the head supervisor.
+program = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse((D / "bridge_once.py.txt").read_text()).body
+    if isinstance(n, ast.Assign)
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "program"
+)
+fn = next(n for n in ast.parse(program).body if isinstance(n, ast.FunctionDef) and n.name == "run")
+spec = importlib.util.spec_from_file_location(
+    "transport",
+    Path("initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"),
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+
+
+def stub(args, **kwargs):
+    return subprocess.run([sys.executable, "-c", t.COMMAND], **kwargs)
+
+
+space = {
+    "v": {"envelope_command": t.COMMAND},
+    "subprocess": SimpleNamespace(run=stub),
+    "json": json,
+}
+exec(compile(ast.Module(body=[fn], type_ignores=[]), "exact_cluster_stdin", "exec"), space)
+x = space["run"](
+    "synthetic-node",
+    "import json;v=json.load(__import__('sys').stdin);print(json.dumps({'answer':v['x']+1}))",
+    {"x": 41},
+)
+assert x.returncode == 0 and json.loads(x.stdout) == {"answer": 42}
+print(
+    json.dumps(
+        {
+            "synthetic_private_bridge_contracts_passed": 11,
+            "private_source_targets_or_GPU_consumed": False,
+        }
+    )
+)

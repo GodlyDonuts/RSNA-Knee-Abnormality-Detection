@@ -1,0 +1,171 @@
+"""Preparation-only compiler contracts; synthetic model source, no GPU claim."""
+
+import ast
+import base64
+import copy
+import importlib.util
+import json
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+
+D = Path(__file__).resolve().parent
+
+
+def module(name, path):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    value = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(value)
+    return value
+
+
+m = module("new_full_h100_compiler", D / "compiler.py.txt")
+target = module(
+    "original_complete_target_admission",
+    D / "target_compiler.py.txt",
+)
+ready = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "population": 3887,
+    "population_sha256": m.POP,
+    "labels_masks_and_original_targets_modified": False,
+    "labels_masks_or_protected_values_decoded": False,
+    "target_file": {"bytes": 500000, "sha256": "a" * 64},
+    "complete_teacher_file_sha256": "b" * 64,
+    "complete_teacher_journal_sha256": "c" * 64,
+    "roles": {
+        r: {"role": r, "population": 3887, "population_sha256": m.POP, "diagnostic_only": False}
+        for r in m.ROLES
+    },
+}
+worker = 'def renderer(x):return x\ndef main():raise RuntimeError("synthetic only")\nif __name__=="__main__":main()\n'
+files = {"rsna/competitive/synthetic.py": "# synthetic fixture only\n"}
+source = "\n".join(
+    k + "=" + repr(v)
+    for k, v in {
+        "WORKER": base64.b64encode(worker.encode()).decode(),
+        "FILES": files,
+        "PERMISSION": "synthetic permission only",
+    }.items()
+)
+staged = {
+    "source_sha256": m.sha(source),
+    "worker_sha256": m.sha(worker),
+    "own_module_sha256": {n: m.sha(s) for n, s in files.items()},
+}
+r = {
+    "status": "actual_complete_S6_target_change_full_encoder_oneH100_MRI_recovery_accepted",
+    "world_size": 1,
+    "complete_teacher_admission": ready,
+    "fit_studies": 16,
+    "disjoint_engineering_studies": 16,
+    "updates_per_role": 4,
+    "same_initial_complete_model_and_allrank_RNG_between_roles": True,
+    "distinct_final_learned_tensors": 3,
+    "parent_weights_sha256": m.PARENT,
+    "source_module_sha256": staged["own_module_sha256"],
+    "worker_source_sha256": m.sha(worker),
+    "roles": {
+        role: {
+            "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal": True,
+            "all16_full94_two_view_prediction_bytes_equal": True,
+            "devices": [
+                {
+                    "GPU": "NVIDIA H100 PCIe",
+                    "trainable_parameters": 73136096,
+                    "all_BN_buffers_equal_parent": True,
+                }
+            ],
+        }
+        for role in m.ROLES
+    },
+}
+actual = {
+    "status": "actual_complete_teacher_oneH100_recovery_accepted",
+    "source_sha256": m.sha(source),
+    "receipt": r,
+}
+inputs = json.loads(
+    (D.parent / "S6-earlier-H100-route-20261019-v1/actual-input-model-admitted.json").read_text()
+)
+proofs = [
+    json.loads(
+        Path(
+            f"initiative/audits/licensed-parent-pixels-full-20261016-v1/actual-Newton-replica-shard-{i}-verified.json"
+        ).read_text()
+    )
+    for i in range(4)
+]
+# The checked originals are sanitized producer proofs, not fitting records.
+if "proof" in proofs[0]:
+    proofs = [p["proof"] for p in proofs]
+checks = 0
+for role in m.ROLES:
+    bundle, meta = m.build(source, staged, actual, ready, inputs, proofs, role, "b" * 40, target)
+    emitted = base64.b64decode(bundle["WORKER"]).decode()
+    compile(emitted, "synthetic_full_population_worker", "exec")
+    assert bundle["FILES"] == files
+    assert "Recipe(epochs=3, role='influence')" in emitted
+    assert "choices=(486, 972)" in emitted
+    assert "def renderer(x):return x" in emitted
+    assert meta["full_training_updates"] == 1458 and not meta["actual_production_dispatched"]
+    assert (
+        len(
+            [
+                n
+                for n in ast.parse(emitted).body
+                if isinstance(n, ast.FunctionDef) and n.name == "main"
+            ]
+        )
+        == 1
+    )
+    checks += 1
+for bad in (
+    "pending",
+    "two_rank",
+    "partial",
+    "equality",
+    "device",
+    "modules",
+    "worker",
+    "missing_shard",
+    "inputs",
+):
+    a, s, t, i, p = (
+        copy.deepcopy(actual),
+        copy.deepcopy(staged),
+        copy.deepcopy(ready),
+        copy.deepcopy(inputs),
+        copy.deepcopy(proofs),
+    )
+    if bad == "pending":
+        a["status"] = "PENDING"
+    elif bad == "two_rank":
+        a["receipt"]["world_size"] = 2
+    elif bad == "partial":
+        t["population"] = 2045
+    elif bad == "equality":
+        a["receipt"]["roles"][m.ROLES[0]]["all16_full94_two_view_prediction_bytes_equal"] = False
+    elif bad == "device":
+        a["receipt"]["roles"][m.ROLES[1]]["devices"][0]["GPU"] = "Tesla T4"
+    elif bad == "modules":
+        s["own_module_sha256"] = {}
+    elif bad == "worker":
+        a["receipt"]["worker_source_sha256"] = "0" * 64
+    elif bad == "missing_shard":
+        p.pop()
+    elif bad == "inputs":
+        i["original_plain_and_mirror94_tensor_hashes_checked"] = 0
+    with pytest.raises(ValueError):
+        m.build(source, s, a, t, i, p, m.ROLES[0], "b" * 40, target)
+    checks += 1
+print(
+    json.dumps(
+        {
+            "status": "synthetic_full_H100_compiler_contracts_passed",
+            "checks": checks,
+            "GPU_or_real_source_acceptance": False,
+        }
+    )
+)

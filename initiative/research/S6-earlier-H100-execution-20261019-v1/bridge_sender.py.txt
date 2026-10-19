@@ -1,0 +1,25 @@
+# ruff: noqa: F821
+"""Read completed original targets/source from33 into a bounded cluster-only pipe."""
+
+import os
+import sys
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+root = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+packet = {"files": {}, "source_CPU": os.environ["SLURM_JOB_ID"], "source_git": v["source_git"]}
+for name in sorted(NAMES):
+    p = root / name
+    assert p.is_file() and not p.is_symlink() and 0 < p.stat().st_size <= CAP
+    before = (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns)
+    raw = p.read_bytes()
+    assert before == (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns)
+    packet["files"][name] = {
+        "bytes": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "data": base64.b64encode(raw).decode(),
+    }
+verify_binding(decode_packet(packet))
+# Only original Slurm stdout into the cluster-head supervisor RAM, never Mac/Git/HF.
+sys.stdout.write(json.dumps(packet))
+sys.stdout.flush()

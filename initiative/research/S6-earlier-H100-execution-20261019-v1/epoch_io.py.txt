@@ -1,0 +1,88 @@
+"""Retain verified optimizer/model epochs before the trainer replaces its cursor."""
+
+import hashlib
+import json
+import os
+import tempfile
+from pathlib import Path
+
+import torch
+
+
+def file_info(path):
+    path = Path(path)
+    with path.open("rb") as f:
+        return {
+            "bytes": path.stat().st_size,
+            "sha256": hashlib.file_digest(f, "sha256").hexdigest(),
+        }
+
+
+def new_json(path, value):
+    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    path = Path(path)
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".receipt-", delete=False) as f:
+        temporary = Path(f.name)
+        try:
+            f.write(raw)
+            f.flush()
+            os.fsync(f.fileno())
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+    try:
+        # Link is atomic and exclusive: observers never read a partial receipt.
+        os.link(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def retain_epoch(output, metadata, epoch, verifier, *, expected_parameters=73136096):
+    """Failures retain original trainer bytes and never create a ready receipt."""
+    output = Path(output)
+    if type(epoch) is not int or not 1 <= epoch <= 3:
+        raise ValueError("Exact fixed-final epoch required")
+    ready = output / f"epoch-{epoch:03d}-ready.json"
+    immutable = output / "optimizer-epochs" / f"epoch-{epoch:03d}.pt"
+    if ready.exists() or immutable.exists():
+        raise ValueError("Original epoch intent/receipt exists; reconcile read-only")
+    current = output / "checkpoint.pt"
+    snapshot = output / "epoch-checkpoints" / f"epoch-{epoch:03d}.pt"
+    state = torch.load(current, map_location="cpu", weights_only=True)
+    model = torch.load(snapshot, map_location="cpu", weights_only=True)
+    binding = metadata["binding"]
+    if any(state["binding"].get(k) != v for k, v in binding.items()):
+        raise ValueError("Exact compiled source/target/runtime training binding required")
+    receipt = {
+        "status": "actual_complete_target_oneH100_epoch_session_complete",
+        "segment": epoch,
+        "completed": epoch * 486,
+        "teacher_target_role": metadata["role"],
+        "actual_recovery_source_sha256": binding["actual_recovery_source_sha256"],
+        "binding": binding,
+    }
+    checked = verifier.verify(state, model, receipt, expected_parameters=expected_parameters)
+    del state, model
+    # Each epoch is durable independently of subsequent checkpoint.pt replacement.
+    immutable.parent.mkdir(mode=0o700, exist_ok=True)
+    before = current.stat()
+    os.link(current, immutable)
+    if current.stat().st_ino != before.st_ino or immutable.stat().st_ino != before.st_ino:
+        raise ValueError("Trainer cursor changed while preserving immutable epoch")
+    record = {
+        **receipt,
+        "worker_sha256": metadata["worker_sha256"],
+        "independent_verification": checked,
+        "immutable_optimizer_checkpoint": file_info(immutable),
+        "model_snapshot": file_info(snapshot),
+        "source_permission_retained": True,
+        "clinical_or_competition_accuracy_claim": False,
+        "automatic_retry": False,
+    }
+    new_json(ready, record)
+    return record

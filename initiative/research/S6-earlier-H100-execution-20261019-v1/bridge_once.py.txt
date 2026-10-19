@@ -1,0 +1,111 @@
+"""One bounded original33-to48 handoff through cluster RAM, never local data."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-earlier-H100-execution-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "target-bridge-intent-v1.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {
+    n: (D / n).read_text()
+    for n in (
+        "bridge_common.py.txt",
+        "bridge_sender.py.txt",
+        "bridge_receiver.py.txt",
+        "bridge_once.py.txt",
+    )
+}
+for n, source in parts.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / n).relative_to(R).as_posix()], text=True
+        )
+        == source
+    )
+finished = json.loads(
+    (
+        R / "artifacts/S6-target-execution-inputs-20261019-v1/compile-follower-result.json"
+    ).read_text()
+)
+assert (
+    finished["PID"] == 56997
+    and finished["status"] == "original_complete_teacher_recovery_source_CPU_compilation_finished"
+)
+with (L / "target-bridge-intent-v1.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "compiled_CPU": finished["actual"]["CPU_job"],
+            "private_bytes_stay_on_cluster": True,
+            "frozen": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in parts.items()},
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = """import base64,json,subprocess,time
+v=json.load(__import__('sys').stdin)
+def run(node,source,payload):
+ args=['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=1G','--time=00:05:00','--job-name=rsna-S6-target-bridge-'+node,'env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',v['envelope_command']]
+ return subprocess.run(args,input=json.dumps({'program':source,'payload':payload},allow_nan=False),capture_output=True,text=True,timeout=900)
+x=run('evc33',v['common']+'\\n'+v['sender'],{'source_git':v['pin']})
+assert x.returncode==0 and len(x.stdout.encode())<=12*2**20,'Original source CPU failed; reconcile existing handle'
+packet=json.loads(x.stdout)
+y=run('evc48',v['common']+'\\n'+v['receiver'],{'source_git':v['pin'],'packet':packet,'compiled':v['compiled']})
+del packet
+assert y.returncode==0,'Original destination CPU failed; reconcile existing handle: '+y.stderr[-1000:]
+actual=json.loads(y.stdout)
+for job in (actual['sender_CPU'],actual['CPU_job']):
+ for attempt in range(30):
+  s=subprocess.check_output(['sacct','-X','-n','-P','-j',job,'--format=JobIDRaw,State,ExitCode'],text=True)
+  if job+'|COMPLETED|0:0' in s:break
+  time.sleep(1)
+ else:raise RuntimeError('Original bridge terminal not accepted; no retry')
+print(json.dumps(actual),flush=True)
+"""
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(t.COMMAND),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "pin": pin,
+            "common": parts["bridge_common.py.txt"],
+            "sender": parts["bridge_sender.py.txt"],
+            "receiver": parts["bridge_receiver.py.txt"],
+            "compiled": finished["actual"],
+            "envelope_command": t.COMMAND,
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=2100,
+)
+(L / "target-bridge-transport-v1.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Original private bridge requires read-only reconciliation, never retry"
+actual = json.loads(x.stdout)
+(D / "actual-target-bridge.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

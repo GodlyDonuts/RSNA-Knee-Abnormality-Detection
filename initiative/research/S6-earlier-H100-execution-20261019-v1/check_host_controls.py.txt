@@ -1,0 +1,55 @@
+"""Prove the host fork preserves the scientific compilers and numerical helpers."""
+
+import json
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+R = D.parent / "S6-Newton-student-recovery-20261019-v1"
+P = D.parent / "S6-Newton-student-production-20261019-v1"
+assert (D / "recovery_compiler.py.txt").read_bytes() == (R / "compiler.py.txt").read_bytes()
+for name in ("epoch_verify.py.txt", "epoch_io.py.txt"):
+    assert (D / name).read_bytes() == (P / name).read_bytes()
+assert (D / "target_compiler.py.txt").read_bytes() == (
+    D.parent / "S6-target-trainer-compiler-20261018-v1/compiler.py.txt"
+).read_bytes()
+for name in ("gpu_entry.py.txt", "publish_epoch.py.txt"):
+    assert (D / name).read_text() == (P / name).read_text().replace("evc33", "evc48")
+source = (
+    (P / "compiler.py.txt")
+    .read_text()
+    .replace(
+        "actual_full3887_original_MRI_population_on_Newton_CPU_admitted",
+        "actual_earlier_H100_node_original_model_and_full_MRI_CPU_admitted",
+    )
+    .replace('"970800"', '"971665"')
+    .replace(
+        "original_plain_and_mirrored94_tensor_hashes_checked",
+        "original_plain_and_mirror94_tensor_hashes_checked",
+    )
+    .replace(
+        'inputs.get("original_target_arrays_and_proposals_SHA_equal") is not True',
+        'inputs.get("strict_original_parent_load") is not True\n        or inputs.get("source_numerical_modules_equal") is not True',
+    )
+)
+assert (D / "compiler.py.txt").read_text() == source
+source = (R / "gpu_entry_v2.py.txt").read_text().replace("evc33", "evc48")
+for a, b in [
+    ("torchvision_version", "torchvision"),
+    ("timm_version", "timm"),
+    ("torch_version", "torch"),
+]:
+    source = source.replace('runtime["' + a + '"]', 'runtime["' + b + '"]')
+assert (D / "recovery_entry.py.txt").read_text() == source
+for path in D.glob("*.py.txt"):
+    compile(path.read_text(), str(path), "exec")
+print(
+    json.dumps(
+        {
+            "host_closure_checks_passed": 8,
+            "recovery_compiler_target_compiler_epoch_verifiers_byte_unchanged": True,
+            "production_worker_compilation_changed_only_actual_CPU_receipt_admission": True,
+            "GPU_entries_and_publisher_only_host_or_actual_runtime_field_names_changed": True,
+            "actual_GPU_or_accuracy_acceptance": False,
+        }
+    )
+)

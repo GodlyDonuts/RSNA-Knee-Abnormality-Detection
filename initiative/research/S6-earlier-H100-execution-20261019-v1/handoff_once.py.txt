@@ -1,0 +1,225 @@
+"""Retire only provably idle old future owners, then arm one replacement pair."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-earlier-H100-execution-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "handoff-intent-v1.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+checks = json.loads((D / "prepared-checks.json").read_text())
+assert checks["actual_model_input_CPU"] == "971665" and checks["actual_aliases_CPU"] == "971721"
+for name, sha in checks["own_sources"].items():
+    body = (D / name).read_bytes()
+    assert hashlib.sha256(body).hexdigest() == sha
+    assert (
+        subprocess.check_output(["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()])
+        == body
+    )
+old = {
+    61949: R / "initiative/research/S6-Newton-student-production-20261019-v1/follow_once.py.txt",
+    59992: R / "initiative/research/S6-Newton-student-recovery-20261019-v1/follow_v2_once.py.txt",
+}
+keep = {
+    55175: R
+    / "initiative/research/S6-target-execution-inputs-20261019-v1/follow_handoff_once.py.txt",
+    56997: R
+    / "initiative/research/S6-target-execution-inputs-20261019-v1/follow_compile_once.py.txt",
+}
+
+
+def inspect(pid, path):
+    line = subprocess.check_output(
+        ["ps", "-p", str(pid), "-o", "stat=,command="], text=True
+    ).strip()
+    assert str(path) in line and not line.startswith("Z"), "Original exact process no longer live"
+    return line
+
+
+for pid, path in {**old, **keep}.items():
+    inspect(pid, path)
+with (L / "handoff-intent-v1.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "old_future_owners": list(old),
+            "keep_original_handoff_compiler": list(keep),
+            "new_GPU_jobs_now": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = """import json,os
+from pathlib import Path
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+assert not Path('/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1/owner-terminal.json').exists()
+assert not Path('/tmp/rsna-S6-Newton-student-recovery-20261019-v1/recovery-v1').exists()
+P=Path('/tmp/rsna-S6-Newton-student-production-20261019-v1')
+assert not (P/'production-stage-v1').exists() and not (P/'runs').exists()
+print(json.dumps({'status':'actual_original_future_GPU_recovery_and_fit_not_staged','CPU_job':os.environ['SLURM_JOB_ID'],'original_teacher_not_terminal':True,'GPU_or_existing_science_mutations':0}),flush=True)
+"""
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=256M",
+    "--time=00:02:00",
+    "--job-name=rsna-S6-idle-handoff-proof",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+stopped = []
+retired = False
+try:
+    # Freeze only idle local dispatchers before proving no in-flight mutation.
+    # The actual teacher, compiler and all Slurm science jobs remain untouched.
+    for pid, path in old.items():
+        inspect(pid, path)
+        os.kill(pid, signal.SIGSTOP)
+        stopped.append(pid)
+        for _ in range(30):
+            if inspect(pid, path).startswith("T"):
+                break
+            time.sleep(0.1)
+        else:
+            raise RuntimeError("Original controller pause not verified")
+    for name in (
+        "S6-Newton-student-recovery-20261019-v1/GPU-source-dispatch-v2-intent.json",
+        "S6-Newton-student-recovery-20261019-v1/GPU-follower-v2-result.json",
+        "S6-Newton-student-production-20261019-v1/production-owner-v1/production-CPU-dispatch-intent.json",
+        "S6-Newton-student-production-20261019-v1/production-owner-v1/actual-GPU-submitted.json",
+        "S6-target-execution-inputs-20261019-v1/compile-follower-result.json",
+    ):
+        assert not (R / "artifacts" / name).exists(), (
+            "Original mutation already advanced; preserve old owners"
+        )
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=t.envelope(program, {}),
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    (L / "idle-proof-transport.json").write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, "Original idle proof unavailable; resume old owners, no replacement"
+    proof = json.loads(x.stdout)
+    assert proof["status"] == "actual_original_future_GPU_recovery_and_fit_not_staged"
+    for pid, path in keep.items():
+        inspect(pid, path)
+    for pid in stopped:
+        os.kill(pid, signal.SIGTERM)
+        os.kill(pid, signal.SIGCONT)
+    for pid in stopped:
+        for _ in range(50):
+            x = subprocess.run(
+                ["ps", "-p", str(pid), "-o", "stat="], capture_output=True, text=True
+            )
+            if x.returncode != 0 or x.stdout.strip().startswith("Z"):
+                break
+            time.sleep(0.1)
+        else:
+            raise RuntimeError("Original idle controller termination uncertain; no new owners")
+    retired = True
+    receipt = {
+        "status": "actual_idle_future_controllers_retired_for_earlier_admitted_node",
+        "source_git": pin,
+        "old_recovery_and_production_stopped_before_GPU_intent": True,
+        "retired_PIDs": list(old),
+        "original_handoff_and_compiler_PIDs_preserved": list(keep),
+        "actual_original_idle_proof": proof,
+        "actual_node48_model_input_CPU": "971665",
+        "actual_node48_aliases_CPU": "971721",
+        "teacher_and_existing_Slurm_science_changed": False,
+        "automatic_retry": False,
+    }
+    (D / "actual-idle-controller-handoff.json").write_text(json.dumps(receipt, indent=2) + "\n")
+except BaseException:
+    if not retired:
+        for pid in stopped:
+            try:
+                os.kill(pid, signal.SIGCONT)
+            except ProcessLookupError:
+                pass
+    raise
+children = {}
+for role, script, intent in (
+    ("recovery", "follow_recovery_once.py.txt", "recovery-owner-v1/GPU-follower-v2-intent.json"),
+    ("production", "follow_production_once.py.txt", "production-owner-v1/intent.json"),
+):
+    assert not (L / intent).exists()
+    with (
+        (L / (role + "-owner.stdout.log")).open("xb") as out,
+        (L / (role + "-owner.stderr.log")).open("xb") as err,
+    ):
+        child = subprocess.Popen(
+            [sys.executable, "-u", str(D / script)],
+            cwd=R,
+            stdout=out,
+            stderr=err,
+            start_new_session=True,
+        )
+    children[role] = child.pid
+    for _ in range(100):
+        assert child.poll() is None, "Replacement stopped; inspect existing handle, never repeat"
+        if (L / intent).exists():
+            break
+        time.sleep(0.1)
+    else:
+        raise RuntimeError("Replacement startup uncertain; inspect existing PID")
+    actual = json.loads((L / intent).read_text())
+    assert actual["PID"] == child.pid and actual["source_git"] == pin
+    inspect(child.pid, D / script)
+for pid, path in keep.items():
+    inspect(pid, path)
+result = {
+    "status": "actual_distinct_earlier_node_recovery_and_production_owners_live",
+    "source_git": pin,
+    "PIDs": children,
+    "old_idle_PIDs_retired": list(old),
+    "original_handoff_and_compiler_preserved": list(keep),
+    "waits_original_complete_3887_teacher_and_compilation": True,
+    "new_GPU_jobs_dispatched": 0,
+    "maximum_future_GPU_jobs": 2,
+    "maximum_distinct_epoch_publications": 6,
+    "automatic_retry": False,
+}
+(D / "actual-owners-started.json").write_text(json.dumps(result, indent=2) + "\n")
+(L / "handoff-result-v1.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result), flush=True)

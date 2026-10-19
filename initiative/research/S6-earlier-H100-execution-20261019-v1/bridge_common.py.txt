@@ -1,0 +1,69 @@
+"""Bounded exact private target/source packet; no case values in public receipts."""
+
+import base64
+import hashlib
+import json
+from pathlib import Path
+
+NAMES = {
+    "complete-target-input-v1/teacher-targets.private.npz",
+    "complete-target-input-v1/complete-target-ready.json",
+    "complete-target-input-v1/verified.json",
+    "recovery-source-v1/recovery.private.py",
+    "recovery-source-v1/metadata.private.json",
+    "recovery-source-v1/verified.json",
+}
+CAP = 8 * 2**20
+
+
+def decode_packet(packet):
+    assert set(packet) == {"files", "source_CPU", "source_git"}
+    assert set(packet["files"]) == NAMES and str(packet["source_CPU"]).isdigit()
+    assert len(packet["source_git"]) == 40
+    decoded = {}
+    for name, row in packet["files"].items():
+        assert set(row) == {"bytes", "sha256", "data"}
+        assert type(row["bytes"]) is int and 0 < row["bytes"] <= CAP
+        assert len(row["data"]) <= 2 * CAP
+        raw = base64.b64decode(row["data"], validate=True)
+        assert len(raw) == row["bytes"] and hashlib.sha256(raw).hexdigest() == row["sha256"]
+        decoded[name] = raw
+    assert sum(map(len, decoded.values())) <= CAP
+    return decoded
+
+
+def verify_binding(decoded):
+    ready = json.loads(decoded["complete-target-input-v1/complete-target-ready.json"])
+    compiled = json.loads(decoded["recovery-source-v1/verified.json"])
+    metadata = json.loads(decoded["recovery-source-v1/metadata.private.json"])
+    target = decoded["complete-target-input-v1/teacher-targets.private.npz"]
+    assert ready["status"] == "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+    assert ready["population"] == 3887
+    assert ready["target_file"] == {
+        "bytes": len(target),
+        "sha256": hashlib.sha256(target).hexdigest(),
+    }
+    assert (
+        compiled["status"]
+        == "actual_complete_teacher_recovery_source_compiled_from_original_private_inputs"
+    )
+    assert compiled["complete_target_file"] == ready["target_file"]
+    assert (
+        compiled["source_sha256"]
+        == metadata["source_sha256"]
+        == hashlib.sha256(decoded["recovery-source-v1/recovery.private.py"]).hexdigest()
+    )
+    return ready, compiled
+
+
+def write_packet(root, packet):
+    decoded = decode_packet(packet)
+    ready, compiled = verify_binding(decoded)
+    root = Path(root)
+    assert all(not (root / n.split("/")[0]).exists() for n in NAMES)
+    for name, raw in decoded.items():
+        p = root / name
+        p.parent.mkdir(mode=0o700, exist_ok=True)
+        with p.open("xb") as f:
+            f.write(raw)
+    return ready, compiled

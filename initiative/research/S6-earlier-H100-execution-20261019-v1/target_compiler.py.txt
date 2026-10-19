@@ -1,0 +1,164 @@
+"""Compile the matched complete-teacher contrast; never launch or claim GPU acceptance."""
+
+import ast
+import base64
+import hashlib
+
+from scripts.kaggle import licensed_importance_production as original
+
+OVERLAY_SHA = "ca09ef0f2eb9712ec231d151b57769b6138e0d1d516918c8fdc1890c0034f18b"
+POP = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+STATUS = "actual_complete_S6_target_full_encoder_epoch_session_complete"
+ROLES = ("parent_only", "cross_lineage_equal_rank")
+MODULE = "rsna/competitive/complete_teacher_overlay.py"
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("Exactly one original source site required")
+    return source.replace(before, after)
+
+
+def values(source):
+    return {
+        node.targets[0].id: ast.literal_eval(node.value)
+        for node in ast.parse(source).body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id in ("FILES", "WORKER", "BINDING")
+    }
+
+
+def admit(ready, role):
+    if (
+        role not in ROLES
+        or ready.get("status")
+        != "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+        or ready.get("population") != 3887
+        or ready.get("population_sha256") != POP
+        or ready.get("labels_masks_and_original_targets_modified") is not False
+        or ready.get("labels_masks_or_protected_values_decoded") is not False
+        or set(ready.get("roles", {})) != set(ROLES)
+    ):
+        raise ValueError("Complete source-bound target admission required, never partial ranks")
+    item = ready.get("target_file", {})
+    for h in (
+        item.get("sha256"),
+        ready.get("complete_teacher_file_sha256"),
+        ready.get("complete_teacher_journal_sha256"),
+    ):
+        if not isinstance(h, str) or len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
+            raise ValueError("Exact complete target/teacher/journal hashes required")
+    if type(item.get("bytes")) is not int or not 0 < item["bytes"] < 2 * 2**20:
+        raise ValueError("Exact bounded target file required")
+    for r in ROLES:
+        b = ready["roles"][r]
+        if (
+            b.get("role") != r
+            or b.get("population") != 3887
+            or b.get("population_sha256") != POP
+            or b.get("diagnostic_only") is not False
+        ):
+            raise ValueError("Matched full population roles required")
+    return ready["roles"][role]
+
+
+def build(*args, ready, role, overlay_source, segment, previous=None):
+    """Keep original pixels, initialization, sampler and every numerical update intact."""
+    target_binding = admit(ready, role)
+    if hashlib.sha256(overlay_source.encode()).hexdigest() != OVERLAY_SHA:
+        raise ValueError("Exact separately tested data overlay source required")
+    if type(segment) is not int or not 1 <= segment <= 3:
+        raise ValueError("Fixed three epoch experiment required")
+    source, meta = original.build(*args, "influence", 1)
+    old = values(source)
+    binding = {
+        **old["BINDING"],
+        "production_plan": "complete_S6_equal_rank_matched_full3887_v1",
+        "teacher_target_role": role,
+        "complete_teacher_admission": ready,
+        "teacher_overlay_source_sha256": OVERLAY_SHA,
+        "actual_changed_target_GPU_recovery_claim": False,
+    }
+    worker = base64.b64decode(old["WORKER"], validate=True).decode()
+    worker = once(worker, "_BINDING=" + repr(old["BINDING"]), "_BINDING=" + repr(binding))
+    start = "data=ProposalCases(original,torch.from_numpy(q));del q"
+    replace = (
+        "from rsna.competitive.complete_teacher_overlay import TeacherOverlay,fit_with_teacher_targets;"
+        "target=locate('/kaggle/input','teacher-targets.private.npz',"
+        + repr(ready["target_file"]["bytes"])
+        + ","
+        + repr(ready["target_file"]["sha256"])
+        + ");"
+        "z=np.load(target,allow_pickle=False);assert set(z.files)=={'uids','parent_only','cross_lineage_equal_rank'};"
+        "assert z['uids'].tolist()==original.uids;"
+        "overlay=TeacherOverlay(original,z['uids'].tolist(),torch.from_numpy(z["
+        + repr(role)
+        + "].copy()),"
+        + repr(target_binding)
+        + ");z.close();"
+        "data=ProposalCases(overlay,torch.from_numpy(q));del q"
+    )
+    worker = once(worker, start, replace)
+    worker = once(
+        worker,
+        "result=fit(model,data,output,_BINDING,Recipe(epochs=3,role=_ROLE),",
+        "result=fit_with_teacher_targets(model,data,output,_BINDING,Recipe(epochs=3,role=_ROLE),",
+    )
+    worker_sha = original.digest(worker)
+    if segment == 1:
+        if previous is not None:
+            raise ValueError("Both roles start from the identical original parent")
+    else:
+        if (
+            not isinstance(previous, dict)
+            or previous.get("status") != STATUS
+            or previous.get("teacher_target_role") != role
+            or previous.get("segment") != segment - 1
+            or previous.get("completed") != (segment - 1) * 486
+            or previous.get("worker_sha256") != worker_sha
+            or previous.get("binding") != binding
+        ):
+            raise ValueError("Only exact same-role same-target optimizer continuation allowed")
+        for n in ("checkpoint", "run"):
+            p = previous.get(n, {})
+            if (
+                type(p.get("bytes")) is not int
+                or not 0 < p["bytes"] <= 2 * 2**30
+                or len(p.get("sha256", "")) != 64
+            ):
+                raise ValueError("Exact original continuation files required")
+    files = {**old["FILES"], MODULE: overlay_source}
+    for a, b in (
+        ("FILES=" + repr(old["FILES"]), "FILES=" + repr(files)),
+        (
+            "WORKER=" + repr(old["WORKER"]),
+            "WORKER=" + repr(base64.b64encode(worker.encode()).decode()),
+        ),
+        ("BINDING=" + repr(old["BINDING"]), "BINDING=" + repr(binding)),
+        ("SEGMENT=1", "SEGMENT=" + repr(segment)),
+        ("PREVIOUS=None", "PREVIOUS=" + repr(previous)),
+        ("actual_matched_IID16_full_parent_epoch_session_complete", STATUS),
+        ("receipt={'status':", "receipt={'teacher_target_role':" + repr(role) + ",'status':"),
+        (
+            "assert state['optimizer_boundary'] is True",
+            "assert state['binding']['teacher_transport']=="
+            + repr(target_binding)
+            + ";assert state['optimizer_boundary'] is True",
+        ),
+    ):
+        source = once(source, a, b)
+    compile(worker, "complete_teacher_target_worker", "exec")
+    compile(source, "complete_teacher_target_bootstrap", "exec")
+    return source, {
+        **meta,
+        "source_sha256": original.digest(source),
+        "worker_sha256": worker_sha,
+        "binding": binding,
+        "segment": segment,
+        "completed_target": 486 * segment,
+        "teacher_target_role": role,
+        "actual_changed_target_GPU_recovery_claim": False,
+        "new_GPU_dispatched": False,
+    }
