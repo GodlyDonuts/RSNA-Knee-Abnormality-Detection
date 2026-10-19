@@ -1,0 +1,84 @@
+"""Current-plan admission; old unstarted bulk writes require new explicit funding."""
+
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+GIB = 2**30
+MIB = 2**20
+
+
+def current_plan(extra=0):
+    if os.uname().nodename != "evc33" or os.environ.get("SLURM_JOB_GPUS"):
+        raise ValueError("Only existing CPU/RAM teacher and metadata scoring scope")
+    # No large new node disk writes: pixels/rendered tensors stay in existing
+    # bounded tmpfs; existing checkpoints/caches are never removed for credit.
+    future = 32 * MIB
+    free = shutil.disk_usage("/tmp").free
+    if type(extra) is not int or extra < 0 or free <= 20 * GIB + future + extra:
+        raise ValueError("Physical node reserve and current metadata envelope unavailable")
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    if (int(a[2]) - int(a[1])) * 1024 <= 20 * GIB + extra or int(a[6]) - int(a[5]) <= 5000:
+        raise ValueError("Shared physical byte/file reserve unavailable")
+    caps = {
+        "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1": 8 * MIB,
+        "/tmp/rsna-S6-complete-target-admission-20261018-v1": 4 * MIB,
+        "/tmp/rsna-paired-full-fitting-20261018-v1": 8 * MIB,
+    }
+    for root, cap in caps.items():
+        if sum(p.stat().st_size for p in Path(root).rglob("*") if p.is_file()) + extra >= cap:
+            raise ValueError("Existing current-plan control cap exceeded")
+    return {
+        "status": "current_CPU_RAM_and_metadata_only_resource_scope_accepted",
+        "actual_node_free_bytes": free,
+        "node_physical_reserve_bytes": 20 * GIB,
+        "future_current_metadata_bytes": future,
+        "shared_reserve_bytes": 20 * GIB,
+        "shared_reserve_files": 5000,
+        "new_bulk_disk_model_or_pixel_writes_allowed": False,
+        "unstarted_legacy_bulk_future_reservations": "deferred_requires_fresh_explicit_admission",
+        "physical_originals_deleted_or_moved": False,
+        "physical_deletion_credit": 0,
+        "RAM_memory_device_and_scientific_guards_unchanged": True,
+    }
+
+
+def adapt_teacher(source):
+    old = 'assert shutil.disk_usage("/tmp").free > floor'
+    if source.count(old) != 1:
+        raise ValueError("Exactly one original carried disk-resource guard required")
+    return source.replace(
+        old, "assert current_plan()['new_bulk_disk_model_or_pixel_writes_allowed'] is False"
+    )
+
+
+def scoring_bounds(extra=0):
+    current_plan(extra)
+    home = Path("/tmp/rsna-paired-full-fitting-20261018-v1")
+    r = home / "final-scoring-v1"
+
+    def paid(p):
+        return sum(x.stat().st_size for x in p.rglob("*") if x.is_file())
+
+    if paid(r) + extra + 131072 >= MIB or paid(home) + extra + max(0, MIB - paid(r)) >= 8 * MIB:
+        raise ValueError("Original scoring and parent control caps retained")
+    return True
+
+
+_original_resource_adaptation = adapt_teacher
+
+
+def adapt_teacher(source):
+    changed = _original_resource_adaptation(source)
+    replacements = {
+        "ThreadPoolExecutor(max_workers=12)": "ThreadPoolExecutor(max_workers=3)",
+        "slots = [Slot(i) for i in range(12)]": "slots = [Slot(i) for i in range(3)]",
+        '"CPU_workers": 12,': '"CPU_workers": 3,',
+    }
+    for old, new in replacements.items():
+        if changed.count(old) != 1:
+            raise ValueError("One exact scheduling-only substitution required")
+        changed = changed.replace(old, new)
+    return changed

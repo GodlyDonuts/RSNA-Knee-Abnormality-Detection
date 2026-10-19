@@ -1,0 +1,71 @@
+"""Continue at new phase10 after the original phase9 was actually reconciled."""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-full-CPU-teacher-20261018-v1/reconnected-owner-v3"
+assert not L.exists()
+for pid in (8865, 11145):
+    assert (
+        subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True).returncode
+        != 0
+    )
+v = json.loads((D / "actual-original-phase009.json").read_text())
+assert v["actual_Slurm_state"] == "COMPLETED" and v["actual_exit_code"] == "0:0"
+assert v["journal_rows"] == v["terminal"]["completed"] == 676
+assert v["journal_sha256"] == v["terminal"]["journal_sha256"]
+assert not any(v[n] for n in ("execution_lock_exists", "failed_file_exists", "next_phase_exists"))
+a = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "sacct -X -n -P -j 963591 --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert "963591|COMPLETED|0:0" in a
+original = R / "initiative/research/S6-full-CPU-teacher-20261018-v1/finish_once.py.txt"
+text = subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+assert text == original.read_text()
+old = 'L = R / "artifacts/S6-full-CPU-teacher-20261018-v1"'
+assert text.count(old) == text.count("for phase in range(128):") == 1
+text = text.replace(old, 'L = R / "artifacts/S6-full-CPU-teacher-20261018-v1/reconnected-owner-v3"')
+text = text.replace("for phase in range(128):", "for phase in range(10, 128):")
+L.mkdir(mode=0o700, parents=True)
+(L / "handoff-proof.json").write_text(
+    json.dumps(
+        {
+            "original_controller_sha256": hashlib.sha256(original.read_bytes()).hexdigest(),
+            "phase009_job": "963591",
+            "first_new_phase": 10,
+            "preserved_completed_studies": 676,
+            "unchanged_remote_numerical_program": True,
+            "automatic_uncertain_retry": False,
+        },
+        indent=2,
+    )
+)
+stage = json.loads((D / "actual-three-worker-staged.json").read_text())
+assert stage["original_phase9_preserved"] == 676 and stage["first_new_phase"] == 10
+old_path = "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py"
+assert text.count(old_path) == 1
+text = text.replace(
+    old_path, "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/reconnected-three-worker-v3/run.py"
+)
+assert text.count("--cpus-per-task=25") == text.count("--mem=192G") == 1
+text = text.replace("--cpus-per-task=25", "--cpus-per-task=7").replace("--mem=192G", "--mem=128G")
+text = text.replace('"CPU": 25,', '"CPU": 7,').replace('"memory_GiB": 192,', '"memory_GiB": 128,')
+exec(
+    compile(text, "original_CPU_controller_distinct_phase10_continuation", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)
