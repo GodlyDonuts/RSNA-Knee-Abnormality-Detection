@@ -1,0 +1,57 @@
+"""Fresh destination and truncation semantics of the exact accepted primitives."""
+
+import hashlib
+import io
+import json
+import tempfile
+from pathlib import Path
+
+import pytest
+
+old = Path("initiative/research/S6-Newton-student-production-20261019-v1")
+ns = {"__name__": "original_private_transfer_primitives"}
+for n in ("replica_transport.py.txt", "tls_resume.py.txt"):
+    exec(compile((old / n).read_text(), n, "exec"), ns)
+table = {}
+payload = {}
+expected = {}
+for i in range(4):
+    for suffix in ("pixels.tar", "index.private.json", "source-proof.private.json"):
+        name = f"shard-{i}/{suffix}"
+        raw = (name + " synthetic only").encode() * 7
+        payload[name] = raw
+        table[name] = {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+        expected[name] = None if suffix == "source-proof.private.json" else table[name]
+encoded = json.dumps(table, sort_keys=True).encode()
+packet = (
+    ns["MAGIC"]
+    + len(encoded).to_bytes(8, "big")
+    + encoded
+    + b"".join(payload[n] for n in sorted(payload))
+)
+with tempfile.TemporaryDirectory() as tmp:
+    for label, raw in [("complete", packet), ("truncated", packet[:-1]), ("extra", packet + b"x")]:
+        root = Path(tmp) / label
+        root.mkdir()
+        states, digests, stats = ns["prefix_states"](root, table)
+        assert all(v["offset"] == 0 for v in states.values())
+        stream = io.BytesIO(raw)
+        assert ns["header"](stream, expected) == table
+        if label == "complete":
+            ns["receive_remaining"](stream, root, table, states, digests, stats)
+            assert all((root / n).read_bytes() == v for n, v in payload.items())
+        else:
+            with pytest.raises((ValueError, AssertionError)):
+                ns["receive_remaining"](stream, root, table, states, digests, stats)
+    bad = {**expected, "shard-0/pixels.tar": {"bytes": 1, "sha256": "0" * 64}}
+    with pytest.raises(ValueError):
+        ns["header"](io.BytesIO(packet), bad)
+print(
+    json.dumps(
+        {
+            "status": "synthetic_fresh_original_file_copy_complete_truncation_extra_and_identity_checks_passed",
+            "checks": 4,
+            "new_protocol_or_GPU_acceptance": False,
+        }
+    )
+)

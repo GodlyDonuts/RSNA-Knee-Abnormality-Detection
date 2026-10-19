@@ -1,0 +1,82 @@
+# ruff: noqa: F821
+"""Authenticate the exact receiver, prove retained prefixes, send only missing bytes."""
+
+import ipaddress
+import json
+import os
+import socket
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+ready = v["ready"]
+assert ready["status"] == "original_private_TLS_receiver_ready" and ready["node"] == "evc48"
+address = socket.gethostbyname("ivc48")
+assert address == ready["private_address"] and ipaddress.ip_address(address).is_private
+C = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1/original-pixel-replica-v2")
+paths, stats = {}, {}
+for name, item in ready["files"].items():
+    shard, suffix = name.split("/")
+    assert shard in ("shard-0", "shard-1", "shard-2", "shard-3")
+    path = C / shard / suffix
+    assert path.is_file() and not path.is_symlink() and path.stat().st_size == item["bytes"]
+    proof = json.loads((C / shard / "source-proof.private.json").read_text())
+    assert (
+        proof["archive_sha256"] == ready["files"][shard + "/pixels.tar"]["sha256"]
+        and proof["index_sha256"] == ready["files"][shard + "/index.private.json"]["sha256"]
+    )
+    offset = ready["prefixes"][name]["offset"]
+    assert type(offset) is int and 0 <= offset <= item["bytes"]
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        remaining = offset
+        while remaining:
+            block = f.read(min(2**20, remaining))
+            assert block
+            h.update(block)
+            remaining -= len(block)
+    assert h.hexdigest() == ready["prefixes"][name]["prefix_sha256"], (
+        "Retained recipient prefix differs from original source"
+    )
+    paths[name] = path
+    stats[name] = (path.stat().st_ino, path.stat().st_size, path.stat().st_mtime_ns)
+channel = pinned_client(
+    socket.create_connection((address, int(ready["port"])), timeout=180),
+    ready["certificate_sha256"],
+)
+with channel:
+    authenticate_client(channel, secret, ready["certificate_sha256"])
+    del secret
+    with channel.makefile("wb") as out:
+        encoded = json.dumps(ready["files"], sort_keys=True).encode()
+        out.write(MAGIC + len(encoded).to_bytes(8, "big") + encoded)
+        for name, item in sorted(ready["files"].items()):
+            path = paths[name]
+            with path.open("rb") as f:
+                f.seek(ready["prefixes"][name]["offset"])
+                remaining = item["bytes"] - ready["prefixes"][name]["offset"]
+                while remaining:
+                    block = f.read(min(2**20, remaining))
+                    assert block
+                    out.write(block)
+                    remaining -= len(block)
+                assert not f.read(1)
+            assert (path.stat().st_ino, path.stat().st_size, path.stat().st_mtime_ns) == stats[name]
+print(
+    json.dumps(
+        {
+            "status": "original_private_missing_suffixes_streamed_directly",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": ready["files"],
+            "retained_prefix_bytes_not_resent": sum(
+                row["offset"] for row in ready["prefixes"].values()
+            ),
+            "large_complete_donor_archives_rehashed_again": False,
+            "private_key_or_secret_recorded": False,
+            "automatic_retry": False,
+        }
+    ),
+    flush=True,
+)
