@@ -1,0 +1,139 @@
+"""Explicit final-model, offline-source, measured-receipt and current-budget policy."""
+
+import hashlib
+import math
+
+ROLES = ("cross_lineage_equal_rank", "parent_only")
+ALIASES = dict(zip(ROLES, ("s6rank", "parent"), strict=True))
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+OFFLINE = "godlydonuts/rsna-paired-full-e3-7e6aa56c53a3"
+PIXELS32 = "godlydonuts/rsna-parent-exact-pixels32-09254e97913d"
+ROSTER = "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b"
+COLUMNS = [
+    "StudyInstanceUID",
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture",
+]
+CAPS = {"qualification": 1800, "competition": 32400}
+
+
+def budget(quota, mode):
+    if mode not in CAPS or "totalTimeAllowed" not in quota:
+        raise ValueError("Actual total GPU allowance and known mode required")
+    values = []
+    for key in ("totalTimeAllowed", "timeUsed", "timeReserved"):
+        value = float(str(quota.get(key, "0s")).removesuffix("s"))
+        if not math.isfinite(value) or value < 0:
+            raise ValueError("Finite nonnegative authoritative time counters required")
+        values.append(value)
+    remaining = values[0] - values[1] - values[2]
+    required = CAPS[mode] + 600 + (CAPS["competition"] if mode == "qualification" else 0)
+    return {
+        "available": remaining >= required,
+        "unreserved_VM_seconds": remaining,
+        "required_VM_seconds": required,
+        "current_cap": CAPS[mode],
+        "remaining_public_cap": CAPS["competition"] if mode == "qualification" else 0,
+        "safety_seconds": 600,
+        "minimumTimeAllowed_used_as_ceiling": False,
+    }
+
+
+def request(role, mode, source, source_sha, dataset):
+    if (
+        role not in ROLES
+        or mode not in CAPS
+        or dataset.get("private") is not True
+        or dataset.get("version") != 1
+        or hashlib.sha256(source.encode()).hexdigest() != source_sha
+    ):
+        raise ValueError("Known final role/mode and private immutable Dataset version1 required")
+    slug = (
+        "godlydonuts/rsna-complete-"
+        + ALIASES[role]
+        + "-e3-"
+        + ("qual-" if mode == "qualification" else "offline-")
+        + source_sha[:12]
+    )
+    return {
+        "slug": slug,
+        "newTitle": slug.split("/")[1].replace("-", " "),
+        "text": source,
+        "language": "python",
+        "kernelType": "script",
+        "isPrivate": True,
+        "enableGpu": True,
+        "machineShape": "NvidiaTeslaT4",
+        "enableInternet": False,
+        "datasetDataSources": [dataset["slug"]],
+        "competitionDataSources": []
+        if mode == "qualification"
+        else ["rsna-knee-abnormality-detection"],
+        "kernelDataSources": [OFFLINE] + ([PIXELS32] if mode == "qualification" else []),
+        "sessionTimeoutSeconds": CAPS[mode],
+        "dockerImage": DOCKER,
+        "dockerImagePinningType": "original",
+    }
+
+
+def receipt(receipt, candidate, mode):
+    if (
+        mode not in CAPS
+        or receipt.get("epoch") != 3
+        or receipt.get("model_sha256") != candidate["model_sha256"]
+        or receipt.get("training_source_sha256") != candidate["training"]["source_sha256"]
+        or receipt.get("role") != candidate["role"]
+        or receipt.get("training_windows") != 16
+        or receipt.get("serving_windows") != 94
+        or receipt.get("proposal_sha256")
+        != "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+        or receipt.get("competition_entry") is not False
+        or receipt.get("clinical_accuracy_claim") is not False
+    ):
+        raise ValueError("Actual immutable model/source/role/whole94 receipt required")
+    if mode == "qualification":
+        devices = receipt.get("devices", [])
+        if (
+            receipt.get("status")
+            != "actual_complete_target_H100_epoch_bothT4_original32_MRI_and_training_graph_qualified"
+            or receipt.get("qualified_studies") != 32
+            or receipt.get("qualification_cannot_submit") is not True
+            or len(devices) != 2
+            or {d.get("index") for d in devices} != {0, 1}
+            or any(
+                "T4" not in d.get("GPU", "")
+                or d.get("MRI_studies") != 32
+                or d.get("both_original94_input_views_bit_equal") is not True
+                or d.get("complete_learned_graph_tensor_values_equal") is not True
+                or not 0
+                <= d.get("maximum_original_class_vs_training_graph_probability_error", math.inf)
+                <= 1e-6
+                or not 0 < d.get("peak_allocated_bytes", 0) < 16 * 2**30
+                for d in devices
+            )
+        ):
+            raise ValueError(
+                "Actual original32 MRI and complete learned graph on both T4s required"
+            )
+    elif (
+        receipt.get("status") != "actual_complete_target_H100_epoch_MRI_test_roster_CSV_complete"
+        or receipt.get("studies") != 3
+        or receipt.get("columns") != 13
+        or receipt.get("test_roster_sha256") != ROSTER
+        or receipt.get("prediction_counts")
+        != {"started": 6, "completed": 6, "failed": 0, "decode_errors": 0, "empty_views": 0}
+        or len(receipt.get("devices", [])) != 2
+        or any("T4" not in name for name in receipt["devices"])
+    ):
+        raise ValueError("Exact public test roster, both T4s and no public fallback required")
+    return True

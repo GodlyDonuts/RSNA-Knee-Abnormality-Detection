@@ -1,0 +1,74 @@
+"""Launch one original finite scorer after its CPU control was actually admitted."""
+
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path.cwd()
+D = Path(__file__).resolve().parent
+L = ROOT / "artifacts/S6-final-Kaggle-execution-20261019-v1"
+os.umask(0o077)
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert (
+    (D / "actual-staged.json").exists()
+    and not (L / "launch-intent.json").exists()
+    and not (L / "owner-intent.json").exists()
+)
+source = json.loads((D / "actual-staged.json").read_text())["source_git"]
+assert (
+    subprocess.check_output(
+        ["git", "show", source + ":" + (D / "follow_once.py.txt").relative_to(ROOT).as_posix()]
+    )
+    == (D / "follow_once.py.txt").read_bytes()
+)
+producer = subprocess.run(["ps", "-p", "71311", "-o", "command="], capture_output=True, text=True)
+assert (
+    producer.returncode == 0
+    and "S6-fixed-final-packaging-20261019-v1/follow_once.py.txt" in producer.stdout
+)
+with (L / "launch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": source,
+            "maximum_new_followers": 1,
+            "automatic_retry": False,
+            "waits_original_packaging_PID": 71311,
+        },
+        f,
+        indent=2,
+    )
+with (L / "stdout.log").open("x") as out, (L / "stderr.log").open("x") as err:
+    child = subprocess.Popen(
+        [sys.executable, str(D / "follow_once.py.txt")],
+        cwd=ROOT,
+        stdout=out,
+        stderr=err,
+        start_new_session=True,
+    )
+    for _ in range(50):
+        if (L / "owner-intent.json").exists() or child.poll() is not None:
+            break
+        time.sleep(0.1)
+assert (
+    child.poll() is None and json.loads((L / "owner-intent.json").read_text())["PID"] == child.pid
+)
+observed = subprocess.run(
+    ["ps", "-p", str(child.pid), "-o", "command="], capture_output=True, text=True
+)
+assert observed.returncode == 0 and str(D / "follow_once.py.txt") in observed.stdout
+actual = {
+    "status": "actual_sole_final_S6_Kaggle_follower_live_waiting_original_models",
+    "PID": child.pid,
+    "source_git": source,
+    "original_packaging_PID": 71311,
+    "maximum_Datasets": 2,
+    "maximum_GPU_pushes": 4,
+    "maximum_code_entries": 2,
+    "new_GPU_Dataset_or_entry_mutations": 0,
+    "automatic_retry": False,
+}
+(D / "actual-owner-started.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

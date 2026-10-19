@@ -1,0 +1,592 @@
+"""One canonical phase: actual final H100 student to accepted offline code entry."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
+D = Path("/tmp/rsna-S6-fixed-final-deployment-20261019-v1")
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+MANAGER = "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"
+
+
+def read(path):
+    return json.loads(Path(path).read_text())
+
+
+def sha(path):
+    with Path(path).open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def bounds():
+    assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+    assert os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+    assert sum(p.stat().st_size for p in F.rglob("*") if p.is_file()) < 2 * 2**30
+    assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    row = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+    paid = [p for p in teacher.rglob("*") if p.is_file()]
+    assert len(paid) <= 256 and sum(p.stat().st_size for p in paid) < 4 * 2**20
+    assert (int(row[2]) - int(row[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+        0, 4 * 2**20 - sum(p.stat().st_size for p in paid)
+    )
+    assert int(row[6]) - int(row[5]) > 5000 + 128 + 128 + 24 + max(0, 256 - len(paid))
+
+
+def load(name):
+    path = F / "code" / (name + ".py")
+    spec = importlib.util.spec_from_file_location("S6_final_" + name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def execute(v):
+    phase, role = v["phase"], v.get("role", "cross_lineage_equal_rank")
+    assert phase in (
+        "stage",
+        "prepare",
+        "create_dataset",
+        "dataset_status",
+        "push",
+        "status",
+        "submit",
+        "outcome",
+    )
+    assert role in ("cross_lineage_equal_rank", "parent_only")
+    bounds()
+    if phase == "stage":
+        assert not F.exists()
+        assert v["source_sha256"] == {
+            n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["sources"].items()
+        }
+        assert sum(len(s.encode()) for s in v["sources"].values()) < 256 * 2**10
+        for n, s in v["sources"].items():
+            assert n.endswith(".py") and "/" not in n
+            compile(s, n, "exec")
+        versions = subprocess.check_output(
+            [
+                MANAGER,
+                "-c",
+                "import importlib.metadata,json; print(json.dumps({n:importlib.metadata.version(n) for n in ('kaggle','kagglesdk')}))",
+            ],
+            text=True,
+        )
+        assert json.loads(versions) == {"kaggle": "2.2.3", "kagglesdk": "0.1.30"}
+        F.mkdir(mode=0o700)
+        (F / "code").mkdir(mode=0o700)
+        for n, s in v["sources"].items():
+            (F / "code" / n).write_text(s)
+        info = {
+            "status": "actual_CPU_final_S6_Kaggle_control_staged_no_models_or_GPU_or_entry",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "source_sha256": v["source_sha256"],
+            "maximum_Datasets": 2,
+            "maximum_GPU_pushes": 4,
+            "maximum_code_entries": 2,
+            "automatic_retry": False,
+            "node_cap_bytes": 2 * 2**30,
+        }
+        for name in ("workflow", "publication", "policy", "gpu_capacity", "output_csv"):
+            load(name)
+        (F / "staged.json").write_text(json.dumps(info, indent=2) + "\n")
+        return info
+    stage = read(F / "staged.json")
+    assert stage["source_git"] == v["source_git"] and stage["source_sha256"] == v["source_sha256"]
+    assert all(sha(F / "code" / n) == h for n, h in stage["source_sha256"].items())
+    w, p, policy = load("workflow"), load("publication"), load("policy")
+    import requests
+
+    remote = w.Remote.__new__(w.Remote)
+    remote.session = requests.Session()
+    remote.session.headers["Authorization"] = "Bearer " + v["token"]
+    remote.username = "godlydonuts"
+    who = remote.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+    assert who.get("active") is True and who.get("username") == "godlydonuts"
+    original = read(D / "verified.json")
+    assert (
+        original["status"]
+        == "actual_both_original_fixed_final_H100_models_packaged_for_separate_T4_qualification"
+    )
+    candidate = read(D / role / "prepared.private.json")
+    assert candidate["epoch"] == 3 and candidate["updates"] == 1458 and candidate["role"] == role
+    assert {k: candidate[k] for k in original["candidates"][role]} == original["candidates"][role]
+    model_sha = candidate["model_sha256"]
+    assert len(model_sha) == 64 and all(c in "0123456789abcdef" for c in model_sha)
+    key = "licensed-parent-full-epoch-serving:" + model_sha
+    target = F / role
+    claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+    try:
+        claim.mkdir(mode=0o700)
+    except FileExistsError:
+        return {"status": "waiting_existing_canonical_claim_no_mutation"}
+    owner = {
+        "kind": "actual_S6_complete_target_fixed_final_serving",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "phase": phase,
+        "role": role,
+    }
+    w.new_json(claim / "owner.json", owner)
+    retain = False
+    try:
+        with w.ledger(
+            Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+        ) as db:
+            w.verify_account(db, remote)
+            if phase == "prepare":
+                assert (
+                    not target.exists()
+                    and db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone() is None
+                )
+                source = {}
+                for mode in policy.CAPS:
+                    path = D / role / (mode + ".private.py")
+                    assert (
+                        sha(path) == candidate["source"][mode]["sha256"]
+                        and path.stat().st_size == candidate["source"][mode]["bytes"]
+                    )
+                    source[mode] = candidate["source"][mode]
+                target.mkdir(mode=0o700)
+                data = target / "data"
+                data.mkdir(mode=0o700)
+                upload = target / "upload"
+                upload.mkdir(mode=0o700)
+                actual_model = P / "runs" / role / "epoch-checkpoints/epoch-003.pt"
+                permission = P / "production-stage-v1" / ("code-" + role) / "source-permission.txt"
+                assert (
+                    sha(permission)
+                    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+                )
+                os.link(actual_model, data / "epoch-003.pt")
+                os.link(permission, data / "source-permission.txt")
+                w.new_json(
+                    data / "model-binding.json", candidate["training"]["receipt"]["model_snapshot"]
+                )
+                files = {
+                    name: {"bytes": (data / name).stat().st_size, "sha256": sha(data / name)}
+                    for name in ("epoch-003.pt", "source-permission.txt", "model-binding.json")
+                }
+                assert files["epoch-003.pt"] == candidate["training"]["receipt"]["model_snapshot"]
+                slug = "godlydonuts/rsna-complete-" + policy.ALIASES[role] + "-e3-" + model_sha[:12]
+                manifest = {
+                    "kind": "actual_preserved_fixed_final_oneH100_model_only",
+                    "role": role,
+                    "epoch": 3,
+                    "model_sha256": model_sha,
+                    "original_source_git": candidate["original_training_source_git"],
+                    "publication_revision": candidate["publication_revision"],
+                    "files": files,
+                    "MRI_reports_or_per_case_arrays_or_optimizer_included": False,
+                }
+                w.new_json(data / "bundle-manifest.json", manifest)
+                w.new_json(
+                    data / "dataset-metadata.json",
+                    {
+                        "id": slug,
+                        "title": slug.split("/")[1].replace("-", " "),
+                        "licenses": [{"name": "other"}],
+                    },
+                )
+                files = p.expected_files(data, manifest)
+                archive = p.build_zip(data, files, upload / "bundle.zip")
+                row = {
+                    "state": "importance_epoch_serving_prepared",
+                    "kind": "complete_target_oneH100_fixed_final",
+                    "role": role,
+                    "epoch": 3,
+                    "model_sha256": model_sha,
+                    "source_git": v["source_git"],
+                    "candidate": candidate,
+                    "dataset_slug": slug,
+                    "files": files,
+                    "archive": archive,
+                    "source": source,
+                }
+                db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row, sort_keys=True)))
+                db.commit()
+                w.new_json(target / "prepared.json", row)
+                bounds()
+                return {
+                    "status": "actual_original_final_model_transport_prepared",
+                    "role": role,
+                    "model_sha256": model_sha,
+                    "new_GPU_or_entry_mutations": 0,
+                }
+            found = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+            assert found is not None
+            row = json.loads(found[0])
+            assert row["candidate"] == candidate and row["role"] == role
+
+            def save():
+                db.execute(
+                    "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+                )
+                db.execute(
+                    "INSERT INTO events(at,sha,event) VALUES(?,?,?)",
+                    (w.utcnow(), model_sha, row["state"]),
+                )
+                db.commit()
+
+            if phase == "create_dataset":
+                assert (
+                    row["state"] == "importance_epoch_serving_prepared"
+                    and not (target / "dataset-journal/intent.json").exists()
+                )
+
+                def create(token, slug, title, upload):
+                    env = {
+                        **os.environ,
+                        "CUDA_VISIBLE_DEVICES": "",
+                        "KAGGLE_CONFIG_DIR": str(F / "sdk-private-config"),
+                    }
+                    x = subprocess.run(
+                        [MANAGER, str(F / "code/publication.py"), "--sdk-worker"],
+                        input=json.dumps(
+                            {
+                                "token": token,
+                                "slug": slug,
+                                "title": title,
+                                "upload": str(upload),
+                                "archive_sha256": row["archive"]["sha256"],
+                            }
+                        ),
+                        capture_output=True,
+                        text=True,
+                        env=env,
+                        timeout=900,
+                    )
+                    assert x.returncode == 0, "Uncertain Dataset SDK result; no CreateDataset retry"
+                    result = json.loads(x.stdout)
+                    assert (
+                        result.get("returned") is True and result.get("final_create_rpc_calls") == 1
+                    )
+                    return result
+
+                # Both canonical and transport intents survive an uncertain final CreateDataset.
+                row["state"] = "full_parent_epoch_dataset_create_intent"
+                save()
+                retain = True
+                result = p.create_once(
+                    remote,
+                    v["token"],
+                    row["dataset_slug"],
+                    row["files"],
+                    target / "upload",
+                    target / "dataset-journal",
+                    {
+                        "archive_sha256": row["archive"]["sha256"],
+                        "model_sha256": model_sha,
+                        "source_git": v["source_git"],
+                    },
+                    create=create,
+                )
+                row.update(
+                    state="full_parent_epoch_dataset_created", dataset_create_response=result
+                )
+                save()
+                retain = False
+                return {
+                    "status": "actual_one_private_final_model_Dataset_created_not_verified",
+                    "role": role,
+                    "slug": row["dataset_slug"],
+                }
+            if phase == "dataset_status":
+                assert row["state"] in (
+                    "full_parent_epoch_dataset_created",
+                    "full_parent_epoch_dataset_verified",
+                )
+                if row["state"] == "full_parent_epoch_dataset_created":
+                    user, name = row["dataset_slug"].split("/")
+                    state = remote.call(
+                        "datasets.DatasetApiService",
+                        "GetDatasetStatus",
+                        {"ownerSlug": user, "datasetSlug": name},
+                    )
+                    if state.get("status") not in ("READY", 5):
+                        return {
+                            "status": "waiting_same_original_Dataset_ingestion_no_mutation",
+                            "actual_status": state.get("status"),
+                        }
+                    checked = p.reconcile(remote, row["dataset_slug"], row["files"])
+                    row.update(state="full_parent_epoch_dataset_verified", dataset=checked)
+                    save()
+                    w.new_json(target / "dataset-private-verified.json", checked)
+                return {
+                    "status": "actual_model_Dataset_all_objects_download_size_SHA_verified",
+                    "role": role,
+                    "dataset": {k: row["dataset"][k] for k in ("slug", "id", "version", "private")},
+                    "objects": len(row["dataset"]["files"]),
+                }
+            mode = v.get("mode", "qualification")
+            assert mode in policy.CAPS
+            dataset = {k: row["dataset"][k] for k in ("slug", "id", "version", "private")}
+            assert p.metadata(remote, dataset["slug"]) == dataset
+            source = (D / role / (mode + ".private.py")).read_text()
+            source_sha = hashlib.sha256(source.encode()).hexdigest()
+            assert source_sha == candidate["source"][mode]["sha256"]
+            request = policy.request(role, mode, source, source_sha, dataset)
+            slug = request["slug"]
+
+            def exact():
+                kernel = remote.kernel("GetKernel", slug, 1)
+                m = kernel["metadata"]
+                assert kernel["blob"]["source"] == source
+                assert m.get("id") == row[mode]["kernel_id"]
+                for name in ("isPrivate", "enableGpu", "machineShape", "dockerImage"):
+                    assert m.get(name) == request[name]
+                assert not m.get("enableInternet", False)
+                for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                    assert sorted(m.get(name, [])) == sorted(request[name])
+                return remote.kernel("GetKernelSessionStatus", slug, 1).get("status")
+
+            if phase == "push":
+                assert mode not in row and not (target / (mode + "-push-intent.json")).exists()
+                assert row["state"] == (
+                    "full_parent_epoch_dataset_verified"
+                    if mode == "qualification"
+                    else "full_parent_epoch_qualification_accepted"
+                )
+                cap = load("gpu_capacity").admission(db, remote, caller="serving")
+                quota = remote.call(
+                    "kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {}
+                )["gpuQuota"]
+                budget = policy.budget(quota, mode)
+                if not cap["available"] or not budget["available"]:
+                    return {
+                        "status": "waiting_actual_GPU_capacity_or_budget_no_mutation",
+                        "capacity": cap,
+                        "budget": budget,
+                    }
+                for ref in request["kernelDataSources"]:
+                    assert (
+                        remote.kernel("GetKernelSessionStatus", ref, 1).get("status") == "COMPLETE"
+                    )
+                absence = remote.require_absent_kernel(slug)
+                intent = {
+                    "role": role,
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": source_sha,
+                    "model_sha256": model_sha,
+                    "budget": budget,
+                    "capacity": cap,
+                    "absence": absence,
+                    "request_sha256": w.object_hash(request),
+                    "automatic_retry": False,
+                }
+                w.new_json(target / (mode + "-push-intent.json"), intent)
+                row.update(state="full_parent_epoch_" + mode + "_push_intent", **{mode: intent})
+                save()
+                retain = True
+                response = remote.call("kernels.KernelsApiService", "SaveKernel", request)
+                w.new_json(target / (mode + "-push-response.json"), response)
+                assert (
+                    response.get("ref") == "/code/" + slug
+                    and response.get("versionNumber") == 1
+                    and type(response.get("kernelId")) is int
+                    and not response.get("error")
+                )
+                assert not any(response.get(name) for name in w.SAVE_KERNEL_INVALID)
+                row[mode]["kernel_id"] = response["kernelId"]
+                row["state"] = "full_parent_epoch_" + mode + "_pushed"
+                save()
+                retain = False
+                return {
+                    "status": "one_exact_final_" + mode + "_pushed",
+                    "role": role,
+                    "slug": slug,
+                    "version": 1,
+                    "kernel_id": response["kernelId"],
+                    "model_sha256": model_sha,
+                    "source_sha256": source_sha,
+                    "competition_entry": False,
+                }
+            assert mode in row and row[mode]["source_sha256"] == source_sha
+            actual_status = exact()
+            if phase == "status":
+                result = {
+                    "status": actual_status,
+                    "role": role,
+                    "mode": mode,
+                    "slug": slug,
+                    "version": 1,
+                    "kernel_id": row[mode]["kernel_id"],
+                    "source_sha256": source_sha,
+                    "model_sha256": model_sha,
+                }
+                if actual_status == "COMPLETE":
+                    receipt = remote.output_json(
+                        slug,
+                        1,
+                        "licensed-IID16-epoch-"
+                        + ("qualification" if mode == "qualification" else "public")
+                        + "-accepted.json",
+                    )
+                    policy.receipt(receipt, candidate, mode)
+                    result["receipt"] = receipt
+                    if mode == "competition":
+                        csv = load("output_csv")
+                        checked = csv.verify_csv(
+                            csv.download_csv(remote, slug, 1), policy.COLUMNS, policy.ROSTER
+                        )
+                        assert (
+                            checked["CSV_sha256"] == receipt["CSV_sha256"]
+                            and checked["bytes"] == receipt["CSV_bytes"]
+                        )
+                        result["CSV_verified_in_RAM"] = checked
+                    if not (target / (mode + "-actual-accepted.json")).exists():
+                        w.new_json(target / (mode + "-actual-accepted.json"), result)
+                        row[mode]["receipt"] = receipt
+                        row["state"] = "full_parent_epoch_" + mode + "_accepted"
+                        save()
+                elif actual_status in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+                    if not (target / (mode + "-actual-failed.json")).exists():
+                        w.new_json(target / (mode + "-actual-failed.json"), result)
+                        row["state"] = "full_parent_epoch_" + mode + "_failed"
+                        save()
+                return result
+            assert mode == "competition" and actual_status == "COMPLETE"
+            if phase == "submit":
+                assert (
+                    row["state"] == "full_parent_epoch_competition_accepted"
+                    and not row.get("submission_id")
+                    and not (target / "entry-intent.json").exists()
+                )
+                public = read(target / "competition-actual-accepted.json")
+                assert (
+                    public["receipt"] == row["competition"]["receipt"]
+                    and public["CSV_verified_in_RAM"]["test_roster_sha256"] == policy.ROSTER
+                )
+                account = remote.account()
+                slots = w.allowance(db, account)
+                if slots < 1:
+                    return {
+                        "status": "waiting_authoritative_live_account_allowance_no_mutation",
+                        "account": account,
+                    }
+                subs = remote.submissions()
+                description = "rsna-complete-" + policy.ALIASES[role] + "-e3:" + model_sha
+                assert not any(s.get("description") == description for s in subs)
+                assert not any(
+                    json.loads(raw)
+                    .get("state", "")
+                    .endswith(("_submit_intent", "_submit_uncertain"))
+                    for (raw,) in db.execute("SELECT value FROM meta")
+                    if raw.lstrip().startswith("{")
+                )
+                intent = {
+                    "role": role,
+                    "description": description,
+                    "model_sha256": model_sha,
+                    "source_sha256": source_sha,
+                    "slug": slug,
+                    "version": 1,
+                    "kernel_id": row[mode]["kernel_id"],
+                    "fileName": "submission.csv",
+                    "fresh_account": account,
+                    "effective_allowance": slots,
+                    "automatic_retry": False,
+                }
+                w.new_json(target / "entry-intent.json", intent)
+                row.update(
+                    state="full_parent_epoch_submit_intent",
+                    description=description,
+                    attempted_at=w.utcnow(),
+                )
+                save()
+                retain = True
+                user, name = slug.split("/")
+                response = remote.competition(
+                    "CreateCodeSubmission",
+                    {
+                        "fileName": "submission.csv",
+                        "kernelOwner": user,
+                        "kernelSlug": name,
+                        "kernelVersion": 1,
+                        "submissionDescription": description,
+                    },
+                )
+                w.new_json(target / "entry-response.json", response)
+                assert type(response.get("ref")) is int and response["ref"] > 0
+                row.update(state="full_parent_epoch_submitted", submission_id=response["ref"])
+                save()
+                retain = False
+                result = {
+                    "status": "one_exact_final_code_submission_accepted",
+                    "role": role,
+                    "submission_id": response["ref"],
+                    "slug": slug,
+                    "version": 1,
+                    "public_example_CSV_uploaded": False,
+                    "actual_hidden_score_known": False,
+                }
+                w.new_json(target / "actual-submitted.json", result)
+                return result
+            assert phase == "outcome" and row["state"] in (
+                "full_parent_epoch_submitted",
+                "full_parent_epoch_scored",
+                "full_parent_epoch_hidden_failed",
+            )
+            found = [s for s in remote.submissions() if s.get("ref") == row["submission_id"]]
+            assert len(found) == 1
+            s = found[0]
+            outcome = w.submission_outcome(s)
+            result = {
+                "status": "actual_final_hidden_outcome",
+                "role": role,
+                "submission_id": s["ref"],
+                "actual_status": s.get("status"),
+                "public_score": s.get("publicScore"),
+                "outcome": outcome,
+                "error_present": bool(s.get("errorDescription")),
+                "new_mutations": 0,
+            }
+            if outcome in ("scored", "failed"):
+                row.update(
+                    state="full_parent_epoch_scored"
+                    if outcome == "scored"
+                    else "full_parent_epoch_hidden_failed",
+                    actual_hidden_outcome=result,
+                )
+                save()
+                if not (target / "actual-hidden-terminal.json").exists():
+                    w.new_json(target / "actual-hidden-terminal.json", result)
+            return result
+    finally:
+        if not retain:
+            assert read(claim / "owner.json") == owner
+            (claim / "owner.json").unlink()
+            claim.rmdir()
+
+
+if __name__ == "__main__":
+    os.umask(0o077)
+    value = json.load(sys.stdin)
+    try:
+        print(json.dumps(execute(value)), flush=True)
+    except BaseException as error:
+        import traceback
+
+        frames = traceback.extract_tb(error.__traceback__)
+        print(
+            json.dumps(
+                {
+                    "status": "original_final_serving_phase_stopped_no_retry",
+                    "phase": value.get("phase"),
+                    "exception_type": type(error).__name__,
+                    "site_line": frames[-1].lineno if frames else None,
+                    "URLs_credentials_external_source_or_case_records_logged": False,
+                }
+            ),
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(1) from None

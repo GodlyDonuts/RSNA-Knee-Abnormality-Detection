@@ -1,0 +1,125 @@
+"""Run one committed canonical Kaggle phase on the private owning CPU node."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path.cwd()
+HERE = Path(__file__).resolve().parent
+LOCAL = ROOT / "artifacts/S6-final-Kaggle-execution-20261019-v1"
+PATHS = {
+    n + ".py": ROOT / "scripts/kaggle" / (n + ".py")
+    for n in ("workflow", "components", "publication", "gpu_capacity", "output_csv")
+}
+PATHS.update({n + ".py": HERE / (n + ".py.txt") for n in ("policy", "program")})
+SSH = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+
+
+def sources_at(pin):
+    source = {
+        n: subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(ROOT).as_posix()], text=True
+        )
+        for n, p in PATHS.items()
+    }
+    assert all(p.read_text() == source[n] for n, p in PATHS.items()), (
+        "Do not change a live frozen scoring source"
+    )
+    return source
+
+
+def run(phase, role="cross_lineage_equal_rank", mode="qualification"):
+    LOCAL.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if phase == "stage":
+        pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        assert not (LOCAL / "stage-intent.json").exists()
+    else:
+        pin = json.loads((HERE / "actual-staged.json").read_text())["source_git"]
+    source = sources_at(pin)
+    payload = {
+        "phase": phase,
+        "role": role,
+        "mode": mode,
+        "source_git": pin,
+        "source_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in source.items()},
+    }
+    if phase == "stage":
+        payload["sources"] = source
+        with (LOCAL / "stage-intent.json").open("x") as f:
+            json.dump(
+                {
+                    "source_git": pin,
+                    "source_sha256": payload["source_sha256"],
+                    "new_GPU_Dataset_or_entry_mutations": 0,
+                    "automatic_retry": False,
+                },
+                f,
+                indent=2,
+            )
+    else:
+        env = ROOT / ".env"
+        assert env.stat().st_mode & 0o077 == 0
+        values = {
+            k.strip(): v.strip().strip("\"'")
+            for line in env.read_text().splitlines()
+            for k, sep, v in [line.partition("=")]
+            if sep and not line.lstrip().startswith("#")
+        }
+        payload["token"] = values["KAGGLE_API_TOKEN"]
+    helper = ROOT / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+    spec = importlib.util.spec_from_file_location("original_final_transport", helper)
+    transport = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(transport)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=evc48",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=4G",
+        "--time=00:20:00",
+        "--job-name=rsna-S6-final-" + phase,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+        "-B",
+        "-c",
+        transport.COMMAND,
+    ]
+    result = subprocess.run(
+        [*SSH, shlex.join(args)],
+        input=transport.envelope(source["program.py"], payload),
+        capture_output=True,
+        text=True,
+        timeout=2700,
+    )
+    (LOCAL / (role + "-" + phase + "-" + mode + "-" + str(time.time_ns()) + ".json")).write_text(
+        json.dumps(
+            {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr},
+            indent=2,
+        )
+        + "\n"
+    )
+    assert result.returncode == 0, (
+        "Inspect exact original phase/ledger/intent; never retry uncertainty: "
+        + result.stderr[-1000:]
+    )
+    actual = json.loads(result.stdout)
+    if phase == "stage":
+        (HERE / "actual-staged.json").write_text(json.dumps(actual, indent=2) + "\n")
+    return actual
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)

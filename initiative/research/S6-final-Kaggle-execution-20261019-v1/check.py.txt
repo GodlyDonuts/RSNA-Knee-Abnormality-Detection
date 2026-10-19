@@ -1,0 +1,343 @@
+"""Policy plus real state-machine refusal tests, without account/network access."""
+
+import copy
+import hashlib
+import importlib.util
+import json
+import os
+import tempfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+from scripts.kaggle import workflow
+
+D = Path(__file__).resolve().parent
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(path)))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+policy = load("new_final_policy", D / "policy.py.txt")
+checks = 0
+for mode, required in (("qualification", 34800), ("competition", 33000)):
+    q = {
+        "totalTimeAllowed": "162000s",
+        "timeUsed": str(162000 - required) + "s",
+        "timeReserved": "0s",
+        "minimumTimeAllowed": "1s",
+    }
+    assert policy.budget(q, mode)["available"]
+    q["timeReserved"] = "1s"
+    assert not policy.budget(q, mode)["available"]
+    checks += 2
+for q in (
+    {"minimumTimeAllowed": "999999s"},
+    {"totalTimeAllowed": "NaNs"},
+    {"totalTimeAllowed": "infs"},
+    {"totalTimeAllowed": "-1s"},
+):
+    with pytest.raises(ValueError):
+        policy.budget(q, "competition")
+    checks += 1
+source = "pass\n"
+source_sha = hashlib.sha256(source.encode()).hexdigest()
+dataset = {"slug": "godlydonuts/synthetic-final", "id": 123, "version": 1, "private": True}
+candidate = {
+    "role": "cross_lineage_equal_rank",
+    "model_sha256": "a" * 64,
+    "training": {"source_sha256": "b" * 64},
+    "epoch": 3,
+    "updates": 1458,
+    "source": {mode: {"bytes": len(source), "sha256": source_sha} for mode in policy.CAPS},
+}
+for role in policy.ROLES:
+    for mode in policy.CAPS:
+        request = policy.request(role, mode, source, source_sha, dataset)
+        assert (
+            request["isPrivate"]
+            and not request["enableInternet"]
+            and request["sessionTimeoutSeconds"] <= 32400
+        )
+        assert (
+            request["machineShape"] == "NvidiaTeslaT4" and request["dockerImage"] == policy.DOCKER
+        )
+        assert request["kernelDataSources"] == [policy.OFFLINE] + (
+            [policy.PIXELS32] if mode == "qualification" else []
+        )
+        assert request["competitionDataSources"] == (
+            [] if mode == "qualification" else ["rsna-knee-abnormality-detection"]
+        )
+        checks += 1
+for ds in ({**dataset, "private": False}, {**dataset, "version": 2}):
+    with pytest.raises(ValueError):
+        policy.request(candidate["role"], "qualification", source, source_sha, ds)
+    checks += 1
+with pytest.raises(ValueError):
+    policy.request(candidate["role"], "qualification", source, "c" * 64, dataset)
+checks += 1
+common = {
+    "epoch": 3,
+    "model_sha256": "a" * 64,
+    "training_source_sha256": "b" * 64,
+    "role": candidate["role"],
+    "training_windows": 16,
+    "serving_windows": 94,
+    "proposal_sha256": "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e",
+    "competition_entry": False,
+    "clinical_accuracy_claim": False,
+}
+qual = {
+    **common,
+    "status": "actual_complete_target_H100_epoch_bothT4_original32_MRI_and_training_graph_qualified",
+    "qualified_studies": 32,
+    "qualification_cannot_submit": True,
+    "devices": [
+        {
+            "index": i,
+            "GPU": "Tesla T4",
+            "MRI_studies": 32,
+            "both_original94_input_views_bit_equal": True,
+            "complete_learned_graph_tensor_values_equal": True,
+            "maximum_original_class_vs_training_graph_probability_error": 0.0,
+            "peak_allocated_bytes": 2 * 2**30,
+        }
+        for i in (0, 1)
+    ],
+}
+public = {
+    **common,
+    "status": "actual_complete_target_H100_epoch_MRI_test_roster_CSV_complete",
+    "studies": 3,
+    "columns": 13,
+    "test_roster_sha256": policy.ROSTER,
+    "prediction_counts": {
+        "started": 6,
+        "completed": 6,
+        "failed": 0,
+        "decode_errors": 0,
+        "empty_views": 0,
+    },
+    "devices": ["Tesla T4", "Tesla T4"],
+}
+assert policy.receipt(qual, candidate, "qualification") and policy.receipt(
+    public, candidate, "competition"
+)
+checks += 2
+for template, mode in ((qual, "qualification"), (public, "competition")):
+    for key, value in (
+        ("epoch", 2),
+        ("model_sha256", "c" * 64),
+        ("training_source_sha256", "d" * 64),
+        ("role", "parent_only"),
+        ("serving_windows", 16),
+        ("proposal_sha256", "e" * 64),
+        ("clinical_accuracy_claim", True),
+    ):
+        with pytest.raises(ValueError):
+            policy.receipt({**template, key: value}, candidate, mode)
+        checks += 1
+for key, value in (("qualified_studies", 31), ("qualification_cannot_submit", False)):
+    with pytest.raises(ValueError):
+        policy.receipt({**qual, key: value}, candidate, "qualification")
+    checks += 1
+for key, value in (
+    ("GPU", "H100"),
+    ("complete_learned_graph_tensor_values_equal", False),
+    ("maximum_original_class_vs_training_graph_probability_error", 1e-3),
+    ("peak_allocated_bytes", 17 * 2**30),
+    ("index", 1),
+):
+    bad = copy.deepcopy(qual)
+    bad["devices"][0][key] = value
+    with pytest.raises(ValueError):
+        policy.receipt(bad, candidate, "qualification")
+    checks += 1
+for key, value in (
+    ("studies", 4),
+    ("test_roster_sha256", "0" * 64),
+    ("prediction_counts", {"started": 6, "completed": 5, "failed": 1}),
+    ("devices", ["Tesla T4", "H100"]),
+):
+    with pytest.raises(ValueError):
+        policy.receipt({**public, key: value}, candidate, "competition")
+    checks += 1
+
+# Exercise actual phase code + actual ledger commits, replacing only network,
+# clock-independent resource probes and temporary filesystem endpoints.
+program = load("actual_new_final_phase", D / "program.py.txt")
+
+
+def state_trial(phase, fail_save=False):
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        F = root / "control"
+        models = root / "models"
+        P = root / "production"
+        (F / "code").mkdir(parents=True)
+        (models / candidate["role"]).mkdir(parents=True)
+        (models / candidate["role"] / ("qualification.private.py")).write_text(source)
+        (models / candidate["role"] / ("competition.private.py")).write_text(source)
+        (models / candidate["role"] / "prepared.private.json").write_text(json.dumps(candidate))
+        (models / "verified.json").write_text(
+            json.dumps(
+                {
+                    "status": "actual_both_original_fixed_final_H100_models_packaged_for_separate_T4_qualification",
+                    "candidates": {candidate["role"]: candidate},
+                }
+            )
+        )
+        (F / "staged.json").write_text(json.dumps({"source_git": "f" * 40, "source_sha256": {}}))
+        target = F / candidate["role"]
+        target.mkdir()
+        mode = "qualification" if phase == "push" else "competition"
+        row = {
+            "candidate": candidate,
+            "role": candidate["role"],
+            "model_sha256": candidate["model_sha256"],
+            "state": "full_parent_epoch_dataset_verified"
+            if phase == "push"
+            else "full_parent_epoch_competition_accepted",
+            "dataset": dataset,
+        }
+        if phase == "submit":
+            row["competition"] = {"source_sha256": source_sha, "kernel_id": 321, "receipt": public}
+            (target / "competition-actual-accepted.json").write_text(
+                json.dumps(
+                    {
+                        "receipt": public,
+                        "CSV_verified_in_RAM": {"test_roster_sha256": policy.ROSTER},
+                    }
+                )
+            )
+        key = "licensed-parent-full-epoch-serving:" + candidate["model_sha256"]
+        dbpath = root / "ledger.sqlite3"
+        with workflow.ledger(dbpath, "godlydonuts") as db:
+            db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row)))
+            db.commit()
+        calls = []
+        request = policy.request(candidate["role"], mode, source, source_sha, dataset)
+
+        class Remote:
+            def call(self, service, method, body):
+                calls.append(method)
+                if method == "IntrospectToken":
+                    return {"active": True, "username": "godlydonuts"}
+                if method == "GetAcceleratorQuotaStatistics":
+                    return {"gpuQuota": {"totalTimeAllowed": "999999s"}}
+                if method == "SaveKernel":
+                    if fail_save:
+                        raise RuntimeError("simulated uncertain RPC after intent")
+                    return {"ref": "/code/" + request["slug"], "versionNumber": 1, "kernelId": 321}
+                if method == "CreateCodeSubmission":
+                    return {"ref": 123456}
+                raise AssertionError(method)
+
+            def kernel(self, method, slug, version):
+                if method == "GetKernelSessionStatus":
+                    return {"status": "COMPLETE"}
+                return {"metadata": {**request, "id": 321}, "blob": {"source": source}}
+
+            def require_absent_kernel(self, slug):
+                return {"synthetic_owned_absence": True}
+
+            def account(self):
+                return {
+                    "entered": True,
+                    "checked_at": workflow.utcnow(),
+                    "num_today": 0,
+                    "num_allowed_now": 5,
+                }
+
+            def submissions(self):
+                return []
+
+            def competition(self, method, body):
+                return self.call("competition", method, body)
+
+        fake_w = SimpleNamespace(
+            Remote=Remote,
+            SAVE_KERNEL_INVALID=workflow.SAVE_KERNEL_INVALID,
+            ledger=lambda path, account: workflow.ledger(dbpath, account),
+            verify_account=workflow.verify_account,
+            new_json=workflow.new_json,
+            object_hash=workflow.object_hash,
+            utcnow=workflow.utcnow,
+            allowance=workflow.allowance,
+        )
+        publication = SimpleNamespace(metadata=lambda remote, slug: dataset)
+        capacity = SimpleNamespace(admission=lambda *a, **k: {"available": True})
+        modules = {
+            "workflow": fake_w,
+            "publication": publication,
+            "policy": policy,
+            "gpu_capacity": capacity,
+        }
+        program.F, program.D, program.P = F, models, P
+        program.bounds = lambda: None
+        program.load = lambda name: modules[name]
+        original_path = Path
+        program.Path = lambda value: (
+            root / "claim"
+            if str(value) == "/home/sa305415/rsna-knee/kaggle/coordinator-claim"
+            else original_path(value)
+        )
+        value = {
+            "phase": phase,
+            "role": candidate["role"],
+            "mode": mode,
+            "source_git": "f" * 40,
+            "source_sha256": {},
+            "token": "synthetic-not-a-token",
+        }
+        if fail_save:
+            with pytest.raises(RuntimeError):
+                program.execute(value)
+            assert (root / "claim/owner.json").exists() and (
+                target / "qualification-push-intent.json"
+            ).exists()
+            with workflow.ledger(dbpath, "godlydonuts") as db:
+                saved = json.loads(
+                    db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0]
+                )
+            assert saved["state"] == "full_parent_epoch_qualification_push_intent"
+            assert (
+                program.execute(value)["status"] == "waiting_existing_canonical_claim_no_mutation"
+            )
+            assert calls.count("SaveKernel") == 1
+        else:
+            out = program.execute(value)
+            assert (
+                out["status"] == "one_exact_final_code_submission_accepted"
+                and out["public_example_CSV_uploaded"] is False
+            )
+            assert not (root / "claim").exists()
+            with pytest.raises(AssertionError):
+                program.execute(value)
+            assert calls.count("CreateCodeSubmission") == 1
+            submitted = json.loads((target / "entry-intent.json").read_text())
+            assert submitted["fileName"] == "submission.csv" and submitted["version"] == 1
+        program.Path = Path
+
+
+with patch.dict(os.environ, {"SLURM_JOB_ID": "123"}):
+    state_trial("push", fail_save=True)
+    checks += 1
+    state_trial("submit")
+    checks += 1
+print(
+    json.dumps(
+        {
+            "status": "new_final_policy_and_actual_phase_uncertain_push_and_once_only_code_entry_contracts_passed",
+            "checks": checks,
+            "network_or_account_or_real_model_access": False,
+        }
+    )
+)
