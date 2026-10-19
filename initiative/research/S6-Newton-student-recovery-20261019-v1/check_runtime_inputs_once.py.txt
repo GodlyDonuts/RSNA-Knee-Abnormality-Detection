@@ -1,0 +1,89 @@
+"""One CPU model/runtime and real-MRI mount admission, no GPU reservation."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Newton-student-recovery-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "runtime-input-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in ("check_runtime_inputs.py.txt", "check_runtime_inputs_once.py.txt"):
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()], text=True
+        )
+        == (D / name).read_text()
+    )
+program = (D / "check_runtime_inputs.py.txt").read_text()
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=8G",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-Newton-runtime-inputs",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+with (L / "runtime-input-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "private_future_recovery_cap_bytes": 12 * 2**30 + 512 * 2**20 + 16 * 2**20,
+            "new_CPU_assets_only": True,
+            "GPU_jobs_or_competition_entries": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope(program, {"source_git": pin}),
+    capture_output=True,
+    text=True,
+    timeout=7200,
+)
+(L / "runtime-input-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original runtime-input intent/CPU handle must be reconciled read-only; never retry"
+)
+actual = json.loads(x.stdout)
+assert actual["status"] == "actual_Newton_private_mounts_original_model_and_real_MRI_CPU_admitted"
+(D / "actual-runtime-inputs-admitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
