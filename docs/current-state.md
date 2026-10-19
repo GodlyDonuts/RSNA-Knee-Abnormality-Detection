@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October19,2026,22:55UTC. [Agent guide](../AGENTS.md) · [Continuation](codex-continuation.md). Goal active;0.97/first place unachieved. This page supersedes historical snapshots retained in Git and original audits.
+Updated October19,2026,23:20UTC. [Agent guide](../AGENTS.md) · [Continuation](codex-continuation.md). Goal active;0.97/first place unachieved. This page supersedes historical snapshots retained in Git and original audits.
 
 | Model | Actual Kaggle score | Entry |
 | --- | --- | --- |
@@ -50,13 +50,3 @@ An alternative ordinary2V100 node11 had one unallocated32GB GPU. Its bounded ass
 Follow actual corrected973904 recovery and the restored matched training pipeline; teacher generation and complete target admission are finished. Separately collect actual973601 gradients; only a positive result can dispatch the prepared real optimizer recovery. Require actual full/stop/resume state/CSV equality before any accuracy experiment. Queue predictions are not reliable ETAs. Protected gold/confirmation and accepted masks/labels remain untouched.
 
 MedGemma native likelihood probes completed but failed letter/order/Unknown reliability criteria; no teacher labels adopted. Stanford weights remain private/noncompetition. No newly admitted KneeCoT. All raw clinical data/source bodies/arrays/weights stay private. GitHub contains own code and sanitized aggregate/hash receipts; private HF mirrors use the canonical shared lock and exact original proofs, never duplicate mutations.
-
-
-October19 complete-target update: all3887teacher rows finished973659;973723 constructed complete two-role targets794124bytes/SHA3d7014e7..., parent bit-identical and labels/masks untouched. Private handoff973737→973736, actual source compilation973750 and six-file bridge973766→973767 all passed. Original CPU973776 then failed before GPU intent at a brittle storage-path count (real worker9input/5working literals vs synthetic working1). No double conversion occurred. Original67258/67269/71311/72340 stopped naturally from this pre-GPU failure; their original results/partial compiler-only stage are preserved. Do not call them live or restart them.
-
-Distinct `S6-complete-target-execution-v2-20261019` corrects only that mount-count assumption, compiles in RAM before new recovery-v2 stage creation, preserves all numerical modules/labels/targets/complete-state checks, reuses the completed original bridge and prepares coherent downstream followers with actual new PID bindings. Emitted16case/two-view collection, source refusals, actual9/5-count regression and three pipeline contracts pass. The corrected stage is not yet dispatched at this snapshot; consult its actual-GPU-submitted and actual-owner receipts before acting.
-
-Fresh Kaggle account has34906.0296641free GPU VM seconds and72000unused TPU seconds, refreshOct24. Read this continuation's `Kaggle-alternative.md`: the original complete-target source already supports intendedtwoT4 recovery. Investigate existing exact input references and a bounded real GPU benchmark as an alternative to queue delays; do not use diagnostics as competition submissions or duplicate a healthy fit. Current original serving budget guard may be more conservative than actual public-session charges; do not confuse it with the competition9h hidden limit or alter frozen controllers without a concrete source/receipt/accounting review.
-
-
-Verified preservation: source385baaa3 is privately mirrored at HF77f2f76cc1f4c8f9c105713d92fd10cdb70804f9 viaCPU973987,39own sanitized objects197009bytes fully independently re-downloaded/size/SHA verified under the canonical shared lock. This includes complete teacher/target and corrected execution/current owner metadata, not raw data/weights or any clinical improvement. Original sources/mirrors/checkpoints were not repeated. Read hf-S6-complete-target-repair-20261019-v1; never repeat that publication.
