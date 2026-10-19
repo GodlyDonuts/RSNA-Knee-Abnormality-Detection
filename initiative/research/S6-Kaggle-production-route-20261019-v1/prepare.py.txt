@@ -1,0 +1,186 @@
+"""Compile only the changed fixed-three-epoch T4 candidate; no GPU/API mutation."""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+F = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1/full-comparison")
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+epoch = v["epoch"]
+assert type(epoch) is int and 1 <= epoch <= 3
+assert shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + 32 * 2**20
+assert not D.exists() or sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 8 * 2**20
+q = json.loads((S / "admitted.json").read_text())
+for name, h in q["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == h
+sys.path.insert(0, str(S / "code"))
+from scripts.kaggle import complete_teacher_production as c  # noqa: E402
+from scripts.kaggle import licensed_importance_production as original  # noqa: E402
+
+actual = v["actual_new_recovery"]
+assert (
+    actual["status"] == "complete_teacher_recovery_accepted"
+    and actual["kernel_id"] == 139695847
+    and actual["version"] == 1
+)
+assert actual["source_sha256"] == "6747a9deaff18122565bd0a6b9b58382be781d42dd9ab8c4f5ca18d066dd1ff5"
+r = actual["receipt"]
+assert r["status"] == "actual_complete_S6_target_change_full_encoder_twoT4_MRI_recovery_accepted"
+assert r["world_size"] == 2 and r["updates_per_role"] == 4
+assert r["fit_studies"] == r["disjoint_engineering_studies"] == 16
+ready = json.loads((S / "complete-target-input-v1/complete-target-ready.json").read_text())
+assert r["complete_teacher_admission"] == ready
+assert (
+    ready["roles"]["parent_only"]["original_teacher_array_sha256"]
+    == ready["roles"]["parent_only"]["new_teacher_array_sha256"]
+)
+for arm in r["roles"].values():
+    assert arm[
+        "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal"
+    ]
+    assert arm["all16_full94_two_view_prediction_bytes_equal"]
+    assert len(arm["devices"]) == 2 and all(
+        d["GPU"] == "Tesla T4"
+        and d["trainable_parameters"] == 73136096
+        and d["all_BN_buffers_equal_parent"]
+        for d in arm["devices"]
+    )
+old_recovery = json.loads((F / "actual-recovery.json").read_text())
+original.accepted_recovery(old_recovery)
+control = json.loads((F / "influence-epoch-3/actual-accepted.json").read_text())
+assert (
+    control["kernel_id"] == 139220032
+    and control["version"] == 1
+    and control["status"] == "COMPLETE"
+)
+assert (
+    control["source_sha256"] == "cff5c493ee2832a0672298f1942662474aa3a01d0b421069c4db171ed394b012"
+)
+assert control["receipt"]["completed"] == 1458 and control["receipt"]["fixed_final_complete"]
+control_modules = control["receipt"]["binding"]["source_module_sha256"]
+files = {
+    n: (S / "code" / n).read_text()
+    for n in (*original.ACCEPTED_MODULES, *original.POPULATION_MODULES)
+}
+assert {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()} == control_modules
+proposal = json.loads((F / "proposal-accepted.json").read_text())
+assert proposal == control["receipt"]["binding"]["proposal"]
+proofs = json.loads(
+    Path(
+        "/tmp/rsna-licensed-parent-whole94-production-20261016-v1/actual-original-Kaggle-inputs.json"
+    ).read_text()
+)["proofs"]
+assert (
+    hashlib.sha256(json.dumps(proofs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    == control["receipt"]["binding"]["pixel_collection_proofs_sha256"]
+)
+old_source = Path(
+    "/tmp/rsna-licensed-importance-encoder-20261017-v1/recovery.private.py"
+).read_text()
+assert hashlib.sha256(old_source.encode()).hexdigest() == original.RECOVERY_SHA
+if not D.exists():
+    assert epoch == 1
+    source_pin = v["source_git"]
+else:
+    source_pin = json.loads((D / "source-pin.json").read_text())["source_git"]
+previous = (
+    None
+    if epoch == 1
+    else json.loads((D / ("epoch-" + str(epoch - 1)) / "actual-accepted.json").read_text())[
+        "receipt"
+    ]
+)
+source, meta = c.build(
+    old_source,
+    old_recovery,
+    files,
+    proofs,
+    proposal,
+    source_pin,
+    ready=ready,
+    role="cross_lineage_equal_rank",
+    overlay_source=(S / "code/rsna/competitive/complete_teacher_overlay.py").read_text(),
+    segment=epoch,
+    previous=previous,
+)
+# The model, renderer and numerical update functions remain the original functions.
+old_worker = base64.b64decode(
+    c.values((F / "influence-epoch-3/source.private.py").read_text())["WORKER"]
+).decode()
+worker = base64.b64decode(c.values(source)["WORKER"]).decode()
+
+
+def functions(s):
+    return {
+        n.name: ast.dump(n)
+        for n in ast.parse(s).body
+        if isinstance(n, ast.FunctionDef) and n.name != "main"
+    }
+
+
+assert functions(old_worker) == functions(worker)
+compile(source, "private_full_population_cross_lineage_T4_source", "exec")
+if not D.exists():
+    D.mkdir(mode=0o700)
+    (D / "source-pin.json").write_text(
+        json.dumps(
+            {
+                "source_git": source_pin,
+                "changed_role_only": True,
+                "reference_kernel": 139220032,
+                "reference_entry": 57332456,
+                "reference_public_score": 0.949,
+                "actual_recovery_kernel": 139695847,
+                "fixed_epochs": 3,
+                "fixed_updates": 1458,
+                "retained_checkpoint_publication_cap_bytes": 8 * 2**30,
+                "control_retrained": False,
+            }
+        )
+        + "\n"
+    )
+E = D / ("epoch-" + str(epoch))
+assert not E.exists(), "Original source/intent must be reconciled, never regenerated"
+E.mkdir(mode=0o700)
+(E / "source.private.py").write_text(source)
+(E / "prepared.json").write_text(json.dumps(meta, indent=2) + "\n")
+(E / "actual-recovery.json").write_text(json.dumps(actual, indent=2) + "\n")
+out = {
+    "status": "actual_changed_role_fixed3_full3887_T4_source_compiled",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "epoch": epoch,
+    "source_git": source_pin,
+    "source_sha256": meta["source_sha256"],
+    "worker_sha256": meta["worker_sha256"],
+    "bytes": len(source.encode()),
+    "completed_target": 486 * epoch,
+    "fitting_studies": 3887,
+    "reference": {
+        "kernel_id": 139220032,
+        "version": 1,
+        "entry": 57332456,
+        "public_score": 0.949,
+        "epoch_model_sha256": control["receipt"]["epoch"]["sha256"],
+        "completed": 1458,
+        "actual_final_epoch_seconds": control["receipt"]["elapsed_seconds"],
+    },
+    "original_numerical_modules_and_nonmain_worker_functions_equal": True,
+    "parent_control_targets_bit_identical": True,
+    "actual_new_recovery_kernel": 139695847,
+    "same_twoT4_pinned_Docker": True,
+    "control_retrained": False,
+    "final_weight_bit_identity_claim": False,
+    "clinical_or_Kaggle_accuracy_claim": False,
+    "new_GPU_or_Kaggle_mutations": 0,
+}
+(E / "compiled.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
