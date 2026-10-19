@@ -1,0 +1,90 @@
+"""Read-only finite observer for one already submitted full-population epoch."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+epoch = int(sys.argv[1])
+assert 1 <= epoch <= 3
+pushed = json.loads((D / ("actual-push-epoch-" + str(epoch) + ".json")).read_text())
+assert pushed["status"] == "complete_teacher_cross_full_fit_pushed" and pushed["epoch"] == epoch
+frozen = {
+    n: hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("cloud.py.txt", "run_phase.py.txt")
+}
+with (L / ("observer-" + str(epoch) + "-intent.json")).open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "kernel_id": pushed["kernel_id"],
+            "version": 1,
+            "source_sha256": pushed["source_sha256"],
+            "controls": frozen,
+            "maximum_seconds": 10800,
+            "new_mutations": 0,
+        },
+        f,
+    )
+start = time.monotonic()
+while time.monotonic() - start < 10800:
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    try:
+        x = subprocess.run(
+            [sys.executable, str(D / "run_phase.py.txt"), "status", str(epoch)],
+            cwd=R,
+            capture_output=True,
+            text=True,
+            timeout=1000,
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        (L / ("observer-" + str(epoch) + "-error.json")).write_text(
+            json.dumps(
+                {
+                    "type": type(exc).__name__,
+                    "same_kernel_id": pushed["kernel_id"],
+                    "new_mutations": 0,
+                }
+            )
+            + "\n"
+        )
+    else:
+        if x.returncode == 0:
+            z = json.loads(x.stdout)
+            (L / ("observer-" + str(epoch) + "-progress.json")).write_text(
+                json.dumps(z, indent=2) + "\n"
+            )
+            if z["status"] in ("COMPLETE", "ERROR", "CANCELLED"):
+                with (D / ("actual-terminal-epoch-" + str(epoch) + ".json")).open("x") as f:
+                    json.dump(z, f, indent=2)
+                    f.write("\n")
+                break
+        else:
+            (L / ("observer-" + str(epoch) + "-error.json")).write_text(
+                json.dumps(
+                    {
+                        "returncode": x.returncode,
+                        "same_kernel_id": pushed["kernel_id"],
+                        "new_mutations": 0,
+                    }
+                )
+                + "\n"
+            )
+    time.sleep(120)
+else:
+    (L / ("observer-" + str(epoch) + "-expired.json")).write_text(
+        json.dumps(
+            {
+                "status": "observation_window_expired_not_job_terminal",
+                "kernel_id": pushed["kernel_id"],
+                "new_mutations": 0,
+            }
+        )
+        + "\n"
+    )
