@@ -76,3 +76,6 @@ Latest actual teacher phase60/973457 completed3,773/3,887; original resident2320
 
 
 Assigned-device diagnostics973573/973577 on26 actually completed: Slurm stepGPU1/CUDA_VISIBLE_DEVICES0 but Torch count0, NVML no devices and CUDA initialization "No CUDA GPUs are available". The failed scout is not a model/data result. A distinct source-only fallback `teacher-pair-admitted48-fallback-20261019-v1` queues the unchanged protocol on already admitted48 with original MRI/runtime copies and its own namespace; no new bulk staging or production duplication. Physical26 cause remains unproven; no isolation bypass. Seven original32/compiler tests pass and scoped Ruff/format pass. The4942 numerical suite remains the original completed result; no numerical library changed. Fallback is prepared until actual submitted receipt exists.
+
+
+Actual fallback CPU973600 admitted the unchanged original32/helper/dependencies and queued scout973601 on48, oneH100/twoCPU/32GiB/20minutes/normal, without bulk transfers. Actual read-only observer94271 (source6816901f) follows only973601; it cannot submit or restart work. Source6816901f is pushed to GitHub main. Recovery is still unsubmitted and needs this exact scout’s positive result; do not reuse the failed26 receipt or start the old26 recovery follower.
