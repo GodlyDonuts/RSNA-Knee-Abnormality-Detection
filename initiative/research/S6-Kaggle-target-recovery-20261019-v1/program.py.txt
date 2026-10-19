@@ -233,7 +233,7 @@ try:
                         "GetDatasetStatus",
                         {"ownerSlug": "godlydonuts", "datasetSlug": DS.split("/")[1]},
                     )
-                    if state.get("status") != "ready":
+                    if state.get("status") not in ("READY", 5):
                         out = {
                             "status": "waiting_same_original_Dataset_ingestion",
                             "actual": state.get("status"),
