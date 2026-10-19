@@ -75,7 +75,7 @@ program = (
         "'original_family_remaining_caps':family_future",
         "'deferred_unstarted_family_caps':family_future",
     )
-    .replace("'safety_seconds':3600", "'safety_seconds':1800")
+    .replace("'safety_seconds':3600", "'safety_seconds':900")
 )
 remote = """import hashlib,json,os
 from pathlib import Path
@@ -93,7 +93,7 @@ def requirement(mode,finding,family,lr):
  assert mode in ('qualification','competition') and lr==0 and finding>=0 and family>=0
  # Existing reservations are already subtracted by fresh reported accelerator quota.
  # Unstarted other candidates require separate admission; no future bulk/GPU promise.
- return 1800+(1800 if mode=='qualification' else 0)+32400
+ return 900+(1800 if mode=='qualification' else 0)+32400
 g['bounds']=bounds;g['vm_requirement']=requirement
 try:
  out=g['execute'](v)
