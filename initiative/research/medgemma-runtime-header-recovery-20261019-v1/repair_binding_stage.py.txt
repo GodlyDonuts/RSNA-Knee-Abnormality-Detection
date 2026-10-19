@@ -1,0 +1,159 @@
+"""One distinct launcher correction after a proved zero-runtime Slurm binding failure."""
+
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+state = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "970072", "--format=JobIDRaw,State,ExitCode,ElapsedRaw"],
+    text=True,
+)
+assert "970072|FAILED|192:0|0" in state
+D = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1")
+P = Path("/tmp/rsna-medgemma15-first-packet-20261019-v1")
+old = D / "pilot-recovery-v1"
+R = D / "pilot-recovery-bind-v2"
+assert (
+    not R.exists()
+    and not (old / "GPU-intent.json").exists()
+    and not (P / "actual-pilot-headers-v1").exists()
+)
+meta = json.loads((old / "staged.json").read_text())
+source = (old / "derived-pilot.private.py").read_text()
+entry = (old / "entry.py").read_text()
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == meta["derived_pilot_sha256"]
+    == "4e927a0d198ff93a5f6767109ad5a39d0698ddbb52e2a23c885284475dd66edc"
+)
+assert hashlib.sha256(entry.encode()).hexdigest() == meta["entry_sha256"]
+assert (
+    hashlib.sha256((D / "verified.json").read_bytes()).hexdigest()
+    == meta["header_admission_sha256"]
+)
+assert entry.count('D / "pilot-recovery-v1"') == 1
+entry = entry.replace('D / "pilot-recovery-v1"', 'D / "pilot-recovery-bind-v2"')
+needle = 'assert os.uname().nodename == "evc33" and os.environ.get("SLURM_JOB_GPUS")'
+assert entry.count(needle) == 1
+entry = entry.replace(
+    needle,
+    needle
+    + '\nassert 0 < len(os.sched_getaffinity(0)) <= 2 * int(os.environ["SLURM_CPUS_PER_TASK"])',
+)
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + 128 * 2**20
+assert (
+    sum(p.stat().st_size for p in D.rglob("*") if p.is_file())
+    + len(source.encode())
+    + len(entry.encode())
+    < 4 * 2**20
+)
+R.mkdir(mode=0o700)
+(R / "derived-pilot.private.py").write_text(source)
+(R / "entry.py").write_text(entry)
+meta.update(
+    source_git=v["source_git"],
+    entry_sha256=hashlib.sha256(entry.encode()).hexdigest(),
+    original_zero_runtime_failed_GPU_job="970072",
+    original_zero_runtime_failure="Slurm CPU binding outside allocated CPUs; inherited stage binding is a possible cause",
+    allocated_step_cpu_bind="none; task/cgroup still enforces assigned job CPUs",
+    model_prompt_and_all195_images_unchanged=True,
+)
+(R / "staged.json").write_text(json.dumps(meta, indent=2) + "\n")
+H = Path("/home/sa305415/rsna-knee/kaggle")
+command = [
+    "srun",
+    "--exact",
+    "--cpu-bind=none",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "env",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=2",
+    "MKL_NUM_THREADS=2",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    str(R / "entry.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=00:30:00",
+    "--job-name=rsna-medgemma15-bind-v2",
+    "--output=" + str(H / "medgemma15-bind-v2-%j.stdout"),
+    "--error=" + str(H / "medgemma15-bind-v2-%j.stderr"),
+    "--wrap=" + shlex.join(command),
+]
+# sbatch is called from an existing CPU allocation. Its step-affinity variables
+# must never become binding instructions for a new, differently placed GPU job.
+clean = {
+    k: value
+    for k, value in os.environ.items()
+    if not k.startswith(
+        ("SLURM_CPU_BIND", "SLURM_STEP_CPU_BIND", "SRUN_CPU_BIND", "SBATCH_CPU_BIND")
+    )
+    and k not in ("CUDA_VISIBLE_DEVICES", "SLURM_TRES_BIND", "SLURM_GPU_BIND")
+}
+with (R / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source": meta,
+            "original_terminal": state.strip(),
+            "old_model_output_and_GPU_intent_absent": True,
+            "stale_submission_CPU_binding_removed": True,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+x = subprocess.run(args, env=clean, capture_output=True, text=True)
+(R / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original corrected sbatch requires read-only reconciliation; never repeat"
+)
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+actual = {
+    "status": "actual_distinct_CPU_binding_corrected_MedGemma_pilot_submitted_once",
+    "GPU_job": job,
+    "source_git": v["source_git"],
+    "original_zero_runtime_failed_job": "970072",
+    "original_terminal": state.strip(),
+    "node": "evc33",
+    "physical_node_GPUs": 2,
+    "assigned_H100": 1,
+    "CPU": 2,
+    "host_RAM_GiB": 64,
+    "maximum_minutes": 30,
+    "entry_sha256": meta["entry_sha256"],
+    "original_derived_pilot_sha256": meta["derived_pilot_sha256"],
+    "new_weights_images_or_runtime_installs": False,
+    "Slurm_task_cgroup_remains_enabled": True,
+    "actual_GPU_review_or_accuracy_acceptance": False,
+    "automatic_retry": False,
+}
+(R / "submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

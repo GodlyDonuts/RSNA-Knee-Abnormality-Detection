@@ -1,0 +1,14 @@
+{
+  "GPU_job": "970072",
+  "terminal": "FAILED192:0",
+  "elapsed_seconds": 0,
+  "node": "evc33",
+  "status": "Slurm_assigned_step_CPU_binding_failed_before_Python",
+  "actual_error": "CPU binding outside of job step allocation; unable to satisfy cpu bind request",
+  "stderr_sha256": "d2e7043a18004018b8c57fe45c60a73fcbe63088b3e3897d824d2d64fd029ca8",
+  "model_or_MRI_or_blank_control_ran": false,
+  "TaskPlugin_observed": "task/cgroup,task/affinity",
+  "planned_correction": "clear stale submission CPU-binding environment and srun --cpu-bind=none while preserving task/cgroup and assigned GPU",
+  "inherited_binding_as_specific_root_cause": "possible, not proved",
+  "automatic_retry": false
+}

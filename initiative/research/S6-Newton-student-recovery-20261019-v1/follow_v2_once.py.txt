@@ -1,0 +1,166 @@
+"""One future GPU recovery after original full target and CPU admissions exist."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Newton-student-recovery-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "GPU-follower-v2-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+parts = {
+    name: (D / name).read_text()
+    for name in (
+        "prepare_gpu_v2.py.txt",
+        "compiler.py.txt",
+        "gpu_entry_v2.py.txt",
+        "follow_v2_once.py.txt",
+    )
+}
+for name, source in parts.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()], text=True
+        )
+        == source
+    )
+frozen = {name: hashlib.sha256(source.encode()).hexdigest() for name, source in parts.items()}
+with (L / "GPU-follower-v2-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "source_git": pin,
+            "frozen": frozen,
+            "maximum_hours": 24,
+            "waits_original_CPU_compile_PID": 56997,
+            "maximum_future_GPU_dispatches": 1,
+            "no_GPU_before_actual_prerequisites": True,
+            "automatic_mutation_retry": False,
+        },
+        f,
+        indent=2,
+    )
+try:
+    begin = time.monotonic()
+    original = R / "artifacts/S6-target-execution-inputs-20261019-v1/compile-follower-result.json"
+    while not original.exists():
+        assert time.monotonic() - begin < 24 * 3600
+        assert all(
+            hashlib.sha256((D / name).read_bytes()).hexdigest() == h for name, h in frozen.items()
+        )
+        time.sleep(120)
+    finished = json.loads(original.read_text())
+    assert (
+        finished["PID"] == 56997
+        and finished["status"]
+        == "original_complete_teacher_recovery_source_CPU_compilation_finished"
+    ), "Original compilation stopped; no GPU intent"
+    runtime = json.loads((D / "actual-runtime-inputs-admitted.json").read_text())
+    assert (
+        runtime["status"] == "actual_Newton_private_mounts_original_model_and_real_MRI_CPU_admitted"
+    )
+    compiled = finished["actual"]
+    spec = importlib.util.spec_from_file_location(
+        "transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:05:00",
+        "--job-name=rsna-S6-oneH100-source-admission",
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    with (L / "GPU-source-dispatch-v2-intent.json").open("x") as f:
+        json.dump(
+            {
+                "source_git": pin,
+                "compiled": compiled,
+                "actual_runtime_CPU": runtime["CPU_job"],
+                "maximum_GPU_jobs": 1,
+                "automatic_retry": False,
+            },
+            f,
+            indent=2,
+        )
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=t.envelope(
+            parts["prepare_gpu_v2.py.txt"],
+            {
+                "source_git": pin,
+                "compiler": parts["compiler.py.txt"],
+                "compiler_sha256": frozen["compiler.py.txt"],
+                "entry": parts["gpu_entry_v2.py.txt"],
+                "runtime": runtime,
+                "compiled": compiled,
+            },
+        ),
+        capture_output=True,
+        text=True,
+        timeout=7200,
+    )
+    (L / "GPU-source-dispatch-transport-v2.json").write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "Original CPU/GPU intents require read-only reconciliation, never retry"
+    )
+    actual = json.loads(x.stdout)
+    assert actual["status"] == "actual_complete_teacher_oneH100_recovery_submitted_once"
+    (D / "actual-GPU-submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+    final = {
+        "PID": os.getpid(),
+        "status": "original_oneH100_recovery_dispatch_finished",
+        "actual": actual,
+    }
+    (L / "GPU-follower-v2-result.json").write_text(json.dumps(final, indent=2) + "\n")
+    print(json.dumps(final), flush=True)
+except BaseException as e:
+    (L / "GPU-follower-v2-result.json").write_text(
+        json.dumps(
+            {
+                "PID": os.getpid(),
+                "status": "original_oneH100_recovery_follower_stopped",
+                "type": type(e).__name__,
+                "reason": str(e),
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
