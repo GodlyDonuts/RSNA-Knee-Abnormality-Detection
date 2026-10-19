@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 19, 2026, 16:48 UTC. Exact original receipts and live state supersede dated running/pending claims. The goal remains active; no new original accuracy improvement is established.
+Updated October 19, 2026, 18:15 UTC. Exact original receipts and live state supersede dated running/pending claims. The goal remains active; no new original accuracy improvement is established.
 
 [Guide](../AGENTS.md) · [Next actions](codex-continuation.md) · [Previous unchanged snapshot](current-state.history-20261019-before-full-input-handoff.md).
 
@@ -19,7 +19,7 @@ The current adapted backbone is full73M CoAtNet. The0.958 result is a reproducti
 
 ## Original improvement underway
 
-Complementary S6 teacher inference has completed2,109/3,887 fitting studies (phase34/971001); original resident2320176 continues phase35/971069 on39. The intended test changes only teacher targets: parent-only versus cross-lineage equal-rank transport, same original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8 and3epochs. Targets require all3,887 outputs, never partial ranks. Public parent training overlap prevents claiming independent OOF evidence. [Resident receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+Complementary S6 teacher inference has completed2,557/3,887 fitting studies (phase41/971586); original resident2320176 continues phase42/971667 on39. The intended test changes only teacher targets: parent-only versus cross-lineage equal-rank transport, same original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8 and3epochs. Targets require all3,887 outputs, never partial ranks. Public parent training overlap prevents claiming independent OOF evidence. [Resident receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
 All full-cohort MRI archives are now available privately on33, after source970779/receiver970770 whole-byte acceptance and CPU970800 full-cohort/rendered-input admission. The transfer preserved originals and reused existing prefixes; no pixels traversed Mac/Git/HF. The full-data compiler and independent one-H100 epoch validator are prepared with22synthetic contracts. Full training driver, immutable optimizer retention and six-epoch private publication controller are prepared. **No new full student fit is running.** [Exact inputs, scope and next work](../initiative/research/S6-Newton-student-production-20261019-v1/README.md).
 
@@ -31,7 +31,7 @@ MedGemma access and model load succeed. After header and launcher fixes, GPU9708
 
 ## Deployment and preservation
 
-R6 paired-member57397292 v2 remains null at authenticated CPU970982. Original37843 follows it; no repeat submission. Previous public execution passed but does not establish hidden success. Fresh canonical account allowance and runtime acceptance govern later entries; last budget observation is historical.
+R6 paired-member57397292 v2 remains null at authenticated CPU971664. Original37843 follows it; no repeat submission. Previous public execution passed but does not establish hidden success. Fresh canonical account allowance and runtime acceptance govern later entries; last budget observation is historical.
 
 Accepted masks/folds/labels/protected cohorts remain unchanged. Physical4/8GPU nodes prohibited. Private original data and generated text stay on authorized cluster nodes. Keep20GiB/5000shared-file reserve after funded liabilities; details in AGENTS and original receipts. Latest selected source mirrorab7fd569/HFc75c00149 is verified; the later work has the distinct verified mirror below. GitHub source and live receipts are distinct from an accuracy advance.
 
@@ -45,4 +45,4 @@ New `initiative/research/S6-complete-target-serving-20261019-v1` prepares the ac
 
 Serving-preparation source56656a95 is privately preserved at HF34a187d74466bd5abd796146691c3a73296f3ae0 viaCPU971232:13objects63679bytes, all fully re-downloaded/size/SHA verified under the canonical lock. No external parent body or clinical data/model weights included; never repeat. Actual checkpoint/T4/runtime/entry acceptance is still required.
 
-Earlier H100 route: `initiative/research/S6-earlier-H100-route-20261019-v1`. Node33has a possible~24hour GPU wait from another job's time-limit remainder; node48has an earlier potential release. CPU971427 restored its cached runtime with matching Torch Git; source971464/receiver971461 privately copied/whole-hash verified all38.87GBoriginal MRI archives in~2minutes, without loading node39. No GPU reserved or old owner changed. Torchvision/timm and the small original model/32MRI/features/targets/code/header assets plus fresh actual CPU/GPU admission are still required. Do not activate node48or retire the old idle future owners until a complete replacement is reviewable.
+Earlier H100 route: `initiative/research/S6-earlier-H100-route-20261019-v1`. Node48 is now actually CPU-admitted: cached runtime971427 matches original Torch Git; original full MRI copy971461/971464 preserved38.87GB; corrected auxiliary copy971653/971654 preserved815files/678564087bytes with wholeSHA checks. CPU971665 completed0:0/15seconds, loading the strict73,136,096parameter/486tensor parent and binding all3,887studies plus eight exact original94view tensors. Missing lib64 inventory stopped original971642 before data and was explicitly reconciled; its receiver971633 was cancelled idle. No raw data/private file table/weights crossed Mac/Git/HF. No GPU recovery, fit, new score or controller handoff has occurred on48. Next: build/admit the distinct48target handoff/recovery/production wrappers, preserving actual new receipt identities; retire old59992/61949 only while provably idle and after a concrete replacement is ready. Original55175/56997 and healthy teacher stay intact. Never fabricate old CPU970800/970442 admission for48 or duplicate an existing GPU dispatch. A free GPU alone is not training acceptance.
