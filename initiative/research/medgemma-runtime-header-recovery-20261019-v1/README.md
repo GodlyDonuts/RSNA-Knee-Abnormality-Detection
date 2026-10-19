@@ -1,3 +1,5 @@
+> October19 16:37UTC terminal update:970072 FAILED192:0/zero seconds at nested Slurm CPU binding, before Python. Distinct binding-corrected970841 ran39seconds then FAILED1:0. Sanitized CPU970963 found the blank response had no JSON braces; parser raised ValueError before any native MRI chunks. Access/model load work, but structured blank control and clinical review are NOT accepted. Generated text stays private, no labels changed, no blind retry. See actual-blank-protocol-result.json.
+
 # MedGemma runtime header recovery
 
 Original actual GPU968562 failed1:0 after34seconds on evc33. CUDA initialization and all883weight tensors loaded; the first blank-image generation then failed while Triton compiled driver.c because Python.h was absent. No MRI pixels were reviewed, blank abstention did not complete, and no clinical/accuracy result exists. This is distinct from earlier evc26 invalid-ordinal failures. Original private logs/output are preserved; safe failure/source hashes are recorded here.

@@ -1,0 +1,93 @@
+"""Synthetic complete-state and failure checks, not actual checkpoint admission."""
+
+import copy
+import importlib.util
+import json
+from dataclasses import asdict
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+from test_licensed_parent_epoch import completed
+
+from rsna.competitive.licensed_importance import Recipe
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "h100_epoch", SourceFileLoader("h100_epoch", str(D / "epoch_verify.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+state, snapshot, receipt = completed.__wrapped__()
+b = state["binding"]
+role = "cross_lineage_equal_rank"
+teacher = {
+    "population": 3887,
+    "roles": {role: {"role": role, "population": 3887, "diagnostic_only": False}},
+}
+b.update(
+    world_size=1,
+    recipe=asdict(Recipe(epochs=3, role="influence")),
+    teacher_target_role=role,
+    population_sha256="0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42",
+    complete_teacher_admission=teacher,
+    teacher_transport=teacher["roles"][role],
+    device_name="NVIDIA H100 PCIe",
+    diagnostic_only=False,
+    actual_recovery_source_sha256="a" * 64,
+)
+state["rng_by_rank"] = state["rng_by_rank"][:1]
+state["scaler_by_rank"] = state["scaler_by_rank"][:1]
+receipt.update(
+    status="actual_complete_target_oneH100_epoch_session_complete",
+    teacher_target_role=role,
+    actual_recovery_source_sha256="a" * 64,
+)
+accepted = m.verify(state, snapshot, receipt, expected_parameters=3)
+assert accepted["all_one_rank_RNG_and_scaler_records_present"] and accepted["completed"] == 486
+checks = 1
+for bad in (
+    "fake_second_rank",
+    "no_rng",
+    "partial_adam",
+    "changed_model",
+    "wrong_role",
+    "wrong_teacher",
+    "short_history",
+    "NaN",
+    "wrong_gpu",
+    "wrong_recipe",
+):
+    a, x, r = copy.deepcopy((state, snapshot, receipt))
+    if bad == "fake_second_rank":
+        a["rng_by_rank"] *= 2
+    elif bad == "no_rng":
+        a["rng_by_rank"] = []
+    elif bad == "partial_adam":
+        a["optimizer"]["state"].pop(0)
+    elif bad == "changed_model":
+        x["model"]["head.weight"][0] = 2
+    elif bad == "wrong_role":
+        r["teacher_target_role"] = "parent_only"
+    elif bad == "wrong_teacher":
+        a["binding"]["teacher_transport"] = {}
+    elif bad == "short_history":
+        a["history"].pop()
+    elif bad == "NaN":
+        a["history"][3]["loss"] = float("nan")
+    elif bad == "wrong_gpu":
+        a["binding"]["device_name"] = "Tesla T4"
+    else:
+        a["binding"]["recipe"]["epochs"] = 2
+    with pytest.raises(ValueError):
+        m.verify(a, x, r, expected_parameters=3)
+    checks += 1
+print(
+    json.dumps(
+        {
+            "status": "synthetic_one_rank_epoch_contracts_passed",
+            "checks": checks,
+            "actual_production_checkpoint_verified": False,
+        }
+    )
+)

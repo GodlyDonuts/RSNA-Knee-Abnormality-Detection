@@ -1,0 +1,163 @@
+"""Preserve selected sanitized mission sources once under the canonical HF lock."""
+
+import hashlib
+import importlib.util
+import json
+import re
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/hf-full-input-student-preparation-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+scopes = [
+    "AGENTS.md",
+    "docs/current-state.md",
+    "docs/codex-continuation.md",
+    "initiative/research/S6-Newton-student-recovery-20261019-v1",
+    "initiative/research/S6-Newton-student-production-20261019-v1",
+    "initiative/research/medgemma-runtime-header-recovery-20261019-v1",
+    "initiative/research/S6-cluster-resident-owner-20261019-v1/actual-phase-028.json",
+    "initiative/research/S6-cluster-resident-owner-20261019-v1/actual-phase-029.json",
+    "initiative/research/S6-cluster-resident-owner-20261019-v1/actual-phase-030.json",
+    "initiative/research/S6-cluster-resident-owner-20261019-v1/actual-phase-031.json",
+    "initiative/research/S6-cluster-resident-owner-20261019-v1/actual-phase-032.json",
+    "initiative/audits/hf-full-input-student-preparation-20261019-v1/publish_once.py.txt",
+]
+names = subprocess.check_output(
+    ["git", "ls-tree", "-r", "--name-only", git, "--", *scopes], text=True
+).splitlines()
+files = {n: subprocess.check_output(["git", "show", git + ":" + n]) for n in names}
+assert 0 < len(files) < 200 and sum(map(len, files.values())) < 2**20
+assert all(n.endswith((".md", ".json", ".py.txt")) for n in files)
+assert all(not re.search(rb"1\.2\.826\.0\.1\.\d{3,}", b) for b in files.values())
+manifest = {
+    "source_git": git,
+    "scope": "selected new own source and sanitized aggregate receipts; not all historical unmirrored commits",
+    "files": {
+        n: {"bytes": len(b), "sha256": hashlib.sha256(b).hexdigest()} for n, b in files.items()
+    },
+    "MRI_reports_UIDs_per_case_predictions_external_weights_included": False,
+}
+(D / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+files["source-manifest.json"] = (D / "manifest.json").read_bytes()
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+program = """import hashlib,importlib.util,json,os,shutil,tempfile
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS');os.umask(0o077)
+D=Path('/tmp/rsna-S6-Newton-student-production-20261019-v1/source-milestone-v1');assert not D.exists()
+assert shutil.disk_usage('/tmp').free>20*2**30+40*2**20
+q=__import__('subprocess').check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30 and int(a[6])-int(a[5])>5000
+P=D.parent
+paid=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not p.is_symlink() and 'input' not in p.relative_to(P).parts)
+controls=sum(p.stat().st_size for p in P.rglob('*') if p.is_file() and not p.is_symlink() and not set(p.relative_to(P).parts)&{'original-pixel-replica-v2','input','runs'})
+assert controls+8*2**20<16*2**20
+assert shutil.disk_usage('/tmp').free>20*2**30+32*2**20+max(0,64*2**30+16*2**20-paid)
+D.mkdir(mode=0o700);files={}
+for n,text in v['files'].items():
+ p=D/'source'/n;assert p.resolve().is_relative_to((D/'source').resolve());p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text);files[n]=p
+assert sum(p.stat().st_size for p in files.values())<2**20
+core=Path('/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py')
+assert hashlib.sha256(core.read_bytes()).hexdigest()=='4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde'
+os.environ.update(HF_HUB_DISABLE_XET='1',HF_HUB_DISABLE_PROGRESS_BARS='1',HF_HOME=str(D/'hf'),HF_HUB_CACHE=str(D/'hf-cache'),HF_XET_CACHE=str(D/'xet'))
+s=importlib.util.spec_from_file_location('original_canonical_publisher',core);pub=importlib.util.module_from_spec(s);s.loader.exec_module(pub)
+from huggingface_hub import HfApi,CommitOperationAdd
+prefix='research-milestones/full-input-student-preparation-20261019-v1-'+v['source_git'][:12]
+table={n:{'bytes':p.stat().st_size,'sha256':pub.sha(p)} for n,p in files.items()}
+with pub.shared_publication_lock():
+ api=HfApi(token=v['token']);info=api.repo_info('GodlyDonuts/RSNA-Data',repo_type='dataset');assert info.private is True
+ assert not list(api.get_paths_info('GodlyDonuts/RSNA-Data',paths=[prefix+'/'+n for n in files],repo_type='dataset'))
+ pub.atomic_new(D/'publication-intent.json',{'source_git':v['source_git'],'parent':info.sha,'prefix':prefix,'files':table,'automatic_retry':False})
+ commit=api.create_commit('GodlyDonuts/RSNA-Data',repo_type='dataset',parent_commit=info.sha,commit_message='Preserve actual full MRI input admission, MedGemma negative and new H100 student preparation',operations=[CommitOperationAdd(path_in_repo=prefix+'/'+n,path_or_fileobj=p) for n,p in files.items()])
+ pub.atomic_new(D/'publication-commit.json',{'revision':commit.oid})
+ for n,item in table.items():
+  with tempfile.TemporaryDirectory(prefix='mission-source-byte-check-',dir='/tmp') as tmp:
+   p=Path(api.hf_hub_download('GodlyDonuts/RSNA-Data',prefix+'/'+n,repo_type='dataset',revision=commit.oid,cache_dir=str(D/'hf-cache'),local_dir=tmp,force_download=True));assert p.stat().st_size==item['bytes'] and pub.sha(p)==item['sha256']
+ out={'status':'selected_sanitized_mission_sources_all_objects_private_download_size_SHA_verified','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'revision':commit.oid,'prefix':prefix,'objects':len(table),'bytes':sum(r['bytes'] for r in table.values()),'canonical_shared_publication_lock_used':True,'MRI_reports_UIDs_per_case_predictions_external_weights_included':False,'old_mirror_or_checkpoint_repeated':False}
+ pub.atomic_new(D/'verified.json',out)
+ assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<8*2**20
+ print(json.dumps(out))
+"""
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "objects": len(files),
+            "bytes": sum(map(len, files.values())),
+            "small_source_cap_bytes": 8 * 2**20,
+            "inside_admitted_private_control_cap": 16 * 2**20,
+            "canonical_shared_lock": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:12:00",
+    "--job-name=rsna-private-mission-source-milestone",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "source_git": git,
+            "files": {n: b.decode() for n, b in files.items()},
+            "token": values["HF_TOKEN"],
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Uncertain publication requires original intent/commit reconciliation: " + x.stderr[-1000:]
+)
+(D / "actual-private-verified.json").write_text(json.dumps(json.loads(x.stdout), indent=2) + "\n")
+print(x.stdout, flush=True)

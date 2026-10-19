@@ -1,3 +1,5 @@
+> October19 16:37UTC superseding state: original58132 retired while idle, before GPU-source intent; sole replacement59992 waits original56997. Actual full inputs now acceptedCPU970800 in the separate production scope. New v2 Slurm launcher clears inherited CPU bindings and retains assigned cgroup isolation. No actual studentGPU dispatch/recovery or full fit yet. Full production compiler/one-rank epoch validator prepared separately; its execution remains outstanding.
+
 # One-H100 route for the complete-teacher student experiment
 
 This is a distinct Newton hardware route for the planned parent-only versus cross-lineage equal-rank target experiment. It avoids making two new complete training runs depend on the remaining Kaggle GPU budget. Current physical one/two-H100 access is authorized; physical four/eight-GPU nodes remain prohibited. Both future arms use the same one-rank hardware/runtime, original73M encoder initialization, effective8-study batch, IID16 proposal, FP16 forward/FP32 loss and unchanged numerical optimizer modules. This is not an equivalence claim against historical two-T4 training or an accuracy improvement.

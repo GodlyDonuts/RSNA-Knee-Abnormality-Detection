@@ -1,0 +1,202 @@
+"""Compile a full H100 student only from its actual accepted recovery.
+
+No GPU reservation, execution, upload or automatic continuation occurs here.
+The inherited private renderer/model and all numerical modules stay unchanged.
+"""
+
+import ast
+import base64
+import hashlib
+from pathlib import PurePosixPath
+
+ROOT = "/tmp/rsna-S6-Newton-student-production-20261019-v1"
+POP = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+ROLES = ("parent_only", "cross_lineage_equal_rank")
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PROPOSAL = "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+
+
+def sha(value):
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def build(source, staged, actual, ready, inputs, proofs, role, source_git, target_compiler):
+    """Require actual one-rank full/stop/resume acceptance, never a CPU stand-in."""
+    target_binding = target_compiler.admit(ready, role)
+    r = actual.get("receipt", {})
+    if (
+        role not in ROLES
+        or len(source_git) != 40
+        or any(c not in "0123456789abcdef" for c in source_git)
+        or sha(source) != staged.get("source_sha256")
+        or actual.get("source_sha256") != staged["source_sha256"]
+        or actual.get("status") != "actual_complete_teacher_oneH100_recovery_accepted"
+        or r.get("status")
+        != "actual_complete_S6_target_change_full_encoder_oneH100_MRI_recovery_accepted"
+        or r.get("world_size") != 1
+        or r.get("complete_teacher_admission") != ready
+        or r.get("fit_studies") != 16
+        or r.get("disjoint_engineering_studies") != 16
+        or r.get("updates_per_role") != 4
+        or r.get("same_initial_complete_model_and_allrank_RNG_between_roles") is not True
+        or r.get("distinct_final_learned_tensors", 0) <= 0
+        or r.get("parent_weights_sha256") != PARENT
+        or set(r.get("roles", {})) != set(ROLES)
+    ):
+        raise ValueError("Exact actual complete-target one-H100 recovery required")
+    for arm in r["roles"].values():
+        d = arm.get("devices", [])
+        if (
+            arm.get(
+                "complete_model_AdamW_LR_cursors_allrank_RNG_scaler_history_and_epoch_snapshots_equal"
+            )
+            is not True
+            or arm.get("all16_full94_two_view_prediction_bytes_equal") is not True
+            or len(d) != 1
+            or not d[0].get("GPU", "").startswith("NVIDIA H100")
+            or d[0].get("trainable_parameters") != 73136096
+            or d[0].get("all_BN_buffers_equal_parent") is not True
+        ):
+            raise ValueError(
+                "Actual complete learned/base/optimizer/RNG/prediction equality required"
+            )
+    if (
+        inputs.get("status") != "actual_full3887_original_MRI_population_on_Newton_CPU_admitted"
+        or inputs.get("CPU_job") != "970800"
+        or inputs.get("fitting_studies") != 3887
+        or inputs.get("population_sha256") != POP
+        or inputs.get("original_plain_and_mirrored94_tensor_hashes_checked") != 8
+        or inputs.get("original_target_arrays_and_proposals_SHA_equal") is not True
+    ):
+        raise ValueError("Original actual full input admission required")
+    values = {
+        n.targets[0].id: ast.literal_eval(n.value)
+        for n in ast.parse(source).body
+        if isinstance(n, ast.Assign)
+        and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id in ("WORKER", "FILES", "PERMISSION")
+    }
+    if set(values) != {"WORKER", "FILES", "PERMISSION"}:
+        raise ValueError("Original numerical source and license closure required")
+    modules = {name: sha(text) for name, text in values["FILES"].items()}
+    if modules != r.get("source_module_sha256") or modules != staged.get("own_module_sha256"):
+        raise ValueError("All original numerical modules must remain byte identical")
+    if any(PurePosixPath(n).is_absolute() or ".." in PurePosixPath(n).parts for n in modules):
+        raise ValueError("Private relative source members only")
+    from rsna.competitive.licensed_parent_population import validate_proofs
+
+    validate_proofs(proofs)
+    worker = base64.b64decode(values["WORKER"], validate=True).decode()
+    if sha(worker) != r.get("worker_source_sha256") or sha(worker) != staged.get("worker_sha256"):
+        raise ValueError("Actual accepted private worker required")
+    binding = {
+        "production_plan": "complete_S6_equal_rank_matched_full3887_oneH100_v1",
+        "source_git": source_git,
+        "teacher_target_role": role,
+        "parent_checkpoint_sha256": PARENT,
+        "parent_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+        "complete_teacher_admission": ready,
+        "source_module_sha256": modules,
+        "actual_recovery_source_sha256": sha(source),
+        "actual_recovery_receipt_sha256": sha(
+            __import__("json").dumps(actual, sort_keys=True, separators=(",", ":"))
+        ),
+        "full_input_admission": inputs,
+        "proposal_sha256": PROPOSAL,
+        "diagnostic_only": False,
+        "independent_internal_validation": False,
+        "clinical_or_competition_accuracy_claim": False,
+    }
+    main = r"""
+def main():
+    from rsna.competitive.licensed_parent_population import load as load_population, locate
+    from rsna.competitive.complete_teacher_overlay import TeacherOverlay, fit_with_teacher_targets
+    p = argparse.ArgumentParser()
+    p.add_argument('--resume', action='store_true')
+    p.add_argument('--stop-after', type=int, choices=(486, 972))
+    a = p.parse_args()
+    assert int(os.environ['WORLD_SIZE']) == 1 and int(os.environ['LOCAL_RANK']) == 0
+    torch.cuda.set_device(0)
+    device = torch.device('cuda', 0)
+    assert torch.cuda.device_count() == 1 and torch.cuda.get_device_name(0).startswith('NVIDIA H100')
+    torch.set_num_threads(1); torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark = False; torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False; torch.backends.cudnn.allow_tf32 = False
+    torch.use_deterministic_algorithms(True)
+    random.seed(20261016); np.random.seed(20261016)
+    torch.manual_seed(20261016); torch.cuda.manual_seed_all(20261016)
+    dist.init_process_group('nccl')
+    mount = ROOT_VALUE + '/input'
+    render = lambda volume, mask, mirror: eval_windows(volume, mask, 94, 320, norm=NORM, mirror=mirror)
+    original = load_population(mount, PROOFS_VALUE, render)
+    assert len(original) == 3887
+    target = locate(mount, 'teacher-targets.private.npz', TARGET_BYTES_VALUE, TARGET_SHA_VALUE)
+    with np.load(target, allow_pickle=False) as z:
+        assert set(z.files) == {'uids', 'parent_only', 'cross_lineage_equal_rank'}
+        assert z['uids'].tolist() == original.uids
+        overlay = TeacherOverlay(original, original.uids, torch.from_numpy(z[ROLE_VALUE].copy()), TARGET_BINDING_VALUE)
+    q = np.load(locate(mount, 'proposals.private.npy', 2923152, PROPOSAL_VALUE), allow_pickle=False)
+    assert q.shape == (3887, 94) and q.dtype == np.float64
+    data = ProposalCases(overlay, torch.from_numpy(q)); del q
+    weight = locate(mount, 'raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt', 292840787, PARENT_VALUE)
+    base, res = load_model(str(weight), 'coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k', 384, device)
+    model = _whole_model(base); del base
+    assert res == 320 and all(p.requires_grad for p in model.parameters())
+    assert sum(p.numel() for p in model.parameters()) == 73136096
+    initial = _initial_identity(model, device)
+    bn = {n: v.detach().cpu().clone() for n, v in model.state_dict().items() if any(k in n for k in ('running_mean', 'running_var', 'num_batches_tracked'))}
+    output = Path(ROOT_VALUE) / 'runs' / ROLE_VALUE
+    output.mkdir(mode=0o700, parents=True, exist_ok=True)
+    result = fit_with_teacher_targets(model, data, output, BINDING_VALUE, Recipe(epochs=3, role='influence'), device=device, resume=a.resume, stop_after=a.stop_after)
+    assert result['total'] == 1458 and result['completed'] in (486, 972, 1458)
+    assert all(torch.equal(v, model.state_dict()[n].detach().cpu()) for n, v in bn.items())
+    actual = {'completed': result['completed'], 'total': 1458, 'role': ROLE_VALUE, 'initial_identity': initial, 'GPU': torch.cuda.get_device_name(0), 'peak_allocated_bytes': torch.cuda.max_memory_allocated(0), 'all_BN_buffers_equal_parent': True, 'trainable_parameters': 73136096, 'clinical_or_competition_accuracy_claim': False}
+    (output / ('session-' + str(result['completed']) + '.json')).write_text(json.dumps(actual, sort_keys=True))
+    dist.destroy_process_group()
+"""
+    for key, value in {
+        "ROOT_VALUE": ROOT,
+        "PROOFS_VALUE": proofs,
+        "TARGET_BYTES_VALUE": ready["target_file"]["bytes"],
+        "TARGET_SHA_VALUE": ready["target_file"]["sha256"],
+        "ROLE_VALUE": role,
+        "TARGET_BINDING_VALUE": target_binding,
+        "PROPOSAL_VALUE": PROPOSAL,
+        "PARENT_VALUE": PARENT,
+        "BINDING_VALUE": binding,
+    }.items():
+        main = main.replace(key, repr(value))
+    tree = ast.parse(worker)
+    nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main"]
+    if len(nodes) != 1:
+        raise ValueError("Exactly one original numerical entry point required")
+    node = nodes[0]
+    lines = worker.splitlines(keepends=True)
+    new = "".join(lines[: node.lineno - 1]) + main + "\n" + "".join(lines[node.end_lineno :])
+    compile(new, "private_complete_target_full3887_H100_worker", "exec")
+
+    # AST outside main, including model/renderer functions, must stay identical.
+    def body(s):
+        return [
+            ast.dump(n)
+            for n in ast.parse(s).body
+            if not isinstance(n, ast.FunctionDef) or n.name != "main"
+        ]
+
+    assert body(new) == body(worker)
+    return {
+        "WORKER": base64.b64encode(new.encode()).decode(),
+        "FILES": values["FILES"],
+        "PERMISSION": values["PERMISSION"],
+    }, {
+        "status": "oneH100_full3887_fixed3_source_prepared_after_actual_recovery",
+        "worker_sha256": sha(new),
+        "binding": binding,
+        "role": role,
+        "actual_production_dispatched": False,
+        "unchanged_numerical_modules_and_nonmain_AST": True,
+        "full_training_updates": 1458,
+        "epochs": 3,
+        "independent_epoch_validation_and_publication_still_required": True,
+    }
