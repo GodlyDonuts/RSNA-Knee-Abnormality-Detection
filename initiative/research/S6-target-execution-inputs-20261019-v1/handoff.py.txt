@@ -1,0 +1,126 @@
+"""Bounded private complete-target transport. No clinical records in diagnostics."""
+
+import hashlib
+import io
+import json
+import struct
+import zipfile
+
+import numpy as np
+
+POP = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+ROLES = ("parent_only", "cross_lineage_equal_rank")
+CAP = 2 * 2**20
+MAGIC = b"RSNA_COMPLETE_TARGET_HANDOFF_V1\n"
+
+
+def validate(ready, raw):
+    if (
+        ready.get("status")
+        != "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+        or ready.get("population") != 3887
+        or ready.get("population_sha256") != POP
+        or ready.get("labels_masks_and_original_targets_modified") is not False
+        or ready.get("labels_masks_or_protected_values_decoded") is not False
+        or set(ready.get("roles", {})) != set(ROLES)
+    ):
+        raise ValueError("Actual complete immutable cohort admission required")
+    for name in ("complete_teacher_file_sha256", "complete_teacher_journal_sha256"):
+        h = ready.get(name)
+        if not isinstance(h, str) or len(h) != 64 or any(c not in "0123456789abcdef" for c in h):
+            raise ValueError("Actual complete teacher and journal hashes required")
+    if not 0 < len(raw) < CAP or ready.get("target_file") != {
+        "bytes": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+    }:
+        raise ValueError("Exact bounded private target bytes required")
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        rows = z.infolist()
+        if (
+            len(rows) != 3
+            or {x.filename for x in rows} != {"uids.npy", *(r + ".npy" for r in ROLES)}
+            or sum(x.file_size for x in rows) > 8 * 2**20
+            or any(x.is_dir() or x.file_size > 8 * 2**20 for x in rows)
+        ):
+            raise ValueError("Exact bounded original target NPZ members required")
+    with np.load(io.BytesIO(raw), allow_pickle=False) as z:
+        uids = z["uids"]
+        if (
+            uids.dtype.kind != "U"
+            or uids.shape != (3887,)
+            or len(set(uids.tolist())) != 3887
+            or hashlib.sha256(json.dumps(uids.tolist(), separators=(",", ":")).encode()).hexdigest()
+            != POP
+        ):
+            raise ValueError("Exact unique original fitting identity digest required")
+        for role in ROLES:
+            a = z[role]
+            b = ready["roles"][role]
+            if (
+                a.shape != (3887, 2, 12)
+                or a.dtype != np.float32
+                or not np.isfinite(a).all()
+                or b.get("role") != role
+                or b.get("population") != 3887
+                or b.get("population_sha256") != POP
+                or b.get("diagnostic_only") is not False
+                or b.get("version") != "equal_rank_transport_target_overlay_v1"
+                or b.get("original_target_bundle_sha256")
+                != "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+                or b.get("parent_checkpoint_sha256")
+                != "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+                or b.get("S6_model_sha256")
+                != (
+                    None
+                    if role == "parent_only"
+                    else "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12"
+                )
+                or b.get("new_teacher_array_sha256")
+                != hashlib.sha256(a.tobytes(order="C")).hexdigest()
+            ):
+                raise ValueError("Exact full-cohort role tensors and provenance required")
+    return {
+        "bytes": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "population": 3887,
+        "roles": list(ROLES),
+        "raw_records_exported": False,
+    }
+
+
+def send(stream, ready, raw):
+    validate(ready, raw)
+    header = json.dumps(ready, sort_keys=True, separators=(",", ":")).encode()
+    if len(header) > 65536:
+        raise ValueError("Target admission header exceeds cap")
+    stream.write(MAGIC + struct.pack("!Q", len(header)) + header + raw)
+    stream.flush()
+
+
+def read_exact(stream, n):
+    out = bytearray()
+    while len(out) < n:
+        part = stream.read(n - len(out))
+        if not part:
+            raise ValueError("Private handoff truncated")
+        out.extend(part)
+    return bytes(out)
+
+
+def receive(stream, expected):
+    if read_exact(stream, len(MAGIC)) != MAGIC:
+        raise ValueError("Unknown private handoff protocol")
+    size = struct.unpack("!Q", read_exact(stream, 8))[0]
+    if not 0 < size <= 65536:
+        raise ValueError("Target admission header exceeds cap")
+    ready = json.loads(read_exact(stream, size))
+    if ready != expected:
+        raise ValueError("Actual sender and receiver admission differ")
+    n = ready.get("target_file", {}).get("bytes")
+    if type(n) is not int or not 0 < n < CAP:
+        raise ValueError("Private target size exceeds cap")
+    raw = read_exact(stream, n)
+    if stream.read(1):
+        raise ValueError("Unexpected trailing private handoff bytes")
+    proof = validate(ready, raw)
+    return raw, proof

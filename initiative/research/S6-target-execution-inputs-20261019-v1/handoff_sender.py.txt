@@ -1,0 +1,31 @@
+# ruff: noqa: F821
+"""Read the exact completed target once; stdout is the private framed transport."""
+
+import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+v = PACKAGE
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-S6-complete-target-admission-20261018-v1")
+ready = json.loads((D / "ready.json").read_text())
+assert ready == v["ready"]
+p = D / "teacher-targets.private.npz"
+assert p.is_file() and p.stat().st_size < 2 * 2**20
+raw = p.read_bytes()
+send(sys.stdout.buffer, ready, raw)
+assert hashlib.sha256(p.read_bytes()).hexdigest() == ready["target_file"]["sha256"]
+
+print(
+    json.dumps(
+        {
+            "status": "original_complete_private_packet_streamed",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "target_file": ready["target_file"],
+        }
+    ),
+    file=sys.stderr,
+    flush=True,
+)

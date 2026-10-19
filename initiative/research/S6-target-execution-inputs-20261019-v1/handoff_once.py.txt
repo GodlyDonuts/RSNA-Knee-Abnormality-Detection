@@ -1,0 +1,143 @@
+"""One original completed-cohort handoff; raw bytes never cross the Mac."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-target-execution-inputs-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "handoff-intent.json").exists(), "Reconcile the original handoff, never repeat it"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+source_admission = json.loads((D / "actual-source-input-admitted.json").read_text())
+assert source_admission["CPU_job"] == "969738"
+ready_path = "/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1/owner-terminal.json"
+a = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+x = subprocess.run(a + ["cat " + ready_path], capture_output=True, text=True, timeout=15)
+if x.returncode:
+    print(
+        json.dumps(
+            {
+                "status": "complete_target_terminal_not_observed_no_handoff_intent",
+                "read_only": True,
+                "observation_loss_is_not_job_failure": True,
+            }
+        )
+    )
+    raise SystemExit(0)
+terminal = json.loads(x.stdout)
+assert terminal["status"] == "original_complete_teacher_and_targets_finished", (
+    "Original teacher stopped; preserve evidence, no handoff retry"
+)
+ready = terminal["targets"]
+teacher = terminal["teacher"]
+assert (
+    teacher["completed"] == 3887
+    and teacher["source_git"] == "a6b1d0e647d858476a790177ad953295966de252"
+)
+assert ready["complete_teacher_journal_sha256"] == teacher["journal_sha256"]
+assert ready["complete_teacher_file_sha256"] == teacher["teacher_file_sha256"]
+for job in (teacher["CPU_job"], ready["CPU_job"]):
+    x = subprocess.run(
+        a + ["sacct -X -n -P -j " + str(int(job)) + " --format=JobIDRaw,State,ExitCode"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=20,
+    )
+    assert str(job) + "|COMPLETED|0:0" in x.stdout
+parts = {
+    n: (D / n).read_text()
+    for n in ("handoff.py.txt", "handoff_sender.py.txt", "handoff_receiver.py.txt")
+}
+assert all(
+    subprocess.check_output(
+        ["git", "show", pin + ":" + (D / n).relative_to(R).as_posix()], text=True
+    )
+    == s
+    for n, s in parts.items()
+)
+intent = {
+    "source_git": pin,
+    "target_file": ready["target_file"],
+    "original_complete_teacher_CPU": teacher["CPU_job"],
+    "original_target_CPU": ready["CPU_job"],
+    "source_admission_CPU": "969738",
+    "source_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in parts.items()},
+    "private_node39_to_node33_only": True,
+    "new_GPU_Dataset_or_entries": 0,
+    "automatic_retry": False,
+}
+with (L / "handoff-intent.json").open("x") as f:
+    json.dump(intent, f, indent=2)
+s = importlib.util.spec_from_file_location(
+    "bounded", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+program = r"""
+import hashlib,json,subprocess,sys,time
+v=json.load(sys.stdin)
+def command(node,suffix):
+ payload={'source_git':v['source_git'],'ready':v['ready'],'source_admission':v['source_admission']}
+ source=v['helper']+'\nPACKAGE='+repr(payload)+'\n'+suffix
+ compile(source,'complete_target_private_transport','exec')
+ return ['srun','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem=2G','--time=00:05:00','--job-name=rsna-S6-target-'+node,'env','CUDA_VISIBLE_DEVICES=','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=1','/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python','-B','-c',source]
+# Arguments contain only own code and aggregate hashes/receipts, never target
+# arrays, clinical records or credentials. The private frame crosses this pipe.
+receiver=subprocess.Popen(command('evc33',v['receiver']),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+sender=subprocess.Popen(command('evc39',v['sender']),stdout=receiver.stdin,stderr=subprocess.PIPE)
+receiver.stdin.close();receiver.stdin=None
+try:
+ _,sender_error=sender.communicate(timeout=480)
+ output,receiver_error=receiver.communicate(timeout=480)
+except BaseException:
+ raise RuntimeError('Original endpoint handles must be inspected; do not repeat an uncertain handoff') from None
+assert sender.returncode==receiver.returncode==0,('Original private endpoint stopped; no retry. '+sender_error.decode()[-1200:]+' '+receiver_error.decode()[-1200:])
+assert len(output)<32768
+left=[json.loads(s) for s in sender_error.decode().splitlines() if s.startswith('{')][-1]
+right=json.loads(output)
+assert left['target_file']==v['ready']['target_file'] and right['target_file']['sha256']==left['target_file']['sha256']
+for job in (left['CPU_job'],right['CPU_job']):
+ for attempt in range(10):
+  state=subprocess.check_output(['sacct','-X','-n','-P','-j',job,'--format=JobIDRaw,State,ExitCode'],text=True)
+  if job+'|COMPLETED|0:0' in state:break
+  time.sleep(1)
+ else:raise RuntimeError('Actual endpoint terminal unverified; inspect original handles only')
+print(json.dumps({'status':'actual_complete_targets_handoff_both_CPU_endpoints_completed','sender':left,'receiver':right,'raw_bytes_on_Mac_Git_HF':False,'automatic_retry':False}),flush=True)
+"""
+x = subprocess.run(
+    a
+    + [
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(t.COMMAND)
+    ],
+    input=t.envelope(
+        program,
+        {
+            "source_git": pin,
+            "ready": ready,
+            "source_admission": source_admission,
+            "helper": parts["handoff.py.txt"],
+            "sender": parts["handoff_sender.py.txt"],
+            "receiver": parts["handoff_receiver.py.txt"],
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1000,
+)
+(L / "handoff-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original endpoint intents require read-only reconciliation; never repeat: " + x.stderr[-1000:]
+)
+value = json.loads(x.stdout)
+(D / "actual-complete-target-handoff.json").write_text(json.dumps(value, indent=2) + "\n")
+print(json.dumps(value), flush=True)

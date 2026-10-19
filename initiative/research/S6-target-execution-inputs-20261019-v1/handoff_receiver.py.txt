@@ -1,0 +1,82 @@
+# ruff: noqa: F821
+"""Admit one full private packet beside the already admitted recovery sources."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = PACKAGE
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+assert json.loads((D / "admitted.json").read_text()) == v["source_admission"]
+F = D / "complete-target-input-v1"
+assert not F.exists(), "Prior input intent requires read-only reconciliation"
+cap = 12 * 2**20
+paid = sum(p.stat().st_size for p in D.rglob("*") if p.is_file())
+assert paid + 6 * 2**20 < cap and shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + max(
+    0, cap - paid
+)
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 4 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5256
+for name, h in v["source_admission"]["files"].items():
+    assert hashlib.sha256((D / "code" / name).read_bytes()).hexdigest() == h
+raw, proof = receive(sys.stdin.buffer, v["ready"])
+# Validate the parent-only role directly against the original full input target;
+# labels and masks are never decoded for this transport.
+original = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")
+assert (
+    hashlib.sha256(original.read_bytes()).hexdigest()
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+)
+with (
+    np.load(original, allow_pickle=False) as old,
+    np.load(io.BytesIO(raw), allow_pickle=False) as new,
+):
+    assert np.array_equal(old["uids"], new["uids"]) and np.array_equal(
+        old["parent_logits"], new["parent_only"]
+    )
+F.mkdir(mode=0o700)
+with (F / "intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "original_target_CPU_job": v["ready"]["CPU_job"],
+            "target_file": proof,
+            "source_admission_CPU": v["source_admission"]["CPU_job"],
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+with (F / "teacher-targets.private.npz").open("xb") as f:
+    f.write(raw)
+    f.flush()
+    os.fsync(f.fileno())
+assert (
+    hashlib.sha256((F / "teacher-targets.private.npz").read_bytes()).hexdigest() == proof["sha256"]
+)
+(F / "complete-target-ready.json").write_text(json.dumps(v["ready"], indent=2) + "\n")
+result = {
+    "status": "actual_complete3887_targets_direct_node39_to_node33_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "source_admission_CPU": v["source_admission"]["CPU_job"],
+    "original_target_CPU_job": v["ready"]["CPU_job"],
+    "target_file": proof,
+    "parent_only_exactly_original_full_target_tensor": True,
+    "labels_or_masks_decoded": False,
+    "records_or_arrays_on_Mac_Git_HF": False,
+    "GPU_Dataset_or_competition_mutations": 0,
+    "automatic_retry": False,
+}
+(F / "verified.json").write_text(json.dumps(result, indent=2) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < cap
+print(json.dumps(result), flush=True)

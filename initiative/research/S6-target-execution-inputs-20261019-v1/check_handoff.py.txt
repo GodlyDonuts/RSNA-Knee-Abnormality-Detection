@@ -1,0 +1,121 @@
+"""Synthetic transport execution/refusals; no private data, GPU or clinical claim."""
+
+import copy
+import hashlib
+import importlib.util
+import io
+import json
+import struct
+import zipfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import numpy as np
+
+D = Path(__file__).resolve().parent
+s = importlib.util.spec_from_loader(
+    "test_private_packet", SourceFileLoader("test_private_packet", str(D / "handoff.py.txt"))
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+# Test namespace only: real production keeps the exact original fixed digest.
+uids = np.asarray(["synthetic-fitting-" + str(i) for i in range(3887)])
+m.POP = hashlib.sha256(json.dumps(uids.tolist(), separators=(",", ":")).encode()).hexdigest()
+parent = np.arange(3887 * 24, dtype=np.float32).reshape(3887, 2, 12) / 10000
+arrays = {"parent_only": parent, "cross_lineage_equal_rank": parent + np.float32(0.03)}
+
+
+def packet(values=arrays, ids=uids):
+    out = io.BytesIO()
+    np.savez_compressed(out, uids=ids, **values)
+    return out.getvalue()
+
+
+def receipt(raw, values=arrays):
+    return {
+        "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+        "population": 3887,
+        "population_sha256": m.POP,
+        "labels_masks_and_original_targets_modified": False,
+        "labels_masks_or_protected_values_decoded": False,
+        "complete_teacher_file_sha256": "a" * 64,
+        "complete_teacher_journal_sha256": "b" * 64,
+        "target_file": {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()},
+        "roles": {
+            r: {
+                "role": r,
+                "version": "equal_rank_transport_target_overlay_v1",
+                "population": 3887,
+                "population_sha256": m.POP,
+                "diagnostic_only": False,
+                "original_target_bundle_sha256": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+                "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+                "S6_model_sha256": None
+                if r == "parent_only"
+                else "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12",
+                "new_teacher_array_sha256": hashlib.sha256(values[r].tobytes()).hexdigest(),
+            }
+            for r in m.ROLES
+        },
+    }
+
+
+raw = packet()
+ready = receipt(raw)
+wire = io.BytesIO()
+m.send(wire, ready, raw)
+actual, proof = m.receive(io.BytesIO(wire.getvalue()), ready)
+assert actual == raw and proof["population"] == 3887
+cases = []
+
+
+def refuses(name, fn):
+    try:
+        fn()
+    except (ValueError, zipfile.BadZipFile):
+        cases.append(name)
+    else:
+        raise AssertionError(name + " unexpectedly admitted")
+
+
+refuses("truncated", lambda: m.receive(io.BytesIO(wire.getvalue()[:-1]), ready))
+refuses("trailing", lambda: m.receive(io.BytesIO(wire.getvalue() + b"extra"), ready))
+refuses(
+    "different_exact_admission",
+    lambda: m.receive(
+        io.BytesIO(wire.getvalue()), {**ready, "complete_teacher_file_sha256": "c" * 64}
+    ),
+)
+refuses("header_cap", lambda: m.receive(io.BytesIO(m.MAGIC + struct.pack("!Q", 65537)), ready))
+bad = bytearray(raw)
+bad[-1] ^= 1
+refuses("changed_payload_hash", lambda: m.validate(ready, bytes(bad)))
+refuses("partial_population", lambda: m.validate({**ready, "population": 100}, raw))
+b = copy.deepcopy(ready)
+b["roles"]["parent_only"]["S6_model_sha256"] = "0" * 64
+refuses("control_consumes_second_teacher", lambda: m.validate(b, raw))
+b = copy.deepcopy(ready)
+b["roles"]["parent_only"]["new_teacher_array_sha256"] = "0" * 64
+refuses("changed_role_tensor_hash", lambda: m.validate(b, raw))
+a = {**arrays, "cross_lineage_equal_rank": arrays["cross_lineage_equal_rank"].copy()}
+a["cross_lineage_equal_rank"][0, 0, 0] = np.nan
+n = packet(a)
+refuses("nonfinite", lambda: m.validate(receipt(n, a), n))
+x = io.BytesIO()
+with zipfile.ZipFile(x, "w", compression=zipfile.ZIP_DEFLATED) as z:
+    z.writestr("uids.npy", b"0" * (8 * 2**20 + 1))
+    z.writestr("parent_only.npy", b"0")
+    z.writestr("cross_lineage_equal_rank.npy", b"0")
+n = x.getvalue()
+refuses("decompressed_cap", lambda: m.validate(receipt(n), n))
+print(
+    json.dumps(
+        {
+            "actual_synthetic_full_size_roundtrip": True,
+            "refusal_cases": cases,
+            "count": len(cases),
+            "test_namespace_digest_only": True,
+            "clinical_data_or_GPU_or_live_handoff": False,
+        }
+    )
+)

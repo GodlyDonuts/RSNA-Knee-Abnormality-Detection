@@ -1,0 +1,109 @@
+"""Finite original-target follower: one private handoff, no GPU/Dataset mutations."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-target-execution-inputs-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+frozen = {
+    n: hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in (
+        "handoff.py.txt",
+        "handoff_sender.py.txt",
+        "handoff_receiver.py.txt",
+        "handoff_once.py.txt",
+    )
+}
+assert not (L / "follower-intent.json").exists()
+with (L / "follower-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "maximum_hours": 24,
+            "frozen": frozen,
+            "original_resident_PID": 2320176,
+            "maximum_handoffs": 1,
+            "new_GPU_Dataset_or_submissions": 0,
+            "automatic_mutation_retry": False,
+        },
+        f,
+        indent=2,
+    )
+start = time.monotonic()
+try:
+    while True:
+        assert time.monotonic() - start < 24 * 3600
+        assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+        x = subprocess.run(
+            [sys.executable, str(D / "handoff_once.py.txt")],
+            capture_output=True,
+            text=True,
+            timeout=1100,
+        )
+        (L / "follower-last-transport.json").write_text(
+            json.dumps(
+                {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2
+            )
+            + "\n"
+        )
+        assert x.returncode == 0, (
+            "Original handoff stopped; reconcile original endpoint handles, never restart"
+        )
+        value = json.loads(x.stdout)
+        if value["status"] == "actual_complete_targets_handoff_both_CPU_endpoints_completed":
+            (L / "follower-result.json").write_text(
+                json.dumps({"PID": os.getpid(), "actual": value}, indent=2) + "\n"
+            )
+            print(json.dumps(value), flush=True)
+            break
+        assert value["status"] == "complete_target_terminal_not_observed_no_handoff_intent"
+        # Reconcile the exact original PID and startticks. Observation loss is not a
+        # terminal or restart signal; an actual recorded terminal failure stops us.
+        a = [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            "test -r /proc/2320176/stat && awk '{print $22}' /proc/2320176/stat",
+        ]
+        live = subprocess.run(a, capture_output=True, text=True, timeout=15)
+        if live.returncode == 0:
+            assert live.stdout.strip() == "480928901", "Original PID changed; inspect terminal only"
+        (L / "follower-progress.json").write_text(
+            json.dumps(
+                {
+                    "PID": os.getpid(),
+                    "waiting_original_complete_targets": True,
+                    "original_resident_live_startticks_verified": live.returncode == 0,
+                    "observation_failure_does_not_restart_jobs": True,
+                    "elapsed_seconds": round(time.monotonic() - start, 1),
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        time.sleep(120)
+except BaseException as e:
+    (L / "follower-result.json").write_text(
+        json.dumps(
+            {
+                "PID": os.getpid(),
+                "status": "original_target_handoff_follower_stopped",
+                "type": type(e).__name__,
+                "reason": str(e),
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
