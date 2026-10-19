@@ -1,0 +1,119 @@
+"""Reconcile the one native source save, then reserve at most one exact public run."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/R6-postscore-member-execution-20261019-v1"
+assert not (L / "reconcile-run-intent.json").exists()
+admission = json.loads((D / "actual-fork-admitted.json").read_text())
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep
+}
+program = """import ast,hashlib,importlib.util,json,os,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+intent=v['admission'];key=intent['canonical_key'];slug=intent['desired_slug']
+P=Path('/tmp/rsna-paired-full-fitting-20261018-v1/R6-final-preparation-v1');compiled=(P/'competition.private.py').read_text();assert hashlib.sha256(compiled.encode()).hexdigest()==intent['source_sha256']
+W=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(W.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('canonical_R6_public_run_admission',W);w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];r.username='godlydonuts'
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') is True and who.get('username')=='godlydonuts'
+claim=Path('/home/sa305415/rsna-knee/kaggle/coordinator-claim');end=time.monotonic()+120
+while True:
+ try:claim.mkdir(mode=0o700);break
+ except FileExistsError:assert time.monotonic()<end;time.sleep(3)
+w.new_json(claim/'owner.json',{'kind':'R6_paired_native_save_reconciliation_run_admission','CPU_job':os.environ['SLURM_JOB_ID']})
+try:
+ with w.ledger(Path('/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3'),'godlydonuts') as db:
+  w.verify_account(db,r);old=json.loads(db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()[0]);assert old['state']=='R6_paired_UI_fork_intent' and old['intent']==intent
+  actual=r.kernel('GetKernel',slug,1);m=actual['metadata'];raw=actual['blob']['source'];assert m['currentVersionNumber']==1 and m['isPrivate'] is True and not m.get('enableInternet',False)
+  if m['kernelType']=='notebook':
+   nb=json.loads(raw);cells=[''.join(c['source']) if isinstance(c['source'],list) else c['source'] for c in nb['cells'] if c['cell_type']=='code'];code='\\n\\n'.join(cells);sources=nb.get('metadata',{}).get('kaggle',{}).get('dataSources',[])
+  else:cells=[raw];code=raw;sources=[]
+  ast_sha=lambda s:hashlib.sha256(ast.dump(ast.parse(s),include_attributes=False).encode()).hexdigest()
+  assert ast_sha(code)==ast_sha(compiled),'Native import changed executable source; do not execute'
+  expected=set(intent['template_data_sources']['datasetDataSources']);assert set(m.get('datasetDataSources',[]))==expected
+  assert set(m.get('kernelDataSources',[]))==set(intent['template_data_sources']['kernelDataSources'])|{'godlydonuts/rsna-paired-full-e3-7e6aa56c53a3'}
+  assert m['competitionDataSources']==['rsna-knee-abnormality-detection'] and m['enableGpu'] is True and m['machineShape']=='NvidiaTeslaT4' and m['dockerImage']==intent['template_data_sources']['dockerImage']
+  code_sha=hashlib.sha256(code.encode()).hexdigest();row={**old,'state':'R6_paired_UI_source_saved','slug':slug,'version':1,'kernel_id':m['id'],'source_sha256':hashlib.sha256(raw.encode()).hexdigest(),'code_sha256':code_sha,'compiled_code_AST_sha256':ast_sha(code),'compiled_original_source_sha256':intent['source_sha256'],'native_import_changes_comments_only':True,'source_only_not_submission_eligible':True,'native_export_data_sources':sources,'metadata':{k:m.get(k) for k in ('kernelType','isPrivate','enableGpu','enableInternet','machineShape','dockerImage','datasetDataSources','kernelDataSources','competitionDataSources')}}
+  quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota'];secs=lambda x:float(str(x or '0s').removesuffix('s'));available=secs(quota['totalTimeAllowed'])-secs(quota.get('timeUsed'))-secs(quota.get('timeReserved'))
+  cap=Path('/tmp/rsna-licensed-parent-epoch-serving-20261016-v1/GPU-admission-v1/gpu_capacity.py');assert hashlib.sha256(cap.read_bytes()).hexdigest()=='0df45fa6f4724f15fe819794ecade9b5b4e64cc68037457b8db5049cb2fd66a2';sp=importlib.util.spec_from_file_location('existing_GPU_capacity',cap);capacity=importlib.util.module_from_spec(sp);sp.loader.exec_module(capacity);slots=capacity.admission(db,r,caller='serving')
+  ready=available>=34200 and slots['available'];run={'checked_at_UTC':w.utcnow(),'UI_commit_deadline_unix':time.time()+180,'expected_version':2,'max_public_run_seconds':32400,'reserve_seconds':1800,'available_unreserved_VM_seconds':available,'actual_capacity':slots,'source_code_sha256':code_sha,'GPU_pushes_so_far':0,'competition_entries_so_far':0,'fresh_account':r.account(),'automatic_retry':False}
+  if ready:row.update(state='R6_paired_UI_public_run_intent',public_run_intent=run)
+  db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(row,sort_keys=True),key));db.commit()
+  out={'status':'ready_for_one_native_SaveAndRun_version2' if ready else 'native_source_saved_waiting_actual_public_capacity_or_budget','CPU_job':os.environ['SLURM_JOB_ID'],'canonical_key':key,'source_saved':{k:row[k] for k in ('slug','version','kernel_id','source_sha256','code_sha256','compiled_code_AST_sha256','compiled_original_source_sha256','native_import_changes_comments_only','source_only_not_submission_eligible','native_export_data_sources','metadata')},'run_admission':run,'actual_GPU_or_entry_mutations':0}
+  print(json.dumps(out),flush=True)
+finally:
+ (claim/'owner.json').unlink();claim.rmdir()
+"""
+(L / "reconcile-run-intent.json").write_text(
+    json.dumps(
+        {
+            "canonical_key": admission["canonical_key"],
+            "expected_source_version": 1,
+            "next_maximum_public_version": 2,
+            "automatic_retry": False,
+        }
+    )
+)
+spec = importlib.util.spec_from_file_location(
+    "bounded", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:08:00",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {"admission": admission, "token": values["KAGGLE_API_TOKEN"]}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "reconcile-run-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Reconciliation stopped; inspect exact original version/ledger without repeating a mutation: "
+    + x.stderr[-1000:]
+)
+actual = json.loads(x.stdout)
+(D / "actual-source-and-run-admission.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

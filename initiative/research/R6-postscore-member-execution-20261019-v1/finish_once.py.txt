@@ -1,0 +1,91 @@
+"""Follow the existing native public run, one accepted code entry, then its outcome."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/R6-postscore-member-execution-20261019-v1"
+assert not (L / "owner-intent.json").exists()
+frozen = {
+    str(D / n): hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("advance.py.txt", "coordinate_once.py.txt")
+}
+with (L / "owner-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "original_native_notebook": "godlydonuts/rsna-r6-paired-e3-76f5380e4054",
+            "exact_version": 2,
+            "maximum_new_notebook_pushes": 0,
+            "maximum_code_submissions": 1,
+            "maximum_hours": 36,
+            "frozen": frozen,
+            "automatic_retry_of_mutations": False,
+        },
+        f,
+        indent=2,
+    )
+start = time.monotonic()
+phase = "status"
+try:
+    while True:
+        assert time.monotonic() - start < 36 * 3600
+        assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest() == h for p, h in frozen.items())
+        x = subprocess.run(
+            [sys.executable, str(D / "coordinate_once.py.txt"), phase],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        assert x.returncode == 0, x.stderr[-1500:]
+        value = json.loads(x.stdout)
+        (L / "owner-progress.json").write_text(
+            json.dumps({"PID": os.getpid(), "phase": phase, "actual": value}, indent=2)
+        )
+        print(json.dumps(value), flush=True)
+        status = value["status"]
+        if status == "actual_original_R6_paired_public_failed_no_retry":
+            break
+        if (
+            phase == "status"
+            and status == "actual_R6_paired_public_MRI_and_exact_member_CSV_accepted"
+        ):
+            phase = "submit"
+            continue
+        if phase == "submit":
+            assert status == "one_exact_R6_paired_code_submission_accepted", (
+                "Submission not accepted; preserve original intent and reconcile actual allowance/state"
+            )
+            phase = "outcome"
+            continue
+        if (
+            phase == "outcome"
+            and status == "actual_R6_paired_hidden_outcome"
+            and value["outcome"] in ("scored", "failed")
+        ):
+            break
+        time.sleep(150)
+    (L / "owner-result.json").write_text(
+        json.dumps(
+            {"PID": os.getpid(), "status": "original_R6_comparison_terminal", "actual": value},
+            indent=2,
+        )
+    )
+except BaseException as error:
+    (L / "owner-result.json").write_text(
+        json.dumps(
+            {
+                "PID": os.getpid(),
+                "status": "controller_stopped_original_intents_and_handles_preserved",
+                "reason": str(error),
+            },
+            indent=2,
+        )
+    )
+    raise

@@ -1,0 +1,357 @@
+"""Follow one saved R6 comparison; exact public acceptance precedes one code entry."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+phase = v["phase"]
+assert phase in ("status", "submit", "outcome")
+key = "R6-paired-member:76f5380e40548993a5b3f62c825b95e4799f71f91709a3ccc8027ef07a5e6237"
+projection = "licensed-parent-full-epoch-serving:" + key
+slug = "godlydonuts/rsna-r6-paired-e3-76f5380e4054"
+D = Path("/tmp/rsna-paired-full-fitting-20261018-v1/R6-final-preparation-v1")
+W = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(W.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+spec = importlib.util.spec_from_file_location("canonical_R6_comparison", W)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+r.username = "godlydonuts"
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") is True and who.get("username") == "godlydonuts"
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+end = time.monotonic() + 120
+while True:
+    try:
+        claim.mkdir(mode=0o700)
+        break
+    except FileExistsError:
+        assert time.monotonic() < end
+        time.sleep(3)
+owner = {"kind": "one_R6_paired_comparison_" + phase, "CPU_job": os.environ["SLURM_JOB_ID"]}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        row = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+        assert (
+            row["slug"] == slug
+            and row["code_sha256"]
+            == "2d27d7c66b872c194136f45555cf09fd6c35aea66d71e5d92b5b43fd35cda8f4"
+        )
+
+        def save():
+            db.execute(
+                "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+            )
+            db.commit()
+
+        def occupancy(state):
+            item = {
+                "state": state,
+                "canonical_record_key": key,
+                "slug": slug,
+                "version": 2,
+                "kernel_id": row["kernel_id"],
+                "capacity_projection_only": True,
+            }
+            db.execute(
+                "INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)",
+                (projection, json.dumps(item, sort_keys=True)),
+            )
+            db.commit()
+
+        if phase == "outcome":
+            assert row["state"] in (
+                "R6_paired_submitted",
+                "R6_paired_scored",
+                "R6_paired_hidden_failed",
+            )
+            found = [s for s in r.submissions() if s["ref"] == row["submission_id"]]
+            assert len(found) == 1 and slug.split("/")[1] in found[0].get("url", "")
+            item = found[0]
+            outcome = w.submission_outcome(item)
+            out = {
+                "status": "actual_R6_paired_hidden_outcome",
+                "CPU_job": os.environ["SLURM_JOB_ID"],
+                "submission_id": item["ref"],
+                "slug": slug,
+                "version": 2,
+                "outcome": outcome,
+                "actual_status": item.get("status"),
+                "public_score": item.get("publicScore"),
+                "error_present": bool(item.get("errorDescription")),
+                "new_GPU_or_entry_mutations": 0,
+            }
+            if outcome in ("scored", "failed"):
+                row.update(
+                    state="R6_paired_scored" if outcome == "scored" else "R6_paired_hidden_failed",
+                    actual_hidden_outcome=out,
+                )
+                save()
+                if not (D / "actual-R6-paired-hidden-terminal.json").exists():
+                    w.new_json(D / "actual-R6-paired-hidden-terminal.json", out)
+            print(json.dumps(out), flush=True)
+            raise SystemExit(0)
+        assert row["state"] in (
+            "R6_paired_UI_public_run_intent",
+            "R6_paired_public_pushed",
+            "R6_paired_public_accepted",
+        )
+        try:
+            actual = r.kernel("GetKernel", slug, 2)
+            session = r.kernel("GetKernelSessionStatus", slug, 2)
+        except Exception as error:
+            print(
+                json.dumps(
+                    {
+                        "status": "same_original_version_observation_temporarily_unavailable",
+                        "exception_type": type(error).__name__,
+                        "new_mutations": 0,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(0)
+        m = actual["metadata"]
+        source_sha = hashlib.sha256(actual["blob"]["source"].encode()).hexdigest()
+        assert (
+            m["id"] == 139613596
+            and m["currentVersionNumber"] == 2
+            and source_sha == row["code_sha256"]
+        )
+        assert (
+            m["kernelType"] == "script"
+            and m["isPrivate"] is True
+            and m["enableGpu"] is True
+            and not m.get("enableInternet", False)
+            and m["machineShape"] == "NvidiaTeslaT4"
+        )
+        assert m["dockerImage"] in (
+            "gcr.io/kaggle-images/python@sha256:81b1e7c4b4f0f2a7e0a33943c95754b1b7af6b30d65221633a284b6b601cd84a",
+            "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+        )
+        assert set(m["datasetDataSources"]) == set(row["metadata"]["datasetDataSources"]) and set(
+            m["kernelDataSources"]
+        ) == set(row["metadata"]["kernelDataSources"])
+        state = session.get("status")
+        public = {
+            "slug": slug,
+            "version": 2,
+            "kernel_id": m["id"],
+            "source_sha256": source_sha,
+            "status": state,
+            "actual_docker_image": m["dockerImage"],
+            "source_only_v1_not_submitted": True,
+        }
+        if row["state"] == "R6_paired_UI_public_run_intent":
+            row.update(state="R6_paired_public_pushed", actual_public=public)
+            save()
+        if state in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+            row.update(state="R6_paired_public_failed", actual_public=public)
+            save()
+            occupancy("R6_paired_public_failed")
+            print(
+                json.dumps(
+                    {
+                        "status": "actual_original_R6_paired_public_failed_no_retry",
+                        "CPU_job": os.environ["SLURM_JOB_ID"],
+                        "actual": public,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(0)
+        if state != "COMPLETE":
+            occupancy("R6_paired_public_pushed")
+            print(
+                json.dumps(
+                    {
+                        "status": "same_original_R6_paired_public_observed",
+                        "CPU_job": os.environ["SLURM_JOB_ID"],
+                        "actual": public,
+                        "new_mutations": 0,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(0)
+        try:
+            proof = r.output_json(slug, 2, "R6-paired-member-accepted.json")
+        except Exception as error:
+            print(
+                json.dumps(
+                    {
+                        "status": "same_original_complete_public_output_not_yet_observable",
+                        "exception_type": type(error).__name__,
+                        "new_mutations": 0,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(0)
+        assert (
+            proof["status"]
+            == "actual_R6_with_fixed_final_paired_384_member_MRI_and_final_reader_accepted"
+        )
+        assert (
+            proof["all8code_cells_sha256"]
+            == "37697a3320da2699f87ac3ed9bb292a64955d540361746abeeca37bb28b16b0f"
+        )
+        assert (
+            proof["base_all8code_cells_sha256"]
+            == "300b34417bc1bc91018a4bb50fa9440403e904ab7abcc7236e432e61932df56f"
+        )
+        assert (
+            proof["completed_original_cells"] == list(range(8))
+            and proof["changed_original_cell_indices"] == [0]
+            and proof["unchanged_original_cell_indices"] == list(range(1, 8))
+        )
+        assert (
+            proof["R6_fallbacks"] == 0
+            and proof["R6_bundle_id"] == "fe055406fad6a12f"
+            and proof["full_final_reader_output_exists"] is True
+        )
+        assert (
+            proof["original_R6_ensemble_weights_unchanged"] is True
+            and proof["new_inference_models_added"] == 0
+            and proof["rows"] == 3
+            and proof["columns"] == 13
+        )
+        member = proof["paired_member"]
+        assert (
+            member["model_sha256"]
+            == "bda6472e96eefced22b729ee2fd88743a19129a3caa81866621054d94046c95a"
+            and member["training_source_sha256"]
+            == "7e6aa56c53a379c8fa023e9f0fb3ef825601fb68a6293d652c47f59e1f4c48fd"
+            and member["epoch"] == 3
+        )
+        assert (
+            member["member_CSV_sha256"]
+            == "faa20e95a1779658237252388407eaf6d835679dd43e4dae5bca18d95496bede"
+        )
+        csv = {"__name__": "bound_RAM_CSV_reader"}
+        exec(compile(v["csv_source"], "original_RAM_CSV_reader", "exec"), csv)
+        checked = csv["verify_csv"](
+            csv["download_csv"](r, slug, 2),
+            v["columns"],
+            "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+        )
+        assert (
+            checked["CSV_sha256"] == proof["small_output_proofs"]["submission.csv"]["sha256"]
+            and checked["bytes"] == proof["small_output_proofs"]["submission.csv"]["bytes"]
+        )
+        accepted = {
+            "status": "actual_R6_paired_public_MRI_and_exact_member_CSV_accepted",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "actual": public,
+            "receipt": proof,
+            "CSV_verified_in_RAM": checked,
+            "hidden_score_known": False,
+        }
+        row.update(state="R6_paired_public_accepted", actual_public_accepted=accepted)
+        save()
+        occupancy("R6_paired_public_accepted")
+        if not (D / "actual-R6-paired-public-accepted.json").exists():
+            w.new_json(D / "actual-R6-paired-public-accepted.json", accepted)
+        if phase == "status":
+            print(json.dumps(accepted), flush=True)
+            raise SystemExit(0)
+        assert (
+            phase == "submit"
+            and not row.get("submission_id")
+            and not (D / "R6-paired-submit-intent.json").exists()
+        )
+        description = "R6-qualified-paired-final:" + source_sha
+        for (raw,) in db.execute("SELECT record FROM entries"):
+            assert json.loads(raw).get("state") not in ("submit_intent", "submit_uncertain")
+        for (raw,) in db.execute("SELECT value FROM meta"):
+            value = json.loads(raw)
+            if isinstance(value, dict):
+                assert not value.get("state", "").endswith(("submit_intent", "submit_uncertain"))
+        assert not any(
+            slug.split("/")[1] in s.get("url", "") or s.get("description") == description
+            for s in r.submissions()
+        )
+        fresh = r.account()
+        if not (fresh["entered"] and fresh["num_today"] < 5 and fresh["num_allowed_now"] > 0):
+            print(
+                json.dumps(
+                    {
+                        "status": "exact_public_candidate_waiting_live_submission_allowance",
+                        "fresh_account": fresh,
+                        "new_mutations": 0,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(0)
+        intent = {
+            "slug": slug,
+            "version": 2,
+            "kernel_id": m["id"],
+            "source_sha256": source_sha,
+            "fileName": "submission.csv",
+            "description": description,
+            "fresh_account": fresh,
+            "public_example_CSV_not_uploaded": True,
+            "automatic_retry": False,
+        }
+        w.new_json(D / "R6-paired-submit-intent.json", intent)
+        row.update(state="R6_paired_submit_intent", entry_intent=intent)
+        save()
+        try:
+            response = r.competition(
+                "CreateCodeSubmission",
+                {
+                    "fileName": "submission.csv",
+                    "kernelOwner": "godlydonuts",
+                    "kernelSlug": slug.split("/")[1],
+                    "kernelVersion": 2,
+                    "submissionDescription": description,
+                },
+            )
+            w.new_json(D / "R6-paired-submit-response.json", response)
+            assert type(response.get("ref")) is int and response["ref"] > 0
+        except BaseException:
+            row["state"] = "R6_paired_submit_uncertain"
+            save()
+            retain = True
+            raise
+        row.update(state="R6_paired_submitted", submission_id=response["ref"])
+        save()
+        out = {
+            "status": "one_exact_R6_paired_code_submission_accepted",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "submission_id": response["ref"],
+            "slug": slug,
+            "version": 2,
+            "kernel_id": m["id"],
+            "source_sha256": source_sha,
+            "fresh_account_before": fresh,
+            "public_CSV_uploaded": False,
+            "actual_hidden_score_known": False,
+        }
+        w.new_json(D / "actual-R6-paired-submitted.json", out)
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()
