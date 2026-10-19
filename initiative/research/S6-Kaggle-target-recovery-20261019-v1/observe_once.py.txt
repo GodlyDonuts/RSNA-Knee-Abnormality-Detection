@@ -1,0 +1,64 @@
+"""Follow only the already pushed exact diagnostic version; never mutate kernels."""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import time
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+L = Path.cwd() / "artifacts/S6-Kaggle-target-recovery-20261019-v1"
+pushed = json.loads((D / "actual-push.json").read_text())
+assert pushed["kernel_id"] == 139695847 and pushed["version"] == 1
+assert pushed["source_sha256"] == "6747a9deaff18122565bd0a6b9b58382be781d42dd9ab8c4f5ca18d066dd1ff5"
+loader = importlib.machinery.SourceFileLoader(
+    "exact_target_Kaggle_client", str(D / "client.py.txt")
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+c = importlib.util.module_from_spec(spec)
+loader.exec_module(c)
+with (L / "observer-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "kernel_id": 139695847,
+            "version": 1,
+            "read_only_phases": ["status"],
+            "maximum_seconds": 7200,
+        },
+        f,
+    )
+start = time.monotonic()
+while time.monotonic() - start < 7200:
+    try:
+        out = c.run("status")
+    except Exception as exc:
+        # Observation failure does not authorize a replacement notebook or GPU run.
+        (L / "observer-error.json").write_text(
+            json.dumps(
+                {"type": type(exc).__name__, "same_kernel_id": 139695847, "new_mutations": 0}
+            )
+            + "\n"
+        )
+    else:
+        (L / "observer-progress.json").write_text(json.dumps(out, indent=2) + "\n")
+        if out["status"] in (
+            "complete_teacher_recovery_accepted",
+            "complete_teacher_recovery_failed",
+        ):
+            with (D / "actual-terminal.json").open("x") as f:
+                json.dump(out, f, indent=2)
+                f.write("\n")
+            break
+    time.sleep(60)
+else:
+    with (L / "observer-timeout.json").open("x") as f:
+        json.dump(
+            {
+                "status": "observation_window_expired_not_job_terminal",
+                "kernel_id": 139695847,
+                "new_mutations": 0,
+            },
+            f,
+        )

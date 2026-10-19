@@ -287,7 +287,7 @@ try:
                     absent = r.require_absent_kernel(SLUG)
                     req = {
                         "slug": SLUG,
-                        "newTitle": "RSNA complete teacher real MRI recovery",
+                        "newTitle": SLUG.split("/")[1].replace("-", " "),
                         "text": source,
                         "language": "python",
                         "kernelType": "script",
@@ -345,7 +345,12 @@ try:
                     "complete_teacher_recovery_accepted",
                     "complete_teacher_recovery_failed",
                 )
-                k = r.kernel("GetKernel", SLUG, 1)
+                # SaveKernel derived the actual slug from the title. Reconcile the
+                # original response identity, never issue a second SaveKernel.
+                actual_ref = row["save_result"]["ref"]
+                assert actual_ref == "/code/godlydonuts/rsna-complete-teacher-real-mri-recovery"
+                actual_slug = actual_ref.removeprefix("/code/")
+                k = r.kernel("GetKernel", actual_slug, 1)
                 meta = k["metadata"]
                 assert (
                     hashlib.sha256(k["blob"]["source"].encode()).hexdigest() == SOURCE_SHA
@@ -358,6 +363,14 @@ try:
                 )
                 for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
                     assert sorted(meta.get(name, [])) == sorted(row["request"][name])
+                if row["slug"] != actual_slug:
+                    row.update(
+                        requested_slug=SLUG,
+                        slug=actual_slug,
+                        identity_reconciled_by_exact_source_id_version=True,
+                    )
+                    save()
+                SLUG = actual_slug
                 state = r.kernel("GetKernelSessionStatus", SLUG, 1).get("status")
                 out = {
                     "status": "waiting_same_original_twoT4_recovery",
