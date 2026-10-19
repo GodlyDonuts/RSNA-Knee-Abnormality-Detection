@@ -1,0 +1,80 @@
+"""Private framed source assets, never raw MRI or an active teacher journal."""
+
+import hashlib
+import json
+import os
+import stat
+import sys
+from pathlib import Path
+
+B = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+P = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+C = Path("/tmp/rsna-S6-complete-target-admission-20261018-v1")
+T = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1")
+assert os.uname().nodename == "evc33"
+items = []
+
+
+def add(tag, root, relative):
+    path = root / relative
+    files = (
+        [path]
+        if path.is_file()
+        else sorted(p for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
+    )
+    assert files
+    for p in files:
+        s = p.stat()
+        assert not p.is_symlink() and stat.S_ISREG(s.st_mode)
+        items.append((tag, p.relative_to(root).as_posix(), p, (s.st_size, s.st_mtime_ns, s.st_ino)))
+
+
+for name in (
+    "E_prior_s42_fall.pt",
+    "source-tree-v1/launcher.private.py",
+    "source-tree-v1/code/cloud_code",
+    "source-tree-v1/anatomy.pt",
+    "runtime-opencv-v1/site-packages",
+    "CPU-fitting8-UID-view-v2/collected/index.private.json",
+    "CPU32-recovered-numerics-20261018-v1/selection.private.json",
+):
+    add("B", B, name)
+for name in ("contract.py", "source_buffer.py", "staged.json"):
+    add("P", P, "engine-v1/" + name)
+for name in ("program.py", "worker.py", "classifier.py", "staged.json"):
+    add("P", P, "CPU-full-stream-v1/" + name)
+add("P", P, "source-index-verified.json")
+add("T", T, "targets.private.npz")
+for name in ("complete_teacher.py", "rank_transport.py", "program.py", "staged.json"):
+    add("C", C, name)
+index = Path(json.loads((P / "RAM-location.private.json").read_text())["path"])
+add("I", index.parent, index.name)
+assert sum(s[0] for _, _, _, s in items) < 2**30 and len(items) < 2048
+assert len({(tag, name) for tag, name, _, _ in items}) == len(items)
+header = {
+    "version": "private_S6_assets_node33_to_node39_v1",
+    "sender_job": os.environ["SLURM_JOB_ID"],
+    "files": [{"tag": tag, "relative": name, "bytes": s[0]} for tag, name, _, s in items],
+    "raw_MRI_or_teacher_journal_included": False,
+}
+out = sys.stdout.buffer
+out.write((json.dumps(header, separators=(",", ":")) + "\n").encode())
+out.flush()
+hashes = {}
+payload = hashlib.sha256()
+for tag, name, path, signature in items:
+    h = hashlib.sha256()
+    n = 0
+    with path.open("rb") as f:
+        while block := f.read(2**20):
+            n += len(block)
+            assert n <= signature[0]
+            h.update(block)
+            payload.update(block)
+            out.write(block)
+    s = path.stat()
+    assert (s.st_size, s.st_mtime_ns, s.st_ino) == signature and n == signature[0]
+    hashes[tag + "/" + name] = h.hexdigest()
+footer = {"files": hashes, "payload_sha256": payload.hexdigest()}
+out.write((json.dumps(footer, separators=(",", ":")) + "\n").encode())
+out.flush()

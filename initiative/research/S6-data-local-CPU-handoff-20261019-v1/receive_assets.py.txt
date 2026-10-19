@@ -1,0 +1,158 @@
+"""Fresh private node39 location; no duplicate inputs or inference are authorized."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path, PurePosixPath
+
+assert os.uname().nodename == "evc39" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+M = Path("/tmp/rsna-S6-data-local-handoff-20261019-v1")
+roots = {
+    "B": Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1"),
+    "P": Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1"),
+    "T": Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1"),
+    "C": Path("/tmp/rsna-S6-complete-target-admission-20261018-v1"),
+    "I": Path("/dev/shm/rsna-S6-index-node39-20261019-v1"),
+}
+assert not M.exists() and all(not p.exists() for p in roots.values())
+# Preserve the original node39 unpaid checkpoint reserves plus this new1GiB asset cap.
+paid_cache = sum(
+    (lambda v: v["archive_bytes"] + v["index_bytes"])(json.loads(p.read_text()))
+    for p in Path("/tmp/rsna-licensed-parent-pixels-full-20261016-v1").glob(
+        "shard-*/collected/verified.json"
+    )
+)
+paid_old = sum(
+    json.loads(p.read_text())["retained_original_bytes"]
+    for p in Path("/tmp/rsna-licensed-parent-whole94-epochs-20261016-v1").glob(
+        "epoch-*/verified.json"
+    )
+)
+paid_prior = sum(
+    json.loads(p.read_text())["retained_original_bytes"]
+    for p in Path("/tmp/rsna-licensed-importance-full-epochs-20261017-v1").glob(
+        "*/epoch-*/verified.json"
+    )
+)
+paid_lr = sum(
+    json.loads(p.read_text())["retained_original_bytes"]
+    for p in Path("/tmp/rsna-encoderLR3e5-private-epochs-20261018-v1").glob(
+        "*/epoch-*/verified.json"
+    )
+)
+floor = (
+    689890867139
+    - paid_cache
+    - paid_old
+    + 12 * 2**30
+    + 16 * 2**20
+    - paid_prior
+    + 256 * 1024
+    + 4 * 2**30
+    + 16 * 2**20
+    - paid_lr
+)
+assert (
+    shutil.disk_usage("/tmp").free > floor + 2**30 and shutil.disk_usage("/tmp").free > 21 * 2**30
+)
+assert shutil.disk_usage("/dev/shm").free > 93 * 2**30
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 and int(a[6]) - int(a[5]) > 5000
+stream = sys.stdin.buffer
+line = stream.readline(2**20)
+assert line.endswith(b"\n") and len(line) < 2**20
+header = json.loads(line)
+assert (
+    header["version"] == "private_S6_assets_node33_to_node39_v1"
+    and header["raw_MRI_or_teacher_journal_included"] is False
+)
+files = header["files"]
+assert 1 <= len(files) < 2048 and sum(x["bytes"] for x in files) < 2**30
+names = set()
+for item in files:
+    name = PurePosixPath(item["relative"])
+    assert (
+        item["tag"] in roots
+        and not name.is_absolute()
+        and ".." not in name.parts
+        and item["bytes"] >= 0
+    )
+    key = item["tag"] + "/" + str(name)
+    assert key not in names
+    names.add(key)
+M.mkdir(mode=0o700)
+for p in roots.values():
+    p.mkdir(mode=0o700, parents=True)
+(M / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "sender_job": header["sender_job"],
+            "files": len(files),
+            "cap_bytes": 2**30,
+            "no_automatic_retry": True,
+            "originals_preserved": True,
+        }
+    )
+)
+hashes = {}
+payload = hashlib.sha256()
+for item in files:
+    dest = roots[item["tag"]] / item["relative"]
+    dest.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    h = hashlib.sha256()
+    left = item["bytes"]
+    with dest.open("xb") as f:
+        while left:
+            block = stream.read(min(left, 2**20))
+            assert block
+            left -= len(block)
+            h.update(block)
+            payload.update(block)
+            f.write(block)
+    hashes[item["tag"] + "/" + item["relative"]] = h.hexdigest()
+footer_line = stream.readline(2**20)
+assert footer_line.endswith(b"\n") and len(footer_line) < 2**20
+footer = json.loads(footer_line)
+assert (
+    footer["files"] == hashes
+    and footer["payload_sha256"] == payload.hexdigest()
+    and stream.read(1) == b""
+)
+assert (
+    hashes["B/E_prior_s42_fall.pt"]
+    == "0c7297d58f061ab4e5d7c55046f51fa3e8934928046f0647a0c7854e98371c12"
+)
+assert (
+    hashes["T/targets.private.npz"]
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+)
+idx = [x for x in files if x["tag"] == "I"]
+assert len(idx) == 1
+assert (
+    hashes["I/" + idx[0]["relative"]]
+    == "b340e77ee09de2c7695355ac9559dc49f2be0254105e633e718caf4b7bd4fc11"
+)
+(M / "files.private.json").write_text(
+    json.dumps({"files": files, "sha256": hashes, "payload_sha256": payload.hexdigest()})
+)
+result = {
+    "status": "actual_private_S6_source_assets_node39_fully_stream_SHA_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "sender_job": header["sender_job"],
+    "files": len(files),
+    "bytes": sum(x["bytes"] for x in files),
+    "payload_sha256": payload.hexdigest(),
+    "new_asset_cap_bytes": 2**30,
+    "old_liability_floor_preserved_bytes": floor,
+    "new_training_inference_or_journal_copy": False,
+    "new_producer_admitted": False,
+    "no_original_data_deleted": True,
+}
+(M / "verified.json").write_text(json.dumps(result, indent=2))
+print(json.dumps(result), flush=True)

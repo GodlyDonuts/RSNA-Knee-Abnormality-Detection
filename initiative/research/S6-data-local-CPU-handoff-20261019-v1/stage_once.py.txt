@@ -1,0 +1,117 @@
+"""One private source-asset stream directly between allocated cluster endpoints."""
+
+import hashlib
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "asset-copy-intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+sources = {}
+for name in ("send_assets.py.txt", "receive_assets.py.txt"):
+    p = D / name
+    source = subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True
+    )
+    assert source == p.read_text()
+    compile(source, name, "exec")
+    sources[name] = source
+active = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        'squeue -j 967851 -h -o "%T|%N"',
+    ],
+    text=True,
+)
+assert active.strip() == "RUNNING|evc33"
+(L / "asset-copy-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "source_job": 967851,
+            "target_node": "evc39",
+            "new_disk_asset_cap_bytes": 2**30,
+            "new_RAM_index_cap_bytes": 2**30,
+            "raw_MRI_or_journal_copy": False,
+            "source_sha256": {
+                n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()
+            },
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+python = "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"
+sender = [
+    "srun",
+    "--jobid=967851",
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--mem=1G",
+    "--time=00:10:00",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    python,
+    "-B",
+    "-c",
+    sources["send_assets.py.txt"],
+]
+receiver = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:10:00",
+    "--job-name=rsna-S6-private-assets-node39",
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    python,
+    "-B",
+    "-c",
+    sources["receive_assets.py.txt"],
+]
+script = shlex.join(sender) + " | " + shlex.join(receiver)
+remote = shlex.join(["bash", "-o", "pipefail", "-c", script])
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        remote,
+    ],
+    capture_output=True,
+    text=True,
+    timeout=700,
+)
+(L / "asset-copy-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Private copy stopped/uncertain; inspect original endpoint state without replay: "
+    + x.stderr[-1400:]
+)
+v = json.loads(x.stdout)
+(D / "actual-assets-verified.json").write_text(json.dumps(v, indent=2) + "\n")
+print(json.dumps(v), flush=True)
