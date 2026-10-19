@@ -1,0 +1,92 @@
+"""One source-only recovery admission. All private values/credentials stay in stdin."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-source-quota-recovery-20261019-v1/entry-stage-v4"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "entry-intent.json").exists()
+sources = {
+    "stage.py": "import hashlib,json,os,subprocess,shutil\nfrom pathlib import Path\nv=json.load(__import__('sys').stdin);os.umask(0o077)\nassert os.uname().nodename=='evc39'\nM=Path('/tmp/rsna-S6-source-quota-recovery-20261019-v1');P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1')\nassert not(M/'entry-v3-accepted.json').exists()\na=json.loads((M/'reconciled-v2.json').read_text())\ns=subprocess.check_output(['sacct','-X','-n','-P','-j','968908,'+a['CPU_job'],'--format=JobIDRaw,State,ExitCode'],text=True)\nassert '968908|FAILED|1:0' in s and a['CPU_job']+'|COMPLETED|0:0' in s\nraw=(P/'completed-logits.private.jsonl').read_bytes()\nassert hashlib.sha256(raw).hexdigest()==a['journal_before_sha256'] and len(raw.splitlines())==893\nassert not(P/'engine-v1/execution.lock').exists() and not(P/'CPU-full-stream-v1/phase-016').exists()\nassert (P/'engine-v1/execution.lock.failed968908-preserved').exists()\nentry=M/'teacher_entry_v3.py';assert not entry.exists();compile(v['entry'],'entry','exec')\nentry.write_text(v['entry'])\nout={'status':'actual_interrupted_artifact_recovery_entry_admitted','CPU_job':os.environ['SLURM_JOB_ID'],'entry_sha256':hashlib.sha256(v['entry'].encode()).hexdigest(),'source_reconciliation_CPU':a['CPU_job'],'preserved_predictions':893,'retained_sources':a['retained_source_cases'],'retained_renders':a['rendered_inputs_reused'],'retained_complete_unconsumed_scores':a['completed_unconsumed_classifier_outputs'],'worker_count':12,'CPU':25,'memory_GiB':192,'original_model_renderer_and_classifier_unchanged':True}\n(M/'entry-v3-accepted.json').write_text(json.dumps(out));print(json.dumps(out))\n",
+    "teacher_entry.py": (D / "teacher_entry_v3.py.txt").read_text(),
+}
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep
+}
+s = importlib.util.spec_from_file_location(
+    "stdin_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "entry-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "failed_job": "968696",
+            "preserve_rows": 880,
+            "source_only_no_model": True,
+            "only_missing_source_bytes": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:15:00",
+    "--job-name=rsna-S6-source-quota-reconcile",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+payload = {
+    "entry": sources["teacher_entry.py"],
+}
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(sources["stage.py"], payload),
+    capture_output=True,
+    text=True,
+    timeout=1200,
+)
+(L / "entry-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Recovery stopped/uncertain; inspect retained original data without replay: " + x.stderr[-1200:]
+)
+(D / "actual-entry-v3-accepted.json").write_text(json.dumps(json.loads(x.stdout), indent=2) + "\n")
+print(x.stdout, flush=True)
