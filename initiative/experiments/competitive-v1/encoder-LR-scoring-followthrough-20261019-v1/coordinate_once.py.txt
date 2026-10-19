@@ -1,0 +1,186 @@
+"""Exact final LR candidate, canonical phases in spare CPU of the existing allocation."""
+
+import hashlib
+import importlib.util
+import json
+import re
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/encoder-LR-scoring-followthrough-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+phase = sys.argv[1]
+mode = sys.argv[2] if len(sys.argv) > 2 else "qualification"
+assert phase in ("prepare_lr", "push", "status", "eligibility", "submit", "outcome")
+assert mode in ("qualification", "competition")
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+
+
+def committed(p):
+    text = subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()], text=True
+    )
+    assert text == p.read_text()
+    return text
+
+
+original = R / "initiative/experiments/competitive-v1/encoder-lr-final-scoring-20261018-v1"
+program = committed(original / "program.py.txt")
+h = hashlib.sha256(program.encode()).hexdigest()
+assert h == json.loads((original / "actual-staged.json").read_text())["program_sha256"]
+policy = committed(
+    R / "initiative/research/reconnected-teacher-scoring-20261019-v1/resource_policy.py.txt"
+)
+F = R / "initiative/research/encoder-lr-comparison-20261018-v1"
+proofs = [
+    json.loads((F / ("epoch-" + str(e) + "-private-verified.json")).read_text()) for e in (1, 2, 3)
+]
+assert [p["completed"] for p in proofs] == [486, 972, 1458] and all(
+    p["objects"] == 5 for p in proofs
+)
+actual = json.loads((F / "epoch-3-actual-accepted.json").read_text())
+assert actual["kernel_id"] == 139454218 and proofs[-1]["original_Kaggle_kernel"] == 139454218
+v = {
+    "phase": phase,
+    "mode": mode,
+    "candidate": "encoderlr",
+    "control_git": git,
+    "program_sha256": h,
+    "code_source": "86cfc7b673b11ca9440db312a90507b0097b1be1",
+    "actual": actual,
+    "publication": proofs[-1],
+}
+E = R / ".env"
+assert E.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in E.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+v["token"] = values["KAGGLE_API_TOKEN"]
+# Only source-independent control admission changes. Generated serving sources,
+# model/recipe validators, exact notebook versions, quota and canonical lock stay.
+program = (
+    program.replace(
+        "'original_finding_future_caps':finding_future",
+        "'deferred_unstarted_finding_caps':finding_future",
+    )
+    .replace(
+        "'original_family_remaining_caps':family_future",
+        "'deferred_unstarted_family_caps':family_future",
+    )
+    .replace("'safety_seconds':3600", "'safety_seconds':1800")
+)
+remote = """import hashlib,json,os
+from pathlib import Path
+v=json.load(__import__('sys').stdin)
+policy=v.pop('_policy');source=v.pop('_source')
+a={};exec(compile(policy,'existing_current_CPU_metadata_policy','exec'),a)
+g={'__name__':'original_LR_scoring_without_automatic_main'};exec(compile(source,'unchanged_LR_scoring_with_current_admission_metadata','exec'),g)
+def bounds(extra=0):
+ a['current_plan'](extra)
+ home=g['HOME'];r=g['R'];paid=lambda p:sum(x.stat().st_size for x in p.rglob('*') if x.is_file())
+ assert paid(r)+extra+131072<2*2**20 and paid(home)+extra+max(0,2*2**20-paid(r))<8*2**20
+ assert paid(g['P'])<32*2**20
+ return True
+def requirement(mode,finding,family,lr):
+ assert mode in ('qualification','competition') and lr==0 and finding>=0 and family>=0
+ # Existing reservations are already subtracted by fresh reported accelerator quota.
+ # Unstarted other candidates require separate admission; no future bulk/GPU promise.
+ return 1800+(1800 if mode=='qualification' else 0)+32400
+g['bounds']=bounds;g['vm_requirement']=requirement
+try:
+ out=g['execute'](v)
+ out.update(metadata_step_job=os.environ['SLURM_JOB_ID'],metadata_step_id=os.environ.get('SLURM_STEP_ID'),no_additional_CPU_or_GPU_allocation=True)
+ print(json.dumps(out),flush=True)
+except BaseException as e:
+ import traceback
+ frames=traceback.extract_tb(e.__traceback__)
+ print(json.dumps({'status':'new_LR_scoring_stopped_preserve_originals','phase':v['phase'],'exception_type':type(e).__name__,'sites':[[f.name,f.lineno] for f in frames],'automatic_mutation_retry':False}),file=__import__('sys').stderr,flush=True)
+ raise SystemExit(1) from None
+"""
+# A metadata step uses the already allocated spare CPU and host headroom. No GPU
+# is reserved on Newton and all teacher numerical processes remain untouched.
+rows = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        'squeue -u sa305415 -h -o "%i|%j|%T|%N"',
+    ],
+    text=True,
+)
+active = [
+    x.split("|")[0]
+    for x in rows.splitlines()
+    if "|rsna-S6-CPU-full-p" in x and "|RUNNING|evc33" in x
+]
+if len(active) != 1:
+    print(
+        json.dumps(
+            {
+                "status": "waiting_verified_existing_teacher_CPU_allocation_no_new_allocation",
+                "active_count": len(active),
+            }
+        )
+    )
+    raise SystemExit(0)
+assert re.fullmatch(r"[0-9]+", active[0])
+s = importlib.util.spec_from_file_location(
+    "bounded_stdin",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--jobid=" + active[0],
+    "--overlap",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--mem=4G",
+    "--time=00:10:00",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(remote, {**v, "_policy": policy, "_source": program}),
+    capture_output=True,
+    text=True,
+    timeout=700,
+)
+(L / (phase + "-" + mode + "-" + str(time.time_ns()) + ".json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1600:]
+out = json.loads(x.stdout)
+if not out["status"].startswith("waiting_"):
+    (D / ("actual-" + phase + "-" + mode + ".json")).write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
