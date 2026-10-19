@@ -1,0 +1,105 @@
+"""Summarize the retained private model interface, without exporting its body/weights."""
+
+import ast
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import os
+import sys
+from pathlib import Path
+
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+A = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+proof = json.loads(
+    Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/input-admitted-v1.json").read_text()
+)
+assert proof["CPU_job"] == "971665" and proof["strict_original_parent_load"] is True
+source = (A / "source/parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+sys.path.insert(0, str(A / "overlay"))
+import timm  # noqa: E402
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+namespace = dict(torch=torch, timm=timm, nn=torch.nn, gc=gc, hashlib=hashlib, INPUT_RES=320)
+nodes = [
+    n
+    for n in ast.parse(source).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(nodes) == 3
+exec(compile(ast.Module(body=nodes, type_ignores=[]), "original_private_parent", "exec"), namespace)
+weight = A / "parent/raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"
+with contextlib.redirect_stdout(io.StringIO()):
+    model, res = namespace["load_model"](
+        str(weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert sum(p.numel() for p in model.parameters()) == 73136096 and res == 320
+children = []
+for name, child in model.named_children():
+    modules = list(child.modules())
+    children.append(
+        {
+            "name": name,
+            "type": type(child).__name__,
+            "module": type(child).__module__,
+            "parameters": sum(p.numel() for p in child.parameters()),
+            "BatchNorm_modules": sum(
+                isinstance(m, torch.nn.modules.batchnorm._BatchNorm) for m in modules
+            ),
+            "Conv2d_modules": sum(isinstance(m, torch.nn.Conv2d) for m in modules),
+            "Conv3d_modules": sum(isinstance(m, torch.nn.Conv3d) for m in modules),
+            "Dropout_modules": sum(isinstance(m, torch.nn.Dropout) for m in modules),
+        }
+    )
+classes = []
+for node in nodes:
+    if not isinstance(node, ast.ClassDef):
+        continue
+    methods = []
+    for method in node.body:
+        if not isinstance(method, ast.FunctionDef) or method.name != "forward":
+            continue
+        methods.append(
+            {
+                "name": method.name,
+                "argument_names": [a.arg for a in method.args.args],
+                "called_interfaces": sorted(
+                    set(ast.unparse(n.func) for n in ast.walk(method) if isinstance(n, ast.Call))
+                ),
+                "self_attributes": sorted(
+                    set(
+                        n.attr
+                        for n in ast.walk(method)
+                        if isinstance(n, ast.Attribute)
+                        and isinstance(n.value, ast.Name)
+                        and n.value.id == "self"
+                    )
+                ),
+            }
+        )
+    classes.append({"name": node.name, "forward_interfaces_only": methods})
+print(
+    json.dumps(
+        {
+            "status": "actual_retained_private_parent_encoder_interface_CPU_inspected",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "model_input_CPU_reused": "971665",
+            "parameters": 73136096,
+            "state_tensors": len(model.state_dict()),
+            "children": children,
+            "private_forward_interface_summary": classes,
+            "weights_or_external_source_body_or_MRI_exported": False,
+            "new_model_download_or_GPU_or_training": False,
+        }
+    ),
+    flush=True,
+)

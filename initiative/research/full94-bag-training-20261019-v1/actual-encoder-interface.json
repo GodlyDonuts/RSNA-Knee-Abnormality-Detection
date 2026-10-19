@@ -1,0 +1,63 @@
+{
+  "status": "actual_retained_private_parent_encoder_interface_CPU_inspected",
+  "CPU_job": "972253",
+  "model_input_CPU_reused": "971665",
+  "parameters": 73136096,
+  "state_tensors": 486,
+  "children": [
+    {
+      "name": "backbone",
+      "type": "MaxxVit",
+      "module": "timm.models.maxxvit",
+      "parameters": 72856264,
+      "BatchNorm_modules": 25,
+      "Conv2d_modules": 109,
+      "Conv3d_modules": 0,
+      "Dropout_modules": 81
+    },
+    {
+      "name": "norm",
+      "type": "LayerNorm",
+      "module": "torch.nn.modules.normalization",
+      "parameters": 2048,
+      "BatchNorm_modules": 0,
+      "Conv2d_modules": 0,
+      "Conv3d_modules": 0,
+      "Dropout_modules": 0
+    },
+    {
+      "name": "att",
+      "type": "Sequential",
+      "module": "torch.nn.modules.container",
+      "parameters": 265484,
+      "BatchNorm_modules": 0,
+      "Conv2d_modules": 0,
+      "Conv3d_modules": 0,
+      "Dropout_modules": 1
+    }
+  ],
+  "private_forward_interface_summary": [
+    {
+      "name": "RaptorClassifier",
+      "forward_interfaces_only": [
+        {
+          "name": "forward",
+          "argument_names": [
+            "self",
+            "x"
+          ],
+          "called_interfaces": [
+            "self.encode",
+            "self.head"
+          ],
+          "self_attributes": [
+            "encode",
+            "head"
+          ]
+        }
+      ]
+    }
+  ],
+  "weights_or_external_source_body_or_MRI_exported": false,
+  "new_model_download_or_GPU_or_training": false
+}
