@@ -48,3 +48,39 @@ before deployment. Distillation avoids paying generative-inference cost for
 every hidden study, but is not automatically more accurate. Continue the actual
 complete S6 teacher/consensus experiment and higher-LR Kaggle comparison in
 parallel; do not replace them with another indefinite annotation project.
+
+## Actual admission and earlier-slot execution
+
+CPU968270 downloaded/verified all15official files/8639646105bytes, including
+original LFS hashes, on33. Runtime Torch2.14.0+cu130/Transformers5.6.1 imports the
+actual Gemma3 conditional-generation class; no new runtime overlay was needed.
+CPU968339 admitted all195native slice crops/5series/34027570bytes from the exact
+existing displays, with no image resizing, report, accepted labels or model
+predictions. Every source-sheet and slice PNG digest matched; source displays and
+DICOM originals remain unchanged. The model processor's own resizing is disclosed.
+
+Original one-H100 pilot968352 had a late estimated opening on33. Actual same-runtime
+CPU968374 on26 and first direct private relay968399/968400 independently verified
+all214objects/8673759365bytes. The first26copy has a distinct10GiB envelope above
+20GiB physical/shared/5000file reserves; no source network reacquisition or original
+deletion occurred. Slot probing predicted an earlier30minute opening. Server-side
+pending-only cancellation then confirmed968352 CANCELLED/00:00:00; distinct pilot
+968429 is submitted on26,1H100/2CPU/64GiB/30minutes. It changes only host/runtime
+location; original model/prompt/image processing/pilot source remain identical.
+No MRI inference or accuracy result is inferred from admission/dispatch. Inspect
+actual Slurm and private terminal/control files before any next action.
+
+## Actual allocation failures and source-node continuation
+
+The26 batch968429 and scheduler-step968456 both FAILED1:0 before model load/MRI
+with CUDA101(invalid ordinal), after15/13seconds. Strict exact-assigned-index probe
+968494 failed its NVML index0 query(exit6) before CUDA/model/MRI. This is unresolved
+allocated-device visibility, not a demonstrated defective physical GPU or a model
+failure. No unassigned device was selected; cgroups/visibility were not widened.
+All admitted weights/images remain private and unchanged on both nodes.
+
+Distinct source-node assigned-step968562 is now submitted on33,1H100/2CPU/64GiB/
+30minutes, using original pilot source and previously accepted scheduler-step
+mechanism. It remains pending at latest observation. Do not retry26 blindly, repeat
+a cancelled submission, or claim blank-control/evidence/clinical success from
+staging. The original sources and all failures/dispatch receipts are preserved.

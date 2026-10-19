@@ -1,4 +1,25 @@
-# Faster-node CPU teacher handoff: actual staging
+# Faster-node CPU teacher: actual handoff and recovery
+
+October19 superseding outcome: original967851 COMPLETED0:0 with740 finite unique
+predictions; old29552 stopped at its explicit clean boundary. Exact674565-byte
+journal/SHA79d8560d... transferred privately once via968326, original33 retained.
+New39 attempt968328 FAILED1:0 before phase directory/lock/pixels/inference because
+the copied index pointer omitted its required original digest field. CPU968351
+corrected only that metadata pointer using the original968002 whole-byte proof,
+then passed the complete metadata startup prelude. All740rows stayed identical.
+Distinct original-source job968354 is RUNNING with25CPU/192GiB/twelve workers;
+sole33020/target follower33025 are current. Latest760durable rows include20new
+actual predictions on39. This is throughput progress, not student accuracy.
+Do not restart failed/stopped32210/32218 or copy the journal/model/index again.
+
+LR public139591990 completed/CSV verified and entry57394237 was accepted once.
+Independent read-only status968240 completed but outlived the local SSH wait;
+new sole32852 reconciled SAME version and follows its hidden result through the
+canonical ledger. No notebook push was repeated, no public CSV uploaded.
+
+The sections below preserve the earlier admission chronology; their unstarted
+statements describe that historical point, not current execution.
+
 
 Node33's three-worker teacher remains the sole actual producer; no prediction ownership has moved. Its healthy phase10 job967851 must finish before a journal/writer handoff. No raw MRI, clinical report or active teacher journal was copied.
 
@@ -24,3 +45,20 @@ The independent one-CPU LR metadata continuation preserves the already-pushed
 intents. It permits no new notebook pushes. Its old owner must first be observed
 between read-only status calls and stopped; the replacement records the handoff
 before following the same public run and at most one original code entry.
+
+## Next clean-boundary CPU ramp
+
+The first actual twelve-worker batch968354 completed64new studies in1172.25seconds,
+804total, with original source/model/math and exact durable journal preserved.
+Different source studies limit causal speed comparisons. Physical spare capacity
+admits23two-thread workers,47requested CPUs/256GiB alongside the other16CPUs/224GiB,
+with>20GiB unallocated node RAM and original scratch/heap caps unchanged. Metadata
+prototype968603 initially counted its own staging CPUs in the future forecast;
+actual968613 subtracts both retiring allocations correctly and passes original
+function/class AST equality. No target/model dimensionality changed.
+
+Owner34219 waits actual33020 clean termination after the current batch, then starts
+new phases on the SAME journal with zero new asset/data/record transfers. Follower
+34222 waits all3887 before target construction. This is staged/scheduled until the
+actual-23worker-owner-started receipt and Slurm progress exist; preserve healthy
+33020 until its current batch actually succeeds. No clinical gain is inferred.
