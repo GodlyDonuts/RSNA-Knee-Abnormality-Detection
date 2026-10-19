@@ -1,0 +1,5 @@
+# Corrected full94 proposal and original teacher progress preserved
+
+Selected sourcef8c657fe451ffb8964ff12842194d667ef22b907 was privately preserved once at GodlyDonuts/RSNA-Data revision79f491d3b8e0873d0f25298850a6506fc71054fd viaCPU972333. All13objects/50758bytes were fully re-downloaded/size/SHA verified under the canonical shared publication lock; exact scope is in manifest.json. Never repeat this prefix. No MRI, reports, UIDs, per-case arrays, external source body or weights included.
+
+This explicitly supersedes the mistaken claim that checkpointed all94 training would be a new mechanism: it already completed1458updates and entry57336190 scored0.949. Original actual training/qualification/score receipts are bound in this selected mirror. No duplicate full94 implementation or GPU job was dispatched. The conservative engineering reservation is frozen with no deletion/free-space credit; original teacher/recovery/student owners remain unchanged. Original teacher phases46/47 completed2,941/3,887studies; phase48 was actually running when checked. No new clinical improvement is claimed.
