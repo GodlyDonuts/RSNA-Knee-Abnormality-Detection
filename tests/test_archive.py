@@ -118,3 +118,22 @@ def test_manifest_ignores_generated_bytecode_but_binds_original_source(tmp_path)
     assert file_manifest(tmp_path) == before
     source.write_text("answer = 43\n")
     assert file_manifest(tmp_path) != before
+
+
+def test_manifest_binds_r6_receipts_while_status_pointer_changes(tmp_path):
+    folder = tmp_path / "research/R6-postscore-member-execution-20261019-v1"
+    folder.mkdir(parents=True)
+    receipt = folder / "actual-submitted.json"
+    receipt.write_text('{"submission_id": 57397292}')
+    before = file_manifest(tmp_path)
+    live = folder / "actual-live.json"
+    live.write_text('{"CPU_job": "first"}')
+    assert file_manifest(tmp_path) == before
+    live.write_text('{"CPU_job": "next"}')
+    assert file_manifest(tmp_path) == before
+    receipt.write_text('{"submission_id": "changed"}')
+    assert file_manifest(tmp_path) != before
+    other = tmp_path / "other/actual-live.json"
+    other.parent.mkdir()
+    other.write_text("bound outside the one known status pointer")
+    assert "other/actual-live.json" in file_manifest(tmp_path)

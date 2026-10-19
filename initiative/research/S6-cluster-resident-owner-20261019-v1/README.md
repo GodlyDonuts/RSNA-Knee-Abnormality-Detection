@@ -9,3 +9,7 @@ Actual CPU969208 admitted23workers,47requested/48allocatedCPU,256GiB,128GiB weig
 On actual complete3,887teacher acceptance, the same owner runs the original target constructor on oneCPU/zeroGPU on39, using the already admitted CPU/RAM policy. It retains exact population/model/source/terminal proof and refuses partial rank targets. No studentGPU job is dispatched by this owner. `target_entry_current_plan.py.txt` stages unchanged scientific target code, not a new target recipe.
 
 See actual-owner-started.json, phase17 original receipt in S6-full-CPU-teacher, and original live shared phase intents/results. Read-only reconciliation must precede any recovery; stopped or disconnected observation is never a reason to repeat. Older interrupted render/source429 failures and exact retained-buffer recovery remain in S6-source-quota-recovery-20261019-v1. Prediction completion and engineering recovery are not an accuracy gain.
+
+Actual first resident phase18/969332 has now COMPLETED0:0:64new/1,085total,711.23seconds,23workers. Resident owner automatically advanced to original phase19/969475 RUNNING on39 without local orchestration. Previous12worker batch took1,151seconds, but different study composition prevents a controlled causal throughput claim. See the immutable phase018 receipt in S6-full-CPU-teacher.
+
+Second resident phase19/969475 COMPLETED0:0:64new/1,149total in687.84seconds. Owner automatically continued to phase20/969585 RUNNING on39. This is two observed complete batches at23workers, not a causal same-study hardware comparison or clinical result.

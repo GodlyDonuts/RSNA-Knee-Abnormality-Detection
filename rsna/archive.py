@@ -213,6 +213,13 @@ def snapshot_cache(root: Path, cache: Path) -> None:
 def file_manifest(root: Path) -> dict:
     manifest = {}
     for path in sorted(root.rglob("*")):
+        # This running coordinator rewrites its status pointer on each read-only
+        # poll. Immutable submission/acceptance receipts and dated observations
+        # remain bound; the live pointer is not an archived observation.
+        if path.relative_to(root).as_posix() == (
+            "research/R6-postscore-member-execution-20261019-v1/actual-live.json"
+        ):
+            continue
         # Python imports create local, version-specific bytecode. It is not an
         # original audit artifact and cannot be reproduced by a clean checkout.
         if "__pycache__" in path.relative_to(root).parts or path.suffix == ".pyc":
