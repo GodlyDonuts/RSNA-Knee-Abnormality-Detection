@@ -1,0 +1,5 @@
+# Earlier ordinary H100 on evc26
+
+Actual read-only CPU973261 found the expected input/runtime namespaces absent and744745041920bytes node-local free; live Slurm reported one of two H100s unallocated, while node48's scout remained pending/zero runtime. Use oneCPU and cached archive bytes to stage an equivalent runtime and the original small32-study engineering packet first. Do not reserve a GPU until source/license/real original tensors/model are admitted. The eventual full3887-study fit still requires all original full MRI inputs and original complete-target gates; a32-study packet is not full-cohort admission or clinical evidence.
+
+No original scientific owner, dataset, data mask or accepted fold is changed. Old pending job972928 may be held/moved/replaced only under explicit zero-runtime/absence-of-GPU-start proof; never stop a healthy allocated scientific run. Existing node33/48 assets remain unchanged. New source/logs stay private on node-local scratch, minimum20GiB physical reserve and existing shared5000file obligations preserved. Exact runtime extractor/TLS transport primitives are reused; no credentials or raw private data transit Mac/Git/HF.

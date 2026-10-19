@@ -64,3 +64,6 @@ Actual corrected teacher-pair CPU972918 passed and submitted only gradient scout
 
 
 Live finite source-d1728419 continuations: scout observer89733 and original pending-job priority follower89734. They collect972928's actual result and amend at most the two original future admitted JobIds; they cannot launch/restart a scientific job. All six original model/deployment owners remain live. Newly verified teacher phase54/972870 completed3,389/3,887; phase55/972968 is RUNNING. Source/labels/masks/recipe unchanged. Broad regression remains running; no new model score is asserted.
+
+
+The new paired-objective library full regression completed4942passed/8skipped/2warnings in1596.66s; all29 related focused cases also pass, including six fresh CPU processes of the actual new recovery worker and adversarial complete-state/CSV decoder changes. `teacher-pair-real-recovery-20261019-v1` prepares an actual full73M H100 optimizer recovery, not yet dispatched or accepted. It retains original sources and uses only newly owned bounded diagnostic RAM scratch. A fresh ordinary2H100 node26 has one GPU unallocated and744GB node-local free (actual CPU973261); a distinct CPU-only runtime/input route is being staged to avoid node48's pending queue. No new clinical score/model improvement is claimed. Never confuse a32-case engineering packet with full3887 production admission.

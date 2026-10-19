@@ -1,0 +1,3 @@
+# Distinct actual optimizer-recovery source preservation
+
+Selected own recovery worker/driver/admission/follower and actual six-process CPU test source, full4942-suite numerical QA receipt, actual admitted scout/normal-priority controls and sanitized teacher53/54 aggregates. No raw pixels, reports, identities, per-case arrays or model weights. New private prefix under original shared publication lock, compare-and-swap commit and every object independently downloaded/size/SHA verified. Original mirrors/intents are not repeated. No GPU recovery or clinical accuracy result is claimed before its actual original receipt.

@@ -1,0 +1,192 @@
+"""One fresh full/stop1/resume process of the unchanged paired-objective engine."""
+
+import ast
+import csv
+import hashlib
+import io
+import json
+import os
+import random
+import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+
+
+def digest_state(state):
+    h = hashlib.sha256()
+    for name, tensor in sorted(state.items()):
+        h.update(name.encode())
+        h.update(str(tensor.dtype).encode())
+        h.update(str(tuple(tensor.shape)).encode())
+        h.update(tensor.detach().cpu().contiguous().numpy().tobytes())
+    return h.hexdigest()
+
+
+def run(context, phase, objective, work):
+    from rsna.competitive.licensed_importance import ProposalCases
+    from rsna.competitive.licensed_parent_train import PARENT_SHA
+    from rsna.competitive.teacher_pair import Recipe
+
+    # The admitted engine module is supplied by the actual stage or test fixture.
+    fit = context["fit"]
+    model = context["model"]
+    original = context["original"]
+    full = context["data"]
+    device = context["device"]
+    assert all(p.requires_grad and p.dtype == torch.float32 for p in model.parameters())
+    roster = context["engineering_indices"]
+    assert len(roster) == 32 and len(set(roster)) == 32
+
+    class Subset:
+        def __init__(self):
+            self.uids = [original.uids[i] for i in roster[:16]]
+
+        def __len__(self):
+            return 16
+
+        def case(self, i, positions, mirror):
+            return original.case(roster[i], positions, mirror)
+
+    data = ProposalCases(Subset(), torch.stack([full.proposal(i) for i in roster[:16]]))
+    recipe = Recipe(epochs=2, objective=objective)
+    random.seed(recipe.seed)
+    np.random.seed(recipe.seed)
+    torch.manual_seed(recipe.seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(recipe.seed)
+    initial = digest_state(model.state_dict())
+    initial_encoder = digest_state(dict(model.backbone.named_parameters()))
+    initial_head = digest_state(
+        {n: p for n, p in model.named_parameters() if not n.startswith("backbone.")}
+    )
+    bn = {
+        n: p.detach().cpu().clone()
+        for n, p in model.state_dict().items()
+        if any(x in n for x in ("running_mean", "running_var", "num_batches_tracked"))
+    }
+    binding = {
+        "parent_checkpoint_sha256": PARENT_SHA,
+        "diagnostic_only": True,
+        "clinical_accuracy_or_submission_candidate": False,
+        "source_binding": context["source_binding"],
+    }
+    output = Path(work) / objective / ("full" if phase == "full" else "resumed")
+    result = fit(
+        model,
+        data,
+        output,
+        binding,
+        recipe,
+        device=device,
+        resume=phase == "resume",
+        stop_after=1 if phase == "stop1" else None,
+    )
+    assert result["completed"] == (1 if phase == "stop1" else 4)
+    assert all(torch.equal(value, model.state_dict()[n].detach().cpu()) for n, value in bn.items())
+    assert initial_encoder != digest_state(
+        dict(model.backbone.named_parameters())
+    ) and initial_head != digest_state(
+        {n: p for n, p in model.named_parameters() if not n.startswith("backbone.")}
+    )
+    meta = {
+        "phase": phase,
+        "objective": objective,
+        "initial_state_sha256": initial,
+        "initial_encoder_sha256": initial_encoder,
+        "initial_head_sha256": initial_head,
+        "completed_updates": result["completed"],
+        "unchanged_BN": True,
+        "BN_buffers": len(bn),
+        "trainable_parameters": sum(p.numel() for p in model.parameters()),
+        "device_type": device.type,
+        "source_binding": context["source_binding"],
+    }
+    if phase != "stop1":
+        model.eval()
+        buffer = io.StringIO(newline="")
+        writer = csv.writer(buffer, lineterminator="\n")
+        writer.writerow(["StudyInstanceUID", *context["targets"]])
+        with torch.inference_mode():
+            for index in roster[16:]:
+                views = []
+                for mirror in (False, True):
+                    case = original.case(index, list(range(94)), mirror)
+                    with torch.autocast(
+                        device.type, dtype=torch.float16, enabled=device.type == "cuda"
+                    ):
+                        z = model(case["images"].to(device)[None]).float()
+                    assert z.shape == (1, 12) and torch.isfinite(z).all()
+                    views.append(z.sigmoid())
+                p = torch.stack(views).mean(0)[0].cpu().numpy()
+                writer.writerow([original.uids[index], *map(str, p)])
+        raw = buffer.getvalue().encode()
+        (output / "engineering-predictions.private.csv").write_bytes(raw)
+        meta.update(
+            prediction_sha256=hashlib.sha256(raw).hexdigest(),
+            prediction_studies=16,
+            targets=12,
+            views=2,
+            full_windows=94,
+        )
+    (output / (phase + "-process.json")).write_text(json.dumps(meta, indent=2) + "\n")
+    return meta
+
+
+def main():
+    os.umask(0o077)
+    root = Path("/tmp/rsna-teacher-pair-optimizer-recovery-20261019-v1")
+    F = Path("/tmp/rsna-teacher-pair-gradient-20261019-v2")
+    stage = json.loads((root / "staged.json").read_text())
+    assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["worker_sha256"]
+    probe = (F / "gpu_probe.py").read_bytes()
+    admitted = json.loads((F / "staged.json").read_text())
+    assert (
+        hashlib.sha256(probe).hexdigest()
+        == admitted["gpu_worker_sha256"]
+        == stage["gradient_worker_sha256"]
+    )
+    assert os.environ.get("SLURM_JOB_GPUS") and os.uname().nodename == "evc48"
+    tree = ast.parse(probe)
+    boundary = next(
+        i
+        for i, n in enumerate(tree.body)
+        if isinstance(n, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "versions" for t in n.targets)
+    )
+    context = {
+        "__name__": "actual_teacher_pair_model_bootstrap",
+        "__file__": str(F / "gpu_probe.py"),
+    }
+    # Exact original model/renderer/data/runtime bootstrap; no gradient probe replay.
+    exec(
+        compile(
+            ast.Module(body=tree.body[:boundary], type_ignores=[]),
+            "actual_source_bound_bootstrap",
+            "exec",
+        ),
+        context,
+    )
+    torch.set_num_threads(1)
+    sys.path.insert(0, str(F / "code"))
+    from rsna.competitive.teacher_pair_train import fit
+
+    from rsna.schema import TARGETS
+
+    mapping = {uid: i for i, uid in enumerate(context["original"].uids)}
+    context["engineering_indices"] = [mapping[uid] for uid in context["targets"]["uids"]]
+    context.update(fit=fit, targets=TARGETS, source_binding=stage["source_binding"])
+    work = Path(os.environ["TEACHER_PAIR_RECOVERY_WORK"])
+    assert (
+        work.parent == Path("/dev/shm")
+        and work.name.startswith("rsna-teacher-pair-recovery-")
+        and work.is_dir()
+    )
+    result = run(context, sys.argv[1], sys.argv[2], work)
+    assert result["trainable_parameters"] == 73136096 and result["device_type"] == "cuda"
+    print(json.dumps(result), flush=True)
+
+
+if __name__ == "__main__":
+    main()

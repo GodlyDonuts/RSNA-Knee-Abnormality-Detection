@@ -1,0 +1,76 @@
+"""One fresh cached-runtime extraction on the observed ordinary two-H100 evc26."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc26" and not os.environ.get("SLURM_JOB_GPUS")
+E = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1")
+D = E / "runtime-node26-v1"
+assert not D.exists() and shutil.disk_usage("/tmp").free > 108 * 2**30 + 32 * 2**20
+E.mkdir(mode=0o700, exist_ok=True)
+D.mkdir(mode=0o700)
+for name, text in v["files"].items():
+    assert (
+        name in ("runtime_environment.py", "runtime_archive.py")
+        and hashlib.sha256(text.encode()).hexdigest() == v["hashes"][name]
+    )
+    (D / name).write_text(text)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "runtime_cap_bytes": 8 * 2**30,
+            "auxiliary_cap_bytes": 2 * 2**30,
+            "minimum_physical_reserve_GiB": 20,
+            "future_full_input_and_training_reserved_GiB": 79,
+            "new_shared_bytes_or_files": 0,
+            "GPU_jobs": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+sys.path.insert(0, str(D))
+s = importlib.util.spec_from_file_location(
+    "original_verified_extractor", D / "runtime_environment.py"
+)
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+r = m.extract(
+    Path(
+        "/home/sa305415/rsna-knee/kaggle-wheelhouse-v1/result-cp312-cu130-finalmain-v1/environment-cp312-cu130.tar"
+    ),
+    "89597ed4d974e5874c7bb2ffb42545e6c0bb6a9ac796a5839a4b1902917ef338",
+    40403,
+    6322691335,
+    Path("/tmp"),
+    102,
+    Path("/usr/bin/python3.12"),
+    os.environ["SLURM_JOB_ID"],
+)
+# A compatibility path, not a claim that node48's CPU receipt occurred here.
+actual_root = Path(r["python"]).parent.parent.parent
+alias = Path("/tmp/rsna-environment-971427-pyk8rld8")
+assert not alias.exists()
+alias.symlink_to(actual_root, target_is_directory=True)
+assert (alias / "environment/bin/python").resolve() == Path(r["python"]).resolve()
+out = {
+    "status": "actual_evc26_original_cached_runtime_restored",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc26",
+    "source_git": v["source_git"],
+    "runtime": r,
+    "compatibility_alias": str(alias),
+    "no_new_download_or_GPU_or_original_owner_change": True,
+    "automatic_retry": False,
+}
+(D / "verified.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
