@@ -72,6 +72,11 @@ def build(source, metadata):
         "WORKER=" + repr(base64.b64encode(worker.encode()).decode()),
     )
     new = once(new, "'--nproc_per_node=2'", "'--nproc_per_node=1'")
+    new = once(
+        new,
+        "env={**os.environ,'PYTHONPATH':str(code)}",
+        "env={**os.environ,'PYTHONPATH':str(code)+os.pathsep+'/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay'}",
+    )
     new = once(new, "full['binding']['world_size']==2", "full['binding']['world_size']==1")
     new = once(new, "for rank in (0,1)", "for rank in (0,)")
     new = once(new, "x['GPU']=='Tesla T4'", "x['GPU'].startswith('NVIDIA H100')")
@@ -106,6 +111,7 @@ def build(source, metadata):
             "one-rank engineering collection and acceptance",
             "private node-local storage mounts",
             "explicit new hardware outcome scope",
+            "reuse existing admitted timm/torchvision runtime overlay",
         ],
         "both_roles_effective_study_batch": 8,
         "both_roles_sampled_windows": 16,

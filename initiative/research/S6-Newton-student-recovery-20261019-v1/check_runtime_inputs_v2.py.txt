@@ -1,0 +1,166 @@
+"""Original model graph and two real MRI views through the new private mounts."""
+
+import ast
+import base64
+import contextlib
+import hashlib
+import importlib.metadata
+import io
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "970429", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "970429|FAILED|1:0" in terminal
+D = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+assert not (D / "runtime-input-intent-v2.json").exists()
+assets = json.loads((D / "assets-verified.json").read_text())
+assert assets["CPU_job"] == "970393" and assets["GPU_reserved_or_dispatched"] is False
+private = json.loads((D / "asset-private.json").read_text())
+weight = Path(private["weight_path"])
+assert {
+    "bytes": weight.stat().st_size,
+    "mtime_ns": weight.stat().st_mtime_ns,
+    "inode": weight.stat().st_ino,
+} == private["stat"]
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+source = json.loads((S / "admitted.json").read_text())
+for name, h in source["files"].items():
+    assert hashlib.sha256((S / "code" / name).read_bytes()).hexdigest() == h
+parent = (S / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+old = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+literals = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id in ("TARGETS", "WORKER")
+}
+worker = base64.b64decode(literals["WORKER"], validate=True).decode()
+assert worker.count("/kaggle/input") >= 2
+worker = worker.replace("/kaggle/input", str(D / "input")).replace(
+    "/kaggle/working", str(D / "work")
+)
+(D / "runtime-input-intent-v2.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "parent_weight_stat_reused": True,
+            "whole_MRI_archive_rehash": False,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+import gc  # noqa: E402
+
+import timm  # noqa: E402
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+namespace = dict(torch=torch, timm=timm, nn=torch.nn, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(parent).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(
+    compile(
+        ast.Module(body=selected, type_ignores=[]), "unchanged_original_parent_model_graph", "exec"
+    ),
+    namespace,
+)
+with contextlib.redirect_stdout(io.StringIO()):
+    model, res = namespace["load_model"](
+        str(weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert (
+    res == 320
+    and sum(p.numel() for p in model.parameters()) == 73136096
+    and all(p.requires_grad for p in model.parameters())
+)
+model_summary = {
+    "parameters": 73136096,
+    "state_tensors": len(model.state_dict()),
+    "strict_original_load_model_executed_on_CPU": True,
+}
+del model
+gc.collect()
+tree = ast.parse(worker)
+boundary = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+classes = [n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "PixelCases"]
+assert len(classes) == 1
+locators = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "exact_index"]
+assert len(locators) == 1
+input_tree = ast.Module(body=tree.body[:boundary] + locators + classes, type_ignores=[])
+ns = {
+    "__name__": "new_private_mounts_original_renderer",
+    "__file__": "new_private_mounts_original_renderer.py",
+}
+exec(compile(input_tree, "unchanged_original_MRI_reader_with_new_mounts", "exec"), ns)
+targets_raw = base64.b64decode(literals["TARGETS"], validate=True)
+assert (
+    hashlib.sha256(targets_raw).hexdigest() == source["existing_private_engineering_targets_sha256"]
+)
+targets = json.loads(targets_raw)
+cases = ns["PixelCases"](targets, list(range(16)))
+assert len(cases) == 16 and not set(cases.uids) & set(targets["uids"][16:])
+for mirror in (False, True):
+    case = cases.case(0, list(range(94)), mirror)
+    assert (
+        case["images"].shape == (94, 3, 320, 320)
+        and case["images"].dtype == torch.float32
+        and torch.isfinite(case["images"]).all()
+    )
+    assert torch.equal(case["labels"], torch.tensor(targets["labels"][0], dtype=torch.float32))
+    assert torch.equal(case["mask"], torch.tensor(targets["masks"][0], dtype=torch.bool))
+    del case
+actual = {
+    "status": "actual_Newton_private_mounts_original_model_and_real_MRI_CPU_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "asset_CPU": "970393",
+    "original_parent_weight_SHA": assets["original_weight_sha256"],
+    "model": model_summary,
+    "real_original_fitting_studies_decoded": 1,
+    "original_plain_and_mirror94_tensor_hashes_checked_by_original_reader": True,
+    "all32_membership_labels_masks_and_engineering_separation_preserved": True,
+    "torch_version": str(torch.__version__),
+    "timm_version": str(timm.__version__),
+    "torchvision_version": importlib.metadata.version("torchvision"),
+    "existing_runtime_overlay_reused_no_new_packages": True,
+    "preserved_original_CPU_failure": "970429",
+    "numpy_version": importlib.metadata.version("numpy"),
+    "CUDA_wheel_version": str(torch.version.cuda),
+    "new_package_installations_or_pixels_features_weights_transfers": 0,
+    "actual_GPU_or_optimizer_or_clinical_acceptance": False,
+    "automatic_retry": False,
+}
+(D / "runtime-inputs-verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
