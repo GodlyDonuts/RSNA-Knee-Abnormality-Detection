@@ -1,0 +1,102 @@
+"""One CPU-only cached environment restoration; no GPU job or old-owner changes."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-earlier-H100-route-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "runtime-v2-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+program = (D / "restore_runtime_v2.py.txt").read_text()
+extractor = (R / "scripts/newton/runtime_environment.py").read_text()
+helper = (R / "scripts/newton/runtime_archive.py").read_text()
+for p, s in [
+    (D / "restore_runtime_v2.py.txt", program),
+    (R / "scripts/newton/runtime_environment.py", extractor),
+    (R / "scripts/newton/runtime_archive.py", helper),
+]:
+    assert (
+        subprocess.check_output(["git", "show", pin + ":" + p.relative_to(R).as_posix()], text=True)
+        == s
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+(L / "runtime-v2-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": pin,
+            "program_SHA": hashlib.sha256(program.encode()).hexdigest(),
+            "extractor_SHA": hashlib.sha256(extractor.encode()).hexdigest(),
+            "helper_SHA": hashlib.sha256(helper.encode()).hexdigest(),
+            "new_runtime_cap_bytes": 8 * 2**30,
+            "new_GPU_jobs": 0,
+            "original_owners_unchanged": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:15:00",
+    "--job-name=rsna-earlier-H100-runtime",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "source_git": pin,
+            "extractor": extractor,
+            "extractor_SHA": hashlib.sha256(extractor.encode()).hexdigest(),
+            "helper": helper,
+            "helper_SHA": hashlib.sha256(helper.encode()).hexdigest(),
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1800,
+)
+(L / "runtime-v2-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Original runtime mutation requires read-only reconciliation, never retry"
+actual = json.loads(x.stdout)
+(D / "actual-runtime-restored.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(x.stdout, flush=True)
