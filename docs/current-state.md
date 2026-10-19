@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October19,2026,20:01UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
+Updated October19,2026,20:48UTC. [Guide](../AGENTS.md) · [Next actions](codex-continuation.md). Goal active;0.97 unachieved.
 
 | Model | Actual Kaggle score | Entry |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ The adapted backbone is full73M CoAtNet. The0.958 is a reproduction; no original
 
 ## Original improvement being executed
 
-The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed3,133/3,887 fitting studies (phase50/972468). The original resident2320176 runs phase51/972565 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+The matched experiment tests complementary S6 cross-lineage equal-rank supervision against parent-only supervision, holding original MRI/labels/masks/full encoder/optimizer/LR/IID16/effective8/three epochs constant. Complementary teacher production has completed3,325/3,887 fitting studies (phase53/972761). The original resident2320176 runs phase54/972870 on39,23workers/two-thread FP32 each. All3,887 are required before target ranks; public teacher overlap prevents an independent OOF claim. All-fitting training is not internal validation. [Original teacher receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
 The earlier node48 route is now real CPU/input acceptance: whole38.87GB MRI copy,815auxiliary files/678.56MB fully SHA verified, matching cached Torch build, strict73,136,096parameter/486tensor original parent, full3887roster and eight exact94view tensors (CPU971665); canonical aliases/imports passed971721. Original copies remain private/intact. No data, weights, private file tables or parent body crossed Mac/Git/HF. [Original staging and preserved failure](../initiative/research/S6-earlier-H100-route-20261019-v1/README.md).
 
@@ -58,3 +58,6 @@ New distinct research source: [teacher-pair full encoder](../initiative/research
 
 
 Teacher-pair source b4c62868 is privately preserved at HFd72902228f9d30495e3f7269bf9c333d1dd793c8/CPU972874,17objects104791bytes all independent download/size/SHA verified. Original CPU972885 FAILED1:0 before node stage/GPU intent because the local package marker has only a docstring while the admitted original marker is empty; all six numerical dependencies match. Preserve that negative and never repeat v1. Explicit distinct v2 control requires the old terminal and absent old node stage, then pins the original empty marker and new v2 paths; actual source/math/optimizer/recipe unchanged. Three actual-wrapper compatibility/negative-construction tests pass. No new GPU or accuracy result is implied.
+
+
+Actual corrected teacher-pair CPU972918 passed and submitted only gradient scout972928. Its same pending/zero-runtime JobId was amended to authorized account defaultnormal priority; scientific inputs/source/node/twoCPU/oneH100/32GiB/20minutes unchanged. All ordinary H100s inspected are busy; the scout is still PENDING, not a gradient/recovery/accuracy pass. The account grants normal/ood/preemptable/defaultnormal; do not unnecessarily dispatch future original GPUs at lower preemptable priority. A separate bounded metadata follower is prepared to promote only the original67258/67269 eventual admitted JobIds without editing/duplicating/restarting their science; four actual-wrapper synthetic cases pass. Keep all six original pipeline owners intact. Numerical source remains privately preserved at d729... and corrected source at HFe17b8bf5a0c26374a76709de78623d979ce05526/CPU972913,21objects122784bytes fully independently re-downloaded/SHA verified.

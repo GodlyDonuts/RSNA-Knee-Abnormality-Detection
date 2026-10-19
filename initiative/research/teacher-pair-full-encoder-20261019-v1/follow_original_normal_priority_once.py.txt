@@ -1,0 +1,114 @@
+"""Use granted default normal priority for the two original future GPU JobIds.
+
+Never create/cancel/requeue a scientific job or edit its original frozen source.
+Each exact submitted receipt permits at most one pending-job metadata amendment.
+"""
+
+import json
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+ORIGINAL = R / "initiative/research/S6-earlier-H100-execution-20261019-v1"
+L = R / "artifacts/S6-original-normal-priority-20261019-v1"
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+(L / "owner-intent.json").write_text(
+    json.dumps(
+        {
+            "maximum_same_pending_job_amendments": 2,
+            "maximum_wait_seconds": 172800,
+            "new_GPU_jobs_or_scientific_retries": 0,
+            "automatic_mutation_retry": False,
+        }
+    )
+    + "\n"
+)
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+start = time.monotonic()
+out = {}
+for role, name, status, jobname in [
+    (
+        "recovery",
+        "actual-GPU-submitted.json",
+        "actual_complete_teacher_oneH100_recovery_submitted_once",
+        "rsna-S6-oneH100-recovery",
+    ),
+    (
+        "production",
+        "actual-full-GPU-submitted.json",
+        "actual_complete_teacher_full3887_two_role_oneH100_fit_submitted_once",
+        "rsna-S6-complete-target-full",
+    ),
+]:
+    while not (ORIGINAL / name).exists():
+        assert time.monotonic() - start < 172800, "No source receipt; no job mutation or restart"
+        time.sleep(30)
+    receipt = json.loads((ORIGINAL / name).read_text())
+    assert receipt["status"] == status
+    job = receipt["GPU_job"]
+    assert job.isdigit()
+    before = subprocess.check_output(
+        ssh + [shlex.join(["scontrol", "show", "job", job, "-o"])], text=True, timeout=30
+    )
+    assert (
+        "UserId=sa305415(" in before
+        and "Account=skattel" in before
+        and "ReqNodeList=evc48" in before
+        and "JobName=" + jobname in before
+    )
+    if "JobState=PENDING" not in before or "RunTime=00:00:00" not in before:
+        out[role] = {
+            "GPU_job": job,
+            "status": "original_job_already_started_or_terminal_preserved_no_amendment",
+        }
+        continue
+    if "QOS=normal" in before and "Partition=normal" in before:
+        out[role] = {"GPU_job": job, "status": "original_job_already_normal_no_mutation"}
+        continue
+    assert "QOS=preemptable" in before and "Partition=preemptable" in before
+    (L / (role + "-intent.json")).write_text(
+        json.dumps(
+            {
+                "GPU_job": job,
+                "source_receipt": receipt,
+                "before": before,
+                "no_scientific_retry": True,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    x = subprocess.run(
+        ssh
+        + [shlex.join(["scontrol", "update", "JobId=" + job, "Partition=normal", "QOS=normal"])],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    (L / (role + "-response.json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+    )
+    assert x.returncode == 0, (
+        "Uncertain original metadata amendment requires read-only reconciliation, not retry"
+    )
+    after = subprocess.check_output(
+        ssh + [shlex.join(["scontrol", "show", "job", job, "-o"])], text=True, timeout=30
+    )
+    assert "QOS=normal" in after and "Partition=normal" in after
+    out[role] = {
+        "GPU_job": job,
+        "status": "actual_same_original_pending_job_promoted_to_authorized_default_normal",
+        "new_scientific_job_IDs": 0,
+        "source_model_data_recipe_GPU_CPU_RAM_walltime_unchanged": True,
+        "automatic_retry": False,
+    }
+    (D / ("actual-original-" + role + "-priority.json")).write_text(
+        json.dumps(out[role], indent=2) + "\n"
+    )
+    (L / "progress.json").write_text(json.dumps(out, indent=2) + "\n")
+(L / "result.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
