@@ -1,0 +1,120 @@
+"""Follow only the already-pushed LR qualification, then one public run and code entry."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+L = Path("artifacts/encoder-LR-scoring-followthrough-20261019-v1")
+assert not (L / "owner-intent.json").exists()
+pushed = json.loads((D / "actual-push-qualification.json").read_text())
+assert pushed["kernel_id"] == 139590522 and pushed["version"] == 1
+assert pushed["source_sha256"] == "636f1cf67c669498ae1322dcd8b4946f3bdf697aef0e0e45a34652b9b9e57b5e"
+for pid in (59572, 66215):
+    z = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True)
+    assert z.returncode != 0 or "encoder-lr-final-scoring" not in z.stdout
+frozen = hashlib.sha256((D / "coordinate_once.py.txt").read_bytes()).hexdigest()
+(L / "owner-intent.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "maximum_hours": 36,
+            "first_phase": "status",
+            "existing_qualification_kernel": 139590522,
+            "new_qualification_pushes": 0,
+            "maximum_new_public_pushes": 1,
+            "maximum_new_code_entries": 1,
+            "automatic_uncertain_mutation_retry": False,
+        },
+        indent=2,
+    )
+)
+phase, mode = "status", "qualification"
+start = time.monotonic()
+try:
+    while time.monotonic() - start < 36 * 3600:
+        assert hashlib.sha256((D / "coordinate_once.py.txt").read_bytes()).hexdigest() == frozen
+        x = subprocess.run(
+            [sys.executable, str(D / "coordinate_once.py.txt"), phase, mode],
+            capture_output=True,
+            text=True,
+            timeout=760,
+        )
+        assert x.returncode == 0, x.stderr[-1500:]
+        actual = json.loads(x.stdout)
+        out = {
+            "PID": os.getpid(),
+            "phase": phase,
+            "mode": mode,
+            "elapsed_seconds": time.monotonic() - start,
+            "actual": actual,
+        }
+        (L / "owner-progress.json").write_text(json.dumps(out, indent=2) + "\n")
+        print(json.dumps(out), flush=True)
+        status = actual["status"]
+        if status.startswith("waiting_"):
+            time.sleep(150)
+            continue
+        if phase == "push":
+            assert status == "one_exact_matched_final_competition_pushed"
+            phase = "status"
+        elif phase == "status":
+            if status in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+                raise RuntimeError("Actual notebook terminal failure; preserve exact original")
+            if status == "COMPLETE":
+                assert "receipt" in actual
+                if mode == "qualification":
+                    mode, phase = "competition", "push"
+                else:
+                    phase = "eligibility"
+                continue
+            assert status in (
+                None,
+                "QUEUED",
+                "RUNNING",
+                "INITIALIZING",
+                "CREATED",
+                "PENDING",
+                "STARTING",
+            )
+        elif phase == "eligibility":
+            assert status == "actual_encoderlr_final_entry_eligibility"
+            if actual["fresh"]["eligible"]:
+                phase = "submit"
+                continue
+        elif phase == "submit":
+            assert status == "one_exact_encoderlr_final_code_entry_accepted"
+            phase = "outcome"
+        else:
+            assert phase == "outcome" and status == "actual_encoderlr_final_hidden_outcome"
+            if actual["outcome"] in ("scored", "failed"):
+                (D / "actual-hidden-terminal.json").write_text(json.dumps(actual, indent=2) + "\n")
+                (L / "owner-result.json").write_text(
+                    json.dumps({"status": "actual_LR_candidate_hidden_terminal", **out}, indent=2)
+                    + "\n"
+                )
+                break
+        time.sleep(150)
+    else:
+        raise RuntimeError("Finite owner expired; inspect the same originals")
+except BaseException as error:
+    (L / "owner-result.json").write_text(
+        json.dumps(
+            {
+                "status": "LR_scoring_owner_stopped_originals_preserved",
+                "PID": os.getpid(),
+                "phase": phase,
+                "mode": mode,
+                "exception_type": type(error).__name__,
+                "reason": str(error),
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
