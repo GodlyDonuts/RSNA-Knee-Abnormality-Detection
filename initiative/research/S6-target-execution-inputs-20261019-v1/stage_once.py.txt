@@ -1,0 +1,152 @@
+"""One CPU source admission; original clinical records stay on Newton."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+from scripts.kaggle import licensed_importance_recovery as original
+from scripts.kaggle.licensed_importance_production import POPULATION_MODULES
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-target-execution-inputs-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "stage-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+program = (D / "admit.py.txt").read_text()
+assert (
+    subprocess.check_output(
+        ["git", "show", pin + ":" + (D / "admit.py.txt").relative_to(R).as_posix()], text=True
+    )
+    == program
+)
+old = "be837f9b569b16942e6cd290a7898b4a75863766"
+production_revision = "a420bd2ed38c657e1296881f0294917e6d466373"
+production_paths = {*POPULATION_MODULES, "scripts/kaggle/licensed_importance_production.py"}
+names = {
+    *original.MODULES,
+    original.WHOLE_MODULE,
+    *original.EXTRA_MODULES,
+    *POPULATION_MODULES,
+    "rsna/competitive/licensed_pixel_cache.py",
+    "scripts/kaggle/licensed_importance_recovery.py",
+    "scripts/kaggle/licensed_importance_production.py",
+    "scripts/kaggle/licensed_parent_recovery.py",
+    "scripts/kaggle/licensed_pixel_cache_probe.py",
+    "scripts/kaggle/released_context_notebook.py",
+    "scripts/kaggle/series_boundary_notebook.py",
+}
+files = {
+    n: subprocess.check_output(
+        ["git", "show", (production_revision if n in production_paths else old) + ":" + n],
+        text=True,
+    )
+    for n in sorted(names)
+}
+files.update(
+    {
+        n: ""
+        for n in (
+            "rsna/__init__.py",
+            "rsna/competitive/__init__.py",
+            "scripts/__init__.py",
+            "scripts/kaggle/__init__.py",
+        )
+    }
+)
+files.update(
+    {
+        "scripts/kaggle/complete_teacher_recovery.py": (
+            R / "initiative/research/S6-target-real-MRI-recovery-20261019-v1/compiler.py.txt"
+        ).read_text(),
+        "scripts/kaggle/complete_teacher_production.py": (
+            R / "initiative/research/S6-target-trainer-compiler-20261018-v1/compiler.py.txt"
+        ).read_text(),
+        "rsna/competitive/complete_teacher_overlay.py": (
+            R
+            / "initiative/experiments/competitive-v1/s6-rank-transport-v1/data-path/teacher_overlay.py.txt"
+        ).read_text(),
+    }
+)
+v = {
+    "source_git": pin,
+    "files": files,
+    "parent_source": (
+        R
+        / "artifacts/compact-native-n3-launch-20261016-v1/public-nartaa-contract-current/source.py"
+    ).read_text(),
+    "original_production_input_receipt": (
+        R / "initiative/audits/licensed-importance-full-comparison-20261017-v1/actual-inputs.json"
+    ).read_text(),
+}
+with (L / "stage-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "own_source_files": {
+                n: hashlib.sha256(x.encode()).hexdigest() for n, x in files.items()
+            },
+            "new_node33_small_control_cap_bytes": 12 * 2**20,
+            "new_shared_bytes_files": 0,
+            "new_GPU_or_Dataset_or_entries": 0,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:04:00",
+    "--job-name=rsna-S6-student-source",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, v),
+    capture_output=True,
+    text=True,
+    timeout=360,
+)
+(L / "stage-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original stage must be reconciled read-only, never retried: " + x.stderr[-1000:]
+)
+value = json.loads(x.stdout)
+(D / "actual-source-input-admitted.json").write_text(json.dumps(value, indent=2) + "\n")
+print(json.dumps(value), flush=True)

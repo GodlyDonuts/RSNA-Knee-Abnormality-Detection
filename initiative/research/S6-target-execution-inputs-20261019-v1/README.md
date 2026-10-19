@@ -1,0 +1,9 @@
+# Exact student execution inputs, before complete targets
+
+This stages the actual future two-T4 recovery source and reuses the original admitted32MRI engineering cases, private targets, parent source and permission. It performs no GPU computation, Dataset mutation, competition submission or partial-cohort target construction. Both complete-population target roles must still be admitted after all3,887teacher outputs; empty/partial admission is refused.
+
+The original completed-control numerical closure remains pinned tobe837f9 and compared to its original CPU940795 input receipt. Source-only staging does not establish all-production-run equivalence, a clinical result, or authority to reuse a historical control without the full recipe/runtime/initialization/roster binding. No H100 trainer has been accepted. Both GPUs on the existing data-owning evc33 are occupied at this observation; the existing MedGemma job remains pending. Preparing inputs reserves no GPU and does not interrupt the healthy teacher.
+
+Separately bounded12MiB node33 small controls cover at most4MiB stage source plus future2MiB targets/4MiB ZIP/2MiB receipts. The future target copy/Dataset must be independently admitted; no new bulk image/weight/feature transfer. Fresh20GiB node/shared physical reserve,32MiB metadata headroom,4MiB resident unpaid reserve and5,256shared files are checked before staging; no deletion credit. GPU checkpoints/production are not funded by this small-source admission. Credentials and clinical records remain private; none cross to Git/HF/Mac. A prior stage intent requires read-only reconciliation, never a second dispatch.
+
+Next is the bounded direct node39→node33 complete-target handoff and one canonical small Dataset/real-MRI recovery, once the actual complete-target receipt exists and fresh runtime/budget permits. The source stage is not a prepared payload being called a submitted trainer.

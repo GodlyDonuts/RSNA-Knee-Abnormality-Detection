@@ -1,0 +1,132 @@
+"""Stage exact future student source and reuse admitted inputs; no target fabrication."""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+assert not D.exists(), "Existing stage requires read-only reconciliation"
+cap = 12 * 2**20
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + cap
+q = __import__("subprocess").check_output(
+    ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True
+)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 32 * 2**20 + 4 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5000 + 256
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+old = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1")
+accepted = json.loads((old / "actual-accepted.json").read_text())
+assert (
+    accepted["source_sha256"] == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+src = (old / "recovery.private.py").read_text()
+assert hashlib.sha256(src.encode()).hexdigest() == accepted["source_sha256"]
+values = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(src).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "TARGETS"
+}
+raw = base64.b64decode(values["TARGETS"], validate=True)
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == "87cbd096202eb3a0512f918b181ecd765c893817beed4678e4eea2b47032c834"
+)
+targets = json.loads(raw)
+assert len(targets["uids"]) == 32 and len(set(targets["uids"])) == 32
+pixel = Path("/tmp/rsna-licensed-parent-pixels32-20261016-v1/collected")
+proof = json.loads((pixel / "verified.json").read_text())
+assert (
+    proof["CPU_job"] == "938918"
+    and proof["all32_original_NPZ_volume_mask_bytes_and_rendered_two_view_hashes_exact"] is True
+)
+assert (
+    sha(pixel / "index.private.json")
+    == "3a1567989bf65779aeb19785dafdedef7386fb6bedba5ec45da6d3a67a9a79e3"
+)
+assert [
+    x["study_uid"] for x in json.loads((pixel / "index.private.json").read_text())["records"]
+] == targets["uids"]
+assert (pixel / "pixels.tar").stat().st_size == 326799360
+permission = Path("/tmp/rsna-source-ranking-serving-20261016-v1/source-permission.txt")
+assert (
+    permission.stat().st_size == 4411
+    and sha(permission) == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+parent = v["parent_source"]
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+assert 0 < len(v["files"]) < 64 and sum(len(s.encode()) for s in v["files"].values()) < 2 * 2**20
+for name, text in v["files"].items():
+    assert name.endswith(".py") and not Path(name).is_absolute() and ".." not in Path(name).parts
+    compile(text, name, "exec")
+# All old numerical modules must remain identical to the completed original T4 control.
+expected = json.loads(v["original_production_input_receipt"])["source_modules"]
+matched = {
+    n: hashlib.sha256(v["files"][n].encode()).hexdigest() for n in expected if n in v["files"]
+}
+assert matched and all(h == expected[n] for n, h in matched.items())
+D.mkdir(mode=0o700)
+S = D / "code"
+for name, text in v["files"].items():
+    p = S / name
+    p.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    p.write_text(text)
+    p.chmod(0o600)
+(D / "parent_source.private.py").write_text(parent)
+(D / "engineering-targets.private.json").write_bytes(raw)
+(D / "source-permission.txt").write_text(permission.read_text())
+sys.path.insert(0, str(S))
+from scripts.kaggle import complete_teacher_production as production  # noqa: E402
+from scripts.kaggle import complete_teacher_recovery as compiler  # noqa: E402
+
+for role in compiler.ROLES:
+    try:
+        production.admit({}, role)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Incomplete teacher admission was accepted")
+assert set(production.ROLES) == set(compiler.ROLES) == {"parent_only", "cross_lineage_equal_rank"}
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 4 * 2**20
+out = {
+    "status": "actual_future_complete_teacher_recovery_source_and_original32_inputs_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "files": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["files"].items()},
+    "old_control_numerical_modules_equal": matched,
+    "original32_pixel_proof_reused": True,
+    "existing_pixels_bytes": 326799360,
+    "existing_private_engineering_targets_sha256": hashlib.sha256(raw).hexdigest(),
+    "permission_sha256": sha(permission),
+    "private_source_bytes": sum(p.stat().st_size for p in D.rglob("*") if p.is_file()),
+    "control_cap_bytes": cap,
+    "GPU_checkpoint_or_full_fit_funding": False,
+    "GPU_or_Dataset_or_submission_mutations": 0,
+    "complete_targets_present_or_fabricated": False,
+    "partial_targets_refused": True,
+    "new_bulk_pixel_model_or_feature_transfers": 0,
+    "source_data_masks_folds_or_labels_changed": False,
+    "numerical_GPU_recovery_or_accuracy_claim": False,
+}
+(D / "admitted.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
