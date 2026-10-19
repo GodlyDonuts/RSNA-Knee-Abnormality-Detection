@@ -1,0 +1,61 @@
+"""Private direct stream of already-verified model/native packet; no reacquisition."""
+
+import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+roots = {
+    "model": Path("/tmp/rsna-medgemma15-evidence-teacher-20261019-v1"),
+    "packet": Path("/tmp/rsna-medgemma15-first-packet-20261019-v1"),
+}
+model = json.loads((roots["model"] / "verified.json").read_text())
+packet = json.loads((roots["packet"] / "verified.json").read_text())
+assert model["revision"] == "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b" and packet["slices"] == 195
+rows = []
+for tag, root in roots.items():
+    assert not (root / "actual-pilot").exists()
+    names = (
+        [x["path"] for x in model["files"]]
+        if tag == "model"
+        else [x["file"] for x in json.loads((root / "manifest.private.json").read_text())["images"]]
+        + ["manifest.private.json", "pilot.py"]
+    )
+    names += ["verified.json"]
+    expected = (
+        {x["path"]: x["sha256"] for x in model["files"]}
+        if tag == "model"
+        else {
+            x["file"]: x["sha256"]
+            for x in json.loads((root / "manifest.private.json").read_text())["images"]
+        }
+    )
+    for name in names:
+        p = root / name
+        assert p.parent == root and not p.is_symlink()
+        rows.append(
+            {
+                "tag": tag,
+                "name": name,
+                "bytes": p.stat().st_size,
+                "sha256": expected.get(name) or hashlib.sha256(p.read_bytes()).hexdigest(),
+            }
+        )
+assert len(rows) < 240 and sum(r["bytes"] for r in rows) < 10 * 2**30
+out = sys.stdout.buffer
+out.write(
+    (json.dumps({"files": rows, "source_CPU_job": os.environ["SLURM_JOB_ID"]}) + "\n").encode()
+)
+for row in rows:
+    h = hashlib.sha256()
+    n = 0
+    with (roots[row["tag"]] / row["name"]).open("rb") as f:
+        while block := f.read(2**20):
+            n += len(block)
+            h.update(block)
+            out.write(block)
+    assert n == row["bytes"] and h.hexdigest() == row["sha256"]
+out.write(b"original_verified_complete_stream_EOF\n")
+out.flush()

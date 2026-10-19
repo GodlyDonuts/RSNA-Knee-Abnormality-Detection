@@ -1,0 +1,92 @@
+"""One independently verified new-node copy, with an unchanged numerical pilot."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import torch
+import transformers
+from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+
+assert os.uname().nodename == "evc26" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+assert torch.__version__ == "2.14.0+cu130" and transformers.__version__ == "5.6.1"
+assert AutoProcessor is not None and Gemma3ForConditionalGeneration is not None
+roots = {
+    "model": Path("/tmp/rsna-medgemma15-evidence-teacher-20261019-v1"),
+    "packet": Path("/tmp/rsna-medgemma15-first-packet-20261019-v1"),
+}
+X = Path("/tmp/rsna-medgemma15-earlier-slot-20261019-v1")
+assert not X.exists() and all(not p.exists() for p in roots.values())
+# This is a separately admitted first copy on26:10GiB model+packet+controls,
+# above20GiB physical reserve; no originals deleted or old promise resurrected.
+assert shutil.disk_usage("/tmp").free > 30 * 2**30
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 and int(a[6]) - int(a[5]) > 5000
+stream = sys.stdin.buffer
+header = json.loads(stream.readline(2**20))
+rows = header["files"]
+assert 1 < len(rows) < 240 and sum(r["bytes"] for r in rows) < 10 * 2**30
+assert len({(r["tag"], r["name"]) for r in rows}) == len(rows)
+for row in rows:
+    assert row["tag"] in roots and Path(row["name"]).name == row["name"] and row["bytes"] > 0
+X.mkdir(mode=0o700)
+for p in roots.values():
+    p.mkdir(mode=0o700)
+for row in rows:
+    h = hashlib.sha256()
+    remain = row["bytes"]
+    with (roots[row["tag"]] / row["name"]).open("xb") as f:
+        while remain:
+            b = stream.read(min(2**20, remain))
+            assert b
+            remain -= len(b)
+            h.update(b)
+            f.write(b)
+        f.flush()
+        os.fsync(f.fileno())
+    assert h.hexdigest() == row["sha256"]
+assert stream.readline(128) == b"original_verified_complete_stream_EOF\n" and not stream.read(1)
+source = (roots["packet"] / "pilot.py").read_text()
+proof = json.loads((roots["packet"] / "verified.json").read_text())
+assert hashlib.sha256(source.encode()).hexdigest() == proof["pilot_sha256"]
+assert source.count('os.uname().nodename == "evc33"') == 1
+changed = source.replace('os.uname().nodename == "evc33"', 'os.uname().nodename == "evc26"')
+compile(changed, "same_numerical_pilot_new_node_only", "exec")
+old = 'os.uname().nodename == "evc33"'
+new = 'os.uname().nodename == "evc26"'
+entry = (
+    "from pathlib import Path\nimport hashlib\np=Path("
+    + repr(str(roots["packet"] / "pilot.py"))
+    + ")\nassert hashlib.sha256(p.read_bytes()).hexdigest()=="
+    + repr(proof["pilot_sha256"])
+    + "\ns=p.read_text().replace("
+    + repr(old)
+    + ","
+    + repr(new)
+    + ")\n"
+    + "exec(compile(s,'original_pilot_location26','exec'),{'__name__':'__main__','__file__':str(p)})\n"
+)
+compile(entry, "location_entry", "exec")
+(X / "run.py").write_text(entry)
+out = {
+    "status": "actual_original_model_and_native_packet_first_copy_verified_evc26",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_CPU_job": header["source_CPU_job"],
+    "files": len(rows),
+    "bytes": sum(r["bytes"] for r in rows),
+    "model_revision": "91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b",
+    "pilot_sha256": proof["pilot_sha256"],
+    "location_entry_sha256": hashlib.sha256(entry.encode()).hexdigest(),
+    "native_slices": 195,
+    "new_source_downloads": False,
+    "GPU_or_inference_started": False,
+    "new_node_copy_cap_bytes": 10 * 2**30,
+}
+(X / "ready.json").write_text(json.dumps(out, indent=2))
+print(json.dumps(out))
