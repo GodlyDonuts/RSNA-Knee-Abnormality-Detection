@@ -1,0 +1,94 @@
+"""Compile the exact recovery on Newton only after the complete packet admission."""
+
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+F = D / "complete-target-input-v1"
+output = D / "recovery-source-v1"
+assert not output.exists(), "Existing compilation requires read-only reconciliation"
+admitted = json.loads((D / "admitted.json").read_text())
+transport = json.loads((F / "verified.json").read_text())
+assert transport["status"] == "actual_complete3887_targets_direct_node39_to_node33_admitted"
+assert transport["source_admission_CPU"] == admitted["CPU_job"] == "969738"
+assert transport["parent_only_exactly_original_full_target_tensor"] is True
+ready = json.loads((F / "complete-target-ready.json").read_text())
+raw = (F / "teacher-targets.private.npz").read_bytes()
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == ready["target_file"]["sha256"]
+    == transport["target_file"]["sha256"]
+)
+assert len(raw) == ready["target_file"]["bytes"] < 2 * 2**20
+for name, h in admitted["files"].items():
+    assert hashlib.sha256((D / "code" / name).read_bytes()).hexdigest() == h
+paid = sum(p.stat().st_size for p in D.rglob("*") if p.is_file())
+assert paid + 3 * 2**20 < 12 * 2**20
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + 12 * 2**20 - paid
+sys.path.insert(0, str(D / "code"))
+from scripts.kaggle import complete_teacher_production as target_compiler  # noqa: E402
+from scripts.kaggle import complete_teacher_recovery as recovery  # noqa: E402
+from scripts.kaggle import licensed_importance_recovery as original  # noqa: E402
+from scripts.kaggle.licensed_importance_production import POPULATION_MODULES  # noqa: E402
+
+for role in recovery.ROLES:
+    target_compiler.admit(ready, role)
+parent = (D / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+targets_raw = (D / "engineering-targets.private.json").read_bytes()
+assert (
+    hashlib.sha256(targets_raw).hexdigest()
+    == admitted["existing_private_engineering_targets_sha256"]
+)
+files = {
+    n: (D / "code" / n).read_text()
+    for n in (*original.MODULES, original.WHOLE_MODULE, *original.EXTRA_MODULES)
+}
+source, metadata = recovery.build(
+    parent,
+    (D / "code/rsna/competitive/licensed_pixel_cache.py").read_text(),
+    files,
+    json.loads(targets_raw),
+    permission=(D / "source-permission.txt").read_text(),
+    ready=ready,
+    overlay_source=(D / "code/rsna/competitive/complete_teacher_overlay.py").read_text(),
+    target_compiler=target_compiler,
+    population_sources={n: (D / "code" / n).read_text() for n in POPULATION_MODULES},
+)
+compile(source, "actual_complete_teacher_recovery_private", "exec")
+assert (
+    metadata["actual_GPU_recovery"] is False and metadata["full_production_fit_dispatched"] is False
+)
+assert len(source.encode()) + len(json.dumps(metadata).encode()) < 3 * 2**20
+output.mkdir(mode=0o700)
+(output / "intent.json").write_text(
+    json.dumps({"original_handoff_CPU": transport["CPU_job"], "automatic_retry": False}) + "\n"
+)
+(output / "recovery.private.py").write_text(source)
+(output / "metadata.private.json").write_text(json.dumps(metadata, indent=2) + "\n")
+summary = {
+    "status": "actual_complete_teacher_recovery_source_compiled_from_original_private_inputs",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_admission_CPU": admitted["CPU_job"],
+    "target_handoff_CPU": transport["CPU_job"],
+    "complete_target_file": ready["target_file"],
+    "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+    "source_bytes": len(source.encode()),
+    "worker_sha256": metadata["worker_sha256"],
+    "roles": metadata["roles"],
+    "actual_GPU_recovery": False,
+    "GPU_Dataset_or_competition_mutations": 0,
+    "records_or_private_source_on_Mac_Git_HF": False,
+}
+(output / "verified.json").write_text(json.dumps(summary, indent=2) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 12 * 2**20
+print(json.dumps(summary), flush=True)

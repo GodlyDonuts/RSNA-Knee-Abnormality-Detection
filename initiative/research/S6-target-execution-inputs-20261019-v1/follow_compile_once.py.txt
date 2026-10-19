@@ -1,0 +1,139 @@
+"""After the existing handoff succeeds, compile once on CPU; never reserve GPUs."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-target-execution-inputs-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+program = (D / "compile_received.py.txt").read_text()
+for name in ("compile_received.py.txt", "follow_compile_once.py.txt"):
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / name).relative_to(R).as_posix()], text=True
+        )
+        == (D / name).read_text()
+    )
+assert not (L / "compile-follower-intent.json").exists()
+with (L / "compile-follower-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "source_git": pin,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "maximum_hours": 24,
+            "maximum_CPU_compilations": 1,
+            "GPU_Dataset_or_competition_mutations": 0,
+            "automatic_mutation_retry": False,
+        },
+        f,
+        indent=2,
+    )
+try:
+    started = time.monotonic()
+    while not (L / "follower-result.json").exists():
+        assert time.monotonic() - started < 24 * 3600
+        time.sleep(120)
+    result = json.loads((L / "follower-result.json").read_text())
+    assert result["PID"] == 55175, "Only the original handoff follower may release compilation"
+    assert (
+        result["actual"]["status"] == "actual_complete_targets_handoff_both_CPU_endpoints_completed"
+    ), "Original handoff failed; do not compile"
+    spec = importlib.util.spec_from_file_location(
+        "transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    transport = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(transport)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=preemptable",
+        "--qos=preemptable",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:05:00",
+        "--job-name=rsna-S6-compile-complete-recovery",
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "-c",
+        transport.COMMAND,
+    ]
+    with (L / "compile-dispatch-intent.json").open("x") as f:
+        json.dump(
+            {
+                "source_git": pin,
+                "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+                "automatic_retry": False,
+            },
+            f,
+            indent=2,
+        )
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=transport.envelope(program, {}),
+        capture_output=True,
+        text=True,
+        timeout=1100,
+    )
+    (L / "compile-transport.json").write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "Original CPU handle requires read-only reconciliation; never retry compilation"
+    )
+    actual = json.loads(x.stdout)
+    assert (
+        actual["status"]
+        == "actual_complete_teacher_recovery_source_compiled_from_original_private_inputs"
+    )
+    (D / "actual-complete-recovery-source-compiled.json").write_text(
+        json.dumps(actual, indent=2) + "\n"
+    )
+    final = {
+        "status": "original_complete_teacher_recovery_source_CPU_compilation_finished",
+        "PID": os.getpid(),
+        "actual": actual,
+    }
+    (L / "compile-follower-result.json").write_text(json.dumps(final, indent=2) + "\n")
+    print(json.dumps(final), flush=True)
+except BaseException as e:
+    (L / "compile-follower-result.json").write_text(
+        json.dumps(
+            {
+                "PID": os.getpid(),
+                "status": "original_compile_follower_stopped",
+                "type": type(e).__name__,
+                "reason": str(e),
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
