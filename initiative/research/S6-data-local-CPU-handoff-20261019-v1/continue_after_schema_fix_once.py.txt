@@ -1,0 +1,62 @@
+"""Distinct continuation after proven pre-inference failure; no row is replayed."""
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+assert subprocess.run(["ps", "-p", "32210"], capture_output=True).returncode != 0
+proof = json.loads((D / "actual-index-schema-fixed.json").read_text())
+assert proof["CPU_job"] == "968351" and proof["preserved_rows"] == 740
+assert proof["new_MRI_or_model_inference"] is False
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "sacct -X -n -P -j 968351 --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert "968351|COMPLETED|0:0" in state
+original = R / "initiative/research/S6-full-CPU-teacher-20261018-v1/finish_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+changes = {
+    'L = R / "artifacts/S6-full-CPU-teacher-20261018-v1"': 'L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer-schema-v2"',
+    "for phase in range(128):": "for phase in range(11, 128):",
+    '"--nodelist=evc33"': '"--nodelist=evc39"',
+    "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py": "/tmp/rsna-S6-data-local-handoff-20261019-v1/run_teacher.py",
+    '"preserve_existing_teacher_rows": 36,': '"preserve_existing_teacher_rows": 740,',
+}
+for a, b in changes.items():
+    assert source.count(a) == 1
+    source = source.replace(a, b)
+(D / "actual-schema-recovery-owner-started.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "original_failed_job": "968328",
+            "actual_prelude_acceptance": "968351",
+            "preserved_rows": 740,
+            "first_phase": 11,
+            "CPU": 25,
+            "workers": 12,
+            "memory_GiB": 192,
+            "numerical_model_and_original_teacher_source_unchanged": True,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+exec(
+    compile(source, "original_teacher_distinct_schema_recovery_after_no_inference", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

@@ -1,0 +1,30 @@
+"""Follow only the actual schema-recovery owner, preserving previous waiters."""
+
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+pid = json.loads((D / "actual-schema-recovery-owner-started.json").read_text())["PID"]
+assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode == 0
+original = D / "follow_targets_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+begin = source.index("pid = json.loads(")
+end = source.index("x = subprocess.run(", begin)
+source = source[:begin] + "pid = " + str(pid) + "\n" + source[end:]
+source = source.replace(
+    '"move_and_continue_once.py.txt"', '"continue_after_schema_fix_once.py.txt"'
+)
+source = source.replace(
+    "S6-data-local-CPU-handoff-20261019-v1/move_and_continue_once.py.txt",
+    "S6-data-local-CPU-handoff-20261019-v1/continue_after_schema_fix_once.py.txt",
+)
+source = source.replace("node39-follower", "node39-schema-v2-follower")
+exec(
+    compile(source, "same_complete_target_waiter_new_actual_producer", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

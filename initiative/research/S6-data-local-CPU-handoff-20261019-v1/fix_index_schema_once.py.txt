@@ -1,0 +1,98 @@
+"""Correct a location-only pointer after actual pre-inference failure968328."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+assert not (L / "index-schema-intent.json").exists()
+program = """import hashlib,io,json,os,subprocess,sys
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1');M=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1')
+s=subprocess.check_output(['sacct','-X','-n','-P','-j','968328','--format=JobIDRaw,State,ExitCode'],text=True);assert '968328|FAILED|1:0' in s
+assert not (P/'CPU-full-stream-v1/phase-011').exists() and not (P/'engine-v1/execution.lock').exists()
+seed=json.loads((M/'seed-accepted.json').read_text());raw=(P/'completed-logits.private.jsonl').read_bytes()
+assert len(raw)==seed['journal_bytes'] and hashlib.sha256(raw).hexdigest()==seed['journal_sha256'] and seed['completed']==740
+pointer=P/'RAM-location.private.json';old=json.loads(pointer.read_text());assert 'sha256' not in old
+sha='b340e77ee09de2c7695355ac9559dc49f2be0254105e633e718caf4b7bd4fc11'
+proof=json.loads((M/'files.private.json').read_text());assert any(k.startswith('I/') and h==sha for k,h in proof['sha256'].items())
+assert Path(old['path']).stat().st_size==53202254
+backup=P/'RAM-location.before-schema-fix.private.json';assert not backup.exists();backup.write_text(pointer.read_text())
+fixed=dict(old,sha256=sha,bytes=53202254,original_whole_byte_proof_reused='968002')
+pointer.write_text(json.dumps(fixed))
+helper=M/'node39_entry.py';entry=json.loads((M/'entry-accepted.json').read_text());assert hashlib.sha256(helper.read_bytes()).hexdigest()==entry['helper_sha256']
+n={};exec(compile(helper.read_text(),'same_accepted_location','exec'),n)
+source=n['adapt']((P/'CPU-full-stream-v1/program.py').read_text(),'teacher')
+prefix=source[:source.index('D.mkdir(mode=0o700)')]
+assert prefix.count('teacher_guard(phase)')==1
+# CPU-only metadata startup probe. Do not impersonate25CPU/192GiB allocation;
+# that scheduler admission remains mandatory in the actual production entry.
+prefix=prefix.replace('teacher_guard(phase)','location_storage()')
+sys.stdin=io.StringIO(json.dumps({'phase':11,'source_git':'a6b1d0e647d858476a790177ad953295966de252'}))
+exec(compile(prefix,'actual_original_startup_before_any_intent_or_model','exec'),n)
+assert len(n['journal'].rows)==740 and len(n['records'])==len(n['todo'])==64
+assert not (P/'CPU-full-stream-v1/phase-011').exists() and not (P/'engine-v1/execution.lock').exists()
+out={'status':'actual_original_CPU_startup_prelude_passed_after_location_schema_fix','CPU_job':os.environ['SLURM_JOB_ID'],'original_failed_job':'968328','preserved_rows':740,'journal_sha256':seed['journal_sha256'],'source_index_original_proof_reused':'968002','next_new_rows_metadata_admitted':64,'new_MRI_or_model_inference':False,'location_pointer_only_change':True,'actual_scheduler_CPU_memory_admission_still_required':True}
+(M/'index-schema-fixed.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "index-schema-intent.json").write_text(
+    json.dumps(
+        {
+            "original_failed_job": "968328",
+            "no_inference_or_journal_mutation_expected": True,
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-S6-original-startup-schema",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "index-schema-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1200:]
+(D / "actual-index-schema-fixed.json").write_text(json.dumps(json.loads(x.stdout), indent=2) + "\n")
+print(x.stdout, flush=True)
