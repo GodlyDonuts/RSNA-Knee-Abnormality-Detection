@@ -1,0 +1,91 @@
+"""Distinct assigned-step recovery after actual batch-context CUDA101, no inference."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/multimodal-evidence-teacher-20261019-v1/earlier-slot-evc26-v1"
+assert not (L / "assigned-step-intent.json").exists()
+program = """import hashlib,json,os,shlex,subprocess
+from pathlib import Path
+assert os.uname().nodename=='evc26' and not os.environ.get('SLURM_JOB_GPUS')
+X=Path('/tmp/rsna-medgemma15-earlier-slot-20261019-v1');P=Path('/tmp/rsna-medgemma15-first-packet-20261019-v1')
+state=subprocess.check_output(['sacct','-X','-n','-P','-j','968429','--format=JobIDRaw,State,ExitCode,Elapsed'],text=True);assert '968429|FAILED|1:0|00:00:15' in state
+assert not (P/'actual-pilot').exists() and not (X/'assigned-step-intent.json').exists()
+ready=json.loads((X/'ready.json').read_text());assert hashlib.sha256((X/'run.py').read_bytes()).hexdigest()==ready['location_entry_sha256']
+error=Path('/home/sa305415/rsna-knee/kaggle/medgemma15-earlier-pilot-968429.stderr').read_text()
+assert 'Error 101: invalid device ordinal' in error and 'line 15' in error
+X.joinpath('assigned-step-intent.json').write_text(json.dumps({'failed_batch_job':'968429','actual_CUDA_error':101,'actual_model_or_MRI_inference':False,'scheduler_assigned_step_only_change':True,'automatic_retry':False}))
+# Match the original accepted960986 execution mechanism: enter the allocated
+# task's srun GPU context, rather than invoke Python directly in the batch step.
+cmd=['srun','--exact','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','env','HF_HUB_OFFLINE=1','TRANSFORMERS_OFFLINE=1','PYTHONDONTWRITEBYTECODE=1','PYTHONNOUSERSITE=1','OMP_NUM_THREADS=2','MKL_NUM_THREADS=2','/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python','-B',str(X/'run.py')]
+H=Path('/home/sa305415/rsna-knee/kaggle')
+args=['sbatch','--parsable','--account=skattel','--partition=preemptable','--qos=preemptable','--nodelist=evc26','--ntasks=1','--cpus-per-task=2','--gres=gpu:nvidia_h100_pcie:1','--mem=64G','--time=00:30:00','--job-name=rsna-medgemma15-assigned-evidence','--output='+str(H/'medgemma15-assigned-pilot-%j.stdout'),'--error='+str(H/'medgemma15-assigned-pilot-%j.stderr'),'--wrap='+shlex.join(cmd)]
+x=subprocess.run(args,capture_output=True,text=True);X.joinpath('assigned-step-response.json').write_text(json.dumps({'returncode':x.returncode,'stdout':x.stdout,'stderr':x.stderr}));assert x.returncode==0
+job=x.stdout.strip().split(';')[0];assert job.isdigit()
+print(json.dumps({'status':'actual_distinct_assigned_GPU_step_pilot_submitted_after_zero_inference_CUDA101','GPU_job':job,'old_failed_job':'968429','original_failed_reason':'batch CUDA invalid device ordinal101','node':'evc26','physical_node_GPUs':2,'requested_GPU':1,'allocated_scheduler_step':'srun','model_and_prompt_unchanged':True,'original_pilot_sha256':ready['pilot_sha256'],'new_MRI_or_model_copies':False,'accuracy_claim':False}))
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "assigned-step-intent.json").write_text(
+    json.dumps(
+        {
+            "original_failed_job": "968429",
+            "actual_pre_model_CUDA_error": 101,
+            "new_assigned_step": True,
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc26",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-medgemma-assigned-dispatch",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-917129-_r45a3dc/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {}),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "assigned-step-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Uncertain dispatch requires exact reconciliation, not retry: " + x.stderr[-1200:]
+)
+(D / "actual-assigned-step-GPU-submitted.json").write_text(
+    json.dumps(json.loads(x.stdout), indent=2) + "\n"
+)
+print(x.stdout, flush=True)
