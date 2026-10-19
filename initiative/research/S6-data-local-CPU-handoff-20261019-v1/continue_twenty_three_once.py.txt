@@ -1,0 +1,125 @@
+"""Use the remaining useful CPU capacity only after an actual clean batch boundary."""
+
+import json
+import os
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer23"
+old = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer-schema-v2"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "handoff-intent.json").exists()
+entry = json.loads((D / "actual-23worker-entry-accepted.json").read_text())
+assert entry["CPU_job"] == "968613" and entry["source_model_functions_and_classes_AST_unchanged"]
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "sacct -X -n -P -j 968613 --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert "968613|COMPLETED|0:0" in state
+(L / "handoff-intent.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "original_producer_PID": 33020,
+            "requested_CPU": 47,
+            "memory_GiB": 256,
+            "workers": 23,
+            "actual_entry_CPU": "968613",
+            "original_per_study_math_unchanged": True,
+            "checkpoint_or_MRI_transfers": False,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+start = time.monotonic()
+while not (old / "clean-handoff-ready.json").exists():
+    assert time.monotonic() - start < 6 * 3600
+    assert subprocess.run(["ps", "-p", "33020"], capture_output=True).returncode == 0
+    time.sleep(30)
+handoff = json.loads((old / "clean-handoff-ready.json").read_text())
+assert handoff["no_active_child"] and 13 <= handoff["next_phase"] < 128
+for _ in range(20):
+    if subprocess.run(["ps", "-p", "33020"], capture_output=True).returncode:
+        break
+    time.sleep(1)
+else:
+    raise RuntimeError("Previous writer did not stop")
+first = handoff["next_phase"]
+previous = json.loads(
+    (
+        R
+        / (
+            "initiative/research/S6-full-CPU-teacher-20261018-v1/phase-%03d-actual.json"
+            % (first - 1)
+        )
+    ).read_text()
+)
+assert previous["phase"] == first - 1 and previous["completed"] >= 804
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        "sacct -X -n -P -j " + previous["CPU_job"] + " --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert previous["CPU_job"] + "|COMPLETED|0:0" in state
+original = R / "initiative/research/S6-full-CPU-teacher-20261018-v1/finish_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+changes = {
+    'L = R / "artifacts/S6-full-CPU-teacher-20261018-v1"': 'L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer23"',
+    "for phase in range(128):": "for phase in range(" + str(first) + ", 128):",
+    '"--nodelist=evc33"': '"--nodelist=evc39"',
+    '"--cpus-per-task=25"': '"--cpus-per-task=47"',
+    '"--mem=192G"': '"--mem=256G"',
+    '"CPU": 25,': '"CPU": 47,',
+    '"memory_GiB": 192,': '"memory_GiB": 256,',
+    "/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/CPU-full-stream-v1/program.py": "/tmp/rsna-S6-data-local-handoff-20261019-v1/run_teacher23.py",
+    '"preserve_existing_teacher_rows": 36,': '"preserve_existing_teacher_rows": '
+    + str(previous["completed"])
+    + ",",
+}
+for a, b in changes.items():
+    assert source.count(a) == 1
+    source = source.replace(a, b)
+(D / "actual-23worker-owner-started.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "first_phase": first,
+            "previous_completed": previous["completed"],
+            "previous_actual_job": previous["CPU_job"],
+            "entry_CPU": "968613",
+            "CPU": 47,
+            "workers": 23,
+            "memory_GiB": 256,
+            "model_numerics_and_thread_count_unchanged": True,
+            "new_journal_or_MRI_or_model_transfers": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+exec(
+    compile(source, "original_finite_teacher_more_CPU_slots_after_clean_boundary", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)

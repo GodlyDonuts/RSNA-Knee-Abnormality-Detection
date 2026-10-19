@@ -1,0 +1,105 @@
+"""Admit only extra CPU concurrency; original per-study FP32 math stays unchanged."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-data-local-CPU-handoff-20261019-v1"
+assert not (L / "23-worker-stage-v2-intent.json").exists()
+program = """import ast,hashlib,json,os,subprocess
+from pathlib import Path
+assert os.uname().nodename=='evc39' and not os.environ.get('SLURM_JOB_GPUS')
+P=Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1');M=Path('/tmp/rsna-S6-data-local-handoff-20261019-v1');E=M/'run_teacher23.py';assert not E.exists()
+node=subprocess.check_output(['scontrol','show','node','evc39','--oneliner'],text=True)
+vals=dict(x.split('=',1) for x in node.split() if '=' in x)
+current=subprocess.check_output(['scontrol','show','job','968547','--oneliner'],text=True)
+assert 'JobState=RUNNING' in current and 'NodeList=evc39' in current
+# Current teacher192GiB/26allocated logical CPUs will be released at its clean
+# boundary. Other admitted users retain16CPUs/224GiB.47requested rounds to48,
+# so the replacement fits64logical CPUs and leaves>20GiB unallocated host RAM.
+meta=subprocess.check_output(['scontrol','show','job',os.environ['SLURM_JOB_ID'],'--oneliner'],text=True)
+md=dict(x.split('=',1) for x in meta.split() if '=' in x)
+assert int(vals['CPUTot'])==64 and int(vals['CPUAlloc'])-26-int(md['NumCPUs'])+48<=64
+assert int(vals['AllocMem'])-196608-int(os.environ['SLURM_MEM_PER_NODE'])+262144+20*1024<int(vals['RealMemory'])
+helper=M/'node39_entry.py';proof=json.loads((M/'entry-accepted.json').read_text())
+assert hashlib.sha256(helper.read_bytes()).hexdigest()==proof['helper_sha256']
+n={};exec(compile(helper.read_text(),'same_original_location_scope','exec'),n);n['location_storage']()
+raw=(P/'CPU-full-stream-v1/program.py').read_text();s=n['adapt'](raw,'teacher')
+changes={'ThreadPoolExecutor(max_workers=12)':'ThreadPoolExecutor(max_workers=23)','[Slot(i) for i in range(12)]':'[Slot(i) for i in range(23)]','"CPU_workers": 12,':'"CPU_workers": 23,'}
+assert s.count('"CPU_workers": 12,')==2
+for a,b in changes.items():
+ assert s.count(a)==(2 if a.startswith('"CPU_workers"') else 1);s=s.replace(a,b)
+functions=lambda x:[ast.dump(a,include_attributes=False) for a in ast.parse(x).body if isinstance(a,(ast.FunctionDef,ast.ClassDef))]
+assert functions(raw)==functions(s)
+assert s.count('teacher_guard(phase)')==1
+s=s.replace('teacher_guard(phase)',"teacher_guard(phase)\\nassert int(os.environ['SLURM_CPUS_PER_TASK'])>=47 and int(os.environ['SLURM_MEM_PER_NODE'])>=262144")
+compile(s,'same_per_study_math_more_CPU_slots','exec')
+entry="from pathlib import Path\\nimport hashlib,os\\np=Path("+repr(str(helper))+")\\nassert hashlib.sha256(p.read_bytes()).hexdigest()=="+repr(proof['helper_sha256'])+"\\nn={}\\nexec(compile(p.read_text(),'same_original_location_scope','exec'),n)\\ns=Path("+repr(str(P/'CPU-full-stream-v1/program.py'))+").read_text()\\ns=n['adapt'](s,'teacher')\\n"
+for a,b in changes.items():entry+="s=s.replace("+repr(a)+","+repr(b)+")\\n"
+entry+="s=s.replace('teacher_guard(phase)',"+repr("teacher_guard(phase)\\nassert int(os.environ['SLURM_CPUS_PER_TASK'])>=47 and int(os.environ['SLURM_MEM_PER_NODE'])>=262144")+")\\nn.update(__name__='__main__')\\nexec(compile(s,'same_original_teacher_twenty_three_workers','exec'),n)\\n"
+compile(entry,'entry','exec');E.write_text(entry)
+out={'status':'actual_23worker_CPU_concurrency_entry_admitted_no_new_inference','CPU_job':os.environ['SLURM_JOB_ID'],'current_production_job':'968547','source_model_functions_and_classes_AST_unchanged':True,'worker_count':23,'threads_per_model':2,'requested_CPU':47,'requested_memory_GiB':256,'other_users_resources_preserved':True,'unallocated_host_memory_reserve_GiB':20,'RAM_scratch_and_heap_caps_unchanged':True,'original_program_sha256':hashlib.sha256(raw.encode()).hexdigest(),'entry_sha256':hashlib.sha256(entry.encode()).hexdigest(),'GPU':0,'new_predictions_or_accuracy':False}
+(M/'23worker-entry-accepted.json').write_text(json.dumps(out,indent=2));print(json.dumps(out))
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "23-worker-stage-v2-intent.json").write_text(
+    json.dumps(
+        {
+            "worker_count": 23,
+            "actual_current_job": "968547",
+            "original_per_study_math_unchanged": True,
+            "automatic_retry": False,
+        }
+    )
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc39",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-S6-23worker-entry",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, {}),
+    capture_output=True,
+    text=True,
+    timeout=400,
+)
+(L / "23-worker-stage-v2-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, x.stderr[-1400:]
+(D / "actual-23worker-entry-accepted.json").write_text(
+    json.dumps(json.loads(x.stdout), indent=2) + "\n"
+)
+print(x.stdout, flush=True)

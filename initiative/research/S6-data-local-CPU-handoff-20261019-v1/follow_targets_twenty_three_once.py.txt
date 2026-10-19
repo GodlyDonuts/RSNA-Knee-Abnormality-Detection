@@ -1,0 +1,32 @@
+"""Follow only the admitted next CPU owner, never compile partial cohort ranks."""
+
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+pid = json.loads(
+    (
+        R / "artifacts/S6-data-local-CPU-handoff-20261019-v1/producer23/handoff-intent.json"
+    ).read_text()
+)["PID"]
+assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode == 0
+original = D / "follow_targets_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+begin = source.index("pid = json.loads(")
+end = source.index("x = subprocess.run(", begin)
+source = source[:begin] + "pid = " + str(pid) + "\n" + source[end:]
+source = source.replace('"move_and_continue_once.py.txt"', '"continue_twenty_three_once.py.txt"')
+source = source.replace(
+    "S6-data-local-CPU-handoff-20261019-v1/move_and_continue_once.py.txt",
+    "S6-data-local-CPU-handoff-20261019-v1/continue_twenty_three_once.py.txt",
+)
+source = source.replace("node39-follower", "node39-23worker-follower")
+exec(
+    compile(source, "complete_target_follower_actual_more_CPU_slots_owner", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)
