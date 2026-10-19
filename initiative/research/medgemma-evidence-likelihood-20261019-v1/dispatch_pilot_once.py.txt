@@ -1,0 +1,104 @@
+"""One actual strict model/full MRI CPU admission; original owners untouched."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/medgemma-evidence-likelihood-20261019-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "GPU-stage-intent-v1.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+program = (D / "stage_pilot.py.txt").read_text()
+assert (
+    subprocess.check_output(
+        ["git", "show", pin + ":" + (D / "stage_pilot.py.txt").relative_to(R).as_posix()],
+        text=True,
+    )
+    == program
+)
+actual = json.loads((D / "actual-input-gate.json").read_text())
+assert (
+    actual["status"]
+    == "actual_node48_original_native_packet_processor_and_fixed_answer_CPU_admitted"
+)
+controls = {name: (D / (name + ".txt")).read_text() for name in ("pilot.py", "likelihood.py")}
+for name, body in controls.items():
+    assert (
+        subprocess.check_output(
+            ["git", "show", pin + ":" + (D / (name + ".txt")).relative_to(R).as_posix()], text=True
+        )
+        == body
+    )
+hashes = {name: hashlib.sha256(body.encode()).hexdigest() for name, body in controls.items()}
+with (L / "GPU-stage-intent-v1.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "program_SHA": hashlib.sha256(program.encode()).hexdigest(),
+            "actual_auxiliary_CPU": actual["CPU_job"],
+            "maximum_new_GPU_jobs": 1,
+            "original_owners_unchanged": True,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:05:00",
+    "--job-name=rsna-medgemma-likelihood-GPU-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program, {"source_git": pin, "inputs": actual, "controls": controls, "hashes": hashes}
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1800,
+)
+(L / "GPU-stage-transport-v1.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original CPU model/input mutation requires read-only reconciliation, never retry"
+)
+actual = json.loads(x.stdout)
+(D / "actual-GPU-submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(x.stdout, flush=True)
