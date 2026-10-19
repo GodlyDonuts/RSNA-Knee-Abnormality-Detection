@@ -1,0 +1,27 @@
+"""Continue a verified pre-create stop; preserve only original immutable LR epoch3."""
+
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+proof = json.loads((D / "actual-original-reconciled.json").read_text())
+assert proof["original_epoch3_root_exists"] is False and proof["private_epoch3_objects_found"] == 0
+assert proof["previous_verified_epochs"] == [1, 2]
+original = R / "initiative/research/encoder-lr-comparison-20261018-v1/publish_epoch_v3.py.txt"
+source = subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+assert source == original.read_text()
+old = "L=ROOT/'artifacts/encoder-lr-comparison-20261018-v1'"
+assert source.count(old) == 1
+source = source.replace(old, "L=ROOT/'artifacts/encoder-LR-final-preservation-20261019-v1'")
+L = R / "artifacts/encoder-LR-final-preservation-20261019-v1"
+assert not (L / "epoch-3-publication-intent.json").exists()
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+# All remote numerical/publication code, validations, source pins and locks stay exact.
+exec(
+    compile(source, "original_LR_publisher_distinct_precreate_recovery", "exec"),
+    {"__name__": "__main__", "__file__": str(original)},
+)
