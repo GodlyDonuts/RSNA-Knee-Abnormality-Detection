@@ -1,0 +1,97 @@
+"""Engineering-only real-parent source compilation with explicit synthetic receipts."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+D = P / "serving-source-preparation-v1"
+assert not D.exists(), "Existing original preparation requires read-only reconciliation"
+# One MiB of the original 16 MiB private control cap; no new model funding.
+controls = sum(
+    p.stat().st_size
+    for p in P.rglob("*")
+    if p.is_file()
+    and not p.is_symlink()
+    and not set(p.relative_to(P).parts)
+    & {"original-pixel-replica-v2", "input", "runs", "publication"}
+)
+assert controls + 2**20 < 16 * 2**20
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + 32 * 2**20 + 64 * 2**30
+assert sum(len(s.encode()) for s in v["source"].values()) < 128 * 2**10
+assert v["source_SHA"] == {
+    n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["source"].items()
+}
+parent = Path(
+    "/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py"
+).read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_SHA": v["source_SHA"],
+            "synthetic_receipts_not_actual_model_or_publication": True,
+            "maximum_new_GPU_or_Dataset_or_competition_mutations": 0,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+(D / "compiler.py").write_text(v["source"]["compiler.py"])
+spec = importlib.util.spec_from_file_location("new_H100_to_T4_compiler", D / "compiler.py")
+c = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(c)
+import torch  # noqa: E402
+
+assert torch.cuda.device_count() == 0
+outputs = {}
+for mode in ("qualification", "competition"):
+    text, meta = c.build(
+        parent,
+        v["source"]["bounded.py"],
+        v["source"]["validate.py"],
+        v["source"]["codec.py"],
+        v["source"]["mixin.py"],
+        v["source"]["importance.py"],
+        v["training"],
+        v["publication"],
+        mode=mode,
+        legacy_source=v["source"]["legacy.py"],
+    )
+    assert meta["actual_T4_execution_accepted"] is False and meta["training_world_size"] == 1
+    assert meta["competition_entry"] is False
+    p = D / (mode + ".synthetic-receipt.private.py")
+    p.write_text(text)
+    p.chmod(0o600)
+    outputs[mode] = {
+        "bytes": p.stat().st_size,
+        "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "compiled_only_not_executed": True,
+    }
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2**20
+actual = {
+    "status": "actual_original_private_parent_new_H100_serving_source_CPU_compiled_with_synthetic_receipts_only",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "parent_source_SHA": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+    "outputs": outputs,
+    "real_checkpoint_or_publication_or_T4_qualification_admitted": False,
+    "parent_body_or_MRI_records_exported": False,
+    "new_GPU_Dataset_or_competition_mutations": 0,
+    "automatic_retry": False,
+}
+(D / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

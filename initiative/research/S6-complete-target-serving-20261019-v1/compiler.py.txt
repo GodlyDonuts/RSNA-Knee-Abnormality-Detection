@@ -1,0 +1,87 @@
+"""Reuse the original qualified full94 inference; bind real H100 provenance."""
+
+import hashlib
+
+HELPER = "f1e34ce7a00cda5c28e109722b73e142a7cd3bf1fbdef83c3fb84df31b8e60cb"
+LEGACY = "9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2"
+
+
+def sha(source):
+    return hashlib.sha256(source.encode()).hexdigest()
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("Exact original serving compiler site required")
+    return source.replace(before, after)
+
+
+def namespace(legacy_source, helper_source):
+    if sha(legacy_source) != LEGACY or sha(helper_source) != HELPER:
+        raise ValueError("Exact original accepted MRI inference compiler required")
+    helper = {"__name__": "actual_H100_epoch_provenance"}
+    exec(compile(helper_source, "strict_oneH100_epoch_serving", "exec"), helper)
+    source = once(
+        legacy_source, "from rsna.competitive.licensed_importance_serving import provenance", ""
+    )
+    source = once(
+        source,
+        "from scripts.kaggle.series_boundary_notebook import GUARD, PARENT_SOURCE_SHA256, WEIGHTS_SHA256",
+        "",
+    )
+    source = once(
+        source,
+        'SERVING_SHA = "e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d"',
+        "SERVING_SHA = " + repr(sha(helper_source)),
+    )
+    source = once(
+        source,
+        'model_sha = training.get("receipt", {}).get("epoch", {}).get("sha256")',
+        'model_sha = training.get("receipt", {}).get("model_snapshot", {}).get("sha256")',
+    )
+    source = once(
+        source,
+        "_ADAPTED_TRAINING['receipt']['epoch']['bytes']",
+        "_ADAPTED_TRAINING['receipt']['model_snapshot']['bytes']",
+    )
+    source = once(
+        source,
+        '"training_kernel": training["kernel_id"]',
+        '"training_GPU_job": training["GPU_job"]',
+    )
+    source = once(
+        source, '"new_weight_Dataset_required": False', '"new_weight_Dataset_required": True'
+    )
+    assert source.count("actual_matched_IID16_parent_epoch_") == 2
+    source = source.replace(
+        "actual_matched_IID16_parent_epoch_", "actual_complete_target_H100_epoch_"
+    )
+    ns = {
+        "__name__": "new_complete_target_H100_to_T4_compiler",
+        "provenance": helper["provenance"],
+        "GUARD": '\nif __name__ == "__main__":\n    main()',
+        "PARENT_SOURCE_SHA256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+        "WEIGHTS_SHA256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+    }
+    exec(compile(source, "same_full94_inference_new_H100_provenance", "exec"), ns)
+    return ns
+
+
+def build(
+    parent, bounded, helper, codec, mixin, importance, training, publication, *, mode, legacy_source
+):
+    # Own validator is supplied through an outer immutable source manifest.
+    # The private parent implementation is never stored with this compiler.
+    ns = namespace(legacy_source, helper)
+    text, meta = ns["build"](
+        parent, bounded, helper, codec, mixin, importance, training, publication, mode=mode
+    )
+    return text, {
+        **meta,
+        "training_hardware": "oneH100",
+        "training_world_size": 1,
+        "original_full94_inference_math_unchanged": True,
+        "actual_T4_execution_accepted": False,
+        "competition_entry": False,
+        "clinical_accuracy_claim": False,
+    }

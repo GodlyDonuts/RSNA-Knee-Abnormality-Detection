@@ -1,0 +1,208 @@
+"""Synthetic serving provenance/refusal and unchanged-inference contracts."""
+
+import copy
+import hashlib
+import importlib.util
+import json
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+from test_licensed_parent_serving import accepted_epoch
+from test_licensed_parent_serving_notebook import fixture_parent
+
+D = Path(__file__).resolve().parent
+
+
+def load(name, filename):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(D / filename)))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def info(value):
+    raw = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    return {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+m = load("new_H100_serving", "validate.py.txt")
+c = load("new_H100_notebook", "compiler.py.txt")
+snapshot, _, _, model_sha = accepted_epoch.__wrapped__()
+role = "cross_lineage_equal_rank"
+b = snapshot["binding"]
+teacher = {
+    "status": "actual_complete3887_two_role_teacher_targets_private_CPU_constructed",
+    "population": 3887,
+    "population_sha256": m.POP,
+    "labels_masks_and_original_targets_modified": False,
+    "labels_masks_or_protected_values_decoded": False,
+    "target_file": {"sha256": "c" * 64},
+    "roles": {
+        r: {"role": r, "population": 3887, "population_sha256": m.POP, "diagnostic_only": False}
+        for r in m.ROLES
+    },
+}
+b.update(
+    production_plan="complete_S6_equal_rank_matched_full3887_oneH100_v1",
+    world_size=1,
+    device_name="NVIDIA H100 PCIe",
+    teacher_target_role=role,
+    teacher_transport=teacher["roles"][role],
+    complete_teacher_admission=teacher,
+    proposal_sha256=m.PROPOSAL,
+    actual_recovery_source_sha256="f" * 64,
+)
+b["recipe"].update(role="influence", windows=16)
+r = {
+    "status": "actual_complete_target_oneH100_epoch_session_complete",
+    "segment": 1,
+    "completed": 486,
+    "teacher_target_role": role,
+    "model_snapshot": {"bytes": 123, "sha256": model_sha},
+    "worker_sha256": "1" * 64,
+    "binding": copy.deepcopy(b),
+    "actual_recovery_source_sha256": "f" * 64,
+    "independent_verification": {
+        "full_learned_graph_exact": True,
+        "finite_contiguous_updates": 486,
+        "actual_AdamW_parameters": 73136096,
+        "all_one_rank_RNG_and_scaler_records_present": True,
+    },
+}
+training = {
+    "status": "COMPLETE",
+    "GPU_job": "123",
+    "epoch": 1,
+    "role": role,
+    "source_sha256": "1" * 64,
+    "receipt": r,
+}
+prov = {
+    "actual_GPU_job": "123",
+    "source_git": b["source_git"],
+    "epoch": 1,
+    "updates": 486,
+    "worker_sha256": "1" * 64,
+    "binding": r["binding"],
+}
+verification = {
+    "status": "actual_complete_target_oneH100_epoch_private_all_objects_download_size_SHA_verified",
+    "role": role,
+    "epoch": 1,
+    "updates": 486,
+    "objects": 5,
+    "canonical_shared_publication_lock_used": True,
+    "source_git": b["source_git"],
+    "revision": "d" * 40,
+    "prefix": f"checkpoints/complete-S6-target-oneH100-{b['source_git'][:12]}/{role}/epoch-001",
+}
+publication = {
+    "verification": verification,
+    "provenance": prov,
+    "manifest": {
+        "source_git": b["source_git"],
+        "role": role,
+        "epoch": 1,
+        "files": {
+            "model.pt": r["model_snapshot"],
+            "actual-epoch.json": info(r),
+            "provenance.json": info(prov),
+            "source-permission.txt": {
+                "bytes": 4411,
+                "sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+            },
+        },
+    },
+}
+accepted = m.validate(snapshot, training, publication, model_sha)
+assert accepted["training_world_size"] == 1 and accepted["T4_qualification_is_separate"]
+checks = 1
+for bad in (
+    "pending",
+    "role",
+    "revision",
+    "prefix",
+    "manifest",
+    "GPU_job",
+    "permission",
+    "optimizer",
+    "world",
+    "targets",
+    "recipe",
+    "model",
+    "nonfinite",
+):
+    s, t, p = copy.deepcopy((snapshot, training, publication))
+    if bad == "pending":
+        t["status"] = "RUNNING"
+    elif bad == "role":
+        p["verification"]["role"] = "parent_only"
+    elif bad == "revision":
+        p["verification"]["revision"] = ""
+    elif bad == "prefix":
+        p["verification"]["prefix"] += "wrong"
+    elif bad == "manifest":
+        p["manifest"]["files"]["model.pt"]["sha256"] = "0" * 64
+    elif bad == "GPU_job":
+        t["GPU_job"] = "999"
+    elif bad == "permission":
+        p["manifest"]["files"]["source-permission.txt"]["bytes"] = 0
+    elif bad == "optimizer":
+        t["receipt"]["independent_verification"]["actual_AdamW_parameters"] = 1
+    elif bad == "world":
+        s["binding"]["world_size"] = 2
+    elif bad == "targets":
+        s["binding"]["complete_teacher_admission"]["population"] = 32
+    elif bad == "recipe":
+        s["binding"]["recipe"]["source_weight"] = 0.5
+    elif bad == "model":
+        s["model"].pop("clsW")
+    else:
+        s["model"]["clsW"][0, 0] = float("nan")
+    with pytest.raises(ValueError):
+        m.validate(s, t, p, model_sha)
+    checks += 1
+legacy = Path("scripts/kaggle/licensed_importance_serving.py").read_text()
+helper = (D / "validate.py.txt").read_text()
+ns = c.namespace(legacy, helper)
+assert "kernel_id" not in ns["build"].__code__.co_consts
+parent = fixture_parent()
+# Explicit synthetic parent substitution only in this in-memory fixture namespace.
+ns["PARENT_SOURCE_SHA256"] = c.sha(parent)
+args = [
+    Path(n).read_text()
+    for n in [
+        "rsna/competitive/bounded_preparation.py",
+        "rsna/competitive/licensed_pixel_cache.py",
+        "rsna/competitive/licensed_full_bag.py",
+        "rsna/competitive/licensed_importance.py",
+    ]
+]
+for mode in ("qualification", "competition"):
+    text, meta = ns["build"](parent, args[0], helper, *args[1:], training, publication, mode=mode)
+    runtime = {"__name__": "synthetic_only_no_GPU_acceptance"}
+    exec(compile(text, "synthetic_complete_target_MRI_serving", "exec"), runtime)
+    assert runtime["infer_pair_probs"]() == "unchanged original two-view math"
+    assert runtime["gpu_windows"](None, None, 94, 320, "cuda:0") == "unchanged original images"
+    assert (runtime["infer_probs"](None, None, None) == 1).all()
+    assert runtime["ARMS"][0]["file"] == "epoch-001.pt"
+    assert meta["training_GPU_job"] == "123" and meta["new_weight_Dataset_required"]
+    assert meta["qualification_cannot_submit"] == (mode == "qualification")
+    assert "training_kernel" not in meta
+    assert "actual_complete_target_H100_epoch_bothT4_original32" in text
+    assert "_ADAPTED_TRAINING['receipt']['model_snapshot']['bytes']" in text
+    checks += 1
+for a, h in [(legacy + "# changed", helper), (legacy, helper + "# changed")]:
+    with pytest.raises(ValueError):
+        c.namespace(a, h)
+    checks += 1
+print(
+    json.dumps(
+        {
+            "status": "synthetic_complete_target_H100_to_T4_serving_contracts_passed",
+            "checks": checks,
+            "actual_model_or_T4_or_competition_acceptance": False,
+        }
+    )
+)

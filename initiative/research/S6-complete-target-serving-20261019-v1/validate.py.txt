@@ -1,0 +1,166 @@
+"""Serve actual preserved one-H100 epochs without pretending they were T4 fits."""
+
+import hashlib
+import json
+
+import torch
+
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+POP = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+PROPOSAL = "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+ROLES = ("parent_only", "cross_lineage_equal_rank")
+
+
+def digest(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def hash64(value):
+    return (
+        isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+    )
+
+
+def provenance(training, publication, model_sha):
+    r = training.get("receipt", {})
+    epoch, role = training.get("epoch"), training.get("role")
+    checked = r.get("independent_verification", {})
+    verification, manifest = publication.get("verification", {}), publication.get("manifest", {})
+    raw = (json.dumps(r, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    prov = publication.get("provenance", {})
+    prov_raw = (json.dumps(prov, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    git = r.get("binding", {}).get("source_git", "")
+    revision = verification.get("revision", "")
+    if (
+        training.get("status") != "COMPLETE"
+        or len(git) != 40
+        or any(c not in "0123456789abcdef" for c in git)
+        or len(revision) != 40
+        or any(c not in "0123456789abcdef" for c in revision)
+        or type(epoch) is not int
+        or not 1 <= epoch <= 3
+        or verification.get("prefix")
+        != f"checkpoints/complete-S6-target-oneH100-{git[:12]}/{role}/epoch-{epoch:03d}"
+        or prov.get("actual_GPU_job") != training.get("GPU_job")
+        or prov.get("source_git") != git
+        or prov.get("epoch") != epoch
+        or prov.get("updates") != epoch * 486
+        or prov.get("worker_sha256") != training.get("source_sha256")
+        or prov.get("binding") != r.get("binding")
+        or manifest.get("files", {}).get("provenance.json")
+        != {"bytes": len(prov_raw), "sha256": digest(prov_raw)}
+        or role not in ROLES
+        or r.get("teacher_target_role") != role
+        or r.get("segment") != epoch
+        or r.get("completed") != epoch * 486
+        or r.get("status") != "actual_complete_target_oneH100_epoch_session_complete"
+        or r.get("model_snapshot", {}).get("sha256") != model_sha
+        or not hash64(model_sha)
+        or r.get("worker_sha256") != training.get("source_sha256")
+        or not hash64(training.get("source_sha256"))
+        or not str(training.get("GPU_job", "")).isdigit()
+        or verification.get("status")
+        != "actual_complete_target_oneH100_epoch_private_all_objects_download_size_SHA_verified"
+        or verification.get("epoch") != epoch
+        or verification.get("role") != role
+        or verification.get("updates") != epoch * 486
+        or verification.get("objects") != 5
+        or verification.get("canonical_shared_publication_lock_used") is not True
+        or verification.get("source_git") != r.get("binding", {}).get("source_git")
+        or manifest.get("source_git") != verification.get("source_git")
+        or manifest.get("role") != role
+        or manifest.get("epoch") != epoch
+        or manifest.get("files", {}).get("model.pt") != r.get("model_snapshot")
+        or manifest.get("files", {}).get("actual-epoch.json")
+        != {"bytes": len(raw), "sha256": digest(raw)}
+        or manifest.get("files", {}).get("source-permission.txt")
+        != {
+            "bytes": 4411,
+            "sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+        }
+        or checked.get("full_learned_graph_exact") is not True
+        or checked.get("finite_contiguous_updates") != epoch * 486
+        or checked.get("actual_AdamW_parameters") != 73136096
+        or checked.get("all_one_rank_RNG_and_scaler_records_present") is not True
+    ):
+        raise ValueError(
+            "Actual full one-H100 epoch and exact five-object private publication required"
+        )
+    return epoch
+
+
+def validate(snapshot, training, publication, model_sha):
+    epoch = provenance(training, publication, model_sha)
+    binding = snapshot.get("binding", {})
+    teacher = binding.get("complete_teacher_admission", {})
+    recipe = binding.get("recipe", {})
+    role = training["role"]
+    if (
+        snapshot.get("epoch") != epoch
+        or snapshot.get("completed") != epoch * 486
+        or not all(binding.get(k) == v for k, v in training["receipt"]["binding"].items())
+        or binding.get("production_plan") != "complete_S6_equal_rank_matched_full3887_oneH100_v1"
+        or binding.get("parent_checkpoint_sha256") != PARENT
+        or binding.get("parent_source_sha256") != PARENT_SOURCE
+        or binding.get("population_sha256") != POP
+        or binding.get("population") != 3887
+        or binding.get("world_size") != 1
+        or binding.get("total_steps") != 1458
+        or not binding.get("device_name", "").startswith("NVIDIA H100")
+        or binding.get("teacher_target_role") != role
+        or binding.get("teacher_transport") != teacher.get("roles", {}).get(role)
+        or teacher.get("status")
+        != "actual_complete3887_two_role_teacher_targets_private_CPU_constructed"
+        or teacher.get("population") != 3887
+        or teacher.get("population_sha256") != POP
+        or teacher.get("labels_masks_and_original_targets_modified") is not False
+        or teacher.get("labels_masks_or_protected_values_decoded") is not False
+        or not hash64(teacher.get("target_file", {}).get("sha256"))
+        or binding.get("proposal_sha256") != PROPOSAL
+        or not hash64(binding.get("actual_recovery_source_sha256"))
+        or binding.get("actual_recovery_source_sha256")
+        != training["receipt"].get("actual_recovery_source_sha256")
+        or binding.get("diagnostic_only") is not False
+        or binding.get("independent_internal_validation") is not False
+        or recipe.get("epochs") != 3
+        or recipe.get("windows") != 16
+        or recipe.get("role") != "influence"
+        or recipe.get("effective_batch") != 8
+        or recipe.get("encoder_lr") != 3e-6
+        or recipe.get("head_lr") != 3e-5
+        or recipe.get("source_weight") != 0.25
+    ):
+        raise ValueError("Exact complete-target full3887 source/runtime/target role required")
+    model = snapshot.get("model", {})
+    if (
+        not model
+        or not any(n.startswith("backbone.") for n in model)
+        or any(
+            not isinstance(v, torch.Tensor) or not torch.isfinite(v).all() for v in model.values()
+        )
+        or any(
+            name not in model or model[name].shape != shape
+            for name, shape in [
+                ("clsW", (12, 1024)),
+                ("clsb", (12,)),
+                ("norm.weight", (1024,)),
+                ("norm.bias", (1024,)),
+            ]
+        )
+    ):
+        raise ValueError("Complete source-bound encoder and finding-specific MIL graph required")
+    return {
+        "epoch": epoch,
+        "completed": epoch * 486,
+        "full_population": 3887,
+        "role": role,
+        "training_world_size": 1,
+        "training_GPU": "H100",
+        "training_windows": 16,
+        "serving_windows": 94,
+        "model_sha256": model_sha,
+        "T4_qualification_is_separate": True,
+        "independent_internal_validation": False,
+        "clinical_accuracy_claim": False,
+    }
