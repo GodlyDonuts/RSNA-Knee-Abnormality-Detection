@@ -35,6 +35,8 @@ Keep20GiB shared/local byte reserve and5000shared-file reserve after all actuall
 
 Large data/models/checkpoints stay private on authorized cluster/HF storage. Credentials only ignored0600.env/RAM/stdin/ASKPASS, never argv/logs/Git. No private clinical records, case IDs, per-case predictions or source/index rows in published receipts. Full original epoch snapshots and provenance must be privately preserved once with independent full re-download/size/SHA validation; existing proofs replace duplicate work. Canonical shared publication lock is mandatory.
 
+Latest selected mission-source milestone: source44654f87ba578177b740dc51cab59f0f07d89ed0,85objects252594bytes, privately fully re-downloaded/size/SHA verified viaCPU968672/HF07425a3a351b2cafe05fe94e2c912b78d7594b93 under canonical shared lock. It includes selected new own source/aggregate receipts, not every historical unmirrored commit; no clinical data or weights. Never repeat this mirror. Prior milestones below remain historical verified sources.
+
 Latest verified small milestone: sourcef6752968/22objects199821bytes, CPU961453/HF59bfe71dc2a2ddb2d2568f4b45bbc5d6dc61c3a2. Do not repeat v50 or prior mirrors. Sourceca7c2bcf/10objects166542bytes is also fully private download/size/SHA verified viaCPU961519/HFb2915995682590f85deb8df4b3abed7951bca3d4 (v51); do not repeat either milestone.
 
 ## Kaggle and data contract
