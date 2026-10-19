@@ -1,0 +1,39 @@
+"""Follow the actual continued producer; never build ranks from a partial cohort."""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+pid = json.loads((D / "actual-teacher-owner-started.json").read_text())["PID"]
+x = subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True)
+assert x.returncode == 0 and "continue_teacher_once.py.txt" in x.stdout
+original = R / "initiative/research/S6-complete-target-admission-20261018-v1/finish_once.py.txt"
+source = original.read_text()
+assert source == subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+source = source.replace("8865", str(pid)).replace(
+    "S6-full-CPU-teacher-20261018-v1/finish_once.py.txt",
+    "reconnected-teacher-scoring-20261019-v1/continue_teacher_once.py.txt",
+)
+old = 'L = R / "artifacts/S6-complete-target-admission-20261018-v1"'
+assert source.count(old) == 1
+source = source.replace(
+    old, 'L = R / "artifacts/S6-complete-target-admission-20261018-v1/reconnected-follower-v2"'
+)
+site = 'str(D / "coordinate_once.py.txt")'
+assert source.count(site) == 1
+source = source.replace(site, repr(str(D / "build_targets_once.py.txt")))
+assert "partial_ranks_used" in source and "actual-complete.json" in source
+scope = {"__name__": "__main__", "__file__": str(original)}
+pins = {
+    str(D / n): hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("build_targets_once.py.txt", "resource_policy.py.txt")
+}
+site = "start = time.monotonic()"
+assert source.count(site) == 1
+source = source.replace(site, "frozen.update(" + repr(pins) + ")\n" + site)
+exec(compile(source, "original_complete_target_follower_new_confirmed_owner", "exec"), scope)

@@ -1,0 +1,50 @@
+"""Original one-shot complete-target builder with explicit current resource scope."""
+
+import importlib.util
+import subprocess
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+original = R / "initiative/research/S6-complete-target-admission-20261018-v1/coordinate_once.py.txt"
+source = subprocess.check_output(
+    ["git", "show", "HEAD:" + original.relative_to(R).as_posix()], text=True
+)
+assert source == original.read_text()
+policy = (D / "resource_policy.py.txt").read_text()
+s = importlib.util.spec_from_file_location("current_resource_policy", D / "resource_policy.py.txt")
+# .txt source is loaded explicitly; importing does not execute any resource operation.
+s = importlib.util.spec_from_loader(
+    "current_resource_policy",
+    SourceFileLoader("current_resource_policy", str(D / "resource_policy.py.txt")),
+)
+p = importlib.util.module_from_spec(s)
+s.loader.exec_module(p)
+
+
+def bridge(program, value):
+    changed = p.adapt_teacher(program)
+    wrapper = (
+        "exec(compile("
+        + repr(policy)
+        + ",'current_resource_scope','exec'),globals())\nexec(compile("
+        + repr(changed)
+        + ",'original_complete_target_builder_resource_entry','exec'),globals())\n"
+    )
+    return transport.envelope(wrapper, value)
+
+
+s = importlib.util.spec_from_file_location(
+    "bounded_stdin",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+transport = importlib.util.module_from_spec(s)
+s.loader.exec_module(transport)
+old = 'input=t.envelope(files["program.py"], v),'
+assert source.count(old) == 1
+source = source.replace(old, 'input=current_bridge(files["program.py"], v),')
+exec(
+    compile(source, "original_complete_target_builder_controller_current_resources", "exec"),
+    {"__name__": "__main__", "__file__": str(original), "current_bridge": bridge},
+)

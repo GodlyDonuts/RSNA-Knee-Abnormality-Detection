@@ -1,0 +1,60 @@
+"""Observe only the existing submitted code entry; no pushes or submissions."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+D = Path(__file__).resolve().parent
+L = Path("artifacts/reconnected-teacher-scoring-20261019-v1/score-follower")
+assert not L.exists()
+L.mkdir(mode=0o700, parents=True)
+accepted = json.loads((D / "actual-submit.json").read_text())
+assert accepted["submission_id"] == 57392062
+frozen = {
+    n: hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("scoring_once.py.txt", "resource_policy.py.txt")
+}
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "PID": os.getpid(),
+            "submission_id": 57392062,
+            "maximum_hours": 12,
+            "new_submissions": 0,
+            "new_pushes": 0,
+        }
+    )
+)
+start = time.monotonic()
+while time.monotonic() - start < 12 * 3600:
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    x = subprocess.run(
+        [sys.executable, str(D / "scoring_once.py.txt"), "outcome"],
+        capture_output=True,
+        text=True,
+        timeout=760,
+    )
+    if x.returncode == 0:
+        value = json.loads(x.stdout)
+        (L / "progress.json").write_text(json.dumps(value, indent=2))
+        if value["outcome"] in ("scored", "failed"):
+            (D / "actual-hidden-terminal.json").write_text(json.dumps(value, indent=2) + "\n")
+            print(json.dumps(value), flush=True)
+            break
+    else:
+        (L / "observation-loss.json").write_text(
+            json.dumps(
+                {
+                    "returncode": x.returncode,
+                    "observation_only": True,
+                    "not_a_model_terminal_result": True,
+                }
+            )
+        )
+    time.sleep(180)
+else:
+    raise RuntimeError("Finite observation window ended; inspect the same original submission")
