@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 19, 2026, 14:46 UTC. **Best score remains 0.958; no new original accuracy gain is established.** Target 0.97 remains unachieved. [Operational guide](../AGENTS.md), [continuation](codex-continuation.md), [previous snapshot](current-state.history-20261019-before-resident-owner.md).
+Updated October 19, 2026, 15:05 UTC. **Best score remains 0.958; no new original accuracy gain is established.** Target 0.97 remains unachieved. [Operational guide](../AGENTS.md), [continuation](codex-continuation.md), [previous snapshot](current-state.history-20261019-before-resident-owner.md).
 
 | Model | Actual Kaggle public score | Submission |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ Current adapted encoder is full 73,136,096-parameter CoAtNet. The highest score 
 
 ## Work actually running
 
-**Complementary supervision:** phase24/job970052 completed0:0,64new/1,469total in698.52seconds. Same resident owner2320176 advanced to phase25/job970171 RUNNING on39 with23workers/48allocatedCPU/256GiB. Original source/model/renderer/FP32 math and fitting population are unchanged. The resident can finish all3,887 and construct full targets without the laptop/VPN. This is teacher inference, not new student training or an accuracy gain. [Sources and receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+**Complementary supervision:** phase25/job970171 completed0:0,64new/1,533total in690.74seconds. Same resident owner2320176 advanced to phase26/job970271 RUNNING on39 with23workers/48allocatedCPU/256GiB. Original source/model/renderer/FP32 math and fitting population are unchanged. The resident can finish all3,887 and construct full targets without the laptop/VPN. This is teacher inference, not new student training or an accuracy gain. [Sources and receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
 **Kaggle comparison:** the exact qualified paired member replaced cell0 in the original eight-cell R6, leaving the other seven and blend weights unchanged. Native private notebook139613596v2/script360061652 completed its public MRI run. Its paired-member CSV exactly equals the earlier accepted solo public CSV; final output has13columns/three public rows with finite probabilities. Code submission57397292 was accepted once at13:10UTC. Actual authenticated hidden status/score are still null, not success or failure. [Public acceptance and submission](../initiative/research/R6-postscore-member-execution-20261019-v1/README.md).
 
@@ -35,3 +35,5 @@ Accepted labels/masks/folds/base/protected gold/confirmation are unchanged. Stan
 Original immutable checkpoints and earlier selected-source private mirrors remain verified; do not repeat them. New current sources/receipts must be distinguished from earlier HF07425a3a milestone rather than claiming all history is mirrored. GitHub guides now replace stale active-owner snapshots; the previous full state is archived unchanged above. Tests, backup completeness and worker count are not accuracy evidence.
 
 Latest selected resident-teacher/R6 source snapshot30228a2e is privately preserved at HF17e5b642f049666adb8742577d940818d52c50e2 viaCPU969435:75small objects/312998bytes, all full download/size/SHA verified under the canonical shared lock. No clinical data/model weights; do not repeat. Later live status is separate from this immutable source snapshot.
+
+Follow-up source preparation: local finite CPU-compile follower56997 waits original handoff55175, then compiles the original recovery source once on33; no GPU/Dataset/entry action. Existing12MiB control cap applies. Actual GPU student recovery/fit remains absent. Selected earlier snapshot4c52dcf6 is privately preserved at HF8e5e15d3a65994bb0b40bcdb49e2d8ef7b813dd3 throughCPU970316, all34objects/155131bytes fully re-downloaded/size/SHA verified under the canonical shared lock. Later compiler-follower additions are not part of that snapshot.
