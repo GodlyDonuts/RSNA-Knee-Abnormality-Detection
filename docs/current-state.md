@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 19, 2026, 16:37 UTC. Exact original receipts and live state supersede dated running/pending claims. The goal remains active; no new original accuracy improvement is established.
+Updated October 19, 2026, 16:48 UTC. Exact original receipts and live state supersede dated running/pending claims. The goal remains active; no new original accuracy improvement is established.
 
 [Guide](../AGENTS.md) · [Next actions](codex-continuation.md) · [Previous unchanged snapshot](current-state.history-20261019-before-full-input-handoff.md).
 
@@ -19,9 +19,9 @@ The current adapted backbone is full73M CoAtNet. The0.958 result is a reproducti
 
 ## Original improvement underway
 
-Complementary S6 teacher inference has completed1,981/3,887 fitting studies (phase32/970815); original resident2320176 continues phase33/970914 on39. The intended test changes only teacher targets: parent-only versus cross-lineage equal-rank transport, same original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8 and3epochs. Targets require all3,887 outputs, never partial ranks. Public parent training overlap prevents claiming independent OOF evidence. [Resident receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
+Complementary S6 teacher inference has completed2,109/3,887 fitting studies (phase34/971001); original resident2320176 continues phase35/971069 on39. The intended test changes only teacher targets: parent-only versus cross-lineage equal-rank transport, same original MRI/labels/masks/full encoder/AdamW/LR/IID16/effective8 and3epochs. Targets require all3,887 outputs, never partial ranks. Public parent training overlap prevents claiming independent OOF evidence. [Resident receipts](../initiative/research/S6-cluster-resident-owner-20261019-v1/README.md).
 
-All full-cohort MRI archives are now available privately on33, after source970779/receiver970770 whole-byte acceptance and CPU970800 full-cohort/rendered-input admission. The transfer preserved originals and reused existing prefixes; no pixels traversed Mac/Git/HF. The full-data compiler and independent one-H100 epoch validator are prepared with22synthetic contracts. Full training driver/private epoch publication remains to implement. **No new full student fit is running.** [Exact inputs, scope and next work](../initiative/research/S6-Newton-student-production-20261019-v1/README.md).
+All full-cohort MRI archives are now available privately on33, after source970779/receiver970770 whole-byte acceptance and CPU970800 full-cohort/rendered-input admission. The transfer preserved originals and reused existing prefixes; no pixels traversed Mac/Git/HF. The full-data compiler and independent one-H100 epoch validator are prepared with22synthetic contracts. Full training driver, immutable optimizer retention and six-epoch private publication controller are prepared. **No new full student fit is running.** [Exact inputs, scope and next work](../initiative/research/S6-Newton-student-production-20261019-v1/README.md).
 
 Original local55175 target-handoff and56997 CPU-compilation followers remain live; sole new GPU-recovery follower59992 waits them. The obsolete58132 was retired idle before GPU intent. Recovery reuses the accepted parent/runtime/original32MRI inputs, same numerical code, with actual one-H100 full/stop/resume checks required before production. [Recovery](../initiative/research/S6-Newton-student-recovery-20261019-v1/README.md).
 

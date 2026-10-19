@@ -139,7 +139,10 @@ def main():
     q = np.load(locate(mount, 'proposals.private.npy', 2923152, PROPOSAL_VALUE), allow_pickle=False)
     assert q.shape == (3887, 94) and q.dtype == np.float64
     data = ProposalCases(overlay, torch.from_numpy(q)); del q
-    weight = locate(mount, 'raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt', 292840787, PARENT_VALUE)
+    weight = Path(mount) / 'original-parent' / 'raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt'
+    assert weight.is_file() and weight.stat().st_size == 292840787
+    with weight.open('rb') as f:
+        assert hashlib.file_digest(f, 'sha256').hexdigest() == PARENT_VALUE
     base, res = load_model(str(weight), 'coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k', 384, device)
     model = _whole_model(base); del base
     assert res == 320 and all(p.requires_grad for p in model.parameters())

@@ -1,0 +1,63 @@
+"""Fresh-process three-epoch session equivalence on the unchanged CPU engine."""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import torch
+from test_licensed_importance import equal
+
+worker = """import random,sys
+from pathlib import Path
+import numpy as np
+import torch
+from test_licensed_importance import Model,cases
+from rsna.competitive.licensed_importance import Recipe
+from rsna.competitive.licensed_importance_train import fit
+from rsna.competitive.licensed_parent_train import PARENT_SHA
+torch.set_num_threads(1);random.seed(337);np.random.seed(337);torch.manual_seed(337)
+model=Model();data=cases();root=Path(sys.argv[1]);phase=int(sys.argv[2])
+result=fit(model,data,root,{'parent_checkpoint_sha256':PARENT_SHA,'diagnostic_only':True},Recipe(role='influence',epochs=3),device=torch.device('cpu'),resume=phase in (2,3),stop_after={1:2,2:4}.get(phase))
+assert result['completed']==({0:6,1:2,2:4,3:6}[phase]) and result['total']==6
+"""
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    p = root / "worker.py"
+    p.write_text(worker)
+    env = {
+        **os.environ,
+        "PYTHONPATH": str(Path.cwd()) + os.pathsep + str(Path.cwd() / "tests"),
+        "PYTHONNOUSERSITE": "1",
+    }
+    for output, phase in [("full", 0), ("sessions", 1), ("sessions", 2), ("sessions", 3)]:
+        x = subprocess.run(
+            [sys.executable, str(p), str(root / output), str(phase)],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert x.returncode == 0, x.stderr
+    equal(
+        torch.load(root / "full/checkpoint.pt", weights_only=True),
+        torch.load(root / "sessions/checkpoint.pt", weights_only=True),
+    )
+    for epoch in (1, 2, 3):
+        name = f"epoch-checkpoints/epoch-{epoch:03d}.pt"
+        equal(
+            torch.load(root / "full" / name, weights_only=True),
+            torch.load(root / "sessions" / name, weights_only=True),
+        )
+print(
+    json.dumps(
+        {
+            "status": "actual_fresh_process_synthetic_three_epoch_session_state_equality_passed",
+            "fresh_processes": 4,
+            "complete_model_AdamW_LR_rng_scaler_history_and_three_epoch_snapshots_equal": True,
+            "actual_MRI_or_H100_acceptance": False,
+        }
+    )
+)

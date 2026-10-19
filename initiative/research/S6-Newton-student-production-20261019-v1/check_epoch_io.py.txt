@@ -1,0 +1,78 @@
+"""Exercise actual immutable files and refusal semantics with synthetic states."""
+
+import copy
+import importlib.util
+import json
+import os
+import tempfile
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+import pytest
+import torch
+
+D = Path(__file__).resolve().parent
+
+
+def load(name, file):
+    spec = importlib.util.spec_from_loader(name, SourceFileLoader(name, str(D / file)))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+fixture = load("synthetic_epoch_states", "check_epoch.py.txt")
+io = load("immutable_epoch_IO", "epoch_io.py.txt")
+checks = 0
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    out = root / "good"
+    out.mkdir()
+    (out / "epoch-checkpoints").mkdir()
+    torch.save(fixture.state, out / "checkpoint.pt")
+    torch.save(fixture.snapshot, out / "epoch-checkpoints/epoch-001.pt")
+    meta = {
+        "binding": copy.deepcopy(fixture.state["binding"]),
+        "role": fixture.role,
+        "worker_sha256": "b" * 64,
+    }
+    record = io.retain_epoch(out, meta, 1, fixture.m, expected_parameters=3)
+    keep = out / "optimizer-epochs/epoch-001.pt"
+    assert io.file_info(keep) == record["immutable_optimizer_checkpoint"]
+    assert keep.stat().st_ino == (out / "checkpoint.pt").stat().st_ino
+    torch.save({"synthetic_later_epoch": True}, out / "successor.partial")
+    os.replace(out / "successor.partial", out / "checkpoint.pt")
+    assert torch.load(keep, weights_only=True)["completed"] == 486
+    assert io.file_info(keep) == record["immutable_optimizer_checkpoint"]
+    with pytest.raises(ValueError):
+        io.retain_epoch(out, meta, 1, fixture.m, expected_parameters=3)
+    checks += 3
+    for bad in ("snapshot", "target_binding", "optimizer_step"):
+        out = root / bad
+        out.mkdir()
+        (out / "epoch-checkpoints").mkdir()
+        a, b = copy.deepcopy((fixture.state, fixture.snapshot))
+        m = copy.deepcopy(meta)
+        if bad == "snapshot":
+            b["model"]["head.weight"][0] = 12
+        elif bad == "target_binding":
+            m["binding"]["teacher_target_role"] = "parent_only"
+        else:
+            a["optimizer"]["state"][0]["step"] = torch.tensor(12.0)
+        torch.save(a, out / "checkpoint.pt")
+        torch.save(b, out / "epoch-checkpoints/epoch-001.pt")
+        with pytest.raises(ValueError):
+            io.retain_epoch(out, m, 1, fixture.m, expected_parameters=3)
+        assert not (out / "epoch-001-ready.json").exists()
+        assert not (out / "optimizer-epochs/epoch-001.pt").exists()
+        assert (out / "checkpoint.pt").exists()
+        checks += 1
+print(
+    json.dumps(
+        {
+            "status": "actual_synthetic_file_retention_and_refusal_checks_passed",
+            "checks": checks,
+            "actual_MRI_or_GPU_checkpoint_acceptance": False,
+        }
+    )
+)
