@@ -1,0 +1,7 @@
+# Original H100 matched-epoch preservation
+
+CPU975813 admitted the exact live975297 source, recipe,3887fitting cohort, all accepted numerical modules and existing24GiB publication/checkpoint scope. It observed74finite pointwise updates; this is not a completed epoch or accuracy result. The first CPU975802 admission refused an incorrect check that confused the proposal NPY-container hash with the trainer's raw numerical-array hash. No model, transfer, journal or upload occurred. The corrected guard verifies both independently; the original trainer is unchanged.
+
+The single finite follower inspects each original pointwise/teacher_rank epoch1–3, then permits one owning-node one-CPU/zero-GPU publication per immutable snapshot. Every completed model is independently downloaded/size/SHA verified under the original canonical shared HF lock with own source, source permission and complete aggregate production provenance. Optimizer/RNG, raw MRI, labels, IDs and private input signatures remain on the cluster. No new training or competition entry is authorized by this follower. Existing publication intents require read-only reconciliation.
+
+The source-only14case checks reject mismatched populations, recipes, objectives, boundaries, runtime, diagnostic/protected exposure and optimizer payloads. Actual CPU admission verifies source/run binding and funded scope only; it does not fabricate an epoch or model acceptance. Each real snapshot must still pass CPU tensor/binding checks when it exists. Six epochs are future obligations, not six published checkpoints.
