@@ -11,7 +11,26 @@ R = Path.cwd()
 D = Path(__file__).resolve().parent
 L = R / "artifacts/predictive-earlier47-20261020-v1"
 L.mkdir(mode=0o700, exist_ok=True)
-assert not (L / "intent.json").exists()
+reconnect_only = (L / "intent.json").exists()
+if reconnect_only:
+    original = json.loads((L / "replica-transport.json").read_text())
+    proof = json.loads((D / "actual-auth-reconciliation.json").read_text())
+    assert original["returncode"] == 255 and "Permission denied" in original["stderr"]
+    assert (
+        proof["replica_root_exists"] is False
+        and proof["old_GPU_job_still_pending_zero_runtime"] is True
+    )
+    with (L / "authentication-resume-intent.json").open("x") as handle:
+        json.dump(
+            {
+                "original_command_never_executed": True,
+                "fresh_read_only_CPU_job": proof["CPU_job"],
+                "maximum_actual_transfers": 1,
+                "automatic_retry": False,
+            },
+            handle,
+        )
+    (L / "original-auth-denial.json").write_text(json.dumps(original, indent=2) + "\n")
 git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for p in D.glob("*.py.txt"):
     assert p.read_bytes() == subprocess.check_output(
@@ -47,23 +66,25 @@ with __import__('tempfile').TemporaryFile() as sender_errors:
  out['relocation_source_git']=v['source_git'];out['original_GPU_job']='977678';out['original_job_before_transfer']=old.strip()
  print(json.dumps(out),flush=True)
 """
-(L / "intent.json").write_text(
-    json.dumps(
-        {
-            "source_git": git,
-            "maximum_replica_transfers": 1,
-            "source": "evc33",
-            "destination": "evc47",
-            "parent_and_case_raw_data_enter_Mac_or_Git": False,
-            "all_originals_retained": True,
-            "cancel_only_pending_old_GPU": True,
-            "maximum_distinct_GPU_diagnostics": 1,
-            "automatic_retry": False,
-        },
-        indent=2,
+if not reconnect_only:
+    (L / "intent.json").write_text(
+        json.dumps(
+            {
+                "source_git": git,
+                "maximum_replica_transfers": 1,
+                "source": "evc33",
+                "destination": "evc47",
+                "parent_and_case_raw_data_enter_Mac_or_Git": False,
+                "all_originals_retained": True,
+                "cancel_only_pending_old_GPU": True,
+                "maximum_distinct_GPU_diagnostics": 1,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
     )
-    + "\n"
-)
+
 spec = importlib.util.spec_from_file_location(
     "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
 )
