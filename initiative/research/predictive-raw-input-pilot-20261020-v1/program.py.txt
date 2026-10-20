@@ -1,0 +1,281 @@
+"""Actual original raw MRI through new source masking/descriptor intervention.
+
+Reuses the original67-file fitting study on its original owning node. No new
+source acquisition, labels, target teacher, model, optimizer or GPU operation.
+"""
+
+import hashlib
+import importlib.util
+import json
+import os
+import resource
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import pydicom
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-raw-input-pilot-20261020-v1")
+assert not D.exists()
+P = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+location = json.loads((P / "HF-raw-input-bridge-v1/RAM-location.private.json").read_text())
+ram = Path(location["path"])
+assert ram.is_dir() and ram.resolve().is_relative_to(Path("/dev/shm"))
+selection = json.loads((ram / "selection.private.json").read_text())
+assert selection["source_revision"] == "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+uid = selection["study_uid"]
+rows = selection["source_files"]
+assert (
+    hashlib.sha256(uid.encode()).hexdigest()
+    == selection["original8_uid_sha256"]
+    == location["original8_uid_sha256"]
+)
+assert len(rows) == 67 and selection["source_bytes"] == 25131360
+# Original admission is fitting-only; independently keep the original fixture identity.
+C = P / "CPU-fitting8-UID-view-v2/collected"
+assert (
+    json.loads((C / "verified.json").read_text())[
+        "all_original_lossless_inputs_and_fitting_roster_equal"
+    ]
+    is True
+)
+assert (
+    len(
+        [
+            r
+            for r in json.loads((C / "index.private.json").read_text())["records"]
+            if r["uid"] == uid
+        ]
+    )
+    == 1
+)
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+paid = sum(
+    p.stat().st_size
+    for p in B.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+)
+assert shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + max(0, 8 * 2**20 - paid) + 34 * 2**20
+memory = {
+    x.split(":")[0]: int(x.split()[1]) * 1024
+    for x in Path("/proc/meminfo").read_text().splitlines()
+    if ":" in x
+}
+assert memory["MemAvailable"] > 24 * 2**30
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+p = [x for x in T.rglob("*") if x.is_file()]
+pb = sum(x.stat().st_size for x in p)
+assert len(p) < 256 and pb < 4 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - pb
+) + 192 * 2**10
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + max(0, 256 - len(p)) + 24
+source = v["input_source"]
+assert hashlib.sha256(source.encode()).hexdigest() == v["input_source_sha256"]
+D.mkdir(mode=0o700)
+(D / "inputs.py").write_text(source)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "new_source_downloads": 0,
+            "maximum_original_files": 67,
+            "controls_cap_bytes": 2 * 2**20,
+            "job_RSS_cap_bytes": 4 * 2**30,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+spec = importlib.util.spec_from_file_location("new_raw_masked_predictive_inputs", D / "inputs.py")
+m = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = m
+spec.loader.exec_module(m)
+start = time.monotonic()
+groups = {}
+series = sorted({r["series_uid"] for r in rows})
+alias_table = {}
+bits = {}
+file_bytes = 0
+for row in rows:
+    assert row["study_uid"] == uid and row["split"] == "train_series"
+    path = ram / "data/train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+    raw = path.read_bytes()
+    assert len(raw) == row["bytes"] and hashlib.sha256(raw).hexdigest() == row["sha256"]
+    file_bytes += len(raw)
+    ds = pydicom.dcmread(path)
+    assert (str(ds.StudyInstanceUID), str(ds.SeriesInstanceUID), str(ds.SOPInstanceUID)) == (
+        uid,
+        row["series_uid"],
+        row["sop_uid"],
+    )
+    pixel = ds.pixel_array
+    assert pixel.ndim == 2
+    slope = float(ds.get("RescaleSlope", 1))
+    intercept = float(ds.get("RescaleIntercept", 0))
+    assert np.isfinite([slope, intercept]).all() and slope > 0
+    b = int(ds.BitsStored)
+    signed = int(ds.PixelRepresentation)
+    assert signed in (0, 1)
+    key = hashlib.sha256(
+        np.array(pixel.shape, dtype="<i8").tobytes() + pixel.astype("<f8").tobytes()
+    ).hexdigest()
+    if key not in alias_table:
+        alias_table[key] = len(alias_table)
+    frame = torch.from_numpy(pixel.astype(np.int32))
+    norm = m.fixed_metadata_scale(
+        frame, bits_stored=b, signed=bool(signed), photometric=str(ds.PhotometricInterpretation)
+    )
+    group = groups.setdefault(tuple(pixel.shape), [])
+    # Actual geometry ordering stays within each source acquisition. No registration claim.
+    iop = np.array(ds.get("ImageOrientationPatient", []), dtype=float)
+    ipp = np.array(ds.get("ImagePositionPatient", []), dtype=float)
+    position = (
+        float(np.dot(ipp, np.cross(iop[:3], iop[3:])))
+        if len(iop) == 6 and len(ipp) == 3
+        else float(ds.InstanceNumber)
+    )
+    group.append(
+        (
+            series.index(row["series_uid"]),
+            position,
+            int(ds.InstanceNumber),
+            frame,
+            norm,
+            alias_table[key],
+            b,
+            bool(signed),
+            str(ds.PhotometricInterpretation),
+        )
+    )
+    bits[str(b)] = bits.get(str(b), 0) + 1
+assert file_bytes == 25131360
+roster = 0
+observed = [0, 0]
+raw_intervention = True
+render_intervention = True
+alias_closed = True
+descriptor_finite = True
+visible = []
+ranges = []
+global_before = torch.get_rng_state().clone()
+for items in groups.values():
+    items.sort(key=lambda x: (x[0], x[1], x[2]))
+    frames = torch.stack([x[4] for x in items])
+    aliases = torch.tensor([x[5] for x in items])
+    acq = torch.tensor([x[0] for x in items])
+    ordinal = torch.zeros(len(items), dtype=torch.int64)
+    for a in acq.unique():
+        ordinal[acq == a] = torch.arange(int((acq == a).sum()))
+    outputs = [m.masked_study(frames, aliases, acq, ordinal, pattern=k, halo=8) for k in (0, 1)]
+    assert torch.equal(outputs[0].observed, ~outputs[1].observed)
+    roster += len(outputs[0].descriptors)
+    centers = torch.arange(len(items))
+    neighbors = []
+    for i in range(len(items)):
+        same = (acq == acq[i]).nonzero().flatten()
+        j = int((same == i).nonzero()[0])
+        neighbors.append([int(same[max(0, j - 1)]), i, int(same[min(len(same) - 1, j + 1)])])
+    neighbors = torch.tensor(neighbors, dtype=torch.int64)
+    for pattern, study in enumerate(outputs):
+        altered = []
+        for i, item in enumerate(items):
+            value = item[3].clone()
+            low = -(2 ** (item[6] - 1)) if item[7] else 0
+            high = low + 2 ** item[6] - 1
+            value[study.raw_hidden[i]] = low + high - value[study.raw_hidden[i]]
+            altered.append(
+                m.fixed_metadata_scale(
+                    value, bits_stored=item[6], signed=item[7], photometric=item[8]
+                )
+            )
+        changed = m.masked_study(
+            torch.stack(altered), aliases, acq, ordinal, pattern=pattern, halo=8
+        )
+        raw_intervention &= torch.equal(study.context_frames, changed.context_frames)
+        assert not torch.equal(
+            study.descriptors[study.observed], changed.descriptors[changed.observed]
+        )
+        # Stream at most eight triplets to avoid a whole-exam rendered tensor tree.
+        for first in range(0, len(items), 8):
+            left = m.triplets(
+                study, centers[first : first + 8], neighbors[first : first + 8], side=320
+            )
+            right = m.triplets(
+                changed, centers[first : first + 8], neighbors[first : first + 8], side=320
+            )
+            render_intervention &= torch.equal(left, right)
+        for alias in aliases.unique():
+            peers = (aliases == alias).nonzero().flatten()
+            alias_closed &= all(
+                torch.equal(study.raw_hidden[int(peers[0])], study.raw_hidden[int(i)])
+                for i in peers
+            )
+        descriptor_finite &= bool(torch.isfinite(study.descriptors).all())
+        observed[pattern] += int(study.observed.sum())
+        visible.append(float((~study.raw_hidden).float().mean()))
+    ranges.append(
+        {
+            "metadata_scaled_min": float(frames.min()),
+            "metadata_scaled_max": float(frames.max()),
+            "metadata_scaled_mean": float(frames.mean()),
+        }
+    )
+assert (
+    raw_intervention
+    and render_intervention
+    and alias_closed
+    and descriptor_finite
+    and torch.equal(global_before, torch.get_rng_state())
+)
+rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+assert rss < 4 * 2**30
+out = {
+    "status": "actual_original_raw_MRI_predictive_mask_descriptor_intervention_passed",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "input_source_sha256": v["input_source_sha256"],
+    "original_source_revision": selection["source_revision"],
+    "studies": 1,
+    "original_DICOMs": 67,
+    "original_bytes": file_bytes,
+    "unique_raw_frames": len(alias_table),
+    "source_acquisitions": len(series),
+    "matrix_groups": len(groups),
+    "bits_stored_counts": bits,
+    "complete_nonoverlapping_descriptor_regions": roster,
+    "descriptor_width": 64,
+    "observed_regions_two_patterns": observed,
+    "complementary_regions_exact": True,
+    "raw_target_pixel_intervention_context_bytes_equal": bool(raw_intervention),
+    "all_overlapping_triplet_resize_bytes_equal_after_intervention": bool(render_intervention),
+    "duplicate_alias_masks_closed": bool(alias_closed),
+    "descriptors_changed_with_held_pixels": True,
+    "fixed_metadata_scaling_no_image_percentiles": True,
+    "context_visible_pixel_fractions": visible,
+    "encoding_scale_ranges": ranges,
+    "global_Torch_RNG_unchanged": True,
+    "peak_RSS_bytes": rss,
+    "seconds": time.monotonic() - start,
+    "new_source_downloads": 0,
+    "raw_pixels_UIDs_or_descriptors_exported_or_newly_retained": False,
+    "labels_reports_teacher_optimizer_encoder_GPU_or_protected_data_used": False,
+    "actual_new_classifier_training_or_accuracy": False,
+    "single_small_original_source_case_not_full_cohort_admission": True,
+}
+(D / "actual.json").write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2 * 2**20
+print(json.dumps(out), flush=True)

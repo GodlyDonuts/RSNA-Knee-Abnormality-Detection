@@ -1,0 +1,98 @@
+"""Run the separately funded actual original raw-input research pilot once."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/predictive-raw-input-pilot-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+inputs = R / "rsna/competitive/predictive/inputs.py"
+for p in (*D.glob("*.py.txt"), inputs):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+source = (D / "program.py.txt").read_text()
+payload = {
+    "source_git": pin,
+    "input_source": inputs.read_text(),
+    "input_source_sha256": hashlib.sha256(inputs.read_bytes()).hexdigest(),
+    "program_sha256": hashlib.sha256(source.encode()).hexdigest(),
+}
+with (L / "intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "program_sha256": payload["program_sha256"],
+            "new_source_downloads": 0,
+            "maximum_CPU_jobs": 1,
+            "job_memory_GiB": 4,
+            "new_control_bytes": 2 * 2**20,
+            "new_shared_bytes_files": 0,
+            "GPU_or_optimizer": False,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+spec = importlib.util.spec_from_file_location(
+    "original_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in source.splitlines())
+    + 'except Exception as error:\n    import traceback\n    frame=traceback.extract_tb(error.__traceback__)[-1]\n    print(__import__("json").dumps({"error_type":type(error).__name__,"line":frame.lineno}),file=sys.stderr)\n    raise SystemExit(1)\n'
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:15:00",
+    "--job-name=rsna-predictive-raw-input-pilot",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(program, payload),
+    capture_output=True,
+    text=True,
+    timeout=1200,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect original input-pilot state; no automatic mutation retry"
+out = json.loads(x.stdout)
+(D / "actual.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

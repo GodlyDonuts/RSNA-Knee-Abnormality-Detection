@@ -1,0 +1,169 @@
+"""Stage or publish one actual final input, no GPU/notebook/submission operations."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-Kaggle-input-20261020-v1"
+COMP = R / "initiative/research/teacher-pair-final-serving-20261020-v2"
+PUB = R / "initiative/research/teacher-pair-epoch-preservation-20261020-v1"
+
+
+def run(phase, role=None):
+    assert phase in ("stage", "publish")
+    assert role in ("pointwise", "teacher_rank") if phase == "publish" else role is None
+    if phase == "publish":
+        if (D / ("actual-" + role + "-private-verified.json")).exists():
+            return json.loads((D / ("actual-" + role + "-private-verified.json")).read_text())
+        accepted = COMP / ("actual-" + role + "-compile.json")
+        private = PUB / ("actual-" + role + "-epoch-3.json")
+        if not accepted.exists() or not private.exists():
+            return {
+                "status": "waiting_actual_fixed_final_model_compilation_no_intent",
+                "role": role,
+                "new_GPU_or_Kaggle_mutations": 0,
+            }
+        assert not (L / (role + "-uncertain.json")).exists(), (
+            "Reconcile original exact publication read-only"
+        )
+    paths = {
+        n: R / "scripts/kaggle" / (n + ".py") for n in ("workflow", "components", "publication")
+    }
+    paths["policy"] = R / "rsna/competitive/teacher_pair_input.py"
+    pin = (
+        subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        if phase == "stage"
+        else json.loads((D / "actual-stage.json").read_text())["source_git"]
+    )
+    for p in (*paths.values(), *D.glob("*.py.txt")):
+        assert p.read_bytes() == subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+        ), "Live input sources are immutable"
+    payload = {"phase": phase, "role": role, "source_git": pin}
+    L.mkdir(mode=0o700, exist_ok=True)
+    if phase == "stage":
+        with (L / "stage-intent.json").open("x") as f:
+            json.dump(
+                {
+                    "source_git": pin,
+                    "phase": phase,
+                    "maximum_CreateDataset_calls": 0,
+                    "automatic_retry": False,
+                },
+                f,
+            )
+        payload["components"] = {n: p.read_text() for n, p in paths.items()}
+        payload["component_SHA"] = {
+            n: hashlib.sha256(s.encode()).hexdigest() for n, s in payload["components"].items()
+        }
+    else:
+        from rsna.competitive.teacher_pair_input import candidate
+
+        compiled, publication = json.loads(accepted.read_text()), json.loads(private.read_text())
+        candidate(compiled, publication, role)
+        payload.update(compiled=compiled, publication=publication, stage_source_git=pin)
+        env = R / ".env"
+        assert env.stat().st_mode & 0o077 == 0
+        values = {
+            k.strip(): z.strip().strip("\"'")
+            for line in env.read_text().splitlines()
+            for k, sep, z in [line.partition("=")]
+            if sep and not line.lstrip().startswith("#")
+        }
+        payload["token"] = values["KAGGLE_API_TOKEN"]
+    spec = importlib.util.spec_from_file_location(
+        "original_transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    source = (D / "program.py.txt").read_text()
+    program = (
+        "import sys\ntry:\n"
+        + "".join("    " + line + "\n" for line in source.splitlines())
+        + 'except Exception as error:\n    import traceback\n    frame=traceback.extract_tb(error.__traceback__)[-1]\n    print(__import__("json").dumps({"error_type":type(error).__name__,"line":frame.lineno}),file=sys.stderr)\n    raise SystemExit(1)\n'
+    )
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc48",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=1G",
+        "--time=00:30:00",
+        "--job-name=rsna-private-pair-input-" + phase,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONNOUSERSITE=1",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "OMP_NUM_THREADS=1",
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    key = phase + "-" + str(role) + "-" + str(time.time_ns())
+    try:
+        x = subprocess.run(
+            [
+                "ssh",
+                "-S",
+                "/tmp/rsna-research-20261001-stable.sock",
+                "-o",
+                "BatchMode=yes",
+                "newton",
+                shlex.join(args),
+            ],
+            input=t.envelope(program, payload),
+            capture_output=True,
+            text=True,
+            timeout=2100,
+        )
+    except BaseException:
+        if phase == "publish":
+            (L / (role + "-uncertain.json")).write_text(
+                json.dumps(
+                    {"source_git": pin, "automatic_retry": False, "transport_uncertain": True}
+                )
+                + "\n"
+            )
+        raise
+    (L / (key + "-transport.json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    if x.returncode != 0:
+        if phase == "publish":
+            (L / (role + "-uncertain.json")).write_text(
+                json.dumps(
+                    {"source_git": pin, "automatic_retry": False, "transport_uncertain": True}
+                )
+                + "\n"
+            )
+        raise ValueError(
+            "Inspect original private role journal and canonical ledger, never retry uncertainty"
+        )
+    out = json.loads(x.stdout)
+    if phase == "stage":
+        (D / "actual-stage.json").write_text(json.dumps(out, indent=2) + "\n")
+    elif out["status"] == "actual_H100_final_model_private_Kaggle_input_all_objects_byte_verified":
+        (D / ("actual-" + role + "-private-verified.json")).write_text(
+            json.dumps(out, indent=2) + "\n"
+        )
+    else:
+        assert out["status"] == "waiting_existing_canonical_claim_no_mutation"
+    return out
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)

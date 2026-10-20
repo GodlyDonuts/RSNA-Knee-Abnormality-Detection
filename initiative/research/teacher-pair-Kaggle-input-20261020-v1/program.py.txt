@@ -1,0 +1,252 @@
+"""One new private final-model input per role, using canonical claim and ledger."""
+
+import hashlib
+import importlib.metadata
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import zipfile
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+assert {n: importlib.metadata.version(n) for n in ("kaggle", "kagglesdk")} == {
+    "kaggle": "2.2.3",
+    "kagglesdk": "0.1.30",
+}
+D = Path("/tmp/rsna-teacher-pair-Kaggle-model-inputs-20261020-v1")
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+phase = v["phase"]
+assert phase in ("stage", "publish")
+# New2GiB envelopes are separate from all original checkpoint/publication caps.
+paid = sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) if D.exists() else 0
+assert paid < 2 * 2**30 + 4 * 2**20
+assert shutil.disk_usage("/tmp").free > (
+    20 + 87 + 12 + 24 + 4 + 12
+) * 2**30 + 128 * 2**20 + 8 * 2**20 + max(0, 2 * 2**30 + 4 * 2**20 - paid)
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+t = [p for p in T.rglob("*") if p.is_file()]
+tb = sum(p.stat().st_size for p in t)
+assert len(t) < 256 and tb < 4 * 2**20
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - tb
+) + 192 * 2**10
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + max(0, 256 - len(t)) + 24
+if phase == "stage":
+    assert not D.exists(), "Reconcile original staging, never repeat"
+    assert sum(len(s.encode()) for s in v["components"].values()) < 256 * 2**10
+    assert v["component_SHA"] == {
+        n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["components"].items()
+    }
+    for name, source in v["components"].items():
+        assert name in ("workflow", "components", "publication", "policy")
+        compile(source, name, "exec")
+    D.mkdir(mode=0o700)
+    (D / "code").mkdir(mode=0o700)
+    for name, source in v["components"].items():
+        (D / "code" / (name + ".py")).write_text(source)
+    out = {
+        "status": "actual_two_final_H100_private_model_input_scope_staged",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "component_SHA": v["component_SHA"],
+        "new_node_payload_cap_bytes": 2 * 2**30,
+        "new_controls_cap_bytes": 4 * 2**20,
+        "new_shared_ledger_bytes_cap": 96 * 2**10,
+        "new_permanent_shared_files": 0,
+        "maximum_CreateDataset_calls": 2,
+        "maximum_calls_per_objective": 1,
+        "GPU_or_competition_mutations": 0,
+        "all_original_reserves_retained": True,
+    }
+    (D / "staged.json").write_text(json.dumps(out, sort_keys=True) + "\n")
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
+stage = json.loads((D / "staged.json").read_text())
+assert stage["source_git"] == v["stage_source_git"]
+assert all(
+    hashlib.sha256((D / "code" / (n + ".py")).read_bytes()).hexdigest() == h
+    for n, h in stage["component_SHA"].items()
+)
+
+
+def module(name):
+    spec = importlib.util.spec_from_file_location(
+        "new_private_pair_input_" + name, D / "code" / (name + ".py")
+    )
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+w, pub, policy = (module(n) for n in ("workflow", "publication", "policy"))
+role = v["role"]
+assert role in ("pointwise", "teacher_rank")
+S = R / "final-serving-v2" / role
+compiled = json.loads((S / "compiled.json").read_text())
+J = R / "publication" / role / "epoch-003"
+proof = json.loads((J / "verified.json").read_text())
+c = policy.candidate(compiled, proof, role)
+# Both completed compilation and original publication exist before any mutation.
+assert compiled == v["compiled"] and proof == v["publication"]
+assert not (D / role).exists(), "Reconcile existing role intent/ZIP/Dataset read-only"
+remote = w.Remote.__new__(w.Remote)
+remote.username = "godlydonuts"
+remote.session = requests.Session()
+remote.session.headers["Authorization"] = "Bearer " + v["token"]
+who = remote.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") is True and who.get("username") == "godlydonuts"
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation", "role": role}))
+    raise SystemExit(0)
+owner = {
+    "kind": "one_private_actual_H100_final_model_input",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "role": role,
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    ledger = Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3")
+    assert ledger.exists()
+    with w.ledger(ledger, "godlydonuts") as db:
+        w.verify_account(db, remote)
+        actual_allowance = remote.account()
+        assert (
+            db.execute("SELECT value FROM meta WHERE key=?", (c["ledger_key"],)).fetchone() is None
+        )
+        pub.require_absent(remote, c["slug"])
+        E = D / role
+        E.mkdir(mode=0o700)
+        model = R / role / "epoch-checkpoints/epoch-003.pt"
+        actual = {"bytes": model.stat().st_size, "sha256": pub.digest(model)}
+        assert actual == {"bytes": c["model_bytes"], "sha256": c["model_sha256"]}
+        paths = {
+            "epoch-003.pt": model,
+            "source-permission.txt": J / "source-permission.txt",
+            "provenance.json": J / "provenance.json",
+            "own-source.json": J / "own-source.json",
+            "run.json": R / role / "run.json",
+        }
+        # Original publication stores permission at the original admitted path.
+        paths["source-permission.txt"] = Path(
+            "/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2/source/source-permission.txt"
+        )
+        files = {
+            n: {
+                "bytes": p.stat().st_size,
+                "sha256": actual["sha256"] if n == "epoch-003.pt" else pub.digest(p),
+            }
+            for n, p in paths.items()
+        }
+        original = json.loads((J / "intent.json").read_text())["files"]
+        assert files["epoch-003.pt"] == original["model.pt"]
+        assert all(files[n] == original[n] for n in files if n != "epoch-003.pt")
+        manifest = E / "bundle-manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "kind": "private_actual_H100_fixed_final_model_not_MRI_or_optimizer",
+                    "source_git": v["source_git"],
+                    "candidate": c,
+                    "files": files,
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+        paths[manifest.name] = manifest
+        files[manifest.name] = {"bytes": manifest.stat().st_size, "sha256": pub.digest(manifest)}
+        upload = E / "upload"
+        upload.mkdir(mode=0o700)
+        archive = upload / "bundle.zip"
+        with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_STORED) as z:
+            for n in sorted(paths):
+                z.write(paths[n], arcname=n)
+        pub.validate_zip(archive, files)
+        assert archive.stat().st_size < 400 * 2**20
+        context = {
+            "source_git": v["source_git"],
+            "archive_sha256": pub.digest(archive),
+            "original_private_HF_revision": proof["revision"],
+            "original_model_sha256": c["model_sha256"],
+            "node_payload_cap_bytes": 2 * 2**30,
+            "controls_cap_bytes": 4 * 2**20,
+            "new_shared_ledger_cap_bytes": 96 * 2**10,
+            "new_permanent_shared_files": 0,
+            "all_original_reserves_retained": True,
+        }
+        intent = {
+            "state": "teacher_pair_final_private_Dataset_create_intent",
+            "candidate": c,
+            "files": files,
+            "context": context,
+            "automatic_retry": False,
+        }
+        db.execute(
+            "INSERT INTO meta VALUES (?,?)", (c["ledger_key"], json.dumps(intent, sort_keys=True))
+        )
+        db.commit()
+        retain = True
+        pub.create_once(remote, v["token"], c["slug"], files, upload, E / "publication", context)
+        for _ in range(60):
+            status = remote.call(
+                "datasets.DatasetApiService",
+                "GetDatasetStatus",
+                {"ownerSlug": "godlydonuts", "datasetSlug": c["slug"].split("/")[1]},
+            )
+            if status.get("status") in ("READY", 5):
+                break
+            time.sleep(5)
+        else:
+            raise ValueError("Inspect existing Dataset read-only, never retry create")
+        verified = pub.reconcile(remote, c["slug"], files)
+        assert verified["private"] and verified["version"] == 1 and verified["downloaded_all_bytes"]
+        out = {
+            "status": "actual_H100_final_model_private_Kaggle_input_all_objects_byte_verified",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "candidate": c,
+            "dataset": {n: verified[n] for n in ("id", "slug", "version", "private")},
+            "files": files,
+            "objects": len(files),
+            "downloaded_all_bytes": True,
+            "canonical_claim_and_ledger_used": True,
+            "new_CreateDataset_calls": 1,
+            "GPU_or_competition_mutations": 0,
+            "MRI_labels_UIDs_optimizer_or_external_source_body_included": False,
+            "actual_new_T4_acceptance": False,
+            "account_allowance_at_input_publication": actual_allowance,
+        }
+        w.new_json(E / "actual-verified.json", out)
+        db.execute(
+            "UPDATE meta SET value=? WHERE key=?",
+            (
+                json.dumps(
+                    {"state": "teacher_pair_final_private_Dataset_verified", "receipt": out},
+                    sort_keys=True,
+                ),
+                c["ledger_key"],
+            ),
+        )
+        db.commit()
+        retain = False
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2 * 2**30 + 4 * 2**20
