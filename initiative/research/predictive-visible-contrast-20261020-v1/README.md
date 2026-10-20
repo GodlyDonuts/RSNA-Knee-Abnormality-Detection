@@ -87,4 +87,38 @@ input/scale invariance. It uses one CPU/zero GPUs/12GiB for at most10minutes,
 streams the candidate source through stdin, and writes no remote files.
 Local tests cover source intervention, aliases including alias-only
 acquisitions, constant images, target preservation and10-coordinate backward.
-At source preparation this actual CPU experiment has not been dispatched.
+Actual CPU **984583 COMPLETED0:0 /2:49** from source17788060; see
+[original-input result](actual-candidate-input-result.json) and
+[terminal](actual-candidate-terminal.json). It reused2,835 frames and576 windows
+per variant, reproduced the original measurements, and found:
+
+| Exact visible statistic | Original | Corrected |
+| --- | ---: | ---: |
+| Median study1st–99th percentile span |0.16117|0.97692|
+| Minimum study span |0.01517|0.95688|
+| Studies below0.05 span |3/12|0/12|
+| Median pure-visible coverage |39.29%|39.29%|
+
+All original descriptor targets, observation masks, complete support priors and
+first eight metadata coordinates stayed identical. The ten-coordinate control
+has exactly the original image tensors. On one original fitting study, replacing
+all pattern0 hidden pixels with1−original changed the target descriptors while
+leaving pattern0 images, metadata and normalization statistics bitwise identical.
+The other complementary context is correctly permitted to change.
+
+The normalized rendered pixels' median fractions at0/1 are12.54%/0.62%.
+Zeros include anatomical background and removed encoding offsets; these are not
+measurements of newly discarded tissue information. The experiment does not
+establish that percentile clipping preserves every lesion. Normalized rendering
+also costs59.70seconds versus27.95seconds for the original across12studies,
+excluding raw-cache loading; cached training can amortize preparation, but this
+is an additional serving-time cost to qualify.
+
+Decision: the isolated correction passes this real-input engineering test and
+is a viable candidate for a matched learning experiment. Compare normalized
+images against the ten-coordinate unchanged-image control from one common
+initialization, including the full scheduled LR peak. Do not infer accuracy from
+expanded dynamic range or tiny fitting losses. This receipt does not fund or
+launch another GPU, admit a full variant or alter the healthy primary workers.
+A separate bounded training run, recovery acceptance and fresh resource review
+remain necessary before full fitting or competition deployment.
