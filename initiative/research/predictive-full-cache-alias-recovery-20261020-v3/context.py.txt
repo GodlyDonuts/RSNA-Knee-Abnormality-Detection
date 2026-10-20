@@ -1,0 +1,387 @@
+# ruff: noqa: E402
+"""Prepared exact-context successor; original context owner must be terminal."""
+
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import zipfile
+from pathlib import Path
+
+import numpy as np
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert v["engineering_and_fresh_funding_accepted"] is True
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3")
+assert not D.exists(), "Existing continuation requires read-only reconciliation"
+old_raw = Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1")
+new_raw = Path("/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3")
+old_context = Path("/tmp/rsna-predictive-full-context-cache-20261020-v1")
+assert not (old_context / "actual.json").exists(), "Do not repeat a completed context cache"
+assert hashlib.sha256(v["reconcile"].encode()).hexdigest() == v["reconcile_sha256"]
+spec = importlib.util.spec_from_loader("predictive_prefix_reconcile", loader=None)
+recon = importlib.util.module_from_spec(spec)
+exec(compile(v["reconcile"], "predictive_prefix_reconcile", "exec"), recon.__dict__)
+
+
+def actual_terminal(job_id, allowed):
+    accounting = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", str(job_id), "--format=JobIDRaw,State,ExitCode"],
+        text=True,
+    )
+    live = subprocess.check_output(["squeue", "-h", "-u", "sa305415", "-o", "%i|%T"], text=True)
+    return recon.terminal_receipt(accounting, live, job_id=job_id, allowed_states=allowed)
+
+
+assert hashlib.sha256(v["alias_contract"].encode()).hexdigest() == v["alias_contract_sha256"]
+spec_alias = importlib.util.spec_from_loader("alias_failure_contract", loader=None)
+alias_contract = importlib.util.module_from_spec(spec_alias)
+exec(compile(v["alias_contract"], "alias_failure_contract", "exec"), alias_contract.__dict__)
+alias_contract.prior_attempt_live_guard(v, subprocess.check_output)
+alias_contract.prefix_live_guard(v, subprocess.check_output)
+original_cases = (old_context / "code" / alias_contract.CASES).read_text()
+assert hashlib.sha256(original_cases.encode()).hexdigest() == v["original_cases_sha256"]
+assert hashlib.sha256(v["files"][alias_contract.CASES].encode()).hexdigest() == v["corrected_cases_sha256"]
+alias_regression = alias_contract.regression(
+    v["alias_regression_receipt"].encode(), v["alias_regression_receipt_sha256"],
+    original_cases=original_cases, corrected_cases=v["files"][alias_contract.CASES],
+)
+
+raw_terminal = actual_terminal("978318", ("FAILED",))
+assert raw_terminal["exit_code"] == "1:0"
+context_terminal = actual_terminal(
+    "978414", ("FAILED",)
+)
+assert context_terminal["exit_code"] == "1:0"
+assert recon.bound_json(old_context / "intent.json")["CPU_job"] == "978414"
+raw_intent = recon.bound_json(new_raw / "intent.json")
+assert raw_intent["original_job"] == "978318"
+assert raw_intent["original_terminal_sha256"] == raw_terminal["sha256"]
+assert raw_intent["alias_regression_receipt_sha256"] == v["alias_regression_receipt_sha256"]
+assert raw_intent["corrected_cases_sha256"] == v["corrected_cases_sha256"]
+assert raw_intent["prior_attempt_receipt_sha256"] == v["prior_attempt_receipt_sha256"]
+assert raw_intent["prefix_admission_receipt_sha256"] == v["prefix_admission_receipt_sha256"]
+producer = str(raw_intent["CPU_job"])
+assert producer.isdecimal() and producer not in ("978318", "978414", os.environ["SLURM_JOB_ID"])
+source_index = old_raw / "original-fitting-source-index.private.jsonl.gz"
+location = recon.bound_json(
+    Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/RAM-location.private.json")
+)
+assert hashlib.sha256(source_index.read_bytes()).hexdigest() == location["sha256"]
+with gzip.open(source_index, "rt") as f:
+    records = [json.loads(line) for line in f]
+uids = [r["uid"] for r in records]
+assert len(records) == 3887 and uids == sorted(set(uids))
+assert hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest() == (
+    "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+initial_raw = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+raw16_path = initial_raw / "cache-index.private.json"
+raw16_actual = recon.bound_json(initial_raw / "actual.json")
+assert hashlib.sha256(raw16_path.read_bytes()).hexdigest() == raw16_actual["private_index_sha256"]
+raw16 = recon.bound_json(raw16_path)
+original = recon.inventory(old_raw, records, raw16)
+initial_context = Path("/tmp/rsna-predictive-context16-cache-20261020-v1")
+initial_actual = recon.bound_json(initial_context / "actual.json")
+initial_path = initial_context / "context-index.private.json"
+assert initial_actual["exact_both_view_images_targets_metadata_priors"]
+# The original pilot receipt does not bind an index SHA; each immutable original
+# row is instead checked below against its raw proof, renderer and cache stats.
+initial = recon.bound_json(initial_path)
+assert len(initial) == 16
+assert {r["uid"] for r in initial} == {r["uid"] for r in raw16}
+for name, source in v["files"].items():
+    assert hashlib.sha256(source.encode()).hexdigest() == v["module_sha256"][name]
+    if name != alias_contract.CASES:
+        assert (old_context / "code" / name).read_bytes() == source.encode()
+renderer = {
+    name: value
+    for name, value in v["module_sha256"].items()
+    if name
+    in (
+        "rsna/competitive/predictive/inputs.py",
+        "rsna/competitive/predictive/cases.py",
+        "rsna/competitive/predictive/supports.py",
+    )
+}
+assert len(renderer) == 3
+original_renderer = dict(renderer)
+original_renderer[alias_contract.CASES] = v["original_cases_sha256"]
+
+
+def context_provenance(row, *, original=False):
+    return {
+        "original_raw_cache_sha256": row["proof"]["sha256"],
+        "original_source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+        "side": 320,
+        "context_cap": 24,
+        "halo": 8,
+        "classes": 12,
+        "module_sha256": original_renderer if original else renderer,
+    }
+
+
+def require_source_record(i, row):
+    assert row["uid"] == records[i]["uid"]
+    assert recon.signature(row["path"]) == row["proof"]["stat"]
+    allowed = {
+        new_raw / "cache" / f"case-{i:04d}.private.npz",
+        old_raw / "cache" / f"case-{i:04d}.private.npz",
+    }
+    assert Path(row["path"]) in allowed
+    proof_path = new_raw / "proofs" / f"case-{i:04d}.source-proof.private.json.gz"
+    recon.regular(proof_path)
+    body = proof_path.read_bytes()
+    assert hashlib.sha256(body).hexdigest() == row["source_proof_sha256"]
+    recon.source_proof_matches(json.loads(gzip.decompress(body)), records[i])
+    return row
+
+
+def producer_state():
+    state = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", producer, "--format=JobIDRaw,State,ExitCode"],
+        text=True,
+    )
+    rows = [line.split("|") for line in state.splitlines() if line.split("|")[0] == producer]
+    assert len(rows) == 1
+    return rows[0][1:3]
+
+
+def raw_record(i):
+    if i in original["complete"]:
+        return original["complete"][i]
+    path = new_raw / "proofs" / f"case-{i:04d}.verified.private.json"
+    while True:
+        if path.exists():
+            try:
+                row = recon.bound_json(path)
+            except json.JSONDecodeError:
+                # The original numerical body writes this small JSON in place;
+                # only a confirmed live producer permits waiting on that write.
+                state, _ = producer_state()
+                assert state in ("RUNNING", "COMPLETING")
+                time.sleep(1)
+                continue
+            return require_source_record(i, row)
+        state, code = producer_state()
+        if state == "COMPLETED":
+            assert code == "0:0" and path.exists(), "Completed producer lacks exact case proof"
+            continue  # Proof may have appeared between the existence check and accounting.
+        if state not in ("PENDING", "RUNNING", "COMPLETING"):
+            raise RuntimeError("Successor source terminated; preserve all context prefixes")
+        time.sleep(10)
+
+
+reused = {}
+for row in initial:
+    i = uids.index(row["uid"])
+    raw = original["complete"][i]
+    assert Path(row["path"]).parent == initial_context
+    assert recon.signature(row["path"]) == row["proof"]["stat"]
+    assert row["provenance"] == context_provenance(raw, original=True)
+    reused[i] = row
+for i in range(3887):
+    record = old_context / f"context-{i:04d}.verified.private.json"
+    if record.exists():
+        assert i not in reused
+        try:
+            row = recon.bound_json(record)
+        except json.JSONDecodeError:
+            continue  # Partial record stays untouched; its NPZ is re-admitted below.
+        assert i in original["complete"]
+        assert row["uid"] == uids[i]
+        assert Path(row["path"]) == old_context / f"context-{i:04d}.private.npz"
+        assert recon.signature(row["path"]) == row["proof"]["stat"]
+        assert row["provenance"] == context_provenance(original["complete"][i], original=True)
+        reused[i] = row
+
+
+def funding_gate():
+    raw_paths = [Path(r["path"]) for r in raw16] + list((old_raw / "cache").glob("*.npz"))
+    raw_paths += list((new_raw / "cache").glob("*.npz"))
+    context_paths = [Path(r["path"]) for r in initial] + list(old_context.glob("context-*.npz"))
+    if D.exists():
+        context_paths += list(D.glob("context-*.npz"))
+    raw_paid, context_paid = (recon.physical_bytes(raw_paths), recon.physical_bytes(context_paths))
+    assert raw_paid < 320 * 2**30 and context_paid < 96 * 2**30
+    other = v["funding"]["other_node_future_bytes"]
+    assert type(other) is int and other >= (8 + 12 + 24) * 2**30 + 550 * 2**20
+    assert shutil.disk_usage("/tmp").free > (
+        20 * 2**30
+        + other
+        + 4 * 2**30
+        + max(0, 320 * 2**30 - raw_paid)
+        + max(0, 96 * 2**30 - context_paid)
+    )
+    return context_paid
+
+
+funding_gate()
+assert len(reused) < 3887, "No missing context remains"
+assert producer_state()[0] in ("PENDING", "RUNNING", "COMPLETING", "COMPLETED")
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+q = next(line.split() for line in quota.splitlines() if line.strip().startswith("/home/sa305415"))
+assert v["funding"]["other_shared_future_bytes"] >= 78 * 2**20
+assert v["funding"]["other_shared_future_files"] >= 289
+assert (int(q[2]) - int(q[1])) * 1024 > (
+    20 * 2**30 + v["funding"]["other_shared_future_bytes"] + 2 * 2**20
+)
+assert int(q[6]) - int(q[5]) > 5000 + v["funding"]["other_shared_future_files"] + 3
+D.mkdir(mode=0o700)
+(D / "alias-regression.json").write_text(v["alias_regression_receipt"])
+(D / "prior-attempt.json").write_text(v["prior_attempt_receipt"])
+(D / "prefix-admission.json").write_text(v["prefix_admission_receipt"])
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "original_context_job": "978414",
+            "original_context_terminal": context_terminal,
+            "original_raw_terminal": raw_terminal,
+            "alias_regression_receipt_sha256": v["alias_regression_receipt_sha256"],
+            "prior_attempt_receipt_sha256": v["prior_attempt_receipt_sha256"],
+            "prefix_admission_receipt_sha256": v["prefix_admission_receipt_sha256"],
+            "original_renderer_sha256": original_renderer,
+            "corrected_renderer_sha256": renderer,
+            "successor_raw_job": producer,
+            "reused_verified_contexts": len(reused),
+            "complete_FP32_context_total_cap_bytes": 96 * 2**30,
+            "old_plus_new_context_controls_cap_bytes": 32 * 2**20,
+            "all_originals_preserved": True,
+            "automatic_retry": False,
+            "no_GPU": True,
+        }
+    )
+    + "\n"
+)
+for name, source in v["files"].items():
+    path = D / "code" / name
+    assert path.resolve().is_relative_to((D / "code").resolve())
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    with path.open("x") as f:
+        f.write(source)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import cache, context_cache
+from rsna.competitive.predictive.cases import assemble
+
+
+def controls_size(root):
+    return sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and p.suffix != ".npz")
+
+
+start = time.monotonic()
+initial_rng = torch.get_rng_state().clone()
+results = dict(reused)
+admitted_orphans = 0
+for i, uid in enumerate(uids):
+    if i in reused:
+        continue
+    row = raw_record(i)
+    assert funding_gate() + 128 * 2**20 < 96 * 2**30
+    groups, source_proof = cache.load(row["path"], row["proof"])
+    assert source_proof == recon.source_provenance(
+        records[i], "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+    )
+    expected = assemble(groups, side=320, context_cap=24, classes=12)
+    provenance = context_provenance(row)
+    old = old_context / f"context-{i:04d}.private.npz"
+    proof = None
+    if old.exists():
+        recon.regular(old)
+        try:
+            with np.load(old, allow_pickle=False) as arrays:
+                for name in arrays.files:
+                    arrays[name]
+                manifest = json.loads(arrays["manifest"].tobytes())
+        except (ValueError, OSError, EOFError, zipfile.BadZipFile):
+            pass  # Retain partial original; a distinct complete output is permitted.
+        else:
+            # Existing archive bytes retain their original renderer provenance.
+            # Only an exact corrected-render comparison below admits reuse.
+            old_provenance = context_provenance(row, original=True)
+            assert manifest == {"version": context_cache.VERSION, "source": old_provenance}
+            provenance = old_provenance
+            before = cache.signature(old)
+            with old.open("rb") as f:
+                sha = hashlib.file_digest(f, "sha256").hexdigest()
+            assert cache.signature(old) == before
+            proof = {
+                "version": context_cache.VERSION,
+                "bytes": before[1],
+                "sha256": sha,
+                "stat": before,
+            }
+            path = old
+            admitted_orphans += 1
+    if proof is None:
+        path = D / f"context-{i:04d}.private.npz"
+        proof = context_cache.write(path, expected, provenance, cap_bytes=128 * 2**20)
+    actual = context_cache.load(path, proof, provenance=provenance)
+    for a, b in zip(expected, actual):
+        assert all(torch.equal(a[key], b[key]) for key in context_cache.KEYS)
+        assert all(
+            torch.equal(getattr(a["supports"], key), getattr(b["supports"], key))
+            for key in ("indptr", "regions", "log_prior")
+        )
+    assert torch.equal(initial_rng, torch.get_rng_state())
+    entry = {"uid": uid, "path": str(path), "proof": proof, "provenance": provenance}
+    with (D / f"context-{i:04d}.verified.private.json").open("x") as f:
+        json.dump(entry, f)
+        f.write("\n")
+    results[i] = entry
+    assert controls_size(old_context) + controls_size(D) + 8 * 2**20 < 32 * 2**20
+    progress = {
+        "completed": len(results),
+        "total": 3887,
+        "elapsed_seconds": time.monotonic() - start,
+    }
+    (D / "progress.private.json").write_text(json.dumps(progress) + "\n")
+    if len(results) % 100 == 0:
+        print(json.dumps(progress), flush=True)
+    del groups, expected, actual
+assert set(results) == set(range(3887))
+assert funding_gate() < 96 * 2**30
+index = D / "context-index.private.json"
+with index.open("x") as f:
+    json.dump([results[i] for i in range(3887)], f)
+    f.write("\n")
+assert controls_size(old_context) + controls_size(D) < 32 * 2**20
+out = {
+    "status": "actual_missing_only3887_exact_FP32_context_alias_recovery_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "original_context_job": "978414",
+    "original_raw_job": "978318",
+    "original_raw_terminal": raw_terminal,
+    "original_context_terminal": context_terminal,
+    "alias_regression_receipt_sha256": v["alias_regression_receipt_sha256"],
+            "prior_attempt_receipt_sha256": v["prior_attempt_receipt_sha256"],
+            "prefix_admission_receipt_sha256": v["prefix_admission_receipt_sha256"],
+    "original_renderer_sha256": original_renderer,
+    "corrected_renderer_sha256": renderer,
+    "successor_raw_job": producer,
+    "studies": 3887,
+    "reused_verified_contexts": len(reused),
+    "independently_admitted_original_orphan_contexts": admitted_orphans,
+    "private_index_sha256": hashlib.sha256(index.read_bytes()).hexdigest(),
+    "exact_both_view_images_targets_metadata_priors": True,
+    "global_RNG_unchanged": True,
+    "all_originals_preserved": True,
+    "new_source_downloads_GPU_models_or_accuracy": False,
+    "elapsed_seconds": time.monotonic() - start,
+}
+with (D / "actual.json").open("x") as f:
+    json.dump(out, f)
+    f.write("\n")
+print(json.dumps(out), flush=True)

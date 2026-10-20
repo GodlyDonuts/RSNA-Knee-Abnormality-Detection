@@ -1,0 +1,14 @@
+import gzip,hashlib,importlib.util,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin); assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+s=importlib.util.spec_from_loader('fixed_reconciliation',loader=None);m=importlib.util.module_from_spec(s)
+source=v['source'];old='if (data / "train_series.csv").read_text() != records[i]["series_csv"]:';new='if (data / "train_series.csv").read_bytes() != records[i]["series_csv"].encode():'
+assert source.count(old)==1;source=source.replace(old,new);exec(compile(source,'fixed_reconciliation','exec'),m.__dict__)
+root=Path('/tmp/rsna-predictive-full-raw-cache-20261020-v1');raw16=Path('/tmp/rsna-predictive-raw16-cache-20261020-v1')
+with gzip.open(root/'original-fitting-source-index.private.jsonl.gz','rt') as f:records=[json.loads(line) for line in f]
+lookup={r['uid']:r for r in records};comparisons=[]
+for owned in (root/'scratch').iterdir():
+ data=owned/'data';uid=(data/'train.csv').read_text().splitlines()[1];expected=lookup[uid]['series_csv'];body=(data/'train_series.csv').read_bytes()
+ comparisons.append({'bytes_match_original':body==expected.encode(),'normalized_text_matches_original':(data/'train_series.csv').read_text()==expected,'CRLF_count':body.count(b'\r\n'),'bytes':len(body),'sha256':hashlib.sha256(body).hexdigest()})
+inv=m.inventory(root,records,json.loads((raw16/'cache-index.private.json').read_text()))
+print(json.dumps({'status':'actual_retained_prefix_admitted_after_exact_CSV_byte_comparison','CPU_job':os.environ['SLURM_JOB_ID'],'corrected_reconcile_sha256':hashlib.sha256(source.encode()).hexdigest(),'metadata':comparisons,'verified_cases':len(inv['complete']),'pending_cases':len(inv['pending']),'retained_buffers':len(inv['buffers']),'orphan_caches':len(inv['orphan_caches']),'raw_v2_root_exists':Path('/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v2').exists(),'context_v2_root_exists':Path('/tmp/rsna-predictive-full-context-alias-recovery-20261020-v2').exists(),'new_source_downloads':0,'original_files_modified':0}))
