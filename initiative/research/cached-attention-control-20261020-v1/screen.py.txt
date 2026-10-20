@@ -1,0 +1,249 @@
+# ruff: noqa: E402
+"""One label-free CPU screen on original fitting features; aggregate output only."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert os.environ["SLURM_CPUS_PER_TASK"] == "1"
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+BASE = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1")
+meta = json.loads((BASE / "staged.json").read_text())
+assert meta["source_git"] == "be837f9b569b16942e6cd290a7898b4a75863766"
+assert shutil.disk_usage("/tmp").free > meta["funding"]["total_required_free_bytes"]
+paid = sum(p.stat().st_size for p in BASE.rglob("*") if p.is_file() and not p.is_symlink())
+assert paid + 2 * 2**20 < 32 * 2**20
+qraw = __import__("subprocess").check_output(
+    ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True
+)
+qrow = next(x.split() for x in qraw.splitlines() if x.strip().startswith("/home/sa305415"))
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+retained = [p for p in teacher.rglob("*") if p.is_file()]
+paid_bytes = sum(p.stat().st_size for p in retained)
+assert len(retained) < 256 and paid_bytes < 4 * 2**20
+assert (int(qrow[2]) - int(qrow[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+) + 96 * 2**10
+assert int(qrow[6]) - int(qrow[5]) > 5000 + 128 + 128 + max(0, 256 - len(retained)) + 24
+S = BASE / "code"
+assert all(
+    hashlib.sha256((S / n).read_bytes()).hexdigest() == h for n, h in meta["source_files"].items()
+)
+sys.path.insert(0, str(S))
+from rsna.competitive.mil_sampling import (
+    probability,
+    proposal,
+    readout_moments,
+    sampled_probabilities,
+)
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.schema import TARGETS
+
+F = Path("/tmp/rsna-released-context-head-fit-20261016-v1")
+admission = json.loads((F / "full-input-admitted.json").read_text())
+assert admission["status"] == "actual3887_context_features_and_source_fitting_only_CPU_accepted"
+assert admission["all3887_feature_members_exact_size_SHA_NPY_metadata"] is True
+raw = (F / "full-features/index.private.json").read_bytes()
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == admission["binding"]["feature_index_sha256"]
+    == "5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113"
+)
+records = json.loads(raw)["records"]
+uids = [r["study_uid"] for r in records]
+assert len(uids) == len(set(uids)) == 3887 and uids == sorted(uids)
+assert (
+    hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+roots = {
+    "self": str(F / "full-features"),
+    "godlydonuts/rsna-released-context-probe-d077e354611d": str(F / "features32"),
+    "godlydonuts/rsna-released-full-features-5ab9b091c0f1": str(F / "failed-prefix800"),
+}
+data = FrozenFeatures(
+    records,
+    roots,
+    np.zeros((3887, 12), np.float32),
+    np.zeros((3887, 12), bool),
+    {"scope": "no_clinical_labels_cached_moment_screen"},
+)
+headpath = Path("/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt")
+assert headpath.stat().st_size == 1122765
+# Reuse the original whole-byte proof; no new extraction/download or CNN operation.
+prior = json.loads(v["original_fidelity_receipt"])
+assert (
+    prior["CPU_job"] == "936087"
+    and prior["readout_component_sha256"]
+    == "8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5"
+)
+head = torch.load(headpath, map_location="cpu", weights_only=True)
+D = BASE / "control-variate-screen-v1"
+assert not D.exists(), "Original attempt requires read-only reconciliation"
+assert hashlib.sha256(v["module"].encode()).hexdigest() == v["module_sha256"]
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "module_sha256": v["module_sha256"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "new_GPU_or_entries": 0,
+            "original32MiB_scope_reused": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+p = D / "cached_attention_control.py"
+p.write_text(v["module"])
+spec = importlib.util.spec_from_file_location("new_cached_moment_control", p)
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+levels = (0.0, 0.05, 0.2, 0.5)
+draws = 128
+selected = np.linspace(0, 3886, 32, dtype=np.int64)
+assert len(set(selected.tolist())) == 32
+stats = {
+    eps: {
+        "sni_square": np.zeros(12),
+        "cv_square": np.zeros(12),
+        "valid": np.zeros(12, np.int64),
+        "invalid": np.zeros(12, np.int64),
+        "max_absolute_error": 0.0,
+        "min_denominator": float("inf"),
+    }
+    for eps in levels
+}
+started = time.monotonic()
+for ordinal, index in enumerate(selected):
+    weights, votes, bias, _ = readout_moments(head, data[int(index)][0])
+    q = proposal(weights, votes, bias)
+    u = np.random.default_rng(20261020 + int(index)).random((draws, 16))
+    indices = np.searchsorted(q.cumsum(), u, side="right").clip(max=93).astype(np.int64)
+    wi = np.arange(94)[None, :, None]
+    ti = np.arange(12)[None, None, :]
+    vi = np.arange(2)[:, None, None]
+    for eps in levels:
+        ds = eps * np.sin((wi + 1) * 0.37 + (ti + 1) * 0.61 + vi * 0.4)
+        dv = (
+            eps * votes.std(1, keepdims=True) * np.cos((wi + 1) * 0.43 - (ti + 1) * 0.29 + vi * 0.7)
+        )
+        current_weights = weights * np.exp(ds)
+        current_weights /= current_weights.sum(1, keepdims=True)
+        current_votes = votes + dv
+        exact = probability((current_weights * current_votes).sum(1) + bias).mean(0)
+        sni = sampled_probabilities(current_weights, current_votes, bias, indices, q)
+        # Batch the same draw across both views; no per-case arrays are written.
+        w = torch.from_numpy(
+            np.broadcast_to(weights, (draws, *weights.shape)).reshape(draws * 2, 94, 12).copy()
+        )
+        vv = torch.from_numpy(
+            np.broadcast_to(votes, (draws, *votes.shape)).reshape(draws * 2, 94, 12).copy()
+        )
+        ii = torch.from_numpy(
+            np.repeat(indices[:, None, :], 2, axis=1).reshape(draws * 2, 16).copy()
+        )
+        lq = torch.from_numpy(np.log(q[ii.numpy()]))
+        ds_selected = np.stack([ds[:, row, :] for row in indices]).reshape(draws * 2, 16, 12)
+        dv_selected = np.stack([dv[:, row, :] for row in indices]).reshape(draws * 2, 16, 12)
+        numerator, denominator = m.moments(
+            w,
+            vv,
+            ii,
+            lq,
+            torch.from_numpy(ds_selected.copy()),
+            torch.from_numpy(dv_selected.copy()),
+        )
+        n, d = numerator.numpy().reshape(draws, 2, 12), denominator.numpy().reshape(draws, 2, 12)
+        valid = (d > 0).all(1)
+        st = stats[eps]
+        st["invalid"] += (~valid).sum(0)
+        st["valid"] += valid.sum(0)
+        st["min_denominator"] = min(st["min_denominator"], float(d.min()))
+        # Explicit common-valid conditioning; every invalid draw counts as gate failure.
+        cv = probability(np.divide(n, d, out=np.zeros_like(n), where=d > 0) + bias).mean(1)
+        st["sni_square"] += np.where(valid, (sni - exact) ** 2, 0).sum(0)
+        st["cv_square"] += np.where(valid, (cv - exact) ** 2, 0).sum(0)
+        st["max_absolute_error"] = max(
+            st["max_absolute_error"], float(np.max(np.where(valid, np.abs(cv - exact), 0)))
+        )
+    (D / "progress.json").write_text(
+        json.dumps(
+            {
+                "completed_studies": ordinal + 1,
+                "total": 32,
+                "elapsed_seconds": time.monotonic() - started,
+            }
+        )
+        + "\n"
+    )
+result = {}
+passed = True
+for eps, st in stats.items():
+    assert (st["valid"] > 0).all()
+    a = st["sni_square"] / st["valid"]
+    b = st["cv_square"] / st["valid"]
+    ratios = np.divide(b, a, out=np.full(12, np.nan), where=a > 1e-16)
+    ratio = float(b.mean() / a.mean())
+    invalid = int(st["invalid"].sum())
+    gate = invalid == 0 and (
+        st["max_absolute_error"] < 1e-12 if eps == 0 else ratio <= 0.8 and np.all(ratios <= 1.2)
+    )
+    passed = passed and gate
+    result[str(eps)] = {
+        "SNI_MSE_common_valid": float(a.mean()),
+        "control_MSE_common_valid": float(b.mean()),
+        "ratio": ratio,
+        "invalid_target_draws": invalid,
+        "total_target_draws": 32 * 128 * 12,
+        "minimum_denominator": st["min_denominator"],
+        "maximum_control_absolute_error_common_valid": st["max_absolute_error"],
+        "gate_pass": bool(gate),
+        "targets": {
+            t: {
+                "SNI_MSE_common_valid": float(a[j]),
+                "control_MSE_common_valid": float(b[j]),
+                "ratio": float(ratios[j]) if np.isfinite(ratios[j]) else None,
+                "invalid_draws": int(st["invalid"][j]),
+            }
+            for j, t in enumerate(TARGETS)
+        },
+    }
+out = {
+    "status": "actual_cached_attention_control_label_free_CPU_screen_complete",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "module_sha256": v["module_sha256"],
+    "population": 3887,
+    "fitting_studies_screened": 32,
+    "views": 2,
+    "windows": 94,
+    "draws": 128,
+    "sampled_windows": 16,
+    "synthetic_drift_levels": list(levels),
+    "results": result,
+    "predeclared_CPU_fidelity_gate_pass": bool(passed),
+    "actual_encoder_or_optimizer_update": False,
+    "actual_student_drift_measured": False,
+    "clinical_labels_reports_protected_cohorts_read": False,
+    "clinical_or_Kaggle_accuracy_claim": False,
+    "new_CNN_GPU_transfer_or_entry": False,
+    "new_shared_bytes_files": 0,
+    "elapsed_seconds": time.monotonic() - started,
+}
+(D / "result.json").write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2 * 2**20
+print(json.dumps(out), flush=True)
