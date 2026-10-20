@@ -1,7 +1,13 @@
 # One exploratory density-balance intervention
 
-**Prepared; no GPU dispatch or model result yet.** This is a separate engineering
-experiment. The original full B/C/C0 owners, recipes and inputs remain unchanged.
+**Submitted once as GPU job 981620; pending for resources on evc27 at October 20,
+16:51 UTC.** CPU admission 981619 completed 0:0 in one second, reusing all sixteen
+original contexts without a copy. Source is `068a14a75e4d2b3bd83dda7783528956f7a2ca0f`.
+No actual optimizer update or model result exists yet. This separate engineering
+experiment leaves the original B/C/C0 owners, recipes and inputs unchanged.
+[Actual admission](actual-prepare.json), [dispatch](actual-submit.json), and
+[read-only queue observation](actual-queue.json) bind the original operation.
+Never repeat the coordinator or modify its frozen staged source.
 
 The [actual C24 measurement](../predictive-objective-balance-20261020-v1/README.md)
 found that weighted density gradients were only 0.0102–0.0140% of exam gradients
@@ -68,3 +74,14 @@ parent overlaps the weak holdout, Gold58 influenced parent selection, and
 aggregate Kaggle scores do not yield paired clinical uncertainty. No tiny
 engineering metric, best-epoch choice or coefficient search may be reported as
 independent accuracy.
+
+## Retained funding
+
+Admission measured 834,473,517,056 bytes free on evc27 against a conservative
+349,628,792,832-byte requirement, retaining all original C0 placement and other
+future scopes, the 20-GiB floor, and the new **6-GiB checkpoint /4-MiB controls
+and logs** reservation. The original three-checkpoint size bound is
+2,707,024,921 bytes. New allocations on evc27 must retain this pilot obligation,
+subtracting only its actual physically existing bytes once. Nothing was deleted.
+The pilot adds zero shared files; the original shared 123-MiB /376-file future
+obligation and 20-GiB /5,000-file floor remain. This does not fund a full C100 fit.

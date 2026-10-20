@@ -1,6 +1,6 @@
 # RSNA Knee execution continuation
 
-Updated **October 20, 2026, 16:35 UTC**. Read [AGENTS.md](../AGENTS.md) and [current state](current-state.md) first. This replaces accumulated contradictory snapshots; original receipts and Git history at `36f6d01b` preserve the old detail. Verify live state before acting. The owner is AFK and authorizes decisions; do not ask again for already granted access.
+Updated **October 20, 2026, 16:51 UTC**. Read [AGENTS.md](../AGENTS.md) and [current state](current-state.md) first. This replaces accumulated contradictory snapshots; original receipts and Git history at `36f6d01b` preserve the old detail. Verify live state before acting. The owner is AFK and authorizes decisions; do not ask again for already granted access.
 
 ## Immediate sequence
 
@@ -11,6 +11,8 @@ Updated **October 20, 2026, 16:35 UTC**. Read [AGENTS.md](../AGENTS.md) and [cur
 5. The distinct v7 milestone is now fully privately verified: source `17beffadba6e7574bd6da69dbac1de9992e2bd05`, CPU **979704**, HF `91ed4964850174a5c8f677b2a4f9af6e4e979a57`, **68 objects /597,670 bytes** under the canonical shared lock. It covers the committed alias recovery/fitting successor and source-zero outcome delta after v6. Never repeat either prefix; preserve only genuinely newer work in a later distinct milestone.
 
 Actual CPU **981494 COMPLETED 0:0 /72 seconds** measured the original C24 pilot on two fixed fitting cases without GPU use or parameter updates. Weighted density gradients were only **0.0102–0.0140%** of exam gradients across nonencoder parameters, and **0.000404–0.000540%** in the diagnosis-shift head. The evidence branch changed mean probabilities by **2.05–2.52 percentage points**, with opposite signs of training-BCE change across the two cases and no saturation. This establishes a local objective-scale imbalance, not clinical benefit, encoder/Adam impact, or full-training collapse. A separately declared density-balance experiment is motivated; the original B/C/C0 recipe remains unchanged. [Actual measurement and limits](../initiative/research/predictive-objective-balance-20261020-v1/README.md).
+
+The separately declared **C100 density-balance pilot 981620** was submitted once from source `068a14a75e4d2b3bd83dda7783528956f7a2ca0f` and was **PENDING (Resources)** on evc27 at October 20 16:51 UTC. CPU981619 passed original-input/runtime/storage admission; all sixteen contexts are reused in place. Only C's density coefficient changes from0.1 to100; the same 12 fitting training studies, four disjoint fitting engineering cases, 24 updates and 2,916-update schedule are retained. This is a bounded engineering experiment, with no actual optimizer update, accuracy result or automatic full-training promotion yet. Preserve its additional evc27 **6 GiB checkpoints +4 MiB controls/logs** obligation after all older scopes; zero new shared files. The original B/C/C0 fitting/deployment owners and 3,360-second Kaggle reserve remain unchanged. Never repeat its one-time coordinator. [Pilot and exact receipts](../initiative/research/predictive-density100-pilot-20261020-v1/README.md).
 
 ## Measured serving work and operational status
 
