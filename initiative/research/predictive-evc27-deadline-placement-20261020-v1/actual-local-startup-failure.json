@@ -1,0 +1,33 @@
+{
+  "status": "actual_local_startup_guard_failure_before_any_primary_phase",
+  "observed_at_UTC": "2026-10-20T20:10:14.147629+00:00",
+  "pid": 32377,
+  "source_git": "2a224ae05fc7c2fc78d4d508b6407344ac523a1c",
+  "process_absent": true,
+  "journal_inventory": [
+    "launch-intent.json",
+    "launcher.json",
+    "owner-ended.json",
+    "owner-intent.json",
+    "stderr",
+    "stdout"
+  ],
+  "original_intent_sha256": "b310a8cf6267ea4ce1b40b4efef27ad375b9bc869dfaee435b9c86ed0f40ebd0",
+  "original_launch_intent_sha256": "1487bfcf7e32c1f2ace23deb86fe6aa19c3728b0651ce165e127e66514abe8d9",
+  "stderr_sha256": "9455e429a46cc5eee24d18c8d15f2e7a568252237bd34cf3ecc2511ed9a3f131",
+  "stderr_last_line": "ValueError: Never resume a mutation-bearing controller",
+  "owner_ended": {
+    "automatic_retry": false,
+    "error_type": "ValueError",
+    "remote_jobs_cancelled": [],
+    "status": "requires_read_only_reconciliation"
+  },
+  "cause": "Root launcher records launch-intent.json; frozen run guard treats every extra *-intent.json as a remote phase. Failure occurred at that guard before the cache polling loop or any invoke/transfer.",
+  "primary_phase_intents": [],
+  "primary_phase_results": [],
+  "remote_operations_executed": 0,
+  "remote_jobs_cancelled": [],
+  "deployment_owner32378_untouched": true,
+  "cache_owner28954_untouched": true,
+  "explicit_recovery_scope": "Allow one separately recorded prephase continuation of the unchanged frozen controller after preserving original startup marker bytes under a nonphase filename. No existing job/transfer/publication/entry is repeated."
+}
