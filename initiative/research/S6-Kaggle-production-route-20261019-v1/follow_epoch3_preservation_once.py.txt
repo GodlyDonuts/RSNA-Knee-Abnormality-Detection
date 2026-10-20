@@ -1,0 +1,150 @@
+"""One finite E3-only observer/publisher/compiler after exact version reconciliation.
+
+No new training launch, model Dataset, competition entry, or earlier publication.
+"""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-epoch3-preservation-after-draft-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+pushed = json.loads((D / "actual-push-epoch-3.json").read_text())
+assert pushed["kernel_id"] == 139719974 and pushed["version"] == 1 and pushed["epoch"] == 3
+for pid in (4836, 4837):
+    assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode != 0
+for name in ("publish-3-intent.json", "serving-prepare-3-intent.json"):
+    assert not (R / "artifacts/S6-Kaggle-production-route-20261019-v1" / name).exists()
+controls = {
+    n: hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in (
+        "run_phase.py.txt",
+        "cloud.py.txt",
+        "publish_once.py.txt",
+        "publish_epoch.py.txt",
+        "epoch_check.py.txt",
+        "serving_prepare_once.py.txt",
+        "serving_prepare.py.txt",
+        "serving_compile.py.txt",
+        "serving_validate.py.txt",
+    )
+}
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+owner = {
+    "PID": os.getpid(),
+    "source_git": pin,
+    "epoch": 3,
+    "kernel_id": 139719974,
+    "maximum_seconds": 8 * 3600,
+    "maximum_new_training_launches_or_competition_entries": 0,
+    "maximum_private_epoch_publications": 1,
+    "controls": controls,
+    "automatic_mutation_retry": False,
+}
+(L / "owner-intent.json").write_text(json.dumps(owner, indent=2) + "\n")
+pointer = D / "actual-serving-preparation-reconciled-owner.json"
+prior = json.loads(pointer.read_text())
+assert prior["PID"] == 4837
+with (L / "original-ended-compiler-owner.json").open("x") as f:
+    json.dump(prior, f, indent=2)
+# This file is the current-owner pointer used by the live serving follower.
+# Its exact historical contents remain above and in Git; do not impersonate4837.
+pointer.write_text(
+    json.dumps(
+        {
+            **owner,
+            "supersedes_ended_PID": 4837,
+            "original_owner_receipt_preserved": str(
+                (L / "original-ended-compiler-owner.json").relative_to(R)
+            ),
+        },
+        indent=2,
+    )
+    + "\n"
+)
+(L / "owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+started = time.monotonic()
+
+
+def record(name, z):
+    (L / (name + ".json")).write_text(json.dumps(z, indent=2) + "\n")
+    return z
+
+
+def run(name, args, tag, timeout):
+    assert time.monotonic() - started < 8 * 3600
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in controls.items())
+    x = subprocess.run(
+        [sys.executable, str(D / name), *map(str, args)],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    record(tag + "-transport", {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr})
+    assert x.returncode == 0, "Inspect original transport/journal; no automatic mutation retry"
+    return json.loads(x.stdout)
+
+
+try:
+    while True:
+        actual = run("run_phase.py.txt", ["status", 3], "status", 1000)
+        record("progress", actual)
+        if actual["status"] in ("COMPLETE", "ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+            break
+        time.sleep(120)
+    assert actual["status"] == "COMPLETE" and actual["receipt"]["completed"] == 1458
+    with (D / "actual-terminal-epoch-3.json").open("x") as f:
+        json.dump(actual, f, indent=2)
+    kept = run("publish_once.py.txt", [3], "publish", 3600)
+    assert (
+        kept["publication"]["status"]
+        == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+    )
+    assert (
+        kept["pointer"]["status"]
+        == "actual_private_epoch_pointer_delivered_to_original_trainer_owner"
+    )
+    compiled = run("serving_prepare_once.py.txt", [3], "serving-compile", 1000)
+    record(
+        "complete",
+        {
+            "status": "actual_E3_private_preservation_and_serving_compilation_complete",
+            "publication": kept["publication"],
+            "compilation": compiled,
+            "new_training_or_competition_entries": 0,
+        },
+    )
+    publications = [
+        json.loads((D / ("actual-private-verified-epoch-" + str(e) + ".json")).read_text())
+        for e in (1, 2, 3)
+    ]
+    with (D / "actual-three-epoch-complete.json").open("x") as f:
+        json.dump(
+            {
+                "status": "actual_fixed3_changed_target_full3887_fit_and_all_private_epoch_verifications_complete",
+                "completed": 1458,
+                "epochs": 3,
+                "publications": publications,
+                "clinical_accuracy_claim": False,
+            },
+            f,
+            indent=2,
+        )
+except BaseException as exc:
+    record(
+        "stopped",
+        {
+            "PID": os.getpid(),
+            "error_type": type(exc).__name__,
+            "automatic_retry": False,
+            "inspect_original_transports_and_journals": True,
+        },
+    )
+    raise
