@@ -1,6 +1,6 @@
 # RSNA Knee execution continuation
 
-Updated **October 20, 2026, 10:05 UTC**. Read [AGENTS.md](../AGENTS.md) and [current state](current-state.md) first. This replaces accumulated contradictory snapshots; original receipts and Git history at `36f6d01b` preserve the old detail. Verify live state before acting. The owner is AFK and authorizes decisions; do not ask again for already granted access.
+Updated **October 20, 2026, 10:06 UTC**. Read [AGENTS.md](../AGENTS.md) and [current state](current-state.md) first. This replaces accumulated contradictory snapshots; original receipts and Git history at `36f6d01b` preserve the old detail. Verify live state before acting. The owner is AFK and authorizes decisions; do not ask again for already granted access.
 
 ## Immediate sequence
 
@@ -33,9 +33,9 @@ Credentials remain ignored mode-0600 `.env`, RAM/stdin/ASKPASS only. No repeated
 - Cached contexts transferred once from evc33 to evc27 via CPU 978552 and original sender; 17 files / about 263 MB, SHA/EOF/labels/roster bound. Reuse the accepted original copy and parent/runtime, not another transfer.
 - C/C0 loss spikes near 10 and head-gradient norms above 4,300 remain unresolved. The raw pilot's fractional-warmup overshoot is preserved; the distinct cached source clamps it. Gradient diagnostics now use one batched host transfer without changing ordered FP64 norm reductions or optimizer math. Engineering recovery does not accept accuracy, clinical recipe quality or Kaggle runtime.
 - Earlier one-case **978218**, raw-input **977456**, cache **978128**, suffix-only replica **978186/978187**, and 16-case raw **978232** are complete. Do not repeat. Failed runtime-copy **978084** and evc47 failures remain original negative receipts.
-- Cached-attention **977100**, source `9e76db5d`, completed 0:0 / 8:43 on evc48. Original `/tmp/rsna-cached-attention-encoder-20261020-v1/actual-GPU-terminal.json` reports reference/linear complete recovery on 17 fitting plus 15 disjoint engineering cases. Collect only the sanitized receipt read-only; no production promotion ahead of predictive B/C.
+- Cached-attention **977100**, source `9e76db5d`, completed 0:0 / 8:43 on evc48. Original `/tmp/rsna-cached-attention-encoder-20261020-v1/actual-GPU-terminal.json` reports reference/linear complete recovery on 17 fitting plus 15 disjoint engineering cases. Sanitized original receipt was collected read-only in `actual-terminal-collected.json`; no production promotion ahead of predictive B/C.
 
-New distinct stability controls: `initiative/research/predictive-stable-warmup-20261020-v1/`. Zero initial negative/reconstruction means in B/C/C0; exact production schedule horizon 2,916 for a 24-update fitting-only engineering run, first three head-only. Same 12+4 data reused in place, no new pixel copy. New 12-GiB checkpoint / 4-MiB control reservation. Prepared locally; actual-prepare/actual-submit/terminal receipts govern dispatch and acceptance. No full fit yet.
+New distinct stability controls: `initiative/research/predictive-stable-warmup-20261020-v1/`. Zero initial negative/reconstruction means in B/C/C0; exact production schedule horizon 2,916 for a 24-update fitting-only engineering run, first three head-only. Same 12+4 data reused in place, no new pixel copy. New 12-GiB checkpoint / 4-MiB control reservation. Dispatched ONCE as **978709**, source `39e315c65546aa5205518713bc27349ec63e7538`, after CPU **978708** admission. Root `/tmp/rsna-predictive-stable-warmup-20261020-v1`; actual terminal receipt is still pending. Never repeat either admission or dispatch. No full fit yet.
 
 ## Full inputs: original producer and consumer
 
@@ -46,7 +46,7 @@ New distinct stability controls: `initiative/research/predictive-stable-warmup-2
 | Completed **978232** | `/tmp/rsna-predictive-raw16-cache-20261020-v1` | Original 16 raw caches, 1,091,912,852 bytes; reused by full producer |
 | Completed **978371** | `/tmp/rsna-predictive-context16-cache-20261020-v1` | Original 16 exact contexts, 263,296,123 bytes; reused by full consumer |
 
-Last observation around 09:33 UTC: raw 107 completed (16 reused plus 91 new), contexts 91 completed. These are partial counts, not full admission. Input labels remain `/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz`, 483,656 bytes, SHA `48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285`. Fitting roster SHA `0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42`; source HF revision `52f995f4568e36bfa5fbbaf69a89af41226b4f5d`.
+Last observation at 10:01 UTC: raw 197 completed, contexts 181 completed. The exact fitting source index has at most 632 DICOMs per study (p95 366, p99 579). These are partial counts, not full admission. Input labels remain `/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz`, 483,656 bytes, SHA `48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285`. Fitting roster SHA `0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42`; source HF revision `52f995f4568e36bfa5fbbaf69a89af41226b4f5d`.
 
 Raw source `c78c94d1` and context source `441c4aa1` stay frozen. The producer's extension request was denied; it remains healthy with a limit ending about **21:07 UTC**. The old handoff stopped before SIGSTOP; never rerun it. On actual completion collect the full registry; on actual TIMEOUT reconcile original `proofs/case-*.intent.json`, `.source-proof.private.json.gz`, `.verified.private.json`, cached NPZ files, and at most two partial source buffers before a separately accepted **missing-only** successor. Preserve complete raw/context prefixes; no re-download/rebuild of verified cases. [Wall-limit audit](../initiative/research/predictive-full-cache-observation-20261020-v1/README.md).
 

@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated **October 20, 2026, 10:05 UTC**. This is the current consolidated snapshot; original receipts and live service state govern actions. Historical snapshots remain in Git history, including commit `36f6d01b`. The owner is AFK and authorizes independent work. First place and 0.97 remain unachieved.
+Updated **October 20, 2026, 10:06 UTC**. This is the current consolidated snapshot; original receipts and live service state govern actions. Historical snapshots remain in Git history, including commit `36f6d01b`. The owner is AFK and authorizes independent work. First place and 0.97 remain unachieved.
 
 ## Results and the current gap
 
@@ -40,17 +40,17 @@ In the cached diagnostic, 24 study exposures took **B 20.834 s, C 20.602 s, C0 2
 
 Source `36f6d01b` clamps fractional warmup and batches gradient-diagnostic device-to-host transfers while retaining per-tensor FP64 reductions and ordered summation. Original staged sources remain unchanged. [Cached-engine receipt](../initiative/research/predictive-cached-engine-20261020-v1/actual-accepted.json); [raw B/C receipt](../initiative/research/predictive-raw16-learning-20261020-v1/actual-accepted.json).
 
-**The numerical risk is still real:** cached C/C0 classification loss reached approximately 9.79/9.90, and head-gradient norms reached approximately 4,366/4,407. C0 also spikes, so removing density loss alone does not resolve it. B's four update losses stayed finite and decreased, but that is training behavior, not model quality. Fixed-unit covariance, correlated support sums, global gradient clipping, descriptor sufficiency, and the input-scaling shift remain concerns. The distinct prepared stability test zero-initializes the density means in both B and C/C0 and uses the actual 2,916-update production warmup horizon for 24 fitting-only updates. It preserves exact complete-support likelihoods and all previous originals. It is not yet an actual pass. Do not select a model from the four engineering cases.
+**The numerical risk is still real:** cached C/C0 classification loss reached approximately 9.79/9.90, and head-gradient norms reached approximately 4,366/4,407. C0 also spikes, so removing density loss alone does not resolve it. B's four update losses stayed finite and decreased, but that is training behavior, not model quality. Fixed-unit covariance, correlated support sums, global gradient clipping, descriptor sufficiency, and the input-scaling shift remain concerns. The distinct prepared stability test zero-initializes the density means in both B and C/C0 and uses the actual 2,916-update production warmup horizon for 24 fitting-only updates. It preserves exact complete-support likelihoods and all previous originals. It is now running as **978709** on evc27 after actual input admission **978708**, source `39e315c6`; it is not yet an actual pass. Do not select a model from the four engineering cases.
 
 ## Live work and ownership
 
 | Work | Latest actual state | Sole continuation |
 | --- | --- | --- |
-| Full original-source raw/cache build **978318**, evc33 | RUNNING; **107 completed** at approximately 09:33 UTC, including 16 reused caches; target 3,887 fitting studies / 720,851 DICOMs | Local owner **47540**; preserve exact verified prefix and partial buffers |
-| Exact full-context build **978414**, evc33 | RUNNING; **91 completed** at approximately 09:33 UTC; consumes verified raw cases and reuses the 16 contexts | Local owner **48108**; no new source download |
+| Full original-source raw/cache build **978318**, evc33 | RUNNING; **197 completed** at 10:01 UTC, including 16 reused caches; target 3,887 fitting studies / 720,851 DICOMs | Local owner **47540**; preserve exact verified prefix and partial buffers |
+| Exact full-context build **978414**, evc33 | RUNNING; **181 completed** at 10:01 UTC; consumes verified raw cases and reuses the 16 contexts | Local owner **48108**; no new source download |
 | Full teacher-pair fit **975297**, evc48 | RUNNING; all three pointwise epochs complete/private-verified; teacher-ranking epoch 1 complete/private-verified, later ranking work continues | Successor **46628**, remaining ranking publications and final CPU compilation only |
 | Source-zero Kaggle epoch 3 **139786921 v1** | RUNNING; epochs 1 and 2 already private-verified; fixed-final target 1,458 updates on all 3,887 fitting studies | Successor **46627**, remaining preservation, qualification, one final entry, and outcome |
-| Cached-attention diagnostic **977100**, evc48 | COMPLETED 0:0 in 8:43; actual reference/linear six-update recovery passed; sanitized receipt still needs collection | Engineering only; no full production dispatch |
+| Cached-attention diagnostic **977100**, evc48 | COMPLETED 0:0 in 8:43; actual reference/linear six-update recovery passed; sanitized original receipt collected read-only | Engineering only; no full production dispatch |
 | Predictive two-T4 probe **139796378 v1** | Pushed once after CPU 978681 source admission and fresh 7,858.46 free VM seconds; actual result unobserved | Private offline 600-second engineering cap; preserves 3,000 seconds for source-zero serving; no competition entry |
 | Full predictive B/C fitting | **Not dispatched** | Complete inputs, numerical decision, funding, and serving admission first |
 
