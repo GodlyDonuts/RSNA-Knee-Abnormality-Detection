@@ -1,6 +1,45 @@
 # Frozen C24 evidence attribution
 
-Prepared only. No new CPU/GPU job, covariance search, model update or result exists.
+CPU **982349 completed 0:0 in 72 seconds** on evc27, October 20, 2026.
+The actual measurement took 68.186 seconds with one CPU, zero GPUs and 2.817 GB
+peak process RSS. The checkpoint, original inputs and training recipe were
+unchanged. [Actual result](actual-result.json), [terminal](actual-terminal.json)
+and [interpretation](actual-interpretation.json) retain the exact evidence.
+
+## Actual finding
+
+At this early 24-update checkpoint, the model uses the target descriptors, but
+its readout barely responds to their regional variation on the two fitting
+studies measured:
+
+| Intervention | Fitting ordinal 0: mean probability change | Fitting ordinal 1 |
+| --- | ---: | ---: |
+| Replace regional descriptors with within-case coordinate means | 0.0205 percentage points | 0.00506 |
+| Remove the complete evidence branch | 2.516 percentage points | 2.049 |
+| Remove the context-prior head | 8.028 percentage points | 7.328 |
+
+Adding the target-dependent score term changes log-Bayes-factor RMS by
+0.0551–0.0751. That contribution is present; this is not evidence that the model
+ignores MRI. However, the mean-preserving regional intervention has 123–405 times
+less readout effect than removing the whole evidence branch. It retains
+case-level means and all context-derived predictions, and changes acquisition
+variation alongside regional variation. It cannot establish pathology-specific
+localization, clinical accuracy or complete context dependence.
+
+Independent FP64 support aggregation matches the original FP32 calculation
+within 1.8644e-6. Unobserved support mass remains close to its prior allocation;
+the likelihood-scale derivative is nonzero. Neither numerical failure nor a
+completely inactive evidence path explains this measured behavior. Marginal
+descriptor variances differ greatly across blocks, but these correlated-region
+statistics cannot choose a conditional covariance.
+
+**Decision:** retain the original matched B/C/C0 experiment and the separately
+declared C100 objective-scale pilot. This result supplies a mechanism to inspect
+at fixed final checkpoints; it does not authorize a blind covariance change,
+mid-run retuning or promotion based on two fitting cases. There is no new
+held-out or Kaggle result.
+
+## Measurement
 
 This diagnostic reuses the exact C24 checkpoint and cached fitting ordinals0/1
 already inspected by CPU981494. The original loader and its actual checkpoint
@@ -40,13 +79,14 @@ Per-coordinate residual statistics from correlated regions are **not** estimates
 of suitable clinical conditional covariance. These two fitting cases cannot
 establish accuracy, support independence, or a variance/coefficient choice.
 
-After review and a new immutable commit, root may invoke:
+The single actual invocation used source
+`2aae5ac934cf91047c6ac9dfbf5f1562472b45bf`. Its historical command was:
 
 ```text
-python3 -B initiative/research/predictive-evidence-attribution-20261020-v1/run_once.py --source-git <exact-commit>
+python3 -B initiative/research/predictive-evidence-attribution-20261020-v1/run_once.py --source-git 2aae5ac934cf91047c6ac9dfbf5f1562472b45bf
 ```
 
-The runner has one exclusive local journal and no retries. It requests one CPU,
+Do not repeat it. The runner has one exclusive local journal and no retries. It requests one CPU,
 zero GPUs, 12GiB RAM and 30minutes on the owning evc27 node, with stdin source/
 payload and stdio output only. It creates no remote files, shared logs, downloads,
 checkpoints or account actions. A failed or uncertain invocation retains its

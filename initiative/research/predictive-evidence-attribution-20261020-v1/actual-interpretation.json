@@ -1,0 +1,46 @@
+{
+  "status": "actual_C24_mechanism_interpretation_not_accuracy",
+  "actual_receipt_sha256": "b1a7b59c1317fec34ddd66bb0a9e83afaf052c5de7086cd77e4dfd624ddfb3cb",
+  "cases": [
+    {
+      "fitting_ordinal": 0,
+      "region_mean_intervention_mean_absolute_probability_change": 0.00020513848911926647,
+      "whole_BF_removal_mean_absolute_probability_change": 0.025159313427660746,
+      "prior_head_removal_mean_absolute_probability_change": 0.08027848359800256,
+      "whole_BF_vs_regional_intervention_magnitude_ratio": 122.64550419416051,
+      "region_mean_intervention_BCE_minus_full": 1.2385318864716055e-05,
+      "whole_BF_removal_BCE_minus_full": -0.001032531612017884
+    },
+    {
+      "fitting_ordinal": 1,
+      "region_mean_intervention_mean_absolute_probability_change": 5.061545165936191e-05,
+      "whole_BF_removal_mean_absolute_probability_change": 0.020488747984690223,
+      "prior_head_removal_mean_absolute_probability_change": 0.07327675625412773,
+      "whole_BF_vs_regional_intervention_magnitude_ratio": 404.79235713587855,
+      "region_mean_intervention_BCE_minus_full": -6.182703053414507e-06,
+      "whole_BF_removal_BCE_minus_full": 0.0009509298195449212
+    }
+  ],
+  "observed_finding": "At this early C24 checkpoint the complete evidence branch is active, but replacing regional descriptors with their within-case coordinate means barely changes predictions on these two fitting cases.",
+  "target_term_present": true,
+  "regional_detail_use_weak_on_measured_cases": true,
+  "proof_of_ignoring_MRI": false,
+  "proof_of_generalization_or_clinical_gain": false,
+  "primary_frozen_B_C_C0_unchanged": true,
+  "C100_pilot_981620_unchanged": true,
+  "decision": "Continue the predeclared matched B/C/C0 and separate C100 objective-scale experiment. Require actual pilot acceptance before any full C100 launch. Inspect fixed-final evidence sensitivity alongside outcomes; do not infer a correction from gradient magnitude alone.",
+  "not_admitted": [
+    "covariance or temperature sweep",
+    "new input normalization",
+    "mid-run recipe modification",
+    "promotion using two fitting cases"
+  ],
+  "limitations": [
+    "Only original fitting ordinals0/1 and step24; not independent validation.",
+    "The intervention preserves case means and all context-derived mu/delta/a, so it does not remove every MRI signal.",
+    "Mean replacement changes regional and acquisition variation together; it is not a pathology-localization test.",
+    "Marginal descriptor variances and residual MSE across correlated regions/classes do not estimate correct conditional covariance.",
+    "Likelihood-scale derivative is local sensitivity, not a direction of accuracy improvement.",
+    "Support terms add before marginalization; mixture logBF contributions are not additive."
+  ]
+}
