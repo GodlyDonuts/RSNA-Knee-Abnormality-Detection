@@ -14,7 +14,9 @@ L = R / "artifacts/teacher-pair-epoch-preservation-20261020-v1"
 L.mkdir(mode=0o700, exist_ok=True)
 mode, role, epoch = sys.argv[1], sys.argv[2], int(sys.argv[3])
 assert (
-    mode in ("inspect", "publish") and role in ("pointwise", "teacher_rank") and epoch in (1, 2, 3)
+    mode in ("inspect", "publish", "admit")
+    and role in ("pointwise", "teacher_rank")
+    and epoch in (1, 2, 3)
 )
 pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for name in ("coordinate_once.py.txt", "publish.py.txt"):
