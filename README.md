@@ -28,8 +28,7 @@ make their complete encoders independent OOF models.
 ## Active full-model work
 
 Three distinct experiments are moving: the fixed-final cross-teacher model has
-completed all1,458 updates and was submitted once as57422143 (hidden score still
-unknown); the matched pointwise/ranking comparison is training on H100975297;
+completed all1,458 updates and was submitted once as57422143 (actual hidden score **0.949**, tying the existing adaptation); the matched pointwise/ranking comparison is training on H100975297;
 and full source-zero paired-view fitting is RUNNING on Kaggle139742882v1.
 Each fits all73Mparameters on3,887 MRI studies. The source-zero run uses an
 actual byte-equivalent selected-input path measured3.244× faster for CPU case

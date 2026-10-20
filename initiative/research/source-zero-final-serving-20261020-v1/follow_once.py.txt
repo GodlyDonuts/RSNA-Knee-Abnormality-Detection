@@ -1,0 +1,125 @@
+"""Finite final-only evaluation after original full fitting and private preservation."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/source-zero-final-serving-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert (D / "actual-account-staged.json").exists()
+assert not (L / "evaluation-owner-intent.json").exists()
+assert subprocess.run(["ps", "-p", "21960"], capture_output=True).returncode != 0
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert Path(__file__).read_bytes() == subprocess.check_output(
+    ["git", "show", pin + ":" + Path(__file__).relative_to(R).as_posix()]
+)
+owner = {
+    "PID": os.getpid(),
+    "source_git": pin,
+    "follower_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    "fixed_final_epoch": 3,
+    "maximum_new_GPU_sessions": 2,
+    "maximum_code_entries": 1,
+    "maximum_wait_seconds": 30 * 3600,
+    "automatic_mutation_retry": False,
+}
+with (L / "evaluation-owner-intent.json").open("x") as f:
+    json.dump(owner, f, indent=2)
+(D / "actual-evaluation-owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+
+
+def load(name):
+    loader = SourceFileLoader("new_source_zero_final_" + name, str(D / (name + ".py.txt")))
+    m = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(m)
+    return m
+
+
+prepare, account = load("prepare_once"), load("account_once")
+deadline = time.monotonic() + owner["maximum_wait_seconds"]
+
+
+def record(name, value):
+    (L / (name + ".json")).write_text(json.dumps(value, indent=2) + "\n")
+    return value
+
+
+def action(phase, mode="qualification"):
+    while True:
+        assert time.monotonic() < deadline, "Finite original evaluation window ended"
+        result = account.run(phase, mode)
+        record("evaluation-progress", {"phase": phase, "mode": mode, "actual": result})
+        if result["status"] not in (
+            "waiting_existing_canonical_claim_no_mutation",
+            "waiting_actual_GPU_capacity_or_budget_no_mutation",
+            "waiting_authoritative_live_account_allowance_no_mutation",
+        ):
+            return result
+        time.sleep(90)
+
+
+try:
+    while True:
+        assert time.monotonic() < deadline, "Finite original fixed-final wait ended"
+        result = prepare.run()
+        record("compilation-progress", result)
+        if result["status"] != "waiting_actual_fixed_final_source_zero_preservation_no_intent":
+            assert result["status"] == "actual_source_zero_fixed_final_serving_sources_compiled"
+            break
+        fitting = R / "artifacts/source-zero-full-T4-20261020-v1"
+        assert not (fitting / "full-follow-stopped.json").exists(), (
+            "Original fitting owner stopped; inspect, never restart"
+        )
+        original = json.loads((fitting / "full-follow-owner.json").read_text())
+        assert (
+            subprocess.run(["ps", "-p", str(original["PID"])], capture_output=True).returncode == 0
+        ), (
+            "Original fitting owner missing before final preservation; inspect without duplicate work"
+        )
+        time.sleep(90)
+    assert (
+        action("prepare")["status"]
+        == "actual_preserved_epoch_serving_prepared_without_model_reupload"
+    )
+    for mode in ("qualification", "competition"):
+        result = action("push", mode)
+        assert result["status"] == "one_exact_target_epoch_" + mode + "_pushed"
+        record(mode + "-pushed", result)
+        while True:
+            result = action("status", mode)
+            if result["status"] == "COMPLETE":
+                break
+            assert result["status"] not in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"), (
+                "Actual serving failure; stop before entry"
+            )
+            time.sleep(60)
+        (D / ("actual-final-" + mode + "-accepted.json")).write_text(
+            json.dumps(result, indent=2) + "\n"
+        )
+    result = action("submit", "competition")
+    assert result["status"] == "one_exact_target_epoch_code_submission_accepted"
+    (D / "actual-final-entry.json").write_text(json.dumps(result, indent=2) + "\n")
+    while True:
+        result = action("outcome", "competition")
+        if result.get("outcome") in ("scored", "failed"):
+            break
+        time.sleep(120)
+    (D / "actual-final-hidden-outcome.json").write_text(json.dumps(result, indent=2) + "\n")
+    record("evaluation-complete", {"actual_hidden_outcome": result, "repeat_or_reupload": False})
+except Exception as error:
+    record(
+        "evaluation-error",
+        {
+            "exception_type": type(error).__name__,
+            "message": str(error),
+            "automatic_mutation_retry": False,
+        },
+    )
+    raise

@@ -1,0 +1,142 @@
+"""Final-only source-zero provenance; no changes to original MRI inference."""
+
+import torch
+
+ROLE = "original_parent_only"
+SCIENCE = "509db5b93aa32ce02d885df4b64107686a32c16b"
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+POPULATION = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+ENGINE = "14f4b234eb6d549d7f066d6f353c65c7df525f9ff2aba02d2c76b29e07a853a2"
+RECIPE = {
+    "epochs": 3,
+    "effective_batch": 8,
+    "windows": 16,
+    "seed": 20261016,
+    "encoder_lr": 3e-6,
+    "head_lr": 3e-5,
+    "weight_decay": 0.02,
+    "warmup_fraction": 0.1,
+    "final_lr_fraction": 0.01,
+    "source_weight": 0.0,
+    "clip": 1.0,
+    "role": "influence",
+}
+
+
+def provenance(training, publication, model_sha):
+    r = training.get("receipt", {})
+    b = r.get("binding", {})
+    p = publication.get("independent_CPU_state_verification", {})
+    if (
+        training.get("status") != "COMPLETE"
+        or type(training.get("epoch")) is not int
+        or training["epoch"] != 3
+        or training.get("version") != 1
+        or r.get("status") != "actual_paired_source_zero_full_epoch_complete"
+        or r.get("segment") != 3
+        or r.get("completed") != 1458
+        or r.get("total") != 1458
+        or r.get("fixed_final_complete") is not True
+        or r.get("teacher_target_role") != ROLE
+        or b.get("source_git") != SCIENCE
+        or b.get("experiment") != "full3887_paired_parent_teacher_zero_source_fixed3_v1"
+        or b.get("parent_checkpoint_sha256") != PARENT
+        or b.get("parent_source_sha256") != PARENT_SOURCE
+        or b.get("teacher_role") != ROLE
+        or b.get("source_loss_weight") != 0.0
+        or b.get("anatomical_views_per_study") != 2
+        or b.get("source_module_sha256", {}).get("rsna/competitive/paired_source_zero_train.py")
+        != ENGINE
+        or b.get("actual_T4_recovery", {}).get("kernel_id") != 139736683
+        or b.get("actual_CPU_input", {}).get("kernel_id") != 139738563
+        or b.get("input_integrity_dataset_id") != 12722964
+        or b.get("input_integrity_sha256")
+        != "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f"
+        or b.get("protected_gold_confirmation_used") is not False
+        or publication.get("status")
+        != "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified"
+        or publication.get("source_git") != SCIENCE
+        or publication.get("epoch") != 3
+        or publication.get("completed") != 1458
+        or publication.get("kernel_id") != training.get("kernel_id")
+        or publication.get("version") != 1
+        or publication.get("original_source_sha256") != training.get("source_sha256")
+        or publication.get("teacher_target_role") != ROLE
+        or publication.get("prefix")
+        != "checkpoints/source-zero-full-twoT4-509db5b93aa3/original_parent_only/epoch-003"
+        or publication.get("objects") != 6
+        or publication.get("canonical_shared_publication_lock_used") is not True
+        or publication.get("model_sha256") != model_sha
+        or publication.get("files", {}).get("model.pt") != r.get("epoch")
+        or r.get("epoch", {}).get("sha256") != model_sha
+        or not isinstance(model_sha, str)
+        or len(model_sha) != 64
+        or any(c not in "0123456789abcdef" for c in model_sha)
+        or p.get("full_learned_graph_exact") is not True
+        or p.get("exact_original_model_graph_shapes_dtypes") is not True
+        or p.get("finite_contiguous_updates") != 1458
+        or p.get("actual_AdamW_parameters") != 73136096
+        or p.get("all_two_rank_RNG_and_scaler_records_present") is not True
+        or p.get("source_loss_weight") != 0.0
+        or p.get("anatomical_views_per_study") != 2
+        or p.get("original_parent_teacher") is not True
+        or p.get("actual_input_acceptance") != 139738563
+    ):
+        raise ValueError(
+            "Actual fixed-final source-zero model and six-object private verification required"
+        )
+    return 3
+
+
+def validate(snapshot, training, publication, model_sha):
+    epoch = provenance(training, publication, model_sha)
+    b = snapshot.get("binding", {})
+    if (
+        snapshot.get("epoch") != epoch
+        or snapshot.get("completed") != 1458
+        or not all(b.get(k) == v for k, v in training["receipt"]["binding"].items())
+        or b.get("version") != "paired_IID16_zero_source_one_or_two_rank_v1"
+        or b.get("recipe") != RECIPE
+        or b.get("population") != 3887
+        or b.get("population_sha256") != POPULATION
+        or b.get("world_size") != 2
+        or b.get("total_steps") != 1458
+        or b.get("teacher_proposal_sha256")
+        != "2d7515536e378b2775cbacbf4e296713e358ec8f70aba8cc9212a952bed70a77"
+    ):
+        raise ValueError(
+            "Actual final snapshot must retain exact full-population recipe and training binding"
+        )
+    model = snapshot.get("model", {})
+    shapes = (
+        ("clsW", (12, 1024)),
+        ("clsb", (12,)),
+        ("norm.weight", (1024,)),
+        ("norm.bias", (1024,)),
+    )
+    if (
+        not model
+        or not any(n.startswith("backbone.") for n in model)
+        or any(
+            not isinstance(t, torch.Tensor) or not torch.isfinite(t).all() for t in model.values()
+        )
+        or any(n not in model or model[n].shape != shape for n, shape in shapes)
+    ):
+        raise ValueError(
+            "Complete finite learned encoder and original twelve-target MIL graph required"
+        )
+    return {
+        "epoch": 3,
+        "completed": 1458,
+        "full_population": 3887,
+        "role": ROLE,
+        "sampling_role": "influence",
+        "training_windows": 16,
+        "serving_windows": 94,
+        "source_loss_weight": 0.0,
+        "anatomical_views_per_study": 2,
+        "model_sha256": model_sha,
+        "independent_internal_validation": False,
+        "clinical_accuracy_claim": False,
+    }

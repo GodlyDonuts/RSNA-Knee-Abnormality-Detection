@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 05:08 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 05:18 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -13,7 +13,7 @@ Updated October 20, 2026, 05:08 UTC. Goal active; first place and 0.97 remain un
 | Own paired / higher-LR adaptations | 0.949 / 0.949 | 57392062 / 57394237 |
 | Own uniform / source-label adaptations | 0.947 / 0.947 | 57329796 / 57331631 |
 | R6 with own paired member | 0.957 | 57397292 |
-| New cross-lineage supervision, epoch1 | 0.948 | 57418131 |
+| New cross-lineage supervision, epoch1 / final epoch3 | 0.948 / **0.949** | 57418131 / **57422143** |
 
 No original improvement over the public reproduction is established. Engineering checks, training loss and more parameters are not accuracy. Public teacher/base exposure is not independent OOF evidence.
 
@@ -21,7 +21,7 @@ No original improvement over the public reproduction is established. Engineering
 
 | Experiment | Actual state at this update | Next action / sole owner |
 | --- | --- | --- |
-| Changed cross-lineage teacher, fixed three epochs | All 1,458 updates COMPLETE; all three checkpoints privately verified. Final code entry **57422143** accepted once; authenticated hidden status and score remain null. E1 scored **0.948**. | Evaluation owner **21960** follows the actual E3 hidden outcome. Never repeat entry or model publication. |
+| Changed cross-lineage teacher, fixed three epochs | All 1,458 updates COMPLETE; all three checkpoints privately verified. Final code entry **57422143** accepted once; hidden **COMPLETE/scored0.949**, no error. E1 scored **0.948**. | Original evaluator **21960** ended normally after both outcomes. Never repeat entry or model publication. |
 | Matched two-view pointwise versus teacher-ranking | Original H100 **975297 RUNNING on evc48**, unchanged source7f75fd46. Pointwise757/1,458 updates observed throughCPU976652, finite loss/gradient; epoch1 completed and privately verified. Remaining checkpoints and ranking result unobserved. | Preservation owner **27713** handles each distinct completed epoch once. Do not alter healthy training or its reader. |
 | Full source-zero paired-view fitting | **Kaggle139742882 v1 RUNNING**, first epoch of the predeclared three-epoch /1,458-update fit. Sourcebd680ac0, science509db5b9. This is production fitting on all3,887 studies, not the completed diagnostic. | Owner **32102** follows first epoch, independent private verification, then fresh quota/capacity admission before each of two possible resume sessions. It creates no competition entry. |
 
@@ -48,8 +48,10 @@ Final qualification **139739395v1 COMPLETE**, exact
 `godlydonuts/rsna-s6-target-e3-qual-c7eae107bea9`. Exact public inference
 `godlydonuts/rsna-s6-target-e3-offline-6276abeb0298` v1 completed, then original
 entry **57422143** was accepted once. The public three-row CSV was not uploaded.
-Latest authenticated outcome remains null; public execution and submission
-acceptance do not establish a hidden score. Sole evaluator21960 remains live.
+Authenticated outcome is now **COMPLETE/scored0.949**, no error. It ties the
+existing0.949 solo adaptation and does not establish a new supervision gain.
+Original evaluator21960 completed both predeclared outcomes and exited normally;
+never restart it. Public execution alone was not the evidence of this score.
 
 Correct runtime:
 `gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f`.
@@ -136,3 +138,16 @@ tests establish engineering behavior, not clinical or competition accuracy.
 [Execution continuation](codex-continuation.md) contains original controls,
 source pins, storage funding and recovery bindings. Never duplicate a live owner,
 job, Dataset, notebook push, checkpoint publication or competition entry.
+
+
+## Final source-zero serving preparation
+
+A distinct fixed-final-only inference compiler and provenance validator are
+implemented in `initiative/research/source-zero-final-serving-20261020-v1`.
+The original full94 two-view inference math stays unchanged. The route requires
+actual1,458-update source-zero completion, all six independently private-verified
+objects and the owning-node publication pointer before any CPU compilation.
+The account adapter retains canonical claim/ledger, exact version/source/runtime,
+free budget, two-lane capacity, actual both-T4 qualification, public CSV checks
+and fresh competition allowance. Maximum future entries:one fixed-final model.
+This preparation is not actual source-zero T4 qualification or a submitted model.

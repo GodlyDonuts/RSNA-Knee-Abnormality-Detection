@@ -1,0 +1,68 @@
+"""Derive a final-only account route without changing the live training owners."""
+
+import hashlib
+
+CORE_SHA = "f9430f3c1a98a2a1d383a2e9896d037ac67c60534d30a278a8a88e2dcd5dbb6e"
+POLICY_SHA = "5e479d5fc51e6dc334a885285044847071d4eca91f23be1ffb3aa57860390e07"
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+
+
+def exact(source, before, after, count=1):
+    if source.count(before) != count:
+        raise ValueError("Exact original account control sites required")
+    return source.replace(before, after)
+
+
+def core(original):
+    if hashlib.sha256(original.encode()).hexdigest() != CORE_SHA:
+        raise ValueError("Exact original accepted account protocol required")
+    s = exact(
+        original,
+        'D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")',
+        'D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1")',
+    )
+    s = exact(s, 'for p in D.rglob("*")', 'for p in D.parent.rglob("*")')
+    s = exact(s, "and epoch in (1, 3)", "and epoch == 3")
+    s = exact(
+        s,
+        "actual_privately_preserved_complete_target_twoT4_epoch_serving_sources_compiled",
+        "actual_source_zero_fixed_final_serving_sources_compiled",
+    )
+    s = exact(s, '"cross_lineage_equal_rank"', '"original_parent_only"')
+    s = exact(
+        s,
+        'key = "licensed-parent-full-epoch-serving:" + model_sha',
+        'key = "licensed-parent-full-epoch-serving:source-zero-final:" + model_sha',
+    )
+    s = exact(
+        s,
+        "licensed-importance-full-fit:complete-S6-cross:",
+        "licensed-importance-full-fit:source-zero-full:",
+    )
+    s = exact(
+        s, "complete_teacher_cross_full_fit_actual_complete", "source_zero_full_fit_actual_complete"
+    )
+    s = exact(s, '"rsna-complete-twoT4-S6-e"', '"rsna-source-zero-final-twoT4-e"')
+    old_budget = "assert (int(z[2]) - int(z[1])) * 1024 > 20 * 2**30 + 32 * 2**20 and int(z[6]) - int(z[5]) > 5128"
+    new_budget = """teacher=Path('/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1')
+    paid=[p for p in teacher.rglob('*') if p.is_file()];paid_bytes=sum(p.stat().st_size for p in paid)
+    assert len(paid)<256 and paid_bytes<4*2**20
+    assert (int(z[2])-int(z[1]))*1024>20*2**30+(32+16+16+2)*2**20+max(0,4*2**20-paid_bytes)+96*2**10
+    assert int(z[6])-int(z[5])>5000+128+128+max(0,256-len(paid))+24"""
+    s = exact(s, old_budget, new_budget)
+    s = s.replace("complete_target_twoT4_epoch_serving", "source_zero_final_twoT4_epoch_serving")
+    compile(s, "source_zero_final_same_account_protocol", "exec")
+    return s
+
+
+def policy(original):
+    if hashlib.sha256(original.encode()).hexdigest() != POLICY_SHA:
+        raise ValueError("Exact original actual qualified serving policy required")
+    s = exact(original, "EPOCHS = (1, 3)", "EPOCHS = (3,)")
+    old = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f2f6b083ad2b2f"
+    s = exact(s, old, DOCKER)
+    s = exact(s, '"godlydonuts/rsna-s6-target-e"', '"godlydonuts/rsna-zero-final-e"')
+    s = exact(s, '"cross_lineage_equal_rank"', '"original_parent_only"')
+    s = s.replace("actual_complete_target_twoT4_epoch_", "actual_source_zero_final_epoch_")
+    compile(s, "final_source_zero_offline_runtime64_policy", "exec")
+    return s

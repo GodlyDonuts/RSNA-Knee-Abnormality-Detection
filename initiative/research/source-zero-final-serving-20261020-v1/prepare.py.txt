@@ -1,0 +1,46 @@
+"""Derive a distinct final-only CPU compiler; original sources stay frozen."""
+
+import hashlib
+
+ORIGINAL_SHA = "1d85e3940731a2ea8368faa9baacd957f82d2159037870217e29738aa6b2aaf1"
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("One exact original preparation site required")
+    return source.replace(before, after)
+
+
+def build(original):
+    if hashlib.sha256(original.encode()).hexdigest() != ORIGINAL_SHA:
+        raise ValueError("Exact accepted original CPU preparation required")
+    source = once(
+        original,
+        "assert type(epoch) is int and 1 <= epoch <= 3",
+        "assert type(epoch) is int and epoch == 3",
+    )
+    source = once(
+        source,
+        'D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")',
+        'D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1")',
+    )
+    source = source.replace(
+        "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified",
+        "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified",
+    )
+    source = once(
+        source,
+        'output = E / "serving-v1"',
+        '''h = {"__name__": "pre_intent_final_source_zero"}
+exec(compile(v["source"]["validate.py"], "pre_intent_final_validator", "exec"), h)
+h["provenance"](a, pub, pub["model_sha256"])
+output = E / "serving-v1"''',
+    )
+    # Bound the complete existing parent control scope, not merely this child.
+    source = once(source, 'for p in D.rglob("*")', 'for p in D.parent.rglob("*")')
+    source = source.replace(
+        "actual_privately_preserved_complete_target_twoT4_epoch_serving_sources_compiled",
+        "actual_source_zero_fixed_final_serving_sources_compiled",
+    )
+    compile(source, "distinct_final_source_zero_CPU_prepare", "exec")
+    return source

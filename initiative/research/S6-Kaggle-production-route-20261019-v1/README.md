@@ -31,3 +31,13 @@ CPU974593 staged the canonical account control on original node33, source40aec57
 The original6000second public serving scope funds two3000second comparisons: qualification cap1800, real three-study example watchdog600 plus600 startup/accounting margin. The exact source has a nine-hour session timeout for the full hidden rerun. The watchdog reads only test.csv length and terminates a stuck three-study example; it never substitutes predictions or skips MRI inference. Scoped AST tests prove all existing image/model/prediction functions remain unchanged. Original qualification remains unable to submit. The account budget retains remaining full fitting obligations instead of assuming a full9h example charge. No new-weight actual T4 acceptance or competition entry exists yet. Fourteen protocol/source/budget/uncertainty tests pass, and all43 scoped tests pass together.
 
 Freeze serving_cloud.py.txt,serving_policy.py.txt,serving_coordinate_once.py.txt and follow_serving_account_once.py.txt while2861 lives. Its actual owner record is actual-serving-account-owner.json; local phase/intent outputs are in ignored artifacts/S6-twoT4-serving-account-20261020-v1. Never start a second controller or resurrect the old H100 serving route.
+
+
+## Fixed-final actual outcome, October20
+
+Original entry57422143 is **COMPLETE/scored0.949**, no error. Epoch1 entry57418131
+scored0.948. The fixed-final result ties the existing own adaptation/parent at
+0.949; no cross-lineage-supervision improvement is established. Original finite
+owner21960 completed both predeclared outcomes and exited normally. All three
+models are already privately preserved; never repeat fit, upload or entry.
+See actual-target-hidden-outcome-epoch-3.json.

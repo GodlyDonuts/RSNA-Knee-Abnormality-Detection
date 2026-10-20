@@ -1,0 +1,133 @@
+"""One final-only serving phase; original claim, ledger and version checks retained."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+OLD = R / "initiative/research/S6-Kaggle-production-route-20261019-v1"
+L = R / "artifacts/source-zero-final-serving-20261020-v1"
+
+
+def run(phase, mode="qualification"):
+    assert phase in ("stage", "prepare", "push", "status", "submit", "outcome")
+    assert mode in ("qualification", "competition")
+    if phase != "stage" and not (D / "actual-final-serving-compiled.json").exists():
+        return {
+            "status": "waiting_actual_fixed_final_source_zero_compilation_no_intent",
+            "new_GPU_or_API_mutations": 0,
+        }
+    loader = SourceFileLoader("new_final_source_zero_account", str(D / "account.py.txt"))
+    b = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(b)
+    program = b.core((OLD / "serving_cloud.py.txt").read_text())
+    paths = {
+        n + ".py": R / "scripts/kaggle" / (n + ".py")
+        for n in ("workflow", "components", "gpu_capacity", "output_csv")
+    }
+    files = {n: p.read_text() for n, p in paths.items()}
+    files.update(
+        {"policy.py": b.policy((OLD / "serving_policy.py.txt").read_text()), "program.py": program}
+    )
+    if phase == "stage":
+        pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    else:
+        pin = json.loads((D / "actual-account-staged.json").read_text())["source_git"]
+    for p in (
+        *paths.values(),
+        OLD / "serving_cloud.py.txt",
+        OLD / "serving_policy.py.txt",
+        *D.glob("*.py.txt"),
+    ):
+        assert p.read_bytes() == subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+        ), "Live account sources are immutable"
+    L.mkdir(mode=0o700, exist_ok=True)
+    payload = {
+        "phase": phase,
+        "epoch": 3,
+        "mode": mode,
+        "source_git": pin,
+        "source_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()},
+    }
+    if phase == "stage":
+        with (L / "account-stage-intent.json").open("x") as f:
+            json.dump(
+                {"source_git": pin, "new_GPU_or_entry_mutations": 0, "automatic_retry": False}, f
+            )
+        payload["sources"] = files
+    else:
+        env = R / ".env"
+        assert env.stat().st_mode & 0o077 == 0
+        values = {
+            k.strip(): z.strip().strip("\"'")
+            for line in env.read_text().splitlines()
+            for k, sep, z in [line.partition("=")]
+            if sep and not line.lstrip().startswith("#")
+        }
+        payload["token"] = values["KAGGLE_API_TOKEN"]
+    spec = importlib.util.spec_from_file_location(
+        "original_transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:10:00",
+        "--job-name=rsna-zero-final-" + phase,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=t.envelope(program, payload),
+        capture_output=True,
+        text=True,
+        timeout=1200,
+    )
+    (L / (phase + "-" + mode + "-" + str(time.time_ns()) + ".json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "Reconcile original phase and canonical claim; never retry uncertain mutation"
+    )
+    out = json.loads(x.stdout)
+    if phase == "stage":
+        (D / "actual-account-staged.json").write_text(json.dumps(out, indent=2) + "\n")
+    return out
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)
