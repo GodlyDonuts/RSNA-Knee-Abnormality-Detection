@@ -24,3 +24,9 @@ This is not a GPU diagnostic or full fit. A new immutable Kaggle wrapper must
 copy the mounted manifest to an owner-only local file, bind the original full
 cohort/record proof, and verify actual selected tensors/RNG in its runtime before
 using the fast reader. Never change the healthy H100 or T4 numerical payloads.
+
+Actual: privateDataset12722964v1 createdonce byCPU976226. A following read
+returnedRemoteError;976237 read-only proved originalresponse/intent,976247
+independently streamed and verified allthree objects and reconciled the existing
+canonicalledger/claim. `actual-private-verified.json` is the complete proof. No
+secondCreateDataset, no duplicatearraycopy, noGPU/entry mutation occurred.

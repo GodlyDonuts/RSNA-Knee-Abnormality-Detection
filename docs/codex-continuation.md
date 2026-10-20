@@ -1,6 +1,6 @@
 # RSNA Knee continuation
 
-Updated October20,2026,04:05UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
+Updated October20,2026,04:21UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
 
 - Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.
 - Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Former claim975430 released after exact E3 reconciliation. E3 kernel139719974v1 RUNNING; sourceSHAc870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410, exact runtime/source/all inputs accepted975698. Original975430 created only draft0; separately funded/guarded first executable commit975697 returned acceptedv1, then local missing statusKeyError; read-only accept reconciled it. Both calls preserved, only one actual executable version. Read actual-epoch3-reconciliation-clarification.json; no further SaveKernel.
@@ -43,3 +43,26 @@ Updated October20,2026,04:05UTC. Read [current state](current-state.md) and orig
   pinned original capacity source through stdin. No diagnostic score claims.
 
 - Sole new T4 observer **29168**, source d17d507e/followerSHA91e86ad768762bdd457bf448d0d8607537f2e9b86b73e1d57f3408a237079f28, actually live and observed139736683v1 RUNNING. It polls only the same exact source/runtime-bound diagnostic up to5400seconds; collects aggregate actual COMPLETE acceptance or actual ERROR, no GPU/production/entry dispatch. Source/new matching checks43passed (26new/source plus17existing paired). GitHub main d17d507e pushed successfully. This new small milestone is NOT yet private-HF mirrored; never call it verified until distinct actual publication/download proofs exist.
+
+- Latest actual H100975297 progress395/1458 pointwiseupdates (CPU976227), same
+  source/recipe/finite loss and gradients, no restart.
+- Private integrity Dataset **12722964v1** `godlydonuts/rsna-window-integrity-85c2fbb342c4`
+  created ONCE976226. Originalresponsejournal existed; RemoteError occurred on
+  a following read. Actual read-only976247 reconciled allthree objects with
+  complete streamdownload/size/SHA, originalcanonicalledger marked verified and
+  oldclaim released. Never repeatCreateDataset or transfer the array toMac/Git/HF.
+  Original node45 control `/tmp/rsna-selected-window-Kaggle-input-20261020-v1`
+  retains initialresponse; its localfinalreceipt has not yet been written back,
+  canonicalledger and local actual-private-verified.json are authoritative.
+  All32MiB node/32KiB ledger reserve proofs passed, no new permanent sharedfiles.
+- New CPU-only Kaggle input probe **139738563v1**, exact
+  `godlydonuts/rsna-selected-window-cpu-2d9456f629ab`, source
+  2d9456f629abc11ab8c77fa2b8b5a0731efcf34c044116049be9822564d906fe.
+  CPU976279 prepared atscientificb0c6c374.32 fittingstudies/64views/fullcohort
+  binding/exactselectedimages/targets/RNG, no model/optimizer/CUDA operation.
+  Sourcecontrol `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/selected-window-CPU-probe-v1`,
+  2MiB insideexisting8MiB controls; future64MiB Kaggleoutputcap. Actual runtime
+  pass remains unproven. See selected-window-Kaggle-reader-20261020-v1. Never
+  duplicatepush. Collect actualterminal via existingfiniteobserver before
+  admitting faster full source-zero production. TwoT4numericalrecovery139736683
+  stillRUNNING atlastcheck, no new gain.

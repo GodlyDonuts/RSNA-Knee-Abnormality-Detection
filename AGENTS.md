@@ -1,14 +1,15 @@
 # RSNA Knee agent guide
 
-Updated October20,2026,04:05UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
+Updated October20,2026,04:21UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities
 
 - Changed-target E1/E2 COMPLETE486/972updates, privately fully verified. E3 kernel139719974v1 RUNNING, exact source/runtime/inputs accepted after explicit partial-draft reconciliation; old claim released. Do not repeat any push. E3 preservation/compiler owner25232 is live.
 - Actual code entry57418131 COMPLETE/scored0.948, below older own0.949. Evaluation owner21960 waits for final E3 preservation/serving; no new gain established. Corrected qualification139716471/public139717947 both COMPLETE.
-- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, at least228 finite pointwise optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
+- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, at least395 finite pointwise optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
 - Actual975724 selected-reader admission passed,2.82x full-case CPU speed and exact inputs/RNG; not used in healthy975297. Epoch preservation owner27713 is live after a pre-epoch size-guard correction (zero prior upload attempts) for its six future checkpoints.
 - New paired source-zero two-T4 diagnostic139736683v1 is actually RUNNING, sourcea2174506987f. Original H100 diagnostic975954 is held only after actual PENDING/zero-runtime proof; do not release/restart it while T4 work exists. CPU/Gloo recovery passed; actual GPU recovery and full fitting remain unproven. Read teacher-only-T4-recovery-20261020-v1 and exact original intents.
+- Private integrity Dataset12722964v1 is fully download/hash verified once. CPU-only Kaggle reader probe139738563v1 was pushed once; actual runtime acceptance remains pending. It uses no GPU quota. Never repeat the upload or push.
 - Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
 ## Standing execution rules

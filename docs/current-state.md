@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 04:05 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 04:21 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -119,3 +119,32 @@ See `initiative/research/teacher-only-T4-recovery-20261020-v1/`. This changes
 source-label loss tozero while retaining original parent teacher/proposals, and
 is not the same comparison as the one-view cross-lineage E1 which scored0.948.
 Running975297 and cross-targetE3 payloads remain unchanged.
+
+## Actual next-input milestone,04:21UTC
+
+CPU976227 observed originalH100975297 at395 finite pointwise updates, loss0.50036
+/gradient norm1.63126. The same full model/recipe remains running unchanged.
+
+The original23,384,320byte full-cohort integrity array was uploaded once to
+**private Dataset12722964v1**, `godlydonuts/rsna-window-integrity-85c2fbb342c4`.
+CPU976226 received the oneCreateDataset response but its next read failed with
+RemoteError; read-only976237 proved the original response/journal and canonical
+intent existed. Distinct read-only976247 downloaded/size/SHA verified allthree
+objects and reconciled the original ledger/claim without any secondcreation.
+All signatures remain private; no MRI/reports/labels/UIDs/weights exported.
+Source `selected-window-Kaggle-input-20261020-v1` preserves both original failure
+and actual verification.32MiB additional node-local cap/32KiB ledger allowance,
+zero permanent shared files; all original reserves/liabilities retained.
+
+CPU976279 privately compiled the CPU-only selected-reader runtime acceptance.
+New **Kaggle139738563v1** accepted once, exactsource
+2d9456f629abc11ab8c77fa2b8b5a0731efcf34c044116049be9822564d906fe,
+`godlydonuts/rsna-selected-window-cpu-2d9456f629ab`. Initial state was unreported
+while initializing. This uses zero GPU jobs/entries, same pinned Docker image,
+all3887 record bindings,32 predeclared fitting studies/64views/exact16windows,
+unchanged label/mask/teacher/RNG checks. It removes model definitions entirely
+from the original private prefix. Actual CPU acceptance and GPU training-speed
+benefit remain unproven. New compiler+existing-reader15tests passed. No live
+training source changed. `selected-window-Kaggle-reader-20261020-v1` has exact
+source/prepare/push receipts and finite observer. Actual two-T4 source-zero
+139736683 and cross-targetE3139719974 remained RUNNING; no new score yet.
