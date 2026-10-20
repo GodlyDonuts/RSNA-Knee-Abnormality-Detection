@@ -1,5 +1,23 @@
 # RSNA Knee agent guide
 
+## October20 08:55UTC actual recovery handoff
+
+Portable978084 on evc27 passed actual allocated CUDA context/memory, then FAILED
+12:03 before model/optimizer because Slurm stdout runtime copy timed out. CPU978163
+proved retained26319files/2392247988bytes, no model-start or replica acceptance.
+Preserve partials. New predictive-private-resume-20261020-v1 uses CPU-only private
+socket endpoints, exact SHA/EOF and existing prefix reuse; no GPU during copy and
+no overwrite/reacquisition. Inspect actual-resumed.json/intent before action.
+CPU978128 actually accepted lossless original67DICOM cache:14159093bytes,
+1072regions, bit-equal source pixels and both contexts/targets/supports/priors.
+This is one-case engineering, not cohort admission or accuracy.
+Source-zero E2 GPU139756869 completed972updates; original publisher977754 completed
+0:0/91seconds and verified all6objects privately atHF
+ ee73db671130b6f850f551844e0a16a9ac80fcec. Do not repeat publication. Original local
+owners32102/27713/33801/38630 ended after transport loss; reconcile receipts and
+use distinct successors for only remaining phases, never restart old controls.
+
+
 Updated October20,2026,06:23UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities

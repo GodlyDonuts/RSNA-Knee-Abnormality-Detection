@@ -1,0 +1,248 @@
+"""Admit an owning-node replica without source deletion or any GPU allocation."""
+
+import ast
+import gzip
+import hashlib
+import json
+import os
+import posixpath
+import secrets
+import shutil
+import socket
+import subprocess
+from pathlib import Path, PurePosixPath
+
+assert (
+    not os.environ.get("SLURM_JOB_GPUS") and os.uname().nodename == os.environ["RSNA_EXPECTED_NODE"]
+)
+os.umask(0o077)
+D = Path("/tmp/rsna-predictive-portable-recovery-20261020-v1")
+assert D.is_dir() and (D / "intent.json").is_file()
+assert not (D / "replica-accepted.json").exists() and not (D / "GPU-run-start.json").exists()
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 87 + 12 + 24 + 4 + 12 + 12) * 2**30 + (512 + 128 + 32) * 2**20
+)
+node = subprocess.check_output(
+    ["scontrol", "show", "node", os.environ["RSNA_EXPECTED_NODE"], "--oneliner"], text=True
+)
+assert "Gres=gpu:nvidia_h100_pcie:2" in node
+assert D.stat().st_mode & 0o077 == 0
+(D / "CPU-resume-intent.json").open("x").write(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "runtime_and_overlay_cap_bytes": 12 * 2**30,
+            "engineering_cap_bytes": 12 * 2**30,
+            "case_cap_bytes": 128 * 2**20,
+            "parent_cap_bytes": 512 * 2**20,
+            "controls_cap_bytes": 32 * 2**20,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+
+listener = socket.socket()
+listener.bind(("0.0.0.0", 0))
+listener.listen(1)
+listener.settimeout(180)
+token = secrets.token_hex(32)
+print(
+    json.dumps({"host": os.uname().nodename, "port": listener.getsockname()[1], "token": token}),
+    flush=True,
+)
+connection, _ = listener.accept()
+connection.settimeout(600)
+listener.close()
+stream = connection.makefile("rb")
+outgoing = connection.makefile("wb")
+assert stream.readline(80) == token.encode() + b"\n"
+
+
+def exact(n):
+    b = stream.read(n)
+    if len(b) != n:
+        raise ValueError("Original stream interrupted; preserve partials, no retry")
+    return b
+
+
+size = int.from_bytes(exact(8), "big")
+assert 0 < size < 64 * 2**20
+raw_header = exact(size)
+header = json.loads(raw_header)
+assert 0 < len(header["files"]) < 200000
+assert sum(r["bytes"] for r in header["files"]) < 12 * 2**30
+names = set()
+
+
+def destination(name):
+    p = PurePosixPath(name)
+    assert not p.is_absolute() and ".." not in p.parts and str(p) == name
+    assert p.parts[0] in {
+        "runtime",
+        "overlay",
+        "assets",
+        "case.private.pt",
+        "binding-original.private.json",
+        "code",
+    }
+    assert name not in names
+    names.add(name)
+    return D.joinpath(*p.parts)
+
+
+resume = {}
+for row in header["files"]:
+    p = destination(row["name"])
+    offset = p.stat().st_size if p.exists() else 0
+    assert not p.is_symlink() and 0 <= offset <= row["bytes"]
+    resume[row["name"]] = offset
+names.clear()
+encoded = json.dumps(resume, separators=(",", ":")).encode()
+outgoing.write(len(encoded).to_bytes(8, "big"))
+outgoing.write(encoded)
+outgoing.flush()
+digests = {}
+whole = hashlib.sha256()
+for row in header["files"]:
+    p = destination(row["name"])
+    assert type(row["bytes"]) is int and 0 <= row["bytes"] < 8 * 2**30
+    p.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    h = hashlib.sha256()
+    offset = resume[row["name"]]
+    if offset:
+        with p.open("rb") as prefix:
+            left = offset
+            while left:
+                block = prefix.read(min(left, 2**20))
+                assert block
+                h.update(block)
+                whole.update(block)
+                left -= len(block)
+    left = row["bytes"] - offset
+    with p.open("ab" if p.exists() else "xb") as f:
+        while left:
+            block = exact(min(left, 2**20))
+            h.update(block)
+            whole.update(block)
+            f.write(block)
+            left -= len(block)
+    p.chmod(0o600 | (row["executable"] & 0o111))
+    digests[row["name"]] = h.hexdigest()
+size = int.from_bytes(exact(8), "big")
+assert 0 < size < 64 * 2**20
+footer = json.loads(exact(size))
+assert footer["files"] == digests and footer["whole_sha256"] == whole.hexdigest()
+assert stream.read(1) == b""
+assert (
+    digests["assets/parent.pt"]
+    == "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+)
+assert (
+    digests["assets/parent_source.private.py"]
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+for row in header["links"]:
+    p = destination(row["name"])
+    target = row["target"]
+    assert not any(ord(x) < 32 for x in target)
+    if target.startswith("/"):
+        assert PurePosixPath(row["name"]).parent == PurePosixPath("runtime/bin")
+        assert p.name.startswith("python") and Path(target).is_file()
+    else:
+        normalized = posixpath.normpath(str(PurePosixPath(row["name"]).parent / target))
+        assert (
+            normalized.split("/")[0] in {"runtime", "overlay"}
+            and ".." not in PurePosixPath(normalized).parts
+        )
+    p.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    assert not p.exists() and not p.is_symlink()
+    p.symlink_to(target)
+with gzip.open(D / "original-transfer-proof.private.json.gz", "wt") as f:
+    json.dump({"header": header, "footer": footer}, f)
+binding = json.loads((D / "binding-original.private.json").read_text())
+assert binding["raw_case_sha256"] == digests["case.private.pt"]
+numeric_equal = True
+for name in ("worker.py", "driver.py"):
+    p = D / "code" / name
+    original = p.read_text()
+    assert hashlib.sha256(original.encode()).hexdigest() == binding["code_sha256"][name]
+    changed = (
+        original.replace("/tmp/rsna-predictive-real-trainer47-20261020-v1", str(D))
+        .replace('"evc47"', repr(os.environ["RSNA_EXPECTED_NODE"]))
+        .replace(
+            "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay", str(D / "overlay")
+        )
+        .replace(
+            "/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py",
+            str(D / "assets/parent_source.private.py"),
+        )
+    )
+
+    def definitions(s):
+        return [
+            ast.dump(n, include_attributes=False)
+            for n in ast.parse(s).body
+            if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+        ]
+
+    assert definitions(original) == definitions(changed)
+    (D / (name + ".original")).write_text(original)
+    p.write_text(changed)
+    binding["code_sha256"][name] = hashlib.sha256(changed.encode()).hexdigest()
+for name, h in binding["code_sha256"].items():
+    assert hashlib.sha256((D / "code" / name).read_bytes()).hexdigest() == h
+st = (D / "assets/parent.pt").stat()
+binding["parent_weight_stat"] = {
+    "bytes": st.st_size,
+    "mtime_ns": st.st_mtime_ns,
+    "inode": st.st_ino,
+}
+binding["parent_weight_private_path"] = str(D / "assets/parent.pt")
+binding["relocation_CPU_job"] = os.environ["SLURM_JOB_ID"]
+(D / "binding.private.json").write_text(json.dumps(binding) + "\n")
+check = (
+    "import json,sys,torch,timm; assert torch.cuda.device_count()==0; assert str(torch.__version__)=='2.14.0+cu130'; assert torch.version.git_version=='08187d9e0fba026dc8217405802ab5381dc88d90'; sys.path.insert(0,"
+    + repr(str(D / "code"))
+    + "); from rsna.competitive.predictive.model import Predictive; print(json.dumps({'torch':str(torch.__version__),'timm':timm.__version__,'new_predictive_graph_imported':True}))"
+)
+check = "import sys;sys.path.insert(0," + repr(str(D / "overlay")) + ");" + check
+x = subprocess.run(
+    [str(D / "runtime/bin/python"), "-B", "-c", check],
+    text=True,
+    capture_output=True,
+    env={
+        **os.environ,
+        "CUDA_VISIBLE_DEVICES": "",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+    },
+)
+(D / "runtime-import.private.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, (
+    "Original runtime copy requires read-only inspection, not a reinstall or retry"
+)
+out = {
+    "status": "actual_predictive_node47_original_replica_all_bytes_SHA_and_CPU_runtime_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "sender_CPU_job": header["CPU_job"],
+    "node": os.environ["RSNA_EXPECTED_NODE"],
+    "files": len(digests),
+    "bytes": sum(r["bytes"] for r in header["files"]),
+    "payload_sha256": whole.hexdigest(),
+    "all_numerical_function_and_class_AST_unchanged": numeric_equal,
+    "originals_preserved": True,
+    "partial_transfer_preserved_without_overwrite": True,
+    "retained_prefix_bytes": sum(resume.values()),
+    "transferred_suffix_bytes": sum(r["bytes"] for r in header["files"]) - sum(resume.values()),
+    "GPU_allocated_during_copy": False,
+    "new_source_downloads": 0,
+    "raw_case_recompiled_or_labels_changed": False,
+    "GPU_or_clinical_acceptance": False,
+}
+(D / "replica-accepted.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)

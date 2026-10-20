@@ -1,0 +1,137 @@
+"""Reconcile original interrupted copy; transfer only missing suffixes, CPU only."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+proof = json.loads(
+    (R / "artifacts/predictive-portable-recovery-20261020-v1/partial-observer.json").read_text()
+)
+a = json.loads(proof["stdout"])
+assert (
+    proof["returncode"] == 0
+    and a["CPU_job"] == "978163"
+    and a["files"] == 26319
+    and not a["model_or_GPU_start"]
+    and not a["accepted"]
+)
+state = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "newton",
+        "sacct -X -n -P -j 978084,978093 --format=JobIDRaw,State,ExitCode",
+    ],
+    text=True,
+)
+assert "978084|FAILED|1:0" in state and not any(x in state for x in ("RUNNING", "PENDING"))
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": pin,
+            "original_failed_GPU": "978084",
+            "actual_partial_observer": "978163",
+            "original_root_retained": True,
+            "only_missing_suffix_bytes_transferred": True,
+            "CPU_endpoints": ["evc27", "evc47"],
+            "maximum_new_GPU_jobs": 0,
+            "new_shared_bytes_files": 0,
+            "existing_funding_retained": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+
+
+def cmd(node):
+    return [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "newton",
+        shlex.join(
+            [
+                "srun",
+                "--account=skattel",
+                "--partition=normal",
+                "--qos=normal",
+                "--nodelist=" + node,
+                "--ntasks=1",
+                "--cpus-per-task=1",
+                "--gres=none",
+                "--mem=4G",
+                "--time=00:15:00",
+                "--job-name=rsna-predictive-private-resume",
+                "env",
+                "CUDA_VISIBLE_DEVICES=",
+                "PYTHONNOUSERSITE=1",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "OMP_NUM_THREADS=1",
+                "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+                "-B",
+                "-c",
+                t.COMMAND,
+            ]
+        ),
+    ]
+
+
+receiver = (D / "receiver.py.txt").read_text()
+sender = (D / "sender.py.txt").read_text()
+rprogram = "import json,os\nv=json.load(__import__('sys').stdin)\nos.environ['RSNA_EXPECTED_NODE']='evc27'\nexec(compile(v['source'],'private_receiver','exec'))"
+sprogram = "import json,os\nv=json.load(__import__('sys').stdin)\nos.environ['RSNA_PRIVATE_ENDPOINT']=json.dumps(v['endpoint'])\nexec(compile(v['source'],'private_sender','exec'))"
+# Endpoint token exists only in RAM and SSH stdin; no source bytes travel through Slurm stdout.
+with (L / "receiver.stderr").open("x") as error:
+    p = subprocess.Popen(
+        cmd("evc27"), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=error, text=True
+    )
+    p.stdin.write(t.envelope(rprogram, {"source": receiver}))
+    p.stdin.close()
+    endpoint = json.loads(p.stdout.readline())
+    assert endpoint["host"] == "evc27" and len(endpoint["token"]) == 64
+    z = subprocess.run(
+        cmd("evc47"),
+        input=t.envelope(sprogram, {"source": sender, "endpoint": endpoint}),
+        text=True,
+        capture_output=True,
+        timeout=1100,
+    )
+    (L / "sender-result.json").write_text(
+        json.dumps({"returncode": z.returncode, "stdout": z.stdout, "stderr": z.stderr}, indent=2)
+        + "\n"
+    )
+    output = p.stdout.read()
+    rc = p.wait(timeout=60)
+    (L / "receiver-result.json").write_text(
+        json.dumps({"returncode": rc, "stdout": output}, indent=2) + "\n"
+    )
+    assert z.returncode == rc == 0, "Inspect original partials/terminal, no retry"
+    out = json.loads(output)
+    assert (
+        out["all_numerical_function_and_class_AST_unchanged"]
+        and out["GPU_allocated_during_copy"] is False
+    )
+    out["transport_source_git"] = pin
+    out["interrupted_original_GPU"] = "978084"
+    (D / "actual-resumed.json").write_text(json.dumps(out, indent=2) + "\n")
+    print(json.dumps(out), flush=True)

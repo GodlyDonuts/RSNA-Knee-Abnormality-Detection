@@ -1,0 +1,112 @@
+"""Single private node33→47 framed copy, sent only into the remote Slurm pipe."""
+
+import hashlib
+import json
+import os
+import socket
+import stat
+from pathlib import Path
+
+assert os.uname().nodename == "evc47" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-predictive-real-trainer47-20261020-v1")
+binding = json.loads((D / "binding.private.json").read_text())
+items = []
+links = []
+
+
+def add(prefix, source):
+    paths = [source] if source.is_file() else [source, *source.rglob("*")]
+    for p in paths:
+        relative = Path(prefix) if p == source else Path(prefix) / p.relative_to(source)
+        if "__pycache__" in relative.parts or p.suffix == ".pyc":
+            continue
+        s = p.lstat()
+        if stat.S_ISLNK(s.st_mode):
+            links.append({"name": relative.as_posix(), "target": os.readlink(p)})
+        elif stat.S_ISREG(s.st_mode):
+            items.append(
+                (relative.as_posix(), p, (s.st_size, s.st_mtime_ns, s.st_ino), s.st_mode & 0o111)
+            )
+        else:
+            assert stat.S_ISDIR(s.st_mode)
+
+
+add("runtime", Path("/tmp/rsna-predictive-real-trainer47-20261020-v1/runtime"))
+add("overlay", Path("/tmp/rsna-predictive-real-trainer47-20261020-v1/overlay"))
+add("assets/parent.pt", Path(binding["parent_weight_private_path"]))
+add(
+    "assets/parent_source.private.py",
+    Path("/tmp/rsna-predictive-real-trainer47-20261020-v1/assets/parent_source.private.py"),
+)
+add("case.private.pt", D / "case.private.pt")
+add("binding-original.private.json", D / "binding.private.json")
+add("code", D / "code")
+assert len(items) < 200000 and sum(x[2][0] for x in items) < 12 * 2**30
+header = {
+    "files": [{"name": n, "bytes": sig[0], "executable": mode} for n, p, sig, mode in items],
+    "links": links,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+}
+encoded = json.dumps(header, separators=(",", ":")).encode()
+assert len(encoded) < 64 * 2**20
+
+v = json.loads(os.environ["RSNA_PRIVATE_ENDPOINT"])
+connection = socket.create_connection((v["host"], v["port"]), timeout=120)
+connection.settimeout(600)
+connection.sendall(v["token"].encode() + b"\n")
+out = connection.makefile("wb")
+incoming = connection.makefile("rb")
+out.write(len(encoded).to_bytes(8, "big"))
+out.write(encoded)
+out.flush()
+ack_size = int.from_bytes(incoming.read(8), "big")
+assert 0 < ack_size < 16 * 2**20
+resume = json.loads(incoming.read(ack_size))
+assert set(resume) == set(x[0] for x in items)
+digests = {}
+whole = hashlib.sha256()
+for name, path, signature, mode in items:
+    h = hashlib.sha256()
+    count = 0
+    offset = resume[name]
+    assert type(offset) is int and 0 <= offset <= signature[0]
+    with path.open("rb") as prefix:
+        left = offset
+        while left:
+            block = prefix.read(min(left, 2**20))
+            assert block
+            h.update(block)
+            whole.update(block)
+            count += len(block)
+            left -= len(block)
+    with path.open("rb") as f:
+        f.seek(offset)
+        while block := f.read(2**20):
+            count += len(block)
+            h.update(block)
+            whole.update(block)
+            out.write(block)
+    st = path.stat()
+    assert (st.st_size, st.st_mtime_ns, st.st_ino) == signature and count == signature[0]
+    digests[name] = h.hexdigest()
+footer = json.dumps(
+    {"files": digests, "whole_sha256": whole.hexdigest()}, separators=(",", ":")
+).encode()
+out.write(len(footer).to_bytes(8, "big"))
+out.write(footer)
+out.flush()
+
+connection.shutdown(socket.SHUT_WR)
+print(
+    json.dumps(
+        {
+            "status": "source_suffix_sent_once",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": len(items),
+            "source_bytes": sum(x[2][0] for x in items),
+            "retained_prefix_bytes": sum(resume.values()),
+            "transferred_suffix_bytes": sum(x[2][0] for x in items) - sum(resume.values()),
+        }
+    ),
+    flush=True,
+)
