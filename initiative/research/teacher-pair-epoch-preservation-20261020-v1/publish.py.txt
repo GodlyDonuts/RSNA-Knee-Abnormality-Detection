@@ -38,7 +38,7 @@ def sha(path):
     return h.hexdigest()
 
 
-def validate_binding(snapshot, run, meta, role, epoch, recipe):
+def validate_binding(snapshot, run, meta, role, epoch, recipe, proposal_sha):
     if (
         role not in ("pointwise", "teacher_rank")
         or type(epoch) is not int
@@ -57,7 +57,7 @@ def validate_binding(snapshot, run, meta, role, epoch, recipe):
         "diagnostic_only": False,
         "matched_two_view_three_epoch_comparison": True,
         "version": "full_encoder_two_view_teacher_pair_risk_v1",
-        "teacher_proposal_sha256": PROPOSAL,
+        "teacher_proposal_sha256": proposal_sha,
         "recipe": recipe,
         "population": 3887,
         "population_sha256": COHORT,
@@ -116,6 +116,17 @@ def budget():
         raise ValueError("Original shared reserve plus funded metadata required")
 
 
+def proposal_digest():
+    import numpy as np
+
+    path = AUX / "proposals/proposals.private.npy"
+    assert sha(path) == PROPOSAL
+    value = np.load(path, allow_pickle=False)
+    assert value.shape == (3887, 94) and value.dtype == np.float64 and np.isfinite(value).all()
+    # Trainer binds raw numerical proposal bytes, not the .npy container hash.
+    return hashlib.sha256(value.tobytes()).hexdigest()
+
+
 def main(v):
     os.umask(0o077)
     assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
@@ -150,6 +161,7 @@ def main(v):
             "pointwise",
             1,
             asdict(Recipe(epochs=3, objective="pointwise")),
+            proposal_digest(),
         )
         progress = json.loads((ROOT / "pointwise/progress.json").read_text())
         return {
@@ -219,7 +231,13 @@ def main(v):
     run_path = ROOT / role / "run.json"
     run = json.loads(run_path.read_text())
     binding = validate_binding(
-        snapshot, run, meta, role, epoch, asdict(Recipe(epochs=3, objective=role))
+        snapshot,
+        run,
+        meta,
+        role,
+        epoch,
+        asdict(Recipe(epochs=3, objective=role)),
+        proposal_digest(),
     )
     model = snapshot["model"]
     assert (
@@ -393,5 +411,11 @@ if __name__ == "__main__":
     try:
         print(json.dumps(main(json.load(sys.stdin))), flush=True)
     except BaseException as error:
-        print(type(error).__name__, file=sys.stderr)
+        tb = error.__traceback__
+        while tb.tb_next is not None:
+            tb = tb.tb_next
+        print(
+            json.dumps({"error_type": type(error).__name__, "site_line": tb.tb_lineno}),
+            file=sys.stderr,
+        )
         raise SystemExit(1)

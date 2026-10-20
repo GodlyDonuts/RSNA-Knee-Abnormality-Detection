@@ -53,7 +53,7 @@ def binding():
 
 def test_exact_immutable_boundary_matches_actual_recipe_contract():
     s, r, meta, recipe = binding()
-    assert m.validate_binding(s, r, meta, "teacher_rank", 2, recipe) == s["binding"]
+    assert m.validate_binding(s, r, meta, "teacher_rank", 2, recipe, m.PROPOSAL) == s["binding"]
 
 
 @pytest.mark.parametrize(
@@ -77,7 +77,7 @@ def test_rejects_wrong_boundaries_and_scientific_bindings(field, value):
     s["binding"][field] = value
     r["binding"][field] = value
     with pytest.raises(ValueError):
-        m.validate_binding(s, r, meta, "teacher_rank", 2, recipe)
+        m.validate_binding(s, r, meta, "teacher_rank", 2, recipe, m.PROPOSAL)
 
 
 def test_rejects_optimizer_payload_and_wrong_objective_or_progress():
@@ -90,4 +90,21 @@ def test_rejects_optimizer_payload_and_wrong_objective_or_progress():
         else:
             s["completed"] = 971
         with pytest.raises(ValueError):
-            m.validate_binding(s, r, meta, "teacher_rank", 2, recipe)
+            m.validate_binding(s, r, meta, "teacher_rank", 2, recipe, m.PROPOSAL)
+
+
+def test_all_production_validator_calls_include_raw_proposal_digest():
+    import ast
+
+    tree = ast.parse((D / "publish.py.txt").read_text())
+    calls = [
+        n
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "validate_binding"
+    ]
+    assert len(calls) == 2 and all(len(c.args) == 7 for c in calls)
+    assert all(
+        isinstance(c.args[-1], ast.Call) and c.args[-1].func.id == "proposal_digest" for c in calls
+    )
