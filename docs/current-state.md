@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated **October 20, 2026, 10:52 UTC**. This is the current consolidated snapshot; original receipts and live service state govern actions. Historical snapshots remain in Git history, including commit `36f6d01b`. The owner is AFK and authorizes independent work. First place and 0.97 remain unachieved.
+Updated **October 20, 2026, 11:01 UTC**. This is the current consolidated snapshot; original receipts and live service state govern actions. Historical snapshots remain in Git history, including commit `36f6d01b`. The owner is AFK and authorizes independent work. First place and 0.97 remain unachieved.
 
 ## Results and the current gap
 
@@ -53,7 +53,7 @@ The [numerical decision](../initiative/research/predictive-full-fitting-20261020
 | Full teacher-pair fit **975297**, evc48 | RUNNING at 10:52 UTC, elapsed 7:52:26; all three pointwise epochs complete/private-verified; teacher-ranking epochs 1–2 complete/private-verified, final ranking work continues | Successor **46628**, remaining ranking publications and final CPU compilation only |
 | Source-zero Kaggle epoch 3 **139786921 v1** | **COMPLETE**, all 1,458 updates; epoch 3 six-object private verification **978929**, serving compilation **978933** | Owner **46627** ended before account preparation on an obsolete helper pin; sole successor **57842** owns exact qualification **139803454 v1**, pushed once, status unreported |
 | Cached-attention diagnostic **977100**, evc48 | COMPLETED 0:0 in 8:43; actual reference/linear six-update recovery passed; sanitized original receipt collected read-only | Engineering only; no full production dispatch |
-| Predictive two-T4 v1 **139796378** / v2 **139802342 v1** | v1 timed out at 608.8 s before receipt; **v2 pushed once; UI Queued at 10:41 UTC**, 1,200-second cap, retained stage progress | Read-only observer **59539** live from `307a28b7`, exact original API state **UNREPORTED**; no new push or competition entry |
+| Predictive two-T4 v1 **139796378** / v2 **139802342 v1** | v1 timed out at 608.8 s before receipt; **v2 pushed once; API RUNNING at 10:59:51 UTC**, 1,200-second cap, retained stage progress | Read-only observer **59539** live from `307a28b7`, exact original API state **RUNNING**; no new push or competition entry |
 | Full predictive B/C/C0 fitting | **Not dispatched**; CPU **978976** accepted staged source, parent and identical shared initialization | Finite owner **59538** live from `307a28b7`, unchanged science `b361ee40`; waits without GPU allocation for actual complete-input receipts |
 | Missing-only raw/context continuation | Local finite owner **57158** started from `5119b631`; **no new cluster allocation at launch** | Waits for exact original terminals; at most one raw and one context successor, with exclusive intents |
 
