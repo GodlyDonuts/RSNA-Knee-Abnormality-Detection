@@ -1,0 +1,127 @@
+# ruff: noqa: E402
+"""One full fixed-final objective, using the actual accepted numerical engine."""
+
+import ast
+import hashlib
+import json
+import math
+import os
+import random
+import sys
+from pathlib import Path
+
+R = Path("/tmp/rsna-teacher-pair-full-fitting45-20261020-v1")
+F = Path("/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1")
+A = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+meta = json.loads((R / "staged.json").read_text())
+assert os.uname().nodename == "evc45" and os.environ.get("SLURM_JOB_GPUS")
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["worker_sha256"]
+objective = sys.argv[1]
+assert objective in ("pointwise", "teacher_rank")
+probe = (F / "gpu_probe.py").read_bytes()
+assert hashlib.sha256(probe).hexdigest() == meta["gradient_worker_sha256"]
+tree = ast.parse(probe)
+boundary = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Assign)
+    and any(isinstance(t, ast.Name) and t.id == "versions" for t in n.targets)
+)
+context = {"__name__": "original_accepted_model_bootstrap", "__file__": str(F / "gpu_probe.py")}
+exec(
+    compile(ast.Module(body=tree.body[:boundary], type_ignores=[]), "original_bootstrap", "exec"),
+    context,
+)
+# No new scientific source is injected into F/code. This is the exact engine
+# whose complete GPU recovery passed for both objectives in974940.
+import numpy as np
+import torch
+from rsna.competitive.teacher_pair_train import fit
+
+from rsna.competitive.licensed_importance import ProposalCases
+from rsna.competitive.licensed_parent_population import load
+from rsna.competitive.teacher_pair import Recipe
+
+proofs = json.loads((A / "full_proofs/actual-original-Kaggle-inputs.json").read_text())["proofs"]
+renderer = context["renderer"]
+original = load(
+    R / "inputs",
+    proofs,
+    lambda volume, mask, mirror: renderer["eval_windows"](
+        volume, mask, 94, 320, norm=renderer["NORM"], mirror=mirror
+    ),
+)
+qpath = A / "proposals/proposals.private.npy"
+assert (
+    hashlib.sha256(qpath.read_bytes()).hexdigest()
+    == "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+)
+q = np.load(qpath, allow_pickle=False)
+assert len(original) == 3887 and q.shape == (3887, 94) and q.dtype == np.float64
+data = ProposalCases(original, torch.from_numpy(q))
+del q
+model, device = context["model"], context["device"]
+recipe = Recipe(epochs=3, objective=objective)
+random.seed(recipe.seed)
+np.random.seed(recipe.seed)
+torch.manual_seed(recipe.seed)
+torch.cuda.manual_seed_all(recipe.seed)
+
+
+def digest(state):
+    h = hashlib.sha256()
+    for name, tensor in sorted(state.items()):
+        h.update(name.encode())
+        h.update(str(tensor.dtype).encode())
+        h.update(str(tuple(tensor.shape)).encode())
+        h.update(tensor.detach().cpu().contiguous().numpy().tobytes())
+    return h.hexdigest()
+
+
+initial = digest(model.state_dict())
+assert initial == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+assert sum(p.numel() for p in model.parameters()) == 73136096
+output = R / objective
+assert not output.exists(), "Existing production state requires explicit recovery review"
+binding = {
+    "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+    "source_binding": meta["source_binding"],
+    "initial_state_sha256": initial,
+    "fitting_only": True,
+    "protected_or_gold_used": False,
+    "diagnostic_only": False,
+    "matched_two_view_three_epoch_comparison": True,
+}
+result = fit(model, data, output, binding, recipe, device=device)
+assert (
+    result["status"] == "fixed_final_fit_complete"
+    and result["completed"] == result["total"] == 1458
+)
+state = torch.load(output / "checkpoint.pt", map_location="cpu", weights_only=True)
+assert state["completed"] == 1458 and state["epoch"] == 3 and state["cursor"] == 0
+assert len(state["history"]) == 1458 and all(
+    h["update"] == i + 1
+    and math.isfinite(h["loss"])
+    and math.isfinite(h["gradient_norm"])
+    and h["anatomical_views"] == 2 * h["studies"]
+    for i, h in enumerate(state["history"])
+)
+for epoch in (1, 2, 3):
+    assert (output / f"epoch-checkpoints/epoch-{epoch:03d}.pt").is_file()
+actual = {
+    "status": "actual_fixed_final_full_encoder_two_view_fit_complete",
+    "GPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": meta["source_git"],
+    "objective": objective,
+    "fitting_studies": 3887,
+    "completed_updates": 1458,
+    "epochs": 3,
+    "initial_state_sha256": initial,
+    "trainable_parameters": 73136096,
+    "same_original_reader_sampling_labels_masks_proposals_and_optimizer": True,
+    "faster_reader_used": False,
+    "clinical_or_Kaggle_score": None,
+    "automatic_retry": False,
+}
+(output / "terminal.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

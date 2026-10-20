@@ -1,0 +1,231 @@
+# ruff: noqa: E402
+"""Admit the already copied full cohort and dispatch one matched normal fit pair."""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS")
+R = Path("/tmp/rsna-teacher-pair-full-fitting45-20261020-v1")
+F = Path("/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1")
+A = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+C = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1/original-pixel-replica-v2")
+assert not R.exists(), "Existing original full-fit intent must be reconciled, never repeated"
+assert shutil.disk_usage("/tmp").free > (20 + 79) * 2**30 + 64 * 2**20
+node = subprocess.check_output(["scontrol", "show", "node", "evc45", "-o"], text=True)
+assert "gpu:h100:2" in node and "gpu:h100:4" not in node and "gpu:h100:8" not in node
+assert "974940|COMPLETED|0:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "974940", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+recovery = Path(
+    "/tmp/rsna-teacher-pair-optimizer-recovery45-20261020-v1/normal-continuation-v1/verified.json"
+)
+assert (
+    hashlib.sha256(recovery.read_bytes()).hexdigest()
+    == "1bc918297634a5bc75e3c789cad02fff278a3a8771f54c4d5b40b9f1ea37cb97"
+)
+proof = json.loads(recovery.read_text())
+assert proof["status"] == "actual_full_encoder_teacher_pair_GPU_optimizer_recovery_accepted"
+assert all(
+    proof["roles"][role]["complete_model_AdamW_schedule_cursors_all_RNG_scaler_history_equal"]
+    for role in ("pointwise", "teacher_rank")
+)
+assert all(
+    proof["roles"][role]["exact_16x12_two_view_full94_MRI_CSV_bytes_equal"]
+    for role in ("pointwise", "teacher_rank")
+)
+meta = json.loads((F / "staged.json").read_text())
+probe = (F / "gpu_probe.py").read_bytes()
+assert hashlib.sha256(probe).hexdigest() == meta["gpu_worker_sha256"]
+modules = {
+    **meta["new_source_sha256"],
+    **{"code/" + n: h for n, h in meta["original_source_sha256"].items()},
+}
+for name, h in modules.items():
+    assert hashlib.sha256((F / name).read_bytes()).hexdigest() == h
+actual = json.loads((C / "verified.json").read_text())
+assert actual["files"] == v["original_files"] and actual["total_bytes"] == 38873662650
+for name, expected in actual["files"].items():
+    path = C / name
+    assert path.stat().st_size == expected["bytes"] and not path.is_symlink()
+    if not name.endswith("pixels.tar"):
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected["sha256"]
+permission = A / "source/source-permission.txt"
+assert (
+    hashlib.sha256(permission.read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+held = subprocess.check_output(["scontrol", "show", "job", "974412", "-o"], text=True)
+assert "JobState=PENDING" in held and "Reason=JobHeldUser" in held and "RunTime=00:00:00" in held
+assert (
+    set(v["files"]) == {"driver.py", "worker.py"}
+    and sum(len(s.encode()) for s in v["files"].values()) < 64 * 2**10
+)
+# New model/optimizer bytes stay node-local under the existing24GiB future
+# checkpoint reservation. Shared quota is charged only by scheduler metadata.
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(s.split() for s in q.splitlines() if s.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 80 * 2**20
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 4
+R.mkdir(mode=0o700)
+inputs = R / "inputs"
+inputs.mkdir(mode=0o700)
+for name, path in {
+    "probe": A / "pixels32",
+    "targets": A / "targets",
+    **{f"s{i}": C / f"shard-{i}" for i in range(4)},
+}.items():
+    (inputs / name).symlink_to(path, target_is_directory=True)
+old = (A / "old_recovery/recovery.private.py").read_bytes()
+assert (
+    hashlib.sha256(old).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+encoded = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "WORKER"
+)
+tree = ast.parse(base64.b64decode(encoded, validate=True).decode())
+end = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+ns = {"__name__": "original_CPU_renderer", "__file__": str(R / "private-renderer.py")}
+exec(compile(ast.Module(body=tree.body[:end], type_ignores=[]), "original_renderer", "exec"), ns)
+import torch
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+sys.path.insert(0, str(A / "source/code"))
+from rsna.competitive.licensed_parent_population import load
+
+proofs = json.loads((A / "full_proofs/actual-original-Kaggle-inputs.json").read_text())["proofs"]
+data = load(
+    inputs,
+    proofs,
+    lambda volume, mask, mirror: ns["eval_windows"](
+        volume, mask, 94, 320, norm=ns["NORM"], mirror=mirror
+    ),
+)
+assert len(data) == 3887
+for i in (0, 1943, 3886):
+    for mirror in (False, True):
+        value = data.case(i, list(range(16)), mirror)
+        assert value["images"].shape == (16, 3, 320, 320)
+for name, text in v["files"].items():
+    compile(text, name, "exec")
+    (R / name).write_text(text)
+header = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json")
+assert (
+    hashlib.sha256(header.read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+accepted = {n.removeprefix("code/"): h for n, h in modules.items() if n.startswith("code/")}
+staged = {
+    "source_git": v["source_git"],
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "worker_sha256": hashlib.sha256(v["files"]["worker.py"].encode()).hexdigest(),
+    "driver_sha256": hashlib.sha256(v["files"]["driver.py"].encode()).hexdigest(),
+    "gradient_worker_sha256": meta["gpu_worker_sha256"],
+    "accepted_module_sha256": accepted,
+    "source_binding": {
+        "actual_GPU_recovery": "974940",
+        "actual_GPU_recovery_receipt_sha256": hashlib.sha256(recovery.read_bytes()).hexdigest(),
+        "accepted_numerical_source_git": "ecab19d845054848160a7eddad6a1de3426f7c8f",
+        "production_wrapper_source_git": v["source_git"],
+        "source_permission_sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+        "original_pixel_copy_bytes": 38873662650,
+        "CPU_full_population_membership_and_six_both_view_input_checks": True,
+        "shared_initial_state_sha256": "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78",
+        "faster_reader_used": False,
+        "protected_or_gold_used": False,
+    },
+    "future_checkpoint_cap_bytes": 24 * 2**30,
+    "automatic_retry": False,
+}
+(R / "staged.json").write_text(json.dumps(staged, indent=2) + "\n")
+include = json.loads(header.read_text())["include_path"]
+env = [
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+    "C_INCLUDE_PATH=" + include,
+    "CPLUS_INCLUDE_PATH=" + include,
+    "CUDA_CACHE_MAXSIZE=" + str(128 * 2**20),
+]
+for name in ("XDG_CACHE_HOME", "TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR", "CUDA_CACHE_PATH"):
+    env.append(name + "=" + str(R / "runtime-cache"))
+args = [
+    "sbatch",
+    "--parsable",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--nodes=1",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:h100:1",
+    "--mem=24G",
+    "--time=12:00:00",
+    "--job-name=rsna-full-two-view-ranking-comparison",
+    "--chdir=" + str(R),
+    "--output=" + str(R / "GPU-stdout.private.log"),
+    "--error=" + str(R / "GPU-stderr.private.log"),
+    "--wrap=" + shlex.join(env + [sys.executable, "-B", str(R / "driver.py")]),
+]
+with (R / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "maximum_GPU_jobs": 1,
+            "maximum_fits": 2,
+            "fixed_epochs_each": 3,
+            "updates_each": 1458,
+            "checkpoint_cap_bytes": 24 * 2**30,
+            "automatic_retry": False,
+        },
+        f,
+    )
+x = subprocess.run(args, capture_output=True, text=True)
+assert x.returncode == 0, "Reconcile uncertain original dispatch; never repeat"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+result = {
+    "status": "actual_full_cohort_CPU_admitted_and_one_matched_GPU_pair_submitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "GPU_job": job,
+    "source_git": v["source_git"],
+    "fitting_studies": 3887,
+    "trainable_parameters": 73136096,
+    "objectives": ["pointwise", "teacher_rank"],
+    "epochs_each": 3,
+    "updates_each": 1458,
+    "same_initial_state_and_two_views": True,
+    "faster_reader_used": False,
+    "new_pixel_transfers": 0,
+    "actual_production_GPU_or_accuracy_accepted": False,
+    "automatic_retry": False,
+}
+(R / "submitted.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result), flush=True)
