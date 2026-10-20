@@ -108,3 +108,10 @@ def test_all_production_validator_calls_include_raw_proposal_digest():
     assert all(
         isinstance(c.args[-1], ast.Call) and c.args[-1].func.id == "proposal_digest" for c in calls
     )
+
+
+def test_historical_actual_complete_73M_snapshot_fits_size_guard():
+    assert m.snapshot_size_allowed(292873139)
+    assert not m.snapshot_size_allowed(0)
+    assert not m.snapshot_size_allowed(330 * 2**20)
+    assert not m.snapshot_size_allowed(True)

@@ -86,6 +86,13 @@ def validate_binding(snapshot, run, meta, role, epoch, recipe, proposal_sha):
     return b
 
 
+def snapshot_size_allowed(size):
+    # A complete known73M snapshot is292873139bytes (~279.3MiB), so an
+    # arbitrary280MiB lower floor would reject the real model. Full tensor,
+    # parameter-count and binding checks below establish completeness.
+    return type(size) is int and 0 < size < 330 * 2**20
+
+
 def signature(path):
     s = path.stat()
     if path.is_symlink() or not path.is_file() or s.st_uid != os.getuid() or s.st_mode & 0o077:
@@ -209,7 +216,7 @@ def main(v):
         }
     assert not journal.exists(), "Existing original publication journal requires reconciliation"
     before = signature(path)
-    assert 280 * 2**20 < before[2] < 330 * 2**20
+    assert snapshot_size_allowed(before[2])
     budget()
     own_source = {}
     for name, h in meta["accepted_module_sha256"].items():
