@@ -1,0 +1,111 @@
+"""Prepared post-acceptance readout experiment; no optimizer/clinical endpoints.
+
+Not admitted or dispatched. Requires original real-encoder recovery acceptance.
+All reference/current arrays remain ephemeral on the owning GPU node.
+"""
+
+import ast
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+import torch
+
+ROOT = Path("/tmp/rsna-cached-attention-encoder-20261020-v1")
+CONTROL = ROOT / "learned-drift-v1"
+stage = json.loads((ROOT / "GPU-prepared.json").read_text())
+accepted = json.loads((ROOT / "actual-GPU-terminal.json").read_text())
+admission = json.loads((CONTROL / "admitted.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert accepted["status"] == "actual_cached_attention_complete_encoder_two_arm_recovery_accepted"
+assert accepted["source_git"] == stage["source_git"]
+assert accepted["complete_state_and_snapshots_and_original_inference_exact_resume"]
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == admission["worker_sha256"]
+variant = sys.argv[1]
+assert variant in ("reference", "linear") and torch.cuda.device_count() == 1
+source = (ROOT / "gpu_worker.py").read_bytes()
+assert hashlib.sha256(source).hexdigest() == stage["worker_sha256"]
+tree = ast.parse(source)
+cut = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Assign)
+    and any(isinstance(t, ast.Name) and t.id == "initial_drift" for t in n.targets)
+)
+context = {"__name__": "original_fresh_model_no_fit", "__file__": str(ROOT / "gpu_worker.py")}
+saved = sys.argv
+sys.argv = [str(ROOT / "gpu_worker.py"), "full", variant]
+try:
+    exec(
+        compile(
+            ast.Module(body=tree.body[:cut], type_ignores=[]),
+            "source_bound_original_no_fit_prefix",
+            "exec",
+        ),
+        context,
+    )
+finally:
+    sys.argv = saved
+model, original, data = (context[k] for k in ("model", "original", "data"))
+ckpt = ROOT / "engineering" / variant / "full" / "epoch-checkpoints/epoch-002.pt"
+before = ckpt.stat()
+state = torch.load(ckpt, map_location="cpu", weights_only=True)
+assert state["completed"] == 6 and state["epoch"] == 2
+assert state["binding"]["attention_reference_sha256"] == stage["reference"]["sha256"]
+assert state["binding"]["recipe"]["variant"] == variant
+process = json.loads((ckpt.parent.parent / "full-process.json").read_text())
+assert context["digest"](state["model"]) == process["final_state_digest"]
+model.load_state_dict(state["model"], strict=True)
+del state
+after = ckpt.stat()
+assert (after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns) == (
+    before.st_ino,
+    before.st_size,
+    before.st_mtime_ns,
+    before.st_ctime_ns,
+)
+module = CONTROL / "cached_attention_diagnostics.py"
+assert hashlib.sha256(module.read_bytes()).hexdigest() == admission["diagnostic_sha256"]
+spec = importlib.util.spec_from_file_location("private_learned_readout_diagnostic", module)
+diag = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(diag)
+refs, votes, current_scores, current_votes, proposals = [], [], [], [], []
+with torch.inference_mode():
+    for local in (0, 5, 10, 16):
+        global_index = context["train"][local]
+        for mirror in (False, True):
+            case = original.case(global_index, list(range(94)), mirror)
+            with torch.autocast("cuda", dtype=torch.float16):
+                encoded = model.encode(case["images"].to("cuda")[None])
+            with torch.autocast("cuda", enabled=False):
+                h = model.norm(encoded.float())
+                s = model.att(h)
+                v = torch.einsum("bkd,td->bkt", h, model.clsW)
+            refs.append(data._scores[local, int(mirror)].clone())
+            votes.append(data._votes[local, int(mirror)].clone())
+            current_scores.append(s[0].cpu())
+            current_votes.append(v[0].cpu())
+            proposals.append(data.proposal(local).cpu())
+report = diag.fidelity(
+    *[torch.stack(x) for x in (refs, votes, current_scores, current_votes, proposals)],
+    draws=128,
+    windows=16,
+    seed=20261020,
+)
+report.update(
+    variant=variant,
+    source_git=admission["source_git"],
+    original_recovery_GPU=accepted["GPU_job"],
+    actual_GPU=os.environ["SLURM_JOB_ID"],
+    trained_optimizer_updates=6,
+    full_current_encoder_forwards=8,
+    training_or_GPU_recovery_repeated=False,
+    arrays_retained_or_exported=False,
+)
+output = CONTROL / (variant + "-actual.json")
+with output.open("x") as f:
+    json.dump(report, f, sort_keys=True, indent=2)
+print(json.dumps(report), flush=True)

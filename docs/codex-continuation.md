@@ -351,3 +351,36 @@ external source bodies included. Never repeat this or prior mirrors. This snapsh
 includes original full-cache acceptance and977100dispatch, not a GPU acceptance
 or subsequent source-zero epoch1 terminal. Source-zero publication977111 was
 actually RUNNING onevc48 when observed; original32102 owns it, never duplicate.
+
+
+## October20 06:23UTC — source-zero actual resume and exact learned-drift oracle
+
+Previous goal turn made actual one-time H100 dispatch/private source preservation
+progress. This turn revalidated original975297RUNNING,977100PENDING Priority and
+all three original local owners live. Goal remains active/unachieved.
+
+Source-zero epoch1 is now privately fully verified ONCE: CPU977111,
+HF1df252b385869b4ec8372526f39ad169f33e2e6e, six objects/model0c79c9e6, actual
+complete learned graph/AdamW/all two-rank RNG/scaler/486contiguous finite updates.
+Never repeat that checkpoint or notebook. Original32102 freshly admitted
+15,623.5737freeVMseconds/empty account lanes/6,000next-fit cap/3,000final-serving
+reserve, then pushed distinct resumed epoch2 **139756869v1** ONCE, exact slug
+`godlydonuts/rsna-zero-full-e2-e98af321d8b0`, sourcee98af321d8b056d1ba7fb709a8f53f0757f194e71a54de873d4fdb9c0ba17ce4.
+ActualRUNNING; target972/fixedfinal1458. No new score, E3 not yet budget-admitted.
+Original33801 remains the sole final-only evaluation owner.
+
+New `cached_attention_diagnostics.py` analytically computes exact IID logit bias,
+variance and MSE of the linearized correction against full current attention,
+plus common128IID16 empirical ordinary-SNI MSE. FP64 mathematical diagnostic,
+not bitwise FP32 equivalence, an encoder-gradient proof, clinical metric or
+automatic recipe selection. Eight focused cases pass, including exhaustive
+ordered-pair enumeration and unchanged global RNG. Combined27 scoped cases pass.
+
+Prepared `cached-attention-learned-drift-20261020-v1/worker.py.txt` requires actual
+977100 terminal acceptance and source/snapshot/digest bindings, then measures
+full current readouts on four fitting engineering studies/two views for each arm.
+It adds no optimizer, weights, clinical score or reference arrays exported from
+node. This is PREPARED ONLY: no CPU/GPU admission or dispatch, no extra funding
+claimed. Separate immutable wrapper/fresh quota/single-dispatch review required;
+never inject it into queued977100. This avoids treating synthetic perturbation
+results as behavior after actual learning. No new clinical gain established.

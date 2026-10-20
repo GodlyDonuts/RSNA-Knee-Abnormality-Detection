@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 05:37 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 06:23 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -23,7 +23,7 @@ No original improvement over the public reproduction is established. Engineering
 | --- | --- | --- |
 | Changed cross-lineage teacher, fixed three epochs | All 1,458 updates COMPLETE; all three checkpoints privately verified. Final code entry **57422143** accepted once; hidden **COMPLETE/scored0.949**, no error. E1 scored **0.948**. | Original evaluator **21960** ended normally after both outcomes. Never repeat entry or model publication. |
 | Matched two-view pointwise versus teacher-ranking | Original H100 **975297 RUNNING on evc48**, unchanged source7f75fd46. Pointwise epoch2/972 updates completed and privately verified throughCPU976879. Epoch3 in progress; ranking arm follows, no ranking result. | Preservation owner **27713** handles each distinct completed epoch once. Do not alter healthy training or its reader. |
-| Full source-zero paired-view fitting | **Kaggle139742882 v1 RUNNING**, first epoch of the predeclared three-epoch /1,458-update fit. Sourcebd680ac0, science509db5b9. This is production fitting on all3,887 studies, not the completed diagnostic. | Owner **32102** follows first epoch, independent private verification, then fresh quota/capacity admission before each of two possible resume sessions. It creates no competition entry. |
+| Full source-zero paired-view fitting | Epoch1 **139742882v1 COMPLETE/486updates and privately verified**. Distinct resumed epoch2 **139756869v1 RUNNING**, sourcee98af321, target972of1,458updates. Science509db5b9/all3,887 studies/two views unchanged. | Owner **32102** follows first epoch, independent private verification, then fresh quota/capacity admission before each of two possible resume sessions. It creates no competition entry. |
 
 All three use the full **73,136,096-parameter CoAtNet**, effective eight-study
 batch and original accepted fitting cohort. Source-zero removes the source-label
@@ -281,3 +281,36 @@ external source bodies included. Never repeat this or prior mirrors. This snapsh
 includes original full-cache acceptance and977100dispatch, not a GPU acceptance
 or subsequent source-zero epoch1 terminal. Source-zero publication977111 was
 actually RUNNING onevc48 when observed; original32102 owns it, never duplicate.
+
+
+## October20 06:23UTC — source-zero actual resume and exact learned-drift oracle
+
+Previous goal turn made actual one-time H100 dispatch/private source preservation
+progress. This turn revalidated original975297RUNNING,977100PENDING Priority and
+all three original local owners live. Goal remains active/unachieved.
+
+Source-zero epoch1 is now privately fully verified ONCE: CPU977111,
+HF1df252b385869b4ec8372526f39ad169f33e2e6e, six objects/model0c79c9e6, actual
+complete learned graph/AdamW/all two-rank RNG/scaler/486contiguous finite updates.
+Never repeat that checkpoint or notebook. Original32102 freshly admitted
+15,623.5737freeVMseconds/empty account lanes/6,000next-fit cap/3,000final-serving
+reserve, then pushed distinct resumed epoch2 **139756869v1** ONCE, exact slug
+`godlydonuts/rsna-zero-full-e2-e98af321d8b0`, sourcee98af321d8b056d1ba7fb709a8f53f0757f194e71a54de873d4fdb9c0ba17ce4.
+ActualRUNNING; target972/fixedfinal1458. No new score, E3 not yet budget-admitted.
+Original33801 remains the sole final-only evaluation owner.
+
+New `cached_attention_diagnostics.py` analytically computes exact IID logit bias,
+variance and MSE of the linearized correction against full current attention,
+plus common128IID16 empirical ordinary-SNI MSE. FP64 mathematical diagnostic,
+not bitwise FP32 equivalence, an encoder-gradient proof, clinical metric or
+automatic recipe selection. Eight focused cases pass, including exhaustive
+ordered-pair enumeration and unchanged global RNG. Combined27 scoped cases pass.
+
+Prepared `cached-attention-learned-drift-20261020-v1/worker.py.txt` requires actual
+977100 terminal acceptance and source/snapshot/digest bindings, then measures
+full current readouts on four fitting engineering studies/two views for each arm.
+It adds no optimizer, weights, clinical score or reference arrays exported from
+node. This is PREPARED ONLY: no CPU/GPU admission or dispatch, no extra funding
+claimed. Separate immutable wrapper/fresh quota/single-dispatch review required;
+never inject it into queued977100. This avoids treating synthetic perturbation
+results as behavior after actual learning. No new clinical gain established.
