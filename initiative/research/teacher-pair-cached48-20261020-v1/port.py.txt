@@ -1,0 +1,70 @@
+"""Exact host/path port of prepared full fitting; accepted numerical code unchanged."""
+
+import ast
+import hashlib
+
+SHAS = {
+    "worker.py": "a4e4849122c791739ec3c2d4f06389cd78c50ba6285fe13488f3565658f05d13",
+    "driver.py": "187f488cd5eb9b82896b670a6d3e088bca852acd6116b3e11e44585368470683",
+    "stage.py": "3f167209da68b8e7c055086ec0ab8fb9114026a9e355f13b81c8e85f48ac69ee",
+}
+ROOT45 = "/tmp/rsna-teacher-pair-full-fitting45-20261020-v1"
+ROOT48 = "/tmp/rsna-teacher-pair-full-fitting48-20261020-v1"
+PROBE45 = "/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1"
+PROBE48 = "/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3"
+
+
+def host(source):
+    for before, after in ((ROOT45, ROOT48), (PROBE45, PROBE48), ('"evc45"', '"evc48"')):
+        source = source.replace(before, after)
+    return source
+
+
+def build(name, source):
+    if name not in SHAS or hashlib.sha256(source.encode()).hexdigest() != SHAS[name]:
+        raise ValueError("Exact original full-fitting wrapper required")
+    result = host(source)
+    if name != "stage.py":
+        reverse = (
+            result.replace(ROOT48, ROOT45).replace(PROBE48, PROBE45).replace('"evc48"', '"evc45"')
+        )
+        if ast.dump(ast.parse(reverse)) != ast.dump(ast.parse(source)):
+            raise ValueError("No learned numerical change allowed in host port")
+        return result
+    # Preparation only. The original pending GPU must be cancelled with verified
+    # zero runtime before a distinct submit phase can dispatch anything.
+    cut = result.index('include = json.loads(header.read_text())["include_path"]')
+    result = result[:cut]
+    start = result.index("recovery = Path(")
+    end = result.index("\nassert (", start)
+    result = result[:start] + 'recovery_raw = v["accepted_recovery_raw"].encode()\n' + result[end:]
+    result = result.replace("recovery.read_bytes()", "recovery_raw").replace(
+        "recovery.read_text()", "recovery_raw"
+    )
+    result = result.replace("(20 + 79) * 2**30", "(20 + 87 + 12 + 24) * 2**30")
+    anchor = (
+        'held = subprocess.check_output(["scontrol", "show", "job", "974412", "-o"], text=True)'
+    )
+    if result.count(anchor) != 1:
+        raise ValueError("One original duplicate-job guard required")
+    result = result.replace(
+        anchor,
+        """for jid in ("974412", "975129"):
+    state = subprocess.check_output(["scontrol", "show", "job", jid, "-o"], text=True)
+    assert "JobState=PENDING" in state and "Reason=JobHeldUser" in state and "RunTime=00:00:00" in state
+"""
+        + anchor,
+    )
+    anchor = 'actual = json.loads((C / "verified.json").read_text())'
+    result = result.replace(
+        anchor,
+        """assert all(hashlib.sha256((F / "code" / n).read_bytes()).hexdigest() == h for n,h in v["accepted_module_sha256"].items())
+"""
+        + anchor,
+    )
+    result += """prepared = {"status":"actual_cached48_full_fitting_host_CPU_prepared_no_GPU_dispatch", "CPU_job":os.environ["SLURM_JOB_ID"], "source_git":v["source_git"], "node":"evc48", "full_fitting_studies":3887, "original45_GPU_held_zero_runtime":True, "all_accepted_numerical_modules_byte_identical_to45":True, "new_pixel_or_model_or_runtime_transfers":0, "checkpoint_cap_bytes":24*2**30, "new_GPU_jobs":0, "automatic_retry":False}
+(R/"prepared.json").write_text(json.dumps(prepared,indent=2)+"\\n")
+print(json.dumps(prepared),flush=True)
+"""
+    compile(result, "same_full_recipe_cached48_preparation_only", "exec")
+    return result

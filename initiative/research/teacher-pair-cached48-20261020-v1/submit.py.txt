@@ -1,0 +1,102 @@
+"""Submit the prepared identical full comparison only after the original had no runtime."""
+
+import hashlib
+import json
+import os
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+m = json.loads((R / "staged.json").read_text())
+p = json.loads((R / "prepared.json").read_text())
+assert m["source_git"] == p["source_git"] == v["source_git"]
+assert p["new_GPU_jobs"] == 0 and p["all_accepted_numerical_modules_byte_identical_to45"]
+for name in ("worker", "driver"):
+    assert hashlib.sha256((R / (name + ".py")).read_bytes()).hexdigest() == m[name + "_sha256"]
+assert not (R / "dispatch-intent.json").exists()
+old = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "975129", "--format=JobIDRaw,State,Elapsed,ExitCode"],
+    text=True,
+)
+rows = [row.split("|")[:4] for row in old.splitlines() if row.startswith("975129|")]
+assert (
+    len(rows) == 1 and rows[0][1].startswith("CANCELLED") and rows[0][2:] == ["00:00:00", "0:0"]
+), "Old original must actually be cancelled without any work before a replacement"
+assert v["original_pending_held_zero_runtime_proof"]["GPU_job"] == "975129"
+include = json.loads(
+    Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json").read_text()
+)["include_path"]
+env = [
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+    "C_INCLUDE_PATH=" + include,
+    "CPLUS_INCLUDE_PATH=" + include,
+    "CUDA_CACHE_MAXSIZE=" + str(128 * 2**20),
+]
+for name in ("XDG_CACHE_HOME", "TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR", "CUDA_CACHE_PATH"):
+    env.append(name + "=" + str(R / "runtime-cache"))
+args = [
+    "sbatch",
+    "--parsable",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--nodes=1",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=24G",
+    "--time=12:00:00",
+    "--job-name=rsna-full-two-view-ranking-cached48",
+    "--chdir=" + str(R),
+    "--output=" + str(R / "GPU-stdout.private.log"),
+    "--error=" + str(R / "GPU-stderr.private.log"),
+    "--wrap=" + shlex.join(env + [sys.executable, "-B", str(R / "driver.py")]),
+]
+with (R / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "maximum_GPU_jobs": 1,
+            "original975129_cancelled_zero_runtime": rows[0],
+            "fixed_epochs_each": 3,
+            "updates_each": 1458,
+            "checkpoint_cap_bytes": 24 * 2**30,
+            "automatic_retry": False,
+        },
+        f,
+    )
+x = subprocess.run(args, capture_output=True, text=True)
+assert x.returncode == 0, "Reconcile uncertain exact dispatch; never repeat"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+result = {
+    "status": "actual_one_cached48_full_matched_comparison_submitted_after_original_zero_runtime_cancellation",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "GPU_job": job,
+    "source_git": v["source_git"],
+    "node": "evc48",
+    "original_GPU_cancelled_without_runtime": rows[0],
+    "same_accepted_numerical_modules_and_recipe": True,
+    "fitting_studies": 3887,
+    "epochs_each": 3,
+    "updates_each": 1458,
+    "objectives": ["pointwise", "teacher_rank"],
+    "bulk_pixel_model_or_runtime_transfers": 0,
+    "actual_new_GPU_progress_or_accuracy": False,
+    "automatic_retry": False,
+}
+(R / "submitted.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result), flush=True)

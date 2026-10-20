@@ -1,0 +1,121 @@
+"""One prepare or submit phase of a cached-node move; no duplicate GPU or data."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-cached48-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("prepare", "submit")
+pointer = D / "actual-control-source.json"
+if pointer.exists():
+    pin = json.loads(pointer.read_text())["source_git"]
+else:
+    assert phase == "prepare"
+    pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    with pointer.open("x") as f:
+        json.dump({"source_git": pin, "original_GPU": "975129", "new_GPU_not_dispatched": True}, f)
+for name in ("port.py.txt", "submit.py.txt", "coordinate_once.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+assert not (L / (phase + "-intent.json")).exists(), "Reconcile original phase; no automatic retry"
+loader = importlib.machinery.SourceFileLoader("exact_cached_host_port", str(D / "port.py.txt"))
+port = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+loader.exec_module(port)
+old = R / "initiative/research/teacher-pair-full-fitting45-20261020-v1"
+original = {
+    name: (old / (name + ".txt")).read_text() for name in ("worker.py", "driver.py", "stage.py")
+}
+files = {name: port.build(name, text) for name, text in original.items()}
+actual = json.loads((L / "read-only-result.json").read_text())
+assert actual["node"] == "evc48" and not actual["module_absent"] and not actual["module_mismatches"]
+assert all(actual["exact_existing_roots"].values()) and actual["new_GPU_or_file_mutations"] == 0
+binding = json.loads((L / "original45-staged.json").read_text())
+receipt = json.loads(
+    (
+        R
+        / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-normal-continuation-terminal.json"
+    ).read_text()
+)
+raw = json.dumps(receipt["receipt"], indent=2) + "\n"
+assert hashlib.sha256(raw.encode()).hexdigest() == receipt["receipt_sha256"]
+v = {
+    "source_git": pin,
+    "files": {n: files[n] for n in ("worker.py", "driver.py")},
+    "accepted_recovery_raw": raw,
+    "accepted_module_sha256": binding["accepted_module_sha256"],
+    "original_files": actual["original_copy_files"],
+}
+if phase == "submit":
+    assert (D / "actual-prepared.json").exists()
+    v["original_pending_held_zero_runtime_proof"] = json.loads(
+        (D / "actual-original-pending-held.json").read_text()
+    )
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+with (L / (phase + "-intent.json")).open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "phase": phase,
+            "maximum_new_GPU_jobs": int(phase == "submit"),
+            "maximum_new_bulk_transfers": 0,
+            "automatic_retry": False,
+        },
+        f,
+    )
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:05:00",
+    "--time-min=00:02:00",
+    "--job-name=rsna-cached48-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(
+        files["stage.py"] if phase == "prepare" else (D / "submit.py.txt").read_text(), v
+    ),
+    capture_output=True,
+    text=True,
+    timeout=1200,
+)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect original phase outputs/Slurm state; never repeat automatically"
+z = json.loads(x.stdout)
+(D / ("actual-prepared.json" if phase == "prepare" else "actual-submitted.json")).write_text(
+    json.dumps(z, indent=2) + "\n"
+)
+print(json.dumps(z), flush=True)
