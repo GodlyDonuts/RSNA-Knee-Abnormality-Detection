@@ -1,5 +1,53 @@
 # Parallel execution option: move C0 to a second ordinary H100 node
 
+## Current decision — October 20, 12:54 UTC
+
+**Keep the active full-fitting v2 owner 68792 unchanged.** Its frozen source is
+`44cc559e947560a635c34fee7b1f2a3b7be3a241`; after complete input admission it
+submits B, C and C0 to evc33. The root agent's fresh read-only scheduler check at
+12:54 UTC found evc27, evc33 and evc48 each configured with two H100s and both
+GPUs allocated. Our teacher has finished, but evc48 is still fully allocated.
+There is therefore no observed free third GPU on the existing asset/runtime
+nodes. This is a capacity observation, not a future queue guarantee.
+
+The current owner has no C0 handoff flag or independent claim mechanism:
+`owner.py` proceeds directly from admission to dispatch, and
+`owner_remote.py.txt` admits, submits, observes and publishes all three arms
+on evc33. A second C0 controller would risk duplicate fitting. The previously
+discussed handoff is not an executable option in the current checkout.
+Changing only a Slurm node would also fail: the context paths/stat bindings,
+parent/runtime admission and preparation receipt belong to evc33.
+
+A future handoff is justified only if the completion forecast threatens final
+qualification and a destination offers a useful allocation. Before any current
+admission/dispatch intent, stop only the idle local fitting owner, reconcile
+its local journal and remote state, then give an explicit successor exclusive
+B/C ownership on evc33 and C0 ownership on the destination. Leave the healthy
+raw/context producers running. If a dispatch intent already exists, reconcile
+that actual submission first; an additional C0 launch is not a workaround.
+
+After the complete 3,887-study cache is accepted, the destination needs only
+the immutable context NPZs and small target/source/provenance files. The
+historical projection is approximately 68.1 GB, bounded by 96 GiB; it does not
+need the original DICOM collection or raw cache. Preserve content hashes,
+fitting order, mixed original/corrected renderer provenance and the actual
+alias-regression receipt, while rebinding destination paths and stat proofs.
+Admit the exact runtime, parent and common initial tensor hash there, and fund
+96 GiB of context, 12 GiB of C0 snapshots/publication, controls and the 20 GiB
+free-space floor after other liabilities. The worker's numerical recipe can
+remain unchanged; destination admission and ownership controls cannot.
+
+The estimated benefit remains one approximately 5.3-hour training wave.
+Transfer, destination admission and queue delay must together be materially
+less than that. At the last retained recovery observation, raw and context
+were both at 528/3,887, so unfinished input production remains the common
+critical path; moving C0 does not accelerate it. Training estimates come from
+a small engineering cohort, and each arm's actual wall cap is eight hours.
+Use actual production progress to revisit the forecast rather than spending
+the present input-preparation window on an unallocated third-GPU migration.
+
+## Historical option and measurements
+
 Read-only scheduler observation: **2026-10-20 11:27 UTC**. No allocations,
 transfers, dispatches or controller changes were made. Existing owner **59538**
 remains active and owns all three arms.

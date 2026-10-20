@@ -25,6 +25,14 @@ def admitted():
         actual_pointwise_qualification_receipt_sha256="a" * 64,
         qualification_cap_seconds=500,
         public_watchdog_seconds=100,
+        public_VM_setup_reserve_seconds=25,
+        public_setup_evidence=dict(
+            actual_pointwise_public_receipt_sha256="b" * 64,
+            actual_pointwise_final_quota_receipt_sha256="c" * 64,
+            charged_VM_seconds=40,
+            public_receipt_elapsed_seconds=20,
+            observed_setup_seconds=20,
+        ),
     )
     text = json.dumps(decision)
     config["runtime_plan"].update(
@@ -32,6 +40,7 @@ def admitted():
         actual_same_graph_timing_receipt_sha256=hashlib.sha256(text.encode()).hexdigest(),
         qualification_cap_seconds=500,
         public_watchdog_seconds=100,
+        public_VM_setup_reserve_seconds=25,
     )
     return config, text
 
@@ -105,12 +114,12 @@ def test_reviewed_caps_match_timer_request_and_fresh_budget(admitted):
     exec(generated(admitted)["policy.py"], p.__dict__)
     p.PLAN = config["runtime_plan"]
     result = p.budget(
-        dict(totalTimeAllowed="3600s", timeUsed="0s", timeReserved="0s"),
+        dict(totalTimeAllowed="3625s", timeUsed="0s", timeReserved="0s"),
         3,
         "qualification",
         latest_training_epoch=3,
     )
-    assert result["available"] and result["required_VM_seconds"] == 3600
+    assert result["available"] and result["required_VM_seconds"] == 3625
     assert (
         result["session_timeout_seconds"] == 500
         and result["public_example_watchdog_seconds"] == 100
@@ -330,3 +339,68 @@ def test_both_metadata_404s_wait_then_eventual_ready_verifies_without_create(tmp
         verification_calls == [1]
         and (tmp_path / "dataset-intent.json").read_bytes() == original_intent
     )
+
+
+@pytest.mark.parametrize("mode,required", [("qualification", 3625), ("competition", 3125)])
+def test_public_startup_is_funded_separately_at_actual_threshold(admitted, mode, required):
+    policy = types.ModuleType("synthetic_startup_budget")
+    exec(generated(admitted)["policy.py"], policy.__dict__)
+    policy.PLAN = admitted[0]["runtime_plan"]
+    for free, allowed in [(required, True), (required - 0.001, False)]:
+        result = policy.budget(
+            dict(totalTimeAllowed=str(free) + "s", timeUsed="0s", timeReserved="0s"),
+            3,
+            mode,
+            latest_training_epoch=3,
+        )
+        assert result["available"] is allowed
+        assert result["required_VM_seconds"] == required
+        assert result["public_VM_setup_reserve_seconds"] == 25
+        assert result["public_example_watchdog_seconds"] == 100
+        assert result["predictive_reserved_VM_seconds"] == 3000
+
+
+@pytest.mark.parametrize("reserve", [None, -1, float("inf"), float("nan"), True, 19])
+def test_setup_reserve_must_be_finite_and_cover_actual_observed_charge(admitted, reserve):
+    config, text = admitted
+    decision = json.loads(text)
+    decision["public_VM_setup_reserve_seconds"] = reserve
+    text = json.dumps(decision)
+    config["runtime_plan"].update(
+        public_VM_setup_reserve_seconds=reserve,
+        actual_same_graph_timing_receipt_sha256=hashlib.sha256(text.encode()).hexdigest(),
+    )
+    with pytest.raises(AssertionError):
+        runner._delta.accepted(config, text)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "mismatched_reserve",
+        "missing_final_quota",
+        "false_difference",
+        "nonfinite_charge",
+        "negative_elapsed",
+    ],
+)
+def test_setup_decision_and_evidence_must_match(admitted, mutation):
+    config, text = admitted
+    decision = json.loads(text)
+    evidence = decision["public_setup_evidence"]
+    if mutation == "mismatched_reserve":
+        decision["public_VM_setup_reserve_seconds"] = 26
+    elif mutation == "missing_final_quota":
+        evidence["actual_pointwise_final_quota_receipt_sha256"] = None
+    elif mutation == "false_difference":
+        evidence["observed_setup_seconds"] = 0
+    elif mutation == "nonfinite_charge":
+        evidence["charged_VM_seconds"] = float("inf")
+    else:
+        evidence["public_receipt_elapsed_seconds"] = -1
+    text = json.dumps(decision)
+    config["runtime_plan"]["actual_same_graph_timing_receipt_sha256"] = hashlib.sha256(
+        text.encode()
+    ).hexdigest()
+    with pytest.raises(AssertionError):
+        runner._delta.accepted(config, text)

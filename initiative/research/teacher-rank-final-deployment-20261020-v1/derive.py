@@ -3,6 +3,7 @@
 import ast
 import hashlib
 import json
+import math
 import subprocess
 
 PARENT = "01cbe205080487b3fb39fbf7c0d28e112fcd7d77"
@@ -50,6 +51,27 @@ def accepted(config, decision_text):
     assert (
         type(plan["public_watchdog_seconds"]) is int and 0 < plan["public_watchdog_seconds"] <= 300
     )
+    setup = plan["public_VM_setup_reserve_seconds"]
+    assert type(setup) in (int, float) and math.isfinite(setup) and setup >= 0
+    assert decision["public_VM_setup_reserve_seconds"] == setup
+    evidence = decision["public_setup_evidence"]
+    for key in (
+        "actual_pointwise_public_receipt_sha256",
+        "actual_pointwise_final_quota_receipt_sha256",
+    ):
+        value = evidence[key]
+        assert (
+            isinstance(value, str)
+            and len(value) == 64
+            and all(c in "0123456789abcdef" for c in value)
+        )
+    charge, elapsed = evidence["charged_VM_seconds"], evidence["public_receipt_elapsed_seconds"]
+    assert all(
+        type(value) in (int, float) and math.isfinite(value) and value >= 0
+        for value in (charge, elapsed)
+    )
+    assert evidence["observed_setup_seconds"] == max(0, charge - elapsed)
+    assert setup >= evidence["observed_setup_seconds"], "Reserve must cover observed startup charge"
     assert plan["predictive_reserved_VM_seconds"] >= 3000
     assert plan["same32_case_checks_and_inference_unchanged"] is True
     return plan
@@ -170,6 +192,20 @@ def sources(parent, config, decision_text):
         policy,
         "public_example_watchdog_seconds=300",
         "public_example_watchdog_seconds=" + str(public),
+    )
+    policy = replace(
+        policy,
+        '    required = PLAN["predictive_reserved_VM_seconds"] + PLAN["public_watchdog_seconds"]',
+        '    setup = PLAN["public_VM_setup_reserve_seconds"]\n'
+        "    if type(setup) not in (int, float) or not math.isfinite(setup) or setup < 0 or setup != "
+        + repr(plan["public_VM_setup_reserve_seconds"])
+        + ':\n        raise ValueError("Exact finite accepted public setup reserve required")\n'
+        '    required = PLAN["predictive_reserved_VM_seconds"] + PLAN["public_watchdog_seconds"] + setup',
+    )
+    policy = replace(
+        policy,
+        "        required_VM_seconds=required,",
+        "        required_VM_seconds=required,\n        public_VM_setup_reserve_seconds=setup,",
     )
     result = {
         n + ".py": parent["scripts/kaggle/" + n + ".py"]
