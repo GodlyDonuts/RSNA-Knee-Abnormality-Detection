@@ -1,6 +1,16 @@
 # RSNA Knee: current agent guide
 
-Updated October19,2026,23:45UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then original receipts. Live state supersedes snapshots; earlier guides remain in Git history.
+Updated October20,2026,00:21UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then original receipts. Live state supersedes snapshots; earlier guides remain in Git history.
+
+
+## October20 live ownership and new ranking evidence
+
+Full changed-target E1 kernel139699006v1 remains RUNNING at the latest authenticated observation; original read-only observer702 and full-route owner1613 are both actually live. Owner1613/source5fd1ae3ff4004df6136bc98593008f4e4dd6eece now preserves each actual completed epoch, then continues E2/E3 with exact optimizer/RNG state. It permits at most two new GPU epoch versions and three distinct private epoch publications, no automatic mutation retry or competition entries. Earlier text saying no continuation exists is superseded. Seven live controls are frozen while this owner lives: prepare_once.py.txt,prepare.py.txt,run_phase.py.txt,cloud.py.txt,publish_once.py.txt,publish_epoch.py.txt,epoch_check.py.txt. Do not format/edit these as part of separate serving work.
+
+Separate original H100 gradient scout973601 actually COMPLETED0:0 in48seconds. Full73M/486tensors, eight fitting studies/two plain-mirrored views: all gradients finite, original BN buffers and forward RNG unchanged. Joint pointwise gradients matched sequential relativeL2 4.72e-9; teacher ranking changed the gradient (cosine0.6983), peak5.27GB. This is no optimizer/accuracy result or replicated throughput claim. Its original owner submitted recovery974412 ONCE, last PENDING Priority/zero runtime; same job TimeMin set15minutes for backfill while original maximum60minutes/source/config remain unchanged. Do not duplicate either job. Original receipts are in teacher-pair-admitted48-fallback-20261019-v1 and teacher-pair-real-recovery48-20261019-v2.
+
+Separate serving_compile/serving_validate now bind the actual twoT4 complete-target provenance and reuse the original qualified full94 inference math. Serving preparation requires the actual private epoch publication before compilation and makes no GPU/API mutation. Thirteen scoped synthetic source/state/adverse tests pass; no actual new-weight T4 inference acceptance or accuracy gain is claimed. The helpers are prepared, not yet executed against an actual completed epoch. The E1/E2/E3 checkpoint publisher and continuation are already active; preserve first, then compile and qualify the actual new weights. No changed epoch has finished yet at this update.
+
 
 ## Results and boundaries
 

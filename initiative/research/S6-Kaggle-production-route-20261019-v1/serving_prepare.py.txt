@@ -1,0 +1,104 @@
+"""Compile actual privately verified twoT4 target epochs; no API/GPU mutation."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+epoch = v["epoch"]
+assert type(epoch) is int and 1 <= epoch <= 3
+D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+E = D / ("epoch-" + str(epoch))
+# Check readiness before any intent or directory creation.
+a = json.loads((E / "actual-accepted.json").read_text())
+pub = json.loads((E / "publication-private-verified.json").read_text())
+assert a["status"] == "COMPLETE" and a["epoch"] == epoch and pub["epoch"] == epoch
+assert pub["model_sha256"] == a["receipt"]["epoch"]["sha256"]
+assert (
+    pub["status"]
+    == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+)
+output = E / "serving-v1"
+assert not output.exists(), "Reconcile original compilation; never duplicate"
+assert (
+    sum(p.stat().st_size for p in D.rglob("*") if p.is_file() and not p.is_symlink()) + 2**20
+    < 8 * 2**20
+)
+assert shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + 32 * 2**20
+assert sum(len(s.encode()) for s in v["source"].values()) < 128 * 2**10
+assert v["source_SHA"] == {
+    n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["source"].items()
+}
+parent = Path(
+    "/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py"
+).read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+output.mkdir(mode=0o700)
+(output / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "epoch": epoch,
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_SHA": v["source_SHA"],
+            "automatic_retry": False,
+        }
+    )
+)
+for name, source in v["source"].items():
+    assert "/" not in name and name.endswith(".py")
+    (output / name).write_text(source)
+s = importlib.util.spec_from_file_location(
+    "actual_complete_target_serving_compiler", output / "compiler.py"
+)
+c = importlib.util.module_from_spec(s)
+s.loader.exec_module(c)
+outputs = {}
+for mode in ("qualification", "competition"):
+    source, meta = c.build(
+        parent,
+        v["source"]["bounded.py"],
+        v["source"]["validate.py"],
+        v["source"]["codec.py"],
+        v["source"]["mixin.py"],
+        v["source"]["importance.py"],
+        a,
+        pub,
+        mode=mode,
+        legacy_source=v["source"]["legacy.py"],
+    )
+    assert (
+        meta["training_world_size"] == 2 and meta["actual_new_weight_T4_serving_accepted"] is False
+    )
+    compile(source, "actual_complete_target_" + mode, "exec")
+    p = output / (mode + ".private.py")
+    p.write_text(source)
+    outputs[mode] = {
+        "bytes": p.stat().st_size,
+        "sha256": hashlib.sha256(source.encode()).hexdigest(),
+    }
+    (output / (mode + "-compiled.json")).write_text(json.dumps(meta, sort_keys=True))
+result = {
+    "status": "actual_privately_preserved_complete_target_twoT4_epoch_serving_sources_compiled",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "epoch": epoch,
+    "model_sha256": pub["model_sha256"],
+    "training_kernel_id": a["kernel_id"],
+    "training_version": a["version"],
+    "outputs": outputs,
+    "actual_T4_serving_accepted": False,
+    "new_GPU_Dataset_or_competition_mutations": 0,
+    "automatic_retry": False,
+}
+(output / "compiled.json").write_text(json.dumps(result, sort_keys=True) + "\n")
+print(json.dumps(result), flush=True)

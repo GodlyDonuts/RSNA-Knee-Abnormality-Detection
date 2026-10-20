@@ -1,0 +1,109 @@
+"""One owning-node CPU compilation after actual original twoT4 acceptance."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+epoch = int(sys.argv[1])
+assert 1 <= epoch <= 3
+L.mkdir(exist_ok=True)
+intent = L / ("serving-prepare-" + str(epoch) + "-intent.json")
+assert not intent.exists(), "Existing actual preparation must be reconciled"
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in ("serving_prepare.py.txt", "serving_prepare_once.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+paths = {
+    "compiler.py": D / "serving_compile.py.txt",
+    "validate.py": D / "serving_validate.py.txt",
+    "legacy.py": R / "scripts/kaggle/licensed_importance_serving.py",
+    "bounded.py": R / "rsna/competitive/bounded_preparation.py",
+    "codec.py": R / "rsna/competitive/licensed_pixel_cache.py",
+    "mixin.py": R / "rsna/competitive/licensed_full_bag.py",
+    "importance.py": R / "rsna/competitive/licensed_importance.py",
+}
+sources = {n: p.read_text() for n, p in paths.items()}
+for n, p in paths.items():
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()]
+    )
+# Require the actual local preservation receipt before a once-only CPU intent.
+pub = json.loads((D / ("actual-private-verified-epoch-" + str(epoch) + ".json")).read_text())
+assert (
+    pub["epoch"] == epoch
+    and pub["status"]
+    == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+)
+with intent.open("x") as f:
+    json.dump(
+        {
+            "source_git": git,
+            "epoch": epoch,
+            "source_sha256": hashlib.sha256(
+                (D / "serving_prepare.py.txt").read_bytes()
+            ).hexdigest(),
+            "automatic_retry": False,
+            "GPU_mutations": 0,
+        },
+        f,
+    )
+s = importlib.util.spec_from_file_location(
+    "t", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=3G",
+    "--time=00:08:00",
+    "--job-name=rsna-S6-target-serving-compile-" + str(epoch),
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope(
+        (D / "serving_prepare.py.txt").read_text(),
+        {
+            "epoch": epoch,
+            "source_git": git,
+            "source": sources,
+            "source_SHA": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()},
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / ("serving-prepare-" + str(epoch) + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile the original intent and CPU state, never repeat blindly"
+z = json.loads(x.stdout)
+(D / ("actual-serving-compiled-epoch-" + str(epoch) + ".json")).write_text(
+    json.dumps(z, indent=2) + "\n"
+)
+print(json.dumps(z), flush=True)

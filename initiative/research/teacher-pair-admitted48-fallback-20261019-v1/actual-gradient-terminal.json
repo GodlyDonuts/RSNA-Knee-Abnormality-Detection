@@ -1,0 +1,130 @@
+{
+  "GPU_job": "973601",
+  "CPU_observer_job": "974409",
+  "source_git": "6816901fd10de30e2a893cd8b18be797884c2f89",
+  "actual_Slurm_terminal": [
+    "973601",
+    "COMPLETED",
+    "0:0",
+    "00:00:48"
+  ],
+  "status": "actual_gradient_probe_terminal_observed",
+  "automatic_retry": false,
+  "private_logs_models_and_pixels_not_exported": true,
+  "receipt": {
+    "status": "actual_full_encoder_paired_view_teacher_ranking_gradient_memory_probe_passed",
+    "GPU_job": "973601",
+    "source_git": "6816901fd10de30e2a893cd8b18be797884c2f89",
+    "device": "NVIDIA H100 PCIe",
+    "total_device_bytes": 85017624576,
+    "trainable_parameters": 73136096,
+    "state_tensors": 486,
+    "fitting_studies": 8,
+    "views_per_study": 2,
+    "windows_per_view": 16,
+    "target_source": "original_complete_parent_only_not_partial_S6",
+    "all_parameter_gradients_present_finite": true,
+    "all_original_BN_buffers_and_parameter_versions_unchanged": true,
+    "same_forward_end_all_RNG_states": true,
+    "results": {
+      "sequential_pointwise": {
+        "loss": 0.55297208763659,
+        "forward_backward_and_input_seconds": 13.750290362979285,
+        "peak_allocated_bytes": 4971186688,
+        "gradient_comparison": {
+          "all": {
+            "reference_squared_norm": 4.274478734429816,
+            "current_squared_norm": 4.274478734429816,
+            "squared_error": 0.0,
+            "relative_L2_error": 0.0,
+            "cosine": 1.0
+          },
+          "encoder": {
+            "reference_squared_norm": 4.266942574515255,
+            "current_squared_norm": 4.266942574515255,
+            "squared_error": 0.0,
+            "relative_L2_error": 0.0,
+            "cosine": 1.0
+          },
+          "head": {
+            "reference_squared_norm": 0.007536159914558311,
+            "current_squared_norm": 0.007536159914558311,
+            "squared_error": 0.0,
+            "relative_L2_error": 0.0,
+            "cosine": 1.0
+          }
+        },
+        "studies": 8,
+        "anatomical_views": 16
+      },
+      "joint_pointwise": {
+        "loss": 0.5529720783233643,
+        "forward_backward_and_input_seconds": 9.169807858066633,
+        "peak_allocated_bytes": 5269219328,
+        "gradient_comparison": {
+          "all": {
+            "reference_squared_norm": 4.274478734429816,
+            "current_squared_norm": 4.274478734407242,
+            "squared_error": 9.53380330454311e-17,
+            "relative_L2_error": 4.722712555869518e-09,
+            "cosine": 1.0
+          },
+          "encoder": {
+            "reference_squared_norm": 4.266942574515255,
+            "current_squared_norm": 4.266942574492874,
+            "squared_error": 4.6086143487668674e-17,
+            "relative_L2_error": 3.2864481496342983e-09,
+            "cosine": 1.0000000000000002
+          },
+          "head": {
+            "reference_squared_norm": 0.007536159914558311,
+            "current_squared_norm": 0.0075361599143658866,
+            "squared_error": 4.9251889557762423e-17,
+            "relative_L2_error": 8.084187835194875e-08,
+            "cosine": 0.9999999999999969
+          }
+        },
+        "studies": 8,
+        "anatomical_views": 16,
+        "retained_image_input_bytes": 314572800
+      },
+      "joint_teacher_rank": {
+        "loss": 0.4253673851490021,
+        "forward_backward_and_input_seconds": 9.167955281911418,
+        "peak_allocated_bytes": 5269219328,
+        "gradient_comparison": {
+          "all": {
+            "reference_squared_norm": 4.274478734429816,
+            "current_squared_norm": 10.352248267398627,
+            "squared_error": 5.336498086442249,
+            "relative_L2_error": 1.1173432214428185,
+            "cosine": 0.6982926967905118
+          },
+          "encoder": {
+            "reference_squared_norm": 4.266942574515255,
+            "current_squared_norm": 10.342217568067852,
+            "squared_error": 5.332517161541008,
+            "relative_L2_error": 1.117912293051014,
+            "cosine": 0.6982253512605912
+          },
+          "head": {
+            "reference_squared_norm": 0.007536159914558311,
+            "current_squared_norm": 0.010030699330773662,
+            "squared_error": 0.003980924901239937,
+            "relative_L2_error": 0.7268033822921187,
+            "cosine": 0.7813018573637477
+          }
+        },
+        "studies": 8,
+        "anatomical_views": 16,
+        "retained_image_input_bytes": 314572800
+      }
+    },
+    "elapsed_seconds": 34.93425327492878,
+    "new_optimizer_updates_or_checkpoint_publications": 0,
+    "actual_GPU_trainer_recovery_or_full_training_admitted": false,
+    "clinical_or_competition_accuracy_claim": false,
+    "automatic_retry": false
+  },
+  "receipt_sha256": "1326eed87e457066882a58c88fcfc24f72670131d7db0eaa2026e792fa01ec41"
+}

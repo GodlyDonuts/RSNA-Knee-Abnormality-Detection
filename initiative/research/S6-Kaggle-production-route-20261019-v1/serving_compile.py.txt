@@ -1,0 +1,62 @@
+"""Keep the qualified original full94 inference; change only model provenance."""
+
+import hashlib
+
+LEGACY = "9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+PARENT_WEIGHT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+
+
+def sha(s):
+    return hashlib.sha256(s.encode()).hexdigest()
+
+
+def namespace(legacy, helper):
+    if sha(legacy) != LEGACY:
+        raise ValueError("Exact previously qualified inference compiler required")
+    h = {"__name__": "complete_target_twoT4_provenance"}
+    exec(compile(helper, "complete_target_twoT4_snapshot_validator", "exec"), h)
+    replacements = {
+        "from rsna.competitive.licensed_importance_serving import provenance": "",
+        "from scripts.kaggle.series_boundary_notebook import GUARD, PARENT_SOURCE_SHA256, WEIGHTS_SHA256": "",
+        'SERVING_SHA = "e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d"': "SERVING_SHA = "
+        + repr(sha(helper)),
+    }
+    for before, after in replacements.items():
+        if legacy.count(before) != 1:
+            raise ValueError("One original provenance/constant site required")
+        legacy = legacy.replace(before, after)
+    assert legacy.count("actual_matched_IID16_parent_epoch_") == 2
+    legacy = legacy.replace(
+        "actual_matched_IID16_parent_epoch_", "actual_complete_target_twoT4_epoch_"
+    )
+    n = {
+        "__name__": "same_full94_graph_new_complete_target_provenance",
+        "provenance": h["provenance"],
+        "GUARD": '\nif __name__ == "__main__":\n    main()',
+        "PARENT_SOURCE_SHA256": PARENT_SOURCE,
+        "WEIGHTS_SHA256": PARENT_WEIGHT,
+    }
+    exec(compile(legacy, "same_original_full94_inference_compiler", "exec"), n)
+    return n
+
+
+def build(
+    parent, bounded, helper, codec, mixin, importance, training, publication, *, mode, legacy_source
+):
+    # This role names changed supervision, not the unchanged influence sampler.
+    training = {**training, "role": "cross_lineage_equal_rank"}
+    source, meta = namespace(legacy_source, helper)["build"](
+        parent, bounded, helper, codec, mixin, importance, training, publication, mode=mode
+    )
+    return source, {
+        **meta,
+        "teacher_target_role": "cross_lineage_equal_rank",
+        "sampling_role": "influence",
+        "training_hardware": "twoT4",
+        "training_world_size": 2,
+        "original_full94_inference_math_unchanged": True,
+        "actual_new_weight_T4_serving_accepted": False,
+        "competition_entry": False,
+        "clinical_accuracy_claim": False,
+    }
