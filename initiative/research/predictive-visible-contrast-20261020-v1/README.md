@@ -206,3 +206,23 @@ and [live state](actual-learning-state.json) bind source
 tests and Ruff passed; these are engineering checks, not accuracy evidence.
 Read the original private root and exact job before further action; do not
 repeat this admission, transfer or submission. No new private HF mirror exists.
+
+
+## Equivalent geometry-only sampling optimization
+
+`rsna.competitive.predictive.visible_contrast_fast` is a separately invoked
+preparation helper. Sampling positions are determined by matrix dimensions,
+checkerboard parity and halo; the helper computes each geometry once and
+indexes only the same visible source samples. It retains the original
+quantile algorithm, sample order, floor, masks, metadata and renderer. It
+avoids constructing full masked studies merely to obtain sampling masks.
+Original input validation still rejects conflicting alias pixels. All live
+pilot and primary code remains frozen; no entrypoint automatically uses it.
+
+Five local tests cover odd/rectangular dimensions, mask parities, alias-only
+acquisitions, exact sample and complete tensor/support equality, hidden-pixel
+intervention and unchanged original functions/RNG. The new one-time CPU
+benchmark compares the twelve retained training cases in alternating order,
+with every original context/support field and scale required bitwise equal.
+It uses oneCPU/zeroGPU/12GiB for at most10minutes and writes no cluster files.
+Measured CPU or Kaggle acceleration is not established at this source snapshot.
