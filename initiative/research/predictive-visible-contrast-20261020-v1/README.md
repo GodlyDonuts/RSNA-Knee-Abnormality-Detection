@@ -60,3 +60,31 @@ separate one-time runner uses one CPU/zero GPUs,6GiB RAM and a ten-minute cap;
 actual runtime was under one minute. It writes no remote file and never
 reacquires source data. The interpolation-boundary regression shows that gray
 mask edges cannot inflate its pure-visible contrast statistic.
+
+## Separate visible-only contrast candidate
+
+`rsna.competitive.predictive.visible_contrast` implements a separate experiment.
+For each complementary mask independently, it estimates acquisition-specific
+1st/99th percentiles from at most4,096 deterministic visible positions per
+canonical frame. Alias copies receive no extra weight. The span floor0.01
+bounds amplification at100; hidden pixels are refilled with0.5 before rendering.
+Original64D targets and complete support priors remain unchanged. Original
+offset and log-span are appended to token/region metadata so the evidence
+predictor retains intensity-scale information.
+
+The matched control retains original images and exposes the same two new
+metadata coordinates. Both need a separately initialized10-coordinate graph;
+neither is compatible with an ordinary8-coordinate checkpoint. Existing
+B/C/C0, queued C100, cache workers and serving sources do not call this module.
+No variant has GPU training admission, a checkpoint or an accuracy result.
+
+`run_candidate_once.py`/`probe_candidate.py` prepare one original-input CPU
+experiment on exactly the same12 fitting cases, excluding four engineering
+cases. It compares exact unmasked contrast/clipping, requires unchanged
+targets/supports and original-control images, replays the prior aggregate
+measurement, and changes hidden pixels in one real fitting study to test
+input/scale invariance. It uses one CPU/zero GPUs/12GiB for at most10minutes,
+streams the candidate source through stdin, and writes no remote files.
+Local tests cover source intervention, aliases including alias-only
+acquisitions, constant images, target preservation and10-coordinate backward.
+At source preparation this actual CPU experiment has not been dispatched.
