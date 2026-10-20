@@ -17,7 +17,8 @@ from rsna.competitive.predictive.cache import normalized
 from rsna.competitive.predictive.cases import RawGroup, assemble
 from rsna.competitive.predictive.dicom import load_study
 
-STUDY = "1.2.826.0.1.3680043.10.999.1"
+# Synthetic fixture namespace, deliberately unlike the source cohort's UID root.
+STUDY = "2.25.202610200000000000000000000001"
 SERIES_A = STUDY + ".1"
 SERIES_B = STUDY + ".2"
 REPO = Path(__file__).resolve().parents[1]
