@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 03:46 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 03:45 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -89,3 +89,5 @@ Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21
 Full QA scope:5061passed/6skipped for the recorded base plus selected-reader bytes; later host-port/prefix9checks and finalizer2checks passed separately. Counts are engineering evidence, not accuracy.
 
 [Continuation](codex-continuation.md) records operational bindings. Earlier snapshots and original receipts remain in Git history.
+
+Latest preservation: source05b8b4b9 and35 distinct selected code/aggregate objects (154196bytes) privately mirrored under the canonical lock at **HFe81f2f23455a271a1ac7f34f5646e4a53e12ad36**, CPU976026. Every object independently re-downloaded/size/SHA verified; no models, MRI, reports, IDs, labels or private input signatures included. This is source/provenance preservation, not an accuracy result. Never repeat the zero-source-next prefix.

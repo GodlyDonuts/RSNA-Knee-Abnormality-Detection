@@ -1,6 +1,6 @@
 # RSNA Knee agent guide
 
-Updated October20,2026,03:46UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
+Updated October20,2026,03:45UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities
 
