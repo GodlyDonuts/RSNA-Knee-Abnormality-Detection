@@ -314,3 +314,32 @@ node. This is PREPARED ONLY: no CPU/GPU admission or dispatch, no extra funding
 claimed. Separate immutable wrapper/fresh quota/single-dispatch review required;
 never inject it into queued977100. This avoids treating synthetic perturbation
 results as behavior after actual learning. No new clinical gain established.
+
+
+### Mechanism limit: fidelity is not new supervision
+
+For binary cross-entropy distillation with fixed teacher probability p and
+student logit z, the logit derivative is sigmoid(z)-p. At the exact full-bag
+parent initialization with the same teacher, this derivative is zero. Therefore
+source-zero fitting does not itself supply new diagnostic information: it tests
+removal of source-loss conflict and the effects of the sampled training graph.
+Sampling/noise/backend differences can still change the result, so this is not a
+prediction of its Kaggle outcome or authority to cancel the original fit.
+Likewise lower cached-attention readout error would establish a numerical
+mechanism, not new clinical knowledge or an accuracy improvement. Any production
+claim still needs actual held-out evidence; an improvement beyond the parent
+needs a useful changed inductive bias and/or informative legitimate supervision,
+not simply more precise self-imitation.
+
+
+### New learned-drift source milestone privately verified
+
+CPU977157/source2836740c preserved15selected own-source/sanitized receipt objects,
+95,474bytes, atHF78940300ebefe20f866d4918fee5ac0d571e1469. Independent complete
+re-download/size/SHA verified under canonical lock; existing8MiB encoder controls
+and all cache/engineering/standing reserves preserved. No arrays, clinical
+records, weights or external bodies included. Prefix
+research-milestones/cached-attention-learned-drift-20261020-v1-2836740cff09.
+Never repeat that mirror or earlier encoder HFe94663ca. Snapshot includes the
+prepared oracle/worker and actual source-zero epoch1 verification/epoch2 dispatch;
+it is NOT actual learned-drift GPU execution,977100 acceptance or clinical gain.

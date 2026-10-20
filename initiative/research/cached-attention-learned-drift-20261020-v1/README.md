@@ -27,3 +27,19 @@ oracle bindings, fresh quota and all standing reserves, a separately reviewed
 single-dispatch coordinator, and a bounded one-H100/two-CPU scope on the original
 physical two-GPU owning node. Do not change the original queued recovery to add
 this work, repeat it, or reserve a GPU before prerequisites exist.
+
+
+### Mechanism limit: fidelity is not new supervision
+
+For binary cross-entropy distillation with fixed teacher probability p and
+student logit z, the logit derivative is sigmoid(z)-p. At the exact full-bag
+parent initialization with the same teacher, this derivative is zero. Therefore
+source-zero fitting does not itself supply new diagnostic information: it tests
+removal of source-loss conflict and the effects of the sampled training graph.
+Sampling/noise/backend differences can still change the result, so this is not a
+prediction of its Kaggle outcome or authority to cancel the original fit.
+Likewise lower cached-attention readout error would establish a numerical
+mechanism, not new clinical knowledge or an accuracy improvement. Any production
+claim still needs actual held-out evidence; an improvement beyond the parent
+needs a useful changed inductive bias and/or informative legitimate supervision,
+not simply more precise self-imitation.
