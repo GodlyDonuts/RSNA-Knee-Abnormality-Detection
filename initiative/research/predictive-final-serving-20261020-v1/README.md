@@ -79,8 +79,13 @@ Exact Dataset owner/slug references resolve only the flat or namespaced Kaggle
 mounts. No search walks the competition MRI tree to locate weights or `test.csv`.
 Both complementary contexts reuse descriptors computed once from the original
 pixels. Complete contexts, supports, priors and predictions are bitwise equal in
-the focused synthetic tests; the local CPU benchmark reduced preparation time
-from 0.535 to 0.374 seconds, not a measured Kaggle speedup. The compiler binds
+the focused synthetic tests. Actual retained-MRI CPU job **981081 COMPLETED 0:0**
+then compared all 16 original fitting engineering studies with two one-thread
+workers: paired rendering sums fell from 217.376 to 150.031 seconds (**1.449×**,
+about 31% less), with every complete input/support field bitwise equal. Peak RSS
+was 6.194 GB. This excludes DICOM decoding, model inference and Kaggle startup;
+it is not a hidden-runtime guarantee. [Actual retained-MRI measurement](../predictive-real-input-CPU-20261020-v1/actual-result.json).
+The earlier local synthetic benchmark measured 0.535 versus 0.374 seconds. The compiler binds
 both helper hashes and the model Dataset reference to the actual qualification.
 
 The exact public-example roster has a 600-second wall-clock watchdog before

@@ -18,3 +18,18 @@ original16 index. A durable exclusive local intent prevents repeating an uncerta
 dispatch. Only the aggregate terminal receipt goes into Git; raw inputs and private
 index/source metadata remain on their owning node. Source files for healthy jobs
 are not modified. This measurement does not replace trained T4 qualification.
+
+## Actual result
+
+CPU **981081 COMPLETED0:0**, October 20 15:19:21–15:22:59UTC. All 16 original
+studies passed complete bitwise equality. Paired per-study rendering sums were
+**217.376s original versus150.031s optimized**, a **1.4489× ratio / 30.98% reduction**.
+The full paired measurement, including cache loading and equality checks, took
+214.243seconds wall time with two workers. Peak process RSS was 6,193,881,088bytes.
+The maximum per-study render times were 34.101s and 27.545s respectively.
+
+[Original aggregate receipt](actual-result.json) binds source 2ed496a5, the frozen
+serving helper and original scientific module hashes. Slurm terminal is also
+retained in [the independent subsequent observation](../predictive-cache-http-recovery-20261020-v1/actual-followup-progress.json).
+Neither timing sum is the total pipeline wall time. This one alternated-order pass
+provides no clinical or Kaggle runtime result and causes no live source change.
