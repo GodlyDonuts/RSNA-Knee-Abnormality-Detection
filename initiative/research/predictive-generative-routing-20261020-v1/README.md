@@ -1,19 +1,17 @@
 # Conditional density learning without exam gradients through the evidence branch
 
-**Actually submitted October20 22:25UTC:** CPU986010 passed admission; matched
-GPU986011 was submitted once from source473a9a94 and is pending at22:26UTC.
-The original C10024-update pilot completed0:0 with exact recovery equality.
-Root reviewed its actual warnings and accepted only this bounded600-update
-comparison. See [decision](engineering-decision.accepted.json),
-[admission](actual-prepared.json), [dispatch](actual-submitted.json) and
-[live state](actual-current-state.json). Original B/C/C0, C100 and contrast
-sources/jobs remain unchanged. No full G100 training or accuracy result exists.
+**Actual result October20 23:52UTC:** originalGPU986011 COMPLETED0:0 in50:19.
+All600 updates and exact G100 full/stop/resume equality passed, but G100's
+final20 study-weighted fitting exam loss0.867789 was substantially worse than
+matched C1000.288520, with20.55× the gradient norm. Root **rejected this recipe
+for full training before the deadline**. This is a fitting optimization result,
+not clinical accuracy. [Exact result and decision](../predictive-matched-pilot-results-20261020-v1/README.md).
+No full G100 run or extra account allocation is admitted; originals remain.
 
 Private control/output: `/tmp/rsna-predictive-generative-routing-20261020-v1`.
 The original journal is `artifacts/predictive-generative-routing-20261020-v1`;
-do not repeat the admission or submission. On actual allocation inspect the
-original run-start and terminal receipt; observation loss never authorizes a
-restart. No observer was separately dispatched.
+do not repeat the admission or submission. The actual terminal has been collected once; do not rerun the collector or
+original pilot. Observation loss never authorizes a restart. No observer was separately dispatched.
 
 CPU 982819 measured the original C24 checkpoint on two fixed fitting cases. The
 diagnosis-specific density component's gradient on the shift head, after lambda = 0.1,
@@ -55,7 +53,7 @@ The current zero-initialized negative/shift heads would remain neutral and yield
 zero Bayes factors; other initializations would retain untrained heads. That
 would change the intended C0 control rather than test generative learning.
 
-The future comparison is C100 versus this routed C100, with the same inputs,
+The completed comparison used C100 versus this routed C100, with the same inputs,
 initialization, masks, supports, optimizer and update budget. Require matched
 numerical recovery and stability through peak learning rate before any full fit.
 At fixed final, assess actual conditional descriptor fit and predeclared target
@@ -104,7 +102,7 @@ existing descriptor-normalizer1MiB liability. Full C100 likewise reserves the
 independent G1006GiB+4MiB scope, without speculative paid-byte credit, so optional
 execution order cannot spend the other branch’s storage. These are conservative
 future obligations, not job authority. The two prepared optional routes passed123
-focused local tests and independent review. **The matched GPU job is submitted; no full G100 fit is admitted.** The current C100 pilot and primary B/C/C0 jobs are
+focused local tests and independent review. **The matched GPU job is completed and reviewed; full G100 is rejected for this deadline.** The current C100 pilot and primary B/C/C0 jobs are
 unchanged. There is no automatic promotion or claimed clinical improvement.
 
 The prospective G100 admission also retains the separately admitted contrast

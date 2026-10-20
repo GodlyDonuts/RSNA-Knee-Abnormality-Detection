@@ -1,6 +1,9 @@
 # Full-data generative-routing worker
 
-Prepared October 20; original matched pilot **986011 is now RUNNING**, with32 finite C100 updates observed at22:59UTC.
+Prepared October20; original matched pilot **986011 is now COMPLETED0:0**.
+Its current G100 recipe is **rejected for full training before the deadline**
+after substantially worse matched fitting loss and gradient behavior. See the
+[actual result and decision](../predictive-matched-pilot-results-20261020-v1/README.md).
 This adds the full 3,887-study/six-epoch G100 worker and its distinct epoch
 publisher. **No full G100 admission, funding, dispatch or model exists.**
 
@@ -29,14 +32,14 @@ fresh storage funding, the completed pilot and deadline review remain required
 before execution. The
 existing six-GiB **pilot** scope does not fund a twelve-GiB full run. Do not
 reuse C100's admission, output, checkpoint prefix or reserved capacity by
-assumption. Primary B/C/C0 and the live contrast experiment are unchanged.
+assumption. Primary B/C/C0 and the completed contrast experiment are unchanged.
 
 Local tests cover exact preservation of the original encoder/input/fit code,
 the full worker's real positional loss interface and gradients, distinct
 publication provenance, helper loading, and rejection of incomplete or stale
 pilot evidence. These are engineering checks, not actual GPU acceptance or
-accuracy evidence. The running/queued pilots and full input preparation remain
-the immediate execution priorities.
+accuracy evidence. The full input preparation and primary B/C/C0 comparison remain the
+immediate execution priorities. This prepared route remains unexecuted.
 
 ## Single coordinator
 
