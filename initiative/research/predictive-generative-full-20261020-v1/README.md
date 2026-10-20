@@ -1,6 +1,6 @@
 # Full-data generative-routing worker
 
-Prepared October 20 while original matched pilot **986011 is pending**.
+Prepared October 20; original matched pilot **986011 is now RUNNING**, with32 finite C100 updates observed at22:59UTC.
 This adds the full 3,887-study/six-epoch G100 worker and its distinct epoch
 publisher. **No full G100 admission, funding, dispatch or model exists.**
 
@@ -73,3 +73,18 @@ PENDING, complete portable inputs absent, and no full-G100 admission or
 dispatch. The check wrote no remote files and submitted no GPU jobs.
 [Exact status receipt](actual-status-read.json). It is operational connectivity
 evidence, not model acceptance.
+
+## Final inference path
+
+[serving.py](serving.py) derives a standalone G100-specific compiler/contract
+from pinned C100 serving code. It reuses the exact original MRI decoder,
+architecture, complete learned-state loading, two-T4 worker and precision/CSV
+checks. G100 changes training gradients only; no inference rewrite is needed.
+The contract requires the actual complete600-update matched pilot, six verified
+full-data epochs, exact gradient-routing provenance and its own trained T4
+qualification. Pilot checkpoints and C100 acceptance cannot substitute.
+
+Fourteen focused tests passed, covering original-worker and module preservation,
+standalone runtime execution, buffer loading, partial/changed pilot rejection,
+full-run identity and qualification mismatch. This is source readiness only;
+no actual G100 final, production notebook, account allocation or entry exists.

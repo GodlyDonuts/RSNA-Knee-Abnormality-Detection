@@ -304,3 +304,13 @@ read-only observer984879 failed because default Python3.6 does not support
 management Python and verified that original terminal. Neither observer
 loaded data/model bytes or wrote cluster files.
 [Original observations](actual-alternative-node-readonly.json).
+
+## Actual final result — October20 23:00UTC
+
+Original984784 COMPLETED0:0 with400 actual updates. Both roles remained finite
+through peakLR; final20 study-weighted exam losses were control0.283679 and
+normalized0.284710. Root deferred full contrast scale-up because this fitting
+pilot shows no consistent optimization advantage before the deadline, not
+because it establishes a clinical negative result. All original artifacts and
+reservations remain; no full contrast job or new cache has been admitted.
+See the [exact result and decision](../predictive-matched-pilot-results-20261020-v1/README.md).
