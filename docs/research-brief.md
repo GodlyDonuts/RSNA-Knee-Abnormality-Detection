@@ -1,7 +1,10 @@
-> **Current-state notice — October18:** The dated execution snapshots below are
-> historical. Use [current state](current-state.md) for the completed LR epoch2,
-> actual paired full fit, measured gradient result and stopped finding controller.
-> No new paired/LR accuracy gain has been measured.
+> **Current-state notice — October20,2026.** Actual best0.958 is an external R6
+> reproduction; own released-parent adaptations remain0.949. Cross-teacher final
+>57422143 scored0.949. Current source-zero and H100 ranking fits are running.
+> New cached-attention correction has CPU approximation evidence only, no trained
+>model or accuracy gain. Read [current state](current-state.md) and original new
+>receipts. Everything below is dated history, never live execution authority.
+
 
 # Research brief
 

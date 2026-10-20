@@ -105,3 +105,16 @@ clipping. It reads only the same existing fitting features/head. Another256KiB
 inside the same8MiB controls is admitted only after current paid controls plus
 2MiB original future headroom and all current20GiB/5000file reserves pass again.
 No GPU, optimizer, new MRI/feature transfer, source-label change or entry.
+
+
+Actual distinct CPU976828 completed the linear screen in1.042seconds; all
+predeclared levels and all12 targets passed. All-draw MSE ratios to original SNI
+were.001779 at.05,.027942 at.2 and.162722 at.5; worst target ratio at.5 was.260906.
+There were zero invalid target/draw outputs, and reference error stayed near
+floating-point rounding. These are synthetic-drift approximation metrics using
+real cached MRI feature inputs, NOT measured student drift, patient truth or
+accuracy. Source6dec668b; actual-CPU-linear-screen-v3.json preserves all levels/
+targets. The original ratio failure remains rejected, without changing its gate.
+Agent engineering decision accepts only a separately funded actual encoder
+protocol with matched mode, source/moments alignment, actual recovery and measured
+staleness. No new GPU training/production or entry has been dispatched for it.

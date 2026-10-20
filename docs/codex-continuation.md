@@ -204,3 +204,45 @@ no model, MRI, reports, IDs, private arrays or external bodies moved. Never repe
 this mirror or oldb50caa1a. Original33801/32102/27713 verified alive after this
 milestone; serving33801 waiting without intent, full source-zero first epoch
 still reportedRUNNING, H100975297 stillRUNNING. Goal remains active/unachieved.
+
+
+## October20 05:37UTC — actual source-zero optimization observed; new cached-attention mechanism
+
+Previous goal turn made actual deployment/controller/private preservation progress;
+this turn verified original32102/33801/27713 and975297 live before research. Goal
+still active/unachieved. Source-zero authenticated Kaggle Logs pagev1/
+script360284180 now actually shows >=213updates, finite loss0.54419657/gradient
+1.69508314, 8studies/16views/scale1024; monitor2130seconds. OriginalAPIexactsource
+bd680ac0/kernel139742882 binding unchanged. UI-only read, no edits/restarts.
+`actual-UI-finite-progress.json` preserves sanitized numeric evidence only.
+
+New `rsna/competitive/cached_attention_control.py` implements research-only cached
+moment-ratio and linearized full-attention corrections. Original current sampled
+attention, live optimizers/inference/source target modules unchanged. Twenty-four
+scoped numerical/old-sampling checks passed, including exhaustive expected full
+loss gradients at exact reference, explicit nonlinear ratio bias and negative
+normalizer refusal; synthetic checks not GPU acceptance.
+
+Original CPU976785 FAILED1:0/3seconds during old32MiB/headroom/historical607GB
+threshold checks, no experiment state. RO976787 proved all original modules exact,
+originalscreen directory absent. Distinct relocated CPU976806 used256KiB within
+current8MiB node33 controls, preserving2MiB original future headroom and20GiB/
+5000files; original BASE unchanged. Actual ratio screen on32fitting feature rows/
+128IID16draws/two views/12targets rejected2invaliddenominators atdrift.5. Keep failure.
+
+Distinct CPU976828 tested linearized correction, fixed samelevels0,.05,.2,.5,
+indices/draws/proposals/seed, no labels/protected reads, all draws included. It
+PASSED with MSE ratios.001779/.027942/.162722 and no invalid outputs. Original
+cached parent features/head on33 reused; no pixels/CNN/optimizer/transfer/entry.
+Private roots under `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/`:
+`cached-attention-control-screen-v2` and`cached-attention-linear-screen-v3`.
+Numerical source6dec668b; source/actual receipts/agentdecision in
+`initiative/research/cached-attention-control-20261020-v1`.
+
+Do not mistake this synthetic-drift proxy for actual encoder drift/accuracy or
+claim a breakthrough. Next accepted scope is separately funded real-encoder
+recovery/matched deterministic mode/reference-moment alignment/finite gradients
+and measured staleness; no newGPU production dispatched. Production975297,
+sourcezero139742882/32102 and finaleval33801 remain original, unchanged. New
+small cached-attention source/receipts have not yet been privately mirrored;
+old HF381ae720 mirror only covers selected source56747336. Do not repeat it.

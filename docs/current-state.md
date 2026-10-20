@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 05:18 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 05:37 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -64,10 +64,12 @@ never submit or restart them. Exact receipts and lineage:
 Private notebook **`godlydonuts/rsna-zero-full-e1-bd680ac064af` v1**, kernel
 **139742882**, sourceSHA
 `bd680ac064af9810e039633bf26b020c2219709a55989bb6053e379fcaf2e9c3`.
-Actual service status is RUNNING. The first live-log request returned HTTP404;
-no optimizer record was observed through that endpoint. That is observation
-loss, not a training failure or permission to restart. Do not claim measured
-optimizer progress or a completed epoch until actual logs/output prove it.
+Actual service status is RUNNING. The official API live-log request returned HTTP404, but read-only inspection of
+the authenticated Kaggle Logs tab now showed **at least213 optimizer updates**:
+loss0.5441966, gradient norm1.695083, two views/eight studies, epoch1, scale1024.
+The exact v1/script360284180 is bound by the original authenticated source receipt.
+No completed epoch or entire history is claimed. Original API observation loss
+was not a training failure or permission to restart.
 
 New models/publication scope is4GiB on evc48 plus2MiB controls,96KiB shared ledger
 allowance and zero permanent shared files. Existing liabilities and20GiB/
@@ -164,3 +166,32 @@ compilation intent; max30h/two serving GPU sessions/one final-only code entry.
 Never restart it. Original fitting32102 and H100 preservation27713 stay separate.
 All48 scoped compiler/provenance/account regression checks passed. This does not
 establish actual source-zero GPU qualification or clinical improvement.
+
+
+## New mechanism: cached full-context attention changes
+
+Instead of normalizing only over16 sampled windows, the research prototype uses
+cached full94 teacher attention/votes and estimates the student's change from
+that reference. This adapts control-variate and local linearization ideas to the
+existing MIL graph; it is not a claim that these ideas are newly invented.
+
+- Original ratio estimator **CPU976806 FAILED** its gate:2invalid denominators
+ at synthetic drift.5. It stays rejected despite lower conditional MSE.
+- Separate linearized version **CPU976828 PASSED** all predeclared levels and
+ all12targets on32cached fitting MRI feature records,128IID16draws/two views.
+ No clinical labels or actual model updates. All-draw approximation MSE ratios
+ to original SNI were **.001779/.027942/.162722** at synthetic drift.05/.2/.5;
+ no invalid outputs. This is neither clinical accuracy nor measured student drift.
+- The linearized estimator has exact-reference logits/expected first gradients,
+ but finite drift adds Taylor error. No random denominator, clipping or hidden
+ fallback. Actual dropout/precision/reference staleness after real learning remain
+ unaccepted. No live training or original inference was modified.
+- First original CPU976785 refused before numerical work due historical funding/
+ old control headroom. Read-only976787 proved no screen state. Distinct current
+ controls explicitly admitted256KiB within the existing8MiB on33 and preserved
+ another2MiB for original future fit/serving; no original deletion/funding credit.
+
+[Mechanism, primary papers, all negative/positive evidence and agent decision](../initiative/research/cached-attention-control-20261020-v1/README.md).
+Next is a separately funded actual-encoder diagnostic with matched deterministic
+mode, exact moment alignment, complete recovery and gradient/drift measurements;
+no full model/GPU dispatch or submission exists for this mechanism yet.
