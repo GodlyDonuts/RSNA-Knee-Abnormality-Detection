@@ -114,3 +114,40 @@ Updated October20,2026,04:30UTC. Read [current state](current-state.md) and orig
  node33B/mission-source-fast-input-v1 2MiB inside8MiB controls. Never repeat.
  Newly collected GPU/CPU terminalacceptances and H100pointwise1 receipt postdate
  that source snapshot; include in a distinct next private milestone, not sameprefix.
+
+
+## October20 05:08UTC — full source-zero dispatched; current state supersedes prior next-action snapshots
+
+- Prior turn answering which model scored0.957 supplied explanation only; no
+  goal-state change. This turn revalidated actual live handles975297,32102,
+  21960,27713 and authenticated Kaggle before further action. Goal stays active.
+- Original full source-zero **139742882v1 RUNNING**, slug
+  `godlydonuts/rsna-zero-full-e1-bd680ac064af`, sourcebd680ac064af9810e039633bf26b020c2219709a55989bb6053e379fcaf2e9c3,
+  science509db5b93aa32ce02d885df4b64107686a32c16b. Accepted engine14f4b234 and
+  worker78bd19ed unchanged. All3887/full73M/two views/effective8/threeepochs1458
+  updates, sourceweight0; original parent teacher/masks/proposals/order/LRs.
+- Full owner **32102**, source466a0a88/follower7671c4e9, max16hours/two laterGPU
+  sessions/zero competitionentries. Never restart. It independently privately
+  verifies each actual epoch before any nextresume and rechecks quota/capacity.
+- Newevc48 root `/tmp/rsna-source-zero-full-T4-20261020-v1`:4GiB models plus2MiB
+  controls,96KiB ledger,0newpermanentsharedfiles funded by976502. Publisher
+  cc38c0d8/checkerce6acf9e preserve exact73M/AdamW/RNG/scaler/counters/history/
+  accepted two-viewengine. Reference verifiedE3model supplies graph shapes/dtypes
+  only, not initialization. Old87+12+24GiB liabilities and20GiB/5000files retained.
+- Sourceevc33 root `.../S6-Kaggle-production-route-20261019-v1/source-zero-full-v1`
+  stores originalsource/pushproofs. FirstCPU976504 actuallystaged but outerwrapper
+  treatedSystemExit0asfailure; RO976536 proved existingbytes/noAPIintent. No
+  restaging. Exceptionwrapperfixeda6f71fc0; originalpayloadscienceunchanged.
+- Initial freeVMbudget20,442.6026641seconds;6000cap pernextfit plus3000final-only
+  servingreservation. Do not promise allfutureGPUVMsfunded. No paidcredits.
+- Official live-log observer976582 sawHTTP404 but actualkernelRUNNING; no optimizer
+  recordseen. This is observationloss, never failure/restartauthority.
+- Final cross-teacher qualification139739395/public6276abeb COMPLETE, exact
+  **entry57422143 accepted ONCE**; fresh authenticated05:07UTCoutcome still
+  nullstatus/nullscore. Owner21960 follows, no newpush/submission. Compiler25232
+  endednormally after actualE3privateverification25c8cada andservingcompilation.
+- H100975297 actuallyRUNNINGevc48 at05:05UTC/2:05elapsed; pointwise1privateverified
+ 87b7ef55. Sole27713 observespointwise2, then3 andrank1/2/3, neverrepeats1.
+- Current-state page rewritten to remove obsolete queued/not-dispatched sections;
+  original source/receipt/historical snapshots remain inGit history. This is
+  provenance repair, not anaccuracyresult. No newgain/goalcompletionclaimed.

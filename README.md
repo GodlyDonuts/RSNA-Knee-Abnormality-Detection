@@ -1,6 +1,6 @@
 # RSNA Knee Abnormality Detection
 
-**October 18, 2026: best verified Kaggle score is 0.958, from an attributed
+**October 20, 2026: best verified Kaggle score is 0.958, from an attributed
 external R6 ensemble reproduction. Target 0.97 is not achieved.** Current encoder
 adaptation uses a **73M CoAtNet**, with earlier DINOv3 research retained separately.
 
@@ -25,7 +25,20 @@ separate endpoints, not Kaggle scores or clinical validation. Released models
 can have upstream data/calibration exposure; head-level cross-fitting cannot
 make their complete encoders independent OOF models.
 
-## Latest completed original experiment
+## Active full-model work
+
+Three distinct experiments are moving: the fixed-final cross-teacher model has
+completed all1,458 updates and was submitted once as57422143 (hidden score still
+unknown); the matched pointwise/ranking comparison is training on H100975297;
+and full source-zero paired-view fitting is RUNNING on Kaggle139742882v1.
+Each fits all73Mparameters on3,887 MRI studies. The source-zero run uses an
+actual byte-equivalent selected-input path measured3.244× faster for CPU case
+loading; no GPU-throughput or accuracy improvement is inferred from that.
+The latest actual scores still show no original gain over the0.958 reproduction.
+See [current state](docs/current-state.md) for exact owners, private preservation
+and remaining work.
+
+## Completed spatial-reader experiment
 
 The new dense spatial reader completed both fixed3epoch/843update arms, with
 all six checkpoints privately preserved. It trained68,560reader parameters over
