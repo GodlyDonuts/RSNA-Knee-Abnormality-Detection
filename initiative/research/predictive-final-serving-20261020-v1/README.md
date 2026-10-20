@@ -91,6 +91,9 @@ The public CSV itself must never be uploaded as the competition submission.
 
 The runtime writes sanitized atomic progress at imports, model loading, every
 study preparation, every actual precision measurement and each completed model.
+The progress file retains only the latest 32 events and aggregate counters;
+complete events append once to `events.jsonl`. Logging therefore grows linearly
+with the test roster instead of rewriting an ever-growing history per study.
 Measurements are retained before acceptance assertions. Failed checks leave
 progress and no accepted receipt; there is no automatic retry or fallback.
 

@@ -6,6 +6,8 @@ import csv
 import importlib.util
 import json
 import os
+import threading
+from collections import Counter, deque
 from pathlib import Path
 
 import pytest
@@ -262,11 +264,16 @@ def test_competition_requires_exact_actual_trained_qualification(entries):
 
 
 def tiny_export():
-    encoder = torch.nn.Sequential(torch.nn.Flatten(), torch.nn.Linear(12, 4))
+    encoder = torch.nn.Sequential(
+        torch.nn.Flatten(), torch.nn.Linear(12, 4), torch.nn.BatchNorm1d(4)
+    )
     model = Predictive(encoder, 4, hidden=128)
     state = copy.deepcopy(model.state_dict())
     # Simulate actual learned parameters; loading must replace fresh initialization.
     state["shift.bias"].fill_(0.1)
+    state["encoder.2.running_mean"].fill_(0.25)
+    state["encoder.2.running_var"].fill_(1.5)
+    state["encoder.2.num_batches_tracked"].fill_(17)
     provenance = {
         "model_schema_sha256": c.digest(
             c.canonical(
@@ -284,6 +291,9 @@ def test_strict_learned_full_graph_load_replaces_all_tensors():
     model, chosen, export = tiny_export()
     c.validate_export(export, chosen, model)
     assert torch.equal(model.shift.bias, export["model"]["shift.bias"])
+    assert model.encoder[2].num_batches_tracked.item() == 17
+    assert torch.equal(model.encoder[2].running_mean, export["model"]["encoder.2.running_mean"])
+    assert torch.equal(model.encoder[2].running_var, export["model"]["encoder.2.running_var"])
     assert not model.training
 
 
@@ -365,10 +375,12 @@ def test_worker_preserves_original_fixed_encoder_and_two_context_graph():
             "initiative/research/predictive-T4-throughput-20261020-v2/benchmark.py.txt"
         ).read_text()
     )
+
     def find(t):
         return next(
             n for n in ast.walk(t) if isinstance(n, ast.ClassDef) and n.name == "FixedEncoder"
         )
+
     assert ast.dump(find(tree)) == ast.dump(find(probe))
     pools = [
         n
@@ -389,3 +401,45 @@ def test_worker_preserves_original_fixed_encoder_and_two_context_graph():
     assert (
         "load_state_dict" not in (D / "worker.py.txt").read_text()
     )  # Strict contract owns loading.
+
+
+def test_hidden_scale_progress_is_bounded_with_linear_append_history(tmp_path, monkeypatch):
+    tree = ast.parse((D / "worker.py.txt").read_text())
+    functions = [
+        n
+        for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name in ("atomic_json", "stage")
+    ]
+    namespace = dict(
+        Path=Path,
+        json=json,
+        os=os,
+        time=type("FixedClock", (), {"monotonic": staticmethod(lambda: 42.0)}),
+        START=0.0,
+        LOCK=threading.Lock(),
+        ROOT=tmp_path,
+        EVENTS=deque(maxlen=32),
+        EVENT_COUNTS=Counter(),
+        BINDING={"mode": "competition"},
+        print=lambda *a, **kw: None,
+    )
+    monkeypatch.setattr(os, "fsync", lambda fd: None)
+    exec(
+        compile(ast.Module(body=functions, type_ignores=[]), "bounded_progress", "exec"), namespace
+    )
+    write = namespace["stage"]
+    for index in range(200):
+        write("trained_study_measured", study_index=index)
+    original_size = (tmp_path / "events.jsonl").stat().st_size
+    for index in range(200, 400):
+        write("trained_study_measured", study_index=index)
+    progress = json.loads((tmp_path / "progress.json").read_text())
+    lines = (tmp_path / "events.jsonl").read_text().splitlines()
+    assert len(lines) == progress["total_events"] == 400
+    assert progress["event_counts"] == {"trained_study_measured": 400}
+    assert len(progress["latest_events"]) == 32
+    assert progress["latest_events"][-1]["study_index"] == 399
+    assert json.loads(lines[0])["study_index"] == 0
+    assert json.loads(lines[-1]) == progress["latest_events"][-1]
+    assert (tmp_path / "events.jsonl").stat().st_size < original_size * 2.1
+    assert (tmp_path / "progress.json").stat().st_size < 8192
