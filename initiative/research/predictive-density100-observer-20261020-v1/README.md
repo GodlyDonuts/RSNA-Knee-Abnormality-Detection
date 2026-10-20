@@ -1,10 +1,14 @@
 # Original C100 pilot terminal observer
 
-Prepared locally; **not started**. This finite read-only owner observes only original
-GPU job **981620**, source `068a14a7`, binding `e11c7c7f…`, on **evc27**.
-It neither relocates the pilot nor admits/promotes a full C100 run.
+**Started once at18:11:18 UTC**, PID **15130**, frozen observer source
+`2488a4086fc854af733c7accf84377ff69f9f6fc`. Actual18:11:25 readback
+confirms its exclusive intent, empty stderr, zero GPU allocations and original
+pilot **981620 PENDING**. [Actual start](actual-started.json); [live proof](actual-live.json).
+This finite read-only owner observes only that original job, source `068a14a7`,
+binding `e11c7c7f…`, on **evc27**. It neither relocates the pilot nor
+admits/promotes a full C100 run. No terminal result exists yet.
 
-After this directory is committed, the root agent may start once:
+The original launch used the following interface; **do not run it again**:
 
 ```bash
 python3 initiative/research/predictive-density100-observer-20261020-v1/observe.py \
