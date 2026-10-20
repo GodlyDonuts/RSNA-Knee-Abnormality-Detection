@@ -1,0 +1,365 @@
+# ruff: noqa: E402, F821
+"""Offline exact predictive MRI serving; final exports only, no training or fallback."""
+
+import ast
+import base64
+import contextlib
+import copy
+import csv
+import gc
+import hashlib
+import io
+import json
+import os
+import resource
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+FILES = __FILES_VALUE__
+PARENT_SOURCE = __PARENT_SOURCE_VALUE__
+PERMISSION = __PERMISSION_VALUE__
+BINDING = __BINDING_VALUE__
+START = time.monotonic()
+ROOT = Path("/kaggle/working/predictive-final-serving-v1")
+ROOT.mkdir(mode=0o700, exist_ok=False)
+os.umask(0o077)
+os.environ.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    OMP_NUM_THREADS="1",
+    MKL_NUM_THREADS="1",
+)
+LOCK = threading.Lock()
+EVENTS = []
+
+
+def atomic_json(path, value):
+    path = Path(path)
+    temp = path.with_name(path.name + ".tmp")
+    with temp.open("x") as handle:
+        handle.write(json.dumps(value, sort_keys=True, allow_nan=False) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temp, path)
+
+
+def stage(name, **metrics):
+    with LOCK:
+        event = {"stage": name, "elapsed_seconds": time.monotonic() - START, **metrics}
+        json.dumps(event, allow_nan=False)
+        EVENTS.append(event)
+        atomic_json(ROOT / "progress.json", {"events": EVENTS, "mode": BINDING["mode"]})
+        print(json.dumps(event, allow_nan=False), flush=True)
+
+
+def install_sources():
+    for name, text in FILES.items():
+        target = ROOT / "code" / name
+        assert target.resolve().is_relative_to((ROOT / "code").resolve())
+        assert hashlib.sha256(text.encode()).hexdigest() == BINDING["module_sha256"][name]
+        target.parent.mkdir(mode=0o700, exist_ok=True, parents=True)
+        target.write_text(text)
+    sys.path.insert(0, str(ROOT / "code"))
+
+
+def write_submission(path, uids, rows, contract):
+    """Write only a complete exact-roster table, then independently parse it."""
+    contract.check_predictions(uids, rows)
+    path = Path(path)
+    assert not path.exists()
+    temporary = path.with_name(path.name + ".tmp")
+    with temporary.open("x", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(contract.COLUMNS)
+        writer.writerows([uid, *map(float, row)] for uid, row in zip(uids, rows))
+        handle.flush()
+        os.fsync(handle.fileno())
+    with temporary.open(newline="") as handle:
+        csv_rows = list(csv.reader(handle))
+    assert csv_rows[0] == contract.COLUMNS and [r[0] for r in csv_rows[1:]] == uids
+    assert all(len(r) == 13 for r in csv_rows)
+    contract.check_predictions(uids, [[float(x) for x in r[1:]] for r in csv_rows[1:]])
+    os.replace(temporary, path)
+
+
+def main():
+    stage("started", mode=BINDING["mode"], models=len(BINDING["models"]))
+    install_sources()
+    import _predictive_serving_contract as contract
+    import numpy as np
+    import pydicom
+    import timm
+    import torch
+
+    from rsna.competitive.predictive.cases import assemble
+    from rsna.competitive.predictive.dicom import load_study
+    from rsna.competitive.predictive.infer import predict
+    from rsna.competitive.predictive.model import Predictive, ReconstructionControl
+
+    stage("imports_complete")
+    assert BINDING["mode"] in ("qualification", "competition")
+    assert torch.cuda.device_count() == 2
+    names = [torch.cuda.get_device_name(i) for i in range(2)]
+    assert all("T4" in name for name in names)
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    license_bytes = base64.b64decode(PERMISSION, validate=True)
+    assert hashlib.sha256(license_bytes).hexdigest() == contract.LICENSE
+    (ROOT / "source-permission.txt").write_bytes(license_bytes)
+    parent_text = base64.b64decode(PARENT_SOURCE, validate=True).decode()
+    assert hashlib.sha256(parent_text.encode()).hexdigest() == contract.PARENT_SOURCE
+    selected = [
+        n
+        for n in ast.parse(parent_text).body
+        if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+        and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+    ]
+    assert {n.name for n in selected} == {"build_backbone", "RaptorClassifier", "load_model"}
+    namespace = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+    exec(
+        compile(ast.Module(body=selected, type_ignores=[]), "attributed_original_encoder", "exec"),
+        namespace,
+    )
+    parent_paths = list(
+        Path("/kaggle/input").rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+    )
+    assert len(parent_paths) == 1 and parent_paths[0].stat().st_size == 292840787
+    with parent_paths[0].open("rb") as handle:
+        assert hashlib.file_digest(handle, "sha256").hexdigest() == contract.PARENT
+    with contextlib.redirect_stdout(io.StringIO()):
+        parent, resolution = namespace["load_model"](
+            str(parent_paths[0]), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+        )
+    assert resolution == 320 and sum(p.numel() for p in parent.parameters()) == 73136096
+
+    class FixedEncoder(torch.nn.Module):
+        def __init__(self, backbone):
+            super().__init__()
+            self.backbone = backbone
+            self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406])[None, :, None, None])
+            self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225])[None, :, None, None])
+
+        def forward(self, images):
+            return self.backbone((images - self.mean) / self.std)
+
+    rosters = [
+        p for p in Path("/kaggle/input").rglob("test.csv") if (p.parent / "test_series").is_dir()
+    ]
+    assert len(rosters) == 1
+    with rosters[0].open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames and "StudyInstanceUID" in reader.fieldnames
+        records = list(reader)
+    uids = [r["StudyInstanceUID"] for r in records]
+    assert uids and len(uids) == len(set(uids))
+    for uid in uids:
+        assert pydicom.uid.UID(uid).is_valid and len(uid) <= 64
+    if BINDING["mode"] == "qualification":
+        assert len(uids) == 3, "Qualification only uses the actual public example"
+    else:
+        assert len(BINDING["models"]) == 1
+        contract.validate_qualification(BINDING["qualification"], BINDING["models"][0])
+
+    def prepare(index):
+        begin = time.monotonic()
+        uid = uids[index]
+        groups, stats = load_study(rosters[0].parent / "test_series" / uid, uid)
+        decoded = time.monotonic()
+        contexts = assemble(groups, side=320, halo=8, context_cap=24, classes=12)
+        del groups
+        assert len(contexts) == 2 and sum(len(c["images"]) for c in contexts) <= 48
+        result = {
+            **stats,
+            "decode_seconds": decoded - begin,
+            "render_seconds": time.monotonic() - decoded,
+            "windows": sum(len(c["images"]) for c in contexts),
+            "regions": len(contexts[0]["targets"]),
+        }
+        stage("study_prepared", study_index=index, **result)
+        return contexts, result
+
+    # Qualification shares three immutable CPU contexts between sequential arms.
+    prepared = None
+    if BINDING["mode"] == "qualification":
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            prepared = list(pool.map(prepare, range(3)))
+    model_records = []
+    for chosen in BINDING["models"]:
+        arm = chosen["arm"]
+        begin = time.monotonic()
+        paths = list(Path("/kaggle/input").rglob(chosen["model_filename"]))
+        assert len(paths) == 1 and paths[0].stat().st_size == chosen["model"]["bytes"]
+        with paths[0].open("rb") as handle:
+            assert hashlib.file_digest(handle, "sha256").hexdigest() == chosen["model"]["sha256"]
+        export = torch.load(paths[0], map_location="cpu", weights_only=True)
+        cls = ReconstructionControl if arm == "B" else Predictive
+        base = cls(FixedEncoder(parent.backbone), parent.backbone.num_features, hidden=128)
+        base = contract.validate_export(export, chosen, base)
+        del export
+        models = [copy.deepcopy(base).to("cuda:" + str(i)).eval() for i in range(2)]
+        del base
+        gc.collect()
+        for device in range(2):
+            torch.cuda.synchronize(device)
+            torch.cuda.reset_peak_memory_stats(device)
+        stage(
+            "trained_model_loaded",
+            arm=arm,
+            model_load_seconds=time.monotonic() - begin,
+            model_sha256=chosen["model"]["sha256"],
+        )
+        rows = [None] * len(uids)
+        measures = []
+
+        def work(device):
+            torch.cuda.set_device(device)
+            local = []
+            # Each public case is checked on its assigned GPU; case0 additionally
+            # exercises device1, so both trained models are compared directly.
+            indices = list(range(device, len(uids), 2))
+            if prepared is not None and device == 1:
+                indices.append(0)
+            for index in indices:
+                contexts, input_stats = prepared[index] if prepared is not None else prepare(index)
+                began = time.monotonic()
+                low = predict(models[device], contexts, precision="fp16")
+                torch.cuda.synchronize(device)
+                fp16_seconds = time.monotonic() - began
+                values = low.cpu().numpy().astype("<f4")
+                contract.check_predictions([uids[index]], [values])
+                metric = {
+                    "device": device,
+                    "study_index": index,
+                    "FP16_seconds": fp16_seconds,
+                    **input_stats,
+                }
+                if prepared is not None:
+                    began = time.monotonic()
+                    reference = predict(models[device], contexts, precision="fp32")
+                    torch.cuda.synchronize(device)
+                    metric.update(
+                        FP32_seconds=time.monotonic() - began,
+                        maximum_probability_gap=float((reference - low).abs().max()),
+                    )
+                local.append((index, values, metric))
+                stage("trained_study_measured", arm=arm, **metric)
+                if prepared is None:
+                    del contexts
+            return local
+
+        inference_begin = time.monotonic()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(work, device) for device in range(2)]
+            results = [future.result() for future in futures]
+        cross = []
+        for device_results in results:
+            for index, values, metric in device_results:
+                if index == 0:
+                    cross.append(values)
+                if rows[index] is None:
+                    rows[index] = values
+                measures.append(metric)
+        contract.check_predictions(uids, rows)
+        inference_seconds = time.monotonic() - inference_begin
+        device_peak = [torch.cuda.max_memory_allocated(d) for d in range(2)]
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+        memory_ok = max(device_peak) < 13 * 2**30 and rss < 22 * 2**30
+        precision_ok = prepared is None or (
+            all(m["maximum_probability_gap"] <= 0.005 for m in measures)
+            and len(cross) == 2
+            and float(np.max(np.abs(cross[0] - cross[1]))) <= 0.0001
+        )
+        metric = {
+            "arm": arm,
+            "candidate_sha256": contract.digest(contract.canonical(chosen)),
+            "trained_export_sha256": chosen["model"]["sha256"],
+            "measurements": measures,
+            "FP16_FP32_tolerance": 0.005,
+            "cross_device_FP16_tolerance": 0.0001,
+            "cross_device_FP16_gap": float(np.max(np.abs(cross[0] - cross[1])))
+            if prepared is not None
+            else None,
+            "precision_accepted": bool(precision_ok),
+            "memory_accepted": bool(memory_ok),
+            "device_peak_bytes": device_peak,
+            "host_peak_bytes": rss,
+            "inference_wall_seconds": inference_seconds,
+            "prediction_sha256": hashlib.sha256(
+                np.asarray(rows, dtype="<f4").tobytes()
+            ).hexdigest(),
+        }
+        if prepared is not None:
+            per_study = [
+                m["decode_seconds"] + m["render_seconds"] + m["FP16_seconds"] for m in measures
+            ]
+            setup = time.monotonic() - START - inference_seconds
+            metric["illustrative_runtime_seconds"] = {
+                str(n): {
+                    "two_lane_mean_estimate": setup + n * float(np.mean(per_study)) / 2,
+                    "one_lane_max_times_1_5": setup + n * max(per_study) * 1.5,
+                }
+                for n in (1000, 3887, 5000)
+            }
+            metric["runtime_estimate_is_not_hidden_size_acceptance"] = True
+        model_records.append(metric)
+        atomic_json(ROOT / "trained-measurements.json", {"models": model_records})
+        stage(
+            "trained_model_measurements_saved",
+            arm=arm,
+            precision_accepted=bool(precision_ok),
+            memory_accepted=bool(memory_ok),
+        )
+        # Release actual trained GPU graphs before loading another arm.
+        models.clear()
+        del models
+        gc.collect()
+        for device in range(2):
+            with torch.cuda.device(device):
+                torch.cuda.empty_cache()
+        assert memory_ok and precision_ok, "Measured trained precision/memory did not qualify"
+        if BINDING["mode"] == "competition":
+            write_submission(Path("/kaggle/working/submission.csv"), uids, rows, contract)
+    receipt = {
+        "status": (
+            "actual_trained_predictive_public_T4_qualification_accepted"
+            if prepared is not None
+            else "actual_predictive_exact_test_roster_submission_created"
+        ),
+        "mode": BINDING["mode"],
+        "models": model_records,
+        "GPU_names": names,
+        "public_studies": len(uids) if prepared is not None else None,
+        "actual_test_studies": len(uids),
+        "test_roster_sha256": contract.digest(contract.canonical(uids)),
+        "torch": str(torch.__version__),
+        "timm": str(timm.__version__),
+        "pydicom": str(pydicom.__version__),
+        "pinned_Docker": contract.DOCKER,
+        "elapsed_seconds": time.monotonic() - START,
+        "serving_worker_sha256": BINDING["serving_worker_sha256"],
+        "serving_contract_sha256": BINDING["serving_contract_sha256"],
+        "hidden_runtime_acceptance": False,
+        "clinical_score": None,
+        "competition_entry": False,
+        "submission_csv_absent": not Path("/kaggle/working/submission.csv").exists(),
+    }
+    if prepared is None:
+        path = Path("/kaggle/working/submission.csv")
+        receipt.update(CSV_sha256=contract.digest(path.read_bytes()), CSV_bytes=path.stat().st_size)
+    atomic_json(Path("/kaggle/working/predictive-" + BINDING["mode"] + "-accepted.json"), receipt)
+    stage("completed", elapsed_seconds=receipt["elapsed_seconds"])
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except BaseException as error:
+        stage("failed", error_type=type(error).__name__)
+        raise SystemExit(1) from None
