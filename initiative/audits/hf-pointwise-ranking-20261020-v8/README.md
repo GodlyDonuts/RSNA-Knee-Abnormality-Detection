@@ -26,14 +26,14 @@ The latest shared reserve has only three unassigned inodes after the standing
 The existing canonical account transient envelope already reserves eight inodes.
 This mirror reuses four: account claim directory/owner plus the canonical HF lock
 directory/owner. It creates **zero permanent shared files and no additional shared
-byte reservation**. The standing byte obligation is 122 MiB.
+byte reservation**. The standing byte obligation is 123 MiB.
 
 The local preflight requires the actual pointwise continuation's completed or
 stopped receipt, its PID absent, and no matching live account owner/transport.
 This is necessary because the frozen healthy account owner checks its entire
 376-file future bound before looking at the claim; merely holding the claim can
 make it fail instead of wait. Root must serialize this mirror after that owner
-ends and before starting another account owner. The remote worker acquires the
+ends and before starting another account owner. Quiescence also recognizes the portable C0 deployment owner, the v4 handoff launcher in deployment mode, and their account transports. A fitting-only v4 launcher does not itself consume the account claim. The remote worker acquires the
 canonical account claim, then the unchanged pinned HF lock implementation with
 a bounded 30-second wait. Only four owned, distinct, current inodes may retire
 four entries from the future count: **376 → 372**, after these four are already
@@ -42,9 +42,8 @@ all remaining obligations. Stale claims or uncertainty require read-only review;
 no cleanup of another owner's locks or automatic retry is permitted.
 
 Only **4 MiB new node-local space** is reserved on evc33. Existing 62 GiB +594 MiB
-other liabilities, 4 GiB source scratch, unpaid portions of the 320-GiB raw and
-96-GiB context caps, and the 20-GiB node floor remain. Paid cache files are counted
-once by device/inode; no originals are deleted. Source/mirror journals/HF caches
+other liabilities, 6 GiB source scratch, unpaid portions of the 320-GiB raw and
+96-GiB context caps, and the 20-GiB node floor remain. Paid cache files include the distinct capacity-recovery raw/context roots and every original generation, counted once by device/inode; no originals are deleted. Source/mirror journals/HF caches
 stay node-local, and the one-CPU zero-GPU `srun` has no shared output files.
 
 After root freezes the source, `prepare.py --source-git <full-pin>` selects only

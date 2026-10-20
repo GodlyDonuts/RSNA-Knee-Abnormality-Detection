@@ -1,0 +1,55 @@
+{
+  "status": "conditional_deadline_projection_from_actual_engineering_and_cache_timing",
+  "calculated_at": "2026-10-20T14:38:36.964378+00:00",
+  "evidence": {
+    "diagnostic_receipt_sha256": "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82b10",
+    "cache_observation_sha256": "c908443eda02e6f37fe377e772d2f23f0c88b67d2cfd72d1c10ab3ea3e0875fa"
+  },
+  "head_only_optimizer_updates": 3,
+  "encoder_optimization_begins_update": 4,
+  "peak_LR_update": 146,
+  "arms": {
+    "B": {
+      "actual_diagnostic_exposures": 144,
+      "actual_diagnostic_fit_seconds": 120.32045745989308,
+      "planned_full_exposures": 23322,
+      "projected_full_fit_seconds": 19486.900756108516,
+      "projected_full_fit_hours": 5.413027987807921,
+      "actual_diagnostic_CPU_context_load_seconds": 29.591210970887914,
+      "eight_hour_slowdown_tolerance_fraction": 0.4779158759235804
+    },
+    "C": {
+      "actual_diagnostic_exposures": 144,
+      "actual_diagnostic_fit_seconds": 118.09963192709256,
+      "planned_full_exposures": 23322,
+      "projected_full_fit_seconds": 19127.21955419203,
+      "projected_full_fit_hours": 5.31311654283112,
+      "actual_diagnostic_CPU_context_load_seconds": 29.54367460042704,
+      "eight_hour_slowdown_tolerance_fraction": 0.5057076078623266
+    },
+    "C0": {
+      "actual_diagnostic_exposures": 144,
+      "actual_diagnostic_fit_seconds": 118.00038121605758,
+      "planned_full_exposures": 23322,
+      "projected_full_fit_seconds": 19111.14507445066,
+      "projected_full_fit_hours": 5.308651409569627,
+      "actual_diagnostic_CPU_context_load_seconds": 29.492416800465435,
+      "eight_hour_slowdown_tolerance_fraction": 0.5069740660648427
+    }
+  },
+  "raw_new_studies_measured": 40,
+  "raw_measured_seconds": 315.49758162599755,
+  "raw_remaining_seconds_if_rate_sustained": 22905.124426047423,
+  "raw_completion_if_rate_sustained_UTC": "2026-10-20T20:55:39.871603+00:00",
+  "fit_job_limit_seconds": 28800,
+  "latest_entry_target_UTC": "2026-10-22T12:00:00+00:00",
+  "observed_production_training_updates": 0,
+  "clinical_accuracy_or_runtime_acceptance": false,
+  "limitations": [
+    "Twelve unique diagnostic fitting studies, repeated with warm caches, may not represent the whole cohort.",
+    "Full-cohort support and region tails, concurrent CPU/disk contention, and immutable production checkpoint writes/hashes were not measured.",
+    "Node availability and Slurm priority are not guaranteed by other jobs planned end times.",
+    "Complete-input admission, C0 context transfer, checkpoint publications, final return and trained Kaggle qualification need additional time.",
+    "First200 production updates must replace this estimate once actually observed; inspect the8h cap early."
+  ]
+}

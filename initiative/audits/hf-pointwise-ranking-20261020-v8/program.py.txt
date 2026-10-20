@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 
@@ -28,7 +29,7 @@ def paid_unique_npz(roots):
                 st = p.lstat()
             except FileNotFoundError:
                 continue  # A missing transient file grants no paid-byte credit.
-            assert not p.is_symlink() and st.st_uid == os.getuid()
+            assert stat.S_ISREG(st.st_mode) and not p.is_symlink() and st.st_uid == os.getuid()
             identities[(st.st_dev, st.st_ino)] = st.st_size
     return sum(identities.values())
 
@@ -39,6 +40,7 @@ paid_raw = paid_unique_npz([
     "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v1/cache",
     "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v2/cache",
     "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3/cache",
+    "/tmp/rsna-predictive-full-raw-capacity-recovery-20261020-v1/cache",
 ])
 paid_context = paid_unique_npz([
     "/tmp/rsna-predictive-context16-cache-20261020-v1",
@@ -47,12 +49,13 @@ paid_context = paid_unique_npz([
     "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v1",
     "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v2",
     "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3",
+    "/tmp/rsna-predictive-full-context-capacity-recovery-20261020-v1",
 ])
 source_bytes = sum(len(s.encode()) for s in v["files"].values())
 assert source_bytes < 2**20 and 3 * source_bytes + 128 * 2**10 < 4 * 2**20
 node_free = shutil.disk_usage("/tmp").free
 required_node = (
-    (20 + 62 + 4) * 2**30 + (594 + 4) * 2**20
+    (20 + 62 + 6) * 2**30 + (594 + 4) * 2**20
     + max(0, 320 * 2**30 - paid_raw) + max(0, 96 * 2**30 - paid_context)
 )
 assert node_free > required_node
@@ -60,17 +63,17 @@ q = __import__("subprocess").check_output(
     ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True
 )
 a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
-assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 122 * 2**20
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 123 * 2**20
 assert int(a[6]) - int(a[5]) >= 5000 + 376
 funding = {
     "actual_node_free_bytes": node_free,
     "required_node_including_free_floor_bytes": required_node,
     "other_node_obligations_bytes": 62 * 2**30 + 594 * 2**20,
     "new_mirror_control_cap_bytes": 4 * 2**20,
-    "raw_scratch_bytes": 4 * 2**30,
+    "raw_scratch_bytes": 6 * 2**30,
     "paid_unique_raw_NPZ_bytes": paid_raw,
     "paid_unique_context_NPZ_bytes": paid_context,
-    "future_shared_bytes": 122 * 2**20,
+    "future_shared_bytes": 123 * 2**20,
     "future_shared_files": 376,
     "actual_shared_free_bytes": (int(a[2]) - int(a[1])) * 1024,
     "actual_shared_free_files": int(a[6]) - int(a[5]),
@@ -132,7 +135,7 @@ def serialized_milestone_locks(pub):
             a = next(line.split() for line in q.splitlines() if line.strip().startswith("/home/sa305415"))
             free_files = int(a[6]) - int(a[5])
             account = shared_file_accounting(free_files, len(owned))
-            assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 122 * 2**20
+            assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 123 * 2**20
             yield account
     finally:
         if marker.exists():

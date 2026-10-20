@@ -1,7 +1,8 @@
 # Read-only production training observer
 
-Prepared locally; not launched. This independent finite observer uses portable
-the exact new `predictive-v4-owner-handoff-20261020-v1` owner intent and its immutable source manifest, preserving portable base `926b6577` and numerical source `44cc559e`. It shares the successor launcher’s pure read-only capsule builder; it never calls its freeze/launch path. Dispatch receipts come only from the new successor journal/audit directory.
+**Actual start, October 20 14:34:50 UTC:** read-only observer **87804**, source `88dfbf5dcab62e820ad746d1d482c0b8c5471642`, started once with zero remote allocations/mutations and zero training updates observed. It waits for fitting87673’s actual dispatches. [Actual start](actual-started.json). Do not launch it again.
+
+This independent finite observer uses the exact new `predictive-v4-owner-handoff-20261020-v1` owner intent and its immutable source manifest, preserving portable base `926b6577` and numerical source `44cc559e`. It shares the successor launcher’s pure read-only capsule builder; it never calls its freeze/launch path. Dispatch receipts come only from the new successor journal/audit directory.
 It waits for the sole fitting owner's actual B/C-on-evc33 and C0-on-evc27 dispatch
 receipts, then invokes only the existing `mode=progress` via Newton's management
 Python. It reads the original shared logs and scheduler state; it allocates no
@@ -23,7 +24,7 @@ dispatch. The observer ends when all three jobs are terminal or at
 October22,09:00UTC. Its single-start journal is
 `artifacts/predictive-training-observer-20261020-v1/`.
 
-After review and commit, the root may run:
+Original launch command, already used once; **do not rerun**:
 
 ```sh
 python3 -B initiative/research/predictive-training-observer-20261020-v1/observe.py \
