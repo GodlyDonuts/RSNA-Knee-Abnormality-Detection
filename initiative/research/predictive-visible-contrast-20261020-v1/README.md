@@ -76,7 +76,7 @@ The matched control retains original images and exposes the same two new
 metadata coordinates. Both need a separately initialized10-coordinate graph;
 neither is compatible with an ordinary8-coordinate checkpoint. Existing
 B/C/C0, queued C100, cache workers and serving sources do not call this module.
-No variant has GPU training admission, a checkpoint or an accuracy result.
+At the initial input-test stage neither variant had GPU admission. Current actual admission and dispatch are recorded below; no contrast checkpoint or accuracy result is observed yet.
 
 `run_candidate_once.py`/`probe_candidate.py` prepare one original-input CPU
 experiment on exactly the same12 fitting cases, excluding four engineering
@@ -195,3 +195,14 @@ are deducted. Shared-file credits require the original sealed primary
 dispatch, exact returned job/script/binding and existing owned logs, at most
 six; planned jobs grant no credit. No shared files or paid Kaggle capacity
 are added. No automatic full training or competition promotion follows.
+
+
+Actual CPU **984782 COMPLETED0:0** admitted the original matched inputs and
+frozen learning capsule. GPU **984784** was submitted once at21:22:59UTC and
+remained **PENDING Priority** at21:23UTC. No optimizer update is observed yet.
+[CPU admission](actual-learning-prepare.json), [dispatch](actual-learning-submit.json),
+and [live state](actual-learning-state.json) bind source
+`a9670168fda9ffe5709216e70216f368ac438553`. Ten scoped worker/transfer/admission
+tests and Ruff passed; these are engineering checks, not accuracy evidence.
+Read the original private root and exact job before further action; do not
+repeat this admission, transfer or submission. No new private HF mirror exists.
