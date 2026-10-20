@@ -28,8 +28,8 @@ source, receipt = compiler.build(
 ```
 
 The private originals are the output of frozen publisher
-`predictive-full-fitting-20261020-v1/publish_epoch.py.txt`, SHA
-`6215f45748fdc4685565a94f31da7fc51f7ad0fa325192d004b362645bbf8d87`.
+`predictive-full-fitting-20261020-v2/publish_epoch.py.txt`, SHA
+`cbfc161bf17381c816832329f892da5584ac4586138234e6901965f7b09cd795`.
 Its model-only `model.pt` contains exactly `model`, `architecture` and `provenance`.
 The compiler requires its actual five-object independent-download publication,
 exact small-object hashes, **epoch 6 / 2,916 updates / 3,887 unchanged fitting

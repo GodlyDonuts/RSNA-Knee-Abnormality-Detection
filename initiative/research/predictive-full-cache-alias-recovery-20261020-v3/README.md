@@ -1,8 +1,15 @@
 # Exact-byte metadata continuation
 
-Prepared locally; **not dispatched**. V2 job **979604** failed before creating
-outputs because text-mode reading normalized the retained series CSV's CRLF
-line endings. Original metadata bytes were correct.
+Actual raw **979664** and context **979665** are **RUNNING** on evc33 under sole
+finite owner **68411**, frozen source
+`91224c242c5758fcb25b71c27d0a0b920458ee6b`. Observer CPU **979677** verified
+**528/3,887 completed cases in both**: 522 retained originals plus six newly
+completed cases. [Actual recovery receipt](actual-recovery-started.json). Do not
+repeat dispatch or start another owner. Full-cohort completion is still pending.
+
+V2 job **979604** failed before creating outputs because text-mode reading
+normalized the retained series CSV's CRLF line endings. Original metadata bytes
+were correct.
 
 CPU **979619** ran the complete corrected inventory successfully: **522 complete,
 3365 pending, one retained source buffer and one orphan raw cache**. It verified
@@ -17,8 +24,8 @@ Actual receipt, original renderer regression and both failed predecessor
 receipts remain required. Both predecessor jobs must remain FAILED 1:0 and
 absent from the account-wide live queue; their output roots must remain absent.
 
-Add `--prefix-admission-receipt` and `--prefix-admission-sha256` to the v2
-launch arguments. Distinct output roots and ignored journal end in `-v3`.
+The accepted v3 launch adds `--prefix-admission-receipt` and
+`--prefix-admission-sha256` to the v2 arguments. Distinct output roots and ignored journal end in `-v3`.
 All source numerics, retained-input behavior, mixed renderer provenance,
 resources, time limits and funded reserves remain as reviewed for v2.
 V1/v2 attempts and original data remain untouched.

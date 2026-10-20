@@ -1,0 +1,26 @@
+"""Read aggregate progress only; no pixel, label, source, or output mutations."""
+import hashlib
+import json
+import os
+from pathlib import Path
+
+assert os.uname().nodename == "evc33"
+assert not os.environ.get("SLURM_JOB_GPUS")
+result = {"observer_CPU_job": os.environ["SLURM_JOB_ID"], "roles": {}}
+for role in ("raw", "context"):
+    root = Path("/tmp/rsna-predictive-full-" + role + "-alias-recovery-20261020-v3")
+    body = (root / "intent.json").read_bytes()
+    intent = json.loads(body)
+    progress = root / "progress.private.json"
+    value = json.loads(progress.read_text()) if progress.exists() else None
+    if value:
+        assert set(value) <= {
+            "completed", "total", "elapsed_seconds", "reused_verified_originals"
+        }
+    result["roles"][role] = {
+        "CPU_job": intent["CPU_job"],
+        "source_git": intent["source_git"],
+        "intent_sha256": hashlib.sha256(body).hexdigest(),
+        "progress": value,
+    }
+print(json.dumps(result), flush=True)
