@@ -1,0 +1,293 @@
+"""Canonical single coordinator for one bounded private T4 engineering execution."""
+
+import ast
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sqlite3
+import sys
+import types
+from pathlib import Path
+
+import requests
+
+
+def seconds(value):
+    return float(value.removesuffix("s"))
+
+
+v = json.load(sys.stdin)
+phase = v["phase"]
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert phase in ("prepare", "inspect", "push", "status")
+os.umask(0o077)
+D = Path("/tmp/rsna-predictive-T4-throughput-20261020-v1")
+if phase == "prepare":
+    assert not D.exists()
+    raw = Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1")
+    context = Path("/tmp/rsna-predictive-full-context-cache-20261020-v1")
+    paid_raw = json.loads(
+        Path("/tmp/rsna-predictive-raw16-cache-20261020-v1/actual.json").read_text()
+    )["cache_bytes"] + sum(p.stat().st_size for p in (raw / "cache").glob("*.npz"))
+    paid_context = json.loads(
+        Path("/tmp/rsna-predictive-context16-cache-20261020-v1/actual.json").read_text()
+    )["cache_bytes"] + sum(p.stat().st_size for p in context.glob("context-*.npz"))
+    assert (
+        shutil.disk_usage("/tmp").free
+        > (20 + 8 + 12 + 4 + 24) * 2**30
+        + max(0, 320 * 2**30 - paid_raw)
+        + max(0, 96 * 2**30 - paid_context)
+        + (166 + 64 + 4 + 16 + 256 + 8 + 32 + 4) * 2**20
+    )
+    parent = Path(
+        "/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py"
+    ).read_bytes()
+    assert (
+        hashlib.sha256(parent).hexdigest()
+        == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+    )
+    original = Path(
+        "/tmp/rsna-S6-Kaggle-production-route-20261019-v1/paired-zero-recovery-v1/source.private.py"
+    ).read_text()
+    literals = {
+        n.targets[0].id: ast.literal_eval(n.value)
+        for n in ast.parse(original).body
+        if isinstance(n, ast.Assign)
+        and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id == "PERMISSION"
+    }
+    permission = literals["PERMISSION"]
+    assert (
+        hashlib.sha256(base64.b64decode(permission, validate=True)).hexdigest()
+        == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+    )
+    binding = {
+        "source_git": v["source_git"],
+        "parent_source_sha256": hashlib.sha256(parent).hexdigest(),
+        "parent_weight_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "module_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["files"].items()},
+        "public_MRI_engineering_only": True,
+        "side": 320,
+        "contexts": 2,
+        "context_windows": 24,
+        "fresh_heads_not_trained_model": True,
+    }
+    source = v["benchmark"]
+    for name, value in {
+        "FILES": v["files"],
+        "PARENT_SOURCE": base64.b64encode(parent).decode(),
+        "PERMISSION": permission,
+        "BINDING": binding,
+    }.items():
+        marker = "__" + name + "_VALUE__"
+        assert source.count(marker) == 1
+        source = source.replace(marker, repr(value))
+    compile(source, "private_predictive_T4_engineering", "exec")
+    assert len(source.encode()) < 2**20
+    D.mkdir(mode=0o700)
+    (D / "source.private.py").write_text(source)
+    meta = {
+        "status": "actual_predictive_T4_engineering_source_prepared",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+        "binding": binding,
+        "new_node_control_cap_bytes": 4 * 2**20,
+        "all_old_raw_context_model_liabilities_retained": True,
+        "new_GPU_or_Dataset_or_competition_mutations": 0,
+    }
+    (D / "prepared.json").write_text(json.dumps(meta) + "\n")
+    print(json.dumps(meta), flush=True)
+    raise SystemExit(0)
+C = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(C.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+s = importlib.util.spec_from_file_location("predictive_canonical_workflow", C)
+w = importlib.util.module_from_spec(s)
+s.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+cap = types.ModuleType("current_registered_capacity")
+exec(compile(v["capacity"], "current_GPU_capacity", "exec"), cap.__dict__)
+ledger = Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3")
+if phase == "inspect":
+    with sqlite3.connect("file:" + str(ledger) + "?mode=ro", uri=True) as db:
+        capacity = cap.admission(db, r, caller="sampling")
+    quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+    print(
+        json.dumps(
+            {
+                "status": "actual_read_only_predictive_T4_budget_capacity",
+                "quota": quota,
+                "free_VM_seconds": seconds(quota["totalTimeAllowed"])
+                - seconds(quota.get("timeUsed", "0s"))
+                - seconds(quota.get("timeReserved", "0s")),
+                "source_zero_final_reserve_seconds": 3000,
+                "probe_cap_seconds": 600,
+                "capacity": capacity,
+                "new_mutations": 0,
+            }
+        ),
+        flush=True,
+    )
+    raise SystemExit(0)
+meta = json.loads((D / "prepared.json").read_text())
+source = (D / "source.private.py").read_text()
+sha = hashlib.sha256(source.encode()).hexdigest()
+assert sha == meta["source_sha256"]
+slug = "godlydonuts/rsna-predictive-t4-probe-" + sha[:12]
+key = "licensed-importance-full-fit:predictive-T4:" + sha
+if phase == "status":
+    with sqlite3.connect("file:" + str(ledger) + "?mode=ro", uri=True) as db:
+        row = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+    k = r.kernel("GetKernel", slug, 1)
+    assert k["metadata"]["id"] == row["kernel_id"] and k["blob"]["source"] == source
+    state = r.kernel("GetKernelSessionStatus", slug, 1).get("status", "UNREPORTED")
+    out = {
+        "status": state,
+        "kernel_id": row["kernel_id"],
+        "slug": slug,
+        "version": 1,
+        "source_sha256": sha,
+        "new_mutations": 0,
+    }
+    if state == "COMPLETE":
+        receipt = r.output_json(slug, 1, "predictive-T4-benchmark.json")
+        assert (
+            receipt["binding"] == meta["binding"]
+            and receipt["status"]
+            == "actual_public_MRI_predictive_two_T4_FP16_engineering_benchmark_complete"
+        )
+        out["receipt"] = receipt
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
+claim = ledger.parent / "coordinator-claim"
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}), flush=True)
+    raise SystemExit(0)
+owner = {
+    "kind": "predictive_T4_engineering",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_sha256": sha,
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(ledger, "godlydonuts") as db:
+        w.verify_account(db, r)
+        prior = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        assert prior is None, "Existing exact intent requires read-only reconciliation"
+        quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+        free = (
+            seconds(quota["totalTimeAllowed"])
+            - seconds(quota.get("timeUsed", "0s"))
+            - seconds(quota.get("timeReserved", "0s"))
+        )
+        capacity = cap.admission(db, r, caller="sampling")
+        if free < 3600 or not capacity["available"]:
+            print(
+                json.dumps(
+                    {
+                        "status": "waiting_predictive_probe_budget_or_capacity_no_mutation",
+                        "free_VM_seconds": free,
+                        "final_reservation_seconds": 3000,
+                        "probe_seconds": 600,
+                        "capacity": capacity,
+                    }
+                ),
+                flush=True,
+            )
+        else:
+            dataset = r.dataset("nartaa/rsna-knee-publication-swa-weights-20261007")
+            assert dataset.get("id") == 12431568 and dataset.get("currentVersionNumber") == 1
+            absence = r.require_absent_kernel(slug)
+            request = {
+                "slug": slug,
+                "newTitle": slug.split("/")[1].replace("-", " "),
+                "text": source,
+                "language": "python",
+                "kernelType": "script",
+                "isPrivate": True,
+                "enableGpu": True,
+                "machineShape": "NvidiaTeslaT4",
+                "enableInternet": False,
+                "datasetDataSources": ["nartaa/rsna-knee-publication-swa-weights-20261007"],
+                "kernelDataSources": [],
+                "competitionDataSources": ["rsna-knee-abnormality-detection"],
+                "sessionTimeoutSeconds": 600,
+                "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                "dockerImagePinningType": "original",
+            }
+            row = {
+                "state": "predictive_T4_push_intent",
+                "slug": slug,
+                "version": 1,
+                "source_sha256": sha,
+                "request": {k: z for k, z in request.items() if k != "text"},
+                "quota": quota,
+                "capacity": capacity,
+                "source_zero_final_reserved_seconds": 3000,
+                "absence": absence,
+                "competition_entry": False,
+                "automatic_retry": False,
+            }
+            w.new_json(D / "push-intent.json", row)
+            db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row)))
+            db.commit()
+            retain = True
+            result = r.call("kernels.KernelsApiService", "SaveKernel", request)
+            w.new_json(D / "push-response.json", result)
+            assert (
+                result.get("ref") == "/code/" + slug
+                and result.get("versionNumber") == 1
+                and type(result.get("kernelId")) is int
+                and not result.get("error")
+            )
+            assert all(
+                not result.get(n)
+                for n in (
+                    "invalidDatasetSources",
+                    "invalidKernelSources",
+                    "invalidCompetitionSources",
+                )
+            )
+            row.update(state="predictive_T4_pushed", kernel_id=result["kernelId"])
+            db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row), key))
+            db.commit()
+            k = r.kernel("GetKernel", slug, 1)
+            assert k["blob"]["source"] == source and k["metadata"]["id"] == row["kernel_id"]
+            for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerImage"):
+                assert k["metadata"].get(n, False if n == "enableInternet" else None) == request[n]
+            for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                assert sorted(k["metadata"].get(n, [])) == request[n]
+            out = {
+                "status": "one_actual_predictive_two_T4_engineering_probe_pushed",
+                "kernel_id": row["kernel_id"],
+                "slug": slug,
+                "version": 1,
+                "source_sha256": sha,
+                "session_cap_seconds": 600,
+                "source_zero_final_reserve_seconds": 3000,
+                "free_VM_seconds_before_push": free,
+                "competition_entry": False,
+            }
+            w.new_json(D / "pushed.json", out)
+            retain = False
+            print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()
