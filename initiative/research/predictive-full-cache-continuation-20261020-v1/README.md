@@ -67,9 +67,61 @@ ordered context index requires all 3887 original fitting studies, unchanged
 side 320/context cap 24/halo 8, all original target regions and complete priors.
 Neither worker reads diagnosis labels, fits a model or admits clinical accuracy.
 
-## Required local integration before any dispatch
+## Finite local owner, prepared and not started
 
-There is deliberately no scheduler/coordinator script here. A future owner must:
+`owner.py` now supplies the finite local coordinator. It has not been started,
+and neither successor has been dispatched. It runs for at most 30 hours, observing
+Slurm over SSH without any allocation while the corresponding original owner
+is live. A read-only connection loss permits at most 30 minutes of waiting;
+unknown job state never authorizes dispatch.
+
+- Actual `978318 COMPLETED 0:0` plus empty queue means collect its original
+  registry only. The original context owner remains untouched.
+- Actual `978318 TIMEOUT` plus empty queue admits at most one four-CPU,
+  zero-GPU, 48-GiB, 12-hour raw successor on evc33. Pending/failed/cancelled raw
+  originals do not admit it.
+- Context replacement waits for actual original `978414` terminal and the
+  matching raw successor's hash-bound intent plus actual started job. It then
+  uses one CPU, zero GPUs, 12 GiB RAM and 12 hours, following newly completed raw
+  proofs incrementally. No dependency allocation is held while waiting.
+- Every dispatch has an exclusive local intent before one SSH/srun call.
+  `--immediate=60` bounds unavailable-resource waiting. Failure or uncertainty
+  stops the owner without retry, cancellation, deletion or rewriting originals.
+  Already dispatched children are independent local sessions and are never
+  killed when the owner ends.
+- Successful raw/context terminals get one small one-CPU collector, which
+  checks the original receipt/index SHA, all 3887 original UID membership and
+  existing owning-node stat bindings without rehashing pixels.
+
+Root must review and commit these controls and the source-resume module first,
+then launch with an explicit full 40-character `--source-git` and the existing
+SSH master socket. The owner refuses uncommitted launch controls. It loads
+numerical modules with `git show` from the exact original raw `c78c94d…` and
+context `441c4aa…` commits; current changed numerical files are never substituted.
+No launch command has been executed as part of this preparation.
+
+Private local state is in ignored
+`artifacts/predictive-full-cache-continuation-20261020-v1/`: owner/phase intents,
+local child PIDs, bounded stdout/stderr and final owner result. Existing intent
+means read-only reconciliation, not permission to rerun the owner. Sanitized
+successful collection receipts are `actual-owner-raw_collect.json` and
+`actual-owner-context_collect.json` in this audit directory. Each binds the
+actual target job and original terminal receipt; the future GPU owner may
+consume them but must never dispatch another cache producer.
+
+The coordinator reserves **96 MiB and 368 shared files after current usage**:
+the conservative 92 MiB/362-file existing/future bound plus 2 MiB/3 files for each
+CPU successor. The 362 files include six future full-fitting GPU stdout/stderr
+files. It additionally preserves the 20 GiB/5000-file shared floor. On evc33 the
+worker retains 60 GiB + 570 MiB for other future obligations, 4 GiB old/new scratch,
+the unpaid part of 320 GiB raw + 96 GiB context totals, and the20GiB node floor.
+The 60 GiB allows the original 44 GiB, 12 GiB for C0 and 4 GiB extra headroom;
+570 MiB preserves 550 MiB plus 16 MiB new full-fit controls and 4 MiB for the
+distinct T4 v2 probe. No deletion credit is
+used. Fresh actual quotas must pass immediately before each intent and again
+inside each worker; this prepared budget is not a claim about future free space.
+
+The worker-level integration requirements remain:
 
 1. Inspect actual original terminal accounting, live queues, both original
    intents and retained file inventories. The current workers do not turn
