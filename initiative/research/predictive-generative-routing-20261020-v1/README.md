@@ -81,7 +81,13 @@ The original train, density and model modules remain byte-identical.
 The driver requires original C100 pilot981620's actual successful terminal
 receipt, an explicit subsequent agent engineering decision, separate fresh
 capacity for6GiB checkpoints plus4MiB controls, and all older storage obligations.
-Worker/driver are prepared and locally tested; the CPU admission/coordinator
-are being prepared separately. **No matched GPU job or full G100 fit is staged,
+Worker, driver, CPU admission and coordinator are locally prepared and tested.
+Prepared shared-log ownership binds actual fitting owner29171/source29128354 and
+the HTTP499 audit; the original981620 pilot, its16 engineering inputs and its
+runtime remain unchanged. G100 retains the full C100 future scope and the
+existing descriptor-normalizer1MiB liability. Full C100 likewise reserves the
+independent G1006GiB+4MiB scope, without speculative paid-byte credit, so optional
+execution order cannot spend the other branch’s storage. These are conservative
+future obligations, not job authority. **No matched GPU job or full G100 fit is staged,
 submitted or accepted.** The current C100 pilot and primary B/C/C0 jobs are
 unchanged. There is no automatic promotion or claimed clinical improvement.

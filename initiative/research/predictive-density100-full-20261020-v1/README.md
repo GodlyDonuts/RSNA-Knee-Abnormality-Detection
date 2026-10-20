@@ -40,10 +40,10 @@ It then waits for the original C0 portable placement to complete and reuses all
 or transfer the MRI cache again. Parent/runtime, original input admission,
 renderer lineage and common initialization remain explicitly bound; a distinct
 C100 admission records the new worker/source instead of relabelling C0's receipt.
-The prepared coordinator now binds the current `e9bdd124` fitting owner11013,
+The prepared coordinator now binds the current `29128354` fitting owner29171,
 its original dispatch intent/result bytes and exact owned log paths. Portable
 input admission must retain the baseline-plus-two-authoritative-files policy
-and the actual strict-decoder regression; stale pre-correction C0 proofs fail.
+and the actual strict-decoder regression, plus the exact HTTP499 recovery decision and transport hashes in both the original control and its accepted proof map. Stale e9 or pre-correction C0 proofs fail. Original pilot981620, its binding, science44cc and the distinct unadmitted C100 output/funding scopes are unchanged. This retarget does not admit or launch the extra branch.
 
 Private paths on evc27:
 
@@ -105,7 +105,7 @@ the local weak-label holdout as independent whole-model validation.
 
 Admission needs fresh capacity for a separate12GiB full-run/publication cap and
 16MiB controls/logs, while retaining every original C0/input scope and the
-additional6GiB+4MiB C100 pilot liability. Already physically charged bytes are
+additional6GiB+4MiB C100 pilot liability. Independently retain6GiB+4MiB for the prepared matched G100 pilot and1MiB for the existing descriptor-normalizer artifact, regardless of optional execution order. These two scopes receive no paid-byte credit without a separate actual original proof; reserving them grants no GPU or admission authority. Already physically charged original C0/C100 bytes are
 counted once. No originals are deleted; disposable verification downloads never
 retire future obligations. All new files are node-local. Shared reserve remains
 20GiB/5,000 files after123MiB/376 outstanding files, minus only exact physically

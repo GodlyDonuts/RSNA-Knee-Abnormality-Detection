@@ -172,10 +172,12 @@ def reuse_fixture(a, monkeypatch):
         all_context_original_hashes_and_stats_verified=True,
         fitting_order_sha256=roster, original_context_count=3887,
     )
-    decision = json.loads((HERE.parent / "predictive-source-correction-owner-handoff-20261020-v1"
+    decision = json.loads((HERE.parent / "predictive-http499-owner-handoff-20261020-v1"
                            / "decision.accepted.json").read_bytes())
     control = dict(
         operational_control_git=a.PRIMARY_SOURCE,
+        **{key: decision[key] for key in a.HTTP499_PROOFS},
+        accepted_http499_proofs={key: decision[key] for key in a.HTTP499_PROOFS},
         source_correction_policy=decision["source_correction_policy"],
         source_correction_regression_sha256=decision["source_correction_regression_sha256"],
         accepted_source_correction_proofs={
@@ -340,7 +342,7 @@ def primary_dispatch_fixture(a, c, monkeypatch, tmp_path):
     monkeypatch.setattr(c, "ORIGINAL_OWNER", audit)
     monkeypatch.setattr(c, "ORIGINAL_JOURNAL", journal)
     private(journal / "owner-intent.json", a.canonical({
-        "source_git": a.PRIMARY_SOURCE, "science_git": a.BASE, "pid": 11013,
+        "source_git": a.PRIMARY_SOURCE, "science_git": a.BASE, "pid": a.PRIMARY_OWNER_PID,
     }))
     jobs = {arm: job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), arm, str(900020 + i))
             for i, arm in enumerate(("B", "C", "C0"))}
@@ -779,3 +781,39 @@ def test_source_or_receipt_validation_failure_is_never_retried(coordinator, monk
     with pytest.raises(ValueError, match="binding"):
         c.observe(None, None, 3600)
     assert calls == ["status"] and sleeps == []
+
+
+@pytest.mark.parametrize("field", ["source_http_sha256", "previous_source_http_sha256",
+                                  "http499_recovery_decision_sha256", "accepted_http499_proofs"])
+def test_reuse_rejects_consistently_changed_HTTP499_proofs(api, monkeypatch, field):
+    a, _ = api
+    args = reuse_fixture(a, monkeypatch)
+    replacement = {} if field == "accepted_http499_proofs" else "0" * 64
+    for value in (args[0], args[1], args[3]):
+        value["cache_successor_control"][field] = replacement
+    with pytest.raises(ValueError, match="HTTP499"):
+        a.validate_reuse(*args)
+
+
+def test_retarget_uses_actual_new_primary_but_original_C100_pilot(coordinator):
+    a, c = coordinator
+    assert a.PRIMARY_SOURCE == "291283545c930b730bb257abb10c2a0814b055eb"
+    assert a.PRIMARY_OWNER_PID == 29171
+    assert set(c.original_jobs()) <= {"B", "C", "C0"}
+    assert a.PILOT_SOURCE == "068a14a75e4d2b3bd83dda7783528956f7a2ca0f"
+    assert a.PILOT_BINDING == "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37a"
+
+
+def test_old_node_threshold_cannot_spend_independent_G100_or_descriptor_reserves(api):
+    a, _ = api
+    old_required = (20 * a.GIB + 205676085248 + 96 * a.GIB + 64 * a.MIB
+                    + 12 * a.GIB + 6 * a.GIB + 4 * a.MIB + 16 * a.MIB + 12 * a.GIB)
+    with pytest.raises(ValueError, match="liability"):
+        a.node_budget(old_required + 1, **zero_paid())
+    with pytest.raises(ValueError, match="liability"):
+        a.node_budget(old_required + 6 * a.GIB + 4 * a.MIB, **zero_paid())
+    extra = 6 * a.GIB + 4 * a.MIB + a.MIB
+    result = a.node_budget(old_required + extra + 1, **zero_paid())
+    assert result["remaining_bytes"] == 1
+    assert result["conservative_G100_reserved_bytes_no_paid_credit"] == 6 * a.GIB + 4 * a.MIB
+    assert result["descriptor_reserved_bytes_no_paid_credit"] == a.MIB

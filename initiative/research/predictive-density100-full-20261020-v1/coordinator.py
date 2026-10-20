@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 JOURNAL = REPO / "artifacts" / HERE.name
 MANAGEMENT = "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"
-ORIGINAL_OWNER = REPO / "initiative/research/predictive-source-correction-owner-handoff-20261020-v1"
+ORIGINAL_OWNER = REPO / "initiative/research/predictive-http499-owner-handoff-20261020-v1"
 ORIGINAL_JOURNAL = REPO / "artifacts" / ORIGINAL_OWNER.name / "finite-owner"
 PLACEMENT_PIN = "2b834507e19c405971228e1bc405462cd370f560"
 PLACEMENT_PATH = "initiative/research/predictive-c0-portable-placement-20261020-v1/placement.py"
@@ -83,7 +83,7 @@ def original_jobs():
     jobs = {}
     owner = json.loads((ORIGINAL_JOURNAL / "owner-intent.json").read_bytes())
     a.require(owner["source_git"] == a.PRIMARY_SOURCE and owner["science_git"] == a.BASE
-              and owner["pid"] == 11013, "Exact current primary fitting owner required")
+              and owner["pid"] == a.PRIMARY_OWNER_PID, "Exact current primary fitting owner required")
     for role in ("BC", "C0"):
         path = ORIGINAL_OWNER / ("actual-owner-dispatch-" + role + ".json")
         if not path.exists():

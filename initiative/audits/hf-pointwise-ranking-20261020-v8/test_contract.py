@@ -150,6 +150,9 @@ def test_both_locks_serialize_four_actual_owned_inodes_and_cleanup(tmp_path, mon
         "python3 /repo/initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
         "python3 initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py",
         "python3 initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py unknown",
+        "python3 /repo/initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
+        "python3 initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py",
+        "python3 initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py unknown",
     ],
 )
 def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, command):
@@ -159,7 +162,7 @@ def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, 
         quiescence().check(tmp_path, processes="80996 " + command, own_pid=1)
 
 
-@pytest.mark.parametrize("generation", ("v4", "http", "source-correction"))
+@pytest.mark.parametrize("generation", ("v4", "http", "source-correction", "http499"))
 def test_fitting_only_launcher_does_not_claim_account(tmp_path, generation):
     journal = fixture(tmp_path)
     (journal / "complete.json").write_text(json.dumps({"outcome": "scored"}))

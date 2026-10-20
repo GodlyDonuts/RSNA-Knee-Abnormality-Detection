@@ -12,7 +12,13 @@ from pathlib import Path
 
 GIB, MIB = 2**30, 2**20
 BASE = "44cc559e947560a635c34fee7b1f2a3b7be3a241"
-PRIMARY_SOURCE = "e9bdd1249fa7cf75f792b3762c2028bd7beb4337"
+PRIMARY_SOURCE = "291283545c930b730bb257abb10c2a0814b055eb"
+PRIMARY_OWNER_PID = 29171
+HTTP499_PROOFS = {
+    "http499_recovery_decision_sha256": "6c655a431a17f2e4052913216836816a3d88fbf8bb018b11b2403e120bf35d88",
+    "previous_source_http_sha256": "ea7bf0f44af60ec4b0876e85af5cc1536d15cad671ea45d4ac548adccca0e28c",
+    "source_http_sha256": "b15e3d56fb536fbb42ea9427ed57fb6c25db052bbcefd8e74139bd39c01c7fdb",
+}
 CORRECTION_POLICY_SHA = "7264d3840a343a824d2f5bf174c9d96309fdb762a051710cbd772cf64d503129"
 CORRECTION_REGRESSION_SHA = "1f641ed02e881cd572bb00afcb40df04b1644285cea827772779095cc964eea1"
 PILOT_SOURCE = "068a14a75e4d2b3bd83dda7783528956f7a2ca0f"
@@ -27,6 +33,9 @@ RUN = Path("/tmp/rsna-predictive-full-C100-20261020-v1")
 PYTHON = "/tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/bin/python"
 OVERLAY = "/tmp/rsna-predictive-portable-recovery-20261020-v1/overlay"
 FIT_CAP, CONTROL_CAP = 12 * GIB, 16 * MIB
+# No paid credit for these independent scopes without separate original proof.
+G100_RESERVED_BYTES = 6 * GIB + 4 * MIB
+DESCRIPTOR_RESERVED_BYTES = MIB
 SHARED_BYTES, SHARED_FILES = 123 * MIB, 376
 LAST_DISPATCH = datetime(2026, 10, 21, 20, 0, tzinfo=timezone.utc)
 
@@ -169,8 +178,10 @@ def validate_reuse(portable, old_binding, old_binding_sha, original_input, index
             and sha(canonical(control["source_correction_policy"])) == CORRECTION_POLICY_SHA
             and control["source_correction_regression_sha256"] == CORRECTION_REGRESSION_SHA
             and control["accepted_source_correction_proofs"]["source_correction_regression_sha256"]
-            == CORRECTION_REGRESSION_SHA,
-            "Exact current source-corrected C0 admission lineage required")
+            == CORRECTION_REGRESSION_SHA
+            and control["accepted_http499_proofs"] == HTTP499_PROOFS
+            and all(control.get(key) == value for key, value in HTTP499_PROOFS.items()),
+            "Exact current source-corrected HTTP499 C0 admission lineage required")
     # main() verifies the retained input's actual bytes through read_ref().
     # Do not replace that proof with a serialization-dependent JSON hash.
     require(portable["input_admission_sha256"] == {"C0": old_binding["input_admission"]["sha256"]},
@@ -231,11 +242,14 @@ def node_budget(free, *, contexts_paid, C0_controls_paid, C0_fit_paid,
     ]
     require(all(type(paid) is int and 0 <= paid <= cap for cap, paid in scopes),
             "Only actual paid bytes within separately funded caps can retire obligations")
-    other = 205676085248 + sum(cap - paid for cap, paid in scopes[:-1])
+    other = (205676085248 + G100_RESERVED_BYTES + DESCRIPTOR_RESERVED_BYTES
+             + sum(cap - paid for cap, paid in scopes[:-1]))
     required = 20 * GIB + other + FIT_CAP - own_fit_paid
     require(type(free) is int and free > required, "Retain every original/pilot/C0 liability")
     return {"free_bytes": free, "required_bytes": required, "remaining_bytes": free - required,
-            "other_unpaid_node_liabilities_bytes": other}
+            "other_unpaid_node_liabilities_bytes": other,
+            "conservative_G100_reserved_bytes_no_paid_credit": G100_RESERVED_BYTES,
+            "descriptor_reserved_bytes_no_paid_credit": DESCRIPTOR_RESERVED_BYTES}
 
 
 def fresh_node(portable):

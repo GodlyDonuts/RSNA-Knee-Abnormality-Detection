@@ -1,6 +1,6 @@
 # HTTP499 input-owner handoff
 
-Prepared only. No owner, transfer, fitting job, publication or account action has been launched by this preparation. Root must first collect the actual new cache start and stop the idle fitting11013, deployment11014 and observer11927 with original-journal and remote-prephase absence proofs. A phase intent, existing admission/dispatch or changed original process blocks this route; nothing is cancelled or retried automatically.
+**Actual local owners started once at 19:47:21 UTC:** fitting **29171**, deployment **29172**, read-only observer **29173**, source `291283545c930b730bb257abb10c2a0814b055eb`. They wait on the running 983422/983435 cache; no portable transfer, full GPU fit, publication or account phase has started. Idle predecessors 11013/11014/11927 were stopped once with original-journal and remote-prephase absence proofs; no remote job was cancelled. [Actual successors](actual-successors-started.json); [exclusive prephase proof](actual-exclusive-prephase-readonly.json). Do not repeat these launches.
 
 The new cache collection directory is `predictive-cache-http499-recovery-20261020-v1`, with node roots `/tmp/rsna-predictive-full-{raw,context}-http499-recovery-20261020-v1`. Admission requires exact FAILED1:0 jobs981958/981960, their original immutable intents and every earlier ancestor. It preserves the already accepted two-file source correction, both original/effective source-index hashes and exact corrected context rows. Complete original context references remain valid; no renderer, labels, numerical tensors or recipe changes are introduced.
 
@@ -10,9 +10,9 @@ The fitting decision must have `status=accepted_http499_owner_handoff`, exact ne
 
 Run `launch.py fitting` or `launch.py deployment` only with exact committed `--source-git`, `--decision`, `--handoff`, `--deployment-handoff`, `--observer-handoff` and, for deployment, `--deployment-decision`. Stop status for fitting/deployment is `actual_idle_http499_owner_stopped_before_phase`; expected PIDs are11013/11014 and sourcee9. Observer stop uses the existing idle-observer status, PID11927, continuation sourced4ecc912 and both original observer/continuation intent hashes. `observe.py` takes `--source-git` and `--observer-handoff`; it waits at most120 seconds for the actual new fitting intent and can only invoke allocation-free progress.
 
-New artifacts remain isolated under `artifacts/predictive-http499-owner-handoff-20261020-v1/finite-owner`, its parent observer directory and the sibling `-deployment` directory. Full input completion, actual launch, model training and accuracy are not established by the local tests. The separately prepared G100/C100 extra routes must be explicitly rebound to the new original dispatch ownership before any later use; this handoff grants them no authority.
+New artifacts remain isolated under `artifacts/predictive-http499-owner-handoff-20261020-v1/finite-owner`, its parent observer directory and the sibling `-deployment` directory. Local owner startup is established by the original receipts; full input completion, model training and accuracy are not established. The separately prepared G100/C100 extra routes must be explicitly rebound to the new original dispatch ownership before any later use; this handoff grants them no authority.
 
-The original idle owners have now been stopped with the actual receipts in this directory; no successor is implied by those stops. After root commits and accepts the new exact source, the interfaces are:
+The actual successors are already started. The interfaces below preserve the original launch procedure for review; do not rerun them or replace their immutable source:
 
 ```sh
 python3 initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py fitting \
