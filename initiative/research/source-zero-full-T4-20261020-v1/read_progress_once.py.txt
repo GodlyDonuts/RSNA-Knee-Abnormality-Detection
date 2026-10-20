@@ -1,0 +1,115 @@
+"""Read the official live log stream privately; emit only numeric update fields."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/source-zero-full-T4-20261020-v1"
+pushed = json.loads((D / "actual-push-epoch-1.json").read_text())
+assert pushed["status"] == "actual_full_source_zero_epoch_pushed"
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+program = """import hashlib,importlib.util,json,math,os,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('original_live_progress',p);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.username='godlydonuts';r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];a=v['actual']
+k=r.kernel('GetKernel',a['slug'],1);assert k['metadata']['id']==a['kernel_id'] and k['metadata']['isPrivate'] and hashlib.sha256(k['blob']['source'].encode()).hexdigest()==a['source_sha256']
+status=r.kernel('GetKernelSessionStatus',a['slug'],1).get('status','INITIALIZING_UNREPORTED')
+api=Path('/home/sa305415/rsna-knee/kaggle/management-cp312-v1/lib/python3.12/site-packages/kagglesdk/kernels/services/kernels_api_service.py').read_text();assert 'def get_kernel_session_logs_stream' in api and 'GetKernelSessionLogsStream' in api
+found=[]
+def walk(value,depth=0):
+ if depth>7:return
+ if isinstance(value,dict):
+  if value.get('segment')==1 and isinstance(value.get('actual_progress'),dict):
+   p=value['actual_progress'];last=p.get('last',{})
+   if type(p.get('completed')) is int and 0<p['completed']<=486 and p.get('total')==1458 and all(math.isfinite(float(last.get(n,float('nan')))) for n in ('loss','gradient_norm','encoder_lr','head_lr','scale')):
+    assert last['studies'] in (7,8) and last['anatomical_views']==2*last['studies']
+    found.append({'completed':p['completed'],'total':1458,'last':{n:last[n] for n in ('epoch','batch','studies','anatomical_views','loss','gradient_norm','encoder_lr','head_lr','scale')}})
+  for child in value.values():walk(child,depth+1)
+ elif isinstance(value,list):
+  for child in value:walk(child,depth+1)
+ elif isinstance(value,str):
+  for line in value.splitlines():
+   line=line.strip()
+   if line.startswith('{'):
+    try:walk(json.loads(line),depth+1)
+    except (ValueError,TypeError):pass
+r.session.cookies.clear();response=r.session.post('https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionLogsStream',json={'userName':'godlydonuts','kernelSlug':a['slug'].split('/')[1],'versionLabel':'1','waitForLogsUrlSeconds':2},timeout=(10,35),allow_redirects=False,stream=True)
+http=response.status_code;kind=response.headers.get('Content-Type','').split(';')[0];start=time.monotonic();count=0;observation_error=None
+try:
+ if http==200:
+  if kind=='application/json':
+   raw=bytearray()
+   for block in response.iter_content(16384):
+    raw.extend(block);assert len(raw)<2*2**20
+   walk(json.loads(raw))
+  else:
+   for line in response.iter_lines(chunk_size=128):
+    count+=len(line)
+    if count>2*2**20 or time.monotonic()-start>45:break
+    text=line.decode('utf8',errors='replace').strip()
+    if text.startswith('data:'):
+     data=text[5:].strip()
+     if data=='END_OF_LOG':break
+     try:walk(json.loads(data))
+     except (ValueError,TypeError):pass
+    if found:break
+except (requests.RequestException,ValueError,TypeError) as exc:observation_error=type(exc).__name__
+finally:response.close()
+out={'status':'actual_full_source_zero_optimizer_progress_from_original_log' if found else 'no_optimizer_record_seen_observation_not_terminal','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':a['kernel_id'],'version':1,'source_sha256':a['source_sha256'],'actual_kernel_status':status,'official_log_stream_HTTP':http,'response_kind':kind,'raw_logs_retained_or_exported':False,'new_GPU_or_model_or_ledger_mutations':0,'observation_error_type':observation_error}
+if found:out['at_least_verified_optimizer_progress']=max(found,key=lambda z:z['completed'])
+print(json.dumps(out),flush=True)
+"""
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:02:00",
+    "--job-name=rsna-zero-full-live-progress",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope(program, {"token": values["KAGGLE_API_TOKEN"], "actual": pushed}),
+    capture_output=True,
+    text=True,
+    timeout=240,
+)
+(L / "live-progress-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Observation failure is not a job terminal or restart authority"
+out = json.loads(x.stdout)
+(D / "actual-live-progress.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

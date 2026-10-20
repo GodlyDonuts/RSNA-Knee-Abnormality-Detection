@@ -1,0 +1,161 @@
+"""Continue only the declared three epochs; preserve each before any resume."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/source-zero-full-T4-20261020-v1"
+first = json.loads((D / "actual-push-epoch-1.json").read_text())
+assert first["status"] == "actual_full_source_zero_epoch_pushed" and first["epoch"] == 1
+names = (
+    "compile.py.txt",
+    "worker.py.txt",
+    "bootstrap.py.txt",
+    "cloud.py.txt",
+    "fund.py.txt",
+    "publisher.py.txt",
+    "run_once.py.txt",
+    "follow_once.py.txt",
+)
+frozen = {n: hashlib.sha256((D / n).read_bytes()).hexdigest() for n in names}
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+owner = {
+    "PID": os.getpid(),
+    "source_git": pin,
+    "first_kernel_id": first["kernel_id"],
+    "maximum_future_GPU_sessions": 2,
+    "maximum_wait_seconds": 16 * 3600,
+    "frozen_controls": frozen,
+    "competition_entries": 0,
+    "automatic_retry": False,
+}
+with (L / "full-follow-intent.json").open("x") as f:
+    json.dump(owner, f, indent=2)
+start = time.monotonic()
+
+
+def alive():
+    if time.monotonic() - start >= 16 * 3600:
+        raise TimeoutError("Finite observation expired, no job-terminal or restart inference")
+    if not all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in frozen.items()):
+        raise ValueError("Live full-model control changed")
+
+
+def call(phase, epoch, *, read_only=False):
+    alive()
+    try:
+        x = subprocess.run(
+            [sys.executable, str(D / "run_once.py.txt"), phase, str(epoch)],
+            cwd=R,
+            capture_output=True,
+            text=True,
+            timeout=6700 if phase == "publish" else 1100,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        if not read_only:
+            raise
+        (L / "observation-error.json").write_text(
+            json.dumps(
+                {
+                    "phase": phase,
+                    "epoch": epoch,
+                    "error_type": type(exc).__name__,
+                    "GPU_terminal_not_inferred": True,
+                }
+            )
+            + "\n"
+        )
+        return None
+    (L / ("follow-" + phase + "-" + str(epoch) + ".json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    if x.returncode != 0:
+        if read_only:
+            return None
+        raise RuntimeError(
+            "Existing original intent requires read-only reconciliation; never retry mutation"
+        )
+    return json.loads(x.stdout)
+
+
+try:
+    publications = []
+    for epoch in (1, 2, 3):
+        if epoch > 1:
+            prepared = call("prepare", epoch)
+            assert prepared["status"] == "actual_new_full_source_zero_epoch_privately_compiled"
+            while True:
+                actual = call("admit", epoch, read_only=True)
+                (L / "full-follow-progress.json").write_text(
+                    json.dumps({"epoch": epoch, "phase": "admit", "actual": actual}, indent=2)
+                    + "\n"
+                )
+                if actual and actual.get("available") is True:
+                    break
+                alive()
+                time.sleep(90)
+            pushed = call("push", epoch)
+            assert pushed["status"] == "actual_full_source_zero_epoch_pushed", (
+                "No automatic mutation retry after a changed admission"
+            )
+        while True:
+            actual = call("status", epoch, read_only=True)
+            (L / "full-follow-progress.json").write_text(
+                json.dumps({"epoch": epoch, "phase": "status", "actual": actual}, indent=2) + "\n"
+            )
+            if actual and actual.get("status") == "COMPLETE":
+                assert actual["receipt"]["completed"] == epoch * 486
+                break
+            if actual and actual.get("status") in ("ERROR", "CANCELLED"):
+                (D / ("actual-failed-epoch-" + str(epoch) + ".json")).write_text(
+                    json.dumps(actual, indent=2) + "\n"
+                )
+                raise RuntimeError(
+                    "Actual original training terminal failure; retain original outputs"
+                )
+            alive()
+            time.sleep(90)
+        published = call("publish", epoch)
+        assert (
+            published["status"]
+            == "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified"
+        )
+        assert published["epoch"] == epoch
+        pointer = call("record_publication", epoch)
+        assert pointer["status"] == "actual_source_zero_private_epoch_pointer_recorded"
+        publications.append(published)
+    out = {
+        "status": "actual_fixed3_full_source_zero_and_all_private_epoch_verifications_complete",
+        "fixed_final_updates": 1458,
+        "epochs": 3,
+        "first_kernel_id": first["kernel_id"],
+        "private_publications": [
+            {"epoch": z["epoch"], "revision": z["revision"], "model_sha256": z["model_sha256"]}
+            for z in publications
+        ],
+        "competition_entry": False,
+        "clinical_accuracy_claim": False,
+    }
+    with (D / "actual-three-epoch-complete.json").open("x") as f:
+        json.dump(out, f, indent=2)
+    print(json.dumps(out), flush=True)
+except BaseException as exc:
+    (L / "full-follow-stopped.json").write_text(
+        json.dumps(
+            {
+                "error_type": type(exc).__name__,
+                "original_GPU_terminal_not_inferred_from_owner_error": True,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
