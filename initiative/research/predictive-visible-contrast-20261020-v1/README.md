@@ -1,5 +1,37 @@
 # Visible MRI contrast under fixed encoding normalization
 
+## Prospective full-cohort preparation without a second control cache
+
+`rsna/competitive/predictive/visible_contrast_cache.py` now implements the
+per-study preparation and bounded sender iterator for a possible full contrast
+experiment. It writes only normalized inputs. The matched ten-coordinate
+control reuses the already retained original images, targets and complete
+support priors, adding the identical two scale coordinates from the normalized
+artifact. Its training loader reads only those small metadata arrays from that
+artifact, so it does not decompress two complete image archives per study.
+
+The iterator checks complete original membership/order and source bindings
+before creating scratch. It yields one exclusive, bounded temporary file at a
+time for a synchronous private sender. Advancing or explicitly closing it
+removes only that new scratch; it never deletes original inputs or a receiver's
+partial output. Every prepared study must preserve original targets, masks,
+priors, the first eight metadata coordinates and RNG, and must roundtrip exactly.
+
+Seventeen scoped local tests cover exact equivalence against both explicit
+candidate variants, metadata-only reads, mismatched sources/cohorts, changed
+inputs, insufficient capacity, exclusive output, and interrupted scratch
+cleanup. These are implementation checks, not real full-cohort preparation,
+GPU acceptance or an accuracy gain. No running source or queued pilot changed.
+
+Before using this path, inspect the actual **984784** matched learning outcome,
+make an explicit scientific decision, and bind the completed 3,887-case raw and
+context receipts. A full private receiver/coordinator, destination capacity,
+source scratch funding and full-worker ten-coordinate initialization still need
+admission. The original **96 GiB** context budget cannot be reassigned to new
+normalized inputs; the new destination needs its own bound. Use exact per-file
+size/SHA/EOF verification and destination-owned stat proofs. Do not retain the
+iterator's temporary paths in a receiving index or start a second acquisition.
+
 Measured October20 while the original full-cohort cache jobs run. This is a
 bounded, read-only CPU measurement on the same twelve fitting engineering
 studies, excluding the four evaluation cases. No model, clinical label, changed
