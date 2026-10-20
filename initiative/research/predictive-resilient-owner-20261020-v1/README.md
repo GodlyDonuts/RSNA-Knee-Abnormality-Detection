@@ -1,7 +1,13 @@
-# Prepared resilient predictive fitting orchestration
+# Live resilient predictive fitting orchestration
 
-This is an executable **local preparation**, not evidence of a launch. Root owns
-the exclusive idle-owner handoff, frozen launcher and any actual start.
+At **October 20 15:41 UTC**, sole fitting continuation **96074** started from
+`32858835db7dfd0f701368cdf06c836180fc2c29` after idle91865 was stopped before any
+phase. Cache91707, deployment91866 and observer91955 were untouched. Actual
+CPU981217 observed **1,282 raw/1,278 contexts of3,887**; no full GPU fit, C0
+transfer or predictive account phase has run. [Actual start](actual-started.json);
+[exclusive handoff](actual-fitting-owner91865-stopped.json);
+[cache progress](actual-cache-progress.json). This new milestone is not HF-mirrored.
+
 `fitting.run(...)` replaces only orchestration. Scientific source `44cc559e`,
 the original HTTP program and payload attribution `2b834507`, initialized
 tensors, worker, publisher, recipe, original journal and output paths remain
@@ -30,12 +36,13 @@ verified C0 dispatch and publishes epochs, so publication remains serial.
 - Six original verified C0 epoch proofs precede its one-time final return.
   Training, transfer and submission retries remain disabled.
 
-New-stage cutoff calculations use the prepared pure policy from `15863fa1`:
+New-stage cutoff calculations use the frozen pure policy from `15863fa1`:
 three hours deployment, eight hours per parallel training job, two hours
 scheduler allowance, one hour final publication/return, 90 minutes initial CPU
 controls, 150 minutes C0 transfer and 45 minutes C0 dispatch control. The
 preservation loop remains finite until **October 22 noon UTC**, separately from
-the earlier stop-new-stage decisions.
+the earlier stop-new-stage decisions: **October21 17:15UTC** initial admission,
+**18:45UTC** C0 transfer and **22:00UTC** GPU dispatch invocation.
 
 These cutoffs govern **invoking** a new stage. The unchanged remote program may
 wait for a CPU allocation before submitting a GPU job. The two-hour scheduler
