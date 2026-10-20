@@ -22,6 +22,7 @@ assert phase in (
     "status",
     "publish",
     "record_publication",
+    "reconcile_prepare",
 ) and epoch in (1, 2, 3)
 pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 old = R / "initiative/research/S6-Kaggle-production-route-20261019-v1/publish_epoch.py.txt"
@@ -61,6 +62,22 @@ if phase == "fund":
         publisher_sha256=hashlib.sha256(publisher.encode()).hexdigest(),
         checker=builder.CHECKER,
     )
+elif phase == "reconcile_prepare":
+    prior = json.loads((L / ("prepare-" + str(epoch) + "-transport.json")).read_text())
+    observed = json.loads(prior["stdout"])
+    assert observed["status"] == "actual_new_full_source_zero_epoch_privately_compiled"
+    assert "SystemExit" in prior["stderr"] and prior["returncode"] == 1
+    v["observed"] = observed
+    program = """import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+D=Path('/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1')/('epoch-'+str(v['epoch']))
+observed=v['observed'];assert json.loads((D/'CPU-prepared.json').read_text())==observed
+meta=json.loads((D/'prepared.json').read_text());source=(D/'source.private.py').read_text();assert hashlib.sha256(source.encode()).hexdigest()==observed['source_sha256']==meta['source_sha256']
+compile(source,'original_staged_full_source_zero','exec');assert not (D/'push-intent.json').exists() and not (D/'pushed.json').exists()
+observed.update(original_prepare_wrapper_failed_only_on_SystemExit_zero=True,reconciliation_CPU_job=os.environ['SLURM_JOB_ID'],new_compilations_or_GPU_or_API_mutations=0)
+print(json.dumps(observed),flush=True)
+"""
 elif phase == "publish":
     program = publisher
     actual = json.loads((D / ("actual-status-epoch-" + str(epoch) + ".json")).read_text())
@@ -167,7 +184,7 @@ args = [
 program = (
     "import sys\ntry:\n"
     + "".join("    " + line + "\n" for line in program.splitlines())
-    + "except BaseException as exc:\n    print(type(exc).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+    + "except Exception as exc:\n    print(type(exc).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
 )
 x = subprocess.run(
     ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
@@ -182,6 +199,10 @@ x = subprocess.run(
 )
 assert x.returncode == 0, "Read original journal/canonical state; no automatic mutation retry"
 out = json.loads(x.stdout)
+if phase == "reconcile_prepare":
+    (D / ("actual-prepare-epoch-" + str(epoch) + ".json")).write_text(
+        json.dumps(out, indent=2) + "\n"
+    )
 name = (
     "actual-funding.json"
     if phase == "fund"
