@@ -1,0 +1,100 @@
+"""Derive an independently checked new publisher; never modify a live publisher."""
+
+import hashlib
+
+ORIGINAL_SHA = "b2169fe0e121ac8f6aa3432418419a3b73e098d392f75d0c975dc13e2f44bc54"
+
+CHECKER = """import dataclasses,torch
+from rsna.competitive.licensed_parent_epoch import verify as original_verify
+from rsna.competitive.paired_source_zero import Recipe,VERSION
+def verify(state,snapshot,receipt,engine):
+ r=original_verify(state,snapshot,receipt,expected_windows=16,expected_status='actual_paired_source_zero_full_epoch_complete')
+ b=state['binding']
+ assert b['recipe']==dataclasses.asdict(Recipe(epochs=3)) and b['version']==VERSION
+ assert b['source_loss_weight']==0.0 and b['anatomical_views_per_study']==2
+ assert b['teacher_role']=='original_parent_only' and not b['protected_gold_confirmation_used']
+ assert b['teacher_proposal_sha256']=='2d7515536e378b2775cbacbf4e296713e358ec8f70aba8cc9212a952bed70a77'
+ assert b['actual_T4_recovery']['kernel_id']==139736683 and b['actual_CPU_input']['kernel_id']==139738563
+ assert b['source_module_sha256']['rsna/competitive/paired_source_zero_train.py']=='14f4b234eb6d549d7f066d6f353c65c7df525f9ff2aba02d2c76b29e07a853a2'
+ assert b['input_integrity_dataset_id']==12722964 and b['input_integrity_sha256']=='85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f'
+ assert all(x['anatomical_views']==2*x['studies'] for x in state['history'])
+ assert len(receipt['devices'])==2 and {x['rank'] for x in receipt['devices']}=={0,1}
+ for x in receipt['devices']:
+  assert x['GPU']=='Tesla T4' and x['trainable_parameters']==73136096 and x['all_BN_buffers_equal_parent']
+  assert x['initial_identity']['model']=='a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78'
+  assert x['peak_allocated_bytes']<x['total_VRAM_bytes'] and x['completed']==receipt['completed']
+ assert engine['kernel_id']==139736683 and engine['receipt']['complete_model_AdamW_LR_allrank_RNG_scaler_history_snapshots_exact_resume']
+ r.update(source_loss_weight=0.0,anatomical_views_per_study=2,original_parent_teacher=True,actual_input_acceptance=139738563)
+ return r
+"""
+
+
+def once(s, old, new):
+    if s.count(old) != 1:
+        raise ValueError("Exact reviewed publisher source site required")
+    return s.replace(old, new)
+
+
+def build(original, original_sha):
+    if (
+        original_sha != ORIGINAL_SHA
+        or hashlib.sha256(original.encode()).hexdigest() != ORIGINAL_SHA
+    ):
+        raise ValueError("Exact original once-only publisher required")
+    s = original.replace(
+        "actual_complete_S6_target_full_encoder_epoch_session_complete",
+        "actual_paired_source_zero_full_epoch_complete",
+    )
+    s = s.replace("cross_lineage_equal_rank", "original_parent_only")
+    s = s.replace(
+        "licensed-importance-full-fit:complete-S6-cross:",
+        "licensed-importance-full-fit:source-zero-full:",
+    )
+    s = s.replace(
+        "complete_teacher_cross_full_fit_actual_complete", "source_zero_full_fit_actual_complete"
+    )
+    start = s.index('B = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")')
+    end = s.index('F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")', start)
+    funding = """B=Path('/tmp/rsna-source-zero-full-T4-20261020-v1');R=B/'epochs';D=R/('epoch-'+str(epoch).zfill(3))
+assert not D.exists(),'Existing original collection requires read-only reconciliation'
+fund=json.loads((B/'funded.json').read_text());assert fund==v['funding'] and fund['model_cap_bytes']==4*2**30
+paid_models=sum(p.stat().st_size for p in R.rglob('*') if p.is_file()) if R.exists() else 0
+assert paid_models+sum(z[n]['bytes'] for n in ('checkpoint','epoch','run'))+z['epoch']['bytes']+2*2**20<4*2**30
+assert shutil.disk_usage('/tmp').free>(20+87+12+24)*2**30+max(0,4*2**30-paid_models)+2*2**20
+teacher=Path('/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1');paid=list(p for p in teacher.rglob('*') if p.is_file());paid_bytes=sum(p.stat().st_size for p in paid)
+assert len(paid)<256 and paid_bytes<4*2**20
+q=__import__('subprocess').check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);c=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(c[2])-int(c[1]))*1024>20*2**30+(32+16+16+2)*2**20+max(0,4*2**20-paid_bytes)+96*2**10
+assert int(c[6])-int(c[5])>5000+128+128+max(0,256-len(paid))+24
+engine=v['actual_recovery'];assert engine['kernel_id']==139736683 and engine['status']=='COMPLETE'
+"""
+    s = s[:start] + funding + s[end:]
+    s = s.replace(
+        "licensed-importance-full-session-accepted.json", "source-zero-full-epoch-accepted.json"
+    )
+    old = 'assert {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()} == engine["receipt"][\n    "source_module_sha256"\n]'
+    s = once(
+        s,
+        old,
+        'assert {n: hashlib.sha256(s.encode()).hexdigest() for n,s in files.items()} == z["binding"]["source_module_sha256"]',
+    )
+    s = s.replace("importance-full/fit/", "source-zero-full/fit/")
+    old = "verification = check.verify(state, snapshot, z, engine)"
+    new = """verification = check.verify(state,snapshot,z,engine)
+reference=Path(fund['reference_model']);st=reference.stat();assert [st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns]==fund['reference_stat']
+ref=torch.load(reference,map_location='cpu',weights_only=True)['model'];assert ref.keys()==snapshot['model'].keys()
+assert all(ref[n].dtype==t.dtype and ref[n].shape==t.shape for n,t in snapshot['model'].items());del ref
+st=reference.stat();assert [st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns]==fund['reference_stat']
+verification['exact_original_model_graph_shapes_dtypes']=True"""
+    s = once(s, old, new)
+    s = s.replace("checkpoints/complete-S6-target-twoT4-", "checkpoints/source-zero-full-twoT4-")
+    s = s.replace(
+        "Preserve immutable complete-S6 cross-lineage full3887 twoT4 epoch ",
+        "Preserve immutable source-zero paired-view full3887 twoT4 epoch ",
+    )
+    s = s.replace(
+        "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified",
+        "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified",
+    )
+    compile(s, "source_zero_new_epoch_publisher", "exec")
+    return s

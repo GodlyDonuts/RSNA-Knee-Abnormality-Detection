@@ -1,0 +1,182 @@
+"""Join two actual accepted numerical/input sources into a distinct full fit."""
+
+import ast
+import base64
+import hashlib
+
+RECOVERY_SHA = "a2174506987fb667932011a40ef225b30b1f09f2000803aaec2dc142e2bb7e23"
+INPUT_SHA = "2d9456f629abc11ab8c77fa2b8b5a0731efcf34c044116049be9822564d906fe"
+ENGINE_SHA = "14f4b234eb6d549d7f066d6f353c65c7df525f9ff2aba02d2c76b29e07a853a2"
+
+
+def digest(s):
+    return hashlib.sha256(s.encode()).hexdigest()
+
+
+def values(source, names):
+    result = {}
+    for node in ast.parse(source).body:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id in names
+        ):
+            result[node.targets[0].id] = ast.literal_eval(node.value)
+    if set(result) != set(names):
+        raise ValueError("Exact private literal closure required")
+    return result
+
+
+def build(
+    recovery_source,
+    input_source,
+    recovery,
+    inputs,
+    main,
+    bootstrap,
+    source_git,
+    segment,
+    previous=None,
+):
+    if digest(recovery_source) != RECOVERY_SHA or digest(input_source) != INPUT_SHA:
+        raise ValueError("Exact actual accepted source versions required")
+    if (
+        recovery.get("status") != "COMPLETE"
+        or recovery.get("kernel_id") != 139736683
+        or inputs.get("status") != "COMPLETE"
+        or inputs.get("kernel_id") != 139738563
+    ):
+        raise ValueError("Actual successful original terminal receipts required")
+    r, cpu = recovery["receipt"], inputs["receipt"]
+    if (
+        not r.get("complete_model_AdamW_LR_allrank_RNG_scaler_history_snapshots_exact_resume")
+        or not r.get("both_view_full94_15x12_CSV_bytes_equal")
+        or r.get("finite_updates") != 6
+        or not cpu.get("all_images_labels_masks_teachers_exact")
+        or not cpu.get("CPU_RNG_unchanged")
+        or cpu.get("actual_plain_mirrored_pairs") != 64
+    ):
+        raise ValueError("Actual complete numerical and original-input equality required")
+    if (
+        type(segment) is not int
+        or segment not in (1, 2, 3)
+        or len(source_git) != 40
+        or any(c not in "0123456789abcdef" for c in source_git)
+    ):
+        raise ValueError("Fixed three epochs and exact source pin required")
+    old = values(recovery_source, ("FILES", "WORKER", "PERMISSION"))
+    data = values(input_source, ("FILES", "WORKER"))
+    files = dict(old["FILES"])
+    if {n: digest(s) for n, s in files.items()} != r["binding"]["own_module_sha256"] or digest(
+        files["rsna/competitive/paired_source_zero_train.py"]
+    ) != ENGINE_SHA:
+        raise ValueError("Accepted actual numerical engine and entire module closure required")
+    reader = "rsna/competitive/licensed_selected_pixel_bags.py"
+    files[reader] = data["FILES"][reader]
+    if digest(files[reader]) != cpu["binding"]["own_module_sha256"][reader]:
+        raise ValueError("Exact runtime-admitted reader required")
+    for name in ("licensed_parent_population", "licensed_pixel_bags", "licensed_pixel_cache"):
+        path = "rsna/competitive/" + name + ".py"
+        if files[path] != data["FILES"][path]:
+            raise ValueError(
+                "One identical original population/codec across both acceptances required"
+            )
+    worker = base64.b64decode(old["WORKER"], validate=True).decode()
+    tree = ast.parse(worker)
+    cutoff = [n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "_FixedSubset"]
+    if len(cutoff) != 1:
+        raise ValueError("Original accepted model prefix before diagnostic-only subset required")
+    prefix = "".join(worker.splitlines(keepends=True)[: cutoff[0].lineno - 1])
+    for node in reversed(ast.parse(prefix).body):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == "_RECOVERY_BINDING" for t in node.targets
+        ):
+            lines = prefix.splitlines(keepends=True)
+            prefix = "".join(lines[: node.lineno - 1] + lines[node.end_lineno :])
+    input_worker = base64.b64decode(data["WORKER"], validate=True).decode()
+    selected = [
+        n
+        for n in ast.parse(input_worker).body
+        if isinstance(n, ast.FunctionDef) and n.name == "_selected_original_windows"
+    ]
+    if len(selected) != 1:
+        raise ValueError("One original runtime-accepted selected renderer required")
+    selected_source = ast.unparse(ast.Module(body=selected, type_ignores=[]))
+    if digest(selected_source) != cpu["binding"]["selected_renderer_sha256"]:
+        raise ValueError("Selected renderer must stay byte-identical to its actual acceptance")
+    binding = {
+        "experiment": "full3887_paired_parent_teacher_zero_source_fixed3_v1",
+        "source_git": source_git,
+        "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "parent_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+        "actual_T4_recovery": {
+            "kernel_id": 139736683,
+            "source_sha256": RECOVERY_SHA,
+            "receipt_sha256": digest(
+                __import__("json").dumps(r, sort_keys=True, separators=(",", ":"))
+            ),
+        },
+        "actual_CPU_input": {
+            "kernel_id": 139738563,
+            "source_sha256": INPUT_SHA,
+            "receipt_sha256": digest(
+                __import__("json").dumps(cpu, sort_keys=True, separators=(",", ":"))
+            ),
+        },
+        "source_module_sha256": {n: digest(s) for n, s in sorted(files.items())},
+        "selected_renderer_sha256": digest(selected_source),
+        "source_loss_weight": 0.0,
+        "teacher_role": "original_parent_only",
+        "anatomical_views_per_study": 2,
+        "input_integrity_dataset_id": 12722964,
+        "input_integrity_sha256": "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f",
+        "protected_gold_confirmation_used": False,
+        "clinical_or_competition_accuracy_claim": False,
+    }
+    worker = prefix + "\n" + selected_source + "\n_BINDING=" + repr(binding) + "\n" + main
+    compile(worker, "private_full3887_zero_source_worker", "exec")
+    if segment == 1:
+        if previous is not None:
+            raise ValueError("First epoch must start at the accepted original parent")
+    elif (
+        not isinstance(previous, dict)
+        or previous.get("status") != "actual_paired_source_zero_full_epoch_complete"
+        or previous.get("segment") != segment - 1
+        or previous.get("completed") != (segment - 1) * 486
+        or previous.get("binding") != binding
+        or previous.get("worker_sha256") != digest(worker)
+    ):
+        raise ValueError("Exact previous continuous optimizer/RNG/source/recipe required")
+    if previous is not None:
+        for name in ("checkpoint", "run"):
+            value = previous.get(name, {})
+            if (
+                type(value.get("bytes")) is not int
+                or not 0 < value["bytes"] < 2 * 2**30
+                or len(value.get("sha256", "")) != 64
+            ):
+                raise ValueError("Original checkpoint/run immutable byte receipt required")
+    for token, value in {
+        "__FILES_VALUE__": files,
+        "__WORKER_VALUE__": base64.b64encode(worker.encode()).decode(),
+        "__BINDING_VALUE__": binding,
+        "__SEGMENT_VALUE__": segment,
+        "__PREVIOUS_VALUE__": previous,
+        "__PERMISSION_VALUE__": old["PERMISSION"],
+    }.items():
+        if bootstrap.count(token) != 1:
+            raise ValueError("Unique exact bootstrap source site required")
+        bootstrap = bootstrap.replace(token, repr(value))
+    compile(bootstrap, "private_full3887_zero_source_epoch", "exec")
+    return bootstrap, {
+        "source_sha256": digest(bootstrap),
+        "worker_sha256": digest(worker),
+        "binding": binding,
+        "segment": segment,
+        "completed_target": segment * 486,
+        "fixed_final_updates": 1458,
+        "maximum_VM_seconds": 6000,
+        "competition_entries": 0,
+        "private_epoch_cap_bytes": 4 * 2**30,
+    }

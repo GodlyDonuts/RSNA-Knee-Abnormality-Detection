@@ -1,0 +1,199 @@
+import base64
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from pathlib import Path
+
+FILES = __FILES_VALUE__
+WORKER = __WORKER_VALUE__
+BINDING = __BINDING_VALUE__
+SEGMENT = __SEGMENT_VALUE__
+PREVIOUS = __PREVIOUS_VALUE__
+PERMISSION = __PERMISSION_VALUE__
+
+os.environ.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    HF_HUB_DISABLE_TELEMETRY="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    PYTHONNOUSERSITE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    OMP_NUM_THREADS="1",
+    OPENBLAS_NUM_THREADS="1",
+    MKL_NUM_THREADS="1",
+)
+root = Path("/kaggle/working/source-zero-full")
+assert not root.exists() and shutil.disk_usage(root.parent).free > 6 * 2**30
+root.mkdir(mode=0o700)
+code = root / "code"
+code.mkdir(mode=0o700)
+(root / "permission.txt").write_bytes(base64.b64decode(PERMISSION, validate=True))
+assert (
+    hashlib.sha256((root / "permission.txt").read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+for name, text in {**FILES, "rsna/__init__.py": "", "rsna/competitive/__init__.py": ""}.items():
+    p = code / name
+    assert p.resolve().is_relative_to(code.resolve())
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+    p.chmod(0o600)
+sys.path.insert(0, str(code))
+from rsna.competitive.licensed_parent_population import locate
+
+assert shutil.disk_usage("/tmp").free > 256 * 2**20
+runtime_input = tempfile.TemporaryDirectory(prefix="rsna-zero-original-integrity-", dir="/tmp")
+manifest = Path(runtime_input.name) / "window-integrity.private.npy"
+p = locate(
+    "/kaggle/input",
+    manifest.name,
+    23384320,
+    "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f",
+)
+shutil.copyfile(p, manifest)
+manifest.chmod(0o600)
+assert (
+    hashlib.sha256(manifest.read_bytes()).hexdigest()
+    == "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f"
+)
+os.environ["RSNA_ORIGINAL_WINDOW_INTEGRITY"] = str(manifest)
+weights = [
+    p
+    for directory in Path("/kaggle/input").iterdir()
+    for p in directory.rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+    if p.is_file()
+]
+assert len(weights) == 1
+with weights[0].open("rb") as f:
+    assert hashlib.file_digest(f, "sha256").hexdigest() == BINDING["parent_checkpoint_sha256"]
+if PREVIOUS is not None:
+    (root / "fit").mkdir(mode=0o700)
+    for key, name in (("checkpoint", "checkpoint.pt"), ("run", "run.json")):
+        p = locate("/kaggle/input", name, PREVIOUS[key]["bytes"], PREVIOUS[key]["sha256"])
+        shutil.copyfile(p, root / "fit" / name)
+worker = code / "worker.private.py"
+worker.write_bytes(base64.b64decode(WORKER, validate=True))
+worker.chmod(0o600)
+command = [
+    sys.executable,
+    "-m",
+    "torch.distributed.run",
+    "--standalone",
+    "--nnodes=1",
+    "--nproc_per_node=2",
+    str(worker),
+]
+if SEGMENT > 1:
+    command.append("--resume")
+if SEGMENT < 3:
+    command += ["--stop-after", str(486 * SEGMENT)]
+start = time.monotonic()
+finished = threading.Event()
+
+
+def monitor():
+    while not finished.wait(30):
+        p = root / "fit/progress.json"
+        if p.is_file():
+            print(
+                json.dumps(
+                    {
+                        "segment": SEGMENT,
+                        "actual_progress": json.loads(p.read_text()),
+                        "elapsed_seconds": time.monotonic() - start,
+                    }
+                ),
+                flush=True,
+            )
+
+
+watcher = threading.Thread(target=monitor, daemon=True)
+watcher.start()
+try:
+    with (root / "original-training.private.log").open("x") as log:
+        result = subprocess.run(
+            command,
+            env={**os.environ, "PYTHONPATH": str(code)},
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            timeout=5400,
+        )
+finally:
+    finished.set()
+    watcher.join(timeout=2)
+assert result.returncode == 0, "Original epoch failure retained; no retry or restart"
+import torch
+
+state = torch.load(root / "fit/checkpoint.pt", map_location="cpu", weights_only=True)
+run = json.loads((root / "fit/run.json").read_text())
+assert state["binding"] == run["binding"] and all(
+    state["binding"][k] == v for k, v in BINDING.items()
+)
+assert (
+    state["binding"]["source_loss_weight"] == 0.0
+    and state["binding"]["anatomical_views_per_study"] == 2
+)
+assert state["binding"]["recipe"]["epochs"] == 3 and state["binding"]["population"] == 3887
+assert (
+    state["binding"]["population_sha256"]
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+assert state["completed"] == 486 * SEGMENT and state["epoch"] == SEGMENT and state["cursor"] == 0
+assert (
+    state["optimizer_boundary"] is True
+    and len(state["rng_by_rank"]) == len(state["scaler_by_rank"]) == 2
+)
+assert [x["update"] for x in state["history"]] == list(range(1, 486 * SEGMENT + 1))
+assert all(
+    x["studies"] == (7 if x["batch"] == 486 else 8) and x["anatomical_views"] == 2 * x["studies"]
+    for x in state["history"]
+)
+del state
+devices = [
+    json.loads((root / "fit" / ("actual-rank-" + str(i) + ".json")).read_text()) for i in (0, 1)
+]
+assert all(
+    x["GPU"] == "Tesla T4" and x["completed"] == 486 * SEGMENT and x["all_BN_buffers_equal_parent"]
+    for x in devices
+)
+assert all(x["peak_allocated_bytes"] < x["total_VRAM_bytes"] for x in devices)
+epoch = root / "fit/epoch-checkpoints" / ("epoch-" + str(SEGMENT).zfill(3) + ".pt")
+files = {"checkpoint": root / "fit/checkpoint.pt", "run": root / "fit/run.json", "epoch": epoch}
+
+
+def item(p):
+    with p.open("rb") as f:
+        return {"bytes": p.stat().st_size, "sha256": hashlib.file_digest(f, "sha256").hexdigest()}
+
+
+receipt = {
+    "status": "actual_paired_source_zero_full_epoch_complete",
+    "segment": SEGMENT,
+    "completed": 486 * SEGMENT,
+    "total": 1458,
+    "fixed_final_complete": SEGMENT == 3,
+    "teacher_target_role": "original_parent_only",
+    "binding": BINDING,
+    "worker_sha256": hashlib.sha256(worker.read_bytes()).hexdigest(),
+    **{k: item(p) for k, p in files.items()},
+    "devices": devices,
+    "elapsed_seconds": time.monotonic() - start,
+    "retained_output_bytes": sum(p.stat().st_size for p in root.rglob("*") if p.is_file()),
+    "competition_entry": False,
+    "clinical_accuracy_claim": False,
+}
+assert (
+    receipt["retained_output_bytes"] < 4 * 2**30
+    and not Path("/kaggle/working/submission.csv").exists()
+)
+Path("/kaggle/working/source-zero-full-epoch-accepted.json").write_text(
+    json.dumps(receipt, sort_keys=True, indent=2)
+)
+runtime_input.cleanup()
+print(json.dumps(receipt), flush=True)

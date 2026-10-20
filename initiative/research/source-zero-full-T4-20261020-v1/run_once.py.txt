@@ -1,0 +1,193 @@
+"""One full-fit phase; existing intent means reconcile, never repeat mutation."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/source-zero-full-T4-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+phase, epoch = sys.argv[1], int(sys.argv[2])
+assert phase in (
+    "fund",
+    "prepare",
+    "admit",
+    "push",
+    "status",
+    "publish",
+    "record_publication",
+) and epoch in (1, 2, 3)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+old = R / "initiative/research/S6-Kaggle-production-route-20261019-v1/publish_epoch.py.txt"
+validator = R / "rsna/competitive/licensed_parent_epoch.py"
+for p in (*D.glob("*.py.txt"), old, validator, R / "scripts/kaggle/gpu_capacity.py"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+loader = SourceFileLoader("full_source_zero_publisher_builder", str(D / "publisher.py.txt"))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+builder = importlib.util.module_from_spec(spec)
+loader.exec_module(builder)
+publisher = builder.build(old.read_text(), hashlib.sha256(old.read_bytes()).hexdigest())
+recovery = json.loads(
+    (
+        R / "initiative/research/teacher-only-T4-recovery-20261020-v1/actual-terminal.json"
+    ).read_text()
+)
+inputs = json.loads(
+    (
+        R / "initiative/research/selected-window-Kaggle-reader-20261020-v1/actual-terminal.json"
+    ).read_text()
+)
+assert recovery["status"] == inputs["status"] == "COMPLETE"
+v = {
+    "phase": phase,
+    "epoch": epoch,
+    "source_git": pin,
+    "actual_recovery": recovery,
+    "actual_inputs": inputs,
+}
+if phase == "fund":
+    assert epoch == 1
+    program = (D / "fund.py.txt").read_text()
+    v.update(
+        publisher=publisher,
+        publisher_sha256=hashlib.sha256(publisher.encode()).hexdigest(),
+        checker=builder.CHECKER,
+    )
+elif phase == "publish":
+    program = publisher
+    actual = json.loads((D / ("actual-status-epoch-" + str(epoch) + ".json")).read_text())
+    assert actual["status"] == "COMPLETE" and actual["epoch"] == epoch
+    v.update(
+        actual=actual,
+        funding=json.loads((D / "actual-funding.json").read_text()),
+        validator_modules={
+            "rsna/__init__.py": "",
+            "rsna/competitive/__init__.py": "",
+            "rsna/competitive/licensed_parent_epoch.py": validator.read_text(),
+        },
+        checker_source=builder.CHECKER,
+        checker_sha256=hashlib.sha256(builder.CHECKER.encode()).hexdigest(),
+    )
+    assert hashlib.sha256(publisher.encode()).hexdigest() == v["funding"]["publisher_sha256"]
+elif phase == "record_publication":
+    v["publication"] = json.loads(
+        (D / ("actual-private-verified-epoch-" + str(epoch) + ".json")).read_text()
+    )
+    program = """import json,os,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+D=Path('/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1')/('epoch-'+str(v['epoch']))
+a=json.loads((D/'actual-accepted.json').read_text());z=v['publication'];assert z['status']=='actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified' and z['epoch']==v['epoch'] and z['model_sha256']==a['receipt']['epoch']['sha256']
+terminal=subprocess.check_output(['sacct','-X','-n','-P','-j',z['CPU_job'],'--format=JobIDRaw,State,ExitCode'],text=True);assert z['CPU_job']+'|COMPLETED|0:0' in terminal
+with (D/'publication-private-verified.json').open('x') as f:json.dump(z,f,sort_keys=True,indent=2)
+print(json.dumps({'status':'actual_source_zero_private_epoch_pointer_recorded','epoch':v['epoch'],'model_sha256':z['model_sha256'],'revision':z['revision']}),flush=True)
+"""
+else:
+    program = (D / "cloud.py.txt").read_text()
+    if phase == "prepare":
+        v.update(
+            compiler=(D / "compile.py.txt").read_text(),
+            worker=(D / "worker.py.txt").read_text(),
+            bootstrap=(D / "bootstrap.py.txt").read_text(),
+        )
+    else:
+        capacity = (R / "scripts/kaggle/gpu_capacity.py").read_text()
+        v.update(
+            capacity_source=capacity, capacity_sha256=hashlib.sha256(capacity.encode()).hexdigest()
+        )
+        if phase == "push":
+            v["funding"] = json.loads((D / "actual-funding.json").read_text())
+if phase in ("admit", "push", "status", "publish"):
+    env = R / ".env"
+    assert env.stat().st_mode & 0o077 == 0
+    values = {
+        k.strip(): z.strip().strip("\"'")
+        for line in env.read_text().splitlines()
+        for k, sep, z in [line.partition("=")]
+        if sep and not line.lstrip().startswith("#")
+    }
+    v["kaggle_token"] = values["KAGGLE_API_TOKEN"]
+    if phase == "publish":
+        v["hf_token"] = values["HF_TOKEN"]
+if phase not in ("status", "admit"):
+    with (L / (phase + "-" + str(epoch) + "-intent.json")).open("x") as f:
+        json.dump(
+            {
+                "source_git": pin,
+                "phase": phase,
+                "epoch": epoch,
+                "maximum_new_GPU_sessions": int(phase == "push"),
+                "competition_entries": 0,
+                "automatic_retry": False,
+            },
+            f,
+            indent=2,
+        )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+node = "48" if phase in ("fund", "publish") else "33"
+python = (
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python"
+    if phase == "publish"
+    else "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"
+)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc" + node,
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G" if phase == "publish" else "--mem=1G",
+    "--time=01:45:00" if phase == "publish" else "--time=00:06:00",
+    "--job-name=rsna-zero-full-" + phase + "-" + str(epoch),
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    python,
+    "-c",
+    t.COMMAND,
+]
+# Download failures can carry signed URLs; preserve only the error class locally.
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except BaseException as exc:\n    print(type(exc).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+)
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope(program, v),
+    capture_output=True,
+    text=True,
+    timeout=6600 if phase == "publish" else 1000,
+)
+(L / (phase + "-" + str(epoch) + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read original journal/canonical state; no automatic mutation retry"
+out = json.loads(x.stdout)
+name = (
+    "actual-funding.json"
+    if phase == "fund"
+    else "actual-private-verified-epoch-" + str(epoch) + ".json"
+    if phase == "publish"
+    else "actual-" + phase + "-epoch-" + str(epoch) + ".json"
+)
+(D / name).write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

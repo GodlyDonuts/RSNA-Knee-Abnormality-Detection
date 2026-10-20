@@ -1,0 +1,73 @@
+"""Fund new private model/control space and pin the independent publisher."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-source-zero-full-T4-20261020-v1")
+assert not D.exists(), "Existing original admission requires read-only reconciliation"
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 12 + 24 + 4) * 2**30 + 2 * 2**20
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+paid = [p for p in teacher.rglob("*") if p.is_file()]
+paid_bytes = sum(p.stat().st_size for p in paid)
+assert len(paid) < 256 and paid_bytes < 4 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+c = next(line.split() for line in q.splitlines() if line.strip().startswith("/home/sa305415"))
+assert (int(c[2]) - int(c[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+) + 96 * 2**10
+assert int(c[6]) - int(c[5]) > 5000 + 128 + 128 + max(0, 256 - len(paid)) + 24
+reference = Path(
+    "/tmp/rsna-S6-Newton-student-recovery-20261019-v1/Kaggle-target-epochs-v1/epoch-003/model.pt"
+)
+verified = json.loads((reference.parent / "verified.json").read_text())
+assert verified["revision"] == "25c8cada7265f7c33f9551d1d0bc6511517bebc5"
+assert (
+    verified["model_sha256"] == "b968653621f9d35f92957fbe9c6ce5a7d1944a0379407a581bb8cf13b1817067"
+)
+st = reference.stat()
+assert st.st_size == verified["files"]["model.pt"]["bytes"] == 292873139
+assert hashlib.sha256(v["publisher"].encode()).hexdigest() == v["publisher_sha256"]
+compile(v["publisher"], "new_source_zero_private_publisher", "exec")
+compile(v["checker"], "new_source_zero_independent_checker", "exec")
+assert len(v["publisher"].encode()) + len(v["checker"].encode()) < 2**20
+assert (
+    v["actual_recovery"]["kernel_id"] == 139736683 and v["actual_recovery"]["status"] == "COMPLETE"
+)
+assert v["actual_inputs"]["kernel_id"] == 139738563 and v["actual_inputs"]["status"] == "COMPLETE"
+D.mkdir(mode=0o700)
+(D / "publisher.py").write_text(v["publisher"])
+(D / "checker.py").write_text(v["checker"])
+out = {
+    "status": "actual_new_source_zero_full_private_models_controls_publisher_funded",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "model_cap_bytes": 4 * 2**30,
+    "control_cap_bytes": 2 * 2**20,
+    "new_shared_ledger_bytes_cap": 96 * 2**10,
+    "new_permanent_shared_files": 0,
+    "all_previous_liabilities_and_20GiB_5000file_reserves_retained": True,
+    "publisher_sha256": v["publisher_sha256"],
+    "checker_sha256": hashlib.sha256(v["checker"].encode()).hexdigest(),
+    "reference_model": str(reference),
+    "reference_stat": [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns],
+    "actual_original_model_whole_byte_proof_reused": "976299",
+    "old_assets_deleted_or_deletion_credit": False,
+    "actual_T4_recovery": 139736683,
+    "actual_CPU_input": 139738563,
+    "fixed_fitting_studies": 3887,
+    "fixed_final_updates": 1458,
+    "future_GPU_sessions_all_funded": False,
+    "per_next_GPU_VM_cap_seconds": 6000,
+    "fixed_final_only_serving_reservation_seconds": 3000,
+    "GPU_jobs_or_entries_dispatched": 0,
+}
+(D / "funded.json").write_text(json.dumps(out, sort_keys=True, indent=2))
+print(json.dumps(out), flush=True)

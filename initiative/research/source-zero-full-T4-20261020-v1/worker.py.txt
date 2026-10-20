@@ -1,0 +1,130 @@
+"""New production entry; the accepted numerical engine is not changed."""
+
+from rsna.competitive.licensed_importance import ProposalCases
+from rsna.competitive.licensed_parent_population import load as load_population
+from rsna.competitive.licensed_parent_population import locate
+from rsna.competitive.licensed_selected_pixel_bags import SelectedPixelBags
+from rsna.competitive.paired_source_zero import Recipe
+from rsna.competitive.paired_source_zero_train import fit
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--stop-after", type=int)
+    a = parser.parse_args()
+    assert a.stop_after in (None, 486, 972)
+    rank = int(os.environ["LOCAL_RANK"])
+    assert int(os.environ["WORLD_SIZE"]) == 2
+    torch.cuda.set_device(rank)
+    device = torch.device("cuda", rank)
+    assert torch.cuda.get_device_name(device) == "Tesla T4"
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.use_deterministic_algorithms(True)
+    random.seed(20261016 + rank)
+    np.random.seed(20261016 + rank)
+    torch.manual_seed(20261016 + rank)
+    torch.cuda.manual_seed_all(20261016 + rank)
+    dist.init_process_group("nccl")
+    root = Path("/kaggle/working/source-zero-full")
+    original = load_population(
+        "/kaggle/input",
+        _PROOFS,
+        lambda v, m, mirror: eval_windows(v, m, 94, 320, norm=NORM, mirror=mirror),
+    )
+    receipt_path = locate(
+        "/kaggle/input",
+        "integrity-receipt.json",
+        1372,
+        "7351e1012b9fe09ae7a4d54e1971f6b9a6fdec4e10c4bb81686b18949cd8501c",
+    )
+    integrity = json.loads(receipt_path.read_text())
+    selected = SelectedPixelBags(
+        original,
+        Path(os.environ["RSNA_ORIGINAL_WINDOW_INTEGRITY"]),
+        integrity,
+        lambda v, m, positions, mirror: _selected_original_windows(
+            v, m, 94, 320, positions, norm=NORM, mirror=mirror
+        ),
+    )
+    assert len(selected) == 3887 and selected.uids == original.uids
+    p = locate(
+        "/kaggle/input",
+        "proposals.private.npy",
+        2923152,
+        "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e",
+    )
+    q = np.load(p, allow_pickle=False)
+    assert q.shape == (3887, 94) and q.dtype == np.float64
+    data = ProposalCases(selected, torch.from_numpy(q))
+    assert (
+        data.proposal_sha256 == "2d7515536e378b2775cbacbf4e296713e358ec8f70aba8cc9212a952bed70a77"
+    )
+    weights = [
+        p
+        for directory in Path("/kaggle/input").iterdir()
+        for p in directory.rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+        if p.is_file()
+    ]
+    assert len(weights) == 1
+    base, resolution = load_model(
+        str(weights[0]), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, device
+    )
+    model = _whole_model(base)
+    del base
+    assert resolution == 320 and all(p.requires_grad for p in model.parameters())
+    assert sum(p.numel() for p in model.parameters()) == 73136096
+    initial = _initial_identity(model, device)
+    assert initial["model"] == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+    bn = {
+        n: v.detach().cpu().clone()
+        for n, v in model.state_dict().items()
+        if any(k in n for k in ("running_mean", "running_var", "num_batches_tracked"))
+    }
+    header = {
+        "rank": rank,
+        "GPU": torch.cuda.get_device_name(device),
+        "studies": 3887,
+        "source_loss_weight": 0.0,
+        "views_per_study": 2,
+        "trainable_parameters": 73136096,
+        "initial_identity": initial,
+        "accepted_selected_inputs": True,
+        "resume": a.resume,
+    }
+    (root / ("allocated-rank-" + str(rank) + ".json")).write_text(json.dumps(header))
+    start = time.monotonic()
+    result = fit(
+        model,
+        data,
+        root / "fit",
+        _BINDING,
+        Recipe(epochs=3),
+        device=device,
+        resume=a.resume,
+        stop_after=a.stop_after,
+    )
+    assert result["total"] == 1458 and result["completed"] in (486, 972, 1458)
+    assert all(torch.equal(v, model.state_dict()[n].detach().cpu()) for n, v in bn.items())
+    info = {
+        **header,
+        "completed": result["completed"],
+        "total": 1458,
+        "fit_seconds": time.monotonic() - start,
+        "peak_allocated_bytes": torch.cuda.max_memory_allocated(device),
+        "total_VRAM_bytes": torch.cuda.get_device_properties(device).total_memory,
+        "all_BN_buffers_equal_parent": True,
+        "clinical_accuracy_claim": False,
+    }
+    (root / "fit" / ("actual-rank-" + str(rank) + ".json")).write_text(json.dumps(info))
+    dist.barrier()
+    dist.destroy_process_group()
+
+
+if __name__ == "__main__":
+    main()

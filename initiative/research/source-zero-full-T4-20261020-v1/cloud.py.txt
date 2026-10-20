@@ -1,0 +1,327 @@
+"""Prepare/admit/push/observe one exact continuous full source-zero epoch."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import types
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+phase, epoch = v["phase"], v["epoch"]
+assert phase in ("prepare", "admit", "push", "status") and type(epoch) is int and epoch in (1, 2, 3)
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+D = B / "source-zero-full-v1"
+E = D / ("epoch-" + str(epoch))
+if phase == "prepare":
+    assert not E.exists(), "Existing original preparation requires read-only reconciliation"
+    assert shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + 32 * 2**20
+    assert sum(p.stat().st_size for p in B.rglob("*") if p.is_file()) + 2 * 2**20 < 8 * 2**20
+    a, b = B / "paired-zero-recovery-v1", B / "selected-window-CPU-probe-v1"
+    recovery = json.loads((a / "actual-accepted.json").read_text())
+    inputs = json.loads((b / "actual-accepted.json").read_text())
+    assert (
+        recovery["receipt"] == v["actual_recovery"]["receipt"]
+        and inputs["receipt"] == v["actual_inputs"]["receipt"]
+    )
+    sources = {
+        n: hashlib.sha256(v[n].encode()).hexdigest() for n in ("compiler", "worker", "bootstrap")
+    }
+    if D.exists():
+        pin = json.loads((D / "source-pin.json").read_text())
+        assert pin["sources"] == sources
+    else:
+        assert epoch == 1
+        pin = {"source_git": v["source_git"], "sources": sources}
+    previous = None
+    if epoch > 1:
+        P = D / ("epoch-" + str(epoch - 1))
+        publication = json.loads((P / "publication-private-verified.json").read_text())
+        previous = json.loads((P / "actual-accepted.json").read_text())["receipt"]
+        assert (
+            publication["status"]
+            == "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified"
+        )
+        assert (
+            publication["epoch"] == epoch - 1
+            and publication["model_sha256"] == previous["epoch"]["sha256"]
+        )
+    compiler = types.ModuleType("original_full_source_zero_compiler")
+    exec(compile(v["compiler"], "original_new_source_zero_compiler", "exec"), compiler.__dict__)
+    source, meta = compiler.build(
+        (a / "source.private.py").read_text(),
+        (b / "source.private.py").read_text(),
+        recovery,
+        inputs,
+        v["worker"],
+        v["bootstrap"],
+        pin["source_git"],
+        epoch,
+        previous,
+    )
+    assert len(source.encode()) < 2**20
+    if not D.exists():
+        D.mkdir(mode=0o700)
+        (D / "source-pin.json").write_text(json.dumps(pin, sort_keys=True))
+    E.mkdir(mode=0o700)
+    (E / "source.private.py").write_text(source)
+    (E / "prepared.json").write_text(json.dumps(meta, sort_keys=True, indent=2))
+    out = {
+        "status": "actual_new_full_source_zero_epoch_privately_compiled",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "epoch": epoch,
+        **meta,
+        "new_GPU_or_competition_mutations": 0,
+    }
+    (E / "CPU-prepared.json").write_text(json.dumps(out, sort_keys=True, indent=2))
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
+source = (E / "source.private.py").read_text()
+meta = json.loads((E / "prepared.json").read_text())
+sha = hashlib.sha256(source.encode()).hexdigest()
+assert sha == meta["source_sha256"]
+C = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(C.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+spec = importlib.util.spec_from_file_location("original_source_zero_workflow", C)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["kaggle_token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["kaggle_token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+cap = types.ModuleType("original_capacity")
+assert hashlib.sha256(v["capacity_source"].encode()).hexdigest() == v["capacity_sha256"]
+exec(compile(v["capacity_source"], "original_campaign_capacity", "exec"), cap.__dict__)
+slug = "godlydonuts/rsna-zero-full-e" + str(epoch) + "-" + sha[:12]
+key = "licensed-importance-full-fit:source-zero-full:" + sha
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}), flush=True)
+    raise SystemExit(0)
+owner = {
+    "kind": "full_source_zero_epoch",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "epoch": epoch,
+    "phase": phase,
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        raw = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        if phase in ("admit", "push"):
+            assert raw is None
+            quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})[
+                "gpuQuota"
+            ]
+
+            def seconds(z):
+                return float(z.removesuffix("s"))
+
+            free = (
+                seconds(quota["totalTimeAllowed"])
+                - seconds(quota.get("timeUsed", "0s"))
+                - seconds(quota.get("timeReserved", "0s"))
+            )
+            capacity = cap.admission(db, r, caller="sampling")
+            ready = free >= 9000 and capacity["available"]
+            out = {
+                "status": "actual_next_full_source_zero_budget_capacity_available"
+                if ready
+                else "waiting_next_full_source_zero_budget_or_capacity_no_mutation",
+                "epoch": epoch,
+                "available": ready,
+                "free_VM_seconds": free,
+                "next_fit_cap_seconds": 6000,
+                "fixed_final_serving_reservation_seconds": 3000,
+                "all_future_GPU_sessions_fully_funded": False,
+                "capacity": capacity,
+            }
+            if phase == "push" and ready:
+                assert not (E / "push-intent.json").exists()
+                assert (
+                    v["funding"]["status"]
+                    == "actual_new_source_zero_full_private_models_controls_publisher_funded"
+                )
+                assert v["funding"]["model_cap_bytes"] == 4 * 2**30
+                refs = [
+                    "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+                    *[
+                        "godlydonuts/rsna-parent-pixels-full-s" + str(i) + "-" + h
+                        for i, h in enumerate(
+                            ("a1e397b02232", "de046eb0aa17", "230f83898475", "4e7107a78606")
+                        )
+                    ],
+                ]
+                if epoch > 1:
+                    P = D / ("epoch-" + str(epoch - 1))
+                    publication = json.loads((P / "publication-private-verified.json").read_text())
+                    assert (
+                        publication["status"]
+                        == "actual_source_zero_full_epoch_private_all_objects_download_size_SHA_verified"
+                    )
+                    refs.append(json.loads((P / "pushed.json").read_text())["slug"])
+                for ref in refs:
+                    assert r.kernel("GetKernelSessionStatus", ref, 1).get("status") == "COMPLETE"
+                absence = r.require_absent_kernel(slug)
+                request = {
+                    "slug": slug,
+                    "newTitle": slug.split("/")[1].replace("-", " "),
+                    "text": source,
+                    "language": "python",
+                    "kernelType": "script",
+                    "isPrivate": True,
+                    "enableGpu": True,
+                    "machineShape": "NvidiaTeslaT4",
+                    "enableInternet": False,
+                    "datasetDataSources": [
+                        "nartaa/rsna-knee-publication-swa-weights-20261007",
+                        "godlydonuts/rsna-parent-fit-targets-48b4485f03b6",
+                        "godlydonuts/rsna-parent-iid16-q-e812a9f90cd2",
+                        "godlydonuts/rsna-window-integrity-85c2fbb342c4",
+                    ],
+                    "kernelDataSources": refs,
+                    "competitionDataSources": [],
+                    "sessionTimeoutSeconds": 6000,
+                    "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                    "dockerImagePinningType": "original",
+                }
+                row = {
+                    "state": "source_zero_full_fit_push_intent",
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "epoch": epoch,
+                    "request": {n: x for n, x in request.items() if n != "text"},
+                    "fresh_quota": quota,
+                    "funding": v["funding"],
+                    "absence": absence,
+                    "automatic_retry": False,
+                    "competition_entry": False,
+                }
+                w.new_json(E / "push-intent.json", row)
+                db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row, sort_keys=True)))
+                db.commit()
+                retain = True
+                result = r.call("kernels.KernelsApiService", "SaveKernel", request)
+                w.new_json(E / "push-response.json", result)
+                assert (
+                    result.get("ref") == "/code/" + slug
+                    and result.get("versionNumber") == 1
+                    and not result.get("error")
+                )
+                assert type(result.get("kernelId")) is int and result["kernelId"] > 0
+                assert all(
+                    not result.get(n)
+                    for n in (
+                        "invalidDatasetSources",
+                        "invalidKernelSources",
+                        "invalidCompetitionSources",
+                    )
+                )
+                row.update(state="source_zero_full_fit_pushed", kernel_id=result["kernelId"])
+                db.execute(
+                    "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+                )
+                db.commit()
+                k = r.kernel("GetKernel", slug, 1)
+                assert k["blob"]["source"] == source and k["metadata"]["id"] == row["kernel_id"]
+                for n in (
+                    "isPrivate",
+                    "enableGpu",
+                    "enableInternet",
+                    "machineShape",
+                    "dockerImage",
+                ):
+                    assert (
+                        k["metadata"].get(n, False if n == "enableInternet" else None) == request[n]
+                    )
+                for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                    assert sorted(k["metadata"].get(n, [])) == sorted(request[n])
+                out = {
+                    "status": "actual_full_source_zero_epoch_pushed",
+                    "epoch": epoch,
+                    "kernel_id": row["kernel_id"],
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "target_updates": epoch * 486,
+                    "fixed_final_updates": 1458,
+                    "initial_status": r.kernel("GetKernelSessionStatus", slug, 1).get(
+                        "status", "INITIALIZING_UNREPORTED"
+                    ),
+                    "fresh_budget": out,
+                    "competition_entry": False,
+                }
+                w.new_json(E / "pushed.json", out)
+                retain = False
+        else:
+            assert raw is not None
+            row = json.loads(raw[0])
+            k = r.kernel("GetKernel", slug, 1)
+            assert k["metadata"]["id"] == row["kernel_id"] and k["blob"]["source"] == source
+            status = r.kernel("GetKernelSessionStatus", slug, 1).get(
+                "status", "INITIALIZING_UNREPORTED"
+            )
+            out = {
+                "status": status,
+                "epoch": epoch,
+                "kernel_id": row["kernel_id"],
+                "slug": slug,
+                "version": 1,
+                "source_sha256": sha,
+                "new_GPU_mutations": 0,
+            }
+            if status == "COMPLETE":
+                z = r.output_json(slug, 1, "source-zero-full-epoch-accepted.json")
+                assert (
+                    z["status"] == "actual_paired_source_zero_full_epoch_complete"
+                    and z["binding"] == meta["binding"]
+                    and z["worker_sha256"] == meta["worker_sha256"]
+                )
+                assert (
+                    z["segment"] == epoch
+                    and z["completed"] == epoch * 486
+                    and z["fixed_final_complete"] == (epoch == 3)
+                )
+                out["receipt"] = z
+                if not (E / "actual-accepted.json").exists():
+                    w.new_json(E / "actual-accepted.json", out)
+                    row.update(state="source_zero_full_fit_actual_complete", receipt=z)
+                    db.execute(
+                        "UPDATE meta SET value=? WHERE key=?",
+                        (json.dumps(row, sort_keys=True), key),
+                    )
+                    db.commit()
+            elif status in ("ERROR", "CANCELLED"):
+                if not (E / "actual-failed.json").exists():
+                    w.new_json(E / "actual-failed.json", out)
+                    row.update(state="source_zero_full_fit_failed", actual_status=status)
+                    db.execute(
+                        "UPDATE meta SET value=? WHERE key=?",
+                        (json.dumps(row, sort_keys=True), key),
+                    )
+                    db.commit()
+    print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()
