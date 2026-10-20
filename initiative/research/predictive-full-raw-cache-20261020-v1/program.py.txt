@@ -1,0 +1,338 @@
+# ruff: noqa: E402
+"""One complete fitting-only raw-cache build, reuse16 originals, two bounded CPU lanes."""
+
+import contextlib
+import gzip
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from pathlib import Path
+from urllib.parse import quote
+
+import numpy as np
+import pydicom
+import requests
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1")
+assert not D.exists()
+old = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+actual = json.loads((old / "actual.json").read_text())
+assert (
+    actual["fitting_studies"] == 16
+    and actual["both_masked_contexts_targets_supports_priors_bit_equal"]
+)
+prior = json.loads((old / "cache-index.private.json").read_text())
+assert len(prior) == 16
+paid_raw = actual["cache_bytes"]
+assert paid_raw == sum(Path(r["path"]).stat().st_size for r in prior)
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+paid = sum(
+    p.stat().st_size
+    for p in B.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+)
+# 320GiB total raw cache includes already paid16-case bytes, never double counted.
+# 24GiB future model/publication scope reserved separately; no GPU or recipe admitted.
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 8 + 12 + 4 + 24) * 2**30
+    + max(0, 320 * 2**30 - paid_raw)
+    + max(0, 8 * 2**20 - paid)
+    + (166 + 64 + 4 + 16 + 256) * 2**20
+)
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+files = [p for p in T.rglob("*") if p.is_file()]
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 76 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5000 + 128 + 128 + max(0, 256 - len(files)) + 30
+base = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+location = json.loads((base / "RAM-location.private.json").read_text())
+source_index = Path(location["path"])
+assert hashlib.sha256(source_index.read_bytes()).hexdigest() == location["sha256"]
+assert source_index.stat().st_size + 128 * 2**20 < 256 * 2**20
+with gzip.open(source_index, "rt") as f:
+    records = [json.loads(line) for line in f]
+assert len(records) == 3887 and [r["uid"] for r in records] == sorted(
+    set(r["uid"] for r in records)
+)
+assert (
+    hashlib.sha256(
+        json.dumps([r["uid"] for r in records], separators=(",", ":")).encode()
+    ).hexdigest()
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+assert (
+    sum(len(r["source_files"]) for r in records) == 720851
+    and sum(sum(x["bytes"] for x in r["source_files"]) for r in records) == 500897467290
+)
+known = {r["uid"]: r for r in prior}
+assert len(known) == 16 and set(known) <= set(r["uid"] for r in records)
+D.mkdir(mode=0o700)
+(D / "scratch").mkdir(mode=0o700)
+(D / "cache").mkdir(mode=0o700)
+(D / "proofs").mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "fitting_studies": 3887,
+            "reused_verified_cases": 16,
+            "raw_cache_total_cap_bytes": 320 * 2**30,
+            "already_paid_bytes": paid_raw,
+            "additional_future_raw_bound_bytes": 320 * 2**30 - paid_raw,
+            "completed16_unused_cache_reservation_retired": True,
+            "two_owned_source_transients_cap_bytes": 4 * 2**30,
+            "controls_and_private_proofs_cap_bytes": 256 * 2**20,
+            "future_model_and_publication_scope_bytes": 24 * 2**30,
+            "future_model_recipe_and_GPU_NOT_accepted": True,
+            "old_obligations_and20GiB_reserve_retained": True,
+            "new_shared_cap_bytes": 2 * 2**20,
+            "new_shared_files": 3,
+            "parallel_studies": 2,
+            "maximum_HTTP_threads_per_study": 8,
+            "no_source_or_label_modification": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+shutil.copyfile(source_index, D / "original-fitting-source-index.private.jsonl.gz")
+for n, s in v["files"].items():
+    p = D / "code" / n
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(s.encode()).hexdigest() == v["sha256"][n]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(s)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import inputs as m
+from rsna.competitive.predictive.cache import load, normalized, write
+from rsna.competitive.predictive.cases import RawGroup, assemble
+
+helper = {}
+exec(compile(v["helper"], "original_source_buffer_helper", "exec"), helper)
+raw = v["raw"]
+decoder = raw[raw.index("groups = {}") : raw.index("roster = 0")]
+assert decoder.count("assert file_bytes == 25131360") == 1
+decoder = decoder.replace(
+    "assert file_bytes == 25131360", 'assert file_bytes == sum(r["bytes"] for r in rows)'
+)
+revision = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+token = v.pop("token")
+
+
+@contextlib.contextmanager
+def opener(row):
+    url = (
+        "https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/"
+        + revision
+        + "/"
+        + quote(row["path"], safe="/")
+    )
+    with requests.get(
+        url, headers={"Authorization": "Bearer " + token}, timeout=(10, 90), stream=True
+    ) as response:
+        if response.status_code != 200:
+            raise RuntimeError("Source HTTP status " + str(response.status_code))
+        response.raw.decode_content = True
+        yield response.raw
+
+
+start = time.monotonic()
+stop = threading.Event()
+proof_lock = threading.Lock()
+control_committed = [
+    source_index.stat().st_size + sum(len(x.encode()) for x in v["files"].values()) + 2**20
+]
+results = {}
+pending = []
+for i, c in enumerate(records):
+    if c["uid"] in known:
+        row = known[c["uid"]]
+        proof = row["proof"]
+        p = Path(row["path"])
+        st = p.stat()
+        assert proof["stat"] == [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+        results[i] = {"uid": c["uid"], "path": str(p), "proof": proof, "original16_reused": True}
+    else:
+        pending.append((i, c))
+
+
+def one(item):
+    assert not stop.is_set()
+    i, c = item
+    uid, rows = c["uid"], c["source_files"]
+    charged = paid_raw + sum(p.stat().st_size for p in (D / "cache").glob("*.npz"))
+    assert charged + 2 * 2**30 < 320 * 2**30
+    assert (
+        shutil.disk_usage("/tmp").free
+        > (20 + 8 + 12 + 4 + 24) * 2**30
+        + max(0, 320 * 2**30 - charged)
+        + (166 + 64 + 4 + 16 + 256) * 2**20
+    )
+    with (D / "proofs" / ("case-" + str(i).zfill(4) + ".intent.json")).open("x") as f:
+        json.dump(
+            {
+                "source_ordinal": i,
+                "source_bytes": sum(r["bytes"] for r in rows),
+                "original_source_table_sha256": hashlib.sha256(
+                    json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
+                ).hexdigest(),
+                "automatic_retry": False,
+            },
+            f,
+        )
+    data, source_proof = helper["acquire"](
+        D / "scratch",
+        uid=uid,
+        rows=rows,
+        series_csv=c["series_csv"],
+        cap=1024 * 2**20,
+        workers=8,
+        opener=opener,
+    )
+    ram = data.parent
+    namespace = {
+        **globals(),
+        "uid": uid,
+        "rows": rows,
+        "ram": ram,
+        "np": np,
+        "pydicom": pydicom,
+        "m": m,
+    }
+    exec(compile(decoder, "same_original_integer_decoder", "exec"), namespace)
+    exec(compile(v["conversion"], "same_original_group_conversion", "exec"), namespace)
+    sources = namespace["sources"]
+    original = [RawGroup(normalized(g), g.aliases, g.acquisition, g.ordinal) for g in sources]
+    provenance = {
+        "original_source_revision": revision,
+        "original_fitting_case_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+        "source_file_table_sha256": hashlib.sha256(
+            json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "source_DICOMs": len(rows),
+        "source_DICOM_bytes": sum(r["bytes"] for r in rows),
+    }
+    p = D / "cache" / ("case-" + str(i).zfill(4) + ".private.npz")
+    proof = write(p, sources, provenance, cap_bytes=1024 * 2**20)
+    restored, check = load(p, proof)
+    assert check == provenance and all(
+        torch.equal(a.frames, b.frames) for a, b in zip(original, restored)
+    )
+    left = assemble(original, side=320, context_cap=8, classes=12)
+    right = assemble(restored, side=320, context_cap=8, classes=12)
+    for x, y in zip(left, right):
+        for key in ("images", "targets", "observed", "token_metadata", "region_metadata"):
+            assert torch.equal(x[key], y[key])
+        for key in ("indptr", "regions", "log_prior"):
+            assert torch.equal(getattr(x["supports"], key), getattr(y["supports"], key))
+    proof_path = D / "proofs" / ("case-" + str(i).zfill(4) + ".source-proof.private.json.gz")
+    compressed = gzip.compress(json.dumps(source_proof).encode())
+    record = {
+        "uid": uid,
+        "path": str(p),
+        "proof": proof,
+        "source_proof_sha256": hashlib.sha256(compressed).hexdigest(),
+        "original16_reused": False,
+    }
+    encoded = json.dumps(record) + "\n"
+    with proof_lock:
+        charge = len(compressed) + len(encoded.encode()) + 4096
+        assert control_committed[0] + charge + 8 * 2**20 < 256 * 2**20
+        control_committed[0] += charge
+        proof_path.write_bytes(compressed)
+        (D / "proofs" / ("case-" + str(i).zfill(4) + ".verified.private.json")).write_text(encoded)
+    assert ram.parent == D / "scratch"
+    shutil.rmtree(ram)
+    return i, record
+
+
+iterator = iter(pending)
+with ThreadPoolExecutor(max_workers=2) as pool:
+    active = {pool.submit(one, next(iterator)) for _ in range(2)}
+    try:
+        while active:
+            done, active = wait(active, return_when=FIRST_COMPLETED)
+            for future in done:
+                i, row = future.result()
+                results[i] = row
+                with (D / "progress.private.json").open("w") as f:
+                    json.dump(
+                        {
+                            "completed": len(results),
+                            "total": 3887,
+                            "cache_bytes": sum(r["proof"]["bytes"] for r in results.values()),
+                            "descriptor_regions": sum(
+                                r["proof"]["regions"] for r in results.values()
+                            ),
+                            "elapsed_seconds": time.monotonic() - start,
+                        },
+                        f,
+                    )
+                if len(results) % 100 == 0:
+                    print(
+                        json.dumps(
+                            {
+                                "status": "raw_fitting_cache_progress",
+                                "completed": len(results),
+                                "total": 3887,
+                                "elapsed_seconds": time.monotonic() - start,
+                            }
+                        ),
+                        flush=True,
+                    )
+                item = next(iterator, None)
+                if item is not None:
+                    active.add(pool.submit(one, item))
+    except BaseException:
+        stop.set()
+        for future in active:
+            future.cancel()
+        raise
+assert set(results) == set(range(3887))
+registry = [results[i] for i in range(3887)]
+path = D / "full-cache-index.private.json"
+path.write_text(json.dumps(registry) + "\n")
+assert sum(r["proof"]["bytes"] for r in registry) < 320 * 2**30
+control_bytes = sum(
+    p.stat().st_size
+    for p in D.rglob("*")
+    if p.is_file()
+    and "cache" not in p.relative_to(D).parts
+    and "scratch" not in p.relative_to(D).parts
+)
+assert control_bytes < 256 * 2**20
+out = {
+    "status": "actual_complete3887_original_raw_fitting_cache_and_exact_context_target_support_parity_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "studies": 3887,
+    "reused_original16": 16,
+    "original_source_DICOMs": 720851,
+    "original_source_bytes": 500897467290,
+    "cache_bytes": sum(r["proof"]["bytes"] for r in registry),
+    "descriptor_regions": sum(r["proof"]["regions"] for r in registry),
+    "private_registry_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    "private_control_bytes": control_bytes,
+    "both_masked_contexts_targets_and_full_support_priors_exact": True,
+    "unchanged_fitting_roster": True,
+    "models_or_GPU_or_accuracy": False,
+    "elapsed_seconds": time.monotonic() - start,
+}
+(D / "actual.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)
