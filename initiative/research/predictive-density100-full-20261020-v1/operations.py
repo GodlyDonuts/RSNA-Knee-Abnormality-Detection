@@ -75,17 +75,25 @@ def load_binding(source_git):
 
 def original_jobs(v):
     """Only exact original dispatch receipts can retire their charged log inodes."""
-    jobs = dict(v.get("original_dispatched_jobs", {}))
+    jobs = a.validate_primary_jobs(dict(v.get("original_dispatched_jobs", {})))
     for root in (a.C0, a.Path("/tmp/rsna-predictive-full-fitting-20261020-v2")):
         # The evc33 directory is node-local and normally absent here. Its logs
         # cannot receive credit from guessed IDs or paths.
         path = root / "dispatch/submitted.json"
         if path.is_file():
             receipt = json.loads(a.read_ref(a.reference(path)))
+            intent = json.loads(a.read_ref(a.reference(root / "dispatch/intent.json")))
+            expected = {"C0"} if root == a.C0 else {"B", "C"}
+            a.require(intent["owner_git"] == a.PRIMARY_SOURCE and intent["source_git"] == a.BASE
+                      and set(intent["arms"]) == expected
+                      and receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
+                      and receipt["source_git"] == a.BASE,
+                      "Stale primary dispatch cannot supply paid-log credit")
+            a.validate_primary_jobs(receipt["jobs"], expected)
             for arm, job in receipt["jobs"].items():
                 a.require(arm not in jobs or jobs[arm] == job, "Original job ownership differs")
                 jobs[arm] = job
-    return jobs
+    return a.validate_primary_jobs(jobs)
 
 
 def shared(v):
@@ -151,7 +159,8 @@ def dispatch(v):
         "original_C0_job": c0, "automatic_retry": False,
     })
     result = subprocess.run(["sbatch", "--parsable"], input=body, text=True,
-                            capture_output=True, timeout=60, check=False)
+                            capture_output=True, timeout=60, check=False,
+                            env={**os.environ, "TZ": "UTC"})
     a.once(a.ROOT / "GPU-transport.private.json",
            {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr})
     a.require(result.returncode == 0 and re.fullmatch(r"\d+(?:;[^\s]+)?\s*", result.stdout),

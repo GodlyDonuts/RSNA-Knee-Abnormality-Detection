@@ -172,6 +172,21 @@ def reuse_fixture(a, monkeypatch):
         all_context_original_hashes_and_stats_verified=True,
         fitting_order_sha256=roster, original_context_count=3887,
     )
+    decision = json.loads((HERE.parent / "predictive-source-correction-owner-handoff-20261020-v1"
+                           / "decision.accepted.json").read_bytes())
+    control = dict(
+        operational_control_git=a.PRIMARY_SOURCE,
+        source_correction_policy=decision["source_correction_policy"],
+        source_correction_regression_sha256=decision["source_correction_regression_sha256"],
+        accepted_source_correction_proofs={
+            "source_correction_regression_sha256": decision["source_correction_regression_sha256"],
+        },
+    )
+    for value in (portable, old, proof):
+        value["cache_successor_control"] = copy.deepcopy(control)
+        value["placement_control_source_git"] = a.PRIMARY_SOURCE
+    old["input_admission"] = {"sha256": "d" * 64}
+    portable["input_admission_sha256"] = {"C0": old["input_admission"]["sha256"]}
     return portable, old, binding_sha, proof, index
 
 
@@ -188,6 +203,9 @@ def test_reuse_requires_exact_complete_membership_and_prior_proofs(api, monkeypa
         (1, "expected_initial_shared_tensor_sha256", "a" * 64),
         (3, "code_sha256", {}), (3, "all_context_original_hashes_and_stats_verified", False),
         (3, "fitting_order_sha256", "a" * 64),
+        (0, "placement_control_source_git", "2b834507e19c405971228e1bc405462cd370f560"),
+        (1, "placement_control_source_git", "2b834507e19c405971228e1bc405462cd370f560"),
+        (0, "input_admission_sha256", {"C0": "0" * 64}),
     ]
     for position, key, value in mutations:
         changed = copy.deepcopy(args)
@@ -206,6 +224,22 @@ def test_reuse_requires_exact_complete_membership_and_prior_proofs(api, monkeypa
         else:
             rows[0], rows[1] = rows[1], rows[0]
         with pytest.raises(ValueError):
+            a.validate_reuse(*changed)
+
+
+def test_reuse_rejects_consistently_stale_or_changed_correction_lineage(api, monkeypatch):
+    a, _ = api
+    args = reuse_fixture(a, monkeypatch)
+    for key, value in (
+        ("operational_control_git", "2b834507e19c405971228e1bc405462cd370f560"),
+        ("source_correction_regression_sha256", "0" * 64),
+        ("source_correction_policy", {}),
+        ("accepted_source_correction_proofs", {"source_correction_regression_sha256": "0" * 64}),
+    ):
+        changed = copy.deepcopy(args)
+        for position in (0, 1, 3):
+            changed[position]["cache_successor_control"][key] = value
+        with pytest.raises(ValueError, match="source-corrected"):
             a.validate_reuse(*changed)
 
 
@@ -295,8 +329,82 @@ def job_fixture(a, root, arm, job):
     name = "rsna-predictive-full2-" + arm
     return dict(arm=arm, GPU_job=job, source_git=a.BASE,
                 node="evc27" if arm == "C0" else "evc33", job_name=name,
+                run_root=f"/tmp/rsna-predictive-full-{arm}-20261020-v2",
+                binding_sha256="b" * 64, script_sha256="c" * 64,
                 stdout=str(root / f"{name}-{job}.out"),
                 stderr=str(root / f"{name}-{job}.err"))
+
+
+def primary_dispatch_fixture(a, c, monkeypatch, tmp_path):
+    audit, journal = tmp_path / "primary-audit", tmp_path / "primary-journal"
+    monkeypatch.setattr(c, "ORIGINAL_OWNER", audit)
+    monkeypatch.setattr(c, "ORIGINAL_JOURNAL", journal)
+    private(journal / "owner-intent.json", a.canonical({
+        "source_git": a.PRIMARY_SOURCE, "science_git": a.BASE, "pid": 11013,
+    }))
+    jobs = {arm: job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), arm, str(900020 + i))
+            for i, arm in enumerate(("B", "C", "C0"))}
+    for role, arms in (("BC", ("B", "C")), ("C0", ("C0",))):
+        receipt = dict(status="actual_predictive_placement_jobs_submitted_once",
+                       source_git=a.BASE, jobs={arm: jobs[arm] for arm in arms})
+        private(audit / f"actual-owner-dispatch-{role}.json", a.canonical(receipt))
+        private(journal / f"dispatch-{role}-result.json", a.canonical(receipt))
+        private(journal / f"dispatch-{role}-intent.json", a.canonical({
+            "mode": "dispatch", "node": "evc27" if role == "C0" else "evc33",
+            "placement_source_git": a.PRIMARY_SOURCE, "program_sha256": "e" * 64,
+        }))
+    return jobs
+
+
+def test_current_owner_retains_all_six_paid_logs_including_four_bc(
+    coordinator, monkeypatch, tmp_path,
+):
+    a, c = coordinator
+    expected = primary_dispatch_fixture(a, c, monkeypatch, tmp_path)
+    jobs = c.original_jobs()
+    assert jobs == expected
+    # Exercise actual physical-inode accounting using only synthetic local files.
+    logs = tmp_path / "logs"
+    local_jobs = copy.deepcopy(jobs)
+    for value in local_jobs.values():
+        for key in ("stdout", "stderr"):
+            value[key] = str(logs / Path(value[key]).name)
+            private(Path(value[key]), b"")
+    placement = module(PLACEMENT, "C100_current_owner_paid_logs")
+    paid = placement.paid_shared_logs(local_jobs, logs)
+    assert paid["files"] == 6
+    funded = a.shared_budget(quota_text(a, 5373), paid["files"])
+    assert funded["free_files"] - funded["unpaid_files"] == 5003
+    old_c0_only = placement.paid_shared_logs({"C0": local_jobs["C0"]}, logs)
+    with pytest.raises(ValueError, match="shared reserve"):
+        a.shared_budget(quota_text(a, 5373), old_c0_only["files"])
+
+
+@pytest.mark.parametrize("stale_part", ["owner", "phase", "unmatched_result", "job_source"])
+def test_coordinator_refuses_stale_or_unmatched_primary_dispatch(
+    coordinator, monkeypatch, tmp_path, stale_part,
+):
+    a, c = coordinator
+    primary_dispatch_fixture(a, c, monkeypatch, tmp_path)
+    if stale_part == "owner":
+        path = c.ORIGINAL_JOURNAL / "owner-intent.json"
+        value = json.loads(path.read_bytes())
+        value["source_git"] = "2b834507e19c405971228e1bc405462cd370f560"
+    elif stale_part == "phase":
+        path = c.ORIGINAL_JOURNAL / "dispatch-BC-intent.json"
+        value = json.loads(path.read_bytes())
+        value["placement_source_git"] = "2b834507e19c405971228e1bc405462cd370f560"
+    else:
+        path = c.ORIGINAL_OWNER / "actual-owner-dispatch-BC.json"
+        value = json.loads(path.read_bytes())
+        if stale_part == "unmatched_result":
+            value["jobs"]["B"]["binding_sha256"] = "0" * 64
+        else:
+            value["jobs"]["B"]["source_git"] = "0" * 40
+            private(c.ORIGINAL_JOURNAL / "dispatch-BC-result.json", a.canonical(value))
+    private(path, a.canonical(value))
+    with pytest.raises(ValueError):
+        c.original_jobs()
 
 
 def test_shared_reserve_credits_only_existing_exact_original_logs(api, tmp_path):
@@ -339,18 +447,30 @@ def test_original_jobs_merges_exact_submitted_receipt_and_rejects_conflicts(api,
                                                                          tmp_path):
     a, ops = api
     monkeypatch.setattr(a, "C0", tmp_path / "C0")
-    jobs = {arm: job_fixture(a, tmp_path / "logs", arm, str(900010 + i))
+    jobs = {arm: job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), arm, str(900010 + i))
             for i, arm in enumerate(("B", "C", "C0"))}
     private(a.C0 / "dispatch/actual.json", a.canonical({"jobs": {"C0": {"wrong": True}}}))
     payload = {"original_dispatched_jobs": {arm: jobs[arm] for arm in ("B", "C")}}
     assert ops.original_jobs(payload) == payload["original_dispatched_jobs"]
-    private(a.C0 / "dispatch/submitted.json", a.canonical({"jobs": {"C0": jobs["C0"]}}))
+    private(a.C0 / "dispatch/submitted.json", a.canonical({
+        "status": "actual_predictive_placement_jobs_submitted_once",
+        "source_git": a.BASE, "jobs": {"C0": jobs["C0"]},
+    }))
+    private(a.C0 / "dispatch/intent.json", a.canonical({
+        "source_git": a.BASE, "owner_git": a.PRIMARY_SOURCE, "arms": ["C0"],
+    }))
     assert ops.original_jobs(payload) == jobs
     assert ops.original_jobs({"original_dispatched_jobs": jobs}) == jobs
     changed = copy.deepcopy(jobs)
-    changed["C0"]["GPU_job"] = "123"
+    changed["C0"]["binding_sha256"] = "d" * 64
     with pytest.raises(ValueError, match="ownership differs"):
         ops.original_jobs({"original_dispatched_jobs": changed})
+    private(a.C0 / "dispatch/intent.json", a.canonical({
+        "source_git": a.BASE, "owner_git": "2b834507e19c405971228e1bc405462cd370f560",
+        "arms": ["C0"],
+    }))
+    with pytest.raises(ValueError, match="Stale primary dispatch"):
+        ops.original_jobs(payload)
 
 
 def test_completed_job_can_be_absent_from_live_controller(api, monkeypatch):
@@ -401,6 +521,47 @@ def test_dispatch_refuses_before_primary_c0_without_any_sbatch(api, monkeypatch,
     with pytest.raises(ValueError, match="primary C0 dispatch"):
         ops.dispatch({"source_git": "a" * 40})
     assert not a.ROOT.exists() and not a.RUN.exists()
+
+
+def test_dispatch_applies_utc_before_slurm_parses_deadline(api, monkeypatch, tmp_path):
+    a, ops = api
+    monkeypatch.setattr(a, "ROOT", tmp_path / "C100")
+    monkeypatch.setattr(a, "RUN", tmp_path / "run-C100")
+    monkeypatch.setattr(a, "C0", tmp_path / "C0")
+    a.ROOT.mkdir(mode=0o700)
+    private(a.C0 / "portable-accepted.json", b"{}")
+    c0 = job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), "C0", "900012")
+    monkeypatch.setattr(ops, "load_binding", lambda source: (
+        {"density100_pilot_sha256": "b" * 64}, {}, {"sha256": "a" * 64},
+    ))
+    monkeypatch.setattr(ops, "original_jobs", lambda v: {"C0": c0})
+    monkeypatch.setattr(ops, "scheduler", lambda job: {"state": "RUNNING"})
+    monkeypatch.setattr(a, "fresh_node", lambda portable: {"synthetic": True})
+    monkeypatch.setattr(ops, "shared", lambda v: {"synthetic": True})
+    monkeypatch.setattr(ops, "datetime", SimpleNamespace(
+        now=lambda tz: a.datetime(2026, 10, 20, 18, tzinfo=a.timezone.utc),
+    ))
+    monkeypatch.setenv("TZ", "America/New_York")
+
+    def node(command, **kwargs):
+        assert command == ["scontrol", "show", "node", "evc27", "-o"]
+        return "NodeName=evc27 Gres=gpu:nvidia_h100_pcie:2 CfgTRES=cpu=64,gres/gpu=2"
+
+    calls = []
+
+    def submit(command, **kwargs):
+        assert command == ["sbatch", "--parsable"]
+        assert kwargs["env"]["TZ"] == "UTC"
+        assert "#SBATCH --deadline=2026-10-22T04:00:00\n" in kwargs["input"]
+        assert "#SBATCH --dependency=after:900012\n" in kwargs["input"]
+        calls.append(command)
+        return SimpleNamespace(returncode=0, stdout="999001\n", stderr="")
+
+    monkeypatch.setattr(ops.subprocess, "check_output", node)
+    monkeypatch.setattr(ops.subprocess, "run", submit)
+    result = ops.dispatch({"source_git": "a" * 40})
+    assert result["GPU_job"] == "999001" and len(calls) == 1
+    assert json.loads((a.ROOT / "GPU-submitted.json").read_bytes()) == result
 
 
 def test_coordinator_pending_prerequisite_does_not_create_admission_intent(

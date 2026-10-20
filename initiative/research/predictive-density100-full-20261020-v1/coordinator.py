@@ -18,7 +18,8 @@ REPO = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 JOURNAL = REPO / "artifacts" / HERE.name
 MANAGEMENT = "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"
-ORIGINAL_OWNER = REPO / "initiative/research/predictive-resilient-owner-20261020-v1"
+ORIGINAL_OWNER = REPO / "initiative/research/predictive-source-correction-owner-handoff-20261020-v1"
+ORIGINAL_JOURNAL = REPO / "artifacts" / ORIGINAL_OWNER.name / "finite-owner"
 PLACEMENT_PIN = "2b834507e19c405971228e1bc405462cd370f560"
 PLACEMENT_PATH = "initiative/research/predictive-c0-portable-placement-20261020-v1/placement.py"
 
@@ -80,17 +81,29 @@ def frozen(args):
 
 def original_jobs():
     jobs = {}
+    owner = json.loads((ORIGINAL_JOURNAL / "owner-intent.json").read_bytes())
+    a.require(owner["source_git"] == a.PRIMARY_SOURCE and owner["science_git"] == a.BASE
+              and owner["pid"] == 11013, "Exact current primary fitting owner required")
     for role in ("BC", "C0"):
-        path = ORIGINAL_OWNER / ("actual-known-dispatches-" + role + ".json")
+        path = ORIGINAL_OWNER / ("actual-owner-dispatch-" + role + ".json")
         if not path.exists():
             continue
         receipt = json.loads(path.read_text())
+        phase = "dispatch-" + role
+        result = json.loads((ORIGINAL_JOURNAL / (phase + "-result.json")).read_bytes())
+        intent = json.loads((ORIGINAL_JOURNAL / (phase + "-intent.json")).read_bytes())
+        node = "evc27" if role == "C0" else "evc33"
+        a.require(receipt == result and intent["mode"] == "dispatch" and intent["node"] == node
+                  and intent["placement_source_git"] == a.PRIMARY_SOURCE
+                  and re.fullmatch("[0-9a-f]{64}", intent["program_sha256"]),
+                  "Current primary phase intent/result must match actual dispatch receipt")
         a.require(receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
                   and receipt["source_git"] == a.BASE
                   and set(receipt["jobs"]) == ({"B", "C"} if role == "BC" else {"C0"}),
                   "Only exact original primary dispatch receipts can supply shared-log credit")
+        a.validate_primary_jobs(receipt["jobs"], {"B", "C"} if role == "BC" else {"C0"})
         jobs.update(receipt["jobs"])
-    return jobs
+    return a.validate_primary_jobs(jobs)
 
 
 def token():

@@ -40,6 +40,10 @@ It then waits for the original C0 portable placement to complete and reuses all
 or transfer the MRI cache again. Parent/runtime, original input admission,
 renderer lineage and common initialization remain explicitly bound; a distinct
 C100 admission records the new worker/source instead of relabelling C0's receipt.
+The prepared coordinator now binds the current `e9bdd124` fitting owner11013,
+its original dispatch intent/result bytes and exact owned log paths. Portable
+input admission must retain the baseline-plus-two-authoritative-files policy
+and the actual strict-decoder regression; stale pre-correction C0 proofs fail.
 
 Private paths on evc27:
 
@@ -56,8 +60,10 @@ C0 dispatch and adds `after:C0_job`, preserving C0's allocation priority.
 The separate full job requests one H100/two CPUs/32GiB/eight hours on physically
 two-GPU evc27. New dispatch stops October21 20:00UTC; Slurm's finish deadline is
 October22 04:00UTC. These are limits, not guaranteed allocation or completion
-times. The preservation phase continues to October22 noonUTC and never cancels
-a healthy original job.
+times. Both scheduler inspection and submission explicitly use `TZ=UTC`.
+The preservation phase continues to October22 noonUTC and never cancels a
+healthy original job. The updated admission/coordinator/log-accounting checks
+passed55 focused local tests; no operation was launched by these changes.
 
 Example invocation after source freeze and actual pilot review:
 
@@ -112,10 +118,13 @@ re-downloaded and size/SHA verified. The single `preserve` phase monitors only
 this new job; it does not acquire data, submit models, repeat an uncertain
 publication, or alter the primary owners.
 
-The separate [serving contract](../predictive-density100-serving-20261020-v1/)
-requires actual pilot/full terminals and all six verified epochs. **No C100
-compiler/account owner, final return, trained T4 qualification or Kaggle budget
-has been admitted.** A later final-only return to evc33 needs its own512MiB
-capacity; actual trained runtime/precision and additional account allowance
-must preserve the primary3,360-second reservation. Do not mistake the prepared
-contract for a deployable or scored model.
+The separate [serving contract and offline compiler](../predictive-density100-serving-20261020-v1/)
+are implemented. They require actual pilot/full terminals and all six verified
+epochs, then preserve the original serving worker, MRI modules, bounded mounts,
+descriptor reuse and public-only watchdog. The57 focused contract/compiler
+tests establish local engineering behavior, not production execution.
+**No actual C100 model has been compiled, no account owner has been admitted,
+and no final return, trained T4 qualification, extra Kaggle funding or score
+exists.** A later final-only return to evc33 needs its own512MiB capacity; actual
+trained runtime/precision and additional account allowance must preserve the
+primary3,360-second reservation.

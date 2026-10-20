@@ -12,6 +12,9 @@ from pathlib import Path
 
 GIB, MIB = 2**30, 2**20
 BASE = "44cc559e947560a635c34fee7b1f2a3b7be3a241"
+PRIMARY_SOURCE = "e9bdd1249fa7cf75f792b3762c2028bd7beb4337"
+CORRECTION_POLICY_SHA = "7264d3840a343a824d2f5bf174c9d96309fdb762a051710cbd772cf64d503129"
+CORRECTION_REGRESSION_SHA = "1f641ed02e881cd572bb00afcb40df04b1644285cea827772779095cc964eea1"
 PILOT_SOURCE = "068a14a75e4d2b3bd83dda7783528956f7a2ca0f"
 PILOT_BINDING = "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37a"
 INITIAL = "dbf69ff87261f7a0657c866ef8e41db8b125a62c6245d80017945c634e60158b"
@@ -158,6 +161,42 @@ def validate_reuse(portable, old_binding, old_binding_sha, original_input, index
             "Do not change fitting membership or order")
     require(sum(r["proof"]["bytes"] for r in index) == portable["context_bytes"],
             "Original complete context bytes differ")
+    control = old_binding["cache_successor_control"]
+    require(portable["placement_control_source_git"]
+            == old_binding["placement_control_source_git"] == PRIMARY_SOURCE
+            and portable["cache_successor_control"] == original_input["cache_successor_control"]
+            == control and control["operational_control_git"] == PRIMARY_SOURCE
+            and sha(canonical(control["source_correction_policy"])) == CORRECTION_POLICY_SHA
+            and control["source_correction_regression_sha256"] == CORRECTION_REGRESSION_SHA
+            and control["accepted_source_correction_proofs"]["source_correction_regression_sha256"]
+            == CORRECTION_REGRESSION_SHA,
+            "Exact current source-corrected C0 admission lineage required")
+    # main() verifies the retained input's actual bytes through read_ref().
+    # Do not replace that proof with a serialization-dependent JSON hash.
+    require(portable["input_admission_sha256"] == {"C0": old_binding["input_admission"]["sha256"]},
+            "Portable C0 must bind the exact retained corrected-input admission")
+
+
+def validate_primary_jobs(jobs, arms=None):
+    """Keep every actual arm/job/node/path binding when carrying paid-log proof."""
+    require(set(jobs) <= {"B", "C", "C0"} and (arms is None or set(jobs) == set(arms)),
+            "Exact original primary dispatch arms required")
+    identities = set()
+    for arm, job in jobs.items():
+        identity = job["GPU_job"]
+        name = "rsna-predictive-full2-" + arm
+        require(isinstance(identity, str) and re.fullmatch(r"\d+", identity)
+                and identity not in identities and job["arm"] == arm
+                and job["node"] == ("evc27" if arm == "C0" else "evc33")
+                and job["source_git"] == BASE and job["job_name"] == name
+                and job["run_root"] == f"/tmp/rsna-predictive-full-{arm}-20261020-v2"
+                and all(re.fullmatch("[0-9a-f]{64}", job[k]) for k in
+                        ("binding_sha256", "script_sha256"))
+                and job["stdout"] == f"/home/sa305415/rsna-knee/kaggle/{name}-{identity}.out"
+                and job["stderr"] == f"/home/sa305415/rsna-knee/kaggle/{name}-{identity}.err",
+                "Exact original job/source/script/binding/log identity required")
+        identities.add(identity)
+    return jobs
 
 
 def used(path, cap, *, exclude_contexts=False):
