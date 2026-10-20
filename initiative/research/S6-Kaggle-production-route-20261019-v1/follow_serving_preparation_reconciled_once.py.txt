@@ -1,0 +1,73 @@
+"""Follow original verified publications and compile actual serving once per epoch."""
+
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+intent = L / "serving-preparation-reconciled-owner-intent.json"
+assert not intent.exists(), "Inspect original owner; never duplicate"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+controls = [
+    "follow_serving_preparation_reconciled_once.py.txt",
+    "serving_prepare_once.py.txt",
+    "serving_prepare.py.txt",
+    "serving_compile.py.txt",
+    "serving_validate.py.txt",
+]
+for name in controls:
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+with intent.open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "maximum_new_zero_GPU_compilations": 3,
+            "new_GPU_or_submission_mutations": 0,
+            "automatic_retry": False,
+        },
+        f,
+    )
+try:
+    deadline = time.monotonic() + 18 * 3600
+    for epoch in range(1, 4):
+        pub = D / ("actual-publication-pointer-epoch-" + str(epoch) + ".json")
+        while not pub.exists():
+            assert time.monotonic() < deadline, "Bounded wait ended; inspect original route"
+            owner = json.loads((D / "actual-full-route-reconciled-owner.json").read_text())
+            assert (
+                subprocess.run(["ps", "-p", str(owner["PID"])], capture_output=True).returncode == 0
+            ), "Original fit owner stopped; inspect real terminal before action"
+            time.sleep(60)
+        assert json.loads(pub.read_text())["epoch"] == epoch
+        x = subprocess.run(
+            [sys.executable, str(D / "serving_prepare_once.py.txt"), str(epoch)],
+            cwd=R,
+            capture_output=True,
+            text=True,
+        )
+        (L / ("serving-prepare-owner-epoch-" + str(epoch) + ".json")).write_text(
+            json.dumps(
+                {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2
+            )
+            + "\n"
+        )
+        assert x.returncode == 0, "Original once-only serving compilation needs reconciliation"
+    (D / "actual-all-serving-sources-prepared.json").write_text(
+        json.dumps({"source_git": pin, "epochs": [1, 2, 3], "new_GPU_or_submission_mutations": 0})
+        + "\n"
+    )
+except Exception as exc:
+    (L / "serving-preparation-reconciled-owner-error.json").write_text(
+        json.dumps(
+            {"error_type": type(exc).__name__, "message": str(exc), "automatic_retry": False}
+        )
+        + "\n"
+    )
+    raise

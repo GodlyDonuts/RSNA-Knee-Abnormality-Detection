@@ -1,0 +1,181 @@
+"""One finite owner: preserve E1 and continue only the accepted fixed E2/E3."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+assert not (L / "full-route-reconciled-owner-intent.json").exists()
+assert json.loads((D / "actual-push-epoch-1.json").read_text())["kernel_id"] == 139699006
+assert json.loads((D / "actual-owner-handoff.json").read_text())["old_idle_owners_retired"] == [
+    97036,
+    97047,
+    97060,
+]
+for epoch in (2, 3):
+    assert not (L / ("publish-" + str(epoch) + "-intent.json")).exists()
+for epoch in (2, 3):
+    assert not (L / ("prepare-" + str(epoch) + "-intent.json")).exists()
+    assert not (L / ("push-" + str(epoch) + "-intent.json")).exists()
+controls = (
+    "prepare_once.py.txt",
+    "prepare.py.txt",
+    "run_phase.py.txt",
+    "cloud.py.txt",
+    "publish_once.py.txt",
+    "publish_epoch.py.txt",
+    "epoch_check.py.txt",
+)
+frozen = {n: hashlib.sha256((D / n).read_bytes()).hexdigest() for n in controls}
+first = json.loads((D / "actual-private-verified-epoch-1.json").read_text())
+assert (
+    first["status"]
+    == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+    and first["epoch"] == 1
+    and first["model_sha256"] == "4a7a9f9b59493d45b2820a9619f40fe4c60aaa77a5f5fcb07699864cc5f789df"
+)
+pointer = json.loads((D / "actual-publication-pointer-epoch-1.json").read_text())
+assert (
+    pointer["status"] == "actual_private_epoch_pointer_delivered_to_original_trainer_owner"
+    and pointer["revision"] == first["revision"]
+)
+for pid in (1613, 2264, 2861):
+    assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode != 0
+
+with (L / "full-route-reconciled-owner-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "source_git": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+            "initial_kernel_id": 139699006,
+            "maximum_new_full_GPU_epochs": 2,
+            "maximum_distinct_private_epoch_publications": 2,
+            "original_E1_publication_reused": True,
+            "controls": frozen,
+            "maximum_seconds": 18 * 3600,
+            "automatic_mutation_retry": False,
+        },
+        f,
+        indent=2,
+    )
+started = time.monotonic()
+published = [first]
+
+
+def run(name, args, tag, timeout):
+    assert time.monotonic() - started < 18 * 3600
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in frozen.items())
+    x = subprocess.run(
+        [sys.executable, str(D / name), *map(str, args)],
+        cwd=R,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    (L / ("reconciled-" + tag + "-owner-result.json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "An original phase stopped/uncertain: preserve evidence and reconcile, never repeat"
+    )
+    return json.loads(x.stdout)
+
+
+try:
+    for epoch in (2, 3):
+        if epoch > 1:
+            compiled = run("prepare_once.py.txt", [epoch], "compile-" + str(epoch), 1000)
+            assert compiled["status"] == "actual_changed_role_fixed3_full3887_T4_source_compiled"
+            pushed = run("run_phase.py.txt", ["push", epoch], "push-" + str(epoch), 2000)
+            assert pushed["status"] == "complete_teacher_cross_full_fit_pushed", (
+                "No automatic repeat after claim/capacity/budget wait"
+            )
+        terminal = D / ("actual-terminal-epoch-" + str(epoch) + ".json")
+        while not terminal.exists():
+            assert time.monotonic() - started < 18 * 3600
+            # Existing702 is sole E1 observer. Missing/expired observation is not
+            # a GPU terminal: query the exact same version read-only if needed.
+            observer_live = (
+                epoch == 1
+                and subprocess.run(["ps", "-p", "702"], capture_output=True).returncode == 0
+            )
+            if not observer_live:
+                state = run("run_phase.py.txt", ["status", epoch], "status-" + str(epoch), 1000)
+                (L / "full-route-reconciled-progress.json").write_text(
+                    json.dumps({"PID": os.getpid(), "epoch": epoch, "actual": state}, indent=2)
+                    + "\n"
+                )
+                if state["status"] in ("COMPLETE", "ERROR", "CANCELLED"):
+                    with terminal.open("x") as f:
+                        json.dump(state, f, indent=2)
+                        f.write("\n")
+                    break
+            time.sleep(120)
+        actual = json.loads(terminal.read_text())
+        exact_push = json.loads((D / ("actual-push-epoch-" + str(epoch) + ".json")).read_text())
+        assert (
+            actual["kernel_id"] == exact_push["kernel_id"]
+            and actual["source_sha256"] == exact_push["source_sha256"]
+            and actual["version"] == exact_push["version"]
+        )
+        assert actual["status"] == "COMPLETE" and actual["receipt"]["completed"] == 486 * epoch, (
+            "Actual original fitting failed: no replacement/resume/next epoch"
+        )
+        kept = run("publish_once.py.txt", [epoch], "publish-" + str(epoch), 3600)
+        assert (
+            kept["publication"]["status"]
+            == "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified"
+        )
+        assert (
+            kept["pointer"]["status"]
+            == "actual_private_epoch_pointer_delivered_to_original_trainer_owner"
+        )
+        published.append(kept["publication"])
+        (L / "full-route-reconciled-progress.json").write_text(
+            json.dumps(
+                {
+                    "PID": os.getpid(),
+                    "status": "actual_epoch_privately_verified_before_continuation",
+                    "epoch": epoch,
+                    "publication": kept["publication"],
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+    with (D / "actual-three-epoch-complete.json").open("x") as f:
+        json.dump(
+            {
+                "status": "actual_fixed3_changed_target_full3887_fit_and_all_private_epoch_verifications_complete",
+                "PID": os.getpid(),
+                "completed": 1458,
+                "epochs": 3,
+                "publications": published,
+                "competition_entries": 0,
+                "clinical_accuracy_claim": False,
+            },
+            f,
+            indent=2,
+        )
+        f.write("\n")
+except BaseException as exc:
+    with (L / "full-route-reconciled-stopped.json").open("x") as f:
+        json.dump(
+            {
+                "PID": os.getpid(),
+                "status": "stopped_without_retry_or_replacement",
+                "error_type": type(exc).__name__,
+                "completed_publications": len(published),
+                "inspect_original_transports_and_remote_journals": True,
+            },
+            f,
+            indent=2,
+        )
+    raise
