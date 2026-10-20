@@ -1,6 +1,50 @@
 # Predictive T4 benchmark with retained measurements
 
-**Pushed once: kernel 139802342 version 1; authenticated UI at 10:41 UTC shows Queued (API unreported)**, `godlydonuts/rsna-predictive-t4-v2-5d32589edb9e`, source SHA `5d32589edb9efe7f68de536bc01a1d2e50a0da555e9c5b10734cf4351aafd737`. [Actual push receipt](actual-push.json). No competition entry was made and no terminal benchmark result exists yet. The original v1 source, version and receipts are preserved.
+**Actual terminal: COMPLETE, kernel 139802342 version 1**, `godlydonuts/rsna-predictive-t4-v2-5d32589edb9e`, source SHA `5d32589edb9efe7f68de536bc01a1d2e50a0da555e9c5b10734cf4351aafd737`. The read-only observer retained the [original measurements](actual-status-observer-final.json). Both T4s finished finite predictions and precision/memory checks. Total measured duration was **671.224 seconds**, classified `measured_slow` against the probe's original 550-second target. This is a completed engineering measurement, not a failed nine-hour competition run, a trained-model qualification, or an entry. The original v1 source, version and receipts remain preserved.
+
+## Actual runtime finding
+
+The [derived stage analysis](actual-runtime-analysis.json) binds the exact original
+receipt and separates the costs:
+
+| Stage | Actual seconds |
+| --- | ---: |
+| Imports | 18.494 |
+| Parent/model loading block, including uninstrumented global weight search | 397.252 |
+| Model completion to first decode start, including global roster search | 193.246 |
+| DICOM decoding, all three public studies | 21.668 |
+| Complete descriptor/mask/context rendering, all three studies | 30.344 |
+| Warmed FP16 prediction of all three studies, T4 0 / T4 1 | 1.671 / 1.661 |
+| Concurrent GPU phase including warmup and precision checks | 9.780 |
+
+Each device processed the same three studies independently; six study/device
+executions are **three unique studies**, not six. The warmed model cost was about
+**0.557 seconds per study per T4**, while sequential CPU preparation averaged
+**17.337 seconds per study**. Host peak was **3.869 GiB**; each T4 allocated
+**0.819 GiB** during timed FP16 inference and **1.271 GiB** across all checks.
+FP16 prediction bytes matched across devices. The fresh zero-shift FP16/FP32
+probability gap was `0.000110507`; the synthetic nonzero-shift gap was
+`0.000106782` with log-Bayes-factor gap `0.000014544`.
+
+The immediate bottlenecks are startup discovery and CPU preparation, rather than
+warmed GPU execution. The source exhaustively walks every mounted directory for
+the parent weight and again for `test.csv`. Those searches fall within the slow
+intervals, but this probe has no separate search timer: the precise fraction of
+model loading attributable to traversal is **not proven**. The future serving
+wrapper can use declared bounded mount paths and compute unchanged descriptors
+once for both masks without reducing resolution, context coverage, or complete
+support priors. Neither change was present in this frozen v2.
+
+This result does not establish a nine-hour hidden run. An illustrative perfectly
+balanced two-lane extrapolation from these three public cases, including the
+observed startup, gives **2.65 hours for 1,000 studies** and **9.83 hours for 3,887**.
+These are scenarios, not known hidden counts or acceptance: concurrent I/O/CPU
+contention, source-matrix tails and the final wrapper differ. The final worker
+uses two study workers with one Torch thread each; this probe prepared cases
+sequentially with two Torch threads. Actual trained qualification must therefore
+measure its complete two-worker input path and trained FP16/FP32 behavior on the
+exact final exports. Keep these measurements before any acceptance assertion.
+No new GPU probe or competition entry was made for this analysis.
 
 The actual pre-push check found source-zero E3 **139786921 v1 COMPLETE**, so its unfinished-training allowance was retired. Free quota was **5,376.85 VM seconds**, above the required **4,200** (1,200 for this probe plus 3,000 retained for final source-zero serving). This dated receipt does not authorize another GPU session.
 

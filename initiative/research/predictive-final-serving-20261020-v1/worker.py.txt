@@ -102,9 +102,25 @@ def write_submission(path, uids, rows, contract):
     os.replace(temporary, path)
 
 
+def start_public_watchdog(uids, contract):
+    """Cap only the exact public example, without changing any prediction."""
+    if (
+        BINDING["mode"] != "competition"
+        or contract.digest(contract.canonical(uids)) != BINDING["public_roster_sha256"]
+    ):
+        return None
+    remaining = max(0.0, BINDING["public_watchdog_seconds"] - (time.monotonic() - START))
+    timer = threading.Timer(remaining, lambda: os._exit(124))
+    timer.daemon = True
+    timer.start()
+    return timer
+
+
 def main():
     stage("started", mode=BINDING["mode"], models=len(BINDING["models"]))
     install_sources()
+    import _predictive_serving_mounts as mounts
+    from _predictive_descriptor_cache import cache_descriptors_once
     import _predictive_serving_contract as contract
     import numpy as np
     import pydicom
@@ -125,6 +141,28 @@ def main():
     torch.set_num_interop_threads(1)
     torch.backends.cudnn.benchmark = False
     torch.backends.cuda.matmul.allow_tf32 = False
+    roster_begin = time.monotonic()
+    roster = mounts.resolve_competition_roster("/kaggle/input")
+    with roster.open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames and "StudyInstanceUID" in reader.fieldnames
+        uids = [r["StudyInstanceUID"] for r in reader]
+    assert uids and len(uids) == len(set(uids))
+    for uid in uids:
+        assert pydicom.uid.UID(uid).is_valid and len(uid) <= 64
+    if BINDING["mode"] == "qualification":
+        assert len(uids) == 3, "Qualification only uses the actual public example"
+        assert contract.digest(contract.canonical(uids)) == BINDING["public_roster_sha256"]
+    else:
+        assert len(BINDING["models"]) == 1
+        contract.validate_qualification(BINDING["qualification"], BINDING["models"][0])
+    public_timer = start_public_watchdog(uids, contract)
+    stage(
+        "test_roster_loaded",
+        studies=len(uids),
+        seconds=time.monotonic() - roster_begin,
+        public_watchdog_started=public_timer is not None,
+    )
     license_bytes = base64.b64decode(PERMISSION, validate=True)
     assert hashlib.sha256(license_bytes).hexdigest() == contract.LICENSE
     (ROOT / "source-permission.txt").write_bytes(license_bytes)
@@ -142,17 +180,21 @@ def main():
         compile(ast.Module(body=selected, type_ignores=[]), "attributed_original_encoder", "exec"),
         namespace,
     )
-    parent_paths = list(
-        Path("/kaggle/input").rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+    setup_begin = time.monotonic()
+    parent_path = mounts.resolve_dataset_file(
+        "/kaggle/input", mounts.PARENT_DATASET, mounts.PARENT_FILENAME
     )
-    assert len(parent_paths) == 1 and parent_paths[0].stat().st_size == 292840787
-    with parent_paths[0].open("rb") as handle:
+    stage("parent_mount_resolved", seconds=time.monotonic() - setup_begin)
+    assert parent_path.stat().st_size == 292840787
+    with parent_path.open("rb") as handle:
         assert hashlib.file_digest(handle, "sha256").hexdigest() == contract.PARENT
+    stage("parent_bytes_verified", seconds=time.monotonic() - setup_begin)
     with contextlib.redirect_stdout(io.StringIO()):
         parent, resolution = namespace["load_model"](
-            str(parent_paths[0]), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+            str(parent_path), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
         )
     assert resolution == 320 and sum(p.numel() for p in parent.parameters()) == 73136096
+    stage("parent_graph_loaded", seconds=time.monotonic() - setup_begin)
 
     class FixedEncoder(torch.nn.Module):
         def __init__(self, backbone):
@@ -164,29 +206,12 @@ def main():
         def forward(self, images):
             return self.backbone((images - self.mean) / self.std)
 
-    rosters = [
-        p for p in Path("/kaggle/input").rglob("test.csv") if (p.parent / "test_series").is_dir()
-    ]
-    assert len(rosters) == 1
-    with rosters[0].open(newline="") as handle:
-        reader = csv.DictReader(handle)
-        assert reader.fieldnames and "StudyInstanceUID" in reader.fieldnames
-        records = list(reader)
-    uids = [r["StudyInstanceUID"] for r in records]
-    assert uids and len(uids) == len(set(uids))
-    for uid in uids:
-        assert pydicom.uid.UID(uid).is_valid and len(uid) <= 64
-    if BINDING["mode"] == "qualification":
-        assert len(uids) == 3, "Qualification only uses the actual public example"
-    else:
-        assert len(BINDING["models"]) == 1
-        contract.validate_qualification(BINDING["qualification"], BINDING["models"][0])
-
     def prepare(index):
         begin = time.monotonic()
         uid = uids[index]
-        groups, stats = load_study(rosters[0].parent / "test_series" / uid, uid)
+        groups, stats = load_study(roster.parent / "test_series" / uid, uid)
         decoded = time.monotonic()
+        groups = cache_descriptors_once(groups)
         contexts = assemble(groups, side=320, halo=8, context_cap=24, classes=12)
         del groups
         assert len(contexts) == 2 and sum(len(c["images"]) for c in contexts) <= 48
@@ -209,11 +234,15 @@ def main():
     for chosen in BINDING["models"]:
         arm = chosen["arm"]
         begin = time.monotonic()
-        paths = list(Path("/kaggle/input").rglob(chosen["model_filename"]))
-        assert len(paths) == 1 and paths[0].stat().st_size == chosen["model"]["bytes"]
-        with paths[0].open("rb") as handle:
+        model_path = mounts.resolve_dataset_file(
+            "/kaggle/input", BINDING["model_dataset_ref"], chosen["model_filename"]
+        )
+        stage("trained_model_mount_resolved", arm=arm, seconds=time.monotonic() - begin)
+        assert model_path.stat().st_size == chosen["model"]["bytes"]
+        with model_path.open("rb") as handle:
             assert hashlib.file_digest(handle, "sha256").hexdigest() == chosen["model"]["sha256"]
-        export = torch.load(paths[0], map_location="cpu", weights_only=True)
+        stage("trained_model_bytes_verified", arm=arm, seconds=time.monotonic() - begin)
+        export = torch.load(model_path, map_location="cpu", weights_only=True)
         cls = ReconstructionControl if arm == "B" else Predictive
         base = cls(FixedEncoder(parent.backbone), parent.backbone.num_features, hidden=128)
         base = contract.validate_export(export, chosen, base)
@@ -311,9 +340,14 @@ def main():
             ).hexdigest(),
         }
         if prepared is not None:
-            per_study = [
-                m["decode_seconds"] + m["render_seconds"] + m["FP16_seconds"] for m in measures
-            ]
+            per_study_by_index = {}
+            for m in measures:
+                seconds = m["decode_seconds"] + m["render_seconds"] + m["FP16_seconds"]
+                per_study_by_index[m["study_index"]] = max(
+                    per_study_by_index.get(m["study_index"], 0), seconds
+                )
+            assert set(per_study_by_index) == {0, 1, 2}
+            per_study = list(per_study_by_index.values())
             setup = time.monotonic() - START - inference_seconds
             metric["illustrative_runtime_seconds"] = {
                 str(n): {
@@ -360,6 +394,10 @@ def main():
         "elapsed_seconds": time.monotonic() - START,
         "serving_worker_sha256": BINDING["serving_worker_sha256"],
         "serving_contract_sha256": BINDING["serving_contract_sha256"],
+        "serving_helpers_sha256": BINDING["serving_helpers_sha256"],
+        "model_dataset_ref": BINDING["model_dataset_ref"],
+        "public_watchdog_seconds": BINDING["public_watchdog_seconds"],
+        "public_watchdog_started": public_timer is not None,
         "hidden_runtime_acceptance": False,
         "clinical_score": None,
         "competition_entry": False,
@@ -370,6 +408,8 @@ def main():
         receipt.update(CSV_sha256=contract.digest(path.read_bytes()), CSV_bytes=path.stat().st_size)
     atomic_json(Path("/kaggle/working/predictive-" + BINDING["mode"] + "-accepted.json"), receipt)
     stage("completed", elapsed_seconds=receipt["elapsed_seconds"])
+    if public_timer is not None:
+        public_timer.cancel()
 
 
 if __name__ == "__main__":

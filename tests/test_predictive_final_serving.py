@@ -20,6 +20,7 @@ spec = importlib.util.spec_from_file_location("predictive_final_compiler", D / "
 compiler = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(compiler)
 c = compiler.contract
+MODEL_DATASET = "godlydonuts/rsna-predictive-finals-synthetic"
 
 
 @pytest.fixture
@@ -158,12 +159,19 @@ def accepted_qualification(chosen):
         models=[row],
         serving_worker_sha256=c.digest((D / "worker.py.txt").read_text()),
         serving_contract_sha256=c.digest((D / "contract.py").read_text()),
+        model_dataset_ref=MODEL_DATASET,
+        serving_helpers_sha256={
+            "_predictive_serving_mounts.py": c.digest((D / "mounts.py").read_text()),
+            "_predictive_descriptor_cache.py": c.digest((D / "descriptor_cache.py").read_text()),
+        },
     )
 
 
 def test_combined_final_compiler_is_offline_and_preserves_exact_modules(entries):
     parent, candidates = entries
-    source, meta = compiler.build(parent, candidates, mode="qualification")
+    source, meta = compiler.build(
+        parent, candidates, mode="qualification", model_dataset_ref=MODEL_DATASET
+    )
     assert meta["arms"] == ["B", "C", "C0"]
     assert meta["new_Dataset_notebook_or_entry_mutations"] == 0
     tree = ast.parse(source)
@@ -228,7 +236,7 @@ def test_untrained_changed_or_unpreserved_inputs_rejected(entries, problem):
     else:
         candidates = [entry, entry]
     with pytest.raises(ValueError):
-        compiler.build(parent, candidates, mode="qualification")
+        compiler.build(parent, candidates, mode="qualification", model_dataset_ref=MODEL_DATASET)
 
 
 def test_competition_requires_exact_actual_trained_qualification(entries):
@@ -236,7 +244,9 @@ def test_competition_requires_exact_actual_trained_qualification(entries):
     entry = all_entries[1]
     chosen = c.candidate(**entry)
     receipt = accepted_qualification(chosen)
-    source, meta = compiler.build(parent, [entry], mode="competition", qualification=receipt)
+    source, meta = compiler.build(
+        parent, [entry], mode="competition", qualification=receipt, model_dataset_ref=MODEL_DATASET
+    )
     assert meta["arms"] == ["C"] and "__BINDING_VALUE__" not in source
     for change in (
         "missing",
@@ -245,6 +255,8 @@ def test_competition_requires_exact_actual_trained_qualification(entries):
         "missing_measure",
         "bad_gap",
         "worker",
+        "helper",
+        "dataset",
     ):
         wrong = copy.deepcopy(receipt)
         if change == "missing":
@@ -257,10 +269,20 @@ def test_competition_requires_exact_actual_trained_qualification(entries):
             wrong["models"][0]["measurements"].pop()
         elif change == "bad_gap":
             wrong["models"][0]["measurements"][0]["maximum_probability_gap"] = 0.01
+        elif change == "helper":
+            wrong["serving_helpers_sha256"]["_predictive_serving_mounts.py"] = "0" * 64
+        elif change == "dataset":
+            wrong["model_dataset_ref"] = "someone/another-dataset"
         else:
             wrong["serving_worker_sha256"] = "0" * 64
         with pytest.raises(ValueError):
-            compiler.build(parent, [entry], mode="competition", qualification=wrong)
+            compiler.build(
+                parent,
+                [entry],
+                mode="competition",
+                qualification=wrong,
+                model_dataset_ref=MODEL_DATASET,
+            )
 
 
 def tiny_export():
@@ -443,3 +465,51 @@ def test_hidden_scale_progress_is_bounded_with_linear_append_history(tmp_path, m
     assert json.loads(lines[-1]) == progress["latest_events"][-1]
     assert (tmp_path / "events.jsonl").stat().st_size < original_size * 2.1
     assert (tmp_path / "progress.json").stat().st_size < 8192
+
+
+@pytest.mark.parametrize("mode,exact_public", [("qualification", True), ("competition", False)])
+def test_watchdog_never_limits_qualification_or_a_different_hidden_roster(mode, exact_public):
+    namespace, timers = watchdog_namespace(mode, exact_public)
+    assert namespace["start_public_watchdog"](["1.2.3"], c) is None
+    assert timers == []
+
+
+def watchdog_namespace(mode, exact_public=True):
+    tree = ast.parse((D / "worker.py.txt").read_text())
+    function = next(
+        n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "start_public_watchdog"
+    )
+    timers = []
+
+    class FakeTimer:
+        def __init__(self, interval, callback):
+            self.interval, self.callback, self.started = interval, callback, False
+            timers.append(self)
+
+        def start(self):
+            self.started = True
+
+    namespace = dict(
+        BINDING=dict(
+            mode=mode,
+            public_roster_sha256=c.digest(c.canonical(["1.2.3"])) if exact_public else "0" * 64,
+            public_watchdog_seconds=600,
+        ),
+        START=10,
+        time=type("Clock", (), {"monotonic": staticmethod(lambda: 30)}),
+        threading=type("Threads", (), {"Timer": FakeTimer}),
+        os=type("OS", (), {"_exit": staticmethod(lambda code: code)}),
+    )
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "watchdog", "exec"), namespace)
+    return namespace, timers
+
+
+def test_exact_public_watchdog_counts_elapsed_startup_and_cannot_emit_predictions():
+    namespace, timers = watchdog_namespace("competition")
+    timer = namespace["start_public_watchdog"](["1.2.3"], c)
+    assert timer is timers[0] and timer.started and timer.daemon
+    assert timer.interval == 580 and timer.callback() == 124
+    source = (D / "worker.py.txt").read_text()
+    assert source.index("public_timer = start_public_watchdog") < source.index(
+        'parent, resolution = namespace["load_model"]'
+    )

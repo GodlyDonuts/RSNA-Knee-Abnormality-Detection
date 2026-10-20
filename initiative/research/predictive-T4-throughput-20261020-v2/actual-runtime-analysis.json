@@ -1,0 +1,135 @@
+{
+  "status": "actual_public_T4_v2_runtime_analysis",
+  "kernel_id": 139802342,
+  "version": 1,
+  "terminal": "COMPLETE",
+  "original_observation_sha256": "49f03806377d4bcbb3ce46d6b1cf6615854dde4885876518c1ae44c4f816444f",
+  "notebook_source_sha256": "5d32589edb9efe7f68de536bc01a1d2e50a0da555e9c5b10734cf4351aafd737",
+  "original_source_git": "f0cf07e0d763f82a406c48e5880443582bffec83",
+  "actual_receipt_status": "actual_public_MRI_predictive_two_T4_measurements_recorded",
+  "runtime_classification": "measured_slow",
+  "total_measured_seconds": 671.224188409,
+  "stage_seconds": {
+    "imports": 18.493526263999996,
+    "model_load_block_including_uninstrumented_recursive_weight_search": 397.25162384,
+    "post_model_before_first_decode_including_uninstrumented_recursive_roster_search": 193.24643288699997,
+    "observed_first_decode_start_elapsed": 609.3300506209999,
+    "all_three_input_phase": 52.11381650499993,
+    "all_three_DICOM_decode_sum": 21.668139707000023,
+    "all_three_context_render_sum": 30.34354854000003,
+    "concurrent_GPU_phase_including_warmup_and_precision": 9.780298656000014
+  },
+  "per_public_study": [
+    {
+      "study_index": 0,
+      "dicoms": 284,
+      "regions": 4544,
+      "source_bytes": 436378362,
+      "decode_seconds": 13.633227626000007,
+      "render_seconds": 18.492062021000038,
+      "CPU_preparation_seconds": 32.125289647000045
+    },
+    {
+      "study_index": 1,
+      "dicoms": 135,
+      "regions": 2160,
+      "source_bytes": 91028286,
+      "decode_seconds": 4.335068633999981,
+      "render_seconds": 6.142784102000064,
+      "CPU_preparation_seconds": 10.477852736000045
+    },
+    {
+      "study_index": 2,
+      "dicoms": 138,
+      "regions": 2208,
+      "source_bytes": 72556336,
+      "decode_seconds": 3.6998434470000348,
+      "render_seconds": 5.708702416999927,
+      "CPU_preparation_seconds": 9.408545863999962
+    }
+  ],
+  "timed_device_measurements": [
+    {
+      "GPU": "Tesla T4",
+      "device": 1,
+      "encoder_windows": 144,
+      "finite_predictions": true,
+      "prediction_sha256": "720ed78fd92b2277a6ade1fe20e615e09dee942495ba50f8e3ccdeca8e44c95f",
+      "seconds": 1.660513260000016,
+      "studies": 3,
+      "throughput_FP16_peak_allocated_bytes": 879121408,
+      "throughput_FP16_peak_reserved_bytes": 1012924416
+    },
+    {
+      "GPU": "Tesla T4",
+      "device": 0,
+      "encoder_windows": 144,
+      "finite_predictions": true,
+      "prediction_sha256": "720ed78fd92b2277a6ade1fe20e615e09dee942495ba50f8e3ccdeca8e44c95f",
+      "seconds": 1.6714262410000629,
+      "studies": 3,
+      "throughput_FP16_peak_allocated_bytes": 879121408,
+      "throughput_FP16_peak_reserved_bytes": 1012924416
+    }
+  ],
+  "mean_CPU_preparation_seconds_per_study": 17.337229415666684,
+  "slow_device_mean_FP16_seconds_per_study": 0.5571420803333543,
+  "CPU_preparation_to_FP16_seconds_ratio": 31.118147466609084,
+  "equal_FP16_prediction_bytes_on_both_devices": true,
+  "host_peak_GiB": 3.8694915771484375,
+  "FP16_peak_allocated_GiB_per_device": [
+    0.8187456130981445,
+    0.8187456130981445
+  ],
+  "all_checks_peak_allocated_GiB_per_device": [
+    1.271383285522461,
+    1.271383285522461
+  ],
+  "maximum_fresh_zero_shift_probability_gap": 0.00011050701141357422,
+  "maximum_synthetic_nonzero_shift_probability_gap": 0.0001067817211151123,
+  "maximum_synthetic_nonzero_shift_log_Bayes_factor_gap": 1.4543533325195312e-05,
+  "runtime_scenarios": [
+    {
+      "illustrative_studies_not_observed_hidden_count": 1000,
+      "one_lane_seconds_using_measured_mean": 18503.701546621036,
+      "ideal_two_lane_seconds_using_measured_mean": 9556.515798621018,
+      "ideal_two_lane_seconds_using_slowest_public_CPU_case": 16950.5459142877
+    },
+    {
+      "illustrative_studies_not_observed_hidden_count": 3887,
+      "one_lane_seconds_using_measured_mean": 70164.75205557315,
+      "ideal_two_lane_seconds_using_measured_mean": 35387.04105309707,
+      "ideal_two_lane_seconds_using_slowest_public_CPU_case": 64127.636112693464
+    },
+    {
+      "illustrative_studies_not_observed_hidden_count": 5000,
+      "one_lane_seconds_using_measured_mean": 90081.18753062119,
+      "ideal_two_lane_seconds_using_measured_mean": 45345.25879062109,
+      "ideal_two_lane_seconds_using_slowest_public_CPU_case": 82315.40936895451
+    }
+  ],
+  "ideal_two_lane_9h_study_ceiling_using_measured_mean": 3553,
+  "scenario_assumptions": [
+    "Same three-public-study CPU cost distribution",
+    "Perfectly balanced independent two-lane execution",
+    "No concurrent disk or CPU contention",
+    "No hidden input tails",
+    "No changed learned-head numerical cost"
+  ],
+  "decision": "Keep the model, complete support roster, masks and resolution unchanged. Remove global mount recursion and reuse exact descriptors once. Qualify actual trained B/C/C0 weights with the actual two-worker input pipeline before deployment; retain timings before acceptance checks.",
+  "required_final_qualification_checks": [
+    "Strict actual final learned-state/source/parent/schema binding",
+    "Trained FP16-versus-FP32 predictions on each of three public studies and first-study cross-device comparison",
+    "Actual two-worker DICOM and descriptor/render timings after bounded mount resolution and descriptor reuse",
+    "Peak host and per-T4 memory with full source-region/support rosters",
+    "Separate load, source discovery, CPU preparation and model execution timing"
+  ],
+  "not_established": [
+    "Which portion of the 397.25-second model block is recursive traversal versus model construction/hash/device copies",
+    "Exact attribution of the 193.25-second roster interval without a dedicated traversal timer",
+    "Trained-head FP16 accuracy or clinical benefit",
+    "Hidden study count, tails, contention or nine-hour runtime acceptance",
+    "Observed two-lane unique-study throughput: both T4s timed the same three already prepared studies"
+  ],
+  "new_GPU_pushes_or_remote_operations": 0
+}

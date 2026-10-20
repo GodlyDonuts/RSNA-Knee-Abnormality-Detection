@@ -14,9 +14,13 @@ D = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("predictive_serving_contract", D / "contract.py")
 contract = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(contract)
+spec = importlib.util.spec_from_file_location("predictive_serving_mounts", D / "mounts.py")
+mounts = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mounts)
 
 
-def build(parent_source, exports, *, mode, qualification=None):
+def build(parent_source, exports, *, mode, model_dataset_ref, qualification=None):
+    mounts.dataset_parts(model_dataset_ref)
     contract.require(mode in ("qualification", "competition"), "Explicit serving mode required")
     contract.require(
         exports and len(exports) <= 3, "One to three actual final trained exports required"
@@ -65,13 +69,21 @@ def build(parent_source, exports, *, mode, qualification=None):
     template = (D / "worker.py.txt").read_text()
     contract_source = (D / "contract.py").read_text()
     worker_sha, contract_sha = contract.digest(template), contract.digest(contract_source)
+    helpers = {
+        "_predictive_serving_mounts.py": (D / "mounts.py").read_text(),
+        "_predictive_descriptor_cache.py": (D / "descriptor_cache.py").read_text(),
+    }
+    helper_hashes = {name: contract.digest(text) for name, text in helpers.items()}
     if mode == "competition":
         contract.require(
             qualification["serving_worker_sha256"] == worker_sha
-            and qualification["serving_contract_sha256"] == contract_sha,
-            "Actual qualification used a different serving worker or contract",
+            and qualification["serving_contract_sha256"] == contract_sha
+            and qualification.get("serving_helpers_sha256") == helper_hashes
+            and qualification.get("model_dataset_ref") == model_dataset_ref,
+            "Actual qualification used a different serving source or Dataset",
         )
     sources["_predictive_serving_contract.py"] = contract_source
+    sources.update(helpers)
     binding = {
         "schema": "predictive_full3887_final_serving_v1",
         "mode": mode,
@@ -80,6 +92,10 @@ def build(parent_source, exports, *, mode, qualification=None):
         "module_sha256": {n: contract.digest(text) for n, text in sources.items()},
         "serving_worker_sha256": worker_sha,
         "serving_contract_sha256": contract_sha,
+        "serving_helpers_sha256": helper_hashes,
+        "model_dataset_ref": model_dataset_ref,
+        "public_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+        "public_watchdog_seconds": 600,
         "pinned_Docker": contract.DOCKER,
         "internet": False,
         "GPU_count": 2,
@@ -104,6 +120,9 @@ def build(parent_source, exports, *, mode, qualification=None):
         "source_bytes": len(template.encode()),
         "worker_sha256": worker_sha,
         "contract_sha256": contract_sha,
+        "serving_helpers_sha256": helper_hashes,
+        "model_dataset_ref": model_dataset_ref,
+        "public_watchdog_seconds": 600,
         "model_files": {c["model_filename"]: c["model"] for c in candidates},
         "pinned_Docker": contract.DOCKER,
         "actual_trained_GPU_execution": False,

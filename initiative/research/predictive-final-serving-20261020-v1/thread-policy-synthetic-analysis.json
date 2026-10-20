@@ -1,0 +1,89 @@
+{
+  "status": "actual_local_synthetic_thread_policy_comparison_not_exactly_equivalent",
+  "platform": "macOS26.7 arm64",
+  "Python": "3.11.0",
+  "Torch": "2.14.0",
+  "GPU_or_remote_calls": 0,
+  "source_images": "synthetic analytic ring/gradient patterns only; no dataset pixel reads",
+  "unique_frames_per_study": 36,
+  "original_frames_including_aliases": 39,
+  "matrix_shapes": [
+    [
+      512,
+      512
+    ],
+    [
+      640,
+      640
+    ],
+    [
+      960,
+      960
+    ]
+  ],
+  "complementary_contexts": 2,
+  "context_cap_per_mask": 24,
+  "render_side": 320,
+  "halo": 8,
+  "measurements": [
+    {
+      "CPU_workers": 2,
+      "actual_Torch_threads_per_worker": 1,
+      "synthetic_study_executions": 4,
+      "wall_seconds": 2.1349821249605156,
+      "images_bitwise_equal_to_sequential_Torch1": true,
+      "maximum_absolute_image_gap": 0.0,
+      "targets_masks_metadata_support_indices_and_priors_bitwise_equal": true
+    },
+    {
+      "CPU_workers": 2,
+      "actual_Torch_threads_per_worker": 2,
+      "synthetic_study_executions": 4,
+      "wall_seconds": 1.7589661249658093,
+      "images_bitwise_equal_to_sequential_Torch1": false,
+      "maximum_absolute_image_gap": 1.7881393432617188e-07,
+      "targets_masks_metadata_support_indices_and_priors_bitwise_equal": true
+    },
+    {
+      "CPU_workers": 2,
+      "actual_Torch_threads_per_worker": 2,
+      "synthetic_study_executions": 4,
+      "wall_seconds": 1.6351012919913046,
+      "images_bitwise_equal_to_sequential_Torch1": false,
+      "maximum_absolute_image_gap": 1.7881393432617188e-07,
+      "targets_masks_metadata_support_indices_and_priors_bitwise_equal": true
+    },
+    {
+      "CPU_workers": 2,
+      "actual_Torch_threads_per_worker": 1,
+      "synthetic_study_executions": 4,
+      "wall_seconds": 2.059582458983641,
+      "images_bitwise_equal_to_sequential_Torch1": true,
+      "maximum_absolute_image_gap": 0.0,
+      "targets_masks_metadata_support_indices_and_priors_bitwise_equal": true
+    }
+  ],
+  "mean_wall_Torch1_seconds": 2.0972822919720784,
+  "mean_wall_Torch2_seconds": 1.697033708478557,
+  "observed_Torch2_fraction_saved": 0.19084154051439917,
+  "single_Torch1_CPU_profile": {
+    "total_seconds": 1.037,
+    "descriptor_calls": 576,
+    "descriptor_cumulative_seconds": 0.281,
+    "torch_isfinite_exclusive_seconds": 0.264,
+    "bilinear_resize_exclusive_seconds": 0.221,
+    "adaptive_pool_exclusive_seconds": 0.08,
+    "masked_fill_exclusive_seconds": 0.05,
+    "any_reduction_exclusive_seconds": 0.043,
+    "sorting_exclusive_seconds": 0.016,
+    "complete_support_construction_cumulative_seconds": 0.009,
+    "cumulative_and_exclusive_times_overlap_do_not_sum": true
+  },
+  "decision": "Retain the prepared two-worker Torch1 policy. Torch2 is not admitted as a bitwise exact optimization.",
+  "actual_Kaggle_or_hidden_runtime_claim": false,
+  "trained_model_probability_equivalence_across_thread_counts_tested": false,
+  "no_scientific_module_or_prepared_serving_source_changed": true,
+  "remaining_bottlenecks": "Full-image validation scans and bilinear rendering dominate this synthetic profile; DCT basis/order caching and support reuse are secondary.",
+  "smallest_future_qualification_measurement": "Within an already planned trained public qualification, reuse the decoded original public groups for one extra two-worker CPU rendering pass under Torch2. Compare complete contexts/supports/priors against Torch1 before discarding the alternative. Choose Torch2 only if both speed and exact outputs pass, otherwise retain Torch1. A non-bitwise alternative needs separate trained prediction acceptance; do not silently substitute it. No standalone GPU probe is proposed.",
+  "mask_caution": "Complementary region assignments do not imply complementary halo-expanded pixel masks; using the inverse of one expanded mask would alter source evidence."
+}

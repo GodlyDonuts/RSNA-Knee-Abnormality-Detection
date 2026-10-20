@@ -23,6 +23,7 @@ source, receipt = compiler.build(
         # Optional other actual final arms for the same qualification job.
     ],
     mode="qualification",
+    model_dataset_ref=actual_verified_private_model_dataset_reference,
 )
 ```
 
@@ -73,6 +74,19 @@ single model with `mode="competition", qualification=actual_receipt`. The compil
 binds the exact model, numerical source, worker/contract, observed three-study
 coverage and both devices. Changing the serving worker/contract requires a new
 qualification; the compiler does not quietly reuse old acceptance.
+
+Exact Dataset owner/slug references resolve only the flat or namespaced Kaggle
+mounts. No search walks the competition MRI tree to locate weights or `test.csv`.
+Both complementary contexts reuse descriptors computed once from the original
+pixels. Complete contexts, supports, priors and predictions are bitwise equal in
+the focused synthetic tests; the local CPU benchmark reduced preparation time
+from 0.535 to 0.374 seconds, not a measured Kaggle speedup. The compiler binds
+both helper hashes and the model Dataset reference to the actual qualification.
+
+The exact public-example roster has a 600-second wall-clock watchdog before
+model initialization. A different hidden roster retains the nine-hour session
+limit. The watchdog only terminates an overlong public run; it never changes
+predictions or emits substitute output.
 
 The competition notebook reads the actual `test.csv`, keeps its original unique
 UID order, and uses the same `load_study → assemble → FixedEncoder → predict`
