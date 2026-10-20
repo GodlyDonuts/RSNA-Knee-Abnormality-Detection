@@ -1,0 +1,126 @@
+"""One immutable CPU-admit or GPU-submit phase, no implicit mutation retry."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/cached-attention-encoder-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("prepare_gpu", "submit_gpu")
+assert not (L / (phase + "-intent.json")).exists(), "Reconcile original attempt read-only"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+paths = [
+    *D.glob("*.py.txt"),
+    R / "rsna/competitive/cached_attention_control.py",
+    R / "rsna/competitive/cached_attention_training.py",
+    R / "rsna/competitive/licensed_importance_train.py",
+]
+for p in paths:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+v = {"source_git": pin}
+if phase == "prepare_gpu":
+    loader = SourceFileLoader("new_cached_attention_engine", str(D / "engine.py.txt"))
+    b = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(b)
+    v.update(
+        reference=json.loads((D / "actual-transfer.json").read_text()),
+        CPU_decision=json.loads(
+            (
+                R
+                / "initiative/research/cached-attention-control-20261020-v1/agent-engineering-decision.json"
+            ).read_text()
+        ),
+        modules={
+            "cached_attention_control.py": (
+                R / "rsna/competitive/cached_attention_control.py"
+            ).read_text(),
+            "cached_attention_training.py": (
+                R / "rsna/competitive/cached_attention_training.py"
+            ).read_text(),
+            "cached_attention_train.py": b.build(
+                (R / "rsna/competitive/licensed_importance_train.py").read_text()
+            ),
+        },
+    )
+    for name in ("gpu_worker", "gpu_driver"):
+        v[name + ".py"] = (D / (name + ".py.txt")).read_text()
+else:
+    v["prepared"] = json.loads((D / "actual-prepare_gpu.json").read_text())
+    assert v["prepared"]["source_git"] == pin
+program = (D / (phase + ".py.txt")).read_text()
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + 'except Exception as error:\n    import traceback\n    frames=traceback.extract_tb(error.__traceback__)\n    print(__import__("json").dumps({"exception_type":type(error).__name__,"line":frames[-1].lineno if frames else None}),file=sys.stderr)\n    raise SystemExit(1)\n'
+)
+s = importlib.util.spec_from_file_location(
+    "original_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:06:00",
+    "--job-name=rsna-cached-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+with (L / (phase + "-intent.json")).open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "phase": phase,
+            "maximum_new_GPU_jobs": int(phase == "submit_gpu"),
+            "competition_entries": 0,
+            "automatic_retry": False,
+        },
+        f,
+    )
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope(program, v),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read original staged intent/source/job; no automatic retry"
+out = json.loads(x.stdout)
+(D / ("actual-" + phase + ".json")).write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

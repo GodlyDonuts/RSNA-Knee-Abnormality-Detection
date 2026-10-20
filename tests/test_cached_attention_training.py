@@ -18,14 +18,14 @@ from rsna.competitive.licensed_parent_train import PARENT_SHA
 class Parent(nn.Module):
     def __init__(self):
         super().__init__()
-        self.backbone = nn.Linear(12, 4)
+        self.backbone = nn.Sequential(nn.Flatten(1), nn.Linear(12, 4))
         self.norm = nn.LayerNorm(4)
         self.att = nn.Sequential(nn.Linear(4, 6), nn.Tanh(), nn.Dropout(0.3), nn.Linear(6, 12))
         self.clsW = nn.Parameter(torch.randn(12, 4) * 0.2)
         self.clsb = nn.Parameter(torch.zeros(12))
 
     def encode(self, images):
-        return self.backbone(images.flatten(2))
+        return self.backbone(images.flatten(0, 1)).reshape(images.shape[0], images.shape[1], -1)
 
     def forward(self, images):
         h = self.norm(self.encode(images))
@@ -176,3 +176,46 @@ def test_reference_is_aligned_and_duplicates_and_views_are_preserved(fixture):
         ReferenceCases(
             data.original, data._proposals, list(reversed(data.uids)), scores, votes, "a" * 64
         )
+
+
+def test_fresh_private_parent_attachment_keeps_all_parameters_and_original_inference():
+    from rsna.competitive.cached_attention_training import attach_readout
+
+    model = Parent().eval()
+    ids = {n: id(p) for n, p in model.named_parameters()}
+    state = {n: t.clone() for n, t in model.state_dict().items()}
+    images = torch.rand(1, 94, 3, 2, 2)
+    with torch.no_grad():
+        before = model(images)
+    attach_readout(model, "linear")
+    assert {n: id(p) for n, p in model.named_parameters()} == ids
+    assert all(torch.equal(model.state_dict()[n], t) for n, t in state.items())
+    with torch.no_grad():
+        assert torch.equal(model(images), before)
+    with pytest.raises(ValueError):
+        attach_readout(model, "reference")
+
+
+def test_real_recovery_controls_are_fixed_engineering_only_and_do_not_replay_production():
+    import ast
+
+    d = Path("initiative/research/cached-attention-encoder-20261020-v1")
+    for name in ("gpu_worker", "gpu_driver", "prepare_gpu", "submit_gpu", "coordinate_gpu_once"):
+        compile((d / (name + ".py.txt")).read_text(), name, "exec")
+    worker = (d / "gpu_worker.py.txt").read_text()
+    assert "roster = np.linspace(0, 3886, 32" in worker
+    assert "train = roster[:17]" in worker and "evaluate = roster[17:]" in worker
+    assert "tree.body[:cut]" in worker and 't.id == "output"' in worker
+    assert "original_prefix_no_optimizer_or_output" in worker
+    driver = (d / "gpu_driver.py.txt").read_text()
+    assert "assert equal(left, right)" in driver
+    assert "engineering-predictions.private.csv" in driver and "== (" in driver
+    assert "[8, 8, 1, 8, 8, 1]" in driver
+    assert "actual-GPU-terminal.json" in driver
+    submit = (d / "submit_gpu.py.txt").read_text()
+    assert "--gres=gpu:nvidia_h100_pcie:1" in submit and "--cpus-per-task=2" in submit
+    assert "--time=00:30:00" in submit and "maximum_new_GPU_jobs" in submit
+    assert "scancel" not in submit and "scontrol update" not in submit
+    # No generated cache, selected MRI/IDs or credentials are source constants.
+    for file in d.glob("*.py.txt"):
+        ast.parse(file.read_text())

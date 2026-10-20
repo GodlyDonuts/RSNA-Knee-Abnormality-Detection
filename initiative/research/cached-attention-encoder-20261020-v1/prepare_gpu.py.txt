@@ -1,0 +1,109 @@
+"""Admit the exact new real-encoder recovery with original assets reused read-only."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-cached-attention-encoder-20261020-v1")
+fund = json.loads((D / "funded.json").read_text())
+assert (
+    fund["engineering_checkpoints_cap_bytes"] == 12 * 2**30
+    and fund["full_production_models_funded"] is False
+)
+assert (
+    shutil.disk_usage("/tmp").free > (20 + 87 + 12 + 24 + 4 + 12) * 2**30 + 128 * 2**20 + 8 * 2**20
+)
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+paid = [p for p in teacher.rglob("*") if p.is_file()]
+paid_bytes = sum(p.stat().st_size for p in paid)
+assert len(paid) < 256 and paid_bytes < 4 * 2**20
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+c = next(s.split() for s in quota.splitlines() if s.strip().startswith("/home/sa305415"))
+assert (int(c[2]) - int(c[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+) + 96 * 2**10
+assert int(c[6]) - int(c[5]) > 5000 + 128 + 128 + max(0, 256 - len(paid)) + 24
+node = subprocess.check_output(["scontrol", "show", "node", "evc48", "-o"], text=True)
+cfg = next(x for x in node.split() if x.startswith("CfgTRES="))
+assert "gres/gpu=2" in cfg and "nvidia_h100" in node
+reference = json.loads((D / "reference/verified.json").read_text())
+assert reference == v["reference"] and reference["all_arrays_finite_and_UID_order_exact"]
+ref = D / "reference/reference.private.npz"
+st = ref.stat()
+assert st.st_size == reference["bytes"]
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+original = json.loads((R / "staged.json").read_text())
+assert original["source_git"] == "7f75fd46b5d0e772fd2767400e81d70b593619b4"
+assert hashlib.sha256((R / "worker.py").read_bytes()).hexdigest() == original["worker_sha256"]
+F = Path("/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3")
+assert (
+    hashlib.sha256((F / "gpu_probe.py").read_bytes()).hexdigest()
+    == original["gradient_worker_sha256"]
+)
+assert all(
+    hashlib.sha256((F / "code" / n).read_bytes()).hexdigest() == h
+    for n, h in original["accepted_module_sha256"].items()
+)
+assert (
+    v["CPU_decision"]["actual_CPU_screen"] == "976828"
+    and v["CPU_decision"]["linearized_screen_passed"] is True
+)
+assert not (D / "GPU-prepared.json").exists() and not (D / "GPU-run-intent.json").exists()
+assert sum(len(s.encode()) for s in v["modules"].values()) < 2**20
+(D / "code").mkdir(mode=0o700)
+for name, source in v["modules"].items():
+    assert name.endswith(".py") and "/" not in name
+    compile(source, name, "exec")
+    (D / "code" / name).write_text(source)
+for name in ("gpu_worker.py", "gpu_driver.py"):
+    source = v[name]
+    compile(source, name, "exec")
+    (D / name).write_text(source)
+out = {
+    "status": "actual_new_cached_attention_real_encoder_GPU_recovery_CPU_prepared",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "reference": reference,
+    "reference_stat": [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns],
+    "original_worker_sha256": original["worker_sha256"],
+    "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+    "worker_sha256": hashlib.sha256(v["gpu_worker.py"].encode()).hexdigest(),
+    "driver_sha256": hashlib.sha256(v["gpu_driver.py"].encode()).hexdigest(),
+    "modules": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["modules"].items()},
+    "source_binding": {
+        "original_full_source_git": original["source_git"],
+        "original_accepted_recovery_GPU": "974940",
+        "new_engine_source_git": v["source_git"],
+        "original_full_pixel_input_and_runtime_reused": True,
+        "protected_gold_confirmation_used": False,
+        "full_reference_origin_sha256": reference["sha256"],
+        "matched_deterministic_eval_with_grad_FP32_head": True,
+    },
+    "training_engineering_studies": 17,
+    "prediction_engineering_studies": 15,
+    "variants": ["reference", "linear"],
+    "maximum_GPU_jobs": 1,
+    "runtime_cache_and_checkpoints_share_original_12GiB_cap": True,
+    "maximum_updates_each": 6,
+    "new_pixels_weights_runtime_transfer": False,
+    "actual_new_GPU_acceptance_or_accuracy": False,
+}
+(D / "GPU-prepared.json").write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
+assert (
+    sum(
+        p.stat().st_size
+        for p in D.rglob("*")
+        if p.is_file()
+        and not p.is_symlink()
+        and not any(t in p.relative_to(D).parts for t in ("reference", "engineering"))
+    )
+    < 8 * 2**20
+)
+print(json.dumps(out), flush=True)

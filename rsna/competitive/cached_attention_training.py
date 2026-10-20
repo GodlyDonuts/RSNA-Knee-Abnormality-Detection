@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 from rsna.competitive.cached_attention_control import linear_readout
 from rsna.competitive.licensed_importance import ProposalCases
@@ -75,6 +76,22 @@ class CachedChangeReadout:
     clsb: torch.Tensor
     cached_attention_variant: str
 
+    def encode(self, images):
+        # The old checkpoint mixin intentionally delegates in eval mode. Our new
+        # eval-with-grad policy must still checkpoint the backbone for training.
+        if not torch.is_grad_enabled():
+            return getattr(super(), "encode")(images)
+        if self.training or images.ndim != 5 or min(images.shape[:2]) < 1:
+            raise ValueError("Deterministic nonempty encoder input with gradients required")
+        if any(m.training for m in self.modules()):
+            raise ValueError("Every nested stochastic/BN module must use the matched eval policy")
+        chunks = images.flatten(0, 1).split(8)
+        encoded = [
+            checkpoint(self.backbone, chunk, use_reentrant=False, preserve_rng_state=True)
+            for chunk in chunks
+        ]
+        return torch.cat(encoded).reshape(images.shape[0], images.shape[1], -1)
+
     def forward(self, images, log_proposal=None, reference=None):
         if log_proposal is None:
             if reference is not None:
@@ -133,3 +150,29 @@ class CachedChangeReadout:
                 votes - v.gather(1, selected),
                 self.clsb,
             )
+
+
+def attach_readout(model, variant):
+    """Attach only to a fresh private parent instance, preserving parameter identity.
+
+    No original class/global/source is modified. Weight-only checkpoints retain
+    exactly the old complete tensor graph. Recipe binding must carry the mode.
+    """
+    if (
+        not isinstance(model, nn.Module)
+        or variant not in ("reference", "linear")
+        or isinstance(model, CachedChangeReadout)
+    ):
+        raise ValueError("One fresh original model and explicit matched variant required")
+    before = {n: (id(p), p.shape, p.dtype, p.requires_grad) for n, p in model.named_parameters()}
+    if not before or not all(p.requires_grad for p in model.parameters()):
+        raise ValueError("All original encoder and head parameters must remain trainable")
+    model.__class__ = type(
+        "CachedAttention" + type(model).__name__, (CachedChangeReadout, type(model)), {}
+    )
+    model.cached_attention_variant = variant
+    model.eval()
+    after = {n: (id(p), p.shape, p.dtype, p.requires_grad) for n, p in model.named_parameters()}
+    if before != after:
+        raise ValueError("Readout attachment changed original parameters")
+    return model

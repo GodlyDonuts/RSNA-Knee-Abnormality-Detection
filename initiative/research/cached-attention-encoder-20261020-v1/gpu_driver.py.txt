@@ -1,0 +1,131 @@
+"""One actual two-arm full/stop/resume acceptance, never production fitting."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import torch
+
+D = Path("/tmp/rsna-cached-attention-encoder-20261020-v1")
+stage = json.loads((D / "GPU-prepared.json").read_text())
+fund = json.loads((D / "funded.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["driver_sha256"]
+assert not (D / "GPU-run-intent.json").exists()
+(D / "GPU-run-intent.json").write_text(
+    json.dumps(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": stage["source_git"],
+            "variants": ["reference", "linear"],
+            "maximum_optimizer_updates_each": 6,
+            "clinical_or_submission_candidate": False,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+start = time.monotonic()
+processes = []
+for variant in ("reference", "linear"):
+    for phase in ("full", "stop1", "resume"):
+        stdout = D / (variant + "-" + phase + ".stdout.private.log")
+        stderr = D / (variant + "-" + phase + ".stderr.private.log")
+        with stdout.open("x") as o, stderr.open("x") as e:
+            child = subprocess.Popen(
+                [sys.executable, "-B", str(D / "gpu_worker.py"), phase, variant], stdout=o, stderr=e
+            )
+            while child.poll() is None:
+                work = D / "engineering"
+                paid = (
+                    sum(p.stat().st_size for p in work.rglob("*") if p.is_file())
+                    if work.exists()
+                    else 0
+                )
+                runtime = D / "runtime-cache"
+                if runtime.exists():
+                    paid += sum(p.stat().st_size for p in runtime.rglob("*") if p.is_file())
+                assert paid < fund["engineering_checkpoints_cap_bytes"]
+                assert (
+                    shutil.disk_usage("/tmp").free
+                    > (20 + 87 + 12 + 24 + 4) * 2**30
+                    + max(0, fund["engineering_checkpoints_cap_bytes"] - paid)
+                    + 128 * 2**20
+                    + 8 * 2**20
+                )
+                assert time.monotonic() - start < 28 * 60
+                time.sleep(5)
+            assert child.returncode == 0, (
+                "Actual encoder phase failed; retain original state, never restart or continue"
+            )
+        folder = D / "engineering" / variant / ("full" if phase == "full" else "resumed")
+        record = json.loads((folder / (phase + "-process.json")).read_text())
+        processes.append(record)
+
+    def equal(a, b):
+        if isinstance(a, torch.Tensor):
+            return torch.equal(a, b)
+        if isinstance(a, dict):
+            return a.keys() == b.keys() and all(equal(a[k], b[k]) for k in a)
+        if isinstance(a, (list, tuple)):
+            return (
+                type(a) is type(b) and len(a) == len(b) and all(equal(x, y) for x, y in zip(a, b))
+            )
+        return a == b
+
+    A = D / "engineering" / variant / "full"
+    B = D / "engineering" / variant / "resumed"
+    left = torch.load(A / "checkpoint.pt", map_location="cpu", weights_only=True)
+    right = torch.load(B / "checkpoint.pt", map_location="cpu", weights_only=True)
+    assert equal(left, right) and len(left["history"]) == 6
+    assert [h["studies"] for h in left["history"]] == [8, 8, 1, 8, 8, 1]
+    assert all(h["anatomical_views"] == 2 * h["studies"] for h in left["history"])
+    assert left["binding"]["attention_reference_sha256"] == stage["reference"]["sha256"]
+    assert left["binding"]["recipe"]["variant"] == variant and left["completed"] == 6
+    del left, right
+    for epoch in (1, 2):
+        left = torch.load(
+            A / "epoch-checkpoints" / ("epoch-" + str(epoch).zfill(3) + ".pt"),
+            map_location="cpu",
+            weights_only=True,
+        )
+        right = torch.load(
+            B / "epoch-checkpoints" / ("epoch-" + str(epoch).zfill(3) + ".pt"),
+            map_location="cpu",
+            weights_only=True,
+        )
+        assert equal(left, right)
+    del left, right
+    assert (A / "engineering-predictions.private.csv").read_bytes() == (
+        B / "engineering-predictions.private.csv"
+    ).read_bytes()
+    record = {
+        "variant": variant,
+        "complete_model_AdamW_LR_cursors_all_RNG_scaler_history_exact_resume": True,
+        "all_epoch_snapshots_equal": True,
+        "exact_15x12_two_view_full94_prediction_CSV_bytes_equal": True,
+    }
+    (D / (variant + "-accepted.json")).write_text(json.dumps(record, sort_keys=True) + "\n")
+out = {
+    "status": "actual_cached_attention_complete_encoder_two_arm_recovery_accepted",
+    "GPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": stage["source_git"],
+    "reference_cache_sha256": stage["reference"]["sha256"],
+    "training_engineering_studies": 17,
+    "disjoint_prediction_engineering_studies": 15,
+    "trainable_parameters": 73136096,
+    "variants": ["reference", "linear"],
+    "updates_each": 6,
+    "complete_state_and_snapshots_and_original_inference_exact_resume": True,
+    "processes": processes,
+    "elapsed_seconds": time.monotonic() - start,
+    "clinical_or_Kaggle_accuracy_claim": False,
+    "production_fitting_dispatched": False,
+}
+(D / "actual-GPU-terminal.json").write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,0 +1,254 @@
+# ruff: noqa: E402
+"""One fresh complete73M reference/linear full/stop/resume engineering process."""
+
+import ast
+import csv
+import hashlib
+import importlib.util
+import io
+import json
+import os
+import random
+import sys
+from pathlib import Path
+
+import numpy as np
+import torch
+
+D = Path("/tmp/rsna-cached-attention-encoder-20261020-v1")
+stage = json.loads((D / "GPU-prepared.json").read_text())
+assert os.uname().nodename == "evc48" and os.environ.get("SLURM_JOB_GPUS")
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["worker_sha256"]
+phase, variant = sys.argv[1:]
+assert phase in ("full", "stop1", "resume") and variant in ("reference", "linear")
+assert torch.cuda.device_count() == 1 and "H100" in torch.cuda.get_device_name(0)
+torch.cuda.set_device(0)
+assert torch.ones(8, device="cuda").sum().item() == 8
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+m = json.loads((R / "staged.json").read_text())
+source = (R / "worker.py").read_text()
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == stage["original_worker_sha256"]
+    == m["worker_sha256"]
+)
+tree = ast.parse(source)
+cut = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Assign)
+    and any(isinstance(t, ast.Name) and t.id == "output" for t in n.targets)
+)
+context = {
+    "__name__": "source_bound_original_full_population_bootstrap",
+    "__file__": str(R / "worker.py"),
+}
+oldargv = sys.argv
+sys.argv = [str(R / "worker.py"), "pointwise"]
+try:
+    exec(
+        compile(
+            ast.Module(body=tree.body[:cut], type_ignores=[]),
+            "original_prefix_no_optimizer_or_output",
+            "exec",
+        ),
+        context,
+    )
+finally:
+    sys.argv = oldargv
+torch.set_num_threads(1)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+torch.use_deterministic_algorithms(True)
+for name in (
+    "cached_attention_control.py",
+    "cached_attention_training.py",
+    "cached_attention_train.py",
+):
+    expected = stage["modules"][name]
+    p = D / "code" / name
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == expected
+    spec = importlib.util.spec_from_file_location("rsna.competitive." + name.removesuffix(".py"), p)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+from rsna.competitive.cached_attention_train import fit
+
+from rsna.competitive.cached_attention_training import (
+    Recipe,
+    ReferenceCases,
+    attach_readout,
+    sample,
+)
+from rsna.schema import TARGETS
+
+original = context["original"]
+full = context["data"]
+model = context["model"]
+device = context["device"]
+assert len(original) == 3887 and sum(p.numel() for p in model.parameters()) == 73136096
+ref = D / "reference/reference.private.npz"
+st = ref.stat()
+assert [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns] == stage["reference_stat"]
+proof = json.loads((D / "reference/verified.json").read_text())
+assert proof == stage["reference"]
+roster = np.linspace(0, 3886, 32, dtype=np.int64).tolist()
+train = roster[:17]
+evaluate = roster[17:]
+assert len(set(roster)) == 32 and set(train).isdisjoint(evaluate)
+with np.load(ref, allow_pickle=False) as z:
+    assert z["uids"].tolist() == original.uids
+    scores = torch.from_numpy(z["scores"][train].copy())
+    votes = torch.from_numpy(z["votes"][train].copy())
+st = ref.stat()
+assert [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns] == stage["reference_stat"]
+
+
+class Subset:
+    uids = [original.uids[i] for i in train]
+
+    def __len__(self):
+        return 17
+
+    def case(self, i, positions, mirror):
+        return original.case(train[i], positions, mirror)
+
+
+data = ReferenceCases(
+    Subset(),
+    torch.stack([full.proposal(i) for i in train]),
+    Subset.uids,
+    scores,
+    votes,
+    proof["sha256"],
+)
+attach_readout(model, variant)
+recipe = Recipe(epochs=2, variant=variant)
+random.seed(recipe.seed)
+np.random.seed(recipe.seed)
+torch.manual_seed(recipe.seed)
+torch.cuda.manual_seed_all(recipe.seed)
+digest = context["digest"]
+initial = digest(model.state_dict())
+assert initial == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+bn = {
+    n: t.detach().cpu().clone()
+    for n, t in model.state_dict().items()
+    if any(x in n for x in ("running_mean", "running_var", "num_batches_tracked"))
+}
+
+
+# Initial observations are source/input diagnostics, not clinical endpoints.
+def drift():
+    errors = []
+    score_max = vote_max = 0.0
+    with torch.inference_mode():
+        for i in range(4):
+            positions, first, logq = sample(data.uids[i], recipe, 0, data.proposal(i))
+            for mirror in (first, not first):
+                case = data.case(i, positions, mirror)
+                images = case["images"].to(device)[None]
+                reference = {n: t.to(device)[None] for n, t in case["attention_reference"].items()}
+                with torch.autocast("cuda", dtype=torch.float16):
+                    output = model(images, logq.to(device)[None], reference).float()
+                    encoded = model.encode(images)
+                with torch.autocast("cuda", enabled=False):
+                    h = model.norm(encoded.float())
+                    s = model.att(h)
+                    v = torch.einsum("bkd,td->bkt", h, model.clsW)
+                idx = reference["indices"][..., None].expand_as(s)
+                score_max = max(
+                    score_max, float((s - reference["scores"].gather(1, idx)).abs().max())
+                )
+                vote_max = max(vote_max, float((v - reference["votes"].gather(1, idx)).abs().max()))
+                errors.append(
+                    (output.sigmoid()[0] - case["parent_logits"].to(device).sigmoid())
+                    .detach()
+                    .cpu()
+                )
+    e = torch.stack(errors)
+    return {
+        "studies": 4,
+        "views": 8,
+        "max_probability_gap_to_frozen_full_teacher": float(e.abs().max()),
+        "RMS_probability_gap_to_frozen_full_teacher": float(e.square().mean().sqrt()),
+        "max_selected_score_change": score_max,
+        "max_selected_vote_change": vote_max,
+        "actual_encoder_forward": True,
+        "clinical_accuracy_claim": False,
+    }
+
+
+initial_drift = drift() if phase == "full" else None
+if phase == "full" and variant == "linear":
+    assert initial_drift["max_probability_gap_to_frozen_full_teacher"] <= 0.003, (
+        "Actual cache/precision/input reference is not aligned"
+    )
+# Diagnostic forwards are deterministic; restore common initial RNGs explicitly.
+random.seed(recipe.seed)
+np.random.seed(recipe.seed)
+torch.manual_seed(recipe.seed)
+torch.cuda.manual_seed_all(recipe.seed)
+binding = {
+    "parent_checkpoint_sha256": stage["parent_checkpoint_sha256"],
+    "source_binding": stage["source_binding"],
+    "reference_origin": proof,
+    "diagnostic_only": True,
+    "clinical_accuracy_or_submission_candidate": False,
+    "matched_deterministic_mode": True,
+}
+out = D / "engineering" / variant / ("full" if phase == "full" else "resumed")
+result = fit(
+    model,
+    data,
+    out,
+    binding,
+    recipe,
+    device=device,
+    resume=phase == "resume",
+    stop_after=1 if phase == "stop1" else None,
+)
+assert result["completed"] == (1 if phase == "stop1" else 6)
+assert all(torch.equal(t, model.state_dict()[n].detach().cpu()) for n, t in bn.items())
+record = {
+    "phase": phase,
+    "variant": variant,
+    "source_git": stage["source_git"],
+    "initial_state_sha256": initial,
+    "completed": result["completed"],
+    "trainable_parameters": 73136096,
+    "actual_GPU": torch.cuda.get_device_name(0),
+    "actual_visible_GPU_count": 1,
+    "BN_unchanged": True,
+    "initial_drift": initial_drift,
+    "final_state_digest": digest(model.state_dict()),
+    "peak_allocated_bytes": torch.cuda.max_memory_allocated(0),
+    "clinical_or_Kaggle_claim": False,
+}
+if phase != "stop1":
+    model.eval()
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(["StudyInstanceUID", *TARGETS])
+    with torch.inference_mode():
+        for index in evaluate:
+            predictions = []
+            for mirror in (False, True):
+                case = original.case(index, list(range(94)), mirror)
+                with torch.autocast("cuda", dtype=torch.float16):
+                    z = model(case["images"].to(device)[None]).float()
+                assert z.shape == (1, 12) and torch.isfinite(z).all()
+                predictions.append(z.sigmoid())
+            values = torch.stack(predictions).mean(0)[0].cpu().numpy()
+            writer.writerow([original.uids[index], *map(str, values)])
+    raw = buffer.getvalue().encode()
+    (out / "engineering-predictions.private.csv").write_bytes(raw)
+    record.update(
+        prediction_sha256=hashlib.sha256(raw).hexdigest(),
+        prediction_studies=15,
+        postfit_drift=drift(),
+    )
+(out / (phase + "-process.json")).write_text(json.dumps(record, sort_keys=True, indent=2) + "\n")
+print(json.dumps(record), flush=True)
