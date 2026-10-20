@@ -1,12 +1,18 @@
 # Original C100 pilot terminal observer
 
-**Started once at18:11:18 UTC**, PID **15130**, frozen observer source
-`2488a4086fc854af733c7accf84377ff69f9f6fc`. Actual18:11:25 readback
-confirms its exclusive intent, empty stderr, zero GPU allocations and original
-pilot **981620 PENDING**. [Actual start](actual-started.json); [live proof](actual-live.json).
-This finite read-only owner observes only that original job, source `068a14a7`,
-binding `e11c7c7f…`, on **evc27**. It neither relocates the pilot nor
-admits/promotes a full C100 run. No terminal result exists yet.
+**Completed October20:** original pilot981620 finished0:0 in4:40. Its24-update
+canonical history is finite and complete full/stop/resume state/prediction
+identity passed. [Exact acceptance](actual-accepted.json),
+[terminal and reconciliation](actual-terminal.json).
+
+Original observer15130 stopped after CPU985908 failed its scientific-decision
+hash comparison. The pilot binds the original decision bytes, then writes the
+parsed object with a sorted serializer. Those exact representations have
+different hashes. CPU985982 used `reconcile_terminal.py` to reproduce and check
+both original serializations while retaining every numerical/schema check;
+no original remote file, decision or training run changed. The failed reader
+and original observer result remain preserved. Do not restart the observer.
+This engineering result is not clinical accuracy or full-run promotion.
 
 The original launch used the following interface; **do not run it again**:
 

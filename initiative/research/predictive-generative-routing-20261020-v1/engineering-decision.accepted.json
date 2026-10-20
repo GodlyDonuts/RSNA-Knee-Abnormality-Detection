@@ -1,0 +1,128 @@
+{
+  "accepted_at_UTC": "2026-10-20T22:25:22.869990+00:00",
+  "actual_optimizer_updates": 600,
+  "agent_reasoning": "Original C100 981620 completed 0:0 and exact full/stop/resume model, optimizer, RNG and prediction equality passed. All 24 updates were finite. Final-six training exam loss 0.641471 is close to original C 0.639315; maximum exam loss 0.822187 and BF 0.968022 did not trigger the predeclared relative warnings. All 24 updates clipped, and only LR 4.938e-6 was reached, so this does not justify assuming peak-LR stability or an accuracy gain. Admit only the separately matched 200-update C100 versus G100 routing pilot through peak LR146. It tests the measured diagnosis-specific gradient conflict while preserving proper density gradients, identical forward values and full source/initialization/order. Four engineering predictions are only consistency checks. No full G100 or competition model is promoted. Original observer serialization failure was reconciled without changing the original decision or training.",
+  "automatic_full_training_promotion": false,
+  "automatic_recipe_retuning": false,
+  "code_sha256": {
+    "driver.py": "b3c2e8c539ca89789f0cc1f38e535e2dc91fc3e608a340ea3f033c6fcc6c3eeb",
+    "rsna/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rsna/competitive/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rsna/competitive/predictive/__init__.py": "51104641623e3b4bd4eb7263d011dd7a048542d706f6d1b96741e876b8bfd9b9",
+    "rsna/competitive/predictive/cache.py": "f82c478e0d4632ed31b491e4915066a47adf8275a7c2ba6fb42b9ca99871f944",
+    "rsna/competitive/predictive/cases.py": "c19e3d45b6573dbd9c631f67e2794493e9e9f4a06f6da49df93f16edb6d93cf8",
+    "rsna/competitive/predictive/context_cache.py": "bf9d59b26bd8a28f4533648d5b10d6c77bd5caf8d2f69de0b77968ce4d4ea3b5",
+    "rsna/competitive/predictive/density.py": "b5f56767dd277af65864983f3a5cd58d89d4cc8153990e9139e6f81b870e64a0",
+    "rsna/competitive/predictive/dicom.py": "0980f1958bd9f5c929bbd85fb67cd9e148b6506608af76f0a5f5e52d518fdb94",
+    "rsna/competitive/predictive/generative_routing.py": "7a88c915209f2e51a293a046402f58d03a588268281d627ea3ac122d8c3add86",
+    "rsna/competitive/predictive/infer.py": "1f547a54778cd2e57caaaf0513362e21a85b8119f9f1b188985a17ee9fd162f8",
+    "rsna/competitive/predictive/inputs.py": "e773ce9f2e2e2f775cf991365867b6ae4340d55b3097541c37080a938a62c459",
+    "rsna/competitive/predictive/model.py": "38c9fc7c2e7e79ea90972f1b14c6e47491aba2f1641496277534e7cd20856f08",
+    "rsna/competitive/predictive/source_resume.py": "51a42fd5d5b178d36db84c6d94344ad584545459fef83a7d1de3bf1f24e9ef45",
+    "rsna/competitive/predictive/supports.py": "74cc5b71a9372b0a7970ac3507484fe96d6d1d4e4e710fc8177121f72a95597b",
+    "rsna/competitive/predictive/train.py": "066dc5eda8ca8a793548e6fde62c2c6a06480f052d9034aa3fe2e08a5004dc58",
+    "worker.py": "87b8e1f0d0ea4894ff1e85b99ec3659a01619bc5695f55c14c32cc570152011f",
+    "worker_builder.py": "92a7eac3883f4c2c713e3a356ae334f890872cfb2e4e8e085a13195c512b9956"
+  },
+  "control_sha256": {
+    "coordinate.py": "55f291f883cc4170870c0d35e68b29e0ef5c11af29ac5eddb4cc29e1f6159c0c",
+    "driver.py": "b3c2e8c539ca89789f0cc1f38e535e2dc91fc3e608a340ea3f033c6fcc6c3eeb",
+    "prepare.py": "e03f6bdfac3dbbe19e36439979ea4bbf35113e9df8fdc994ed65b2626fce33d5",
+    "worker_builder.py": "92a7eac3883f4c2c713e3a356ae334f890872cfb2e4e8e085a13195c512b9956"
+  },
+  "engineering_predictions_used_for_selection": false,
+  "finish_by_UTC": "2026-10-21T17:15:00+00:00",
+  "maximum_GPU_seconds": 5400,
+  "original_numerical_source_git": "39e315c65546aa5205518713bc27349ec63e7538",
+  "phases": [
+    [
+      "C100",
+      "full"
+    ],
+    [
+      "G100",
+      "full"
+    ],
+    [
+      "G100",
+      "stop1"
+    ],
+    [
+      "G100",
+      "resume"
+    ]
+  ],
+  "pilot_acceptance_sha256": "db072e6b1e93af3042b5dda62bd7d1a390e258c0e41fc091c76dcfdb68c681e0",
+  "pilot_scheduler": {
+    "GPU_job": "981620",
+    "accounting_sha256": "f71f7c87ec12f2798c0a02819fd437dd6407d98b5b5fc6b7101738e1e62d11ca",
+    "exit_code": "0:0",
+    "live_queue_empty": true,
+    "node": "evc27",
+    "queue_sha256": "8a2621d23ec6a8cccd08e72784a5900ff5a66ce7f20ebb914db31f7928b1a727",
+    "state": "COMPLETED"
+  },
+  "pilot_warnings_reviewed": {
+    "clipped_update_count": 24,
+    "density_minus_constant_by_update": [
+      0.000654927653195525,
+      0.0007620595515986928,
+      0.0006573118389865407,
+      0.0007555626453181752,
+      0.0007107921065112599,
+      0.0006452195466777333,
+      0.0006692774714252003,
+      0.000723107916237975,
+      0.0009141557039042958,
+      0.00022712276590075575,
+      0.0006822787345668324,
+      0.0006833665193339833,
+      0.00024082438361849867,
+      0.0015578858674785145,
+      0.0004406415046473988,
+      0.0011502348006984242,
+      0.0002474255980273732,
+      0.0015282325567027577,
+      0.00023652539861407362,
+      0.0015423737586757191,
+      0.000453143578889037,
+      0.0011024765790721425,
+      0.00043571667087283217,
+      0.0011309228957911976
+    ],
+    "last_six_exam_mean": 0.641471154987812,
+    "last_six_exam_mean_over_twice_original": false,
+    "maximum_BF_over_ten_times_original": false,
+    "maximum_absolute_BF": 0.9680217504501343,
+    "maximum_exam_loss": 0.8221874535083771,
+    "maximum_exam_over_twice_original": false,
+    "original_C_last_six_exam_mean": 0.6393147173027197,
+    "original_C_maximum_absolute_BF": 1.6598255634307861,
+    "original_C_maximum_exam_loss": 0.8219250440597534,
+    "warning_is_not_automatic_clinical_rejection_or_promotion": true,
+    "weighted_fixed_Gaussian_constant": 91.89385332046727
+  },
+  "primary_B_C_C0_C100_unchanged": true,
+  "primary_Kaggle_reserve_seconds": 3360,
+  "recipe": {
+    "arm": "C",
+    "clip": 1.0,
+    "density_weight": 100.0,
+    "effective_batch": 8,
+    "encoder_lr": 3e-05,
+    "end_lr_fraction": 0.1,
+    "epochs": 100,
+    "head_lr": 3e-05,
+    "head_only_updates": 3,
+    "schedule_updates": 2916,
+    "seed": 20261020,
+    "warmup_fraction": 0.05,
+    "weight_decay": 0.02
+  },
+  "roles": [
+    "C100",
+    "G100"
+  ],
+  "source_git": "473a9a94d90890e8a97e7ed46d157dcf417ad173",
+  "status": "accepted_matched_generative_routing_engineering"
+}

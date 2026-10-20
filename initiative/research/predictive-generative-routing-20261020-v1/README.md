@@ -1,8 +1,19 @@
 # Conditional density learning without exam gradients through the evidence branch
 
-Local implementation only. No new GPU run, production training, serving candidate
-or accuracy result is admitted. Original B/C/C0 and C100 sources/jobs stay unchanged.
-Actual C100 pilot acceptance and a separately funded matched pilot are prerequisites.
+**Actually submitted October20 22:25UTC:** CPU986010 passed admission; matched
+GPU986011 was submitted once from source473a9a94 and is pending at22:26UTC.
+The original C10024-update pilot completed0:0 with exact recovery equality.
+Root reviewed its actual warnings and accepted only this bounded600-update
+comparison. See [decision](engineering-decision.accepted.json),
+[admission](actual-prepared.json), [dispatch](actual-submitted.json) and
+[live state](actual-current-state.json). Original B/C/C0, C100 and contrast
+sources/jobs remain unchanged. No full G100 training or accuracy result exists.
+
+Private control/output: `/tmp/rsna-predictive-generative-routing-20261020-v1`.
+The original journal is `artifacts/predictive-generative-routing-20261020-v1`;
+do not repeat the admission or submission. On actual allocation inspect the
+original run-start and terminal receipt; observation loss never authorizes a
+restart. No observer was separately dispatched.
 
 CPU 982819 measured the original C24 checkpoint on two fixed fitting cases. The
 diagnosis-specific density component's gradient on the shift head, after lambda = 0.1,
@@ -93,8 +104,7 @@ existing descriptor-normalizer1MiB liability. Full C100 likewise reserves the
 independent G1006GiB+4MiB scope, without speculative paid-byte credit, so optional
 execution order cannot spend the other branch’s storage. These are conservative
 future obligations, not job authority. The two prepared optional routes passed123
-focused local tests and independent review. **No matched GPU job or full G100 fit is staged,
-submitted or accepted.** The current C100 pilot and primary B/C/C0 jobs are
+focused local tests and independent review. **The matched GPU job is submitted; no full G100 fit is admitted.** The current C100 pilot and primary B/C/C0 jobs are
 unchanged. There is no automatic promotion or claimed clinical improvement.
 
 The prospective G100 admission also retains the separately admitted contrast

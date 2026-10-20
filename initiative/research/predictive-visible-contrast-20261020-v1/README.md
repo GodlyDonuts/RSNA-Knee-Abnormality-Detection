@@ -243,7 +243,9 @@ are added. No automatic full training or competition promotion follows.
 
 Actual CPU **984782 COMPLETED0:0** admitted the original matched inputs and
 frozen learning capsule. GPU **984784** was submitted once at21:22:59UTC and
-remained **PENDING Priority** at21:23UTC. No optimizer update is observed yet.
+was confirmed **RUNNING on evc27 at22:30UTC**. The original admission and
+submission remain unchanged; inspect the new [progress receipt](actual-learning-progress.json)
+for the observed phase state. No accuracy result or full-data promotion exists.
 [CPU admission](actual-learning-prepare.json), [dispatch](actual-learning-submit.json),
 and [live state](actual-learning-state.json) bind source
 `a9670168fda9ffe5709216e70216f368ac438553`. Ten scoped worker/transfer/admission

@@ -1,8 +1,9 @@
 # Separate full-cohort C100 objective experiment
 
 Prepared October 20, 2026. **No full C100 admission, GPU dispatch, checkpoint or
-accuracy result exists.** Original pilot981620 is still pending; the actual
-pilot result must be reviewed before this route can execute. The primary
+accuracy result exists.** Original pilot981620 completed0:0 and its exact
+acceptance is collected. Root admitted the separate matched G100 engineering
+pilot; a full-C100 decision is still absent. The primary
 B/C/C0 owners remain unchanged.
 
 ## Why this experiment
