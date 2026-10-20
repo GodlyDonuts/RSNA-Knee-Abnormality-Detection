@@ -66,7 +66,7 @@ Actual CPU975724 admitted the isolated selected reader against the complete mani
 
 ## Preservation and next actions
 
-Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21c2aa8ebb013bac1d29:31objects/134789bytes independently downloaded/size/SHA verified via974893. Original11272518 milestone HF75c24179d9865e1e52fc656f6dd47465c916e03d:19objects/71961bytes. Never repeat these or earlier verified mirrors. New normal-terminal/renderer/runtime64 receipts still need their distinct later small milestone.
+Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21c2aa8ebb013bac1d29:31objects/134789bytes independently downloaded/size/SHA verified via974893. Original11272518 milestone HF75c24179d9865e1e52fc656f6dd47465c916e03d:19objects/71961bytes. Never repeat these or earlier verified mirrors. Distinct source **bafd73ec** and91 selected small source/aggregate objects (259553bytes) are now privately mirrored and independently re-downloaded/size/SHA verified at **HFcd200afd06324acce85fa8c3961c40cbdc24232d**, CPU975743, under the canonical shared lock. This includes E1 actual0.948, E2 preservation, accepted E3 draft reconciliation, cached48 dispatch/progress and full manifest/selected-reader admission; no clinical records, private signatures or weights. Never repeat this mirror.
 
 1. Follow actual E3 version139719974 under owner25232 and preserve the final checkpoint once; no further training push.
 2. E1 actual0.948 is negative evidence; finish the predeclared final E3 comparison through existing evaluation owner21960.
