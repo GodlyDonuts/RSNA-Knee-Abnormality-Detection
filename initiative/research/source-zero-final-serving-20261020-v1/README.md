@@ -32,3 +32,8 @@ follow the actual hidden outcome. It cannot retrain or revive any fitting owner.
 No controller may be duplicated. Preparation tests use synthetic records; actual
 final model qualification remains mandatory. Fixed-final-only evaluation avoids
 selecting a checkpoint against the leaderboard.
+
+Actual CPU976721 staged these account sources once from93e19967, no GPU/entry.
+Finite owner33801 is live under the same source, max30h/two later serving sessions/
+one code entry, and is currently waiting without compilation intent. Do not
+restart this owner. The full fitting owner32102 remains separate and healthy.

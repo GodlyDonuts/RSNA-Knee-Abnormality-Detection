@@ -151,3 +151,11 @@ The account adapter retains canonical claim/ledger, exact version/source/runtime
 free budget, two-lane capacity, actual both-T4 qualification, public CSV checks
 and fresh competition allowance. Maximum future entries:one fixed-final model.
 This preparation is not actual source-zero T4 qualification or a submitted model.
+
+
+Actual account-control CPU976721 staged the new sources once on evc33 from
+93e19967. Sole finite evaluation owner **33801** is alive, waiting without any
+compilation intent; max30h/two serving GPU sessions/one final-only code entry.
+Never restart it. Original fitting32102 and H100 preservation27713 stay separate.
+All48 scoped compiler/provenance/account regression checks passed. This does not
+establish actual source-zero GPU qualification or clinical improvement.

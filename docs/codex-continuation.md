@@ -151,3 +151,42 @@ Updated October20,2026,04:30UTC. Read [current state](current-state.md) and orig
 - Current-state page rewritten to remove obsolete queued/not-dispatched sections;
   original source/receipt/historical snapshots remain inGit history. This is
   provenance repair, not anaccuracyresult. No newgain/goalcompletionclaimed.
+
+## October20 05:19UTC — final cross-teacher outcome and next final-model evaluation owner
+
+- Original final **57422143 COMPLETE/scored0.949**, no error. Original epoch1
+ 57418131 scored0.948. This ties the older0.949 solo adaptation and does not
+ establish cross-teacher benefit. Existing21960 completed both outcomes and
+ exited normally; never restart or submit either exact version again.
+- Source-zero full kernel139742882v1 remains actuallyRUNNING under32102; no
+ optimizer record has yet been observed via the official log endpoint. Metadata
+ read976695 proved exact version1, private/offline/source binding andRUNNING,
+ with no usable numeric sessionID. Do not call logHTTP404 training failure or
+ infer terminal state. Original H100975297 stillRUNNINGevc48; latest bounded
+ scalar read976652 showed757/1458 pointwise updates, finite loss0.5570638 and
+ gradient2.2708426; two views/eight studies.27713 preserves remaining epochs.
+- New final-only serving sources and account adapter at
+ `initiative/research/source-zero-final-serving-20261020-v1`, source93e19967.
+ Actual CPU976721 staged the canonical account controls once on evc33 under
+ `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1/serving-account-control-v1`.
+ No GPU/API/entry mutation beyond private CPU control staging. Original workflow,
+ components/capacity/outputCSV pinned; policy4ef0e5e6, program e0559530. No new
+ raw pixels/models/teacher arrays transferred.
+- Sole finite evaluation owner **33801**, source93e19967, followerSHA
+ 6eb2284fc18564dc45cb9da4bc13c1d2da9eeb09c8460de234a8a6c35d6c93a7,
+ max30h, two serving GPU sessions andONE fixed-final code entry. It is actually
+ alive and waiting for original fitting/private preservation; never restart.
+ No compilation intent created while final source-zero model is absent.
+- The model must finish all1458updates and be independently private6object
+ download/size/SHA verified; owner33's publication pointer must be recorded
+ before CPU compilation. Original full94 two-view inference math unchanged.
+ Actual bothT4/32MRI qualification must then pass before public CSV and one
+ canonical submission with fresh freeGPU budget/capacity/live account allowance.
+ E3 only, correct64hex Docker,9hourhidden limit, no paidcredits/publicCSVupload.
+ No source-zero qualification/score exists yet.48scoped provenance/compiler/
+ account regressionchecks passed; engineering evidence, not accuracy.
+- Selected new source and actual receipts sincea619666c are prepared for a
+ DISTINCT private milestone in `hf-source-zero-full-final-route-20261020-v1`.
+ It reuses the admitted2MiB source-zero control cap on evc48, retains old
+ 87+12+24GiB and new4GiB model liabilities plus20GiB/5000files. Until an actual
+ verified receipt exists, do not call this mirror complete or repeat oldb50caa1a.
