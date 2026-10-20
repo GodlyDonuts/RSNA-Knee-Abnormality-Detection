@@ -1,0 +1,158 @@
+# ruff: noqa: E402
+"""Admit one original raw fitting case and MRI-parent encoder; no GPU yet."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+import pydicom
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-lossless-cache-pilot-20261020-v1")
+assert not D.exists()
+# New bounded diagnostic funding, separate from production models. No deletion credit.
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+paid = sum(
+    p.stat().st_size
+    for p in B.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+)
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 8 + 12) * 2**30 + max(0, 8 * 2**20 - paid) + (166 + 64 + 4) * 2**20
+)
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+files = [p for p in T.rglob("*") if p.is_file()]
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - sum(p.stat().st_size for p in files)
+) + 192 * 2**10
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + max(0, 256 - len(files)) + 24
+prior = Path("/tmp/rsna-predictive-raw-input-pilot-20261020-v1")
+assert json.loads((prior / "actual.json").read_text())["CPU_job"] == "977456"
+P = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+location = json.loads((P / "HF-raw-input-bridge-v1/RAM-location.private.json").read_text())
+ram = Path(location["path"])
+assert ram.resolve().is_relative_to(Path("/dev/shm"))
+selection = json.loads((ram / "selection.private.json").read_text())
+assert selection["source_revision"] == "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+uid, rows = selection["study_uid"], selection["source_files"]
+assert len(rows) == 67 and selection["source_bytes"] == 25131360
+assert hashlib.sha256(uid.encode()).hexdigest() == selection["original8_uid_sha256"]
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "raw_cache_cap_bytes": 64 * 2**20,
+            "original_retained_diagnostic12GiB_and_case128MiB_still_reserved": True,
+            "controls_cap_bytes": 4 * 2**20,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+for n, text in v["files"].items():
+    p = D / "code" / n
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(text.encode()).hexdigest() == v["sha256"][n]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import inputs as m
+from rsna.competitive.predictive.cases import RawGroup, assemble
+
+s = v["original_raw_decoder"]
+assert hashlib.sha256(s.encode()).hexdigest() == v["original_raw_decoder_sha256"]
+assert s.count("groups = {}") == s.count("roster = 0") == 1
+decoder = s[s.index("groups = {}") : s.index("roster = 0")]
+namespace = {**globals(), "np": np, "pydicom": pydicom, "m": m}
+exec(compile(decoder, "same_original_fitting_raw_decoder", "exec"), namespace)
+groups = namespace["groups"]
+all_items = sorted(
+    (x for values in groups.values() for x in values), key=lambda x: (x[0], x[1], x[2])
+)
+order = {}
+for acquisition in sorted({x[0] for x in all_items}):
+    for i, x in enumerate(y for y in all_items if y[0] == acquisition):
+        order[(x[0], x[1], x[2], x[5])] = i
+from rsna.competitive.predictive.cache import SourceGroup, load, normalized, write
+
+sources = []
+for items in groups.values():
+    items.sort(key=lambda x: (x[0], x[1], x[2]))
+    sources.append(
+        SourceGroup(
+            torch.stack([x[3] for x in items]),
+            torch.tensor([x[6] for x in items]),
+            torch.tensor([x[7] for x in items], dtype=torch.bool),
+            torch.tensor([x[8] == "MONOCHROME1" for x in items]),
+            torch.tensor([x[5] for x in items]),
+            torch.tensor([x[0] for x in items]),
+            torch.tensor([order[(x[0], x[1], x[2], x[5])] for x in items]),
+        )
+    )
+original = [RawGroup(normalized(g), g.aliases, g.acquisition, g.ordinal) for g in sources]
+provenance = {
+    "original_source_revision": selection["source_revision"],
+    "source_file_table_sha256": hashlib.sha256(
+        json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest(),
+    "original_fitting_case_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+    "source_DICOM_bytes": 25131360,
+    "source_DICOMs": 67,
+}
+import time
+
+before = torch.get_rng_state().clone()
+start = time.monotonic()
+proof = write(D / "cache.private.npz", sources, provenance, cap_bytes=64 * 2**20)
+seconds = time.monotonic() - start
+restored, original_provenance = load(D / "cache.private.npz", proof)
+assert original_provenance == provenance
+assert all(torch.equal(a.frames, b.frames) for a, b in zip(original, restored))
+left = assemble(original, side=320, context_cap=8, classes=12)
+right = assemble(restored, side=320, context_cap=8, classes=12)
+for a, b in zip(left, right):
+    for key in ("images", "targets", "observed", "token_metadata", "region_metadata"):
+        assert torch.equal(a[key], b[key])
+    for key in ("indptr", "regions", "log_prior"):
+        assert torch.equal(getattr(a["supports"], key), getattr(b["supports"], key))
+assert torch.equal(before, torch.get_rng_state())
+(D / "cache-proof.private.json").write_text(json.dumps(proof) + "\n")
+out = {
+    "status": "actual_original_raw_MRI_lossless_cache_and_cached_descriptors_parity_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "source_DICOMs": 67,
+    "source_bytes": 25131360,
+    "raw_groups": len(sources),
+    "unique_descriptor_regions": proof["regions"],
+    "cache_bytes": proof["bytes"],
+    "cache_sha256": proof["sha256"],
+    "uncompressed_array_bytes": proof["uncompressed_array_bytes"],
+    "cache_write_and_independent_SHA_seconds": seconds,
+    "all_metadata_scaled_source_pixels_bit_equal": True,
+    "both_complete_contexts_targets_masks_metadata_supports_priors_bit_equal": True,
+    "complete_descriptor_cache_no_recomputation_in_loader": True,
+    "global_Torch_RNG_unchanged": True,
+    "images_UIDs_labels_or_private_cache_exported": False,
+    "new_source_downloads": 0,
+    "model_optimizer_GPU_or_accuracy": False,
+    "single_small_case_not_full_cohort_admission": True,
+}
+(D / "actual.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)
