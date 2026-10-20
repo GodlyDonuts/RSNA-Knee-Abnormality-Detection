@@ -1,0 +1,120 @@
+"""Observe or accept exact remote E3 after an uncertain SaveKernel; never re-push."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+phase = v["phase"]
+assert phase in ("observe", "accept")
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
+source = (D / "source.private.py").read_text()
+sha = hashlib.sha256(source.encode()).hexdigest()
+assert sha == "c870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410"
+assert json.loads((D / "compiled.json").read_text())["source_sha256"] == sha
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+owner = json.loads((claim / "owner.json").read_text())
+assert owner == {
+    "CPU_job": "975430",
+    "epoch": 3,
+    "kind": "complete_S6_changed_role_full_fit",
+    "phase": "push",
+}
+assert "975430|FAILED|" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "975430", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+f = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(f.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+s = importlib.util.spec_from_file_location("canonical_saved_epoch_workflow", f)
+w = importlib.util.module_from_spec(s)
+s.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") is True and who.get("username") == "godlydonuts"
+key = "licensed-importance-full-fit:complete-S6-cross:" + sha
+path = Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3")
+db = sqlite3.connect("file:" + str(path) + "?mode=ro", uri=True)
+row = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+db.close()
+assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel_id" not in row
+assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
+slug = row["slug"]
+assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
+k = r.kernel("GetKernel", slug, 1)
+m = k["metadata"]
+req = row["request"]
+assert k["blob"]["source"] == source and type(m.get("id")) is int and m["id"] > 0
+for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerImage"):
+    assert m.get(n, False if n == "enableInternet" else None) == req[n]
+for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+    assert sorted(m.get(n, [])) == sorted(req[n])
+status = r.kernel("GetKernelSessionStatus", slug, 1)["status"]
+observed = {
+    "status": "actual_exact_E3_remote_source_runtime_inputs_version_observed",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "reconciliation_source_git": v["source_git"],
+    "kernel_id": m["id"],
+    "slug": slug,
+    "version": 1,
+    "source_sha256": sha,
+    "epoch": 3,
+    "actual_Kaggle_status": status,
+    "source_runtime_and_all_inputs_match_original_intent": True,
+    "new_SaveKernel_or_submission_requests": 0,
+    "original_uncertain_CPU": "975430",
+}
+if phase == "observe":
+    print(json.dumps(observed), flush=True)
+    raise SystemExit(0)
+assert (
+    v["prior_observation"]["kernel_id"] == m["id"]
+    and v["prior_observation"]["source_sha256"] == sha
+)
+w.new_json(D / "push-reconciliation-intent.json", observed)
+with w.ledger(path, "godlydonuts") as db:
+    w.verify_account(db, r)
+    current = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+    assert current == row
+    row.update(
+        state="complete_teacher_cross_full_fit_pushed",
+        kernel_id=m["id"],
+        SaveKernel_response_uncertain_but_exact_remote_version_reconciled=observed,
+    )
+    db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key))
+    db.commit()
+    out = {
+        "status": row["state"],
+        "kernel_id": m["id"],
+        "slug": slug,
+        "version": 1,
+        "source_sha256": sha,
+        "epoch": 3,
+        "completed_target": 1458,
+        "fixed_final_updates": 1458,
+        "fitting_studies": 3887,
+        "competition_entry": False,
+        "actual_Kaggle_status": status,
+        "reconciled_original_SaveKernel_without_repeating": True,
+        "new_GPU_or_submission_mutations": 0,
+        "reconciliation_source_git": v["source_git"],
+    }
+    w.new_json(D / "pushed.json", out)
+    w.new_json(D / "push-reconciled.json", observed)
+assert json.loads((claim / "owner.json").read_text()) == owner
+(claim / "owner.json").unlink()
+claim.rmdir()
+print(json.dumps(out), flush=True)
