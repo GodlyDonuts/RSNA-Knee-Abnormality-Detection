@@ -50,6 +50,10 @@ def entries(monkeypatch):
             model_schema_sha256=c.SCHEMAS[arm],
             publisher_sha256=c.PUBLISHER,
             original_publisher_core_sha256=c.PUBLISHER_CORE,
+            original_numerical_source_git=c.ORIGINAL_SCIENCE,
+            alias_regression_receipt_sha256=c.ALIAS_REGRESSION,
+            accepted_renderer_sha256=[c.ORIGINAL_RENDERERS, c.CORRECTED_RENDERERS],
+            renderer_provenance_counts={"original": 500, "corrected": 3387},
             model_source="public_licensed_MRI_parent_and_unchanged_RSNA_fitting_only",
             additional_Stanford_or_KneeCoT_or_teacher_probabilities_used=False,
             optimizer_RNG_private_paths_labels_IDs_exported=False,
@@ -513,3 +517,27 @@ def test_exact_public_watchdog_counts_elapsed_startup_and_cannot_emit_prediction
     assert source.index("public_timer = start_public_watchdog") < source.index(
         'parent, resolution = namespace["load_model"]'
     )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("alias_regression_receipt_sha256", "f" * 64),
+        ("original_numerical_source_git", "f" * 40),
+        ("accepted_renderer_sha256", [c.CORRECTED_RENDERERS]),
+        ("renderer_provenance_counts", {"original": 500, "corrected": 3386}),
+        ("renderer_provenance_counts", {"original": True, "corrected": 3886}),
+        ("publisher_sha256", "6215f45748fdc4685565a94f31da7fc51f7ad0fa325192d004b362645bbf8d87"),
+    ],
+)
+def test_final_export_cannot_erase_alias_recovery_lineage(entries, field, value):
+    _, values = entries
+    entry = values[0]
+    rewrite_provenance(entry, lambda p: p.update({field: value}))
+    with pytest.raises(ValueError):
+        c.candidate(**entry)
+
+
+def test_exact_alias_successor_publisher_is_pinned():
+    publisher = Path("initiative/research/predictive-full-fitting-20261020-v2/publish_epoch.py.txt")
+    assert c.digest(publisher.read_bytes()) == c.PUBLISHER

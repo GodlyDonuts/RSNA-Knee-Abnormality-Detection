@@ -1,0 +1,465 @@
+"""Frozen bounded owner operations; no acquisition or numerical recipe changes."""
+
+import hashlib
+import json
+import math
+import os
+import re
+import runpy
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path("/tmp/rsna-predictive-full-fitting-20261020-v2")
+PYTHON = "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"
+SCIENCE = None  # Exact prepared source supplied by the sole frozen local owner.
+ROSTER = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+GIB, MIB = 2**30, 2**20
+SHARED_FUTURE = 121 * MIB  # Retain all obligations; old uncreated GPU logs reassigned.
+ARMS = ("B", "C", "C0")
+LOG_ROOT = Path("/home/sa305415/rsna-knee/kaggle")
+FINAL = "actual_fixed_final_full3887_predictive_arm_complete"
+VERIFIED = "actual_predictive_model_only_epoch_private_all_objects_download_size_SHA_verified"
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def once(path, value):
+    path = Path(path)
+    tmp = path.with_name(path.name + ".pending-" + str(os.getpid()))
+    with tmp.open("x") as stream:
+        json.dump(value, stream, allow_nan=False, sort_keys=True)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    try:
+        os.link(tmp, path)
+    finally:
+        tmp.unlink()
+
+
+def reference(path):
+    return {"path": str(path), "sha256": sha(path)}
+
+
+def run_root(arm):
+    assert arm in ARMS
+    return Path("/tmp/rsna-predictive-full-" + arm + "-20261020-v2")
+
+
+def preparation(v):
+    p = ROOT / "actual-preparation.json"
+    actual = json.loads(p.read_text())
+    assert actual == v["prepared"] and actual["source_git"] == SCIENCE
+    assert actual["status"] == "actual_predictive_full_CPU_source_parent_initialization_accepted"
+    assert sha(ROOT / "prepared.private.json") == actual["prepared_private_sha256"]
+    for name in ("worker.py", "admit_cpu.py", "publish_epoch.py"):
+        assert sha(ROOT / "code" / name) == actual["code_sha256"][name]
+    assert sha(ROOT / "engineering-decision.json") == actual["engineering_decision_sha256"]
+    assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+    assert Path(sys.executable).resolve() == Path(PYTHON).resolve()
+    return actual
+
+
+def accounting(jobs):
+    assert jobs and all(str(j).isdecimal() for j in jobs)
+    text = subprocess.check_output(
+        [
+            "sacct",
+            "-X",
+            "-n",
+            "-P",
+            "-j",
+            ",".join(jobs),
+            "--format=JobIDRaw,State,ExitCode,JobName%80,NodeList%80",
+        ],
+        text=True,
+    )
+    queue = subprocess.check_output(["squeue", "-h", "-u", "sa305415", "-o", "%i|%T"], text=True)
+    queued = {line.split("|")[0] for line in queue.splitlines() if line.split("|")[0] in jobs}
+    result = {}
+    for job in jobs:
+        rows = [line.split("|") for line in text.splitlines() if line.split("|")[0] == job]
+        assert len(rows) <= 1
+        result[job] = {"state": None, "queue_empty": job not in queued}
+        if rows:
+            row = rows[0]
+            result[job].update(state=row[1], exit_code=row[2], name=row[3], node=row[4])
+    return result
+
+
+def cache_roots(receipt):
+    actual = receipt["original_actual"]
+    status = actual["status"]
+    roots = {
+        "actual_missing_only3887_exact_FP32_context_alias_recovery_accepted": Path(
+            "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3"
+        )
+    }
+    assert status in roots
+    return roots[status]
+
+
+def remaining_cache(v):
+    # Keep unused original caps reserved conservatively. Existing bytes are paid
+    # once, including reusable members from the original sixteen-case cache.
+    raw, context = v["raw_collected"], v["context_collected"]
+    for role, receipt in (("raw", raw), ("context", context)):
+        assert receipt["status"] == "actual_original_full_cache_terminal_collected"
+        assert receipt["role"] == role and receipt["target_terminal"] == "COMPLETED"
+        assert receipt["exit_code"] == "0:0" and receipt["studies"] == 3887
+        assert receipt["fitting_roster_sha256"] == ROSTER
+        assert receipt["existing_cache_stat_bindings_checked"] == 3887
+    raw_roots = {
+        "actual_missing_only3887_original_raw_cache_alias_recovery_accepted": Path(
+            "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3"
+        )
+    }
+    raw_root = raw_roots[raw["original_actual"]["status"]]
+    for receipt, root in ((raw, raw_root), (context, cache_roots(context))):
+        assert sha(root / "actual.json") == receipt["original_actual_sha256"]
+        assert receipt["original_actual"]["CPU_job"] == receipt["target_job"]
+        assert receipt["original_actual"]["source_git"] == receipt["source_git"]
+    assert 0 < raw["existing_cache_bytes"] <= 320 * GIB
+    assert 0 < context["existing_cache_bytes"] <= 96 * GIB
+    return max(0, 320 * GIB - raw["existing_cache_bytes"]) + max(
+        0, 96 * GIB - context["existing_cache_bytes"]
+    )
+
+
+def base_other(v):
+    # 62GiB includes the original24GiB B/C scope and separately funded12GiB C0.
+    # Remove selected36GiB only where explicit per-arm scopes are added below.
+    # Current62GiB+594MiB minus selected36GiB arms, plus retained4GiB scratch.
+    return 30 * GIB + 594 * MIB + remaining_cache(v)
+
+
+def admission(v):
+    preparation(v)
+    context = v["context_collected"]
+    croot = cache_roots(context)
+    assert sha(croot / "actual.json") == context["original_actual_sha256"]
+    assert sha(croot / "context-index.private.json") == context["private_index_sha256"]
+    payload = {
+        "mode": "admit",
+        "root": str(ROOT),
+        "funding": {
+            "other_unpaid_node_liabilities_bytes": base_other(v),
+            "shared_unpaid_bytes": SHARED_FUTURE,
+            "shared_unpaid_files": 376,
+        },
+        "context_terminal": str(croot / "actual.json"),
+        "context_index": str(croot / "context-index.private.json"),
+        "expected_context_source_git": context["source_git"],
+        "expected_context_job": context["target_job"],
+        "arms": list(ARMS),
+        "run_roots": {arm: str(run_root(arm)) for arm in ARMS},
+        "engineering_decision": reference(ROOT / "engineering-decision.json"),
+        "C0_additional12GiB_explicitly_funded": True,
+    }
+    # Use the actually prepared helper, never later checkout code or HEAD.
+    namespace = runpy.run_path(str(ROOT / "code/admit_cpu.py"), run_name="admission_library")
+    result = namespace["main"](payload)
+    assert result["status"] == "actual_full3887_predictive_CPU_admission_complete_no_GPU_dispatched"
+    return result
+
+
+def check_node():
+    text = subprocess.check_output(["scontrol", "show", "node", "evc33", "-o"], text=True)
+    tokens = dict(token.split("=", 1) for token in text.split() if "=" in token)
+    assert tokens["NodeName"] == "evc33"
+    assert re.search(r"(?:^|,)gres/gpu=2(?:,|$)", tokens["CfgTRES"])
+    assert "gpu:nvidia_h100_pcie:2" in tokens["Gres"]
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def dispatch(v):
+    preparation(v)
+    admitted = json.loads((ROOT / "full-admission/actual.json").read_text())
+    assert admitted == v["admitted"] and admitted["arms"] == list(ARMS)
+    node_sha = check_node()
+    # Admission and dispatch use different CPU allocations. Refresh both quotas
+    # here, before the first GPU intent, with the complete still-unpaid model scope.
+    namespace = runpy.run_path(str(ROOT / "code/admit_cpu.py"), run_name="fresh_dispatch_funding")
+    fresh = namespace["check_space"](
+        ROOT,
+        {
+            "other_unpaid_node_liabilities_bytes": base_other(v) + 36 * GIB,
+            "shared_unpaid_bytes": SHARED_FUTURE,
+            "shared_unpaid_files": 376,
+        },
+        new_control_bytes=max(0, 16 * MIB - used_bytes(ROOT)),
+    )
+    control = ROOT / "dispatch"
+    assert not control.exists(), "Existing dispatch requires read-only reconciliation"
+    jobs = {}
+    control.mkdir(mode=0o700)
+    once(
+        control / "intent.json",
+        {
+            "source_git": SCIENCE,
+            "owner_git": v["owner_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "arms": list(ARMS),
+            "fresh_before_dispatch_capacity": fresh,
+            "GPU_log_combined_cap_per_arm_bytes": 8 * MIB,
+            "shared_future_bytes": SHARED_FUTURE,
+            "automatic_retry": False,
+        },
+    )
+    for arm in ARMS:
+        assert not run_root(arm).exists()
+        binding = ROOT / f"full-admission/binding-{arm}.private.json"
+        assert sha(binding) == admitted["binding_sha256"][arm]
+        name = "rsna-predictive-full2-" + arm
+        # Each exact singleton job can share only this physically two-GPU node.
+        script = "\n".join(
+            [
+                "#!/bin/bash",
+                "#SBATCH --account=skattel",
+                "#SBATCH --partition=normal",
+                "#SBATCH --qos=normal",
+                "#SBATCH --nodelist=evc33",
+                "#SBATCH --ntasks=1",
+                "#SBATCH --cpus-per-task=2",
+                "#SBATCH --gres=gpu:nvidia_h100_pcie:1",
+                "#SBATCH --mem=32G",
+                "#SBATCH --time=08:00:00",
+                "#SBATCH --job-name=" + name,
+                "#SBATCH --output=" + str(LOG_ROOT / (name + "-%j.out")),
+                "#SBATCH --error=" + str(LOG_ROOT / (name + "-%j.err")),
+                "set -euo pipefail",
+                "export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8",
+                "exec "
+                + shlex.join(
+                    [
+                        PYTHON,
+                        "-B",
+                        str(ROOT / "code/worker.py"),
+                        "--binding",
+                        str(binding),
+                        "--binding-sha256",
+                        sha(binding),
+                    ]
+                ),
+                "",
+            ]
+        )
+        path = control / (arm + ".sh")
+        with path.open("x") as stream:
+            stream.write(script)
+        once(
+            control / (arm + "-intent.json"),
+            {
+                "arm": arm,
+                "source_git": SCIENCE,
+                "binding_sha256": sha(binding),
+                "script_sha256": sha(path),
+                "actual_physical_two_H100_node_sha256": node_sha,
+                "automatic_retry": False,
+            },
+        )
+        result = subprocess.run(["sbatch", "--parsable", str(path)], capture_output=True, text=True)
+        once(
+            control / (arm + "-sbatch.json"),
+            {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr},
+        )
+        assert result.returncode == 0 and re.fullmatch(r"\d+(?:;[^\s]+)?\s*", result.stdout)
+        job = result.stdout.strip().split(";")[0]
+        jobs[arm] = {
+            "GPU_job": job,
+            "arm": arm,
+            "node": "evc33",
+            "job_name": name,
+            "source_git": SCIENCE,
+            "binding_sha256": sha(binding),
+            "run_root": str(run_root(arm)),
+            "script_sha256": sha(path),
+            "stdout": str(LOG_ROOT / (name + "-" + job + ".out")),
+            "stderr": str(LOG_ROOT / (name + "-" + job + ".err")),
+        }
+        once(control / (arm + "-submitted.json"), jobs[arm])
+    result = {
+        "status": "actual_three_predictive_full_jobs_submitted_once",
+        "source_git": SCIENCE,
+        "jobs": jobs,
+        "physical_concurrent_GPU_limit": 2,
+        "each_job": {"GPUs": 1, "CPUs": 2, "wall_hours": 8},
+        "new_Kaggle_entries": 0,
+    }
+    once(control / "submitted.json", result)
+    return result
+
+
+def log_progress(v):
+    result = {"status": "actual_predictive_full_job_progress_observed", "arms": {}}
+    jobs = v["dispatched"]["jobs"]
+    states = accounting([j["GPU_job"] for j in jobs.values()])
+    for arm, job in jobs.items():
+        assert arm in ARMS and job["source_git"] == SCIENCE
+        name, identity = "rsna-predictive-full2-" + arm, job["GPU_job"]
+        assert job["job_name"] == name and job["node"] == "evc33"
+        out = LOG_ROOT / (name + "-" + identity + ".out")
+        err = LOG_ROOT / (name + "-" + identity + ".err")
+        assert str(out) == job["stdout"] and str(err) == job["stderr"]
+        state = states[identity]
+        if state.get("name"):
+            assert state["name"] == name
+            assert state.get("node") in ("evc33", "None assigned", "(null)", "", "None")
+        log_bytes = sum(p.stat().st_size for p in (out, err) if p.exists())
+        assert log_bytes <= 8 * MIB, "Original combined GPU log allowance exceeded; preserve job"
+        records, terminal = [], None
+        if out.exists():
+            assert out.stat().st_size < 32 * MIB and not out.is_symlink()
+            for line in out.read_text().splitlines():
+                try:
+                    value = json.loads(line)
+                except (ValueError, TypeError):
+                    continue
+                if not isinstance(value, dict) or value.get("arm") != arm:
+                    continue
+                if type(value.get("step")) is int:
+                    records.append(value)
+                if value.get("status") == FINAL:
+                    assert terminal is None
+                    terminal = value
+        assert [r["step"] for r in records] == list(range(1, len(records) + 1))
+        assert len(records) <= 2916
+        for r in records:
+            assert all(
+                math.isfinite(r[k])
+                for k in (
+                    "loss",
+                    "exam_loss",
+                    "density_loss",
+                    "gradient_norm",
+                    "head_gradient_norm",
+                    "encoder_gradient_norm",
+                )
+            )
+        first = records[:200]
+        early = None
+        if len(first) == 200:
+            early = {
+                "actual_updates": 200,
+                "history_sha256": hashlib.sha256(
+                    json.dumps(
+                        first, sort_keys=True, separators=(",", ":"), allow_nan=False
+                    ).encode()
+                ).hexdigest(),
+                "maxima": {
+                    key: max(r[key] for r in first)
+                    for key in (
+                        "loss",
+                        "exam_loss",
+                        "head_gradient_norm",
+                        "encoder_gradient_norm",
+                        "gradient_norm",
+                        "peak_GPU_bytes",
+                        "peak_host_RSS_bytes",
+                    )
+                },
+                "last": first[-1],
+                "clinical_accuracy_claim": False,
+            }
+        if terminal:
+            assert terminal["GPU_job"] == identity and terminal["source_git"] == SCIENCE
+            assert terminal["binding_sha256"] == job["binding_sha256"]
+            assert terminal["updates"] == 2916 and terminal["study_exposures"] == 23322
+            assert terminal["immutable_epoch_sidecars"] == 6 and len(records) == 2916
+        result["arms"][arm] = {
+            "GPU_job": identity,
+            "slurm": state,
+            "observed_updates": len(records),
+            "latest": records[-1] if records else None,
+            "first200": early,
+            "terminal": terminal,
+            "stderr_bytes": err.stat().st_size if err.exists() else 0,
+            "sealed_epochs": 6
+            if terminal
+            else (records[-1]["sealed_epoch_sidecars"] if records else 0),
+        }
+    return result
+
+
+def used_bytes(root):
+    total = 0
+    if root.exists():
+        for path in root.rglob("*"):
+            try:
+                if path.is_file():
+                    total += path.stat().st_size
+            except FileNotFoundError:
+                assert "independent-download-" in str(path)
+    return total
+
+
+def publish(v):
+    preparation(v)
+    arm, epoch = v["arm"], v["epoch"]
+    assert arm in ARMS and type(epoch) is int and 1 <= epoch <= 6
+    binding = ROOT / f"full-admission/binding-{arm}.private.json"
+    assert sha(binding) == v["dispatched"]["jobs"][arm]["binding_sha256"]
+    side = json.loads((run_root(arm) / f"epoch-{epoch:03d}.json").read_text())
+    assert side["GPU_job"] == v["dispatched"]["jobs"][arm]["GPU_job"]
+    namespace = runpy.run_path(str(ROOT / "code/publish_epoch.py"), run_name="publisher_library")
+    payload = {
+        "mode": "inspect",
+        "binding": reference(binding),
+        "epoch": epoch,
+        "source_git": SCIENCE,
+    }
+    check = namespace["main"](payload)
+    if check.get("status") == VERIFIED:
+        return check  # Read-only reconciliation of an already verified original.
+    assert check["status"] == "sealed_epoch_ready_no_publication_intent"
+    funding = {
+        "status": "actual_predictive_epoch_publication_storage_funded",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "node": "evc33",
+        "arm": arm,
+        "run_root": str(run_root(arm)),
+        "epoch": epoch,
+        "arm_cap_bytes": 12 * GIB,
+        "standing_free_reserve_bytes": 20 * GIB,
+        "other_unpaid_node_liabilities_bytes": base_other(v)
+        + 16 * MIB
+        + sum(max(0, 12 * GIB - used_bytes(run_root(other))) for other in ARMS if other != arm),
+        "shared_unpaid_bytes": SHARED_FUTURE,
+        "shared_unpaid_files": 376,
+        "all_other_obligations_retained": True,
+        "no_deletion_credit": True,
+    }
+    # The actual publisher checks fresh df/lfs against this explicit complete scope.
+    dest = ROOT / f"publication-funding-{arm}-{epoch:03d}.json"
+    once(dest, funding)
+    payload.update(mode="publish", publication_funding=reference(dest), token=v["token"])
+    return namespace["main"](payload)
+
+
+def main(v):
+    global SCIENCE
+    SCIENCE = v["prepared"]["source_git"]
+    assert re.fullmatch("[0-9a-f]{40}", SCIENCE)
+    assert SCIENCE != "b361ee40939d875d3adf82d5e04dbf2d7d62b0a0"
+    os.umask(0o077)
+    if v["mode"] == "progress":
+        return log_progress(v)
+    return {"admit": admission, "dispatch": dispatch, "publish": publish}[v["mode"]](v)
+
+
+if __name__ == "__main__":
+    try:
+        print(json.dumps(main(json.load(sys.stdin)), allow_nan=False), flush=True)
+    except BaseException as error:
+        tb = error.__traceback__
+        while tb.tb_next:
+            tb = tb.tb_next
+        print(
+            json.dumps({"error_type": type(error).__name__, "site_line": tb.tb_lineno}),
+            file=sys.stderr,
+        )
+        raise SystemExit(1)

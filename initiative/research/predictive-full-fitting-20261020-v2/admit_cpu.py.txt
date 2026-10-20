@@ -1,0 +1,805 @@
+"""One-time CPU preparation/admission on evc33; never reserve or dispatch a GPU.
+
+stdin prepare: mode, root, source_git, files{name:text}, sha256{name:sha},
+funding{other_unpaid_node_liabilities_bytes,shared_unpaid_bytes,shared_unpaid_files}.
+stdin admit: mode, root, funding as above, context_terminal, context_index,
+expected_context_source_git, expected_context_job, arms, run_roots{arm:path},
+engineering_decision{path,sha256}; optional C0_additional12GiB_explicitly_funded=true.
+In admit mode other_unpaid_node_liabilities_bytes excludes the selected arms
+(12GiB each); prepare includes every existing model reservation in that field.
+
+Prepare may run before complete pixels. Admit requires the actual closed full
+producer receipt. Existing preparation/admission intents need read-only review.
+Only small own source/receipts are written; existing pixels/weights/runtime stay.
+"""
+
+import ast
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import os
+import random
+import runpy
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+GIB, MIB = 2**30, 2**20
+PYTHON = Path("/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python")
+OVERLAY = Path("/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+ASSETS = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+SOURCES = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+TARGET = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")
+# Exact original public MRI parent hash (not a newly downloaded model).
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+PERMISSION = "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+TARGET_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+ROSTER = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+REVISION = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+MODULES = {
+    "worker.py",
+    "alias_provenance.py",
+    "rsna/__init__.py",
+    "rsna/competitive/__init__.py",
+    "rsna/competitive/predictive/__init__.py",
+    *[
+        "rsna/competitive/predictive/" + n + ".py"
+        for n in (
+            "inputs",
+            "cases",
+            "supports",
+            "density",
+            "cache",
+            "context_cache",
+            "model",
+            "train",
+        )
+    ],
+}
+RENDERERS = {"rsna/competitive/predictive/" + n + ".py" for n in ("inputs", "cases", "supports")}
+PARAMETERS = {"B": 73092652, "C": 73271124, "C0": 73271124}
+
+
+def require(ok, reason):
+    if not ok:
+        raise ValueError(reason)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def sha(path):
+    with Path(path).open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def stat(path):
+    path = Path(path)
+    s = path.stat()
+    require(
+        path.is_absolute() and path.is_file() and not path.is_symlink() and s.st_uid == os.getuid(),
+        "Original owned regular file required",
+    )
+    return [s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns]
+
+
+def ref(path):
+    path = Path(path)
+    before = stat(path)
+    digest = sha(path)
+    require(stat(path) == before, "Original reference changed during read")
+    return {"path": str(path), "sha256": digest}
+
+
+def read_ref(value):
+    actual = ref(value["path"])
+    require(actual["sha256"] == value["sha256"], "Original small reference changed")
+    return json.loads(Path(value["path"]).read_text())
+
+
+def write_once(path, value):
+    # Publish a complete small JSON atomically without overwriting any original.
+    path = Path(path)
+    tmp = path.with_name(path.name + ".writing")
+    with tmp.open("xb") as handle:
+        handle.write(canonical(value) + b"\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.link(tmp, path)
+    tmp.unlink()
+
+
+def check_space(root, funding, *, new_control_bytes=16 * MIB):
+    for key in (
+        "other_unpaid_node_liabilities_bytes",
+        "shared_unpaid_bytes",
+        "shared_unpaid_files",
+    ):
+        require(
+            type(funding[key]) is int and funding[key] >= 0,
+            "All remaining funded liabilities required",
+        )
+    node_free = shutil.disk_usage(root.parent).free
+    require(
+        node_free > 20 * GIB + funding["other_unpaid_node_liabilities_bytes"] + new_control_bytes,
+        "Fresh node reserve does not fund the bounded controls",
+    )
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    a = next(line.split() for line in q.splitlines() if line.strip().startswith("/home/sa305415"))
+    require(
+        (int(a[2]) - int(a[1])) * 1024 > 20 * GIB + funding["shared_unpaid_bytes"]
+        and int(a[6]) - int(a[5]) > 5000 + funding["shared_unpaid_files"],
+        "Fresh shared reserve must retain every original obligation",
+    )
+    return {
+        "node_free_bytes": node_free,
+        "shared_free_bytes": (int(a[2]) - int(a[1])) * 1024,
+        "shared_free_files": int(a[6]) - int(a[5]),
+    }
+
+
+def unchanged_assets():
+    original = json.loads((ASSETS / "assets-verified.json").read_text())
+    private = json.loads((ASSETS / "asset-private.json").read_text())
+    require(
+        original["CPU_job"] == "970393"
+        and original["original_weight_sha256"] == PARENT
+        and original["original_weight_bytes"] == 292840787
+        and original["GPU_reserved_or_dispatched"] is False,
+        "Original independently verified public parent receipt required",
+    )
+    weight = Path(private["weight_path"])
+    before = stat(weight)
+    require(
+        dict(inode=before[0], bytes=before[1], mtime_ns=before[2]) == private["stat"],
+        "Original whole-byte-verified parent stat changed; no automatic replacement",
+    )
+    refs = {
+        "parent_source": ref(SOURCES / "parent_source.private.py"),
+        "license": ref(SOURCES / "source-permission.txt"),
+        "targets": ref(TARGET),
+    }
+    require(
+        refs["parent_source"]["sha256"] == PARENT_SOURCE
+        and refs["license"]["sha256"] == PERMISSION
+        and refs["targets"]["sha256"] == TARGET_SHA,
+        "Original source/license/targets changed",
+    )
+    refs["parent_weight"] = {"path": str(weight), "sha256": PARENT, "stat": before}
+    return refs
+
+
+def initialize(root, refs):
+    sys.path[:0] = [str(root / "code"), str(OVERLAY)]
+    import numpy as np
+    import timm
+    import torch
+
+    from rsna.competitive.predictive.model import Predictive, ReconstructionControl
+
+    require(torch.cuda.device_count() == 0, "Preparation must have zero allocated GPUs")
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    selected = [
+        n
+        for n in ast.parse(Path(refs["parent_source"]["path"]).read_text()).body
+        if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+        and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+    ]
+    require(len(selected) == 3, "Exact original parent constructor required")
+    ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+    exec(compile(ast.Module(body=selected, type_ignores=[]), "original_MRI_encoder", "exec"), ns)
+    with contextlib.redirect_stdout(io.StringIO()):
+        parent, resolution = ns["load_model"](
+            refs["parent_weight"]["path"],
+            "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k",
+            384,
+            torch.device("cpu"),
+        )
+    require(
+        resolution == 320 and sum(p.numel() for p in parent.parameters()) == 73136096,
+        "Exact original MRI backbone failed CPU loading",
+    )
+
+    class Encoder(torch.nn.Module):
+        def __init__(self, backbone):
+            super().__init__()
+            self.backbone = backbone
+            self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406])[None, :, None, None])
+            self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225])[None, :, None, None])
+
+        def forward(self, images):
+            return self.backbone((images - self.mean) / self.std)
+
+    models = {}
+    for arm in ("B", "C", "C0"):
+        random.seed(20261020)
+        np.random.seed(20261020)
+        torch.manual_seed(20261020)
+        cls = ReconstructionControl if arm == "B" else Predictive
+        model = cls(Encoder(parent.backbone), parent.backbone.num_features, hidden=128)
+        shared = hashlib.sha256()
+        for name, tensor in sorted(model.state_dict().items()):
+            if name.split(".")[0] in {
+                "encoder",
+                "project",
+                "position",
+                "attention",
+                "norm",
+                "prior",
+            }:
+                shared.update(canonical([name, str(tensor.dtype), list(tensor.shape)]))
+                shared.update(tensor.contiguous().numpy().tobytes())
+        schema = {
+            name: {"shape": list(t.shape), "dtype": str(t.dtype)}
+            for name, t in model.state_dict().items()
+        }
+        count = sum(p.numel() for p in model.parameters())
+        state_bytes = sum(t.numel() * t.element_size() for t in model.state_dict().values())
+        require(
+            count == PARAMETERS[arm] and all(p.requires_grad for p in model.encoder.parameters()),
+            "Complete new predictive arm must retain full trainable encoder",
+        )
+        mean = model.reconstruct if arm == "B" else model.negative
+        require(
+            not torch.count_nonzero(mean.weight) and not torch.count_nonzero(mean.bias),
+            "Accepted zero density-mean initialization required",
+        )
+        if arm != "B":
+            require(
+                not torch.count_nonzero(model.shift.weight)
+                and not torch.count_nonzero(model.shift.bias),
+                "Accepted zero conditional shift required",
+            )
+        require(
+            7 * (4 * state_bytes + 64 * MIB) + 7 * (state_bytes + 16 * MIB) + 64 * MIB <= 12 * GIB,
+            "Seven full checkpoints/six exports/one download exceed 12GiB arm cap",
+        )
+        models[arm] = dict(
+            shared_tensor_sha256=shared.hexdigest(),
+            parameter_count=count,
+            model_schema_sha256=hashlib.sha256(canonical(schema)).hexdigest(),
+            model_state_bytes=state_bytes,
+        )
+        del model
+    require(
+        len({x["shared_tensor_sha256"] for x in models.values()}) == 1,
+        "B/C/C0 initial encoder/context states differ",
+    )
+    require(
+        stat(refs["parent_weight"]["path"]) == refs["parent_weight"]["stat"],
+        "Parent changed while read",
+    )
+    return models, dict(torch=torch.__version__, timm=timm.__version__, cuda=torch.version.cuda)
+
+
+def prepare(v, root):
+    require(not root.exists(), "Existing CPU preparation needs read-only reconciliation")
+    require(
+        len(v["source_git"]) == 40
+        and set(v["files"]) == set(v["sha256"])
+        and MODULES <= v["files"].keys(),
+        "Complete frozen own-source manifest required",
+    )
+    require(
+        sum(len(s.encode()) for s in v["files"].values()) <= 2 * MIB,
+        "Bounded own-source controls only",
+    )
+    check_space(root, v["funding"])
+    refs = unchanged_assets()
+    root.mkdir(mode=0o700)
+    write_once(
+        root / "prepare-intent.json",
+        dict(
+            source_git=v["source_git"],
+            CPU_job=os.environ["SLURM_JOB_ID"],
+            controls_cap_bytes=16 * MIB,
+            new_pixels_weights_runtime_copies=0,
+            automatic_retry=False,
+        ),
+    )
+    for name, text in v["files"].items():
+        path = root / "code" / name
+        require(
+            path.resolve().is_relative_to((root / "code").resolve())
+            and hashlib.sha256(text.encode()).hexdigest() == v["sha256"][name],
+            "Own source escaped or changed",
+        )
+        compile(text, name, "exec")
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with path.open("x") as handle:
+            handle.write(text)
+    alias = runpy.run_path(str(root / "code/alias_provenance.py"))
+    original = v["original_preparation"]
+    require(
+        original["source_git"] == alias["ORIGINAL_SCIENCE"] and original["CPU_job"] == "978976",
+        "Exact original CPU preparation required",
+    )
+    original_path = Path("/tmp/rsna-predictive-full-fitting-20261020-v1/actual-preparation.json")
+    require(
+        json.loads(original_path.read_text()) == original,
+        "Original owning-node preparation differs",
+    )
+    accepted = alias["accepted_renderers"](
+        original["code_sha256"], v["sha256"], v["alias_regression"]
+    )
+    require(
+        v["alias_regression_sha256"] == alias["REGRESSION_SHA"],
+        "Exact actual regression bytes required",
+    )
+    alias["validate_owner_stop"](v["old_owner_stopped"])
+    write_once(root / "original-preparation.json", original)
+    write_once(root / "alias-regression.json", v["alias_regression"])
+    write_once(root / "old-owner-stopped.json", v["old_owner_stopped"])
+    # Preserve the original receipt bytes, including their existing serialization.
+    for name, text, expected in (
+        (
+            "alias-regression-original.json",
+            v["alias_regression_text"],
+            v["alias_regression_sha256"],
+        ),
+        (
+            "old-owner-stopped-original.json",
+            v["old_owner_stopped_text"],
+            v["old_owner_stopped_sha256"],
+        ),
+    ):
+        require(
+            hashlib.sha256(text.encode()).hexdigest() == expected,
+            "Exact original receipt bytes differ",
+        )
+        require(
+            json.loads(text)
+            == (v["alias_regression"] if name.startswith("alias") else v["old_owner_stopped"]),
+            "Receipt body differs",
+        )
+        (root / name).write_text(text)
+    models, versions = initialize(root, refs)
+    require(
+        models == original["models"] and versions == original["runtime_versions"],
+        "Actual original model initialization/runtime changed",
+    )
+    runtime = dict(
+        status="actual_predictive_full_CPU_source_parent_initialization_accepted",
+        CPU_job=os.environ["SLURM_JOB_ID"],
+        source_git=v["source_git"],
+        code_sha256=v["sha256"],
+        node="evc33",
+        physical_gpu_count=2,
+        runtime_python=str(PYTHON),
+        runtime_versions=versions,
+        models=models,
+        accepted_renderer_sha256=accepted,
+        alias_regression_receipt_sha256=v["alias_regression_sha256"],
+        old_owner_stopped_sha256=v["old_owner_stopped_sha256"],
+        original_preparation_source_git=original["source_git"],
+        original_parent_stat_proof_reused=True,
+        parent_weight_sha256=PARENT,
+        parent_source_sha256=PARENT_SOURCE,
+        license_sha256=PERMISSION,
+        new_model_or_pixel_copies=0,
+        new_model_fitting_GPU_reservation_or_accuracy=False,
+    )
+    write_once(root / "runtime-receipt.json", runtime)
+    prepared = dict(
+        source_git=v["source_git"],
+        code_root=str(root / "code"),
+        code_sha256=v["sha256"],
+        renderer_sha256={n: v["sha256"][n] for n in RENDERERS},
+        original_code_sha256=original["code_sha256"],
+        accepted_renderer_sha256=accepted,
+        alias_regression=ref(root / "alias-regression-original.json"),
+        old_owner_stopped=ref(root / "old-owner-stopped-original.json"),
+        original_preparation=ref(root / "original-preparation.json"),
+        models=models,
+        runtime_versions=versions,
+        runtime_receipt=ref(root / "runtime-receipt.json"),
+        **refs,
+    )
+    write_once(root / "prepared.private.json", prepared)
+    require(
+        sum(p.stat().st_size for p in root.rglob("*") if p.is_file()) < 16 * MIB,
+        "CPU controls cap exceeded",
+    )
+    return runtime
+
+
+def terminal_job(job, allowed=("COMPLETED",)):
+    require(str(job).isdecimal(), "Exact original job ID required")
+    accounting = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", str(job), "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+    queue = subprocess.check_output(["squeue", "-h", "-u", "sa305415", "-o", "%i|%T"], text=True)
+    live = [line for line in queue.splitlines() if line.split("|")[0] == str(job)]
+    exact = [row.split("|") for row in accounting.splitlines() if row.split("|")[0] == str(job)]
+    require(
+        not live
+        and len(exact) == 1
+        and exact[0][1] in allowed
+        and (exact[0][1] != "COMPLETED" or exact[0][2] == "0:0"),
+        "Original CPU producer must actually be complete before full fitting admission",
+    )
+    return {
+        "job": str(job),
+        "state": exact[0][1],
+        "exit_code": exact[0][2],
+        "accounting_sha256": hashlib.sha256(accounting.encode()).hexdigest(),
+    }
+
+
+def admit(v, root):
+    prepared = json.loads((root / "prepared.private.json").read_text())
+    read_ref(prepared["runtime_receipt"])
+    alias = runpy.run_path(str(root / "code/alias_provenance.py"))
+    original = read_ref(prepared["original_preparation"])
+    regression = read_ref(prepared["alias_regression"])
+    accepted = alias["accepted_renderers"](
+        original["code_sha256"], prepared["code_sha256"], regression
+    )
+    require(
+        accepted == prepared["accepted_renderer_sha256"], "Prepared renderer compatibility changed"
+    )
+    alias["validate_owner_stop"](read_ref(prepared["old_owner_stopped"]))
+    require(
+        unchanged_assets()
+        == {
+            name: prepared[name]
+            for name in ("parent_weight", "parent_source", "license", "targets")
+        },
+        "Original assets changed since preparation",
+    )
+    for name, expected in prepared["code_sha256"].items():
+        require(sha(root / "code" / name) == expected, "Prepared own source changed")
+    out = root / "full-admission"
+    require(not out.exists(), "Existing full admission must be reconciled, never repeated")
+    terminal_path, index_path = Path(v["context_terminal"]), Path(v["context_index"])
+    if not terminal_path.exists() or not index_path.exists():
+        return {"status": "waiting_actual_complete3887_context_terminal_no_admission_intent"}
+    terminal_ref, index_ref = ref(terminal_path), ref(index_path)
+    terminal = read_ref(terminal_ref)
+    successor_root = Path("/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3")
+    require(
+        terminal_path == successor_root / "actual.json"
+        and index_path == successor_root / "context-index.private.json"
+        and terminal["source_git"] == v["expected_context_source_git"]
+        and terminal["CPU_job"] == str(v["expected_context_job"])
+        and terminal["private_index_sha256"] == index_ref["sha256"],
+        "Exact complete alias-recovery producer binding required",
+    )
+    alias["validate_terminal"](terminal, accepted, prepared["alias_regression"]["sha256"])
+    intent = json.loads((successor_root / "intent.json").read_text())
+    raw = json.loads(
+        Path("/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3/intent.json").read_text()
+    )
+    require(
+        intent["CPU_job"] == terminal["CPU_job"]
+        and intent["source_git"] == terminal["source_git"]
+        and intent["successor_raw_job"] == terminal["successor_raw_job"] == raw["CPU_job"]
+        and raw["original_job"] == "978318"
+        and intent["alias_regression_receipt_sha256"]
+        == raw["alias_regression_receipt_sha256"]
+        == prepared["alias_regression"]["sha256"]
+        and intent["prefix_admission_receipt_sha256"]
+        == raw["prefix_admission_receipt_sha256"]
+        == terminal["prefix_admission_receipt_sha256"]
+        == alias["PREFIX_SHA"]
+        and intent["original_raw_terminal"]["state"] == "FAILED"
+        and intent["original_context_terminal"]["state"] == "FAILED",
+        "Actual alias recovery original terminal/intent bindings differ",
+    )
+    terminal_jobs = {
+        "context": terminal_job(terminal["CPU_job"]),
+        "raw": terminal_job(terminal["successor_raw_job"]),
+        "original_raw": terminal_job("978318", ("FAILED",)),
+        "original_context": terminal_job("978414", ("FAILED",)),
+    }
+    require(
+        terminal_jobs["original_raw"]["exit_code"]
+        == terminal_jobs["original_context"]["exit_code"]
+        == "1:0"
+        and raw["original_terminal_sha256"] == intent["original_raw_terminal"]["sha256"],
+        "Actual original failure receipt changed",
+    )
+    rows = json.loads(index_path.read_text())
+    sys.path[:0] = [prepared["code_root"], str(OVERLAY)]
+    from dataclasses import asdict
+
+    import numpy as np
+    import timm
+    import torch
+
+    from rsna.competitive.predictive.context_cache import VERSION
+    from rsna.competitive.predictive.train import Recipe
+
+    require(torch.cuda.device_count() == 0, "Full admission must remain CPU-only")
+    require(
+        dict(torch=torch.__version__, timm=timm.__version__, cuda=torch.version.cuda)
+        == prepared["runtime_versions"],
+        "Prepared runtime versions changed",
+    )
+    with np.load(TARGET, allow_pickle=False) as arrays:
+        uids, labels, masks = arrays["uids"].tolist(), arrays["labels"], arrays["masks"]
+        require(
+            len(rows) == len(uids) == 3887
+            and uids == sorted(set(uids))
+            and hashlib.sha256(canonical(uids)).hexdigest() == ROSTER
+            and [row["uid"] for row in rows] == uids
+            and labels.shape == masks.shape == (3887, 12)
+            and masks.dtype == np.bool_
+            and np.isfinite(labels[masks]).all()
+            and ((labels[masks] >= 0) & (labels[masks] <= 1)).all(),
+            "Unchanged full fitting join failed",
+        )
+    paid = 0
+    paths = set()
+    for row in rows:
+        p, proof, provenance = Path(row["path"]), row["proof"], row["provenance"]
+        current = stat(p)
+        require(
+            p.resolve().is_relative_to(Path("/tmp"))
+            and str(p) not in paths
+            and current == proof["stat"]
+            and current[1] == proof["bytes"]
+            and proof["version"] == VERSION
+            and len(proof["sha256"]) == 64,
+            "Original independently hashed context current stat differs",
+        )
+        require(
+            provenance["original_source_revision"] == REVISION
+            and (
+                provenance["side"],
+                provenance["context_cap"],
+                provenance["halo"],
+                provenance["classes"],
+            )
+            == (320, 24, 8, 12)
+            and provenance["module_sha256"] in accepted
+            and len(provenance["original_raw_cache_sha256"]) == 64,
+            "Original complete source/rendering proof changed",
+        )
+        paid += current[1]
+        paths.add(str(p))
+    require(
+        paid <= 96 * GIB and ("cache_bytes" not in terminal or paid == terminal["cache_bytes"]),
+        "Original total exact-context cap exceeded",
+    )
+    counts = alias["renderer_counts"](rows, accepted)
+    require(sum(counts.values()) == 3887, "Incomplete renderer provenance counts")
+    arms = v["arms"]
+    require(
+        arms in (["B", "C"], ["B", "C", "C0"]),
+        "B/C matched pair with optional separately funded C0 required",
+    )
+    raw_intent = json.loads(
+        Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1/intent.json").read_text()
+    )
+    require(
+        raw_intent["future_model_and_publication_scope_bytes"] == 24 * GIB,
+        "Original existing evc33 B/C model reservation must remain explicit",
+    )
+    controls_paid = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+    controls_unpaid = max(0, 16 * MIB - controls_paid)
+    free = check_space(root, v["funding"], new_control_bytes=controls_unpaid)
+    scope = len(arms) * 12 * GIB
+    other = v["funding"]["other_unpaid_node_liabilities_bytes"]
+    require(
+        free["node_free_bytes"] > 20 * GIB + other + scope + controls_unpaid,
+        "Fresh actual space does not fund complete selected model scope plus all other liabilities",
+    )
+    master = read_ref(v["engineering_decision"])
+    require(
+        master["status"] == "accepted_full_predictive_numerical_recipe"
+        and master["actual_engineering_GPU_job"] == "978709"
+        and master["actual_engineering_source_git"] == "39e315c65546aa5205518713bc27349ec63e7538"
+        and master["actual_engineering_receipt_sha256"]
+        == "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82b10"
+        and master["actual_engineering_complete_recovery_all_arms"] is True
+        and master["observed_C_C0_gradient_risk_reviewed"] is True
+        and all(
+            prepared["code_sha256"][name] == master["exact_numerical_module_sha256"][name]
+            for name in MODULES
+            if name.startswith("rsna/competitive/predictive/")
+        ),
+        "Actual accepted numerical source and recovery decision required",
+    )
+    decisions, funds = {}, {}
+    for arm in arms:
+        recipe = asdict(
+            Recipe(
+                arm,
+                epochs=6,
+                effective_batch=8,
+                head_only_updates=3,
+                encoder_lr=3e-5,
+                head_lr=3e-5,
+                density_weight=0 if arm == "C0" else 0.1,
+                schedule_updates=2916,
+            )
+        )
+        require(master["recipes"][arm] == recipe, "Accepted actual recipe differs")
+        decision = {
+            **master,
+            "status": "accepted_full_predictive_fitting_recipe",
+            "source_git": prepared["source_git"],
+            "code_sha256": prepared["code_sha256"],
+            "recipe": recipe,
+            "arm": arm,
+            "master_decision_sha256": v["engineering_decision"]["sha256"],
+        }
+        run = Path(v["run_roots"][arm])
+        require(
+            run.is_absolute() and run.resolve().is_relative_to(Path("/tmp")) and not run.exists(),
+            "Each arm requires a new owned node-local output",
+        )
+        fund = dict(
+            status="actual_predictive_full_arm_storage_funded",
+            arm=arm,
+            node="evc33",
+            run_root=str(run),
+            CPU_job=os.environ["SLURM_JOB_ID"],
+            arm_cap_bytes=12 * GIB,
+            standing_free_reserve_bytes=20 * GIB,
+            other_unpaid_node_liabilities_bytes=other
+            + (len(arms) - 1) * 12 * GIB
+            + controls_unpaid,
+            actual_node_free_bytes=free["node_free_bytes"],
+            shared_free_after_all_liabilities_bytes=free["shared_free_bytes"]
+            - v["funding"]["shared_unpaid_bytes"],
+            shared_files_after_all_liabilities=free["shared_free_files"]
+            - v["funding"]["shared_unpaid_files"],
+            original_predictive_24GiB_scope_counted_once=True,
+            additional_C0_scope_bytes=12 * GIB if "C0" in arms else 0,
+            original_raw_funding_sha256=sha(
+                Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1/intent.json")
+            ),
+            all_other_obligations_retained=True,
+            no_deletion_credit=True,
+        )
+        decisions[arm], funds[arm] = decision, fund
+    require(
+        len(set(v["run_roots"][arm] for arm in arms)) == len(arms),
+        "Each arm requires a distinct output",
+    )
+    require(
+        arms == ["B", "C"] or v.get("C0_additional12GiB_explicitly_funded") is True,
+        "Original 24GiB scope does not fund a third arm",
+    )
+    out.mkdir(mode=0o700)
+    write_once(
+        out / "intent.json",
+        dict(
+            source_git=prepared["source_git"],
+            CPU_job=os.environ["SLURM_JOB_ID"],
+            arms=arms,
+            automatic_retry=False,
+            no_GPU_reservation_or_dispatch=True,
+        ),
+    )
+    bindings = {}
+    for arm in arms:
+        write_once(out / f"engineering-{arm}.json", decisions[arm])
+        write_once(out / f"funding-{arm}.json", funds[arm])
+        admission = dict(
+            status="actual_complete3887_predictive_fitting_inputs_accepted",
+            node="evc33",
+            physical_gpu_count=2,
+            source_git=prepared["source_git"],
+            code_sha256=prepared["code_sha256"],
+            expected_initial_shared_tensor_sha256=prepared["models"][arm]["shared_tensor_sha256"],
+            context_index_sha256=index_ref["sha256"],
+            targets_sha256=TARGET_SHA,
+            parent_source_sha256=PARENT_SOURCE,
+            parent_weight_sha256=PARENT,
+            runtime_receipt_sha256=prepared["runtime_receipt"]["sha256"],
+            all_context_original_hashes_and_stats_verified=True,
+            hash_basis="original immutable producer whole-byte hashes and exact current stats",
+            original_context_bytes=paid,
+            original_context_count=3887,
+            accepted_renderer_sha256=accepted,
+            renderer_provenance_counts=counts,
+            alias_regression_receipt_sha256=prepared["alias_regression"]["sha256"],
+            fitting_order_sha256=ROSTER,
+            actual_terminal_jobs=terminal_jobs,
+            repeated_parent_or_context_bulk_hashes=0,
+            new_pixel_model_runtime_copies=0,
+        )
+        write_once(out / f"input-{arm}.json", admission)
+        binding = dict(
+            schema="predictive_full3887_one_arm_v1",
+            arm=arm,
+            node="evc33",
+            physical_gpu_count=2,
+            source_git=prepared["source_git"],
+            code_root=prepared["code_root"],
+            code_sha256=prepared["code_sha256"],
+            renderer_sha256=prepared["renderer_sha256"],
+            accepted_renderer_sha256=accepted,
+            original_code_sha256=prepared["original_code_sha256"],
+            original_preparation=prepared["original_preparation"],
+            alias_regression=prepared["alias_regression"],
+            renderer_provenance_counts=counts,
+            runtime_python=str(PYTHON),
+            python_paths=[str(OVERLAY)],
+            runtime_versions=prepared["runtime_versions"],
+            runtime_receipt=prepared["runtime_receipt"],
+            expected_initial_shared_tensor_sha256=admission[
+                "expected_initial_shared_tensor_sha256"
+            ],
+            input_admission=ref(out / f"input-{arm}.json"),
+            engineering_decision=ref(out / f"engineering-{arm}.json"),
+            funding=ref(out / f"funding-{arm}.json"),
+            license=prepared["license"],
+            context_terminal=terminal_ref,
+            context_index=index_ref,
+            source_context_index_sha256=index_ref["sha256"],
+            source_revision=REVISION,
+            targets=prepared["targets"],
+            parent_source=prepared["parent_source"],
+            parent_weight=prepared["parent_weight"],
+            run_root=v["run_roots"][arm],
+        )
+        write_once(out / f"binding-{arm}.private.json", binding)
+        bindings[arm] = ref(out / f"binding-{arm}.private.json")
+    require(
+        sum(p.stat().st_size for p in root.rglob("*") if p.is_file()) < 16 * MIB,
+        "CPU controls cap exceeded",
+    )
+    result = dict(
+        status="actual_full3887_predictive_CPU_admission_complete_no_GPU_dispatched",
+        CPU_job=os.environ["SLURM_JOB_ID"],
+        source_git=prepared["source_git"],
+        arms=arms,
+        studies=3887,
+        original_context_bytes=paid,
+        accepted_renderer_sha256=accepted,
+        renderer_provenance_counts=counts,
+        alias_regression_receipt_sha256=prepared["alias_regression"]["sha256"],
+        input_index_sha256=index_ref["sha256"],
+        binding_sha256={a: r["sha256"] for a, r in bindings.items()},
+        new_pixel_model_runtime_copies=0,
+        repeated_bulk_hashes=0,
+        numerical_or_clinical_accuracy_claim=False,
+    )
+    write_once(out / "actual.json", result)
+    return result
+
+
+def main(v):
+    os.umask(0o077)
+    sys.dont_write_bytecode = True
+    require(
+        os.uname().nodename == "evc33"
+        and not os.environ.get("SLURM_JOB_GPUS")
+        and os.environ.get("SLURM_JOB_ID")
+        and Path(sys.executable).resolve() == PYTHON.resolve(),
+        "Exact original evc33 runtime in a zero-GPU CPU allocation required",
+    )
+    os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
+    root = Path(v["root"])
+    require(
+        root.is_absolute()
+        and root.resolve().is_relative_to(Path("/tmp"))
+        and not root.is_symlink(),
+        "New owned CPU-control scope under /tmp required",
+    )
+    require(v["mode"] in ("prepare", "admit"), "Prepare or full admission only")
+    return prepare(v, root) if v["mode"] == "prepare" else admit(v, root)
+
+
+if __name__ == "__main__":
+    try:
+        print(json.dumps(main(json.load(sys.stdin))), flush=True)
+    except BaseException as error:
+        tb = error.__traceback__
+        while tb.tb_next is not None:
+            tb = tb.tb_next
+        print(
+            json.dumps({"error_type": type(error).__name__, "site_line": tb.tb_lineno}),
+            file=sys.stderr,
+        )
+        raise SystemExit(1)

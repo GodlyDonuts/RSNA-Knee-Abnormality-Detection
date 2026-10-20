@@ -11,7 +11,18 @@ LICENSE = "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
 TARGETS = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
 ROSTER = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
 SOURCE_REVISION = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
-PUBLISHER = "6215f45748fdc4685565a94f31da7fc51f7ad0fa325192d004b362645bbf8d87"
+PUBLISHER = "cbfc161bf17381c816832329f892da5584ac4586138234e6901965f7b09cd795"
+ORIGINAL_SCIENCE = "b361ee40939d875d3adf82d5e04dbf2d7d62b0a0"
+ALIAS_REGRESSION = "946911a47151af80225cf28921876e88e089c35c86e4c11061ca141bbe2e463e"
+ORIGINAL_RENDERERS = {
+    "rsna/competitive/predictive/inputs.py": "e773ce9f2e2e2f775cf991365867b6ae4340d55b3097541c37080a938a62c459",
+    "rsna/competitive/predictive/cases.py": "c19e3d45b6573dbd9c631f67e2794493e9e9f4a06f6da49df93f16edb6d93cf8",
+    "rsna/competitive/predictive/supports.py": "74cc5b71a9372b0a7970ac3507484fe96d6d1d4e4e710fc8177121f72a95597b",
+}
+CORRECTED_RENDERERS = {
+    **ORIGINAL_RENDERERS,
+    "rsna/competitive/predictive/cases.py": "5f7c81fd270c072fa16ed486735049bb72070a704304b6ee1adc2c4f6d4f3d09",
+}
 PUBLISHER_CORE = "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
 PARAMETERS = {"B": 73092652, "C": 73271124, "C0": 73271124}
 SCHEMAS = {
@@ -164,6 +175,10 @@ def candidate(publication, provenance_text, own_source_text, license_bytes):
         model_schema_sha256=SCHEMAS[arm],
         publisher_sha256=PUBLISHER,
         original_publisher_core_sha256=PUBLISHER_CORE,
+        original_numerical_source_git=ORIGINAL_SCIENCE,
+        alias_regression_receipt_sha256=ALIAS_REGRESSION,
+        accepted_renderer_sha256=[ORIGINAL_RENDERERS, CORRECTED_RENDERERS],
+        renderer_sha256=CORRECTED_RENDERERS,
         model_source="public_licensed_MRI_parent_and_unchanged_RSNA_fitting_only",
         additional_Stanford_or_KneeCoT_or_teacher_probabilities_used=False,
         optimizer_RNG_private_paths_labels_IDs_exported=False,
@@ -171,6 +186,13 @@ def candidate(publication, provenance_text, own_source_text, license_bytes):
     require(
         all(p.get(k) == v for k, v in expected.items()),
         "Final trained lineage/recipe/schema differs",
+    )
+    counts = p.get("renderer_provenance_counts", {})
+    require(
+        set(counts) == {"original", "corrected"}
+        and all(type(n) is int and n >= 0 for n in counts.values())
+        and sum(counts.values()) == 3887,
+        "Complete original/corrected context provenance counts required",
     )
     for key in (
         "binding_sha256",

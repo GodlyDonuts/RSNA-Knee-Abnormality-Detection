@@ -410,3 +410,19 @@ def test_actual_dataset_phase_calls_create_once_then_refuses_repeat(
             account.execute(args)
     assert calls == ["CreateDataset"]
     assert (root / "dataset-intent.json").exists()
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("alias_regression_receipt_sha256", "f" * 64),
+        ("original_numerical_source_git", "f" * 40),
+        ("accepted_renderer_sha256", []),
+        ("renderer_provenance_counts", {"original": 0, "corrected": 3887}),
+    ],
+)
+def test_final_outcome_keeps_actual_alias_lineage(entries, field, value):
+    candidate, terminal, scheduler = final_fixture(entries)
+    terminal[field] = value
+    with pytest.raises(ValueError, match="Final outcome and preserved export differ"):
+        p.final_outcome(candidate, terminal, scheduler)
