@@ -1,0 +1,592 @@
+"""Publish one sealed predictive epoch privately; local template, never a dispatcher.
+
+Only owned, SHA-bound full trainer state is decoded. Export model tensors and
+sanitized provenance, never the private binding, optimizer, RNG, labels or IDs.
+Credentials arrive in the single stdin JSON object. An intent is never retried.
+"""
+
+import hashlib
+import importlib.util
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+GIB = 2**30
+MIB = 2**20
+REPO = "GodlyDonuts/RSNA-Data"
+CORE = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py"
+)
+CORE_SHA = "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+PERMISSION = "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+TARGETS = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+ROSTER = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+SOURCE_REVISION = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+PARAMETERS = {"B": 73092652, "C": 73271124, "C0": 73271124}
+
+
+def require(ok, reason):
+    if not ok:
+        raise ValueError(reason)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def digest(path):
+    with Path(path).open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def signature(path):
+    path = Path(path)
+    st = path.stat()
+    require(
+        path.is_absolute()
+        and path.is_file()
+        and not path.is_symlink()
+        and st.st_uid == os.getuid()
+        and not st.st_mode & 0o077,
+        "Owner-only original regular file required",
+    )
+    return [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+
+
+def reference(ref):
+    path = Path(ref["path"])
+    before = signature(path)
+    require(
+        digest(path) == ref["sha256"] and signature(path) == before,
+        "Bound original reference changed",
+    )
+    return path
+
+
+def expected_recipe(arm):
+    return dict(
+        arm=arm,
+        epochs=6,
+        effective_batch=8,
+        encoder_lr=3e-5,
+        head_lr=3e-5,
+        weight_decay=0.02,
+        warmup_fraction=0.05,
+        end_lr_fraction=0.1,
+        density_weight=0 if arm == "C0" else 0.1,
+        head_only_updates=3,
+        clip=1.0,
+        seed=20261020,
+        schedule_updates=2916,
+    )
+
+
+def validate_binding(binding, start, side, epoch, binding_sha):
+    arm = binding["arm"]
+    require(
+        arm in PARAMETERS and type(epoch) is int and 1 <= epoch <= 6,
+        "Exact production arm and epoch required",
+    )
+    require(
+        binding["schema"] == "predictive_full3887_one_arm_v1" and len(binding["source_git"]) == 40,
+        "Full production source required",
+    )
+    require(start == {key: side[key] for key in start}, "Sealed epoch differs from run start")
+    checks = dict(
+        arm=arm,
+        source_git=binding["source_git"],
+        binding_sha256=binding_sha,
+        recipe=expected_recipe(arm),
+        parent_weight_sha256=PARENT,
+        parent_source_sha256=PARENT_SOURCE,
+        source_revision=SOURCE_REVISION,
+        targets_sha256=TARGETS,
+        fitting_order_sha256=ROSTER,
+        license_sha256=PERMISSION,
+        arm_cap_bytes=12 * GIB,
+        parameter_count=PARAMETERS[arm],
+        clinical_accuracy_or_Kaggle_score=False,
+        initial_shared_tensor_sha256=binding["expected_initial_shared_tensor_sha256"],
+        runtime_versions=binding["runtime_versions"],
+        renderer_sha256=binding["renderer_sha256"],
+    )
+    for name in (
+        "context_index",
+        "runtime_receipt",
+        "engineering_decision",
+        "funding",
+        "input_admission",
+    ):
+        checks[name + "_sha256"] = binding[name]["sha256"]
+    checks["source_context_index_sha256"] = binding["source_context_index_sha256"]
+    require(
+        all(start.get(key) == value for key, value in checks.items()),
+        "Source/base/recipe/inputs/license/runtime/shared initialization differs",
+    )
+    require(
+        all(
+            binding[name]["sha256"] == value
+            for name, value in (
+                ("parent_weight", PARENT),
+                ("parent_source", PARENT_SOURCE),
+                ("license", PERMISSION),
+                ("targets", TARGETS),
+            )
+        ),
+        "Unaccepted parent lineage",
+    )
+    require(
+        binding["source_revision"] == SOURCE_REVISION
+        and len(start["initial_shared_tensor_sha256"]) == 64
+        and len(start["model_schema_sha256"]) == 64,
+        "Exact input and initial model-schema proofs required",
+    )
+    require(
+        side["status"] == "immutable_full_state_epoch_ready_for_private_publication"
+        and side["epoch"] == epoch
+        and side["completed_updates"] == 486 * epoch
+        and side["cohort_size"] == 3887
+        and side["checkpoint_name"] == f"epoch-{epoch:03d}.pt"
+        and 0 < side["checkpoint_bytes"] <= 1536 * MIB
+        and side["checkpoint_bytes"] == side["checkpoint_stat"][1]
+        and side["contains_model_optimizer_recipe_binding_counters_history_all_RNG"] is True
+        and side["independent_private_publication_verified"] is False,
+        "Only a sealed complete original epoch may be exported",
+    )
+
+
+def validate_state(state, binding, side):
+    import torch
+
+    require(
+        set(state)
+        == {
+            "recipe",
+            "binding",
+            "cohort_size",
+            "epoch_snapshots",
+            "model",
+            "optimizer",
+            "step",
+            "history",
+            "rng",
+        },
+        "Complete predictive trainer state required; old teacher schema is incompatible",
+    )
+    require(
+        state["binding"] == binding
+        and state["recipe"] == side["recipe"]
+        and state["cohort_size"] == 3887
+        and state["epoch_snapshots"] is True
+        and state["step"] == side["completed_updates"] == len(state["history"]),
+        "Checkpoint source/recipe/counters differ",
+    )
+    require(
+        hashlib.sha256(canonical(state["history"])).hexdigest() == side["history_sha256"],
+        "Original numerical history differs",
+    )
+    for step, record in enumerate(state["history"], 1):
+        fraction = (step - 1) / 2915
+        factor = (
+            min(1.0, step / (0.05 * 2916))
+            if fraction < 0.05
+            else 0.1 + 0.9 * (1 + math.cos(math.pi * (fraction - 0.05) / 0.95)) / 2
+        )
+        require(
+            record["step"] == step
+            and record["epoch"] == (step - 1) // 486 + 1
+            and record["studies"] == (7 if step % 486 == 0 else 8)
+            and record["encoder_updated"] == (step > 3)
+            and record["LR"] == [3e-5 * factor] * 2
+            and all(
+                math.isfinite(record[key])
+                for key in (
+                    "loss",
+                    "exam_loss",
+                    "density_loss",
+                    "encoder_gradient_norm",
+                    "head_gradient_norm",
+                    "gradient_norm",
+                )
+            ),
+            "Incomplete or changed real update history",
+        )
+    require(
+        set(state["rng"]) == {"python", "numpy", "torch", "cuda"}
+        and isinstance(state["rng"]["torch"], torch.Tensor)
+        and len(state["rng"]["cuda"]) == 1
+        and set(state["optimizer"]) == {"state", "param_groups"}
+        and len(state["optimizer"]["param_groups"]) == 2
+        and bool(state["optimizer"]["state"]),
+        "Complete original optimizer and RNG required",
+    )
+    groups = state["optimizer"]["param_groups"]
+    ids = [identifier for group in groups for identifier in group["params"]]
+    require(
+        len(ids) == len(set(ids)) and set(ids) == set(state["optimizer"]["state"]),
+        "Every original optimizer parameter state must be present exactly once",
+    )
+    for group_index, group in enumerate(groups):
+        require(
+            group["params"]
+            and group["weight_decay"] == 0.02
+            and group["lr"] == state["history"][-1]["LR"][group_index],
+            "Original optimizer group differs",
+        )
+        for identifier in group["params"]:
+            item = state["optimizer"]["state"][identifier]
+            require(
+                set(item) == {"step", "exp_avg", "exp_avg_sq"}
+                and all(
+                    isinstance(t, torch.Tensor)
+                    and t.device.type == "cpu"
+                    and torch.isfinite(t).all()
+                    for t in item.values()
+                )
+                and item["step"].item() == state["step"] - (3 if group_index == 0 else 0)
+                and item["exp_avg"].shape == item["exp_avg_sq"].shape,
+                "Original finite AdamW moments/counters incomplete",
+            )
+    model = state["model"]
+    require(
+        isinstance(model, dict)
+        and len(model) > 100
+        and any(name.startswith("encoder.backbone.") for name in model),
+        "Complete predictive MRI encoder graph required",
+    )
+    required = {"reconstruct.weight", "target_project.weight", "vote.weight", "weight.weight"}
+    predictive = {"negative.weight", "shift.weight", "fixed_log_variance"}
+    require(
+        (required <= model.keys() and not predictive & model.keys())
+        if binding["arm"] == "B"
+        else (predictive <= model.keys() and not required & model.keys()),
+        "Wrong predictive arm graph",
+    )
+    require(
+        all(
+            isinstance(t, torch.Tensor) and t.device.type == "cpu" and torch.isfinite(t).all()
+            for t in model.values()
+        ),
+        "Nonfinite or incomplete model tensors",
+    )
+    schema = {name: {"shape": list(t.shape), "dtype": str(t.dtype)} for name, t in model.items()}
+    require(
+        hashlib.sha256(canonical(schema)).hexdigest() == side["model_schema_sha256"],
+        "Actual complete initialized model schema differs",
+    )
+    return model
+
+
+def budget(root, funding, model_bytes):
+    require(
+        funding["status"] == "actual_predictive_epoch_publication_storage_funded"
+        and funding["run_root"] == str(root)
+        and funding["node"] == os.uname().nodename
+        and funding["arm_cap_bytes"] == 12 * GIB
+        and funding["standing_free_reserve_bytes"] >= 20 * GIB
+        and funding["all_other_obligations_retained"] is True
+        and funding["no_deletion_credit"] is True,
+        "Actual fresh publication funding required",
+    )
+    for key in (
+        "other_unpaid_node_liabilities_bytes",
+        "shared_unpaid_bytes",
+        "shared_unpaid_files",
+    ):
+        require(type(funding[key]) is int and funding[key] >= 0, "Remaining obligations required")
+    # Seven full states (six epochs + final), six exports, one independent download.
+    require(
+        7 * (4 * model_bytes + 64 * MIB) + 7 * (model_bytes + 16 * MIB) + 64 * MIB <= 12 * GIB,
+        "Full-state/export/download obligations exceed per-arm cap",
+    )
+    files = [p for p in root.rglob("*") if p.is_file()]
+    require(not any(p.is_symlink() for p in files), "Unexpected output symlink")
+    paid = sum(p.stat().st_size for p in files)
+    require(
+        paid + 2 * (model_bytes + 16 * MIB) + 16 * MIB <= 12 * GIB,
+        "Export and download exceed arm cap",
+    )
+    require(
+        shutil.disk_usage(root).free
+        > funding["standing_free_reserve_bytes"]
+        + funding["other_unpaid_node_liabilities_bytes"]
+        + max(0, 12 * GIB - paid),
+        "Fresh owning-node capacity does not retain all funded obligations",
+    )
+    quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    row = next(
+        line.split() for line in quota.splitlines() if line.strip().startswith("/home/sa305415")
+    )
+    require(
+        (int(row[2]) - int(row[1])) * 1024 > 20 * GIB + funding["shared_unpaid_bytes"]
+        and int(row[6]) - int(row[5]) > 5000 + funding["shared_unpaid_files"],
+        "Fresh shared bytes/files must retain all remaining liabilities",
+    )
+
+
+def upload_and_verify(api, common, journal, prefix, payload, operation, token_free_receipt):
+    """Caller holds the original canonical lock; no retry after intent or commit."""
+    require(
+        not (journal / "intent.json").exists(), "Existing intent requires read-only reconciliation"
+    )
+    info = api.repo_info(REPO, repo_type="dataset")
+    require(info.private is True, "Private destination required")
+    require(
+        not list(api.get_paths_info(REPO, paths=[prefix], repo_type="dataset")),
+        "Existing private epoch path requires read-only reconciliation",
+    )
+    table = {n: {"bytes": p.stat().st_size, "sha256": digest(p)} for n, p in payload.items()}
+    common.atomic_new(journal / "manifest.json", {"files": table, **token_free_receipt})
+    payload = {**payload, "manifest.json": journal / "manifest.json"}
+    table["manifest.json"] = {
+        "bytes": payload["manifest.json"].stat().st_size,
+        "sha256": digest(payload["manifest.json"]),
+    }
+    common.atomic_new(
+        journal / "intent.json",
+        {
+            "prefix": prefix,
+            "parent": info.sha,
+            "files": table,
+            "automatic_retry": False,
+            **token_free_receipt,
+        },
+    )
+    result = api.create_commit(
+        REPO,
+        repo_type="dataset",
+        parent_commit=info.sha,
+        commit_message="Preserve sealed predictive production epoch and provenance",
+        operations=[
+            operation(path_in_repo=prefix + "/" + n, path_or_fileobj=p) for n, p in payload.items()
+        ],
+    )
+    common.atomic_new(journal / "commit.json", {"revision": result.oid})
+    for name, item in table.items():
+        with tempfile.TemporaryDirectory(prefix="independent-download-", dir=journal) as tmp:
+            path = Path(
+                api.hf_hub_download(
+                    REPO,
+                    prefix + "/" + name,
+                    repo_type="dataset",
+                    revision=result.oid,
+                    local_dir=tmp,
+                    force_download=True,
+                )
+            )
+            require(
+                path.stat().st_size == item["bytes"] and digest(path) == item["sha256"],
+                "Independent full private download size/SHA failed; reconcile without retry",
+            )
+    return {
+        **token_free_receipt,
+        "revision": result.oid,
+        "prefix": prefix,
+        "objects": len(table),
+        "files": table,
+        "canonical_shared_publication_lock_used": True,
+    }
+
+
+def main(v):
+    os.umask(0o077)
+    require(not os.environ.get("SLURM_JOB_GPUS"), "One-CPU zero-GPU publication required")
+    binding_path = reference(v["binding"])
+    binding = json.loads(binding_path.read_text())
+    root, epoch = Path(binding["run_root"]), v["epoch"]
+    require(
+        root.is_absolute()
+        and root.resolve().is_relative_to(Path("/tmp"))
+        and not root.is_symlink()
+        and os.uname().nodename == binding["node"],
+        "Exact owning-node private output required",
+    )
+    journal = root / "publication" / f"epoch-{epoch:03d}"
+    require(v["mode"] in ("inspect", "publish"), "Inspect or one publication only")
+    if journal.exists():
+        require(v["mode"] == "inspect", "Existing journal requires read-only reconciliation")
+        verified = journal / "verified.json"
+        if not verified.exists():
+            return {"status": "existing_publication_journal_requires_read_only_reconciliation"}
+        previous = json.loads(verified.read_text())
+        require(
+            (previous["arm"], previous["epoch"], previous["source_git"])
+            == (binding["arm"], epoch, binding["source_git"]),
+            "Existing receipt binding differs",
+        )
+        return previous
+    side_path = root / f"epoch-{epoch:03d}.json"
+    if not side_path.exists():
+        return {"status": "waiting_for_original_sealed_epoch_no_publication_intent"}
+    side, start = (
+        json.loads(side_path.read_text()),
+        json.loads((root / "run-start.json").read_text()),
+    )
+    validate_binding(binding, start, side, epoch, v["binding"]["sha256"])
+    path = root / "checkpoints" / side["checkpoint_name"]
+    before = signature(path)
+    require(before == side["checkpoint_stat"], "Original sealed checkpoint stat changed")
+    if v["mode"] == "inspect":
+        return {
+            "status": "sealed_epoch_ready_no_publication_intent",
+            "arm": binding["arm"],
+            "epoch": epoch,
+            "checkpoint_bytes": before[1],
+        }
+    require(
+        digest(path) == side["checkpoint_sha256"] and signature(path) == before,
+        "Original sealed checkpoint bytes changed",
+    )
+    funding = json.loads(reference(v["publication_funding"]).read_text())
+    require(funding["arm"] == binding["arm"] and funding["epoch"] == epoch, "Wrong funded epoch")
+    own_source = {}
+    code = Path(binding["code_root"])
+    for name, expected in binding["code_sha256"].items():
+        source = code / name
+        require(
+            source.resolve().is_relative_to(code.resolve()) and digest(source) == expected,
+            "Bound own scientific source changed",
+        )
+        own_source[name] = source.read_text()
+    require(sum(len(s.encode()) for s in own_source.values()) <= 2 * MIB, "Own-source size cap")
+    license_path = reference(binding["license"])
+    require(digest(CORE) == CORE_SHA, "Original shared-lock publisher core changed")
+    spec = importlib.util.spec_from_file_location("original_predictive_publication_core", CORE)
+    common = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(common)
+    import torch
+
+    torch.set_num_threads(1)
+    require(torch.cuda.device_count() == 0, "No GPU exposure allowed to publication worker")
+    # Full RNG includes NumPy state. Only our owned, sealed and SHA-bound writer is decoded.
+    state = torch.load(path, map_location="cpu", weights_only=False)
+    model = validate_state(state, binding, side)
+    model_bytes = sum(t.numel() * t.element_size() for t in model.values())
+    budget(root, funding, model_bytes)
+    os.environ.update(
+        HF_HUB_DISABLE_XET="1",
+        HF_HUB_DISABLE_PROGRESS_BARS="1",
+        HF_HUB_OFFLINE="0",
+        HF_HOME=str(root / "publication-hf"),
+    )
+    from huggingface_hub import CommitOperationAdd, HfApi
+
+    prefix = f"checkpoints/predictive-full3887-{binding['source_git'][:12]}/{binding['arm']}/epoch-{epoch:03d}"
+    provenance = {
+        key: start[key]
+        for key in (
+            "arm",
+            "GPU_job",
+            "source_git",
+            "binding_sha256",
+            "recipe",
+            "parent_weight_sha256",
+            "parent_source_sha256",
+            "source_revision",
+            "context_index_sha256",
+            "source_context_index_sha256",
+            "targets_sha256",
+            "fitting_order_sha256",
+            "license_sha256",
+            "runtime_receipt_sha256",
+            "runtime_versions",
+            "engineering_decision_sha256",
+            "input_admission_sha256",
+            "funding_sha256",
+            "initial_shared_tensor_sha256",
+            "model_schema_sha256",
+            "parameter_count",
+            "renderer_sha256",
+        )
+    }
+    provenance.update(
+        epoch=epoch,
+        completed_updates=486 * epoch,
+        cohort_size=3887,
+        checkpoint_sha256=side["checkpoint_sha256"],
+        history_sha256=side["history_sha256"],
+        sealed_sidecar_sha256=digest(side_path),
+        parent_author="nartaa",
+        model_source="public_licensed_MRI_parent_and_unchanged_RSNA_fitting_only",
+        additional_Stanford_or_KneeCoT_or_teacher_probabilities_used=False,
+        inherited_public_parent_is_not_independent_OOF=True,
+        code_sha256=binding["code_sha256"],
+        optimizer_RNG_private_paths_labels_IDs_exported=False,
+        clinical_or_Kaggle_gain_claim=False,
+        publisher_source_git=v["source_git"],
+        publisher_sha256=digest(Path(__file__)),
+        original_publisher_core_sha256=CORE_SHA,
+    )
+    with common.shared_publication_lock():
+        api = HfApi(token=v["token"])
+        require(api.repo_info(REPO, repo_type="dataset").private is True, "Private repo required")
+        require(
+            not list(api.get_paths_info(REPO, paths=[prefix], repo_type="dataset")),
+            "Existing HF path requires read-only reconciliation",
+        )
+        journal.mkdir(mode=0o700, parents=True, exist_ok=False)
+        architecture = dict(
+            arm=binding["arm"],
+            encoder="CoAtNet_RMLP2",
+            resolution=320,
+            hidden=128,
+            classes=12,
+            descriptor_width=64,
+            context_cap=24,
+            halo=8,
+        )
+        export = journal / "model.pt"
+        with export.open("xb") as handle:
+            torch.save(
+                {"model": model, "architecture": architecture, "provenance": provenance}, handle
+            )
+        require(export.stat().st_size <= model_bytes + 16 * MIB, "Model-only export exceeded bound")
+        del state, model
+        common.atomic_new(journal / "provenance.json", provenance)
+        common.atomic_new(journal / "own-source.json", own_source)
+        result = upload_and_verify(
+            api,
+            common,
+            journal,
+            prefix,
+            {
+                "model.pt": export,
+                "provenance.json": journal / "provenance.json",
+                "own-source.json": journal / "own-source.json",
+                "source-permission.txt": license_path,
+            },
+            CommitOperationAdd,
+            {
+                "arm": binding["arm"],
+                "epoch": epoch,
+                "GPU_job": side["GPU_job"],
+                "source_git": binding["source_git"],
+            },
+        )
+        require(signature(path) == before, "Original checkpoint changed during preservation")
+        result["status"] = (
+            "actual_predictive_model_only_epoch_private_all_objects_download_size_SHA_verified"
+        )
+        common.atomic_new(journal / "verified.json", result)
+    return result
+
+
+if __name__ == "__main__":
+    try:
+        print(json.dumps(main(json.load(sys.stdin))), flush=True)
+    except BaseException as error:
+        tb = error.__traceback__
+        while tb.tb_next is not None:
+            tb = tb.tb_next
+        print(
+            json.dumps({"error_type": type(error).__name__, "site_line": tb.tb_lineno}),
+            file=sys.stderr,
+        )
+        raise SystemExit(1)

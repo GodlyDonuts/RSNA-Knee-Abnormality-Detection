@@ -1,0 +1,82 @@
+{
+  "status": "accepted_full_predictive_numerical_recipe",
+  "decided_at_UTC": "2026-10-20T10:22:41.981124+00:00",
+  "actual_engineering_GPU_job": "978709",
+  "actual_engineering_source_git": "39e315c65546aa5205518713bc27349ec63e7538",
+  "actual_engineering_receipt_sha256": "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82b10",
+  "actual_engineering_complete_recovery_all_arms": true,
+  "exact_numerical_module_sha256": {
+    "rsna/competitive/predictive/__init__.py": "51104641623e3b4bd4eb7263d011dd7a048542d706f6d1b96741e876b8bfd9b9",
+    "rsna/competitive/predictive/cache.py": "f82c478e0d4632ed31b491e4915066a47adf8275a7c2ba6fb42b9ca99871f944",
+    "rsna/competitive/predictive/cases.py": "c19e3d45b6573dbd9c631f67e2794493e9e9f4a06f6da49df93f16edb6d93cf8",
+    "rsna/competitive/predictive/context_cache.py": "bf9d59b26bd8a28f4533648d5b10d6c77bd5caf8d2f69de0b77968ce4d4ea3b5",
+    "rsna/competitive/predictive/density.py": "b5f56767dd277af65864983f3a5cd58d89d4cc8153990e9139e6f81b870e64a0",
+    "rsna/competitive/predictive/dicom.py": "0980f1958bd9f5c929bbd85fb67cd9e148b6506608af76f0a5f5e52d518fdb94",
+    "rsna/competitive/predictive/infer.py": "1f547a54778cd2e57caaaf0513362e21a85b8119f9f1b188985a17ee9fd162f8",
+    "rsna/competitive/predictive/inputs.py": "e773ce9f2e2e2f775cf991365867b6ae4340d55b3097541c37080a938a62c459",
+    "rsna/competitive/predictive/model.py": "38c9fc7c2e7e79ea90972f1b14c6e47491aba2f1641496277534e7cd20856f08",
+    "rsna/competitive/predictive/source_resume.py": "51a42fd5d5b178d36db84c6d94344ad584545459fef83a7d1de3bf1f24e9ef45",
+    "rsna/competitive/predictive/supports.py": "74cc5b71a9372b0a7970ac3507484fe96d6d1d4e4e710fc8177121f72a95597b",
+    "rsna/competitive/predictive/train.py": "066dc5eda8ca8a793548e6fde62c2c6a06480f052d9034aa3fe2e08a5004dc58"
+  },
+  "recipes": {
+    "B": {
+      "arm": "B",
+      "epochs": 6,
+      "effective_batch": 8,
+      "encoder_lr": 3e-05,
+      "head_lr": 3e-05,
+      "weight_decay": 0.02,
+      "warmup_fraction": 0.05,
+      "end_lr_fraction": 0.1,
+      "density_weight": 0.1,
+      "head_only_updates": 3,
+      "clip": 1.0,
+      "seed": 20261020,
+      "schedule_updates": 2916
+    },
+    "C": {
+      "arm": "C",
+      "epochs": 6,
+      "effective_batch": 8,
+      "encoder_lr": 3e-05,
+      "head_lr": 3e-05,
+      "weight_decay": 0.02,
+      "warmup_fraction": 0.05,
+      "end_lr_fraction": 0.1,
+      "density_weight": 0.1,
+      "head_only_updates": 3,
+      "clip": 1.0,
+      "seed": 20261020,
+      "schedule_updates": 2916
+    },
+    "C0": {
+      "arm": "C0",
+      "epochs": 6,
+      "effective_batch": 8,
+      "encoder_lr": 3e-05,
+      "head_lr": 3e-05,
+      "weight_decay": 0.02,
+      "warmup_fraction": 0.05,
+      "end_lr_fraction": 0.1,
+      "density_weight": 0,
+      "head_only_updates": 3,
+      "clip": 1.0,
+      "seed": 20261020,
+      "schedule_updates": 2916
+    }
+  },
+  "decision": "Proceed with matched full B/C/C0 fitting after complete original input, resource and source admission; zero-initialized density means and the actual 2916-update schedule resolve the observed early numerical failure in the bounded fitting-only experiment.",
+  "observed_C_C0_gradient_risk_reviewed": true,
+  "actual_C_maximum_head_norm": 29.332193627336117,
+  "previous_cached_C_maximum_head_norm": 4366,
+  "limitations": [
+    "Only24 actual updates per arm; maximum tested LR4.938271604938272e-6, peak3e-5 unexercised.",
+    "Engineering subjects are fitting-only; no clinical gain or best-model choice follows.",
+    "Input intensity shift, descriptor sufficiency, correlated region evidence and inherited exposure remain scientific risks.",
+    "Actual T4 v1 hit the600-second engineering cap after its own final550-second guard; no throughput receipt or hidden-scale runtime acceptance."
+  ],
+  "first_full_fit_monitoring": "Inspect the first200 contiguous updates of each arm through peak LR and varied full-cohort region counts; preserve every finite and failed original. Any nonfinite loss/gradient stops via the trainer; no automatic recipe change or restart.",
+  "clinical_accuracy_claim": false,
+  "full_data_admission_or_GPU_dispatch": false
+}

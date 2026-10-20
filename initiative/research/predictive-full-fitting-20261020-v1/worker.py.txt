@@ -1,0 +1,607 @@
+"""One admitted full predictive arm; no source acquisition, dispatch, or publication.
+
+The CPU coordinator must supply an immutable private binding after complete input,
+placement, numerical-decision, runtime and funding admission. See README.md.
+"""
+
+import argparse
+import ast
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import math
+import os
+import random
+import resource
+import shutil
+import sys
+import tempfile
+import time
+from dataclasses import asdict
+from pathlib import Path
+
+GIB = 2**30
+COHORT = 3887
+EPOCHS = 6
+BATCH = 8
+STEPS = math.ceil(COHORT / BATCH)
+UPDATES = EPOCHS * STEPS
+TARGET_SHA = "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+ROSTER_SHA = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+
+
+def require(condition, reason):
+    if not condition:
+        raise ValueError(reason)
+
+
+def digest(path):
+    with Path(path).open("rb") as handle:
+        return hashlib.file_digest(handle, "sha256").hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def owned_file(path):
+    path = Path(path)
+    require(path.is_absolute() and not path.is_symlink(), "Exact original file path required")
+    st = path.stat()
+    require(path.is_file() and st.st_uid == os.getuid(), "Owning-user original file required")
+    return path, [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+
+
+def read_reference(reference):
+    path, _ = owned_file(reference["path"])
+    require(digest(path) == reference["sha256"], "Immutable small input/reference changed")
+    return path
+
+
+def write_once(path, value):
+    """Publish a complete small receipt atomically without replacing an original."""
+    path = Path(path)
+    descriptor, name = tempfile.mkstemp(prefix=".receipt-pending-", dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "w") as handle:
+            json.dump(value, handle, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.link(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def output_usage(root):
+    """Count retained bytes while the independent publisher removes its downloads."""
+    root = Path(root)
+    size = count = 0
+    for path in root.rglob("*"):
+        try:
+            if path.is_file():
+                size += path.stat().st_size
+                count += 1
+        except FileNotFoundError:
+            relative = path.relative_to(root)
+            # Only independently downloaded publication temporaries are disposable.
+            if not (
+                relative.parts[0] == "publication"
+                and any(p.startswith("independent-download-") for p in relative.parts)
+            ):
+                raise
+    return size, count
+
+
+def expected_update(step):
+    require(type(step) is int and 1 <= step <= UPDATES, "Original contiguous update required")
+    epoch, batch = divmod(step - 1, STEPS)
+    return epoch + 1, min(BATCH, COHORT - batch * BATCH)
+
+
+def check_record(record, previous_step):
+    require(record["step"] == previous_step + 1, "Noncontiguous optimizer history")
+    epoch, studies = expected_update(record["step"])
+    require((record["epoch"], record["studies"]) == (epoch, studies), "Wrong epoch/tail weighting")
+    require(record["encoder_updated"] == (record["step"] > 3), "Head-only warmup changed")
+    require(
+        all(
+            math.isfinite(record[k])
+            for k in (
+                "loss",
+                "exam_loss",
+                "density_loss",
+                "encoder_gradient_norm",
+                "head_gradient_norm",
+                "gradient_norm",
+            )
+        )
+        and all(math.isfinite(x) and 0 < x <= 3e-5 for x in record["LR"]),
+        "Nonfinite update or unexpected learning rate",
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--binding", type=Path, required=True)
+    parser.add_argument("--binding-sha256", required=True)
+    args = parser.parse_args()
+    os.umask(0o077)
+    require(not sys.flags.optimize, "Admission assertions must remain enabled")
+    binding_path = read_reference({"path": str(args.binding), "sha256": args.binding_sha256})
+    binding = json.loads(binding_path.read_text())
+    arm = binding["arm"]
+    require(
+        binding["schema"] == "predictive_full3887_one_arm_v1" and arm in ("B", "C", "C0"),
+        "Exact full-fitting binding required",
+    )
+    require(
+        os.uname().nodename == binding["node"] and binding["physical_gpu_count"] in (1, 2),
+        "Admitted ordinary one-/two-GPU node required",
+    )
+    require(
+        os.environ.get("SLURM_JOB_GPUS") and os.environ.get("SLURM_JOB_ID"),
+        "A separately admitted allocated GPU job is required",
+    )
+    require(
+        Path(sys.executable).resolve() == Path(binding["runtime_python"]).resolve(),
+        "Original admitted runtime differs",
+    )
+    require(
+        os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8", "Deterministic CUDA header required"
+    )
+    code = Path(binding["code_root"])
+    required_modules = {
+        "worker.py",
+        "rsna/__init__.py",
+        "rsna/competitive/__init__.py",
+        "rsna/competitive/predictive/__init__.py",
+        *[
+            "rsna/competitive/predictive/" + name + ".py"
+            for name in (
+                "inputs",
+                "cases",
+                "supports",
+                "density",
+                "cache",
+                "context_cache",
+                "model",
+                "train",
+            )
+        ],
+    }
+    require(
+        required_modules <= binding["code_sha256"].keys(),
+        "Complete frozen module manifest required",
+    )
+    require(
+        set(binding["renderer_sha256"])
+        == {
+            "rsna/competitive/predictive/inputs.py",
+            "rsna/competitive/predictive/cases.py",
+            "rsna/competitive/predictive/supports.py",
+        }
+        and all(
+            binding["code_sha256"][name] == sha for name, sha in binding["renderer_sha256"].items()
+        ),
+        "Bound training and input renderer sources differ",
+    )
+    for name, sha in binding["code_sha256"].items():
+        path = code / name
+        require(path.resolve().is_relative_to(code.resolve()), "Source path escaped admitted root")
+        require(digest(path) == sha, "Frozen scientific/control source changed")
+    require(
+        Path(__file__).resolve() == (code / "worker.py").resolve(), "Exact admitted worker required"
+    )
+    require("worker.py" in binding["code_sha256"], "Worker itself must be source-bound")
+    references = {
+        name: read_reference(binding[name])
+        for name in (
+            "runtime_receipt",
+            "input_admission",
+            "engineering_decision",
+            "funding",
+            "license",
+            "context_terminal",
+            "context_index",
+            "targets",
+            "parent_source",
+        )
+    }
+    require(binding["targets"]["sha256"] == TARGET_SHA, "Accepted targets cannot change")
+    admission = json.loads(references["input_admission"].read_text())
+    require(
+        admission["status"] == "actual_complete3887_predictive_fitting_inputs_accepted",
+        "Actual full-cohort CPU admission required",
+    )
+    for key in (
+        "node",
+        "source_git",
+        "code_sha256",
+        "physical_gpu_count",
+        "expected_initial_shared_tensor_sha256",
+    ):
+        require(admission[key] == binding[key], "CPU source/node binding differs")
+    for name in ("context_index", "targets", "parent_source", "parent_weight", "runtime_receipt"):
+        require(admission[name + "_sha256"] == binding[name]["sha256"], "CPU asset binding differs")
+    require(
+        admission["all_context_original_hashes_and_stats_verified"] is True,
+        "Original complete context/placement proofs required",
+    )
+    terminal = json.loads(references["context_terminal"].read_text())
+    original_complete = (
+        terminal["status"]
+        == "actual_complete3887_exact_FP32_context_cache_and_RNG_parity_accepted"
+        and terminal.get("all_original_source_regions_retained") is True
+    )
+    continuation_complete = (
+        terminal["status"] == "actual_missing_only3887_exact_FP32_context_continuation_accepted"
+        and terminal.get("original_context_job") == "978414"
+        and str(terminal.get("successor_raw_job", "")).isdecimal()
+        and terminal.get("all_originals_preserved") is True
+        and terminal.get("global_RNG_unchanged") is True
+    )
+    require(
+        (original_complete or continuation_complete)
+        and terminal["studies"] == COHORT
+        and terminal["exact_both_view_images_targets_metadata_priors"]
+        and terminal["private_index_sha256"] == binding["source_context_index_sha256"],
+        "Complete original context producer is not accepted",
+    )
+    rows = json.loads(references["context_index"].read_text())
+    require(len(rows) == COHORT, "Partial context index cannot launch full fitting")
+    parent_weight, parent_stat = owned_file(binding["parent_weight"]["path"])
+    require(
+        parent_stat == binding["parent_weight"]["stat"], "Previously hashed parent bytes changed"
+    )
+    for row in rows:
+        _, stat = owned_file(row["path"])
+        require(stat == row["proof"]["stat"], "Context changed after owning-node admission")
+        p = row["provenance"]
+        require(
+            (p["side"], p["context_cap"], p["halo"], p["classes"]) == (320, 24, 8, 12)
+            and p["module_sha256"] == binding["renderer_sha256"]
+            and p["original_source_revision"] == binding["source_revision"],
+            "Original rendering/source recipe changed",
+        )
+    funding = json.loads(references["funding"].read_text())
+    root = Path(binding["run_root"])
+    require(
+        root.is_absolute() and root.resolve().is_relative_to(Path("/tmp")) and not root.exists(),
+        "New owner-only node-local output required; existing output needs reconciliation",
+    )
+    require(
+        funding["status"] == "actual_predictive_full_arm_storage_funded"
+        and funding["arm"] == arm
+        and funding["run_root"] == str(root)
+        and funding["arm_cap_bytes"] == 12 * GIB
+        and funding["standing_free_reserve_bytes"] >= 20 * GIB
+        and funding["other_unpaid_node_liabilities_bytes"] >= 0
+        and funding["shared_free_after_all_liabilities_bytes"] >= 20 * GIB
+        and funding["shared_files_after_all_liabilities"] >= 5000
+        and funding["all_other_obligations_retained"]
+        and funding["no_deletion_credit"],
+        "Separate actual per-arm storage funding required",
+    )
+
+    os.environ.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
+    sys.path[:0] = [str(code), *binding.get("python_paths", [])]
+    import numpy as np
+    import timm
+    import torch
+
+    from rsna.competitive.predictive.context_cache import load
+    from rsna.competitive.predictive.model import Predictive, ReconstructionControl
+    from rsna.competitive.predictive.train import Recipe, fit
+
+    require(
+        torch.cuda.device_count() == 1
+        and "H100" in torch.cuda.get_device_name(0)
+        and torch.cuda.is_bf16_supported(),
+        "One usable admitted H100 required",
+    )
+    require(torch.ones(1, device="cuda").item() == 1, "Allocated CUDA context failed")
+    actual_versions = {
+        "torch": torch.__version__,
+        "timm": timm.__version__,
+        "cuda": torch.version.cuda,
+    }
+    require(actual_versions == binding["runtime_versions"], "Actual runtime versions differ")
+    torch.set_num_threads(2)
+    torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.use_deterministic_algorithms(True)
+    recipe = Recipe(
+        arm,
+        epochs=EPOCHS,
+        effective_batch=BATCH,
+        head_only_updates=3,
+        encoder_lr=3e-5,
+        head_lr=3e-5,
+        density_weight=0 if arm == "C0" else 0.1,
+        schedule_updates=UPDATES,
+    )
+    decision = json.loads(references["engineering_decision"].read_text())
+    require(
+        decision["status"] == "accepted_full_predictive_fitting_recipe"
+        and decision["source_git"] == binding["source_git"]
+        and decision["code_sha256"] == binding["code_sha256"]
+        and decision["recipe"] == asdict(recipe)
+        and decision["observed_C_C0_gradient_risk_reviewed"] is True,
+        "Explicit exact numerical decision is required before optimization",
+    )
+    with np.load(references["targets"], allow_pickle=False) as arrays:
+        uids = arrays["uids"].tolist()
+        require(
+            len(uids) == COHORT
+            and uids == sorted(set(uids))
+            and hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+            == ROSTER_SHA
+            and [r["uid"] for r in rows] == uids,
+            "Exact unchanged fitting UID join required",
+        )
+        labels = torch.from_numpy(arrays["labels"].copy()).float()
+        masks = torch.from_numpy(arrays["masks"].copy()).bool()
+    require(
+        labels.shape == masks.shape == (COHORT, 12)
+        and torch.isfinite(labels[masks]).all()
+        and ((labels[masks] >= 0) & (labels[masks] <= 1)).all(),
+        "Original observed targets invalid",
+    )
+    source = references["parent_source"].read_text()
+    selected = [
+        n
+        for n in ast.parse(source).body
+        if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+        and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+    ]
+    require(len(selected) == 3, "Original admitted MRI encoder constructor required")
+    ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+    exec(
+        compile(ast.Module(body=selected, type_ignores=[]), "admitted_MRI_encoder_only", "exec"), ns
+    )
+    with contextlib.redirect_stdout(io.StringIO()):
+        parent, resolution = ns["load_model"](
+            str(parent_weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+        )
+    require(
+        resolution == 320 and sum(p.numel() for p in parent.parameters()) == 73136096,
+        "Wrong full MRI parent or resolution",
+    )
+
+    class Encoder(torch.nn.Module):
+        def __init__(self, backbone):
+            super().__init__()
+            self.backbone = backbone
+            self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406])[None, :, None, None])
+            self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225])[None, :, None, None])
+
+        def forward(self, images):
+            return self.backbone((images - self.mean) / self.std)
+
+    random.seed(recipe.seed)
+    np.random.seed(recipe.seed)
+    torch.manual_seed(recipe.seed)
+    torch.cuda.manual_seed_all(recipe.seed)
+    cls = ReconstructionControl if arm == "B" else Predictive
+    model = cls(Encoder(parent.backbone), parent.backbone.num_features, hidden=128)
+    del parent
+    shared = hashlib.sha256()
+    for name, tensor in sorted(model.state_dict().items()):
+        if name.split(".")[0] in {"encoder", "project", "position", "attention", "norm", "prior"}:
+            shared.update(canonical([name, str(tensor.dtype), list(tensor.shape)]))
+            shared.update(tensor.contiguous().numpy().tobytes())
+    require(
+        shared.hexdigest() == binding["expected_initial_shared_tensor_sha256"],
+        "Actual common encoder/context initialization differs from CPU admission",
+    )
+    model_schema = {
+        name: {"shape": list(tensor.shape), "dtype": str(tensor.dtype)}
+        for name, tensor in model.state_dict().items()
+    }
+    model_schema_sha256 = hashlib.sha256(canonical(model_schema)).hexdigest()
+    model_state_bytes = sum(t.numel() * t.element_size() for t in model.state_dict().values())
+    checkpoint_upper = 4 * model_state_bytes + 64 * 2**20
+    require(7 * checkpoint_upper + 64 * 2**20 <= 12 * GIB, "Six epochs plus final exceed arm cap")
+    require(
+        shutil.disk_usage(root.parent).free
+        > funding["standing_free_reserve_bytes"]
+        + funding["other_unpaid_node_liabilities_bytes"]
+        + funding["arm_cap_bytes"],
+        "Fresh node free space no longer funds this arm",
+    )
+    root.mkdir(mode=0o700)
+    receipt_base = {
+        "arm": arm,
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": binding["source_git"],
+        "binding_sha256": args.binding_sha256,
+        "recipe": asdict(recipe),
+        "parent_weight_sha256": binding["parent_weight"]["sha256"],
+        "parent_source_sha256": binding["parent_source"]["sha256"],
+        "source_revision": binding["source_revision"],
+        "renderer_sha256": binding["renderer_sha256"],
+        "input_admission_sha256": binding["input_admission"]["sha256"],
+        "runtime_versions": actual_versions,
+        "parameter_count": sum(p.numel() for p in model.parameters()),
+        "model_schema_sha256": model_schema_sha256,
+        "context_index_sha256": binding["context_index"]["sha256"],
+        "source_context_index_sha256": binding["source_context_index_sha256"],
+        "targets_sha256": TARGET_SHA,
+        "fitting_order_sha256": ROSTER_SHA,
+        "license_sha256": binding["license"]["sha256"],
+        "runtime_receipt_sha256": binding["runtime_receipt"]["sha256"],
+        "engineering_decision_sha256": binding["engineering_decision"]["sha256"],
+        "funding_sha256": binding["funding"]["sha256"],
+        "initial_shared_tensor_sha256": shared.hexdigest(),
+        "arm_cap_bytes": 12 * GIB,
+        "clinical_accuracy_or_Kaggle_score": False,
+    }
+    write_once(root / "run-start.json", receipt_base)
+    model = model.cuda()
+    gc.collect()
+    require(all(p.requires_grad for p in model.encoder.parameters()), "Frozen encoder not allowed")
+
+    class Cases:
+        loads = 0
+        seconds = 0.0
+
+        def __len__(self):
+            return COHORT
+
+        def case(self, index, epoch):
+            require(0 <= index < COHORT and 0 <= epoch < EPOCHS, "Unexpected fitting access")
+            row = rows[index]
+            start = time.monotonic()
+            contexts = load(row["path"], row["proof"], provenance=row["provenance"])
+            self.seconds += time.monotonic() - start
+            self.loads += 1
+            return {
+                "contexts": contexts,
+                "labels": labels[index : index + 1],
+                "mask": masks[index : index + 1],
+            }
+
+    data, history, sealed = Cases(), [], set()
+    checkpoints = root / "checkpoints"
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.synchronize()
+    started = last_update = time.monotonic()
+
+    def seal_epochs():
+        for epoch in range(1, EPOCHS + 1):
+            path = checkpoints / f"epoch-{epoch:03d}.pt"
+            if epoch in sealed or not path.exists():
+                continue
+            require(len(history) >= epoch * STEPS, "Checkpoint precedes its numerical history")
+            _, checkpoint_stat = owned_file(path)
+            size = checkpoint_stat[1]
+            require(size <= checkpoint_upper, "Preserve checkpoint exceeding its bound")
+            checkpoint_sha256 = digest(path)
+            require(
+                owned_file(path)[1] == checkpoint_stat, "Completed checkpoint changed while hashing"
+            )
+            write_once(
+                root / f"epoch-{epoch:03d}.json",
+                {
+                    **receipt_base,
+                    "status": "immutable_full_state_epoch_ready_for_private_publication",
+                    "epoch": epoch,
+                    "completed_updates": epoch * STEPS,
+                    "cohort_size": COHORT,
+                    "checkpoint_name": path.name,
+                    "checkpoint_bytes": size,
+                    "checkpoint_sha256": checkpoint_sha256,
+                    "checkpoint_stat": checkpoint_stat,
+                    "history_sha256": hashlib.sha256(
+                        canonical(history[: epoch * STEPS])
+                    ).hexdigest(),
+                    "contains_model_optimizer_recipe_binding_counters_history_all_RNG": True,
+                    "independent_private_publication_verified": False,
+                },
+            )
+            sealed.add(epoch)
+
+    def on_update(record):
+        nonlocal last_update
+        check_record(record, len(history))
+        history.append(record.copy())
+        seal_epochs()  # fit writes an epoch after its callback; seal it at the next callback.
+        used, output_files = output_usage(root)
+        next_files = 2 if record["step"] == UPDATES else int(record["step"] % STEPS == 0)
+        require(
+            used + next_files * checkpoint_upper + 2**20 <= 12 * GIB,
+            "Arm output cap would be exceeded",
+        )
+        # Other scopes were funded together at admission. Their subsequently
+        # paid bytes must not remain counted as unpaid on every update.
+        require(
+            shutil.disk_usage(root).free
+            > funding["standing_free_reserve_bytes"] + max(0, 12 * GIB - used),
+            "Standing physical reserve or this arm's remaining cap no longer funded",
+        )
+        epoch, within_epoch = divmod(record["step"] - 1, STEPS)
+        require(
+            data.loads == epoch * COHORT + within_epoch * BATCH + record["studies"],
+            "Actual study exposure count differs from the fixed batch schedule",
+        )
+        torch.cuda.synchronize()
+        now = time.monotonic()
+        telemetry = {
+            "arm": arm,
+            **record,
+            "elapsed_seconds": now - started,
+            "seconds_since_previous_update": now - last_update,
+            "studies_per_second_since_previous_update": record["studies"] / (now - last_update),
+            "CPU_context_load_seconds": data.seconds,
+            "study_exposures": data.loads,
+            "peak_GPU_bytes": torch.cuda.max_memory_allocated(),
+            "output_bytes": used,
+            "output_files": output_files,
+            "sealed_epoch_sidecars": len(sealed),
+            "peak_host_RSS_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+        }
+        with (root / "updates.jsonl").open("a") as handle:
+            handle.write(json.dumps(telemetry) + "\n")
+        print(json.dumps(telemetry), flush=True)
+        last_update = now
+
+    state = fit(
+        model,
+        data,
+        recipe,
+        binding=binding,
+        output=checkpoints,
+        epoch_snapshots=True,
+        on_update=on_update,
+    )
+    torch.cuda.synchronize()
+    require(
+        state["step"] == UPDATES
+        and state["history"] == history
+        and len(history) == UPDATES
+        and state["cohort_size"] == COHORT
+        and state["epoch_snapshots"]
+        and data.loads == COHORT * EPOCHS,
+        "Actual fixed-final execution is incomplete",
+    )
+    seal_epochs()
+    require(sealed == set(range(1, EPOCHS + 1)), "All six original epochs must remain")
+    size, _ = output_usage(root)
+    require(
+        size + 2**20 <= 12 * GIB and len(list(checkpoints.glob("*.pt"))) == 7,
+        "Original output count or bound changed",
+    )
+    final = checkpoints / "final.pt"
+    result = {
+        **receipt_base,
+        "status": "actual_fixed_final_full3887_predictive_arm_complete",
+        "epochs": EPOCHS,
+        "updates": UPDATES,
+        "study_exposures": data.loads,
+        "elapsed_seconds": time.monotonic() - started,
+        "CPU_context_load_seconds": data.seconds,
+        "peak_GPU_bytes": torch.cuda.max_memory_allocated(),
+        "peak_host_RSS_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
+        "retained_full_checkpoints": 7,
+        "immutable_epoch_sidecars": 6,
+        "output_bytes_before_terminal": size,
+        "final_checkpoint_bytes": final.stat().st_size,
+        "final_checkpoint_sha256": digest(final),
+        "all_original_fitting_labels_masks_unchanged": True,
+        "protected_or_gold_cases_read": False,
+        "no_predictions_or_heldout_metric_created": True,
+        "private_epoch_publication_pending": True,
+    }
+    write_once(root / "terminal.json", result)
+    print(json.dumps(result), flush=True)
+
+
+if __name__ == "__main__":
+    main()
