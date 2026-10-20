@@ -1,0 +1,188 @@
+"""One-time CPU staging or final-model compilation, no Kaggle/GPU mutations."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+D = R / "final-serving-v1"
+phase = v["phase"]
+assert phase in ("stage", "compile")
+paid = sum(
+    p.stat().st_size
+    for p in R.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(R).parts
+)
+assert paid + 2**20 < 24 * 2**30
+# Keep every other standing liability in full; conservative even if already paid.
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 87 + 12 + 4 + 12) * 2**30 + max(0, 24 * 2**30 - paid) + 128 * 2**20 + 8 * 2**20
+)
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2 + 4) * 2**20 + 96 * 2**10
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 256 + 24
+meta = json.loads((R / "staged.json").read_text())
+assert meta["source_git"] == "7f75fd46b5d0e772fd2767400e81d70b593619b4"
+assert (
+    hashlib.sha256((R / "worker.py").read_bytes()).hexdigest()
+    == "ffc1fbf914b9e1a97476ac40b3d4cc0c58b7948c45061079a497f1135c2df461"
+)
+if phase == "stage":
+    assert not D.exists(), "Reconcile original staging; never repeat"
+    assert sum(len(s.encode()) for s in v["source"].values()) < 128 * 2**10
+    for n, s in v["source"].items():
+        assert "/" not in n and n.endswith(".py")
+        assert hashlib.sha256(s.encode()).hexdigest() == v["source_SHA"][n]
+        compile(s, n, "exec")
+    parent = Path(
+        "/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2/source/parent_source.private.py"
+    )
+    assert (
+        hashlib.sha256(parent.read_bytes()).hexdigest()
+        == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+    )
+    D.mkdir(mode=0o700)
+    for n, s in v["source"].items():
+        (D / n).write_text(s)
+    out = {
+        "status": "actual_original_H100_two_objective_final_serving_CPU_controls_staged",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "source_SHA": v["source_SHA"],
+        "future_serving_control_cap_bytes": 2**20,
+        "inside_original24GiB_scope": True,
+        "maximum_final_models": 2,
+        "new_model_transfers_GPU_or_Kaggle_mutations": 0,
+        "actual_new_T4_acceptance": False,
+    }
+    (D / "staged.json").write_text(json.dumps(out, sort_keys=True) + "\n")
+else:
+    role = v["role"]
+    assert role in ("pointwise", "teacher_rank")
+    stage = json.loads((D / "staged.json").read_text())
+    assert stage["source_git"] == v["stage_source_git"]
+    assert all(
+        hashlib.sha256((D / n).read_bytes()).hexdigest() == h
+        for n, h in stage["source_SHA"].items()
+    )
+    J = R / "publication" / role / "epoch-003"
+    if not (J / "verified.json").exists():
+        print(
+            json.dumps(
+                {
+                    "status": "waiting_actual_fixed_final_private_publication_no_intent",
+                    "role": role,
+                    "new_GPU_or_Kaggle_mutations": 0,
+                }
+            )
+        )
+        raise SystemExit(0)
+    output = D / role
+    assert not output.exists(), "Reconcile original compilation; never repeat"
+    pub = json.loads((J / "verified.json").read_text())
+    intent = json.loads((J / "intent.json").read_text())
+    provraw = (J / "provenance.json").read_bytes()
+    assert hashlib.sha256(provraw).hexdigest() == intent["files"]["provenance.json"]["sha256"]
+    pub["provenance"] = json.loads(provraw)
+    run = json.loads((R / role / "run.json").read_text())
+    path = R / role / "epoch-checkpoints/epoch-003.pt"
+    assert (
+        pub["model_bytes"] == path.stat().st_size
+        and pub["model_sha256"] == intent["files"]["model.pt"]["sha256"]
+    )
+    training = {
+        "status": "COMPLETE",
+        "epoch": 3,
+        "kernel_id": None,
+        "training_Slurm_job": "975297",
+        "source_sha256": "ffc1fbf914b9e1a97476ac40b3d4cc0c58b7948c45061079a497f1135c2df461",
+        "role": role,
+        "receipt": {
+            "status": "actual_teacher_pair_fixed_final_model_for_serving",
+            "completed": 1458,
+            "binding": run["binding"],
+            "epoch": {"bytes": pub["model_bytes"], "sha256": pub["model_sha256"]},
+        },
+    }
+    ns = {"__name__": "actual_pair_final_helper"}
+    exec(compile((D / "validate.py").read_text(), "actual_final_model_binding", "exec"), ns)
+    ns["provenance"](training, pub, pub["model_sha256"])
+    import torch
+
+    torch.set_num_threads(1)
+    snapshot = torch.load(path, map_location="cpu", weights_only=True)
+    accepted = ns["validate"](snapshot, training, pub, pub["model_sha256"])
+    del snapshot
+    # Publication predates this new compiler. Bind bytes directly because the
+    # old publication receipt did not retain a reusable filesystem stat token.
+    with path.open("rb") as f:
+        assert hashlib.file_digest(f, "sha256").hexdigest() == pub["model_sha256"]
+    output.mkdir(mode=0o700)
+    (output / "intent.json").write_text(
+        json.dumps(
+            {
+                "source_git": v["source_git"],
+                "role": role,
+                "model_sha256": pub["model_sha256"],
+                "automatic_retry": False,
+            }
+        )
+        + "\n"
+    )
+    spec = importlib.util.spec_from_file_location("pair_final_compiler", D / "compiler.py")
+    compiler = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(compiler)
+    parent = Path(
+        "/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2/source/parent_source.private.py"
+    ).read_text()
+    outputs = {}
+    for mode in ("qualification", "competition"):
+        source, binding = compiler.build(
+            parent,
+            *[
+                (D / n).read_text()
+                for n in ("bounded.py", "validate.py", "codec.py", "mixin.py", "importance.py")
+            ],
+            training,
+            pub,
+            mode=mode,
+            legacy_source=(D / "legacy.py").read_text(),
+        )
+        compile(source, "original_full94_final_" + role + "_" + mode, "exec")
+        p = output / (mode + ".private.py")
+        p.write_text(source)
+        (output / (mode + "-compiled.json")).write_text(json.dumps(binding, sort_keys=True) + "\n")
+        outputs[mode] = {
+            "bytes": p.stat().st_size,
+            "sha256": hashlib.sha256(source.encode()).hexdigest(),
+        }
+    (output / "actual-accepted.json").write_text(json.dumps(training, sort_keys=True) + "\n")
+    (output / "publication-private-verified.json").write_text(
+        json.dumps(pub, sort_keys=True) + "\n"
+    )
+    out = {
+        "status": "actual_H100_pair_fixed_final_serving_sources_compiled",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "training_source_git": meta["source_git"],
+        "role": role,
+        "epoch": 3,
+        "model_sha256": pub["model_sha256"],
+        "outputs": outputs,
+        "accepted_snapshot": accepted,
+        "new_GPU_Dataset_or_competition_mutations": 0,
+        "actual_new_T4_serving_accepted": False,
+    }
+    (output / "compiled.json").write_text(json.dumps(out, sort_keys=True) + "\n")
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 2**20
+print(json.dumps(out), flush=True)
