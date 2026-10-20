@@ -1,0 +1,9 @@
+# Earlier cached-node route for the full ranking comparison
+
+Original45 job975129 was held while PENDING/zero runtime, then cancelled once only after actual cached48 CPU975286 preparation passed. Its actual terminal is CANCELLED/00:00:00; no GPU training or checkpoint was discarded. Original45 sources/inputs remain intact. New one-H100/two-CPU/24GiB/12hour normal job975297 was submitted once through CPU975296. No bulk pixels, model or runtime were transferred.
+
+CPU975246 independently found every accepted numerical module byte-identical on48 and all original12 pixel-file proofs equal45. CPU975286 checked source/permission/header/recovery bindings, complete3887 membership and six original both-view image inputs. Host/path-only worker and driver ports pass full AST roundtrip checks; the actual optimizer/loss/sampler modules are unchanged. The source7f75fd46 runs the same two-view pointwise versus teacher-ranking experiment, threeepochs/1458updates each, sequentially from the same accepted initial state. New24GiB node-local checkpoint scope is conservatively funded alongside the unchanged87GiB+12GiB old48 liabilities and20GiB reserve; no old45 deletion/reservation credit.
+
+At the observation after dispatch, Slurm estimated48 start05:57:45 versus old45 estimate21:53:10 onOctober20 (cluster time), about16hours earlier. Estimates are not guarantees;975297 is still PENDING and no new GPU progress or score exists. Inspect live state before action. Never revive975129 or the older held recoveries974412/973904.
+
+`coordinate_once.py.txt prepare` and `submit` have distinct original intents; submit requires actual old cancellation/zero runtime. Source/control pin persists in actual-control-source.json. All actual production epochs require private provenance and independent full re-download/size/SHA validation exactly once. No diagnostic or unqualified model may be submitted. The separate selected-window reader is not used by this frozen current worker.

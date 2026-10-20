@@ -1,0 +1,120 @@
+"""Finalize completed private manifest without repeating MRI decoding or rendering."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/selected-window-full-cohort-20261020-v1"
+assert not (L / "finalization-intent.json").exists()
+failure = json.loads((L / "continuation-transport.json").read_text())
+assert failure["returncode"] == 1 and "line 162" in failure["stderr"]
+assert "TypeError: byte indices must be integers or slices, not str" in failure["stderr"]
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in (
+    "continue_manifest.py.txt",
+    "finalize_manifest.py.txt",
+    "finalize_manifest_once.py.txt",
+    "manifest_stage.py.txt",
+):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+loader = importlib.machinery.SourceFileLoader(
+    "original_prefix_continuation", str(D / "continue_manifest.py.txt")
+)
+m = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+loader.exec_module(m)
+loader2 = importlib.machinery.SourceFileLoader("finalizer", str(D / "finalize_manifest.py.txt"))
+f = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader2.name, loader2))
+loader2.exec_module(f)
+original = (D / "manifest_stage.py.txt").read_text()
+program = f.build(original, m.build)
+files = json.loads(
+    (
+        R / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-full-input-copy.json"
+    ).read_text()
+)["receiver"]["files"]
+modules = {
+    n: hashlib.sha256((R / n).read_bytes()).hexdigest()
+    for n in (
+        "rsna/competitive/licensed_parent_population.py",
+        "rsna/competitive/licensed_pixel_bags.py",
+        "rsna/competitive/licensed_pixel_cache.py",
+    )
+}
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+with (L / "finalization-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "original_CPU": "975384",
+            "original_actual_terminal": "FAILED_receipt_only",
+            "maximum_new_CPU_jobs": 1,
+            "new_GPU_or_pixel_copies": 0,
+            "same_original32MiB_draft_scope": True,
+            "automatic_retry": False,
+        },
+        f,
+    )
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:03:00",
+    "--job-name=rsna-window-integrity-receipt-finalization",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(
+        program,
+        {
+            "source_git": pin,
+            "modules": modules,
+            "original_files": files,
+            "failure_site": 162,
+            "failure_type": "TypeError: byte indices must be integers or slices, not str",
+            "failed_program_sha256": hashlib.sha256(m.build(original).encode()).hexdigest(),
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=3600,
+)
+(L / "finalization-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect original continuation state; never repeat automatically"
+z = json.loads(x.stdout)
+assert (
+    z["original_full94_tensor_hash_checks"] == 7774
+    and z["completed_original_prefix_repeated"] is False
+)
+(D / "actual-full-cohort-integrity.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)

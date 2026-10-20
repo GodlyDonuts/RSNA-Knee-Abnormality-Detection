@@ -1,0 +1,43 @@
+"""Seal completed private CPU work after a proven receipt-only variable collision."""
+
+import hashlib
+
+
+def build(original, continuation_builder):
+    s = continuation_builder(original)
+    # Preserve the original numerical loop, but do not execute it a second time.
+    a = s.index('old = json.loads((D / "intent.json").read_text())')
+    b = s.index("assert shutil.disk_usage", a)
+    s = (
+        s[:a]
+        + """old_intent = json.loads((D / "intent.json").read_text())
+assert old_intent["CPU_job"] == "975028" and old_intent["source_git"] == "baa2a5ecf46c3911abb1923b9f2771a4363ac6e1"
+previous = D / "continuation-v1"
+assert json.loads((previous / "intent.json").read_text())["CPU_job"] == "975384"
+assert json.loads((previous / "progress.json").read_text())["completed_studies"] == 3841
+terminal = subprocess.check_output(["sacct", "-X", "-n", "-P", "-j", "975384", "--format=JobIDRaw,State,ExitCode"], text=True)
+assert "975384|FAILED|1:0" in terminal
+assert v["failure_site"] == 162 and v["failure_type"] == "TypeError: byte indices must be integers or slices, not str"
+assert v["failed_program_sha256"] == "FAILED_PROGRAM_SHA"
+prefix = 3887
+K = D / "finalization-v1"
+assert not K.exists(), "Existing finalization requires reconciliation"
+"""
+        + s[b:]
+    )
+    s = s.replace(
+        "json.dumps(progress, indent=2)",
+        'json.dumps({"failed_CPU": "975384", "completed_images_before_receipt_failure": 3887}, indent=2)',
+    )
+    s = s.replace(
+        '"original_source_git": old["source_git"]',
+        '"original_source_git": old_intent["source_git"]',
+    )
+    s = s.replace(
+        '"retained_flushed_prefix_studies": prefix,',
+        '"retained_completed_studies": prefix,\n    "receipt_only_failure_CPU": "975384",\n    "new_MRI_decode_or_render_calls": 0,',
+    )
+    failed = continuation_builder(original)
+    s = s.replace("FAILED_PROGRAM_SHA", hashlib.sha256(failed.encode()).hexdigest())
+    compile(s, "full_manifest_receipt_only_finalization", "exec")
+    return s
