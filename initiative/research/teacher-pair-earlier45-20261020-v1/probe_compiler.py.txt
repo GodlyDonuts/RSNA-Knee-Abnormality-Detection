@@ -1,0 +1,39 @@
+"""Keep the same eight studies/math; replace unneeded full pixels by exact original32."""
+
+import hashlib
+
+BASE_SHA = "b5bc6a2df037e72c08297572b9c2a33fd39d70453c398eaa4a13bd9a0db055b4"
+
+
+def build(source):
+    assert hashlib.sha256(source.encode()).hexdigest() == BASE_SHA
+    source = source.replace(
+        "/tmp/rsna-teacher-pair-gradient-20261019-v1",
+        "/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1",
+    ).replace('"evc48"', '"evc45"')
+    source = source.replace("from rsna.competitive.licensed_parent_population import load\n", "")
+    start = source.index("proofs = json.loads(")
+    end = source.index("ns = dict(", start)
+    source = (
+        source[:start]
+        + """targets = json.loads(base64.b64decode(constants["TARGETS"],validate=True))
+from rsna.competitive.teacher_pair_inputs32 import load32
+original,q,input_binding=load32(A,targets,lambda volume,mask,mirror:renderer["eval_windows"](volume,mask,94,320,norm=renderer["NORM"],mirror=mirror))
+indices=list(range(8))
+assert indices==json.loads((F/"private-input-binding.json").read_text())["indices"]
+assert input_binding["selected_proposal_array_sha256"]==meta["proposal_array_sha256"]
+data=ProposalCases(original,torch.from_numpy(q));del q
+"""
+        + source[end:]
+    )
+    anchor = "        384,\n        device,\n"
+    assert source.count(anchor) == 1
+    # Load canonical FP32 parent before device transfer; no conditional half conversion.
+    source = source.replace(anchor, '        384,\n        torch.device("cpu"),\n')
+    anchor = "all(p.requires_grad for p in model.parameters())"
+    assert source.count(anchor) == 1
+    source = source.replace(
+        anchor, "all(p.requires_grad and p.dtype == torch.float32 for p in model.parameters())"
+    )
+    compile(source, "same_eight_real_MRI_gradient_probe_on_26", "exec")
+    return source
