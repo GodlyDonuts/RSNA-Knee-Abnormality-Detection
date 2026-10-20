@@ -832,7 +832,7 @@ def test_retarget_uses_actual_new_primary_but_original_C100_pilot(coordinator):
     assert a.PILOT_BINDING == "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37a"
 
 
-def test_old_node_threshold_cannot_spend_independent_G100_or_descriptor_reserves(api):
+def test_old_node_threshold_cannot_spend_independent_G100_descriptor_or_contrast_reserves(api):
     a, _ = api
     old_required = (20 * a.GIB + 205676085248 + 96 * a.GIB + 64 * a.MIB
                     + 12 * a.GIB + 6 * a.GIB + 4 * a.MIB + 16 * a.MIB + 12 * a.GIB)
@@ -841,11 +841,15 @@ def test_old_node_threshold_cannot_spend_independent_G100_or_descriptor_reserves
     with pytest.raises(ValueError, match="liability"):
         a.node_budget(old_required + 6 * a.GIB + 4 * a.MIB, **zero_paid())
     extra = 6 * a.GIB + 4 * a.MIB + a.MIB + 24 * a.GIB + 64 * a.MIB
+    with pytest.raises(ValueError, match="liability"):
+        a.node_budget(old_required + extra + 1, **zero_paid())
+    extra += 7 * a.GIB + 4 * a.MIB
     result = a.node_budget(old_required + extra + 1, **zero_paid())
     assert result["remaining_bytes"] == 1
     assert result["conservative_G100_reserved_bytes_no_paid_credit"] == 6 * a.GIB + 4 * a.MIB
     assert result["descriptor_reserved_bytes_no_paid_credit"] == a.MIB
-    assert result["required_bytes"] == 394815078400
+    assert result["required_bytes"] == 394815078400 + 7*a.GIB + 4*a.MIB
+    assert result["contrast_reserved_bytes_no_paid_credit"] == 7*a.GIB + 4*a.MIB
     assert result["primary_other_fits_reserved_bytes_no_paid_credit"] == 24*a.GIB
     assert result["primary_additional_controls_reserved_bytes_no_paid_credit"] == 64*a.MIB
 

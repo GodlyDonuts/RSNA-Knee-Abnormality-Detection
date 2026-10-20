@@ -96,3 +96,8 @@ future obligations, not job authority. The two prepared optional routes passed12
 focused local tests and independent review. **No matched GPU job or full G100 fit is staged,
 submitted or accepted.** The current C100 pilot and primary B/C/C0 jobs are
 unchanged. There is no automatic promotion or claimed clinical improvement.
+
+The prospective G100 admission also retains the separately admitted contrast
+pilot's **7GiB +4MiB** on evc27, without claiming paid-byte credit. This addition
+affects only future admission. The original C100 and contrast GPU scripts remain
+immutable; fresh quota and the actual C100 outcome still govern execution.

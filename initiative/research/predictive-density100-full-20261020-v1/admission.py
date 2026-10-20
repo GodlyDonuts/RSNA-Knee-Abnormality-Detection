@@ -42,6 +42,7 @@ FIT_CAP, CONTROL_CAP = 12 * GIB, 16 * MIB
 # No paid credit for these independent scopes without separate original proof.
 G100_RESERVED_BYTES = 6 * GIB + 4 * MIB
 DESCRIPTOR_RESERVED_BYTES = MIB
+CONTRAST_RESERVED_BYTES = 7 * GIB + 4 * MIB
 PRIMARY_OTHER_FITS_RESERVED_BYTES = 24 * GIB
 PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES = 64 * MIB
 SHARED_BYTES, SHARED_FILES = 123 * MIB, 376
@@ -278,7 +279,7 @@ def node_budget(free, *, contexts_paid, C0_controls_paid, C0_fit_paid,
     ]
     require(all(type(paid) is int and 0 <= paid <= cap for cap, paid in scopes),
             "Only actual paid bytes within separately funded caps can retire obligations")
-    other = (205676085248 + G100_RESERVED_BYTES + DESCRIPTOR_RESERVED_BYTES
+    other = (205676085248 + G100_RESERVED_BYTES + DESCRIPTOR_RESERVED_BYTES + CONTRAST_RESERVED_BYTES
              + PRIMARY_OTHER_FITS_RESERVED_BYTES + PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES
              + sum(cap - paid for cap, paid in scopes[:-1]))
     required = 20 * GIB + other + FIT_CAP - own_fit_paid
@@ -287,6 +288,7 @@ def node_budget(free, *, contexts_paid, C0_controls_paid, C0_fit_paid,
             "other_unpaid_node_liabilities_bytes": other,
             "conservative_G100_reserved_bytes_no_paid_credit": G100_RESERVED_BYTES,
             "descriptor_reserved_bytes_no_paid_credit": DESCRIPTOR_RESERVED_BYTES,
+            "contrast_reserved_bytes_no_paid_credit": CONTRAST_RESERVED_BYTES,
             "primary_other_fits_reserved_bytes_no_paid_credit": PRIMARY_OTHER_FITS_RESERVED_BYTES,
             "primary_additional_controls_reserved_bytes_no_paid_credit": PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES}
 

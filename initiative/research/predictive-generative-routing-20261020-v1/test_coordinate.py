@@ -54,7 +54,13 @@ def test_management_admission_reuses_driver_controls_without_importing_Torch(mon
 
 def test_funding_preserves_all_prior_scopes_and_refuses_stale_or_naive_clock():
     old = 205676085248 + 96*P.GIB + 36*P.GIB + 128*P.MIB
-    assert P.MINIMUM_OTHER_BYTES == old + 6*P.GIB + 4*P.MIB + 12*P.GIB + 16*P.MIB + P.MIB
+    before_contrast = old + 6*P.GIB + 4*P.MIB + 12*P.GIB + 16*P.MIB + P.MIB
+    assert P.MINIMUM_OTHER_BYTES == before_contrast + 7*P.GIB + 4*P.MIB
+    with pytest.raises(AssertionError):
+        P.validate_other_funding(dict(other_unpaid_node_liabilities_bytes=before_contrast,
+                                      prior_C0_and_full_C100_scopes_retained=True))
+    P.validate_other_funding(dict(other_unpaid_node_liabilities_bytes=P.MINIMUM_OTHER_BYTES,
+                                 prior_C0_and_full_C100_scopes_retained=True))
     _, _, decision, funding = inputs()
     P.decision_time(decision, funding, NOW)
     for value in ((NOW-timedelta(minutes=31)).isoformat(), NOW.replace(tzinfo=None).isoformat(),
@@ -212,7 +218,8 @@ def test_primary_retarget_preserves_exact_original_pilot_and_numerical_sources()
 
 def test_G100_other_funding_cannot_omit_existing_descriptor_scope():
     old_without_descriptor = (205676085248 + 96 * P.GIB + 36 * P.GIB + 128 * P.MIB
-                              + 6 * P.GIB + 4 * P.MIB + 12 * P.GIB + 16 * P.MIB)
+                              + 6 * P.GIB + 4 * P.MIB + 12 * P.GIB + 16 * P.MIB
+                              + P.CONTRAST_RESERVED_BYTES)
     funding = {"prior_C0_and_full_C100_scopes_retained": True,
                "other_unpaid_node_liabilities_bytes": old_without_descriptor}
     with pytest.raises(AssertionError):
@@ -222,8 +229,9 @@ def test_G100_other_funding_cannot_omit_existing_descriptor_scope():
     assert P.DESCRIPTOR_RESERVED_BYTES == P.MIB
 
 
-def test_G100_and_primary_all27_admission_reserve_the_same_complete_total():
-    assert P.MINIMUM_OTHER_BYTES + 20*P.GIB + 6*P.GIB + 4*P.MIB == 394815078400
+def test_G100_retains_primary_total_and_separate_contrast_scope():
+    assert P.MINIMUM_OTHER_BYTES + 20*P.GIB + 6*P.GIB + 4*P.MIB == (
+        394815078400 + 7*P.GIB + 4*P.MIB)
     funding = {"prior_C0_and_full_C100_scopes_retained": True,
                "other_unpaid_node_liabilities_bytes": P.MINIMUM_OTHER_BYTES - 24*P.GIB - 64*P.MIB}
     with pytest.raises(AssertionError):

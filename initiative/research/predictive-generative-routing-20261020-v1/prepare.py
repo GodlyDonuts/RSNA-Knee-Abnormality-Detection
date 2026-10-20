@@ -27,8 +27,10 @@ ENGINEERING_SHA = "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82
 # Preserve all old obligations conservatively, including prepared full C100.
 # The existing descriptor artifact remains reserved, with no speculative paid credit.
 DESCRIPTOR_RESERVED_BYTES = MIB
+CONTRAST_RESERVED_BYTES = 7 * GIB + 4 * MIB
 MINIMUM_OTHER_BYTES = (205676085248 + 96 * GIB + 36 * GIB + 128 * MIB
-                       + 6 * GIB + 4 * MIB + 12 * GIB + 16 * MIB + DESCRIPTOR_RESERVED_BYTES)
+                       + 6 * GIB + 4 * MIB + 12 * GIB + 16 * MIB + DESCRIPTOR_RESERVED_BYTES
+                       + CONTRAST_RESERVED_BYTES)
 PURE_DRIVER_FUNCTIONS = {
     "require", "sha", "digest", "recipe", "once", "pilot_completed",
     "validate_prerequisites", "topology", "paid_log_count", "shared_capacity",

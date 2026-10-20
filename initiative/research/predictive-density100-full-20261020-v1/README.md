@@ -134,3 +134,6 @@ and no final return, trained T4 qualification, extra Kaggle funding or score
 exists.** A later final-only return to evc33 needs its own512MiB capacity; actual
 trained runtime/precision and additional account allowance must preserve the
 primary3,360-second reservation.
+The prospective full-C100 admission additionally preserves the contrast pilot's
+**7GiB +4MiB** node27 scope without speculative paid-byte credit. Its storage
+check cannot consume that independent reservation.
