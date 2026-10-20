@@ -54,18 +54,52 @@ assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel
 assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
 slug = row["slug"]
 assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
-if phase == "draft_launch_intent":
+if phase == "draft_metadata":
+    k = r.call(
+        "kernels.KernelsApiService",
+        "GetKernel",
+        {"userName": "godlydonuts", "kernelSlug": slug.split("/")[1]},
+    )
+    m = k["metadata"]
+    b = k["blob"]["source"]
+    print(
+        json.dumps(
+            {
+                "status": "actual_E3_draft_metadata_read_only",
+                "CPU_job": os.environ["SLURM_JOB_ID"],
+                "metadata": m,
+                "source_sha256": hashlib.sha256(b.encode()).hexdigest(),
+                "source_equal_original": b == source,
+                "source_equal_original_with_cell_header": b == "# %% [code]\n" + source,
+                "source_bytes": len(b.encode()),
+                "new_GPU_or_submission_mutations": 0,
+            }
+        ),
+        flush=True,
+    )
+    raise SystemExit(0)
+if phase in ("draft_launch_intent", "draft_launch_intent_v2"):
     assert v["UI_draft_version1_offline_twoT4_verified"] is True
     quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
-    seconds = lambda z: float(z.removesuffix("s"))
+
+    def seconds(z):
+        return float(z.removesuffix("s"))
+
     assert seconds(quota.get("timeReserved", "0s")) == 0
     assert seconds(quota["totalTimeAllowed"]) - seconds(quota["timeUsed"]) >= 12000
-    try:
-        r.kernel("GetKernel", slug, 1)
-    except w.RemoteError as exc:
-        assert str(exc) == "Kaggle GetKernel HTTP 403"
-    else:
-        raise ValueError("Executable version now exists; no UI Save permitted")
+    draft = r.call(
+        "kernels.KernelsApiService",
+        "GetKernel",
+        {"userName": "godlydonuts", "kernelSlug": slug.split("/")[1]},
+    )
+    assert draft["metadata"].get("currentVersionNumber", 0) == 0, (
+        "Existing executable version prohibits UI save"
+    )
+    assert draft["blob"]["source"] == source, "Exact original draft source required"
+    for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerImage"):
+        assert (
+            draft["metadata"].get(n, False if n == "enableInternet" else None) == row["request"][n]
+        )
     out = {
         "status": "actual_partial_draft_original_version1_UI_commit_intent",
         "CPU_job": os.environ["SLURM_JOB_ID"],

@@ -29,7 +29,7 @@ values = {
     if sep and not line.lstrip().startswith("#")
 }
 v = {"source_git": pin, "phase": phase, "token": values["KAGGLE_API_TOKEN"]}
-if phase == "draft_launch_intent":
+if phase in ("draft_launch_intent", "draft_launch_intent_v2"):
     v["UI_draft_version1_offline_twoT4_verified"] = True
 if phase == "accept":
     v["prior_observation"] = json.loads((D / "actual-epoch3-remote-observed.json").read_text())
@@ -44,7 +44,8 @@ with (L / (phase + "-intent.json")).open("x") as f:
             "phase": phase,
             "source_git": pin,
             "new_SaveKernel_or_submission_requests": 0,
-            "canonical_ledger_write": phase in ("accept", "draft_launch_intent"),
+            "canonical_ledger_write": phase
+            in ("accept", "draft_launch_intent", "draft_launch_intent_v2"),
             "automatic_retry": False,
         },
         f,
@@ -93,6 +94,8 @@ z = json.loads(x.stdout)
         "draft": "actual-epoch3-draft-observed.json",
         "draft_launch_intent": "actual-epoch3-draft-launch-intent.json",
         "observe_version1": "actual-epoch3-remote-observed.json",
+        "draft_metadata": "actual-epoch3-draft-metadata.json",
+        "draft_launch_intent_v2": "actual-epoch3-draft-launch-intent.json",
     }[phase]
 ).write_text(json.dumps(z, indent=2) + "\n")
 print(json.dumps(z), flush=True)
