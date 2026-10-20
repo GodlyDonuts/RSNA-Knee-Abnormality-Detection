@@ -1,0 +1,51 @@
+"""Compile only selected original windows, preserving the licensed pixel operations.
+
+No upstream body is redistributed here. The exact private original source is
+required; only its center list is indexed before the unchanged per-window loop.
+This helper alone does not admit training or remove original tensor-hash checks.
+"""
+
+import ast
+import copy
+import hashlib
+
+PARENT_SHA = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+
+
+def build(parent, namespace):
+    if hashlib.sha256(parent.encode()).hexdigest() != PARENT_SHA:
+        raise ValueError("Exact original licensed renderer source required")
+    nodes = [
+        n
+        for n in ast.parse(parent).body
+        if isinstance(n, ast.FunctionDef) and n.name == "eval_windows"
+    ]
+    if len(nodes) != 1:
+        raise ValueError("One exact original window renderer required")
+    node = copy.deepcopy(nodes[0])
+    if [a.arg for a in node.args.args] != ["vol", "mask", "k", "res", "norm", "mirror"]:
+        raise ValueError("Original renderer contract required")
+    assignments = [
+        i
+        for i, n in enumerate(node.body)
+        if isinstance(n, ast.Assign)
+        and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id == "cs"
+    ]
+    if len(assignments) != 1:
+        raise ValueError("Original whole-bag center selection required")
+    index = assignments[0]
+    expected = ast.parse("cs = _eval_centers(mask,D,k)").body[0]
+    if ast.dump(node.body[index]) != ast.dump(expected):
+        raise ValueError("Exact original centers, not a new sampling rule, required")
+    node.name = "_selected_original_windows"
+    node.args.args.insert(4, ast.arg(arg="positions"))
+    node.body.insert(index + 1, ast.parse("cs = [cs[i] for i in positions]").body[0])
+    guard = ast.parse(
+        "if k != 94 or res != 320 or not isinstance(positions,list) or not 1 <= len(positions) <= 94 or any(type(i) is not int or not 0 <= i < 94 for i in positions):\n    raise ValueError('Exact original window indices and geometry required')"
+    ).body[0]
+    node.body.insert(0, guard)
+    tree = ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[]))
+    exec(compile(tree, "selected_exact_original_window_renderer", "exec"), namespace)
+    return namespace[node.name]
