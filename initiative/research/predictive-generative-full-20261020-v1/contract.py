@@ -116,6 +116,14 @@ def validate(binding, pilot, decision, funding, admitted):
         and len(decision["agent_reasoning"]) >= 80,
         "Separate review of actual matched results and full recipe required",
     )
+    original_decision = {
+        k: v for k, v in decision.items() if k != "full_G100_agent_decision_sha256"
+    }
+    original_decision["status"] = "accepted_separate_full_G100_after_actual_pilot_review"
+    require(
+        base.sha(base.canonical(original_decision)) == decision["full_G100_agent_decision_sha256"],
+        "Original separate full-G100 decision differs",
+    )
     require(
         funding["branch"] == admitted["branch"] == "G100"
         and funding["arm"] == "C"

@@ -210,6 +210,9 @@ def fixture(files):
         automatic_recipe_retuning=False,
         agent_reasoning="Synthetic fixture only; no actual admission or remote run. " * 3,
     )
+    original_decision = dict(decision)
+    original_decision["status"] = "accepted_separate_full_G100_after_actual_pilot_review"
+    decision["full_G100_agent_decision_sha256"] = c.base.sha(c.base.canonical(original_decision))
     funding = dict(
         branch="G100",
         arm="C",
