@@ -21,6 +21,8 @@ Updated October20,2026,06:23UTC. Goal active: strongest legitimate competition m
 
 - New encoder sourcea08571df and23 sanitized small objects privately fully re-download/size/SHA verified atHFe94663ca412ba58c9ceccbb1bb1dbffe33ea2b9f viaCPU977113, canonical lock; never repeat. No private reference arrays/UIDs/weights included. Source-zero first-epoch publication977111 COMPLETED/privately verified; original32102 now follows actualRUNNING epoch2 kernel139756869. Do not duplicate.
 
+- Actual v2 paired-final compiler stagedCPU977228, sole finite owner38630/source ddf1b7e4/SHA b6c60b2ef513394afb229131783810abaddac75a5cb687517ad0b4ac14c40444 verified live. Waits for each role private final3/1458, max2CPU compilations/30h, zero GPU/Dataset/entries. Root original run48/final-serving-v2; no restart. V1CPU977213 refused beforewrite; RO977215 proved absence and237paid teacher files. V2 budgets19remaining of256, allreserves retained. New H100 models still need private Dataset bridge and actualT4 qualification before scoring; do not invent Kaggle training kernel. See teacher-pair-final-serving-20261020-v2.
+
 ## Standing execution rules
 
 Accepted labels/masks/folds/base/order stay unchanged; protected gold/confirmation unused. Public teachers are not independent OOF evidence. Daenerys outputs are review candidates, never automatic labels. Stanford-derived weights private/noncompetition; no newly admitted KneeCoT. Failed MedGemma protocols remain negative evidence.

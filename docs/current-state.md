@@ -343,3 +343,46 @@ research-milestones/cached-attention-learned-drift-20261020-v1-2836740cff09.
 Never repeat that mirror or earlier encoder HFe94663ca. Snapshot includes the
 prepared oracle/worker and actual source-zero epoch1 verification/epoch2 dispatch;
 it is NOT actual learned-drift GPU execution,977100 acceptance or clinical gain.
+
+
+## October20 — actual paired-fit final-model compilation owner
+
+Previous goal turn made actual source-zero resume and readout-oracle progress.
+This turn verified original975297/27713/32102/33801 live,977100 stillPENDING.
+Original pointwise/ranking full fit is unchanged. Goal remains active/unachieved.
+
+Missing deployment handoff addressed by the independent fixed-final compiler in
+`initiative/research/teacher-pair-final-serving-20261020-v2`. It admits only the
+original1458-update epoch3 for pointwise or teacher_rank after the six-object
+private proof. Original source7f75fd46/975297/974940/3887cohort/initialstate/
+objective/recipe/runtime and complete model schema are bound. Compiler reuses
+original qualified full94 MRI inference and truthfully records H100/one rank/
+Slurm, never a made-up Kaggle training kernel.57combined serving checks passed;
+none substitutes for actual new-model T4 acceptance.
+
+Original v1 CPU977213 refused BEFORE staging on an overconservative file guard.
+Read-only977215 confirmed no original directory,5,390available shared files and
+237teacher files already charged. Distinct v2 retains the same256teacher-file
+bound but budgets only19remaining; no deletion credit and5000+128+128+19+24
+future reserve remains. CPU977228 actually staged v2 controls under the original
+24GiB run/publication scope with1MiB control subcap, zero new shared bytes/files,
+all other node/shared liabilities. Original v1 intent/transport remain untouched.
+
+Sole finite CPU compiler owner **38630**, sourceddf1b7e4, SHA
+b6c60b2ef513394afb229131783810abaddac75a5cb687517ad0b4ac14c40444,
+verified live. It waits without compilation intent for each role's original
+privately verified final epoch, at most two one-CPU compiles over30h; no GPU,
+Dataset, model transfer or competition mutations. Artifacts
+`artifacts/teacher-pair-final-serving-20261020-v2`; root on evc48
+`/tmp/rsna-teacher-pair-full-fitting48-20261020-v1/final-serving-v2`.
+Never restart owner or retry v1/uncertain compilation. Original27713 alone owns
+checkpoint publication;33801 alone owns source-zero final evaluation.
+
+No paired-fit new model is T4-qualified/scored yet. Unlike the Kaggle-trained
+source-zero model, H100 snapshots have no Kaggle training-output dependency;
+a subsequent private model Dataset/one-time transport bridge is still required,
+with fresh funding, canonical account claim/ledger, exact all-byte verification,
+free GPU capacity/budget, actual T4 qualification/public acceptance and live
+competition allowance. Do not reuse a null/fictitious training kernel or upload
+the public three-row CSV. The compiler is an actual implemented handoff, not a
+claim that full Kaggle deployment is complete.
