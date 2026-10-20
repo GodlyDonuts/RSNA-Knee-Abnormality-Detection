@@ -1,6 +1,6 @@
 # RSNA Knee continuation
 
-Updated October20,2026,04:21UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
+Updated October20,2026,04:24UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
 
 - Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.
 - Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Former claim975430 released after exact E3 reconciliation. E3 kernel139719974v1 RUNNING; sourceSHAc870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410, exact runtime/source/all inputs accepted975698. Original975430 created only draft0; separately funded/guarded first executable commit975697 returned acceptedv1, then local missing statusKeyError; read-only accept reconciled it. Both calls preserved, only one actual executable version. Read actual-epoch3-reconciliation-clarification.json; no further SaveKernel.
@@ -66,3 +66,15 @@ Updated October20,2026,04:21UTC. Read [current state](current-state.md) and orig
   duplicatepush. Collect actualterminal via existingfiniteobserver before
   admitting faster full source-zero production. TwoT4numericalrecovery139736683
   stillRUNNING atlastcheck, no new gain.
+
+- **E3 now actually COMPLETE1458updates**, modelSHA
+  b968653621f9d35f92957fbe9c6ce5a7d1944a0379407a581bb8cf13b1817067,
+  CPU976299 privately published all6objects/download/size/SHA verified at
+  HF25c8cada7265f7c33f9551d1d0bc6511517bebc5. Never repeat. Existing25232
+  compiler/21960qualification/entry owner remains authoritative; no E3score yet.
+  Read actual-private-verified-epoch-3.json and originalterminal.
+- New CPU-only reader observer **30119**, source24813701, followerSHA
+  287d64eda3dd55aa25c1d667b04dbf8f00c3238091d9cb42f4099f34d0a30bee,
+  actually observed139738563v1 RUNNING. Frozen cloud/run/follower, max2700s,
+  noGPU/entry dispatch. New15compiler/readerchecks passed. Actualruntime
+  acceptance unproven; source-zeroT4139736683 stillRUNNING under29168.

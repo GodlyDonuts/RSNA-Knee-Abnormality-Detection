@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 04:21 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 04:24 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -148,3 +148,21 @@ benefit remain unproven. New compiler+existing-reader15tests passed. No live
 training source changed. `selected-window-Kaggle-reader-20261020-v1` has exact
 source/prepare/push receipts and finite observer. Actual two-T4 source-zero
 139736683 and cross-targetE3139719974 remained RUNNING; no new score yet.
+
+## Cross-teacher final model completed and privately preserved
+
+Actual E3139719974v1 **COMPLETE1458updates**, epoch3 fitting4,344.73seconds,
+all73,136,096parameters and both original initial model digests preserved.
+Final model292,873,139bytes SHA
+`b968653621f9d35f92957fbe9c6ce5a7d1944a0379407a581bb8cf13b1817067`.
+OriginalCPU976299 published the six objects once and independently re-downloaded
+all sizes/SHA under the shared lock at privateHF
+**25c8cada7265f7c33f9551d1d0bc6511517bebc5**. The model/AdamW/contiguous-update/
+two-rank RNG/scaler bindings passed actual CPU verification. Never repeat.
+The existing25232compiler/21960evaluation route handles the fixed-final model;
+there is no final E3 score yet. E1 remains actual0.948.
+
+CPU-only selected-reader probe139738563v1 is now actually RUNNING, observer30119
+(source24813701,2700second bound). It has zeroGPU/competition mutations. Actual
+T4numericalrecovery139736683 remains RUNNING under29168, no production source-zero
+fit or accuracy result yet. All new state is evidence of execution, not a gain.
