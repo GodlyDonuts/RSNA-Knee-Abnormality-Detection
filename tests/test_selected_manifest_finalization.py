@@ -48,3 +48,15 @@ def test_finalizer_keeps_original_decode_loop_unchanged():
     assert ast.dump(ast.Module(body=[loop(original).body[0]], type_ignores=[])) == ast.dump(
         ast.Module(body=[loop(source).body[0]], type_ignores=[])
     )
+
+
+def test_reader_admission_uses_original_loader_and_completed_manifest():
+    source = module("admit_reader").build((D / "manifest_stage.py.txt").read_text())
+    assert "range(3887)" not in source
+    assert "np.lib.format.open_memmap" not in source
+    assert 'assert receipt == v["actual_integrity"]' in source
+    assert "assert rng() == before" in source
+    assert "data = load(" in source
+    assert 'np.array_equal(pair["original"][key],pair["selected"][key])' in source
+    assert 'torch.equal(pair["original"]["images"],pair["selected"]["images"])' in source
+    assert "inputs.mkdir" not in source

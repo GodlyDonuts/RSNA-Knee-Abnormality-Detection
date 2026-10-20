@@ -1,0 +1,70 @@
+"""Admit isolated selected-only reader against completed private full-cohort proof."""
+
+import hashlib
+
+BASE_SHA = "e3078e5eaeef35d36fd0a560f45173860fb17f56765339130a393f9526bbdc3b"
+
+
+def build(original):
+    assert hashlib.sha256(original.encode()).hexdigest() == BASE_SHA
+    s = original[: original.index('path = D / "window-integrity.private.npy"')]
+    s = s.replace(
+        'assert not D.exists(), "Original intent/outputs require read-only reconciliation"',
+        'assert D.is_dir() and (D / "verified.json").is_file()\nK = D / "selected-reader-admission-v1"\nassert not K.exists()',
+    )
+    s = s.replace("D.mkdir(mode=0o700)", "K.mkdir(mode=0o700)").replace(
+        '(D / "intent.json").write_text(', '(K / "intent.json").write_text('
+    )
+    a = s.index("inputs.mkdir(mode=0o700)")
+    b = s.index('ns = {"__name__":', a)
+    s = s[:a] + "assert inputs.is_dir()\n" + s[b:]
+    s += """
+import pickle, random, types
+receipt = json.loads((D / "verified.json").read_text())
+assert receipt["manifest_sha256"] == "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f"
+assert receipt == v["actual_integrity"]
+for name, source in v["new_sources"].items():
+    assert hashlib.sha256(source.encode()).hexdigest() == v["new_source_SHA"][name]
+reader = types.ModuleType("isolated_selected_reader")
+exec(compile(v["new_sources"]["reader"], "isolated_reader", "exec"), reader.__dict__)
+renderer = types.ModuleType("exact_selected_renderer")
+exec(compile(v["new_sources"]["renderer"], "isolated_renderer", "exec"), renderer.__dict__)
+selected = renderer.build(parent, ns)
+fast = reader.SelectedPixelBags(data, D / "window-integrity.private.npy", receipt,
+    lambda volume, mask, positions, mirror: selected(volume, mask, 94, 320, positions, norm=ns["NORM"], mirror=mirror))
+assert fast.uids == data.uids and len(fast) == 3887
+positions = [93,0,47,2,83,9,14,75,26,51,66,35,60,21,41,7]
+indices = [0,31,512,1024,2048,3886]
+def rng():
+    return hashlib.sha256(torch.get_rng_state().numpy().tobytes() + pickle.dumps(np.random.get_state()) + pickle.dumps(random.getstate())).hexdigest()
+original_seconds = fast_seconds = 0.0
+before = rng()
+for order, index in enumerate(indices):
+    for mirror in (False,True):
+        pair = {}
+        for label, obj in (("original",data),("selected",fast)) if order % 2 == 0 else (("selected",fast),("original",data)):
+            started = time.monotonic()
+            pair[label] = obj.case(index,positions,mirror)
+            elapsed = time.monotonic()-started
+            if label == "original": original_seconds += elapsed
+            else: fast_seconds += elapsed
+        assert torch.equal(pair["original"]["images"],pair["selected"]["images"])
+        for key in ("labels","mask","parent_logits"):
+            assert np.array_equal(pair["original"][key],pair["selected"][key])
+assert rng() == before
+out = {"status":"actual_full_manifest_selected_reader_original_images_targets_views_and_RNG_equal",
+    "CPU_job":os.environ["SLURM_JOB_ID"],"source_git":v["source_git"],"full_manifest_CPU":receipt["CPU_job"],
+    "full_population":3887,"measured_studies":len(indices),"actual_plain_mirrored_pairs":len(indices)*2,
+    "selected_windows_per_view":16,"all_selected_tensors_and_original_targets_equal":True,
+    "CPU_RNG_unchanged":True,"original_full_case_CPU_seconds":original_seconds,
+    "selected_full_case_CPU_seconds":fast_seconds,"full_case_time_ratio":original_seconds/fast_seconds,
+    "actual_manifest_SHA":receipt["manifest_sha256"],"new_source_SHA":v["new_source_SHA"],
+    "measurement_order_alternated":True,"includes_archive_decode_finite_and_integrity_checks":True,
+    "GPU_or_model_or_optimizer_or_training_or_clinical_operations":0,
+    "queued_original_training_source_modified":False,"private_pixels_targets_IDs_or_signatures_exported":False}
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(D).parts) < 32*2**20
+(K/"verified.json").write_text(json.dumps(out,indent=2)+"\\n")
+print(json.dumps(out),flush=True)
+"""
+    compile(s, "selected_full_case_admission", "exec")
+    return s
