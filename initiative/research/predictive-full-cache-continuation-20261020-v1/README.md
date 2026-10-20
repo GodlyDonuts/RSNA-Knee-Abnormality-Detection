@@ -1,6 +1,6 @@
 # Missing-only continuation after the original wall limit
 
-**Prepared locally; neither worker has been dispatched or accepted on Newton.**
+**Finite local owner 57158 is running from committed source `5119b631`. Neither successor worker has been dispatched or accepted on Newton.**
 These controls do not authorize restarting healthy jobs. The original raw
 builder `978318`, original context consumer `978414`, all their code and every
 retained file remain unchanged.
@@ -67,10 +67,9 @@ ordered context index requires all 3887 original fitting studies, unchanged
 side 320/context cap 24/halo 8, all original target regions and complete priors.
 Neither worker reads diagnosis labels, fits a model or admits clinical accuracy.
 
-## Finite local owner, prepared and not started
+## Finite local owner, started without an allocation
 
-`owner.py` now supplies the finite local coordinator. It has not been started,
-and neither successor has been dispatched. It runs for at most 30 hours, observing
+`owner.py` supplies the finite local coordinator. [The actual launch receipt](actual-finite-owner-launched.json) binds PID **57158**, source **5119b631d8f331e9f3bf140f13581898e1b8a4c8**, and both original jobs. No cluster allocation occurred at launch and neither successor has been dispatched. It runs for at most 30 hours, observing
 Slurm over SSH without any allocation while the corresponding original owner
 is live. A read-only connection loss permits at most 30 minutes of waiting;
 unknown job state never authorizes dispatch.
@@ -93,12 +92,10 @@ unknown job state never authorizes dispatch.
   checks the original receipt/index SHA, all 3887 original UID membership and
   existing owning-node stat bindings without rehashing pixels.
 
-Root must review and commit these controls and the source-resume module first,
-then launch with an explicit full 40-character `--source-git` and the existing
-SSH master socket. The owner refuses uncommitted launch controls. It loads
+The reviewed controls and source-resume module were committed before launch with an explicit full 40-character `--source-git` and the existing SSH master socket. The owner refuses uncommitted launch controls. It loads
 numerical modules with `git show` from the exact original raw `c78c94d…` and
 context `441c4aa…` commits; current changed numerical files are never substituted.
-No launch command has been executed as part of this preparation.
+Do not launch another owner: its exclusive local owner intent already exists. The later fitting owner observes its collection receipts and never dispatches another cache producer.
 
 Private local state is in ignored
 `artifacts/predictive-full-cache-continuation-20261020-v1/`: owner/phase intents,

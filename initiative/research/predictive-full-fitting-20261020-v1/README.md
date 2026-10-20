@@ -1,8 +1,8 @@
-# Full predictive B/C/C0 fitting worker — prepared only
+# Full predictive B/C/C0 fitting — CPU prepared, no GPU dispatch
 
-`worker.py.txt` is the single-process, one-H100 worker for one matched arm. It is
-**not staged or dispatched** and provides no coordinator, new data acquisition,
-model publication, Kaggle action or accuracy claim. The complete context index and actual owning-node placement are still needed.
+`worker.py.txt` is the single-process, one-H100 worker for one matched arm. **CPU 978976 prepared its exact source, parent, runtime and common initialization on evc33** from source `b361ee40939d875d3adf82d5e04dbf2d7d62b0a0`; see [the actual receipt](actual-cpu-prepared.json). It copied no pixels/models, fitted no model and reserved no GPU. The complete 3,887-study context index still requires separate CPU input admission and fresh arm funding. **No full predictive GPU fit has been dispatched.**
+
+The CPU constructor bound the same shared initialization SHA `dbf69ff87261f7a0657c866ef8e41db8b125a62c6245d80017945c634e60158b` across B/C/C0, with 73,092,652 parameters in B and 73,271,124 in C/C0. A separate finite fitting owner is being prepared to wait for the original or missing-only context collection receipts, admit inputs once, then own the three arms and their independent epoch preservation. Cache owner **57158** alone owns any cache continuation; this fitting owner must never acquire or regenerate that data.
 The explicit numerical decision in `engineering-decision.json` accepts the
 zero-mean, full-horizon recipe following actual stability job 978709. Its bounded
 24-update result resolves the observed startup spike; peak learning rate and

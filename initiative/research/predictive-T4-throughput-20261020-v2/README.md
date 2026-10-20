@@ -1,7 +1,8 @@
 # Predictive T4 benchmark with retained measurements
 
-**Prepared locally only. No v2 source preparation, GPU push or competition entry
-has been executed.** The original v1 source, version and receipts are preserved.
+**Pushed once: kernel 139802342 version 1; authenticated UI at 10:41 UTC shows Queued (API unreported)**, `godlydonuts/rsna-predictive-t4-v2-5d32589edb9e`, source SHA `5d32589edb9efe7f68de536bc01a1d2e50a0da555e9c5b10734cf4351aafd737`. [Actual push receipt](actual-push.json). No competition entry was made and no terminal benchmark result exists yet. The original v1 source, version and receipts are preserved.
+
+The actual pre-push check found source-zero E3 **139786921 v1 COMPLETE**, so its unfinished-training allowance was retired. Free quota was **5,376.85 VM seconds**, above the required **4,200** (1,200 for this probe plus 3,000 retained for final source-zero serving). This dated receipt does not authorize another GPU session.
 
 The authenticated original [v1 diagnosis](../predictive-T4-throughput-20261020-v1/actual-cancelled-ui-diagnosis-v2.json)
 shows that both GPU futures, finite FP16/FP32 checks, synthetic nonzero-evidence
@@ -53,7 +54,7 @@ the original pinned Docker image and private offline two-T4 execution. It create
 no new Dataset, pays no credits, writes no `submission.csv`, and makes no entry.
 The original 4 MiB control allocation remains charged alongside a distinct 4 MiB
 successor allowance. The owner must review fresh current obligations before
-running any phase; these local controls are not a dispatch.
+running any later phase. Prepare and push are already complete and must not be repeated.
 
 `run_once.py.txt` provides prepare, inspect, push and status phases through the
 canonical Newton claim/ledger. Its status phase attempts to collect retained
