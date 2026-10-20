@@ -13,7 +13,7 @@ import requests
 
 v = json.load(sys.stdin)
 phase = v["phase"]
-assert phase in ("observe", "accept", "absence", "draft")
+assert phase in ("observe", "accept", "absence", "draft", "draft_launch_intent", "observe_version1")
 assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
 D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
 source = (D / "source.private.py").read_text()
@@ -54,6 +54,39 @@ assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel
 assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
 slug = row["slug"]
 assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
+if phase == "draft_launch_intent":
+    assert v["UI_draft_version1_offline_twoT4_verified"] is True
+    quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+    seconds = lambda z: float(z.removesuffix("s"))
+    assert seconds(quota.get("timeReserved", "0s")) == 0
+    assert seconds(quota["totalTimeAllowed"]) - seconds(quota["timeUsed"]) >= 12000
+    try:
+        r.kernel("GetKernel", slug, 1)
+    except w.RemoteError as exc:
+        assert str(exc) == "Kaggle GetKernel HTTP 403"
+    else:
+        raise ValueError("Executable version now exists; no UI Save permitted")
+    out = {
+        "status": "actual_partial_draft_original_version1_UI_commit_intent",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "slug": slug,
+        "source_sha256": sha,
+        "fresh_GPU_quota": quota,
+        "prior_SaveKernel_repeated": False,
+        "UI_commit_maximum": 1,
+        "expected_first_version": 1,
+        "competition_submission": False,
+    }
+    w.new_json(D / "draft-version1-launch-intent.json", out)
+    with w.ledger(path, "godlydonuts") as db:
+        current = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+        assert current == row
+        row["partial_draft_version1_UI_commit_intent"] = out
+        db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key))
+        db.commit()
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
 if phase == "draft":
     rows = r.call(
         "kernels.KernelsApiService",
@@ -141,7 +174,7 @@ observed = {
     "new_SaveKernel_or_submission_requests": 0,
     "original_uncertain_CPU": "975430",
 }
-if phase == "observe":
+if phase in ("observe", "observe_version1"):
     print(json.dumps(observed), flush=True)
     raise SystemExit(0)
 assert (

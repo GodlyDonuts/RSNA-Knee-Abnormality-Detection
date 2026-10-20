@@ -12,7 +12,7 @@ D = Path(__file__).resolve().parent
 L = R / "artifacts/S6-epoch3-SaveKernel-reconciliation-20261020-v1"
 L.mkdir(mode=0o700, exist_ok=True)
 phase = sys.argv[1]
-assert phase in ("observe", "accept", "absence", "draft")
+assert phase in ("observe", "accept", "absence", "draft", "draft_launch_intent", "observe_version1")
 assert not (L / (phase + "-intent.json")).exists()
 pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for name in ("reconcile_epoch3.py.txt", "reconcile_epoch3_once.py.txt"):
@@ -29,6 +29,8 @@ values = {
     if sep and not line.lstrip().startswith("#")
 }
 v = {"source_git": pin, "phase": phase, "token": values["KAGGLE_API_TOKEN"]}
+if phase == "draft_launch_intent":
+    v["UI_draft_version1_offline_twoT4_verified"] = True
 if phase == "accept":
     v["prior_observation"] = json.loads((D / "actual-epoch3-remote-observed.json").read_text())
 s = importlib.util.spec_from_file_location(
@@ -42,7 +44,7 @@ with (L / (phase + "-intent.json")).open("x") as f:
             "phase": phase,
             "source_git": pin,
             "new_SaveKernel_or_submission_requests": 0,
-            "canonical_ledger_write": phase == "accept",
+            "canonical_ledger_write": phase in ("accept", "draft_launch_intent"),
             "automatic_retry": False,
         },
         f,
@@ -89,6 +91,8 @@ z = json.loads(x.stdout)
         "accept": "actual-push-epoch-3.json",
         "absence": "actual-epoch3-absence-observed.json",
         "draft": "actual-epoch3-draft-observed.json",
+        "draft_launch_intent": "actual-epoch3-draft-launch-intent.json",
+        "observe_version1": "actual-epoch3-remote-observed.json",
     }[phase]
 ).write_text(json.dumps(z, indent=2) + "\n")
 print(json.dumps(z), flush=True)
