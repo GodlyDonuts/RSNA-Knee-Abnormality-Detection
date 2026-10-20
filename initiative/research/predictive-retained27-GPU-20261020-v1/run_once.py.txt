@@ -58,7 +58,7 @@ assert (
 q = next(x.split() for x in preflight.splitlines() if x.strip().startswith("/home/sa305415"))
 assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 + 72 * 2**20 and int(q[6]) - int(
     q[5]
-) > 5000 + 512
+) > 5000 + 128 + 128 + 64 + 24 + 3
 intent = {
     "source_git": pin,
     "original_numerical_modules": "684b02a7",
