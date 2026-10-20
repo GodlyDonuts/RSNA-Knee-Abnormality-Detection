@@ -1,0 +1,90 @@
+"""Compile privately from the original exact E1 model; no service mutations."""
+
+import ast
+import base64
+import hashlib
+
+BASE_SHA = "85ad0c706996079e1e05e98e81d7dc3930ccaab2bb089ecf4106db84d06bcfb3"
+ADDITIONS = (
+    "rsna/competitive/paired_source_zero.py",
+    "rsna/competitive/teacher_only.py",
+    "rsna/competitive/teacher_pair.py",
+    "rsna/competitive/paired_source_zero_train.py",
+)
+
+
+def digest(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def build(original, additions, worker_main, bootstrap, source_git):
+    if digest(original) != BASE_SHA or set(additions) != set(ADDITIONS):
+        raise ValueError("Exact original E1 and complete separate own numerical additions required")
+    if len(source_git) != 40 or any(c not in "0123456789abcdef" for c in source_git):
+        raise ValueError("Exact scientific source commit required")
+    literals = {}
+    for node in ast.parse(original).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name) and target.id in (
+                "FILES",
+                "WORKER",
+                "PERMISSION",
+                "BINDING",
+            ):
+                literals[target.id] = ast.literal_eval(node.value)
+    if set(literals) != {"FILES", "WORKER", "PERMISSION", "BINDING"}:
+        raise ValueError("Original immutable worker, numerical source and permission required")
+    worker = base64.b64decode(literals["WORKER"], validate=True).decode()
+    nodes = ast.parse(worker).body
+    mains = [n for n in nodes if isinstance(n, ast.FunctionDef) and n.name == "main"]
+    if len(mains) != 1:
+        raise ValueError("Unique original main required")
+    lines = worker.splitlines(keepends=True)
+    prefix = "".join(lines[: mains[0].lineno - 1])
+    nodes = ast.parse(prefix).body
+    # Remove obsolete role-specific values, preserving the original model and
+    # renderer functions, immutable pixel proofs, imports and graph definitions.
+    for node in reversed(nodes):
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id in ("_BINDING", "_ROLE") for t in node.targets
+        ):
+            prefix_lines = prefix.splitlines(keepends=True)
+            prefix = "".join(prefix_lines[: node.lineno - 1] + prefix_lines[node.end_lineno :])
+    files = {**literals["FILES"], **additions}
+    for name, value in files.items():
+        if not name.startswith("rsna/") or ".." in name.split("/") or not name.endswith(".py"):
+            raise ValueError("Safe own module closure required")
+        compile(value, name, "exec")
+    binding = {
+        "experiment": "paired_zero_source_two_rank_real_MRI_recovery_v1",
+        "source_git": source_git,
+        "base_E1_source_sha256": BASE_SHA,
+        "own_module_sha256": {name: digest(value) for name, value in sorted(files.items())},
+        "new_worker_main_sha256": digest(worker_main),
+        "retained_original_model_renderer_prefix_sha256": digest(prefix),
+        "source_loss_weight": 0.0,
+        "anatomical_views_per_study": 2,
+        "clinical_or_competition_accuracy_claim": False,
+    }
+    worker = prefix + "\n_RECOVERY_BINDING=" + repr(binding) + "\n" + worker_main
+    compile(worker, "private_new_paired_zero_source_recovery_worker", "exec")
+    for token, value in {
+        "__FILES_VALUE__": files,
+        "__WORKER_VALUE__": base64.b64encode(worker.encode()).decode(),
+        "__PERMISSION_VALUE__": literals["PERMISSION"],
+        "__BINDING_VALUE__": binding,
+    }.items():
+        if bootstrap.count(token) != 1:
+            raise ValueError("Single exact bootstrap binding site required")
+        bootstrap = bootstrap.replace(token, repr(value))
+    compile(bootstrap, "private_new_paired_zero_source_recovery", "exec")
+    return bootstrap, {
+        "source_sha256": digest(bootstrap),
+        "worker_sha256": digest(worker),
+        "binding": binding,
+        "maximum_VM_seconds": 3600,
+        "private_output_cap_bytes": 6 * 2**30,
+        "competition_entries": 0,
+        "production_fitting_dispatched": False,
+    }

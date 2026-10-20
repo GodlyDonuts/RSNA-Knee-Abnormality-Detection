@@ -1,0 +1,155 @@
+"""Bounded diagnostic only: never emits submission.csv or a production model."""
+
+import base64
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+FILES = __FILES_VALUE__
+WORKER = __WORKER_VALUE__
+PERMISSION = __PERMISSION_VALUE__
+BINDING = __BINDING_VALUE__
+
+os.environ.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    HF_HUB_DISABLE_TELEMETRY="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    PYTHONNOUSERSITE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    OMP_NUM_THREADS="1",
+    OPENBLAS_NUM_THREADS="1",
+    MKL_NUM_THREADS="1",
+)
+root = Path("/kaggle/working/paired-zero-recovery")
+assert not root.exists() and shutil.disk_usage(root.parent).free > 12 * 2**30
+root.mkdir(mode=0o700)
+code = root / "code"
+code.mkdir(mode=0o700)
+(root / "permission.txt").write_bytes(base64.b64decode(PERMISSION, validate=True))
+for name, text in {**FILES, "rsna/__init__.py": "", "rsna/competitive/__init__.py": ""}.items():
+    p = code / name
+    assert p.resolve().is_relative_to(code.resolve()) and not p.exists()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+    p.chmod(0o600)
+worker = code / "worker.private.py"
+worker.write_bytes(base64.b64decode(WORKER, validate=True))
+worker.chmod(0o600)
+weights = [
+    p
+    for directory in Path("/kaggle/input").iterdir()
+    for p in directory.rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+    if p.is_file()
+]
+assert len(weights) == 1
+with weights[0].open("rb") as f:
+    assert (
+        hashlib.file_digest(f, "sha256").hexdigest()
+        == "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+    )
+env = {**os.environ, "PYTHONPATH": str(code)}
+start = time.monotonic()
+phases = []
+for phase in ("full", "stop1", "resume"):
+    with (root / (phase + ".private.log")).open("x") as log:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "torch.distributed.run",
+                "--standalone",
+                "--nnodes=1",
+                "--nproc_per_node=2",
+                str(worker),
+                phase,
+            ],
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            timeout=900,
+        )
+    assert result.returncode == 0, "Retain original failure; no retry or accuracy claim"
+    phases.append({"phase": phase, "elapsed_seconds": time.monotonic() - start})
+    print(json.dumps(phases[-1]), flush=True)
+import torch
+
+
+def same(a, b):
+    if isinstance(a, torch.Tensor):
+        assert a.dtype == b.dtype and a.shape == b.shape and torch.equal(a, b)
+    elif isinstance(a, dict):
+        assert a.keys() == b.keys()
+        for name in a:
+            same(a[name], b[name])
+    elif isinstance(a, (list, tuple)):
+        assert type(a) is type(b) and len(a) == len(b)
+        for x, y in zip(a, b):
+            same(x, y)
+    else:
+        assert a == b
+
+
+def load(p):
+    return torch.load(p, map_location="cpu", weights_only=True)
+
+
+full, resumed = (load(root / phase / "checkpoint.pt") for phase in ("full", "resumed"))
+same(full, resumed)
+assert full["completed"] == 6 and full["binding"]["world_size"] == 2
+assert full["binding"]["source_loss_weight"] == 0.0
+assert full["binding"]["anatomical_views_per_study"] == 2
+assert [x["studies"] for x in full["history"]] == [8, 8, 1, 8, 8, 1]
+assert [x["anatomical_views"] for x in full["history"]] == [16, 16, 2, 16, 16, 2]
+assert all(x["gradient_norm"] > 0 and x["loss"] >= 0 for x in full["history"])
+for epoch in (1, 2):
+    path = Path("epoch-checkpoints") / ("epoch-" + str(epoch).zfill(3) + ".pt")
+    same(load(root / "full" / path), load(root / "resumed" / path))
+predictions = (root / "full/predictions.private.csv").read_bytes()
+assert predictions == (root / "resumed/predictions.private.csv").read_bytes()
+assert len(predictions.splitlines()) == 16
+devices = [
+    json.loads((root / "full" / ("full-rank-" + str(i) + ".json")).read_text()) for i in (0, 1)
+]
+for value in devices:
+    assert value["GPU"] == "Tesla T4" and value["completed"] == 6
+    assert value["trainable_parameters"] == 73136096 and value["all_BN_buffers_equal_parent"]
+    assert value["peak_allocated_bytes"] < value["total_VRAM_bytes"]
+    assert (
+        value["initial_identity"]["model"]
+        == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+    )
+for phase in ("stop1", "resume"):
+    target = "resumed"
+    for i in (0, 1):
+        actual = json.loads((root / target / (phase + "-rank-" + str(i) + ".json")).read_text())
+        same(actual["initial_identity"], devices[i]["initial_identity"])
+size = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+assert size < 6 * 2**30 and time.monotonic() - start < 3600
+assert not Path("/kaggle/working/submission.csv").exists()
+receipt = {
+    "status": "actual_paired_zero_source_twoT4_recovery_accepted",
+    "binding": BINDING,
+    "fitting_engineering_studies": 17,
+    "disjoint_engineering_prediction_studies": 15,
+    "complete_model_AdamW_LR_allrank_RNG_scaler_history_snapshots_exact_resume": True,
+    "both_view_full94_15x12_CSV_bytes_equal": True,
+    "prediction_sha256": hashlib.sha256(predictions).hexdigest(),
+    "finite_updates": 6,
+    "devices": devices,
+    "retained_bytes": size,
+    "elapsed_seconds": time.monotonic() - start,
+    "phases": phases,
+    "competition_entry": False,
+    "production_fit": False,
+    "clinical_or_competition_accuracy_claim": False,
+}
+Path("/kaggle/working/paired-zero-recovery-accepted.json").write_text(
+    json.dumps(receipt, sort_keys=True, indent=2)
+)
+print(json.dumps(receipt), flush=True)

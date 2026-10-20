@@ -1,0 +1,154 @@
+"""New actual two-rank recovery entry, appended to the exact private model prefix."""
+
+from rsna.competitive.paired_source_zero_train import fit
+
+from rsna.competitive.licensed_importance import ProposalCases
+from rsna.competitive.paired_source_zero import Recipe
+from rsna.schema import TARGETS
+
+
+class _FixedSubset:
+    def __init__(self, original, indices):
+        self.original, self.indices = original, list(indices)
+        self.uids = [original.uids[i] for i in self.indices]
+
+    def __len__(self):
+        return len(self.indices)
+
+    def case(self, index, positions, mirror):
+        return self.original.case(self.indices[index], positions, mirror)
+
+
+def main():
+    import csv
+
+    mode = sys.argv[1]
+    assert mode in ("full", "stop1", "resume")
+    rank = int(os.environ["LOCAL_RANK"])
+    assert int(os.environ["WORLD_SIZE"]) == 2
+    torch.cuda.set_device(rank)
+    device = torch.device("cuda", rank)
+    assert torch.cuda.get_device_name(device) == "Tesla T4"
+    assert torch.cuda.get_device_capability(device) == (7, 5)
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.use_deterministic_algorithms(True)
+    random.seed(20261016 + rank)
+    np.random.seed(20261016 + rank)
+    torch.manual_seed(20261016 + rank)
+    torch.cuda.manual_seed_all(20261016 + rank)
+    dist.init_process_group("nccl")
+    root = Path("/kaggle/working/paired-zero-recovery")
+    render = lambda volume, mask, mirror: eval_windows(
+        volume, mask, 94, 320, norm=NORM, mirror=mirror
+    )
+    original = load_population("/kaggle/input", _PROOFS, render)
+    assert len(original) == 3887
+    p = locate(
+        "/kaggle/input",
+        "proposals.private.npy",
+        2923152,
+        "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e",
+    )
+    q = np.load(p, allow_pickle=False)
+    assert q.shape == (3887, 94) and q.dtype == np.float64
+    assert (
+        hashlib.sha256(q.tobytes()).hexdigest()
+        == "2d7515536e378b2775cbacbf4e296713e358ec8f70aba8cc9212a952bed70a77"
+    )
+    training = _FixedSubset(original, range(17))
+    engineering = _FixedSubset(original, range(17, 32))
+    assert not set(training.uids) & set(engineering.uids)
+    data = ProposalCases(training, torch.from_numpy(q[:17].copy()))
+    weights = [
+        p
+        for directory in Path("/kaggle/input").iterdir()
+        for p in directory.rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt")
+        if p.is_file()
+    ]
+    assert len(weights) == 1
+    base, resolution = load_model(
+        str(weights[0]), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, device
+    )
+    model = _whole_model(base)
+    del base
+    assert resolution == 320 and all(p.requires_grad for p in model.parameters())
+    assert sum(p.numel() for p in model.parameters()) == 73136096
+    initial = _initial_identity(model, device)
+    assert initial["model"] == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+    bn = {
+        n: v.detach().cpu().clone()
+        for n, v in model.state_dict().items()
+        if any(k in n for k in ("running_mean", "running_var", "num_batches_tracked"))
+    }
+    output = root / ("full" if mode == "full" else "resumed")
+    binding = {
+        **_RECOVERY_BINDING,
+        "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "engineering_selection": "first17_fitting_train_next15_fitting_diagnostic_no_label_selection",
+        "diagnostic_only": True,
+    }
+    start = time.monotonic()
+    result = fit(
+        model,
+        data,
+        output,
+        binding,
+        Recipe(epochs=2),
+        device=device,
+        resume=mode == "resume",
+        stop_after=1 if mode == "stop1" else None,
+    )
+    assert result["total"] == 6 and result["completed"] == (1 if mode == "stop1" else 6)
+    assert all(torch.equal(v, model.state_dict()[n].detach().cpu()) for n, v in bn.items())
+    if mode != "stop1":
+        model.eval()
+        predictions = []
+        with torch.no_grad():
+            for i in range(rank, 15, 2):
+                views = []
+                for mirror in (False, True):
+                    images = engineering.case(i, list(range(94)), mirror)["images"].to(device)
+                    with torch.autocast("cuda", dtype=torch.float16):
+                        logits = model(images.unsqueeze(0)).float()
+                    assert logits.shape == (1, 12) and torch.isfinite(logits).all()
+                    views.append(logits.sigmoid().cpu())
+                predictions.append((i, torch.stack(views).mean(0)))
+        gathered = [None, None]
+        dist.all_gather_object(gathered, predictions)
+        if rank == 0:
+            pairs = sorted(x for group in gathered for x in group)
+            assert [i for i, _ in pairs] == list(range(15))
+            with (output / "predictions.private.csv").open("w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["StudyInstanceUID", *TARGETS])
+                for i, value in pairs:
+                    writer.writerow([engineering.uids[i], *value.flatten().tolist()])
+    output.mkdir(exist_ok=True)
+    (output / (mode + "-rank-" + str(rank) + ".json")).write_text(
+        json.dumps(
+            {
+                "rank": rank,
+                "GPU": torch.cuda.get_device_name(device),
+                "initial_identity": initial,
+                "peak_allocated_bytes": torch.cuda.max_memory_allocated(device),
+                "total_VRAM_bytes": torch.cuda.get_device_properties(device).total_memory,
+                "completed": result["completed"],
+                "elapsed_seconds": time.monotonic() - start,
+                "trainable_parameters": 73136096,
+                "all_BN_buffers_equal_parent": True,
+                "accuracy_claim": False,
+            },
+            sort_keys=True,
+        )
+    )
+    dist.barrier()
+    dist.destroy_process_group()
+
+
+if __name__ == "__main__":
+    main()

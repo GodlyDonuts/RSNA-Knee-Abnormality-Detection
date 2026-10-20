@@ -1,0 +1,67 @@
+"""Derive separable paired-view teacher BCE with exact DDP mean normalization."""
+
+import hashlib
+
+BASE_SHA = "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d"
+
+
+def once(s, before, after):
+    if s.count(before) != 1:
+        raise ValueError("Exact original source site required")
+    return s.replace(before, after)
+
+
+def build(source):
+    if hashlib.sha256(source.encode()).hexdigest() != BASE_SHA:
+        raise ValueError("Exact accepted one/two-rank original numerical engine required")
+    source = once(
+        source,
+        "from rsna.competitive.licensed_importance import VERSION, ProposalCases, Recipe, sample",
+        "from rsna.competitive.licensed_importance import ProposalCases, sample\nfrom rsna.competitive.paired_source_zero import VERSION, Recipe",
+    )
+    source = once(
+        source,
+        "from rsna.competitive.released_context import anchored_loss",
+        "from rsna.competitive.teacher_only import teacher_loss as anchored_loss",
+    )
+    start = source.index("                case = data.case(index, selected, mirror)")
+    end = source.index("            scaler.unscale_(optimizer)", start)
+    body = source[start:end]
+    body = once(
+        body,
+        "case = data.case(index, selected, mirror)",
+        "case = data.case(index, selected, selected_view)",
+    )
+    body = once(
+        body,
+        "world > 1 and micro + 1 < micros",
+        "world > 1 and not (micro + 1 == micros and view_number == 1)",
+    )
+    body = once(
+        body, "world / len(indices) if real else 0.0", "world / (2 * len(indices)) if real else 0.0"
+    )
+    body = once(
+        body,
+        "local_loss += loss.detach().double() / len(indices)",
+        "local_loss += loss.detach().double() / (2 * len(indices))",
+    )
+    source = (
+        source[:start]
+        + "                for view_number, selected_view in enumerate((mirror, not mirror)):\n"
+        + "".join(
+            "    " + line if line.strip() else line for line in body.splitlines(keepends=True)
+        )
+        + source[end:]
+    )
+    source = once(
+        source,
+        '        "world_size": world,\n        "torch_version":',
+        '        "world_size": world,\n        "anatomical_views_per_study": 2,\n        "source_loss_weight": 0.0,\n        "torch_version":',
+    )
+    source = once(
+        source,
+        '                    "studies": len(indices),',
+        '                    "studies": len(indices),\n                    "anatomical_views": 2 * len(indices),',
+    )
+    compile(source, "separable_paired_zero_source_DDP_engine", "exec")
+    return source

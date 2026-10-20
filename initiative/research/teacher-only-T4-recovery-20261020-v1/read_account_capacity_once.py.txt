@@ -1,0 +1,106 @@
+"""Read actual account quota and existing run outcomes; no new execution or intent."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-T4-recovery-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "read-account-capacity-intent.json").exists()
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+program = """import hashlib,importlib.util,json,sqlite3,sys,os
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def module(name,h):
+ p=C/(name+'.py');assert hashlib.sha256(p.read_bytes()).hexdigest()==h
+ s=importlib.util.spec_from_file_location('exact_read_only_'+name,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=module('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+r=w.Remote.__new__(w.Remote);r.username='godlydonuts';r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token']
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') and who.get('username')=='godlydonuts'
+quota=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota']
+account=r.account()
+import types
+assert hashlib.sha256(v['capacity_source'].encode()).hexdigest()==v['capacity_sha256']
+cap=types.ModuleType('original_read_only_capacity');exec(compile(v['capacity_source'],'original_capacity','exec'),cap.__dict__)
+with sqlite3.connect('file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro',uri=True) as db:
+ capacity=cap.admission(db,r,caller='sampling')
+slug='godlydonuts/rsna-s6-cross-full-e3-c870ded987b8'
+k=r.kernel('GetKernel',slug,1);assert k['metadata']['id']==139719974
+state=r.kernel('GetKernelSessionStatus',slug,1).get('status')
+seconds=lambda z:float(z.removesuffix('s'))
+out={'status':'actual_account_quota_allowance_and_original_E3_read_only','CPU_job':os.environ['SLURM_JOB_ID'],'GPU_quota':quota,
+ 'free_unreserved_VM_seconds':seconds(quota['totalTimeAllowed'])-seconds(quota.get('timeUsed','0s'))-seconds(quota.get('timeReserved','0s')),
+ 'capacity':capacity,'account':account,'original_E3_actual_status':state,'new_GPU_or_ledger_or_dataset_or_competition_mutations':0}
+print(json.dumps(out),flush=True)
+"""
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+(L / "read-account-capacity-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+            "read_only": True,
+        }
+    )
+    + "\n"
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:05:00",
+    "--job-name=rsna-source0-account-readonly",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(
+        program,
+        {
+            "token": values["KAGGLE_API_TOKEN"],
+            "capacity_source": (R / "scripts/kaggle/gpu_capacity.py").read_text(),
+            "capacity_sha256": __import__("hashlib")
+            .sha256((R / "scripts/kaggle/gpu_capacity.py").read_bytes())
+            .hexdigest(),
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "read-account-capacity-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read-only observation failed; never infer job terminal"
+z = json.loads(x.stdout)
+(D / "actual-account.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)

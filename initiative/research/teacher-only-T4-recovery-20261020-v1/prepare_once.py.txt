@@ -1,0 +1,93 @@
+"""Privately compile the new bounded route on CPU; no Kaggle/GPU dispatch."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-T4-recovery-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+names = [
+    "rsna/competitive/paired_source_zero.py",
+    "rsna/competitive/teacher_only.py",
+    "rsna/competitive/teacher_pair.py",
+    "rsna/competitive/licensed_importance_train.py",
+    *[
+        (D / (name + ".py.txt")).relative_to(R).as_posix()
+        for name in ("engine", "worker", "bootstrap", "compile", "prepare_once")
+    ],
+]
+files = {}
+for name in names:
+    p = R / name
+    assert p.read_bytes() == subprocess.check_output(["git", "show", pin + ":" + name])
+    files[name] = p.read_text()
+payload = {"source_git": pin, "files": files, "directory": D.relative_to(R).as_posix()}
+program = """import hashlib,json,os,shutil,sys,types
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+os.umask(0o077)
+B=Path('/tmp/rsna-S6-Kaggle-production-route-20261019-v1');D=B/'paired-zero-recovery-v1'
+assert not D.exists(),'Existing original preparation requires read-only reconciliation'
+paid=sum(p.stat().st_size for p in B.rglob('*') if p.is_file())
+assert paid+2*2**20<8*2**20 and shutil.disk_usage('/tmp').free>(20+8)*2**30+32*2**20
+files=v['files'];own=v['directory']
+def module(name):
+ m=types.ModuleType('original_paired_zero_'+name);exec(compile(files[own+'/'+name+'.py.txt'],name,'exec'),m.__dict__);return m
+engine=module('engine').build(files['rsna/competitive/licensed_importance_train.py'])
+additions={n:files[n] for n in ('rsna/competitive/paired_source_zero.py','rsna/competitive/teacher_only.py','rsna/competitive/teacher_pair.py')}
+additions['rsna/competitive/paired_source_zero_train.py']=engine
+original=(B/'epoch-1/source.private.py').read_text()
+source,meta=module('compile').build(original,additions,files[own+'/worker.py.txt'],files[own+'/bootstrap.py.txt'],v['source_git'])
+assert len(source.encode())+len(json.dumps(meta).encode())<2*2**20
+D.mkdir(mode=0o700);(D/'source.private.py').write_text(source);(D/'source.private.py').chmod(0o600)
+(D/'prepared.json').write_text(json.dumps(meta,sort_keys=True,indent=2))
+receipt={'status':'actual_new_paired_zero_twoT4_recovery_privately_compiled_CPU_only','CPU_job':os.environ['SLURM_JOB_ID'],'source_git':v['source_git'],'source_sha256':meta['source_sha256'],'worker_sha256':meta['worker_sha256'],'new_numerical_engine_sha256':hashlib.sha256(engine.encode()).hexdigest(),'own_source_bytes':len(source.encode()),'maximum_VM_seconds':3600,'source_control_cap_bytes':2*2**20,'existing_control_cap_bytes':8*2**20,'existing_control_paid_bytes':paid,'GPU_jobs_or_Kaggle_mutations':0,'actual_GPU_acceptance_or_accuracy':False}
+(D/'CPU-prepared.json').write_text(json.dumps(receipt,sort_keys=True,indent=2));print(json.dumps(receipt),flush=True)
+"""
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+with (L / "prepare-intent.json").open("x") as f:
+    json.dump({"source_git": pin, "CPU_only": True, "automatic_retry": False}, f)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:03:00",
+    "--job-name=rsna-source0-T4-compile",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope(program, payload),
+    capture_output=True,
+    text=True,
+    timeout=600,
+)
+(L / "prepare-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read original intent/output; never duplicate uncertain preparation"
+z = json.loads(x.stdout)
+(D / "actual-CPU-prepared.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)
