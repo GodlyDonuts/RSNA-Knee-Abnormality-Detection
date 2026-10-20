@@ -153,6 +153,8 @@ def test_both_locks_serialize_four_actual_owned_inodes_and_cleanup(tmp_path, mon
         "python3 /repo/initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
         "python3 initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py",
         "python3 initiative/research/predictive-http499-owner-handoff-20261020-v1/launch.py unknown",
+        "python3 initiative/research/predictive-evc27-deadline-placement-20261020-v1/owner.py deployment --source-git abc",
+        "python3 initiative/research/predictive-evc27-deadline-placement-20261020-v1/owner.py",
     ],
 )
 def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, command):
@@ -172,6 +174,18 @@ def test_fitting_only_launcher_does_not_claim_account(tmp_path, generation):
     )
     result = quiescence().check(tmp_path, processes=command, own_pid=1)
     assert result["active_known_account_owners_or_transports"] == 0
+
+
+def test_all27_fitting_mode_does_not_claim_account(tmp_path):
+    journal = fixture(tmp_path)
+    (journal / "complete.json").write_text(json.dumps({"outcome": "scored"}))
+    command = (
+        "80995 python3 /repo/initiative/research/"
+        "predictive-evc27-deadline-placement-20261020-v1/owner.py fitting --source-git abc"
+    )
+    assert quiescence().check(tmp_path, processes=command, own_pid=1)[
+        "active_known_account_owners_or_transports"
+    ] == 0
 
 
 def test_all_generations_are_physically_charged_once_and_false_directory_credit_refused(tmp_path):

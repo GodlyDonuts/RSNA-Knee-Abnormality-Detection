@@ -32,6 +32,7 @@ def account_process(command):
         "predictive-http-owner-handoff-20261020-v1/launch.py",
         "predictive-source-correction-owner-handoff-20261020-v1/launch.py",
         "predictive-http499-owner-handoff-20261020-v1/launch.py",
+        "predictive-evc27-deadline-placement-20261020-v1/owner.py",
     )
     if not any(launcher in command for launcher in launchers):
         return False
