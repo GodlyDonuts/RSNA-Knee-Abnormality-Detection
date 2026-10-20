@@ -13,3 +13,9 @@ changes, new cohort, source acquisition, old teacher loss or extra GPU job. On a
 actual CPU pass it may submit exactly one original B/C H100 engineering job. New
 builder source and receipts are bound separately; original failed controls stay
 unchanged. No full fitting, accuracy or T4 acceptance follows from this admission.
+
+Actual corrected admissionCPU977675 PASSED and oneH100 diagnostic977678 was
+submitted once, PENDING Priority at initial observation. Original72,856,264
+encoder parameters/1024features,67DICOMs/1072regions/eight contexts per mask.
+Sourceafca3ce7; original queued numerical source remains684b02a7. See exact
+actual-prepare.json and actual-submit.json. No actual GPU acceptance yet.

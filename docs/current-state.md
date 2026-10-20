@@ -49,6 +49,34 @@ never repeat pointwise epochs1–3 or compilation. The H100→Kaggle input bridg
 prepared only, not funded/staged/dispatched. Source-zero owners32102/33801 remain
 independent. No original improvement over the external0.958 baseline is proven.
 
+
+### Actual real-MRI trainer dispatch (October20,07:35UTC)
+
+Original CPU977645 stopped before retaining the case or starting a GPU: the
+original raw fitting fixture was absent from an unrelated32-case engineering
+label subset. Read-only977655 confirmed no case/prepared/GPU-start outputs.
+Separate corrected CPU977675 reused the original staged numerical sources and
+funding, joined unchanged labels/masks from the exact original3887 fitting
+bundle, and admitted the complete72,856,264-parameter MRI-parent encoder.
+No teacher-logit array is read for the corrected label join.
+
+**GPU977678 submitted ONCE, currently PENDING Priority on evc33**, ordinary
+physical2H100 node/request1H100/2CPU/24GiB/20minutes. Sourceafca3ce7,
+root `/tmp/rsna-predictive-real-trainer-20261020-v1`. Do not rerun either
+coordinator, copy source again or change queued numerical files. It runs fresh
+B/C full/stop1/resume processes, four updates on one actual fitting study,
+1072complete regions and eight context windows/mask. One head-only warmup update;
+complete model/AdamW/history/cursors/RNG/private prediction-byte equality required.
+Initial/final losses and memory are engineering diagnostics, not a sufficient
+multi-study overfit pass, full94 serving, held-out accuracy, full fit or T4 gate.
+
+The original failed controls and new v2 admission are separate and preserved.
+Funding is12GiB diagnostic checkpoints/128MiB private case/4MiB controls on33,
+zero new shared bytes/files, in addition to prior liabilities and20GiB/5000file
+reserves. This is not production funding. No new source acquisition. Inspect
+actual job/header/logs and GPU-accepted.json before advancing; a pending dispatch
+is not a GPU pass. See predictive-real-trainer-20261020-v2 and its actual receipts.
+
 ## Actual competition results
 
 | Model | Kaggle score | Entry |

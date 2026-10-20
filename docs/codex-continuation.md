@@ -1,5 +1,16 @@
 # RSNA Knee continuation
 
+## Latest actual predictive trainer state
+
+CPU977675 accepted original67DICOM raw case, exact full3887 fitting labels/masks
+and original72.9M MRI encoder; corrected only the unrelated32-subset label join.
+GPU977678 submitted ONCE/PENDING Priority evc33,1H100/2CPU/24GiB/20min,
+sourceafca3ce7, root /tmp/rsna-predictive-real-trainer-20261020-v1. Inspect actual
+terminal/header/logs/GPU-accepted.json; do not repeat either v1/v2 coordinator.
+Original CPU977645 failure and RO977655 no-GPU reconciliation preserved. See
+predictive-real-trainer-20261020-v2. No GPU acceptance or accuracy yet. Diagnostic
+funding12GiB+128MiB+4MiB on33, zero new shared files, all old liabilities retained.
+
 ## October20 owner-directed priority (supersedes older next-action snapshots)
 
 Follow the predictive-evidence B/C proposal as the primary new branch; read the
