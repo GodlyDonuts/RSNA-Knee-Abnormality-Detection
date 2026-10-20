@@ -122,3 +122,22 @@ expanded dynamic range or tiny fitting losses. This receipt does not fund or
 launch another GPU, admit a full variant or alter the healthy primary workers.
 A separate bounded training run, recovery acceptance and fresh resource review
 remain necessary before full fitting or competition deployment.
+
+## Matched pilot inputs
+
+`prepare_once.py`/`prepare_contexts.py` prepare a distinct private16-study cache
+on the original owning node evc33: twelve original fitting training studies and
+four disjoint fitting engineering prediction studies. Each has a normalized and
+unchanged-image ten-coordinate control. No clinical labels, encoder or optimizer
+are read in this CPU phase. All32 files must roundtrip bitwise, and original
+images/control targets/priors/membership must agree with the original16 cache.
+
+The bounded new scope is **1GiB contexts +8MiB controls on evc33**, zero shared
+files/bytes, zero GPUs and zero checkpoints. Admission freshly counts unique
+physical old raw/context files and keeps their unpaid320/96GiB bounds,6GiB
+scratch, the larger68GiB+594MiB other-node deployment scope,20GiB free floor and
+all123MiB/376shared-file obligations. No deletion credit is used. The unique
+output is `/tmp/rsna-predictive-visible-contrast16-20261020-v1`; an existing root
+or local intent requires reconciliation and cannot be retried automatically.
+This phase has one CPU/12GiB and a15-minute limit. A transfer or training job is
+not included. At source preparation it has not been dispatched.
