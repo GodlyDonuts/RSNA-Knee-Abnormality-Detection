@@ -227,7 +227,7 @@ def fit(
         fraction = step / max(1, total - 1)
         warm = recipe.warmup_fraction
         factor = (
-            (step + 1) / max(1, warm * total)
+            min(1.0, (step + 1) / max(1, warm * total))
             if fraction < warm
             else recipe.end_lr_fraction
             + (1 - recipe.end_lr_fraction)

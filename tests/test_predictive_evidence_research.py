@@ -89,6 +89,7 @@ def test_actual_new_loop_recovery_and_complete_target_roster(tmp_path, arm):
         epochs=2,
         effective_batch=2,
         head_only_updates=1,
+        warmup_fraction=0.4,  # Fractional warmup length must never exceed declared rates.
         density_weight=0 if arm == "C0" else 0.1,
     )
     binding = {
@@ -112,6 +113,10 @@ def test_actual_new_loop_recovery_and_complete_target_roster(tmp_path, arm):
     )
     assert complete["step"] == resumed["step"] == 4
     assert complete["history"] == resumed["history"]
+    assert all(
+        0 < row["LR"][0] <= recipe.encoder_lr and 0 < row["LR"][1] <= recipe.head_lr
+        for row in complete["history"]
+    )
     assert [r["studies"] for r in complete["history"]] == [2, 1, 2, 1]
     assert all(r["encoder_gradient_norm"] > 0 for r in complete["history"])
     assert not complete["history"][0]["encoder_updated"]
@@ -395,3 +400,45 @@ def test_complete_multiscale_priors_ignore_observation_pattern_and_shared_init_e
     assert proof["same_shared_tensor_values"] and proof["C_parameters"] != proof["B_parameters"]
     for n in proof["shared_tensor_names"]:
         assert torch.equal(B.state_dict()[n], C.state_dict()[n])
+
+
+def test_exact_context_cache_preserves_probabilities_and_source_binding(tmp_path):
+    """Cached FP32 inputs preserve actual readout and RNG; changed source is refused."""
+    from torch import nn
+
+    from rsna.competitive.predictive import context_cache
+    from rsna.competitive.predictive.cases import RawGroup, assemble
+    from rsna.competitive.predictive.infer import predict
+    from rsna.competitive.predictive.model import matched_modules
+
+    groups = [
+        RawGroup(
+            torch.rand(3, 64, 64),
+            torch.arange(3),
+            torch.zeros(3, dtype=torch.int64),
+            torch.arange(3),
+        )
+    ]
+    contexts = assemble(groups, side=32, context_cap=2, classes=2)
+    encoder = nn.Sequential(nn.Conv2d(3, 4, 3), nn.AdaptiveAvgPool2d(1), nn.Flatten())
+    B, C, _ = matched_modules(encoder, 4, classes=2, hidden=8)
+    provenance = {"raw_cache_sha256": "a" * 64, "side": 32, "context_cap": 2, "classes": 2}
+    before = torch.get_rng_state().clone()
+    path = tmp_path / "contexts.npz"
+    proof = context_cache.write(path, contexts, provenance, cap_bytes=2**20)
+    restored = context_cache.load(path, proof, provenance=provenance)
+    assert torch.equal(before, torch.get_rng_state())
+    for left, right in zip(contexts, restored):
+        for key in context_cache.KEYS:
+            assert torch.equal(left[key], right[key])
+        for key in ("indptr", "regions", "log_prior"):
+            assert torch.equal(getattr(left["supports"], key), getattr(right["supports"], key))
+    for model in (B, C):
+        model.eval()
+        torch.testing.assert_close(
+            predict(model, contexts), predict(model, restored), rtol=0, atol=0
+        )
+    with pytest.raises(ValueError):
+        context_cache.load(path, proof, provenance={**provenance, "context_cap": 3})
+    with pytest.raises(FileExistsError):
+        context_cache.write(path, contexts, provenance, cap_bytes=2**20)
