@@ -140,4 +140,33 @@ all123MiB/376shared-file obligations. No deletion credit is used. The unique
 output is `/tmp/rsna-predictive-visible-contrast16-20261020-v1`; an existing root
 or local intent requires reconciliation and cannot be retried automatically.
 This phase has one CPU/12GiB and a15-minute limit. A transfer or training job is
-not included. At source preparation it has not been dispatched.
+not included. Actual CPU **984645 COMPLETED0:0 /3:45**, source0432905d,
+produced **32 files/538,307,806bytes**. Every roundtrip and original-control
+image/target/prior comparison passed. RNG and original bytes are unchanged.
+The fresh source-node margin after all old and new obligations was7,245,344,519
+bytes; shared reserve remained22,750,248,960bytes/5,003files after liabilities.
+[Actual preparation](actual-contexts-prepared.json); [terminal](actual-contexts-terminal.json).
+
+`transfer_once.py`/`transfer.py` prepare one private evc33→evc27 stream over the
+cluster pipe. The Mac receives only an aggregate receipt; all32 original file
+sizes, SHA256 values and EOF must pass on evc27, with the exact16-row original
+label order. A distinct `/tmp/rsna-predictive-contrast-learning-20261020-v1`
+root retains the copies. Fresh destination funding keeps the entire prior
+394,815,078,400byte requirement and adds1GiB input copies,6GiB future checkpoint
+scope and4MiB controls; no existing C100/G100 scope is reassigned and shared
+usage adds zero files/bytes. Funding that future checkpoint scope does not
+submit a GPU. At this source preparation the transfer is not executed.
+
+`worker_builder.py` prepares an exact derivation of the accepted39e315 worker
+with the original train/model/density numerical modules unchanged. The two
+roles use C, density0.1, ten metadata coordinates, identical seeded
+initialization and200 updates each over the twelve fitting studies. The
+production2,916-update schedule passes peak LR at146; the first3 updates remain
+head-only. This is100 passes over twelve engineering cases, not100 full-data
+epochs. Four disjoint cases are prediction checks, not a tuning set. A local
+complete-state/RNG/history/prediction recovery regression covers the new graph.
+The intended GPU comparison uses control full200, normalized stop1/resume199:
+400 updates total, with no redundant full rerun solely to repeat an already
+accepted training-engine check. That actual sequence would demonstrate a real
+resume, not full-versus-resume equivalence on this new GPU graph. No GPU driver,
+admission, dispatch or trained contrast result exists yet.
