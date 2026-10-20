@@ -131,7 +131,9 @@ if phase == "commit_draft_once":
             "maximum_GPU_seconds": 6000,
             "competition_entry": False,
             "reconciled_partial_draft_first_execution": intent,
-            "actual_Kaggle_status": r.kernel("GetKernelSessionStatus", slug, 1)["status"],
+            "actual_Kaggle_status": r.kernel("GetKernelSessionStatus", slug, 1).get(
+                "status", "INITIALIZING_UNREPORTED"
+            ),
         }
         row.update(
             state=out["status"], kernel_id=m["id"], first_executable_commit_response=response
@@ -283,7 +285,7 @@ for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerIma
     assert m.get(n, False if n == "enableInternet" else None) == req[n]
 for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
     assert sorted(m.get(n, [])) == sorted(req[n])
-status = r.kernel("GetKernelSessionStatus", slug, 1)["status"]
+status = r.kernel("GetKernelSessionStatus", slug, 1).get("status", "INITIALIZING_UNREPORTED")
 observed = {
     "status": "actual_exact_E3_remote_source_runtime_inputs_version_observed",
     "CPU_job": os.environ["SLURM_JOB_ID"],
