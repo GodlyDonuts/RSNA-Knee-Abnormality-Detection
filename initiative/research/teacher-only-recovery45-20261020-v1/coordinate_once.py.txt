@@ -1,0 +1,105 @@
+"""One new CPU admission and conditional distinct zero-source GPU recovery."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-recovery45-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+paths = {
+    "worker.py": D / "worker.py.txt",
+    "driver.py": D / "driver.py.txt",
+    "original_worker.py": R
+    / "initiative/research/teacher-pair-real-recovery48-20261019-v2/worker.py.txt",
+    "original_driver.py": R
+    / "initiative/research/teacher-pair-real-recovery48-20261019-v2/driver.py.txt",
+    "teacher_only.py": R / "rsna/competitive/teacher_only.py",
+}
+for path in [*paths.values(), D / "stage.py.txt", D / "coordinate_once.py.txt"]:
+    assert path.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + path.relative_to(R).as_posix()]
+    )
+files = {name: path.read_text() for name, path in paths.items()}
+assert files["original_worker.py"].count("from rsna.competitive.teacher_pair import Recipe") == 1
+payload = {
+    "source_git": pin,
+    "files": files,
+    "file_SHA": {n: hashlib.sha256(z.encode()).hexdigest() for n, z in files.items()},
+    "original_CPU": json.loads(
+        (
+            R / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-admitted.json"
+        ).read_text()
+    ),
+}
+with (L / "intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "maximum_CPU_stages": 1,
+            "maximum_new_diagnostic_GPU_jobs": 1,
+            "new_shared_models_or_pixels": 0,
+            "future_private_RAM_scratch_cap": 6 * 2**30,
+            "maximum_GPU_minutes": 10,
+            "existing_training_untouched": True,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-teacher-only-CPU-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope((D / "stage.py.txt").read_text(), payload),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect exact original source/output/Slurm; do not repeat submission"
+z = json.loads(x.stdout)
+(D / "actual-submitted.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)

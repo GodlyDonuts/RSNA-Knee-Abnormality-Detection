@@ -1,0 +1,124 @@
+"""One short allocation tests actual zero-source full/stop1/resume equality."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+import torch
+
+R = Path("/tmp/rsna-teacher-only-recovery45-20261020-v1")
+meta = json.loads((R / "staged.json").read_text())
+assert os.uname().nodename == "evc45" and os.environ.get("SLURM_JOB_GPUS")
+for name, key in [
+    ("driver.py", "driver_sha256"),
+    ("worker.py", "worker_sha256"),
+    ("original_driver.py", "original_driver_sha256"),
+]:
+    assert hashlib.sha256((R / name).read_bytes()).hexdigest() == meta[key]
+assert not (R / "GPU-intent.json").exists()
+assert shutil.disk_usage("/dev/shm").free > (20 + 8 + 6) * 2**30
+work = Path(tempfile.mkdtemp(prefix="rsna-teacher-only-recovery-", dir="/dev/shm"))
+work.chmod(0o700)
+(R / "GPU-intent.json").write_text(
+    json.dumps(
+        {
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": meta["source_git"],
+            "owned_private_RAM_root": str(work),
+            "new_scratch_cap_bytes": 6 * 2**30,
+            "previous_original_scratch_preserved": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+start = time.monotonic()
+child = None
+phases = []
+
+
+def paid():
+    return sum(p.stat().st_size for p in work.rglob("*") if p.is_file())
+
+
+try:
+    for phase in ("full", "stop1", "resume"):
+        with (
+            (R / (phase + ".stdout.private.log")).open("x") as out,
+            (R / (phase + ".stderr.private.log")).open("x") as err,
+        ):
+            child = subprocess.Popen(
+                [sys.executable, "-B", str(R / "worker.py"), phase],
+                env={**os.environ, "TEACHER_ONLY_RECOVERY_WORK": str(work)},
+                stdout=out,
+                stderr=err,
+                start_new_session=True,
+            )
+            while child.poll() is None:
+                assert time.monotonic() - start < 550
+                assert paid() < 6 * 2**30 and shutil.disk_usage("/dev/shm").free > 20 * 2**30 + max(
+                    0, 6 * 2**30 - paid()
+                )
+                time.sleep(2)
+            assert child.returncode == 0, "Preserve the original diagnostic failure; no retry"
+        phases.append(phase)
+    s = importlib.util.spec_from_file_location(
+        "original_exact_state_comparator", R / "original_driver.py"
+    )
+    comparator = importlib.util.module_from_spec(s)
+    s.loader.exec_module(comparator)
+    accepted = comparator.compare(work, "pointwise")
+    state = torch.load(work / "pointwise/full/checkpoint.pt", map_location="cpu", weights_only=True)
+    assert (
+        state["binding"]["recipe"]["source_weight"] == 0.0
+        and state["binding"]["observed_source_loss_weight"] == 0.0
+    )
+    assert (
+        state["binding"]["source_supervision_ablation"]
+        == "full_encoder_two_view_zero_source_weight_ablation_v1"
+    )
+    out = {
+        "status": "actual_zero_source_teacher_only_real_GPU_full_stop1_resume_accepted",
+        "GPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": meta["source_git"],
+        "teacher_only_SHA": meta["teacher_only_sha256"],
+        "phases": phases,
+        "accepted": accepted,
+        "trainable_parameters": 73136096,
+        "training_studies": 16,
+        "disjoint_engineering_prediction_studies": 16,
+        "retained_diagnostic_RAM_bytes": paid(),
+        "private_scratch_preserved_not_deleted": True,
+        "source_weight": 0.0,
+        "production_fit_or_clinical_or_competition_admission": False,
+        "automatic_retry": False,
+    }
+    (R / "verified.json").write_text(json.dumps(out, indent=2) + "\n")
+    print(json.dumps(out), flush=True)
+except BaseException as error:
+    if child is not None and child.poll() is None:
+        os.killpg(child.pid, signal.SIGTERM)
+        try:
+            child.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid, signal.SIGKILL)
+            child.wait(timeout=10)
+    (R / "failed.json").write_text(
+        json.dumps(
+            {
+                "error_type": type(error).__name__,
+                "retained_scratch": str(work),
+                "no_automatic_retry": True,
+            }
+        )
+        + "\n"
+    )
+    raise
