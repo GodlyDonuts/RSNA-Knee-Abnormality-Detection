@@ -1,0 +1,156 @@
+"""One normal-queue continuation using the original completed GPU outputs."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS")
+root = Path("/tmp/rsna-teacher-pair-optimizer-recovery45-20261020-v1")
+C = root / "normal-continuation-v1"
+assert not C.exists(), "Reconcile original continuation intent; never duplicate"
+terminal = subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "974708", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+assert "974708|PREEMPTED|0:0" in terminal
+held = subprocess.check_output(["scontrol", "show", "job", "974412", "-o"], text=True)
+assert "JobState=PENDING" in held and "Reason=JobHeldUser" in held and "RunTime=00:00:00" in held
+node = subprocess.check_output(["scontrol", "show", "node", "evc45", "-o"], text=True)
+assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
+assert (
+    v["proof"]["source_git"] == v["source_git"]
+    and v["proof"]["canonical_shared_publication_lock_used"] is True
+)
+assert hashlib.sha256((root / "driver.py").read_bytes()).hexdigest() == v["original_driver_sha256"]
+assert hashlib.sha256((root / "worker.py").read_bytes()).hexdigest() == v["original_worker_sha256"]
+assert hashlib.sha256(v["driver"].encode()).hexdigest() == v["driver_sha256"]
+old = json.loads((root / "staged.json").read_text())
+assert old["source_git"] == "11272518ab400056301c9b24072f9c809e3e57d3"
+assert shutil.disk_usage("/tmp").free > 20 * 2**30 + (12 + 24) * 2**30 + 32 * 2**20
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(a[6]) - int(a[5]) > 5128
+C.mkdir(mode=0o700)
+(C / "driver.py").write_text(v["driver"])
+s = importlib.util.spec_from_file_location("exact_continuation", C / "driver.py")
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+assert m.torch.cuda.device_count() == 0
+work = Path(json.loads((root / "GPU-intent.json").read_text())["owned_temporary_RAM_root"])
+assert work.parent == Path("/dev/shm") and work.name.startswith("rsna-teacher-pair-recovery-")
+prior = m.validate_retained(root, work)
+paid = sum(p.stat().st_size for p in work.rglob("*") if p.is_file())
+assert (
+    paid < 8 * 2**30
+    and shutil.disk_usage("/dev/shm").free > 20 * 2**30 + max(0, 8 * 2**30 - paid) + 32 * 2**20
+)
+stage = {
+    "source_git": v["source_git"],
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "driver_sha256": v["driver_sha256"],
+    "original_driver_sha256": v["original_driver_sha256"],
+    "original_worker_sha256": v["original_worker_sha256"],
+    "original_source_git": old["source_git"],
+    "gradient_receipt_sha256": old["gradient_receipt_sha256"],
+    "original_retained_state": prior,
+    "private_source_proof": v["proof"],
+    "remaining_fresh_processes": 4,
+    "original_reference_repeated": False,
+    "automatic_retry": False,
+}
+(C / "staged.json").write_text(json.dumps(stage, indent=2) + "\n")
+F = Path("/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1")
+header = json.loads(
+    Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json").read_text()
+)["include_path"]
+env = [
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+    "CUDA_CACHE_MAXSIZE=33554432",
+    "C_INCLUDE_PATH=" + header,
+    "CPLUS_INCLUDE_PATH=" + header,
+]
+for key in ("XDG_CACHE_HOME", "TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR", "CUDA_CACHE_PATH"):
+    env.append(key + "=" + str(F / key.lower()))
+command = [
+    "srun",
+    "--exact",
+    "--cpu-bind=none",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    *env,
+    sys.executable,
+    "-B",
+    str(C / "driver.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=00:20:00",
+    "--time-min=00:10:00",
+    "--job-name=rsna-pair-recovery-normal-continuation",
+    "--output=" + str(C / "GPU-%j.stdout.private.log"),
+    "--error=" + str(C / "GPU-%j.stderr.private.log"),
+    "--wrap=" + shlex.join(command),
+]
+with (C / "dispatch-intent.json").open("x") as f:
+    json.dump(
+        {"args": args, "stage": stage, "maximum_new_GPU_jobs": 1, "automatic_retry": False}, f
+    )
+clean = {
+    k: val
+    for k, val in os.environ.items()
+    if not k.startswith(
+        ("SLURM_CPU_BIND", "SLURM_STEP_CPU_BIND", "SRUN_CPU_BIND", "SBATCH_CPU_BIND")
+    )
+    and k not in ("CUDA_VISIBLE_DEVICES", "SLURM_TRES_BIND", "SLURM_GPU_BIND")
+}
+x = subprocess.run(args, env=clean, capture_output=True, text=True)
+(C / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Uncertain actual dispatch: reconcile original intent, never retry"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+result = {
+    "status": "actual_four_remaining_original_recovery_processes_queued_normal_once",
+    "GPU_job": job,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "original_preempted_GPU": "974708",
+    "original_974412_held_zero_runtime": True,
+    "node": "evc45",
+    "remaining_processes": 4,
+    "maximum_minutes": 20,
+    "minimum_minutes": 10,
+    "partition": "normal",
+    "actual_reference_or_optimizer_work_repeated": False,
+    "actual_GPU_recovery_or_accuracy_accepted": False,
+    "automatic_retry": False,
+}
+(C / "submitted.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result), flush=True)

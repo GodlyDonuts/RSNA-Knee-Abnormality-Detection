@@ -1,0 +1,159 @@
+"""One actual epoch publication and verified pointer delivery to its trainer owner."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-Kaggle-production-route-20261019-v1"
+epoch = int(sys.argv[1])
+assert 1 <= epoch <= 3
+assert epoch == 1, "Only the reconciled original E1 pre-collection failure is admitted"
+preflight = json.loads((D / "actual-publication-recovery-preflight.json").read_text())
+assert (
+    preflight["CPU_job"] == "974818"
+    and preflight["original_model_collection_directory_absent"] is True
+    and preflight["original_bulk_model_or_HF_mutations"] == 0
+    and preflight["shared_file_reserve_after_liabilities"] >= 5000
+)
+assert (L / "publish-1-intent.json").exists()
+for pid in (1613, 2264, 2861):
+    assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode != 0
+actual = json.loads((D / ("actual-terminal-epoch-" + str(epoch) + ".json")).read_text())
+assert actual["status"] == "COMPLETE" and actual["receipt"]["completed"] == epoch * 486
+assert not (L / ("publish-preflight-recovery-" + str(epoch) + "-intent.json")).exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in ("publish_after_preflight_once.py.txt", "publish_epoch.py.txt", "epoch_check.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + str(p.relative_to(R))]
+    )
+base = subprocess.check_output(
+    ["git", "show", git + ":rsna/competitive/licensed_parent_epoch.py"], text=True
+)
+with (L / ("publish-preflight-recovery-" + str(epoch) + "-intent.json")).open("x") as f:
+    json.dump(
+        {
+            "source_git": git,
+            "epoch": epoch,
+            "kernel_id": actual["kernel_id"],
+            "maximum_new_model_publications": 1,
+            "new_GPU_jobs": 0,
+            "automatic_retry": False,
+        },
+        f,
+    )
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+s = importlib.util.spec_from_file_location(
+    "t", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+
+
+def cpu(node, program, payload, name, minutes, memory, runtime):
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc" + str(node),
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=" + memory,
+        "--time=00:" + str(minutes).zfill(2) + ":00",
+        "--job-name=" + name,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        runtime,
+        "-c",
+        t.COMMAND,
+    ]
+    return subprocess.run(
+        ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+        input=t.envelope(program, payload),
+        capture_output=True,
+        text=True,
+        timeout=(minutes + 5) * 60,
+    )
+
+
+x = cpu(
+    48,
+    (D / "publish_epoch.py.txt").read_text(),
+    {
+        "actual": actual,
+        "source_git": git,
+        "checker_source": (D / "epoch_check.py.txt").read_text(),
+        "checker_sha256": hashlib.sha256((D / "epoch_check.py.txt").read_bytes()).hexdigest(),
+        "validator_modules": {
+            "rsna/__init__.py": "",
+            "rsna/competitive/__init__.py": "",
+            "rsna/competitive/licensed_parent_epoch.py": base,
+        },
+        "kaggle_token": values["KAGGLE_API_TOKEN"],
+        "hf_token": values["HF_TOKEN"],
+    },
+    "rsna-S6-changed-epoch-private-" + str(epoch),
+    35,
+    "8G",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+)
+(L / ("publish-preflight-recovery-" + str(epoch) + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original model transfer/publication needs read-only reconciliation, never retry"
+)
+z = json.loads(x.stdout)
+(D / ("actual-private-verified-epoch-" + str(epoch) + ".json")).write_text(
+    json.dumps(z, indent=2) + "\n"
+)
+# Deliver only the verified aggregate pointer; model/RNG bytes remain on48/HF.
+program = """import json,os,subprocess,sqlite3
+from pathlib import Path
+v=json.load(__import__('sys').stdin);assert os.uname().nodename=="evc33" and not os.environ.get("SLURM_JOB_GPUS")
+z=v["publication"];a=v["actual"];assert z["status"]=="actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified" and z["epoch"]==a["epoch"] and z["kernel_id"]==a["kernel_id"] and z["model_sha256"]==a["receipt"]["epoch"]["sha256"]
+assert z["CPU_job"]+"|COMPLETED|0:0" in subprocess.check_output(["sacct","-X","-n","-P","-j",z["CPU_job"],"--format=JobIDRaw,State,ExitCode"],text=True)
+with sqlite3.connect("file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro",uri=True) as db:r=json.loads(db.execute("SELECT value FROM meta WHERE key=?",("licensed-importance-full-fit:complete-S6-cross:"+a["source_sha256"],)).fetchone()[0])
+assert r["state"]=="complete_teacher_cross_full_fit_actual_complete" and r["receipt"]==a["receipt"]
+p=Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")/("epoch-"+str(a["epoch"]))/"publication-private-verified.json"
+with p.open("x") as f:json.dump(z,f,sort_keys=True,indent=2);f.write("\\n")
+print(json.dumps({"status":"actual_private_epoch_pointer_delivered_to_original_trainer_owner","CPU_job":os.environ["SLURM_JOB_ID"],"epoch":z["epoch"],"kernel_id":z["kernel_id"],"revision":z["revision"],"new_model_transfers":0}))
+"""
+y = cpu(
+    33,
+    program,
+    {"publication": z, "actual": actual},
+    "rsna-S6-changed-epoch-pointer-" + str(epoch),
+    5,
+    "1G",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+)
+(L / ("publication-pointer-" + str(epoch) + "-transport.json")).write_text(
+    json.dumps({"returncode": y.returncode, "stdout": y.stdout, "stderr": y.stderr}, indent=2)
+    + "\n"
+)
+assert y.returncode == 0, "Publication exists; reconcile its exact pointer, never publish again"
+pointer = json.loads(y.stdout)
+(D / ("actual-publication-pointer-epoch-" + str(epoch) + ".json")).write_text(
+    json.dumps(pointer, indent=2) + "\n"
+)
+print(json.dumps({"publication": z, "pointer": pointer}), flush=True)

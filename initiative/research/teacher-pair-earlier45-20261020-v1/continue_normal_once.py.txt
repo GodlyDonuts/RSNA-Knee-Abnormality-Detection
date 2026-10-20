@@ -1,0 +1,101 @@
+"""Dispatch only the four missing processes after exact source preservation."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-earlier45-20261020-v1"
+intent = L / "normal-continuation-intent.json"
+assert not intent.exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+proof = json.loads(
+    (
+        R
+        / "initiative/audits/hf-teacher-pair-normal-continuation-20261020-v1/actual-private-verified.json"
+    ).read_text()
+)
+assert proof["source_git"] == pin
+names = (
+    "continuation_driver.py.txt",
+    "stage_continuation.py.txt",
+    "continue_normal_once.py.txt",
+    "driver.py.txt",
+    "worker.py.txt",
+)
+for name in names:
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+prior = json.loads((D / "actual-preemption-state.json").read_text())
+assert (
+    prior["GPU_job"] == "974708"
+    and prior["actual_terminal"] == "PREEMPTED"
+    and prior["phase_state"]["pointwise/resumed"]["checkpoint"]["completed"] == 1
+)
+v = {
+    "source_git": pin,
+    "proof": proof,
+    "driver": (D / "continuation_driver.py.txt").read_text(),
+    "driver_sha256": hashlib.sha256((D / "continuation_driver.py.txt").read_bytes()).hexdigest(),
+    "original_driver_sha256": hashlib.sha256((D / "driver.py.txt").read_bytes()).hexdigest(),
+    "original_worker_sha256": hashlib.sha256((D / "worker.py.txt").read_bytes()).hexdigest(),
+}
+with intent.open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "remaining_processes": 4,
+            "maximum_new_GPU_jobs": 1,
+            "original_completed_processes_repeated": False,
+            "automatic_retry": False,
+        },
+        f,
+    )
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=8G",
+    "--time=00:05:00",
+    "--job-name=rsna-pair-normal-continuation-stage",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope((D / "stage_continuation.py.txt").read_text(), v),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "normal-continuation-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect exact original dispatch and retained inputs; no retry"
+z = json.loads(x.stdout)
+(D / "actual-normal-continuation-submitted.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)

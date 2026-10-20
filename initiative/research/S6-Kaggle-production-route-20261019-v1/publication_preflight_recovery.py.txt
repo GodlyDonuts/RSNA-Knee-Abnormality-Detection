@@ -1,0 +1,116 @@
+"""Read-only reconciliation of failed974799 before any model transfer or HF write."""
+
+import ast
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sqlite3
+import subprocess
+import sys
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+assert "974799|FAILED|1:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "974799", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+B = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+R = B / "Kaggle-target-epochs-v1"
+D = R / "epoch-001"
+assert not D.exists(), "An original model collection exists: reconcile it, never repeat"
+a = v["actual"]
+z = a["receipt"]
+assert a["kernel_id"] == 139699006 and a["status"] == "COMPLETE" and z["completed"] == 486
+with sqlite3.connect(
+    "file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro", uri=True
+) as db:
+    row = json.loads(
+        db.execute(
+            "SELECT value FROM meta WHERE key=?",
+            ("licensed-importance-full-fit:complete-S6-cross:" + a["source_sha256"],),
+        ).fetchone()[0]
+    )
+assert row["state"] == "complete_teacher_cross_full_fit_actual_complete" and row["receipt"] == z
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+c = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+free_files = int(c[6]) - int(c[5])
+free_bytes = (int(c[2]) - int(c[1])) * 1024
+# Retain original funded128 shared-metadata liability, plus four transient inodes.
+# All new model/journal/HF-cache files are exclusively node-local; no original is deleted.
+assert free_files > 5000 + 128 + 4 and free_bytes > 20 * 2**30 + 80 * 2**20
+paid = sum(p.stat().st_size for p in B.rglob("*") if p.is_file() and not p.is_symlink())
+paid_models = sum(p.stat().st_size for p in R.rglob("*") if p.is_file()) if R.exists() else 0
+assert paid + max(0, 4 * 2**30 - paid_models) < 12 * 2**30
+assert shutil.disk_usage("/tmp").free > (20 + 87) * 2**30 + max(0, 12 * 2**30 - paid) + 32 * 2**20
+F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
+stage = json.loads((F / "staged.json").read_text())
+p = F / "code/workflow.py"
+assert hashlib.sha256(p.read_bytes()).hexdigest() == stage["source_sha256"]["workflow.py"]
+s = importlib.util.spec_from_file_location("read_only_original_workflow", p)
+w = importlib.util.module_from_spec(s)
+s.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+k = r.kernel("GetKernel", a["slug"], 1)
+assert (
+    k["metadata"]["id"] == a["kernel_id"]
+    and k["metadata"]["isPrivate"] is True
+    and hashlib.sha256(k["blob"]["source"].encode()).hexdigest() == a["source_sha256"]
+)
+assert r.kernel("GetKernelSessionStatus", a["slug"], 1)["status"] == "COMPLETE"
+literals = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(k["blob"]["source"]).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id in ("FILES", "WORKER", "BINDING", "PERMISSION")
+}
+assert (
+    literals["BINDING"] == z["binding"]
+    and hashlib.sha256(base64.b64decode(literals["WORKER"])).hexdigest() == z["worker_sha256"]
+)
+engine = json.loads((B / "kaggle-existing-output-replay-v1/accepted.json").read_text())
+assert {n: hashlib.sha256(s.encode()).hexdigest() for n, s in literals["FILES"].items()} == engine[
+    "receipt"
+]["source_module_sha256"]
+p = base64.b64decode(literals["PERMISSION"])
+assert (
+    len(p) == 4411
+    and hashlib.sha256(p).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+print(
+    json.dumps(
+        {
+            "status": "actual_failed_publication_before_collection_reconciled_and_original_funded_reserve_preserved",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "failed_original_CPU": 974799,
+            "original_model_collection_directory_absent": True,
+            "original_bulk_model_or_HF_mutations": 0,
+            "actual_complete_epoch": 1,
+            "kernel_id": 139699006,
+            "completed_updates": 486,
+            "source_static_binding_and_worker_exact": True,
+            "source_fourteen_modules_match_actual_GPU_engine": True,
+            "shared_free_files": free_files,
+            "original_shared_metadata_liability_retained": 128,
+            "new_transient_shared_inodes_bounded": 4,
+            "shared_file_reserve_after_liabilities": free_files - 128 - 4,
+            "shared_free_bytes": free_bytes,
+            "node_local_model_cap_bytes": 4 * 2**30,
+            "node_local_original_total_cap_bytes": 12 * 2**30,
+            "originals_deleted": False,
+            "new_GPU_jobs": 0,
+            "automatic_retry": False,
+        }
+    ),
+    flush=True,
+)

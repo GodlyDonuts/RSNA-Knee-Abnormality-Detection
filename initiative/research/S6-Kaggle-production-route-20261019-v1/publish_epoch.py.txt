@@ -16,6 +16,26 @@ from urllib.parse import urljoin, urlparse
 import requests
 import torch
 
+
+def shared_metadata_budget(row):
+    """Retain original funded128 metadata inodes and four bounded transients.
+
+    Models/journals/HF caches reside exclusively on the admitted node-local root.
+    Four shared transients cover the directory lock/marker plus SQLite WAL/SHM.
+    No original deletion, hard-quota borrowing or retirement of old liabilities.
+    """
+    free_files = int(row[6]) - int(row[5])
+    free_bytes = (int(row[2]) - int(row[1])) * 1024
+    if free_files <= 5000 + 128 + 4 or free_bytes <= 20 * 2**30 + 80 * 2**20:
+        raise ValueError("Original shared reserve after funded metadata and transients required")
+    return {
+        "shared_free_files": free_files,
+        "funded_metadata_liability": 128,
+        "transient_inode_bound": 4,
+        "shared_reserve_after_liabilities": free_files - 128 - 4,
+    }
+
+
 v = json.load(sys.stdin)
 os.umask(0o077)
 assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
@@ -65,7 +85,7 @@ q = __import__("subprocess").check_output(
     ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True
 )
 c = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
-assert (int(c[2]) - int(c[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(c[6]) - int(c[5]) > 5400
+shared_metadata_budget(c)
 F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
 staged = json.loads((F / "staged.json").read_text())
 p = F / "code/workflow.py"

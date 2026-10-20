@@ -1,0 +1,235 @@
+"""Finish only missing original recovery processes after known preemption.
+
+The original reference, stop1, numerical worker and complete decoder remain
+unchanged. Original job974708 stays PREEMPTED; this new job has a separate receipt.
+"""
+
+import ast
+import hashlib
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import torch
+
+PHASES = (
+    ("pointwise", "resume"),
+    ("teacher_rank", "full"),
+    ("teacher_rank", "stop1"),
+    ("teacher_rank", "resume"),
+)
+
+
+def validate_retained(root, work):
+    full = json.loads((work / "pointwise/full/full-process.json").read_text())
+    stop = json.loads((work / "pointwise/resumed/stop1-process.json").read_text())
+    assert full["completed_updates"] == 4 and full["prediction_studies"] == 16
+    assert (
+        full["prediction_sha256"]
+        == "ba21708a0ddd4d6e723d3a8262e48bf620bf7244bca24e9bf11976376a268859"
+    )
+    assert (
+        stop["completed_updates"] == 1
+        and full["initial_state_sha256"]
+        == stop["initial_state_sha256"]
+        == "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+    )
+    assert full["unchanged_BN"] and stop["unchanged_BN"]
+    assert not (work / "pointwise/resumed/resume-process.json").exists()
+    assert not (work / "teacher_rank").exists()
+    state = torch.load(
+        work / "pointwise/resumed/checkpoint.pt", map_location="cpu", weights_only=True, mmap=True
+    )
+    assert (
+        state["completed"] == 1
+        and state["epoch"] == 0
+        and state["cursor"] == 1
+        and state["optimizer_boundary"] is True
+    )
+    assert len(state["history"]) == 1 and state["binding"]["recipe"]["objective"] == "pointwise"
+    del state
+    return {
+        "uninterrupted_full_reference_updates": 4,
+        "completed_stop1_updates": 1,
+        "remaining_fresh_processes": 4,
+        "original_reference_prediction_sha256": full["prediction_sha256"],
+    }
+
+
+def main():
+    os.umask(0o077)
+    root = Path("/tmp/rsna-teacher-pair-optimizer-recovery45-20261020-v1")
+    C = root / "normal-continuation-v1"
+    meta = json.loads((C / "staged.json").read_text())
+    assert os.uname().nodename == "evc45" and os.environ.get("SLURM_JOB_GPUS")
+    assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == meta["driver_sha256"]
+    assert not (C / "GPU-intent.json").exists()
+    assert (
+        hashlib.sha256((root / "worker.py").read_bytes()).hexdigest()
+        == meta["original_worker_sha256"]
+    )
+    original = (root / "driver.py").read_text()
+    assert hashlib.sha256(original.encode()).hexdigest() == meta["original_driver_sha256"]
+    terminal = subprocess.check_output(
+        ["sacct", "-X", "-n", "-P", "-j", "974708", "--format=JobIDRaw,State,ExitCode"], text=True
+    )
+    assert "974708|PREEMPTED|0:0" in terminal
+    work = Path(json.loads((root / "GPU-intent.json").read_text())["owned_temporary_RAM_root"])
+    assert (
+        work.parent == Path("/dev/shm")
+        and work.name.startswith("rsna-teacher-pair-recovery-")
+        and work.is_dir()
+    )
+    prior = validate_retained(root, work)
+    # Load only the exact original complete state/CSV comparator, never driver.main.
+    nodes = [
+        n
+        for n in ast.parse(original).body
+        if isinstance(n, ast.FunctionDef) and n.name in ("same", "compare", "_digest", "paid")
+    ]
+    assert {n.name for n in nodes} == {"same", "compare", "_digest", "paid"}
+    import math
+
+    ns = {"torch": torch, "Path": Path, "hashlib": hashlib, "json": json, "math": math}
+    exec(
+        compile(
+            ast.Module(body=nodes, type_ignores=[]), "unchanged_original_complete_decoder", "exec"
+        ),
+        ns,
+    )
+    paid = ns["paid"]
+    assert (
+        paid(work) < 8 * 2**30
+        and shutil.disk_usage("/dev/shm").free
+        > 20 * 2**30 + max(0, 8 * 2**30 - paid(work)) + 32 * 2**20
+    )
+    with (C / "GPU-intent.json").open("x") as f:
+        json.dump(
+            {
+                "GPU_job": os.environ["SLURM_JOB_ID"],
+                "source_git": meta["source_git"],
+                "original_preempted_job": "974708",
+                "only_missing_phases": PHASES,
+                "original_outputs_unchanged": True,
+                "automatic_retry": False,
+            },
+            f,
+        )
+    env = {
+        **os.environ,
+        "TEACHER_PAIR_RECOVERY_WORK": str(work),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONNOUSERSITE": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+    }
+    phases = []
+    child = None
+    start = time.monotonic()
+    try:
+        for objective, phase in PHASES:
+            directory = "full" if phase == "full" else "resumed"
+            assert not (work / objective / directory / (phase + "-process.json")).exists(), (
+                "Existing completed process may not be repeated"
+            )
+            with (
+                (C / (objective + "-" + phase + ".stdout.private.log")).open("x") as out,
+                (C / (objective + "-" + phase + ".stderr.private.log")).open("x") as err,
+            ):
+                child = subprocess.Popen(
+                    [sys.executable, "-B", str(root / "worker.py"), phase, objective],
+                    env=env,
+                    stdout=out,
+                    stderr=err,
+                    start_new_session=True,
+                )
+                begun = time.monotonic()
+                while child.poll() is None:
+                    assert time.monotonic() - start < 1100 and time.monotonic() - begun < 550
+                    assert paid(work) < 8 * 2**30 and paid(root) < 16 * 2**20
+                    assert (
+                        shutil.disk_usage("/dev/shm").free
+                        > 20 * 2**30 + max(0, 8 * 2**30 - paid(work)) + 32 * 2**20
+                    )
+                    time.sleep(2)
+                assert child.returncode == 0, (
+                    "Preserve exact failed continuation; never retry automatically"
+                )
+            phases.append(
+                {"objective": objective, "phase": phase, "seconds": time.monotonic() - begun}
+            )
+        roles = {name: ns["compare"](work, name) for name in ("pointwise", "teacher_rank")}
+        assert (
+            roles["pointwise"]["initial_state_sha256"]
+            == roles["teacher_rank"]["initial_state_sha256"]
+        )
+        assert (
+            roles["pointwise"]["final_state_digest"] != roles["teacher_rank"]["final_state_digest"]
+        )
+        for objective in roles:
+            for directory, phase in (("full", "full"), ("resumed", "stop1"), ("resumed", "resume")):
+                row = json.loads(
+                    (work / objective / directory / (phase + "-process.json")).read_text()
+                )
+                assert (
+                    row["device_type"] == "cuda"
+                    and row["trainable_parameters"] == 73136096
+                    and row["BN_buffers"] > 0
+                )
+        result = {
+            "status": "actual_full_encoder_teacher_pair_GPU_optimizer_recovery_accepted",
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": meta["source_git"],
+            "original_numerical_source_git": meta["original_source_git"],
+            "original_GPU_job": "974708",
+            "original_GPU_actual_terminal": "PREEMPTED",
+            "gradient_probe_GPU": "973601",
+            "gradient_receipt_sha256": meta["gradient_receipt_sha256"],
+            "original_reference_and_stop1_reused": True,
+            "original_reference_repeated": False,
+            "completed_new_processes": phases,
+            "retained_reference": prior,
+            "trainable_parameters": 73136096,
+            "training_engineering_studies": 16,
+            "disjoint_prediction_engineering_studies": 16,
+            "roles": roles,
+            "temporary_RAM_checkpoint_bytes": paid(work),
+            "temporary_checkpoint_cap_bytes": 8 * 2**30,
+            "original_completed_reference_and_receipts_retained": True,
+            "resumed_checkpoint_advanced_by_original_engine": True,
+            "permanent_model_publication_or_full_fit_or_clinical_accuracy_or_competition_admission": False,
+            "automatic_retry": False,
+        }
+        (C / "verified.json").write_text(json.dumps(result, indent=2) + "\n")
+        print(json.dumps(result), flush=True)
+    except BaseException as exc:
+        if child is not None and child.poll() is None:
+            os.killpg(child.pid, signal.SIGTERM)
+            try:
+                child.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait(timeout=30)
+        (C / "failed.json").write_text(
+            json.dumps(
+                {
+                    "GPU_job": os.environ["SLURM_JOB_ID"],
+                    "exception_type": type(exc).__name__,
+                    "accepted": False,
+                    "private_work_retained": True,
+                    "automatic_retry": False,
+                }
+            )
+            + "\n"
+        )
+        raise
+
+
+if __name__ == "__main__":
+    main()
