@@ -66,3 +66,10 @@ full-worker loss interface, strict actual-pilot prerequisites, exact source
 reuse, separate resource arithmetic and all-three-primary dependencies. These
 results do not constitute a GPU run, clinical gain or permission to substitute
 a diagnostic checkpoint into a competition notebook.
+
+Actual read-only Newton check at22:50UTC succeeded from source
+`e6e81f052ecadd7c7089f6750464379843860bb4`. It confirmed original pilot986011
+PENDING, complete portable inputs absent, and no full-G100 admission or
+dispatch. The check wrote no remote files and submitted no GPU jobs.
+[Exact status receipt](actual-status-read.json). It is operational connectivity
+evidence, not model acceptance.
