@@ -1,0 +1,95 @@
+"""One private16-case retained-cache transfer, no acquisition or label modification."""
+
+import hashlib
+import io
+import json
+import os
+import socket
+import sys
+from pathlib import Path
+
+import numpy as np
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+actual = json.loads((D / "actual.json").read_text())
+assert (
+    actual["fitting_studies"] == 16
+    and actual["both_masked_contexts_targets_supports_priors_bit_equal"]
+)
+rows = json.loads((D / "cache-index.private.json").read_text())
+membership = json.loads((D / "fitting-membership.private.json").read_text())
+assert len(rows) == 16
+F = Path(membership["original_target_archive"])
+assert (
+    hashlib.sha256(F.read_bytes()).hexdigest()
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+)
+with np.load(F, allow_pickle=False) as a:
+    positions = membership["indices"]
+    assert len(positions) == len(set(positions)) == 16
+    labels = a["labels"][positions].copy()
+    masks = a["masks"][positions].copy()
+    assert [a["uids"][i] for i in positions] == [r["uid"] for r in rows]
+    buffer = io.BytesIO()
+    np.savez_compressed(buffer, labels=labels, masks=masks)
+    label_bytes = buffer.getvalue()
+files = []
+for i, row in enumerate(rows):
+    p = D / ("case-" + str(i).zfill(3) + ".private.npz")
+    st = p.stat()
+    assert st.st_size == row["proof"]["bytes"]
+    assert [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns] == row["proof"]["stat"]
+    files.append((p.name, p, row["proof"]["sha256"]))
+p = D / "cache-index.private.json"
+files.append((p.name, p, actual["private_index_sha256"]))
+entries = [{"name": n, "bytes": p.stat().st_size, "sha256": h} for n, p, h in files]
+entries.append(
+    {
+        "name": "targets.private.npz",
+        "bytes": len(label_bytes),
+        "sha256": hashlib.sha256(label_bytes).hexdigest(),
+    }
+)
+assert sum(r["bytes"] for r in entries) < 4 * 2**30
+connection = socket.create_connection((v["endpoint"]["host"], v["endpoint"]["port"]), timeout=120)
+connection.settimeout(600)
+connection.sendall(v["endpoint"]["token"].encode() + b"\n")
+out = connection.makefile("wb")
+header = json.dumps(
+    {"files": entries, "source_actual": actual, "CPU_job": os.environ["SLURM_JOB_ID"]},
+    separators=(",", ":"),
+).encode()
+out.write(len(header).to_bytes(8, "big"))
+out.write(header)
+for name, p, expected in files:
+    before = p.stat()
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        while block := f.read(2**20):
+            h.update(block)
+            out.write(block)
+    after = p.stat()
+    assert (before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) == (
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    ) and h.hexdigest() == expected
+out.write(label_bytes)
+out.write(b"RSNA_PRIVATE_CACHE_EOF_V1")
+out.flush()
+connection.shutdown(socket.SHUT_WR)
+print(
+    json.dumps(
+        {
+            "status": "actual16_original_verified_cache_source_sent_once",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": len(entries),
+            "bytes": sum(r["bytes"] for r in entries),
+            "new_source_downloads": 0,
+        }
+    ),
+    flush=True,
+)

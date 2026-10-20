@@ -1,0 +1,147 @@
+"""Private bounded cache/model control admission, zero GPU, no raw/index export."""
+
+import hashlib
+import json
+import os
+import re
+import secrets
+import shutil
+import socket
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc27" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-predictive-raw16-learning-20261020-v1")
+assert not D.exists()
+assert (
+    shutil.disk_usage("/tmp").free > (20 + 87 + 12 + 24 + 4 + 12 + 12 + 12 + 4) * 2**30 + 32 * 2**20
+)
+D.mkdir(mode=0o700)
+(D / "data").mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "new_cache_cap_bytes": 4 * 2**30,
+            "engineering_model_cap_bytes": 12 * 2**30,
+            "control_cap_bytes": 16 * 2**20,
+            "all_old_funding_retained": True,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+listener = socket.socket()
+listener.bind(("0.0.0.0", 0))
+listener.listen(1)
+listener.settimeout(180)
+token = secrets.token_hex(32)
+print(json.dumps({"host": "evc27", "port": listener.getsockname()[1], "token": token}), flush=True)
+connection, _ = listener.accept()
+listener.close()
+connection.settimeout(600)
+stream = connection.makefile("rb")
+assert stream.readline(80) == token.encode() + b"\n"
+
+
+def exact(n):
+    b = stream.read(n)
+    assert len(b) == n
+    return b
+
+
+size = int.from_bytes(exact(8), "big")
+assert 0 < size < 2**20
+header = json.loads(exact(size))
+rows = header["files"]
+assert (
+    len(rows) == 18
+    and len(set(r["name"] for r in rows)) == 18
+    and sum(r["bytes"] for r in rows) < 4 * 2**30
+)
+for r in rows:
+    assert re.fullmatch(
+        r"case-[0-9]{3}\.private\.npz|cache-index\.private\.json|targets\.private\.npz", r["name"]
+    )
+    p = D / "data" / r["name"]
+    left = r["bytes"]
+    h = hashlib.sha256()
+    with p.open("xb") as f:
+        while left:
+            block = exact(min(left, 2**20))
+            h.update(block)
+            f.write(block)
+            left -= len(block)
+    assert h.hexdigest() == r["sha256"]
+assert exact(25) == b"RSNA_PRIVATE_CACHE_EOF_V1" and stream.read(1) == b""
+# Owning-node inode/stat admission is rebuilt only after complete new-node SHA equality.
+index_path = D / "data/cache-index.private.json"
+original_index = index_path.read_bytes()
+(D / "data/source-index-original.private.json").write_bytes(original_index)
+index = json.loads(original_index)
+assert len(index) == 16
+for i, row in enumerate(index):
+    p = D / "data" / ("case-" + str(i).zfill(3) + ".private.npz")
+    st = p.stat()
+    assert row["proof"]["sha256"] == next(r["sha256"] for r in rows if r["name"] == p.name)
+    row["proof"]["stat"] = [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+    row["path"] = str(p)
+index_path.write_text(json.dumps(index) + "\n")
+for name, s in v["files"].items():
+    p = D / "code" / name
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(s.encode()).hexdigest() == v["sha256"][name]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(s)
+original = Path("/tmp/rsna-predictive-portable-recovery-20261020-v1")
+binding = json.loads((original / "binding.private.json").read_text())
+st = Path(binding["parent_weight_private_path"]).stat()
+assert {"bytes": st.st_size, "mtime_ns": st.st_mtime_ns, "inode": st.st_ino} == binding[
+    "parent_weight_stat"
+]
+binding.update(
+    source_git=v["source_git"],
+    code_sha256=v["sha256"],
+    targets16_sha256=hashlib.sha256((D / "data/targets.private.npz").read_bytes()).hexdigest(),
+    cache_index_sha256=hashlib.sha256(index_path.read_bytes()).hexdigest(),
+    original_source_cache_index_sha256=hashlib.sha256(original_index).hexdigest(),
+    training_members=12,
+    disjoint_engineering_members=4,
+    clinical_validation=False,
+    original_accepted_engine_GPU="978218",
+    recipe={
+        "epochs": 8,
+        "effective_batch": 4,
+        "head_only_updates": 3,
+        "encoder_lr": 3e-5,
+        "head_lr": 3e-5,
+        "density_weight": 0.1,
+        "side": 320,
+        "context_cap": 24,
+        "full_region_roster": True,
+    },
+    head_lr_change_reason="actual first C update produced21.46 training_exam_loss;reduce both B_C head LR tenfold for training-only stability before full fitting",
+)
+(D / "binding.private.json").write_text(json.dumps(binding) + "\n")
+out = {
+    "status": "actual16_private_raw_cache_and_original_MRI_encoder_learning_inputs_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "sender_CPU_job": header["CPU_job"],
+    "source_git": v["source_git"],
+    "files": len(rows),
+    "cache_bytes": sum(r["bytes"] for r in rows),
+    "fitting_train": 12,
+    "disjoint_engineering": 4,
+    "all_cache_source_bytes_and_SHA_equal": True,
+    "exact_original_labels_masks": True,
+    "full_encoder_trainable": True,
+    "recipe": binding["recipe"],
+    "clinical_accuracy_or_GPU_acceptance": False,
+    "new_shared_bytes_files": 0,
+}
+(D / "prepared.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)

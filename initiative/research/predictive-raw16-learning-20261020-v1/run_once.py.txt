@@ -1,0 +1,218 @@
+"""One finite cache-admission and actual learning successor; no GPU waits for data."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+source = {
+    p.relative_to(R).as_posix(): p.read_text()
+    for p in (R / "rsna/competitive/predictive").glob("*.py")
+}
+source.update(
+    {
+        "rsna/__init__.py": "",
+        "rsna/competitive/__init__.py": "",
+        "worker.py": (D / "worker.py.txt").read_text(),
+        "driver.py": (D / "driver.py.txt").read_text(),
+    }
+)
+payload = {
+    "source_git": pin,
+    "files": source,
+    "sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in source.items()},
+}
+owner = {
+    "PID": os.getpid(),
+    "source_git": pin,
+    "maximum_seconds": 7200,
+    "maximum_CPU_private_transfers": 1,
+    "maximum_new_GPU_learning_jobs": 1,
+    "only_after_actual16_input_acceptance": True,
+    "full_original_encoder_trainable": True,
+    "shared_context_and_base_initialization_matched": True,
+    "training_only_head_lr_reduced_tenfold_in_both_arms": True,
+    "maximum12_training4_disjoint_engineering": True,
+    "production_or_competition_model": False,
+    "automatic_retry": False,
+}
+(L / "owner-intent.json").write_text(json.dumps(owner, indent=2) + "\n")
+print(json.dumps(owner), flush=True)
+end = time.monotonic() + 7200
+try:
+    proof = R / "initiative/research/predictive-raw16-cache-20261020-v1/actual-prepare.json"
+    while not proof.exists():
+        assert time.monotonic() < end
+        state = subprocess.check_output(
+            [
+                "ssh",
+                "-S",
+                "/tmp/rsna-research-20261001-stable.sock",
+                "newton",
+                "sacct -X -n -P -j 978232 --format=JobIDRaw,State,ExitCode",
+            ],
+            text=True,
+        )
+        assert not any(x in state for x in ("FAILED", "TIMEOUT", "CANCELLED", "OUT_OF_MEMORY")), (
+            "Original cache failure; preserve partials"
+        )
+        time.sleep(30)
+    actual = json.loads(proof.read_text())
+    assert (
+        actual["fitting_studies"] == 16
+        and actual["both_masked_contexts_targets_supports_priors_bit_equal"]
+    )
+    spec = importlib.util.spec_from_file_location(
+        "transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+
+    def command(node, python):
+        return [
+            *ssh,
+            shlex.join(
+                [
+                    "srun",
+                    "--account=skattel",
+                    "--partition=normal",
+                    "--qos=normal",
+                    "--nodelist=" + node,
+                    "--ntasks=1",
+                    "--cpus-per-task=1",
+                    "--gres=none",
+                    "--mem=2G",
+                    "--time=00:10:00",
+                    "--job-name=rsna-predictive16-private-input",
+                    "env",
+                    "CUDA_VISIBLE_DEVICES=",
+                    "PYTHONNOUSERSITE=1",
+                    "PYTHONDONTWRITEBYTECODE=1",
+                    "OMP_NUM_THREADS=1",
+                    python,
+                    "-B",
+                    "-c",
+                    t.COMMAND,
+                ]
+            ),
+        ]
+
+    with (L / "receiver.stderr").open("x") as errors:
+        p = subprocess.Popen(
+            command("evc27", "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=errors,
+            text=True,
+        )
+        p.stdin.write(t.envelope((D / "receiver.py.txt").read_text(), payload))
+        p.stdin.close()
+        endpoint = json.loads(p.stdout.readline())
+        assert endpoint["host"] == "evc27" and len(endpoint["token"]) == 64
+        z = subprocess.run(
+            command("evc33", "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"),
+            input=t.envelope((D / "sender.py.txt").read_text(), {"endpoint": endpoint}),
+            text=True,
+            capture_output=True,
+            timeout=900,
+        )
+        (L / "sender-result.json").write_text(
+            json.dumps(
+                {"returncode": z.returncode, "stdout": z.stdout, "stderr": z.stderr}, indent=2
+            )
+            + "\n"
+        )
+        output = p.stdout.read()
+        rc = p.wait(timeout=60)
+        (L / "receiver-result.json").write_text(
+            json.dumps({"returncode": rc, "stdout": output}, indent=2) + "\n"
+        )
+        assert z.returncode == rc == 0, (
+            "Actual original private input transfer requires read-only reconciliation"
+        )
+    actual = json.loads(output)
+    assert (
+        actual["status"]
+        == "actual16_private_raw_cache_and_original_MRI_encoder_learning_inputs_admitted"
+    )
+    (D / "actual-inputs.json").write_text(json.dumps(actual, indent=2) + "\n")
+    q = subprocess.check_output([*ssh, "lfs quota -u sa305415 /home/sa305415"], text=True)
+    a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 74 * 2**20 and int(a[6]) - int(
+        a[5]
+    ) > 5000 + 128 + 128 + 64 + 24 + 6
+    script = """#!/bin/bash
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --nodelist=evc27
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:1
+#SBATCH --mem=24G
+#SBATCH --time=00:45:00
+#SBATCH --job-name=rsna-predictive16-learning-BC
+#SBATCH --output=/home/sa305415/rsna-knee/kaggle/predictive16-learning-20261020-v1-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/kaggle/predictive16-learning-20261020-v1-%j.err
+set -euo pipefail
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8
+exec /tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/bin/python -B -c 'import sys;sys.path.insert(0,"/tmp/rsna-predictive-portable-recovery-20261020-v1/overlay");exec(compile(open("/tmp/rsna-predictive-raw16-learning-20261020-v1/code/driver.py").read(),"actual16_MRI_BC_driver","exec"))'
+"""
+    (L / "GPU-intent.json").write_text(
+        json.dumps(
+            {
+                "source_git": pin,
+                "script_sha256": hashlib.sha256(script.encode()).hexdigest(),
+                "new_shared_bytes": 2 * 2**20,
+                "new_shared_files": 3,
+                "maximum_new_GPU_jobs": 1,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    z = subprocess.run(
+        [*ssh, "sbatch --parsable"], input=script, text=True, capture_output=True, timeout=60
+    )
+    (L / "GPU-transport.json").write_text(
+        json.dumps({"returncode": z.returncode, "stdout": z.stdout, "stderr": z.stderr}, indent=2)
+        + "\n"
+    )
+    assert z.returncode == 0
+    job = z.stdout.strip().split(";")[0]
+    assert job.isdigit()
+    out = {
+        "GPU_job": job,
+        "source_git": pin,
+        "node": "evc27",
+        "input_CPU_job": actual["CPU_job"],
+        "training_studies": 12,
+        "disjoint_engineering_studies": 4,
+        "updates_per_arm": 24,
+        "complete_state_recovery_required": True,
+        "production_or_competition_candidate": False,
+    }
+    (D / "actual-submit.json").write_text(json.dumps(out, indent=2) + "\n")
+    print(json.dumps(out), flush=True)
+except BaseException as error:
+    (L / "stopped.json").write_text(
+        json.dumps({"error_type": type(error).__name__, "automatic_retry": False}) + "\n"
+    )
+    raise
