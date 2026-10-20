@@ -33,7 +33,13 @@ stopped receipt, its PID absent, and no matching live account owner/transport.
 This is necessary because the frozen healthy account owner checks its entire
 376-file future bound before looking at the claim; merely holding the claim can
 make it fail instead of wait. Root must serialize this mirror after that owner
-ends and before starting another account owner. Quiescence also recognizes the portable C0 deployment owner, both v4 and HTTP handoff launchers in deployment mode, and their account transports. This includes the HTTP deployment owner observed as PID 91866. A fitting-only launcher does not itself consume the account claim. The remote worker acquires the
+ends and before starting another account owner. Quiescence recognizes the portable
+C0 deployment owner, v4/HTTP/source-correction handoff launchers in deployment
+mode, the ranking-delta continuation and their account transports. The healthy
+source-correction deployment owner **11014** still prevents this mirror even
+though pointwise72266 and ranking20168 have finished. Missing or unknown launcher
+modes fail closed; a fitting-only launcher does not itself consume the account
+claim. The remote worker acquires the
 canonical account claim, then the unchanged pinned HF lock implementation with
 a bounded 30-second wait. Only four owned, distinct, current inodes may retire
 four entries from the future count: **376 → 372**, after these four are already

@@ -11,6 +11,7 @@ from pathlib import Path
 ACCOUNT_MARKERS = (
     "pointwise-final-deployment-20261020-v1",
     "teacher-rank-final-deployment-20261020-v1",
+    "teacher-rank-delta-deployment-20261020-v1",
     "source-zero-final-serving-20261020-",
     "predictive-final-deployment-20261020-",
     "S6-Kaggle-production-route-20261019-v1",
@@ -29,6 +30,7 @@ def account_process(command):
     launchers = (
         "predictive-v4-owner-handoff-20261020-v1/launch.py",
         "predictive-http-owner-handoff-20261020-v1/launch.py",
+        "predictive-source-correction-owner-handoff-20261020-v1/launch.py",
     )
     if not any(launcher in command for launcher in launchers):
         return False

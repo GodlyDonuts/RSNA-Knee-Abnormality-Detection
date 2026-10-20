@@ -70,6 +70,7 @@ def test_healthy_owner_without_terminal_prevents_any_mirror(tmp_path):
     [
         "72266 python3 initiative/research/pointwise-final-deployment-20261020-v1/continue_verified_dataset.py",
         "40 python3 initiative/research/teacher-rank-final-deployment-20261020-v1/follow_once.py",
+        "20168 python3 initiative/research/teacher-rank-delta-deployment-20261020-v1/continue_once.py",
         "41 ssh newton srun --job-name=rsna-pointwise-serving-status",
     ],
 )
@@ -146,6 +147,9 @@ def test_both_locks_serialize_four_actual_owned_inodes_and_cleanup(tmp_path, mon
         "python3 /repo/initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
         "python3 initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py",
         "python3 initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py unknown",
+        "python3 /repo/initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
+        "python3 initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py",
+        "python3 initiative/research/predictive-source-correction-owner-handoff-20261020-v1/launch.py unknown",
     ],
 )
 def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, command):
@@ -155,7 +159,7 @@ def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, 
         quiescence().check(tmp_path, processes="80996 " + command, own_pid=1)
 
 
-@pytest.mark.parametrize("generation", ("v4", "http"))
+@pytest.mark.parametrize("generation", ("v4", "http", "source-correction"))
 def test_fitting_only_launcher_does_not_claim_account(tmp_path, generation):
     journal = fixture(tmp_path)
     (journal / "complete.json").write_text(json.dumps({"outcome": "scored"}))
