@@ -1,8 +1,16 @@
-# Predictive alias recovery milestone v7 — prepared only
+# Predictive alias recovery milestone v7 — privately verified
 
-These controls are inert. **No v7 publication has been attempted.** The exact
-final source commit will be selected after the current work and actual receipts
-are committed.
+Publication completed once through CPU **979704** from exact source
+`17beffadba6e7574bd6da69dbac1de9992e2bd05`. All **68 objects /597,670 bytes**
+were independently re-downloaded and size/SHA verified in private
+`GodlyDonuts/RSNA-Data` at revision
+`91ed4964850174a5c8f677b2a4f9af6e4e979a57`, under the canonical shared lock.
+[Actual verification](actual-private-verified.json); [exact manifest](manifest.json).
+
+**Never repeat this publication or its preparation.** Its immutable prefix is
+`research-milestones/predictive-alias-recovery-20261020-v7-node33-17beffadba6e`.
+The receipt and this post-publication documentation are later evidence, not
+objects retroactively included in the frozen source.
 
 This mirror begins after exact v6 source
 `d16501be4c5055015749dcb63ce4268196ff49a0`, already fully privately verified at
@@ -27,7 +35,7 @@ reports, clinical IDs, source buffers, model weights, individual predictions
 and private arrays are excluded. Prepared fitting is not a completed model;
 started cache recovery is not complete input admission or an accuracy result.
 
-After review and commit:
+Already completed command reference; do not rerun:
 
 ```sh
 python3 initiative/audits/hf-predictive-alias-recovery-20261020-v7/prepare.py \
@@ -39,7 +47,7 @@ writes a local manifest. It does not read credentials or access the network.
 The source plus manifest must remain below 1 MiB. This mirror's own future
 manifest/verification cannot be used as evidence of its own completion.
 
-The separate one-time publication command is:
+The following publication command also completed once; do not rerun:
 
 ```sh
 python3 initiative/audits/hf-predictive-alias-recovery-20261020-v7/publish_once.py \
@@ -52,7 +60,7 @@ independent re-download/size/SHA verification of every new object. Credentials
 travel through stdin to one CPU and zero GPUs. An uncertain outcome requires
 read-only reconciliation and never permits a repeated upload.
 
-Fresh funding retains **20 GiB free**, **62 GiB + 594 MiB existing other
+Actual prepublication funding retained **20 GiB free**, **62 GiB + 594 MiB existing other
 obligations**, **4 GiB source scratch**, remaining **320 GiB raw /96 GiB context**
 caps, and a new **4 MiB v7 control allowance**. Paid NPZs across original and all
 successor roots are counted once by inode. Shared admission retains the
