@@ -121,8 +121,11 @@ def test_unknown_or_nonfinite_budget_refused(quota):
         policy.budget(quota, 1, "qualification", latest_training_epoch=1)
 
 
+@pytest.mark.parametrize(
+    "phase,uncertain", [("push", False), ("push", True), ("submit", False), ("submit", True)]
+)
 def test_real_state_machine_prepare_uses_existing_kernel_not_a_dataset(
-    tmp_path, monkeypatch, synthetic_serving_source
+    tmp_path, monkeypatch, synthetic_serving_source, phase, uncertain
 ):
     from scripts.kaggle import workflow
 
@@ -205,3 +208,96 @@ def test_real_state_machine_prepare_uses_existing_kernel_not_a_dataset(
     assert row["state"] == "full_parent_epoch_model_verified" and "dataset" not in row
     with pytest.raises(AssertionError):
         cloud.execute(payload)
+
+    # Continue through the real mutation-intent protocol with a synthetic remote.
+    mode = "qualification" if phase == "push" else "competition"
+    runtime_source = (s / "account-phase-v1" / (mode + ".private.py")).read_text()
+    req = policy.request(1, mode, runtime_source, training)
+    calls = []
+
+    def call(self, service, method, body):
+        calls.append((method, body))
+        if method == "IntrospectToken":
+            return {"active": True, "username": "godlydonuts"}
+        if method == "GetAcceleratorQuotaStatistics":
+            return {"gpuQuota": {"totalTimeAllowed": "999999s"}}
+        if method in ("SaveKernel", "CreateCodeSubmission"):
+            if uncertain:
+                raise RuntimeError("synthetic RPC uncertainty after original intent")
+            return (
+                {"ref": "/code/" + req["slug"], "versionNumber": 1, "kernelId": 321}
+                if method == "SaveKernel"
+                else {"ref": 123456}
+            )
+        raise AssertionError(method)
+
+    Remote.call = call
+    Remote.kernel = lambda self, method, slug, version: (
+        {"status": "COMPLETE"}
+        if method == "GetKernelSessionStatus"
+        else {"metadata": {**req, "id": 321}, "blob": {"source": runtime_source}}
+    )
+    Remote.require_absent_kernel = lambda self, slug: {"synthetic_owned_absence": True}
+    Remote.account = lambda self: {
+        "entered": True,
+        "checked_at": workflow.utcnow(),
+        "num_today": 0,
+        "num_allowed_now": 5,
+    }
+    Remote.submissions = lambda self: []
+    Remote.competition = lambda self, method, body: call(self, "competition", method, body)
+    for name in ("SAVE_KERNEL_INVALID", "object_hash", "allowance"):
+        setattr(w, name, getattr(workflow, name))
+    capacity = SimpleNamespace(admission=lambda *a, **k: {"available": True})
+    monkeypatch.setattr(
+        cloud,
+        "load",
+        lambda name: {"workflow": w, "policy": policy, "gpu_capacity": capacity}[name],
+    )
+    key = "licensed-parent-full-epoch-serving:" + modelsha
+    with realledger(dbpath, "godlydonuts") as db:
+        db.execute(
+            "INSERT INTO meta VALUES (?,?)",
+            (
+                "licensed-importance-full-fit:complete-S6-cross:synthetic",
+                json.dumps(
+                    {"epoch": 1, "state": "complete_teacher_cross_full_fit_actual_complete"}
+                ),
+            ),
+        )
+        if phase == "submit":
+            row["state"] = "full_parent_epoch_competition_accepted"
+            row["competition"] = {
+                "kernel_id": 321,
+                "source_sha256": hashlib.sha256(runtime_source.encode()).hexdigest(),
+                "receipt": {"synthetic": True},
+            }
+            db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row), key))
+            (s / "account-phase-v1/competition-actual-accepted.json").write_text(
+                json.dumps(
+                    {
+                        "receipt": row["competition"]["receipt"],
+                        "CSV_verified_in_RAM": {"test_roster_sha256": policy.ROSTER},
+                    }
+                )
+            )
+        db.commit()
+    payload.update(phase=phase, mode=mode)
+    mutation = "SaveKernel" if phase == "push" else "CreateCodeSubmission"
+    if uncertain:
+        with pytest.raises(RuntimeError):
+            cloud.execute(payload)
+        assert (claimroot / "coordinator-claim/owner.json").exists()
+        assert cloud.execute(payload)["status"] == "waiting_existing_canonical_claim_no_mutation"
+    else:
+        result = cloud.execute(payload)
+        assert not (claimroot / "coordinator-claim").exists()
+        if phase == "submit":
+            assert (
+                result["submission_id"] == 123456 and result["public_example_CSV_uploaded"] is False
+            )
+            actual = next(b for method, b in calls if method == mutation)
+            assert actual["kernelVersion"] == 1 and actual["fileName"] == "submission.csv"
+        with pytest.raises(AssertionError):
+            cloud.execute(payload)
+    assert sum(method == mutation for method, _ in calls) == 1

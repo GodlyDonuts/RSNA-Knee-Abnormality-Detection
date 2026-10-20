@@ -1,0 +1,133 @@
+"""Finite owner: exact E1/E3 qualification, real public MRI and one code entry each."""
+
+import importlib.machinery
+import importlib.util
+import json
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-twoT4-serving-account-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+intent = L / "owner-intent.json"
+assert not intent.exists(), "Inspect original owner/ledger before action"
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert Path(__file__).read_bytes() == subprocess.check_output(
+    ["git", "show", pin + ":" + Path(__file__).relative_to(R).as_posix()]
+)
+loader = importlib.machinery.SourceFileLoader(
+    "canonical_twoT4_serving_coordinator", str(D / "serving_coordinate_once.py.txt")
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+c = importlib.util.module_from_spec(spec)
+loader.exec_module(c)
+# This separately frozen controller never changes the existing training/compilation owners.
+with intent.open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "epochs": [1, 3],
+            "maximum_new_GPU_versions": 4,
+            "maximum_competition_entries": 2,
+            "maximum_new_Datasets_or_model_uploads": 0,
+            "automatic_mutation_retry": False,
+        },
+        f,
+    )
+deadline = time.monotonic() + 18 * 3600
+
+
+def record(name, value):
+    (L / (name + ".json")).write_text(json.dumps(value, indent=2) + "\n")
+    return value
+
+
+def once(phase, epoch, mode):
+    assert time.monotonic() < deadline, "Bounded serving window ended"
+    result = c.run(phase, epoch, mode)
+    record("progress", {"epoch": epoch, "phase": phase, "mode": mode, "actual": result})
+    return result
+
+
+def waiting_action(phase, epoch, mode):
+    while True:
+        result = once(phase, epoch, mode)
+        # Only explicit no-mutation refusals can be called again. Any exception/uncertainty stops.
+        if result["status"] not in (
+            "waiting_existing_canonical_claim_no_mutation",
+            "waiting_actual_GPU_capacity_or_budget_no_mutation",
+            "waiting_authoritative_live_account_allowance_no_mutation",
+        ):
+            return result
+        time.sleep(90)
+
+
+def completed(epoch, mode):
+    while True:
+        result = once("status", epoch, mode)
+        if result["status"] == "COMPLETE":
+            return result
+        if result["status"] in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED"):
+            raise RuntimeError("Actual serving notebook failed; preserve failure, no resubmission")
+        time.sleep(60)
+
+
+try:
+    for epoch in (1, 3):
+        while not (D / ("actual-serving-compiled-epoch-" + str(epoch) + ".json")).exists():
+            assert time.monotonic() < deadline, "Bounded checkpoint wait ended"
+            owner = json.loads((D / "actual-serving-preparation-owner.json").read_text())
+            assert (
+                subprocess.run(["ps", "-p", str(owner["PID"])], capture_output=True).returncode == 0
+            ), "Original compilation owner stopped; inspect original receipts"
+            time.sleep(60)
+        prepared = waiting_action("prepare", epoch, "qualification")
+        assert (
+            prepared["status"] == "actual_preserved_epoch_serving_prepared_without_model_reupload"
+        )
+        for mode in ("qualification", "competition"):
+            pushed = waiting_action("push", epoch, mode)
+            assert pushed["status"] == "one_exact_target_epoch_" + mode + "_pushed"
+            record("pushed-epoch-" + str(epoch) + "-" + mode, pushed)
+            result = completed(epoch, mode)
+            record("accepted-epoch-" + str(epoch) + "-" + mode, result)
+            (D / ("actual-serving-" + mode + "-epoch-" + str(epoch) + ".json")).write_text(
+                json.dumps(result, indent=2) + "\n"
+            )
+        entry = waiting_action("submit", epoch, "competition")
+        assert entry["status"] == "one_exact_target_epoch_code_submission_accepted"
+        record("submitted-epoch-" + str(epoch), entry)
+        (D / ("actual-target-entry-epoch-" + str(epoch) + ".json")).write_text(
+            json.dumps(entry, indent=2) + "\n"
+        )
+        while True:
+            result = once("outcome", epoch, "competition")
+            if result.get("outcome") in ("scored", "failed"):
+                break
+            time.sleep(120)
+        (D / ("actual-target-hidden-outcome-epoch-" + str(epoch) + ".json")).write_text(
+            json.dumps(result, indent=2) + "\n"
+        )
+        assert result["outcome"] == "scored", (
+            "Actual hidden failure; investigate before spending another slot"
+        )
+    record(
+        "complete",
+        {
+            "epochs": [1, 3],
+            "actual_hidden_outcomes_observed": True,
+            "automatic_mutation_retry": False,
+        },
+    )
+except Exception as error:
+    record(
+        "error",
+        {
+            "exception_type": type(error).__name__,
+            "message": str(error),
+            "automatic_mutation_retry": False,
+        },
+    )
+    raise
