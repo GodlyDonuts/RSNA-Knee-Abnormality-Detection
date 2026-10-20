@@ -386,3 +386,15 @@ free GPU capacity/budget, actual T4 qualification/public acceptance and live
 competition allowance. Do not reuse a null/fictitious training kernel or upload
 the public three-row CSV. The compiler is an actual implemented handoff, not a
 claim that full Kaggle deployment is complete.
+
+
+### Paired final-compiler source milestone privately verified
+
+CPU977249/sourcee467b3fd preserved20selected own-source and sanitized receipt
+objects,139,892bytes, atHFfb1b32a3b7dd7961f80da40943613ca275806755. All objects
+independently fully re-downloaded/size/SHA checked under canonical shared lock.
+Prefix research-milestones/teacher-pair-final-compile-20261020-v1-e467b3fd1f0c;
+existing8MiB encoder controls/all standing liabilities preserved. No MRI, labels,
+UIDs, private arrays, external source body or model bytes mirrored. Never repeat.
+Snapshot covers actual v2CPU977228/compiler owner38630 and preserved v1no-write
+refusal, NOT final-model compilation/new-model Kaggle transport/T4 acceptance.

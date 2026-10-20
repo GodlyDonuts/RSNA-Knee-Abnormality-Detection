@@ -29,10 +29,22 @@ make their complete encoders independent OOF models.
 
 Three distinct experiments are moving: the fixed-final cross-teacher model has
 completed all1,458 updates and was submitted once as57422143 (actual hidden score **0.949**, tying the existing adaptation); the matched pointwise/ranking comparison is training on H100975297;
-and full source-zero paired-view fitting is RUNNING on Kaggle139742882v1.
+and source-zero paired-view epoch1 is complete/privately verified, with resumed
+epoch2 RUNNING as Kaggle139756869v1.
 Each fits all73Mparameters on3,887 MRI studies. The source-zero run uses an
 actual byte-equivalent selected-input path measured3.244× faster for CPU case
 loading; no GPU-throughput or accuracy improvement is inferred from that.
+The independent final-model compiler now watches each pointwise/ranking final
+checkpoint, so the pointwise model can move toward evaluation while ranking
+continues. Actual H100 snapshot packaging as a private Kaggle input and new-model
+T4 qualification are still required; these models have no new scores yet.
+
+A new cached-attention mechanism estimates a sampled student's change from its
+full94 frozen reference. The complete3887-study reference is privately verified;
+actual encoder recovery977100 is queued. Synthetic-drift approximation evidence
+is not trained-model or clinical improvement. An exact bias/variance diagnostic
+is prepared for actual learned readouts, not used to select clinical recipes.
+
 The latest actual scores still show no original gain over the0.958 reproduction.
 See [current state](docs/current-state.md) for exact owners, private preservation
 and remaining work.
