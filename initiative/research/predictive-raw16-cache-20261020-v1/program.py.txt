@@ -1,0 +1,272 @@
+"""Bounded fitting-only original-source cache, all regions, no model or label changes."""
+
+import contextlib
+import gzip
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+from urllib.parse import quote
+
+import numpy as np
+import pydicom
+import requests
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+assert not D.exists()
+# Retain every prior funded obligation, then add16GiB cache+2GiB transient+16MiB controls.
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+paid = sum(
+    p.stat().st_size
+    for p in B.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+)
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 8 + 12 + 18) * 2**30 + max(0, 8 * 2**20 - paid) + (166 + 64 + 4 + 16) * 2**20
+)
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+files = [p for p in T.rglob("*") if p.is_file()]
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 72 * 2**20 and int(a[6]) - int(
+    a[5]
+) > 5000 + 128 + 128 + max(0, 256 - len(files)) + 24
+base = Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1")
+location = json.loads((base / "RAM-location.private.json").read_text())
+index = Path(location["path"])
+assert (
+    index.resolve().is_relative_to(Path("/dev/shm"))
+    and hashlib.sha256(index.read_bytes()).hexdigest() == location["sha256"]
+)
+accepted = json.loads((base / "source-index-verified.json").read_text())
+assert (
+    accepted["fitting_studies"] == 3887
+    and accepted["source_files"] == 720851
+    and accepted["source_bytes"] == 500897467290
+)
+P = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+fixture_location = json.loads((P / "HF-raw-input-bridge-v1/RAM-location.private.json").read_text())
+fixture = Path(fixture_location["path"])
+selection = json.loads((fixture / "selection.private.json").read_text())
+records = []
+with gzip.open(index, "rt") as f:
+    for line in f:
+        records.append(json.loads(line))
+assert len(records) == 3887 and [r["uid"] for r in records] == sorted(
+    set(r["uid"] for r in records)
+)
+# Selection uses source order only, never diagnosis/probability/validation performance.
+chosen = [next(r for r in records if r["uid"] == selection["study_uid"])]
+for i in np.linspace(0, len(records) - 1, 16, dtype=int):
+    if records[i]["uid"] != selection["study_uid"] and len(chosen) < 16:
+        chosen.append(records[i])
+assert (
+    len(chosen) == 16
+    and sum(sum(r["bytes"] for r in c["source_files"]) for c in chosen) < 12 * 2**30
+)
+label_file = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")
+assert (
+    label_file.stat().st_size == 483656
+    and hashlib.sha256(label_file.read_bytes()).hexdigest()
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+)
+D.mkdir(mode=0o700)
+(D / "scratch").mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "fitting_only_cases": 16,
+            "selection": "retained_fixture_plus15_evenly_spaced_source_order",
+            "cache_cap_bytes": 16 * 2**30,
+            "owned_transient_cap_bytes": 2 * 2**30,
+            "control_cap_bytes": 16 * 2**20,
+            "new_shared_bytes_files": 0,
+            "GPU_models_or_clinical_predictions": False,
+            "accepted_labels_unchanged": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+for n, s in v["files"].items():
+    p = D / "code" / n
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(s.encode()).hexdigest() == v["sha256"][n]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(s)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import inputs as m
+from rsna.competitive.predictive.cache import load, normalized, write
+from rsna.competitive.predictive.cases import RawGroup, assemble
+
+helper = {}
+exec(compile(v["helper"], "original_source_buffer_helper", "exec"), helper)
+raw = v["raw"]
+decoder = raw[raw.index("groups = {}") : raw.index("roster = 0")]
+assert decoder.count("assert file_bytes == 25131360") == 1
+decoder = decoder.replace(
+    "assert file_bytes == 25131360", 'assert file_bytes == sum(r["bytes"] for r in rows)'
+)
+revision = "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+token = v.pop("token")
+
+
+@contextlib.contextmanager
+def opener(row):
+    url = (
+        "https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/"
+        + revision
+        + "/"
+        + quote(row["path"], safe="/")
+    )
+    with requests.get(
+        url, headers={"Authorization": "Bearer " + token}, timeout=(10, 90), stream=True
+    ) as response:
+        if response.status_code != 200:
+            raise RuntimeError("Source HTTP status " + str(response.status_code))
+        response.raw.decode_content = True
+        yield response.raw
+
+
+start = time.monotonic()
+proofs = []
+source_total = 0
+paid_cache = 0
+new_downloads = 0
+regions = 0
+for i, c in enumerate(chosen):
+    uid, rows = c["uid"], c["source_files"]
+    source_total += sum(r["bytes"] for r in rows)
+    if uid == selection["study_uid"]:
+        ram = fixture
+        owned = None
+        source_proof = {"retained_original_fixture": True, "source_files": rows}
+    else:
+        data, source_proof = helper["acquire"](
+            D / "scratch",
+            uid=uid,
+            rows=rows,
+            series_csv=c["series_csv"],
+            cap=1024 * 2**20,
+            workers=8,
+            opener=opener,
+        )
+        ram = data.parent
+        owned = ram
+        new_downloads += len(rows)
+    namespace = {
+        **globals(),
+        "uid": uid,
+        "rows": rows,
+        "ram": ram,
+        "np": np,
+        "pydicom": pydicom,
+        "m": m,
+    }
+    exec(compile(decoder, "same_original_integer_decoder", "exec"), namespace)
+    groups = namespace["groups"]
+    exec(compile(v["conversion"], "same_original_group_conversion", "exec"), namespace)
+    sources = namespace["sources"]
+    assert paid_cache < 16 * 2**30
+    path = D / ("case-" + str(i).zfill(3) + ".private.npz")
+    provenance = {
+        "original_source_revision": revision,
+        "original_fitting_case_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+        "source_file_table_sha256": hashlib.sha256(
+            json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "source_DICOMs": len(rows),
+        "source_DICOM_bytes": sum(r["bytes"] for r in rows),
+    }
+    proof = write(path, sources, provenance, cap_bytes=min(1024 * 2**20, 16 * 2**30 - paid_cache))
+    restored, check = load(path, proof)
+    assert check == provenance and all(
+        torch.equal(normalized(g), r.frames) for g, r in zip(sources, restored)
+    )
+    left = assemble(
+        [RawGroup(normalized(g), g.aliases, g.acquisition, g.ordinal) for g in sources],
+        side=320,
+        context_cap=8,
+        classes=12,
+    )
+    right = assemble(restored, side=320, context_cap=8, classes=12)
+    for x, y in zip(left, right):
+        for key in ("images", "targets", "observed", "token_metadata", "region_metadata"):
+            assert torch.equal(x[key], y[key])
+        for key in ("indptr", "regions", "log_prior"):
+            assert torch.equal(getattr(x["supports"], key), getattr(y["supports"], key))
+    proofs.append(
+        {"ordinal": i, "uid": uid, "path": str(path), "proof": proof, "source_proof": source_proof}
+    )
+    paid_cache += proof["bytes"]
+    regions += proof["regions"]
+    (D / "progress.private.json").write_text(
+        json.dumps(
+            {
+                "complete": len(proofs),
+                "cache_bytes": paid_cache,
+                "source_bytes": source_total,
+                "descriptor_regions": regions,
+            }
+        )
+        + "\n"
+    )
+    # Only this job's verified and consumed transient buffer is reclaimed; originals/caches retained.
+    (D / ("source-proof-" + str(i).zfill(3) + ".private.json")).write_text(
+        json.dumps(source_proof) + "\n"
+    )
+    if owned:
+        assert owned.parent == D / "scratch"
+        shutil.rmtree(owned)
+    del groups, sources, restored, left, right, namespace
+with np.load(label_file, allow_pickle=False) as z:
+    original_uids = z["uids"].tolist()
+    assert len(original_uids) == 3887
+    # Preserve exact original target archive; fitting engineering membership index only.
+    members = [original_uids.index(c["uid"]) for c in chosen]
+    (D / "fitting-membership.private.json").write_text(
+        json.dumps(
+            {
+                "original_target_archive": str(label_file),
+                "indices": members,
+                "engineering_train_indices": list(range(12)),
+                "engineering_disjoint_indices": list(range(12, 16)),
+                "clinical_validation": False,
+            }
+        )
+        + "\n"
+    )
+(D / "cache-index.private.json").write_text(json.dumps(proofs) + "\n")
+out = {
+    "status": "actual16_fitting_raw_integer_caches_exact_context_target_support_parity_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "fitting_studies": 16,
+    "original_source_bytes": source_total,
+    "cache_bytes": paid_cache,
+    "descriptor_regions": regions,
+    "new_original_DICOM_downloads": new_downloads,
+    "all_original_per_file_SHA_and_metadata_bindings": True,
+    "both_masked_contexts_targets_supports_priors_bit_equal": True,
+    "unchanged_full3887_label_archive_membership": True,
+    "model_GPU_or_clinical_accuracy": False,
+    "elapsed_seconds": time.monotonic() - start,
+    "private_index_sha256": hashlib.sha256(
+        (D / "cache-index.private.json").read_bytes()
+    ).hexdigest(),
+}
+(D / "actual.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)

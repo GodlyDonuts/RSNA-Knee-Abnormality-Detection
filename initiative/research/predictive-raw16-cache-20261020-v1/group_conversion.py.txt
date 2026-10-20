@@ -1,0 +1,23 @@
+all_items = sorted(
+    (x for values in groups.values() for x in values), key=lambda x: (x[0], x[1], x[2])
+)
+order = {}
+for acquisition in sorted({x[0] for x in all_items}):
+    for i, x in enumerate(y for y in all_items if y[0] == acquisition):
+        order[(x[0], x[1], x[2], x[5])] = i
+from rsna.competitive.predictive.cache import SourceGroup
+
+sources = []
+for items in groups.values():
+    items.sort(key=lambda x: (x[0], x[1], x[2]))
+    sources.append(
+        SourceGroup(
+            torch.stack([x[3] for x in items]),
+            torch.tensor([x[6] for x in items]),
+            torch.tensor([x[7] for x in items], dtype=torch.bool),
+            torch.tensor([x[8] == "MONOCHROME1" for x in items]),
+            torch.tensor([x[5] for x in items]),
+            torch.tensor([x[0] for x in items]),
+            torch.tensor([order[(x[0], x[1], x[2], x[5])] for x in items]),
+        )
+    )
