@@ -41,3 +41,5 @@ Updated October20,2026,04:05UTC. Read [current state](current-state.md) and orig
   At03:58UTC fresh allowance was4/freeGPU22185.86seconds; dispatch rechecks.
   First read976082 failed missing remote capacity module; corrected976127 used
   pinned original capacity source through stdin. No diagnostic score claims.
+
+- Sole new T4 observer **29168**, source d17d507e/followerSHA91e86ad768762bdd457bf448d0d8607537f2e9b86b73e1d57f3408a237079f28, actually live and observed139736683v1 RUNNING. It polls only the same exact source/runtime-bound diagnostic up to5400seconds; collects aggregate actual COMPLETE acceptance or actual ERROR, no GPU/production/entry dispatch. Source/new matching checks43passed (26new/source plus17existing paired). GitHub main d17d507e pushed successfully. This new small milestone is NOT yet private-HF mirrored; never call it verified until distinct actual publication/download proofs exist.
