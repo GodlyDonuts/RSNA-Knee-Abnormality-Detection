@@ -13,7 +13,16 @@ import requests
 
 v = json.load(sys.stdin)
 phase = v["phase"]
-assert phase in ("observe", "accept", "absence", "draft", "draft_launch_intent", "observe_version1")
+assert phase in (
+    "observe",
+    "accept",
+    "absence",
+    "draft",
+    "draft_launch_intent",
+    "observe_version1",
+    "draft_metadata",
+    "draft_launch_intent_v2",
+)
 assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
 D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
 source = (D / "source.private.py").read_text()
