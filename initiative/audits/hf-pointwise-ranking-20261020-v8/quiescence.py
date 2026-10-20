@@ -23,18 +23,21 @@ ACCOUNT_MARKERS = (
 
 
 def account_process(command):
-    """Recognize the dual-mode v4 launcher without blocking fitting-only work."""
+    """Recognize dual-mode recovery launchers without blocking fitting-only work."""
     if any(marker in command for marker in ACCOUNT_MARKERS):
         return True
-    launcher = "predictive-v4-owner-handoff-20261020-v1/launch.py"
-    if launcher not in command:
+    launchers = (
+        "predictive-v4-owner-handoff-20261020-v1/launch.py",
+        "predictive-http-owner-handoff-20261020-v1/launch.py",
+    )
+    if not any(launcher in command for launcher in launchers):
         return False
     try:
         words = shlex.split(command)
     except ValueError:
         return True  # Unreadable matching owner command requires reconciliation.
     for i, word in enumerate(words):
-        if word.endswith(launcher):
+        if any(word.endswith(launcher) for launcher in launchers):
             # Mode is the first positional CLI argument in the frozen launcher.
             # Unknown/missing mode is not evidence of account quiescence.
             return i + 1 >= len(words) or words[i + 1] != "fitting"

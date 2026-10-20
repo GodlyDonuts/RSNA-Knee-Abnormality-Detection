@@ -1,6 +1,6 @@
 # Distinct missing-only HTTP recovery
 
-Prepared controls only; this document is not evidence of dispatch or completion.
+**Actual progress at15:04:03UTC:** CPU980978 observed **1,049 raw/1,045 contexts of3,887**, jobs **980960/980969 RUNNING on evc33**, sole owner **91707**, source `d7326951eeb986f26eb21183d61c2b52476a7986`. Raw reused1,041 originals and added8 cases in133.05seconds; no completion-time estimate follows from this short interval. [Actual progress](actual-started-progress.json). Actual CPU 980959 admitted **1,041 raw/1,041 context studies**, 2,846 pending each, two retained buffers/one unfinished/zero orphans. [Actual admission](actual-mixed-prefix-admission.json). No full cache or predictive GPU fit exists yet. This owner was started once; do not repeat dispatch.
 
 The previous raw job `980743` failed at its HTTP status assertion before opening the failed response body; context `980744` stopped after its producer failed. The old assertion did not retain the response status. A later successful header request does not establish the historical status.
 
@@ -19,9 +19,9 @@ Four study lanes retain the raw 320 GiB, context 96 GiB and combined source scra
 
 ## Admission and one owner
 
-Freeze this directory and the HTTP helper in one commit. Call `owner.freeze(...)` with that exact commit, the original regression/prior-attempt/prefix receipts, the original capacity decision, and the accepted HTTP decision. Its generated `programs["admit"]` plus `payloads["raw"]` perform a separate read-only CPU admission. The resulting receipt must have status `actual_mixed_v4_http_prefix_read_only_admitted`, bind the generated suffix, HTTP helper and accepted decision hashes, and show both new roots absent. No owner starts without this actual receipt.
+The launched controls and HTTP helper are frozen in source `d7326951`. Historical preparation called `owner.freeze(...)` with that exact commit, the original regression/prior-attempt/prefix receipts, the original capacity decision, and the accepted HTTP decision. Its generated `programs["admit"]` plus `payloads["raw"]` perform a separate read-only CPU admission. The resulting receipt must have status `actual_mixed_v4_http_prefix_read_only_admitted`, bind the generated suffix, HTTP helper and accepted decision hashes, and show both new roots absent. The original launch used CPU 980959’s actual accepted receipt; never repeat that admission or dispatch.
 
-The finite local owner accepts:
+Historical owner interface, already used once; **do not rerun**:
 
 ```text
 python3 owner.py --source-git <frozen-40-character-commit> --ssh-socket <existing-socket>

@@ -143,6 +143,9 @@ def test_both_locks_serialize_four_actual_owned_inodes_and_cleanup(tmp_path, mon
         "ssh newton srun --job-name=rsna-predictive-final-qualification",
         "python3 initiative/research/predictive-v4-owner-handoff-20261020-v1/launch.py",
         "python3 initiative/research/predictive-v4-owner-handoff-20261020-v1/launch.py unknown",
+        "python3 /repo/initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py deployment --source-git abc",
+        "python3 initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py",
+        "python3 initiative/research/predictive-http-owner-handoff-20261020-v1/launch.py unknown",
     ],
 )
 def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, command):
@@ -152,11 +155,12 @@ def test_current_deployment_owners_and_transports_prevent_publication(tmp_path, 
         quiescence().check(tmp_path, processes="80996 " + command, own_pid=1)
 
 
-def test_v4_fitting_only_launcher_does_not_claim_account(tmp_path):
+@pytest.mark.parametrize("generation", ("v4", "http"))
+def test_fitting_only_launcher_does_not_claim_account(tmp_path, generation):
     journal = fixture(tmp_path)
     (journal / "complete.json").write_text(json.dumps({"outcome": "scored"}))
     command = (
-        "80995 python3 /repo/initiative/research/predictive-v4-owner-handoff-20261020-v1/launch.py "
+        f"80995 python3 /repo/initiative/research/predictive-{generation}-owner-handoff-20261020-v1/launch.py "
         "fitting --deployment-handoff /repo/accepted-deployment-stop.json"
     )
     result = quiescence().check(tmp_path, processes=command, own_pid=1)
@@ -181,7 +185,7 @@ def test_all_generations_are_physically_charged_once_and_false_directory_credit_
         scope["paid_unique_npz"]([old, new])
 
 
-def test_current_mirror_capacity_counts_v4_roots_and_six_gib_scratch_without_new_funding():
+def test_current_mirror_capacity_counts_all_roots_and_six_gib_scratch_without_new_funding():
     source = (D / "program.py.txt").read_text()
     nodes = ast.parse(source).body
     assigned = {}
@@ -196,6 +200,8 @@ def test_current_mirror_capacity_counts_v4_roots_and_six_gib_scratch_without_new
     context_roots = ast.literal_eval(assigned["paid_context"].args[0])
     assert "/tmp/rsna-predictive-full-raw-capacity-recovery-20261020-v1/cache" in raw_roots
     assert "/tmp/rsna-predictive-full-context-capacity-recovery-20261020-v1" in context_roots
+    assert "/tmp/rsna-predictive-full-raw-http-recovery-20261020-v1/cache" in raw_roots
+    assert "/tmp/rsna-predictive-full-context-http-recovery-20261020-v1" in context_roots
     assert "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3/cache" in raw_roots
     assert "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3" in context_roots
     scope = {"paid_raw": 56_893_537_879, "paid_context": 16_043_022_828}

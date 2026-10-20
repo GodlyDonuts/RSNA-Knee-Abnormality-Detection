@@ -41,6 +41,7 @@ paid_raw = paid_unique_npz([
     "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v2/cache",
     "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3/cache",
     "/tmp/rsna-predictive-full-raw-capacity-recovery-20261020-v1/cache",
+    "/tmp/rsna-predictive-full-raw-http-recovery-20261020-v1/cache",
 ])
 paid_context = paid_unique_npz([
     "/tmp/rsna-predictive-context16-cache-20261020-v1",
@@ -50,6 +51,7 @@ paid_context = paid_unique_npz([
     "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v2",
     "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3",
     "/tmp/rsna-predictive-full-context-capacity-recovery-20261020-v1",
+    "/tmp/rsna-predictive-full-context-http-recovery-20261020-v1",
 ])
 source_bytes = sum(len(s.encode()) for s in v["files"].values())
 assert source_bytes < 2**20 and 3 * source_bytes + 128 * 2**10 < 4 * 2**20
