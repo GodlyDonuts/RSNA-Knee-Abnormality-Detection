@@ -226,3 +226,35 @@ benchmark compares the twelve retained training cases in alternating order,
 with every original context/support field and scale required bitwise equal.
 It uses oneCPU/zeroGPU/12GiB for at most10minutes and writes no cluster files.
 Measured CPU or Kaggle acceleration is not established at this source snapshot.
+
+
+Actual CPU **984849 COMPLETED0:0 /1:43**, source
+`aba3ce0cc2a3c08acc9502880b0c3a3e20416972`, measured all12 original fitting
+studies/2,835 frames/576 windows per variant. Every context/support tensor
+and every visible scale matched bitwise; original functions and RNG were
+unchanged. Summed preparation decreased **52.2763→28.9994seconds**, a
+**1.8027× speedup /44.5% reduction**; individual study speedups ranged
+1.6680–1.8608×. Original/optimized first order alternated6/6. Total wall time
+including raw-cache loading/comparison was100.039seconds and process peak
+RSS4,620,849,152bytes. No cluster file, input cache, label, model or GPU changed.
+[Actual timing](actual-fast-timing.json); [terminal](actual-fast-terminal.json).
+
+Decision: equivalent geometry-only sampling is accepted as an optional
+preparation implementation for a future distinct contrast pipeline. It is not
+wired into the frozen queued pilot. These measurements use retained raw
+caches with original descriptors; they exclude fresh DICOM decoding and do
+not establish Kaggle throughput, worst-case memory, learning or clinical gain.
+A promoted contrast candidate would still require a full-data decision and
+its own actual trained serving timing.
+
+
+A separate read-only scheduling/capacity check examined ordinary two-H100
+evc25 as a possible future extra training node. Its test-only eight-hour
+request forecast23:31UTC, not an allocation. CPU984892 found856,959,373,312bytes
+free, but by that actual read both GPUs were allocated. No transfer, training
+job or admission followed; primary placement stays on evc27. The first
+read-only observer984879 failed because default Python3.6 does not support
+`subprocess`'s `text` keyword; the corrected observer used the existing
+management Python and verified that original terminal. Neither observer
+loaded data/model bytes or wrote cluster files.
+[Original observations](actual-alternative-node-readonly.json).
