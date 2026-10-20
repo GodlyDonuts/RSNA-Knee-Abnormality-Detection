@@ -1,0 +1,47 @@
+"""Host/path-only recovery port; never modify original numerical modules."""
+
+import ast
+
+ROOT45 = "/tmp/rsna-teacher-only-recovery45-20261020-v1"
+ROOT48 = "/tmp/rsna-teacher-only-recovery48-20261020-v1"
+F45 = "/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1"
+F48 = "/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3"
+
+
+def host(source):
+    return source.replace(ROOT45, ROOT48).replace(F45, F48).replace('"evc45"', '"evc48"')
+
+
+def build(name, source):
+    result = host(source)
+    if name in ("worker.py", "driver.py"):
+        reverse = result.replace(ROOT48, ROOT45).replace(F48, F45).replace('"evc48"', '"evc45"')
+        assert ast.dump(ast.parse(reverse)) == ast.dump(ast.parse(source))
+        return result
+    assert name == "stage.py"
+    result = result[: result.index('include = json.loads(header.read_text())["include_path"]')]
+    result = result.replace("(20 + 79) * 2**30", "(20 + 87 + 12 + 24) * 2**30")
+    before = 'assert hashlib.sha256(probe).hexdigest() == old["gpu_worker_sha256"]'
+    assert result.count(before) == 1
+    result = result.replace(
+        before,
+        """cached = v["cached48"]
+assert cached["node"] == "evc48" and not cached["module_mismatches"] and not cached["module_absent"]
+assert cached["all_original_archive_byte_proofs_match_node45"] is True
+new_probe_meta = json.loads((F / "staged.json").read_text())
+assert hashlib.sha256(probe).hexdigest() == new_probe_meta["gpu_worker_sha256"]
+for name,h in v["accepted_module_sha256"].items():
+    assert hashlib.sha256((F / "code" / name).read_bytes()).hexdigest() == h
+""",
+    )
+    result = result.replace(
+        '"gradient_worker_sha256": old["gpu_worker_sha256"]',
+        '"gradient_worker_sha256": new_probe_meta["gpu_worker_sha256"]',
+    )
+    # Distinct node48 permission path is already present and original bytes equal.
+    result += """out = {"status":"actual_cached48_zero_source_recovery_CPU_prepared_no_GPU", "CPU_job":os.environ["SLURM_JOB_ID"], "source_git":v["source_git"], "node":"evc48", "same_numerical_modules_as_original45":True, "new_pixel_model_or_runtime_transfers":0, "new_private_RAM_cap_bytes":6*2**30, "new_GPU_jobs":0}
+(R/"prepared.json").write_text(json.dumps(out,indent=2)+"\\n")
+print(json.dumps(out),flush=True)
+"""
+    compile(result, "cached48_zero_source_CPU_prepare", "exec")
+    return result

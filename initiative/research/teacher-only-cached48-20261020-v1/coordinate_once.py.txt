@@ -1,0 +1,154 @@
+"""Prepare cached48 first; submit only after original pending/zero-runtime cancellation."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+old = R / "initiative/research/teacher-only-recovery45-20261020-v1"
+L = R / "artifacts/teacher-only-cached48-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("prepare", "submit")
+assert not (L / (phase + "-intent.json")).exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in [
+    D / "port.py.txt",
+    D / "submit.py.txt",
+    D / "coordinate_once.py.txt",
+    old / "worker.py.txt",
+    old / "driver.py.txt",
+    old / "stage.py.txt",
+    R / "rsna/competitive/teacher_only.py",
+]:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+if phase == "prepare":
+    state = subprocess.check_output(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "newton",
+            "scontrol show job 975914 -o",
+        ],
+        text=True,
+    )
+    assert "JobState=PENDING" in state and "RunTime=00:00:00" in state
+    subprocess.run(
+        ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", "scontrol hold 975914"],
+        check=True,
+    )
+    (D / "actual-original-pending-held.json").write_text(
+        json.dumps(
+            {"GPU_job": "975914", "actual_state_before_hold": state, "new_GPU_work": 0}, indent=2
+        )
+        + "\n"
+    )
+loader = importlib.machinery.SourceFileLoader("port", str(D / "port.py.txt"))
+port = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+loader.exec_module(port)
+if phase == "prepare":
+    files = {
+        name: port.build(name, (old / (name + ".txt")).read_text())
+        for name in ("worker.py", "driver.py")
+    }
+    files.update(
+        {
+            "original_worker.py": (
+                R / "initiative/research/teacher-pair-real-recovery48-20261019-v2/worker.py.txt"
+            ).read_text(),
+            "original_driver.py": (
+                R / "initiative/research/teacher-pair-real-recovery48-20261019-v2/driver.py.txt"
+            ).read_text(),
+            "teacher_only.py": (R / "rsna/competitive/teacher_only.py").read_text(),
+        }
+    )
+    v = {
+        "source_git": pin,
+        "files": files,
+        "file_SHA": {n: hashlib.sha256(z.encode()).hexdigest() for n, z in files.items()},
+        "original_CPU": json.loads(
+            (
+                R / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-admitted.json"
+            ).read_text()
+        ),
+        "cached48": json.loads(
+            (
+                R
+                / "initiative/research/teacher-pair-cached48-20261020-v1/actual-cached48-readonly.json"
+            ).read_text()
+        ),
+        "accepted_module_sha256": json.loads(
+            (
+                R
+                / "initiative/research/teacher-pair-epoch-preservation-20261020-v1/actual-publisher-admission.json"
+            ).read_text()
+        )["accepted_module_sha256"],
+    }
+    program = port.build("stage.py", (old / "stage.py.txt").read_text())
+else:
+    v = {"source_git": pin, "prepared": json.loads((D / "actual-prepared.json").read_text())}
+    program = (D / "submit.py.txt").read_text()
+with (L / (phase + "-intent.json")).open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "phase": phase,
+            "maximum_new_GPU_jobs": int(phase == "submit"),
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc48",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-teacher-only-cached48-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(program, v),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original jobs/journals read-only; never retry dispatch"
+z = json.loads(x.stdout)
+(D / ("actual-" + ("prepared" if phase == "prepare" else "submitted") + ".json")).write_text(
+    json.dumps(z, indent=2) + "\n"
+)
+print(json.dumps(z), flush=True)
