@@ -12,18 +12,20 @@ D = Path(__file__).resolve().parent
 L = R / "artifacts/teacher-pair-earlier45-20261020-v1"
 intent = L / "normal-continuation-intent.json"
 assert not intent.exists()
-pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+dispatcher_pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 proof = json.loads(
     (
         R
         / "initiative/audits/hf-teacher-pair-normal-continuation-20261020-v1/actual-private-verified.json"
     ).read_text()
 )
-assert proof["source_git"] == pin
+pin = proof["source_git"]
+assert Path(__file__).read_bytes() == subprocess.check_output(
+    ["git", "show", dispatcher_pin + ":" + Path(__file__).relative_to(R).as_posix()]
+)
 names = (
     "continuation_driver.py.txt",
     "stage_continuation.py.txt",
-    "continue_normal_once.py.txt",
     "driver.py.txt",
     "worker.py.txt",
 )
@@ -40,6 +42,7 @@ assert (
 )
 v = {
     "source_git": pin,
+    "dispatcher_source_git": dispatcher_pin,
     "proof": proof,
     "driver": (D / "continuation_driver.py.txt").read_text(),
     "driver_sha256": hashlib.sha256((D / "continuation_driver.py.txt").read_bytes()).hexdigest(),
@@ -50,6 +53,7 @@ with intent.open("x") as f:
     json.dump(
         {
             "source_git": pin,
+            "dispatcher_source_git": dispatcher_pin,
             "remaining_processes": 4,
             "maximum_new_GPU_jobs": 1,
             "original_completed_processes_repeated": False,
