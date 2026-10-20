@@ -1,14 +1,14 @@
 # RSNA Knee agent guide
 
-Updated October20,2026,01:57UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
+Updated October20,2026,02:58UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities
 
-- Preserve healthy changed-target E2/E3 fitting. E1 is COMPLETE and privately verified; E2 last RUNNING. Owners4836(training)/4837(compilation) were observed live. Never restart merely because observation fails.
-- Corrected runtime64 reconciled evaluation owner21960 is live; exact corrected qualification139716471v1 RUNNING. Original owner5590 stopped before any push, proven read-only. Unpinned qualification139711261 was stopped once/cancel acknowledged under canonical intent; source/version/E1 checkpoint preserved, never submitted. Do not use old serving policy directly: it contains a historically incorrect Docker digest. No new score yet.
-- Actual H100 ranking recovery974940 COMPLETED0:0; full state/resume/CSV equality passed for both objectives. Full cohort CPU975100 passed; matched full three-epoch ranking/control GPU975129 submitted once/PENDING Priority on45; do not repeat the completed recovery or misrepresent it as accuracy.
-- Actual renderer-only CPU speedup6.99825x with bit-identical selected windows. Full private integrity manifest is still needed before integrating; do not alter healthy training.
-- Best Kaggle0.958 is an external R6 reproduction; own adaptations0.949. No original improvement established. Keep GitHub current and preserve negative results.
+- Changed-target E1/E2 COMPLETE486/972updates, both privately fully verified. E3 SaveKernel975430 uncertain, actual draft exists but no accepted executable version. Reconcile exact source/runtime/inputs under retained canonical claim; do not repeat original push.
+- Actual code entry57418131 accepted once, hidden outcome unconfirmed. Evaluation owner21960 live but waiting on E3 claim. Corrected qualification139716471/public139717947 both COMPLETE. E3 entry requires actual E1 outcome.
+- Matched full pointwise/ranking GPU975297 is PENDING on cached evc48; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
+- Complete private3887study/two-view/window integrity manifest sealed by975656 without rerendering after receipt-only failure975384. Selected reader not yet used in training; admit actual exact inputs before a new immutable pending-only handoff.
+- Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
 ## Standing execution rules
 

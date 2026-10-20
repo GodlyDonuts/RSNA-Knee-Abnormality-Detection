@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 01:57 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 02:58 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -21,18 +21,20 @@ No original improvement over the public reproduction is established. Engineering
 All 3,887 fitting studies, all 73,136,096 parameters, effective batch eight, original labels/masks/proposals/LRs, fixed three epochs / 1,458 updates. Cross-lineage equal-rank teacher supervision is the changed variable. Scientific source cce4ae78b63ec80b54b806ea2e40d34c95ae15df.
 
 - E1 kernel 139699006 v1 COMPLETE: 486 updates, 4,016.6867 seconds. Model SHA 4a7a9f9b59493d45b2820a9619f40fe4c60aaa77a5f5fcb07699864cc5f789df, 292,873,139 bytes. CPU974836 privately published all six objects once; independent full download/size/SHA passed at HF3d69bf08b182be2d7a6e1fb0389dd8f76b2370c5. CPU974845 delivered its exact publication pointer. Never repeat.
-- E2 live logs independently show at least704 cumulative finite updates / epoch2 batch218, both T4s, all73M trainable parameters. This is a lower bound, not the latest count. Kernel **139710942 v1**, `godlydonuts/rsna-s6-cross-full-e2-5d1767a27206`, last authenticated RUNNING. Target cumulative972 updates. Exact optimizer/RNG continuation, no new recipe.
-- E3 not pushed. Training/preservation owner PID4836; separate compilation owner PID4837, both observed live. E1 serving compilation completed; E2/E3 wait for their real private publication.
+- E2 kernel **139710942 v1 COMPLETE972updates**. CPU975416 privately preserved all six objects with independent full download/size/SHA verification at **HFd2afe8cedcfef8e92f7e06569571bd210d855030**. Model SHA599a47c9df17291630484d426a256f66a91a1968c1ac394d5efbe8dff02fada1. Exact optimizer/RNG continuation, no new recipe; never repeat publication.
+- E3 SaveKernel975430 failed with an uncertain response. The notebook exists as a draft; UI offers its first **Version1**, session off, T4x2 selected, internet off, and API reported zero GPU reservation. No executable E3 version or real optimizer progress has yet been accepted. Original account claim is retained while exact draft metadata/source is reconciled. Never retry the original push blindly. Training owner4836 and compilation4837 ended; historical receipts remain.
 
 Original publication974799 failed before model/HF mutation at an unnecessarily high file guard. Read-only reconciliation974818 proved no mutation; the distinct explicit recovery974836 retained the funded metadata/file and byte reserves. No originals deleted. Earlier owners702/1613/2264/2861/4838 are ended; never revive them.
 
 Receipts: `initiative/research/S6-Kaggle-production-route-20261019-v1/`. Old influence control0.949 remains the matched-recipe reference; do not retrain it unchanged. No new checkpoint competition score exists.
 
-## Kaggle evaluation: corrected qualification actually running
+## Kaggle evaluation: first new checkpoint submitted
 
-Original qualification139711261 v1 used the mistyped61-hex Docker identifier; its actual metadata omitted the required runtime. One exact UI Stop Session action was coordinated through the canonical ledger. Kaggle actually reports **CANCEL_ACKNOWLEDGED**, its source/version and E1 private checkpoint are retained, E2 continues. Canonical original phase is now `full_parent_epoch_qualification_cancelled`; no competition entry occurred.
+Corrected qualification **139716471 v1 COMPLETE**: real32MRI acceptance on each T4, identical both-view inputs/learned graph, maximum probability difference0.0 against the training graph, peak2017322496bytes per GPU. Corrected public-example notebook **139717947 v1 COMPLETE** produced a verified3study/13column CSV with no decoding/empty-study failures. This is deployment acceptance, not a hidden score.
 
-Original corrected owner5590 stopped on a read-only API HTTP error. Independent canonical-row/private-intent and complete authenticated notebook-search reconciliation proved the corrected candidate had no push intent/version. Explicit reconciled owner **PID21960**, source917cdad1, reused the prepared E1 source without another preparation/model upload. It pushed corrected qualification **139716471 v1**, `godlydonuts/rsna-s6-target-e1-qual-97b3ce8bcee1`, ONCE. Latest authenticated exact-source/runtime/input check reports RUNNING. Real32MRI/bothT4 prediction acceptance is still pending; this is not a competition submission or score.
+**Competition entry57418131 accepted ONCE**, exact notebook `godlydonuts/rsna-s6-target-e1-offline-373b46a543cc` v1. The public example CSV was not uploaded. Actual hidden score remains unconfirmed; live result owner21960 is blocked by the retained uncertain-E3 claim. Reconcile that original claim before resuming coordinated mutations. E3 evaluation requires the actual E1 hidden outcome first.
+
+Original unpinned qualification139711261 was stopped once and CANCEL_ACKNOWLEDGED; preserve its source/version and never submit or revive it.
 
 Correct canonical runtime:
 `gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f`
@@ -47,21 +49,29 @@ Original974708 on evc45 was PREEMPTED after2:01; it completed the pointwise refe
 
 Both pointwise and teacher-ranking arms passed complete model/base/AdamW/LR/cursor/allRNG/scaler/history/snapshot equality and exact16x12 two-view full94 MRI prediction bytes, uninterrupted versus resumed. Four updates per arm, all73M parameters, same initial state and different resulting predictions. This is real numerical acceptance, not clinical gain. Receipt SHA1bc918297634a5bc75e3c789cad02fff278a3a8771f54c4d5b40b9f1ea37cb97; see `initiative/research/teacher-pair-earlier45-20261020-v1/actual-normal-continuation-terminal.json`.
 
-Full12-file/38,873,662,650-byte inputs already copied and independently SHA verified once to45. Runtime and original32 packet admitted. Do not transfer again. CPU975100 has now admitted the complete3887 loader and six representative both-view original image checks, then submitted original GPU **975129 ONCE**. It is PENDING Priority, not training yet. Source5ce9e7f6 runs the two matched full three-epoch/1458-update fits sequentially on one H100/two CPUs/24GiB in normal, maximum12hours, original reader and24GiB node-local checkpoint cap; no new pixels or repeated recovery. Actual source/control in `initiative/research/teacher-pair-full-fitting45-20261020-v1/`. Initial CPU975088 failed before any output/GPU at a Gres spelling guard; owning-node absence and exact actual two-H100 metadata were reconciled before distinct corrected admission. Both objectives must share the accepted initial state and compute; old one-view0.949 is not that causal control. Original974412 is held, zero runtime; never release a duplicate. Recovery RAM5,856,241,999 bytes is under the8GiB cap; retain originals.
+Full12-file/38,873,662,650-byte inputs already copied and independently SHA verified once to45. Cached48 CPU975246 proved the original numerical modules and original pixel-file proofs match45; no bulk copy repeated. CPU975286 admitted all3887 inputs and six representative both-view checks, then CPU975296 submitted **GPU975297 ONCE on evc48**. At02:45UTC it was PENDING Priority, zero runtime. Ordinary2H100 node, oneH100/twoCPU/24GiB/12h, sequential matched pointwise/ranking fresh fits. Scheduler estimate was earlier than45, not guaranteed. Old45 job975129 was cancelled only while PENDING/zero runtime after actual cached48 admission; do not revive it. Read `initiative/research/teacher-pair-cached48-20261020-v1/`.
+
+Both full3epoch/1458update objectives use the same original73M initial state, two-view compute, original labels/masks/teachers/proposals/LRs. The old one-view0.949 is not the causal control. Neither full matched arm has started yet. Source7f75fd46 is frozen; the faster reader is not part of this queued payload.
 
 ## Measured input bottleneck and execution opportunity
 
 CPU974909 COMPLETED0:0: original renderer built94 windows then selected16. AST-derived selected rendering produced bit-identical tensors on32 actual MRI studies /64 plain-mirrored pairs, preserving duplicate/order behavior. Renderer time8.74364s versus1.24940s, **6.99825x renderer-only speedup**. No model/GPU/optimizer/clinical operations occurred. This is neither end-to-end throughput nor accuracy.
 
-Actual receipt: `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Distinct CPU-only full-cohort integrity pass975028 was submitted once and is actually PENDING; owner6107/sourcebaa2a5ec. It reserves32MiB node-local, zero shared pixels, oneCPU/zeroGPU/45minutes and uses existing archives. No full-cohort integrity or faster training admission yet. Do not repeat this pass or alter healthy training. Actual progress961studies/1087.6seconds implies roughly73minutes for the full pass, exceeding its original45minute allocation. Leave the original source/job intact; after an actual bounded terminal, recover the flushed draft prefix under a distinct source-bound continuation, never rerender the whole completed prefix or call a timeout an accuracy failure. To deploy the faster reader, first derive a private full-cohort per-window integrity manifest from the already verified original94 tensors and verify selected inputs against it. Pixel-derived signatures remain private; do not export them to Git/HF/Mac.
+Actual renderer receipt: `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`.
+
+**Complete private input-integrity coverage now accepted:** original CPU975028 timed out after a flushed2369study prefix; continuation975384 completed remaining rendering but failed at receipt line162 because `old` was overwritten by source bytes. Distinct finalizer **975656** verified the terminal/source bindings and all populated windows, sealed the retained manifest without any new MRI decode/render calls. Actual coverage3887studies ×2views ×94windows,7774 original full-tensor checks; private manifest23384320bytes, SHA85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f. No pixel signatures exported. Original failed receipts preserved.
+
+Selected-only reader exists in isolation and passes scoped checks, but is **not yet admitted into actual training**. Next admission should establish exact original labels/teacher/proposals/RNG and selected input bytes, then measure end-to-end loading. Do not alter the queued ranking source in place or rerun the completed integrity pass.
 
 ## Preservation and next actions
 
 Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21c2aa8ebb013bac1d29:31objects/134789bytes independently downloaded/size/SHA verified via974893. Original11272518 milestone HF75c24179d9865e1e52fc656f6dd47465c916e03d:19objects/71961bytes. Never repeat these or earlier verified mirrors. New normal-terminal/renderer/runtime64 receipts still need their distinct later small milestone.
 
-1. Preserve healthy E2/E3; follow corrected139716471 qualification/public/entry and actual hidden result without duplicates.
-2. Follow original975129 allocation, GPU admission and real finite progress. Its long normal queue currently has no free healthy ordinary H100s; do not duplicate it or reserve prohibited nodes. Consider an explicitly admitted cached-node route if evidence justifies a pending-only move.
-3. Integrate selected-window rendering only with full private integrity coverage.
-4. Evaluate actual completed changed-target checkpoints once runtime capacity permits; report actual hidden scores, including failures.
+1. Reconcile the partial E3 draft against its exact source/runtime/inputs; complete its first execution once, preserving the original uncertain request.
+2. Resume actual entry57418131 outcome inspection after releasing the reconciled account claim; preserve E3 once complete.
+3. Follow original975297 allocation and actual finite training; never revive cancelled975129.
+4. Admit the selected-window reader using the completed private manifest before any explicit pending-only source handoff.
 
-[Continuation](codex-continuation.md) records operational bindings. Earlier detailed snapshots remain in Git history and original experiment directories.
+Full QA scope:5061passed/6skipped for the recorded base plus selected-reader bytes; later host-port/prefix9checks and finalizer2checks passed separately. Counts are engineering evidence, not accuracy.
+
+[Continuation](codex-continuation.md) records operational bindings. Earlier snapshots and original receipts remain in Git history.

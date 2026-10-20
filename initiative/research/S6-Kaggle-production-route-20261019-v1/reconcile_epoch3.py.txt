@@ -22,6 +22,7 @@ assert phase in (
     "observe_version1",
     "draft_metadata",
     "draft_launch_intent_v2",
+    "commit_draft_once",
 )
 assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
 D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
@@ -63,6 +64,86 @@ assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel
 assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
 slug = row["slug"]
 assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
+if phase == "commit_draft_once":
+    draft = r.call(
+        "kernels.KernelsApiService",
+        "GetKernel",
+        {"userName": "godlydonuts", "kernelSlug": slug.split("/")[1]},
+    )
+    m = draft["metadata"]
+    assert m["id"] == 139719974 and m.get("currentVersionNumber", 0) == 0
+    assert draft["blob"]["source"] == "# %% [code]\n" + source
+    req = row["request"]
+    for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "kernelType"):
+        assert m.get(n, False if n == "enableInternet" else None) == req[n]
+    for n in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+        assert sorted(m.get(n, [])) == sorted(req[n])
+    quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+
+    def seconds(z):
+        return float(z.removesuffix("s"))
+
+    assert seconds(quota.get("timeReserved", "0s")) == 0
+    assert seconds(quota["totalTimeAllowed"]) - seconds(quota["timeUsed"]) >= 12000
+    intent = {
+        "status": "reconciled_existing_draft_first_executable_version_commit_intent",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "kernel_id": m["id"],
+        "expected_first_version": 1,
+        "original_draft_source_with_cell_header_verified": True,
+        "source_sha256": sha,
+        "quota": quota,
+        "maximum_new_executions": 1,
+        "existing_executable_version_or_GPU_work": False,
+        "competition_submission": False,
+    }
+    w.new_json(D / "draft-first-commit-intent.json", intent)
+    with w.ledger(path, "godlydonuts") as db:
+        current = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+        assert current == row
+        row["reconciled_draft_first_commit_intent"] = intent
+        db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key))
+        db.commit()
+        request = {**req, "text": source}
+        response = r.call("kernels.KernelsApiService", "SaveKernel", request)
+        w.new_json(D / "draft-first-commit-response.json", response)
+        assert response.get("kernelId") == m["id"] and response.get("versionNumber") == 1
+        assert response.get("ref") == "/code/" + slug and not response.get("error")
+        assert all(
+            not response.get(n)
+            for n in ("invalidDatasetSources", "invalidKernelSources", "invalidCompetitionSources")
+        )
+        actual = r.kernel("GetKernel", slug, 1)
+        assert actual["blob"]["source"] == source
+        for n in ("isPrivate", "enableGpu", "enableInternet", "machineShape", "dockerImage"):
+            assert actual["metadata"].get(n, False if n == "enableInternet" else None) == req[n]
+        out = {
+            "status": "complete_teacher_cross_full_fit_pushed",
+            "kernel_id": m["id"],
+            "slug": slug,
+            "version": 1,
+            "source_sha256": sha,
+            "epoch": 3,
+            "completed_target": 1458,
+            "fixed_final_updates": 1458,
+            "fitting_studies": 3887,
+            "maximum_GPU_seconds": 6000,
+            "competition_entry": False,
+            "reconciled_partial_draft_first_execution": intent,
+            "actual_Kaggle_status": r.kernel("GetKernelSessionStatus", slug, 1)["status"],
+        }
+        row.update(
+            state=out["status"], kernel_id=m["id"], first_executable_commit_response=response
+        )
+        db.execute("UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key))
+        db.commit()
+        w.new_json(D / "pushed.json", out)
+    assert json.loads((claim / "owner.json").read_text()) == owner
+    (claim / "owner.json").unlink()
+    claim.rmdir()
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
 if phase == "draft_metadata":
     k = r.call(
         "kernels.KernelsApiService",

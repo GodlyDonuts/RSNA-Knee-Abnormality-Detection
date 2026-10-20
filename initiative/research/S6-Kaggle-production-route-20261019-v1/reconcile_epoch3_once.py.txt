@@ -21,6 +21,7 @@ assert phase in (
     "observe_version1",
     "draft_metadata",
     "draft_launch_intent_v2",
+    "commit_draft_once",
 )
 assert not (L / (phase + "-intent.json")).exists()
 pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
@@ -52,7 +53,7 @@ with (L / (phase + "-intent.json")).open("x") as f:
         {
             "phase": phase,
             "source_git": pin,
-            "new_SaveKernel_or_submission_requests": 0,
+            "new_SaveKernel_or_submission_requests": int(phase == "commit_draft_once"),
             "canonical_ledger_write": phase
             in ("accept", "draft_launch_intent", "draft_launch_intent_v2"),
             "automatic_retry": False,
@@ -105,6 +106,7 @@ z = json.loads(x.stdout)
         "observe_version1": "actual-epoch3-remote-observed.json",
         "draft_metadata": "actual-epoch3-draft-metadata.json",
         "draft_launch_intent_v2": "actual-epoch3-draft-launch-intent.json",
+        "commit_draft_once": "actual-push-epoch-3.json",
     }[phase]
 ).write_text(json.dumps(z, indent=2) + "\n")
 print(json.dumps(z), flush=True)
