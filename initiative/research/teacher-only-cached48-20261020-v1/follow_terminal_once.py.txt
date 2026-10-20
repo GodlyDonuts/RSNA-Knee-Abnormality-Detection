@@ -1,0 +1,146 @@
+"""Observe only the original zero-source recovery and collect its actual terminal."""
+
+import importlib.util
+import json
+import os
+import shlex
+import subprocess
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-cached48-20261020-v1"
+assert not (L / "observer-intent.json").exists()
+actual = json.loads((D / "actual-submitted.json").read_text())
+job = actual["GPU_job"]
+assert job.isdigit()
+owner = {
+    "PID": os.getpid(),
+    "GPU_job": job,
+    "maximum_wait_seconds": 24 * 3600,
+    "new_GPU_or_training_or_publication_jobs": 0,
+    "source_git": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+    "automatic_retry": False,
+}
+with (L / "observer-intent.json").open("x") as f:
+    json.dump(owner, f, indent=2)
+(L / "observer-owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+start = time.monotonic()
+terminal = None
+try:
+    while time.monotonic() - start < 24 * 3600:
+        x = subprocess.run(
+            [
+                "ssh",
+                "-S",
+                "/tmp/rsna-research-20261001-stable.sock",
+                "-o",
+                "BatchMode=yes",
+                "newton",
+                shlex.join(
+                    [
+                        "sacct",
+                        "-X",
+                        "-n",
+                        "-P",
+                        "-j",
+                        job,
+                        "--format=JobIDRaw,State,Elapsed,ExitCode",
+                    ]
+                ),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert x.returncode == 0, "Observation loss is not GPU terminal or restart authority"
+        rows = [r.split("|") for r in x.stdout.splitlines() if r.startswith(job + "|")]
+        assert len(rows) == 1
+        (L / "observer-progress.json").write_text(
+            json.dumps({"GPU_job": job, "actual_Slurm": rows[0]}, indent=2) + "\n"
+        )
+        if rows[0][1] not in ("PENDING", "RUNNING", "CONFIGURING", "COMPLETING", "SUSPENDED"):
+            terminal = rows[0]
+            break
+        time.sleep(90)
+    assert terminal is not None, "Finite observation expired; no job restart"
+    program = """import hashlib,json,os,sys
+from pathlib import Path
+v=json.load(sys.stdin);assert os.uname().nodename=='evc48' and not os.environ.get('SLURM_JOB_GPUS')
+R=Path('/tmp/rsna-teacher-only-recovery48-20261020-v1')
+meta=json.loads((R/'staged.json').read_text());submitted=json.loads((R/'submitted.json').read_text())
+assert submitted['GPU_job']==v['GPU_job'] and meta['source_git']==v['source_git']
+out={'status':'actual_original_zero_source_recovery_terminal_observed','GPU_job':v['GPU_job'],'CPU_job':os.environ['SLURM_JOB_ID'],'actual_Slurm_terminal':v['terminal'],'scientific_source_git':v['source_git'],'new_GPU_or_optimizer_or_accuracy_claim':False}
+if (R/'verified.json').exists():
+ raw=(R/'verified.json').read_bytes();z=json.loads(raw)
+ assert v['terminal'][1]=='COMPLETED' and v['terminal'][3]=='0:0'
+ assert z['GPU_job']==v['GPU_job'] and z['status']=='actual_zero_source_teacher_only_real_GPU_full_stop1_resume_accepted'
+ assert z['source_weight']==0.0 and z['training_studies']==z['disjoint_engineering_prediction_studies']==16
+ assert z['accepted']['complete_model_AdamW_schedule_cursors_all_RNG_scaler_history_equal'] and z['accepted']['exact_16x12_two_view_full94_MRI_CSV_bytes_equal']
+ out.update(accepted=z,receipt_sha256=hashlib.sha256(raw).hexdigest())
+else:
+ out['accepted']=False
+ if (R/'failed.json').exists():
+  failure=json.loads((R/'failed.json').read_text());out['failure_type']=failure['error_type']
+ out['private_log_bytes']={p.name:p.stat().st_size for p in R.glob('*.private.log')}
+print(json.dumps(out),flush=True)
+"""
+    spec = importlib.util.spec_from_file_location(
+        "transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc48",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=256M",
+        "--time=00:03:00",
+        "--job-name=rsna-teacher-only-terminal-observer",
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONNOUSERSITE=1",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "/usr/bin/python3",
+        "-c",
+        t.COMMAND,
+    ]
+    # The transport uses Python3.6-compatible stdlib; no framework/model loads.
+    x = subprocess.run(
+        ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+        input=t.envelope(
+            program, {"GPU_job": job, "source_git": actual["source_git"], "terminal": terminal}
+        ),
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    (L / "terminal-transport.json").write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "Read-only terminal collection failed; inspect original GPU without restart"
+    )
+    z = json.loads(x.stdout)
+    (D / "actual-terminal.json").write_text(json.dumps(z, indent=2) + "\n")
+except BaseException as error:
+    (L / "observer-stopped.json").write_text(
+        json.dumps(
+            {
+                "error_type": type(error).__name__,
+                "GPU_terminal_not_inferred_from_observer_error": True,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
