@@ -1,0 +1,31 @@
+import hashlib,json,os,sys,traceback
+from pathlib import Path
+import numpy as np
+import torch
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+torch.set_num_threads(1);torch.set_num_interop_threads(1)
+root=Path('/tmp/rsna-predictive-full-raw-cache-20261020-v1')
+sys.path.insert(0,str(root/'code'))
+from rsna.competitive.predictive import cache,cases
+orphans=[p for p in sorted((root/'cache').glob('*.private.npz')) if not (root/'proofs'/(p.name.replace('.private.npz','.verified.private.json'))).exists()]
+assert 0<len(orphans)<=2
+out=[]
+for p in orphans:
+ with np.load(p,allow_pickle=False) as z: manifest=json.loads(z['manifest'].tobytes())
+ with p.open('rb') as f: sha=hashlib.file_digest(f,'sha256').hexdigest()
+ proof={'version':cache.VERSION,'stat':cache.signature(p),'groups':manifest['groups'],'regions':manifest['regions'],'bytes':p.stat().st_size,'sha256':sha}
+ groups,_=cache.load(p,proof)
+ representatives=[];all_acq=set();canonical_acq=set();duplicates=0
+ for g in groups:
+  first={}
+  for i,a in enumerate(g.aliases.tolist()):first.setdefault(a,i)
+  all_acq.update(g.acquisition.tolist());canonical_acq.update(int(g.acquisition[i]) for i in first.values());duplicates+=len(g.frames)-len(first)
+ missing=all_acq-canonical_acq
+ try:
+  cases.assemble(groups,side=320,context_cap=8,classes=12)
+ except BaseException as e:
+  frame=traceback.extract_tb(e.__traceback__)[-1]
+  failure={'type':type(e).__name__,'filename':Path(frame.filename).name,'line':frame.lineno,'missing_acquisition_key_confirmed':isinstance(e,KeyError) and len(e.args)==1 and e.args[0] in missing}
+ else:failure=None
+ out.append({'retained_cache_sha256':sha,'bytes':proof['bytes'],'groups':len(groups),'frames':sum(len(g.frames) for g in groups),'canonical_frames':sum(len(set(g.aliases.tolist())) for g in groups),'duplicate_occurrences':duplicates,'entirely_alias_only_acquisitions':len(missing),'original_assemble_failure':failure,'cache_stat_unchanged':cache.signature(p)==proof['stat']})
+print(json.dumps({'CPU_job':os.environ['SLURM_JOB_ID'],'status':'read_only_retained_unverified_cache_failure_diagnosis','orphan_cases':out,'verified_raw_proof_count':len(list((root/'proofs').glob('*.verified.private.json'))),'original16_reused':16,'source_downloads':0,'original_files_written':0,'clinical_or_accuracy_claim':False}))

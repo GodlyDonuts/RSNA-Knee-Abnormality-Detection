@@ -35,6 +35,7 @@ def assemble(groups, *, side=320, halo=8, context_cap=94, classes=12):
         raise ValueError("Original variable-matrix source groups and context budget required")
     roster = []
     aliases = set()
+    canonical_indices = []
     for group_id, g in enumerate(groups):
         if not isinstance(g, RawGroup) or g.frames.device.type != "cpu":
             raise ValueError("Admitted raw CPU source groups required")
@@ -45,6 +46,7 @@ def assemble(groups, *, side=320, halo=8, context_cap=94, classes=12):
         first = {}
         for i, alias in enumerate(g.aliases.tolist()):
             first.setdefault(alias, i)
+        canonical_indices.append([first[alias] for alias in g.aliases.tolist()])
         for i in first.values():
             roster.append((int(g.acquisition[i]), int(g.ordinal[i]), group_id, i))
     roster.sort()
@@ -86,7 +88,10 @@ def assemble(groups, *, side=320, halo=8, context_cap=94, classes=12):
                         height / 1024,
                         width / 1024,
                     ]
-                    for i in range(n)
+                    # Only canonical rows feed tokens/regions. Alias-only
+                    # acquisitions need their representative's coordinates,
+                    # not a rank for an acquisition absent from the roster.
+                    for i in canonical_indices[group_id]
                 ],
                 dtype=torch.float32,
             )

@@ -1,11 +1,22 @@
-# Predictive serving progress v6 — prepared locally, not published
+# Predictive serving progress v6 — privately verified
+
+CPU **979498** published exact source
+`d16501be4c5055015749dcb63ce4268196ff49a0` once at private HF revision
+**`92394435c7a73e1369904fc582b202863517a34b`**. All **39 objects /325,020 bytes**
+were independently downloaded and size/SHA verified under the canonical shared
+lock. [Actual receipt](actual-private-verified.json) and [manifest](manifest.json)
+bind that snapshot. Never repeat the publication.
+
+The original frozen preparation instructions below describe that completed
+operation, not another action to execute. Later duplicate-acquisition failure
+and recovery work is outside this immutable snapshot.
 
 This is a distinct prospective mirror of committed own-source and sanitized
 receipt changes since exact v5 source
 `e6862ab2c250c117c44d86c2baf136a246024128`. V5 was already independently
 download/size/SHA verified at private HF revision
 `71cbced934556179c3ca1ef56968b140d14df208`; it must not be repeated. These controls
-have not made a remote call, created a publication intent or uploaded any object.
+were inert when prepared; the original one-time publication has now completed.
 
 The selected delta includes the actual completed T4-v2 measurements and analysis;
 bounded mount resolution and exact descriptor reuse; prepared final deployment
@@ -56,5 +67,6 @@ the prepared deployment's 1 MiB/eight. The dated 5,379 free-file observation wou
 leave 5,003, but only the new actual quota check authorizes execution.
 
 The source body must stay below 1 MiB and the private retained mirror below 4 MiB.
-Only an actual successful `actual-private-verified.json` from this original
-publication can establish completion. No such receipt exists yet.
+The original successful `actual-private-verified.json` establishes completion.
+Its fresh admission retained 5,003 shared files after funded liabilities, with no
+deletion credit or original data/model exports.
