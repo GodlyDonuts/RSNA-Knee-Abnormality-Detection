@@ -1,0 +1,16 @@
+import json,sys,os,importlib.util,hashlib,sqlite3
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=="evc48"
+D=Path("/tmp/rsna-pointwise-final-deployment-20261020-v1")
+p=D/"account-controls/code/workflow.py";assert hashlib.sha256(p.read_bytes()).hexdigest()=="2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+s=importlib.util.spec_from_file_location("original_account_readonly",p);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.username="godlydonuts";r.session=requests.Session();r.session.headers["Authorization"]="Bearer "+v["token"]
+slug="godlydonuts/rsna-pointwise-final-e3-da61c5348093";owner,name=slug.split("/")
+out={"status":"actual_original_dataset_read_only_reconciliation","CPU_job":os.environ["SLURM_JOB_ID"],"dataset_response":json.loads((D/"dataset-response.json").read_text()),"claim_present":Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim").exists(),"new_mutations":0}
+for method in ["GetDatasetStatus","GetDataset"]:
+ try:
+  z=r.call("datasets.DatasetApiService",method,{"ownerSlug":owner,"datasetSlug":name})
+  out[method]=z if method=="GetDatasetStatus" else {k:z.get(k) for k in ("id","ref","isPrivate","currentVersionNumber","versionNumber","title","url")}
+ except w.RemoteError as e:out[method]={"error":str(e)}
+print(json.dumps(out))
