@@ -1,0 +1,127 @@
+"""Read-only original-source reproduction with the two already accepted bytes."""
+import base64
+import csv
+import gzip
+import hashlib
+import io
+import json
+import os
+import sys
+import traceback
+from pathlib import Path
+
+import numpy as np
+import pydicom
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+root = Path("/tmp/rsna-predictive-full-raw-http-recovery-20261020-v1")
+sys.path.insert(0, str(root / "code"))
+from rsna.competitive.predictive import inputs as m
+from rsna.competitive.predictive.cache import normalized
+from rsna.competitive.predictive.cases import RawGroup, assemble
+
+ram = root / "scratch/fitting-study-kf8m30s2"
+with (ram / "data/train.csv").open() as f:
+    table = list(csv.DictReader(f))
+assert len(table) == 1
+uid = table[0]["StudyInstanceUID"]
+index = Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1/original-fitting-source-index.private.jsonl.gz")
+with gzip.open(index, "rt") as f:
+    records = [json.loads(s) for s in f]
+rec = next(c for c in records if c["uid"] == uid)
+rows = rec["source_files"]
+plan, receipt = v["plan"], v["receipt"]
+assert receipt["source_correction_plan_sha256"] == v["plan_sha256"]
+changes = {c["path"]: c for c in plan["changes"]}
+official = {h: base64.b64decode(b) for h, b in v["official"].items()}
+assert all(hashlib.sha256(b).hexdigest() == h for h, b in official.items())
+found = []
+for i, case in enumerate(records):
+    for row in case["source_files"]:
+        if row["path"] not in changes:
+            continue
+        change = changes[row["path"]]
+        # The source table omits the inventory's descriptive storage column.
+        assert set(change["before"]) - set(row) == {"storage"}
+        assert row == {k: change["before"][k] for k in row}
+        found.append({
+            "fitting_ordinal": i,
+            "before_sha256": row["sha256"],
+            "after_sha256": change["after"]["sha256"],
+            "already_sealed": any(
+                (Path(q) / "proofs" / f"case-{i:04d}.verified.private.json").exists()
+                for q in (
+                    "/tmp/rsna-predictive-full-raw-cache-20261020-v1",
+                    "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3",
+                    "/tmp/rsna-predictive-full-raw-capacity-recovery-20261020-v1",
+                    "/tmp/rsna-predictive-full-raw-http-recovery-20261020-v1",
+                )
+            ),
+        })
+matches = 0
+for row in rows:
+    if row["path"] in changes:
+        path = ram / "data/train_series" / uid / row["series_uid"] / (row["sop_uid"] + ".dcm")
+        data = path.read_bytes()
+        assert len(data) == row["bytes"]
+        assert hashlib.sha256(data).hexdigest() == row["sha256"]
+        matches += 1
+assert matches == 1
+rows = [
+    {k: changes[row["path"]]["after"][k] for k in row}
+    if row["path"] in changes else row
+    for row in rows
+]
+
+
+def original_source_bytes(path, row):
+    return official[row["sha256"]] if row["path"] in changes else path.read_bytes()
+
+
+decoder = v["decoder"]
+assert decoder.count("raw = path.read_bytes()") == 1
+assert decoder.count("ds = pydicom.dcmread(path)") == 1
+# Redirect only source I/O to RAM; the original pixel decoding and all numeric
+# operations are unchanged, with exact official bytes and full identity checks.
+decoder = decoder.replace("raw = path.read_bytes()", "raw = original_source_bytes(path,row)")
+decoder = decoder.replace("ds = pydicom.dcmread(path)", "ds = pydicom.dcmread(io.BytesIO(raw))")
+ns = {**globals()}
+stages = []
+for name, code in (
+    ("decoder", decoder),
+    ("conversion", v["conversion"]),
+    ("assembly", "original=[RawGroup(normalized(g),g.aliases,g.acquisition,g.ordinal) for g in sources]\nassembled=assemble(original,side=320,context_cap=8,classes=12)"),
+):
+    try:
+        exec(compile(code, "exact_official_overlay_" + name, "exec"), ns)
+    except BaseException as error:
+        stages.append({
+            "stage": name, "passed": False, "error_type": type(error).__name__,
+            "traceback": [
+                {"file": Path(frame.filename).name, "function": frame.name, "line": frame.lineno}
+                for frame in traceback.extract_tb(error.__traceback__)
+            ],
+        })
+        break
+    else:
+        stages.append({"stage": name, "passed": True})
+print(json.dumps({
+    "status": "actual_existing_authoritative_overlay_readonly_reproduction",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "correction_plan_sha256": v["plan_sha256"],
+    "prior_HF_receipt_sha256": v["receipt_sha256"],
+    "corrected_HF_revision": receipt["corrected_source_revision"],
+    "baseline_revision": plan["baseline_source_revision"],
+    "affected_fitting_members": found,
+    "failed_source_matches_accepted_before": True,
+    "retained_case_original_members": len(rows),
+    "stages": stages,
+    "groups": len(ns.get("sources", [])),
+    "frames": sum(len(g.raw) for g in ns.get("sources", [])),
+    "source_HTTP_requests": 0, "remote_writes": 0, "labels_changed": False,
+    "official_bytes_RAM_only": sum(len(x) for x in official.values()),
+}, allow_nan=False), flush=True)

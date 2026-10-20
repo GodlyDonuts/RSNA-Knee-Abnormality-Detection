@@ -1,0 +1,68 @@
+{
+  "status": "actual_original_retained_source_reproduction",
+  "CPU_job": "981798",
+  "source_files": 188,
+  "source_bytes": 90066536,
+  "decoder_sha256": "7ee0e214f6461ee59907cdb22405e0fd3c7e2c31892548df75a9f28726531f84",
+  "conversion_sha256": "7200a348ed2dfd465ac2d1ba2c81ab34404e45025ce6e4a4cab6c2d3cdf1ea34",
+  "stage_results": [
+    {
+      "stage": "decoder",
+      "passed": false,
+      "error_type": "ValueError",
+      "error_message_sha256": "23950421b5615204cc498076aeb305500f0a87e2de701b8f2ad10669b990109e",
+      "traceback": [
+        {
+          "file": "original_frozen_scientific_program",
+          "function": "<module>",
+          "line": 23,
+          "source_line": ""
+        },
+        {
+          "file": "same_original_decoder",
+          "function": "<module>",
+          "line": 18,
+          "source_line": ""
+        },
+        {
+          "file": "dataset.py",
+          "function": "pixel_array",
+          "line": 2193,
+          "source_line": "self.convert_pixel_data()"
+        },
+        {
+          "file": "dataset.py",
+          "function": "convert_pixel_data",
+          "line": 1726,
+          "source_line": "self._pixel_array = pixel_array(self, **opts)"
+        },
+        {
+          "file": "utils.py",
+          "function": "pixel_array",
+          "line": 1430,
+          "source_line": "return decoder.as_array("
+        },
+        {
+          "file": "base.py",
+          "function": "as_array",
+          "line": 990,
+          "source_line": "runner.validate()"
+        },
+        {
+          "file": "base.py",
+          "function": "validate",
+          "line": 755,
+          "source_line": "self._validate_buffer()"
+        },
+        {
+          "file": "base.py",
+          "function": "_validate_buffer",
+          "line": 778,
+          "source_line": "raise ValueError("
+        }
+      ]
+    }
+  ],
+  "source_requests": 0,
+  "cache_writes": 0
+}
