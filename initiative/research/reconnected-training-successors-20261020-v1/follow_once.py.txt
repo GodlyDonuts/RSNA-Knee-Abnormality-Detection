@@ -1,0 +1,190 @@
+"""Distinct finite successors after original owners ended; no uncertain mutation retry."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+mode = sys.argv[1]
+assert mode in ("source_zero", "pair")
+L = R / "artifacts" / D.name / mode
+L.mkdir(mode=0o700, parents=True, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+old = (32102, 33801) if mode == "source_zero" else (27713, 38630)
+assert all(subprocess.run(["ps", "-p", str(p)], capture_output=True).returncode != 0 for p in old)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+frozen = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in D.glob("*.py.txt")}
+assert all(
+    Path(p).read_bytes()
+    == subprocess.check_output(["git", "show", pin + ":" + str(Path(p).relative_to(R))])
+    for p in frozen
+)
+owner = {
+    "PID": os.getpid(),
+    "mode": mode,
+    "source_git": pin,
+    "old_ended_owners": old,
+    "existing_original_intents_and_journals_retained": True,
+    "numerical_training_recipe_unchanged": True,
+    "publisher_wall_limit_seconds": 900,
+    "previous_actual_publisher_seconds": [92, 91],
+    "maximum_hours": 12,
+    "automatic_mutation_retry": False,
+}
+(L / "owner-intent.json").write_text(json.dumps(owner, indent=2) + "\n")
+print(json.dumps(owner), flush=True)
+deadline = time.monotonic() + 12 * 3600
+
+
+def alive():
+    assert time.monotonic() < deadline
+    assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest() == h for p, h in frozen.items())
+
+
+def call(file, args, ro=False):
+    alive()
+    z = subprocess.run(
+        [sys.executable, str(file), *map(str, args)], capture_output=True, text=True, timeout=1400
+    )
+    (L / "last-action.json").write_text(
+        json.dumps(
+            {
+                "source": str(file.relative_to(R)),
+                "arguments": args,
+                "returncode": z.returncode,
+                "stdout": z.stdout,
+                "stderr": z.stderr,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    if z.returncode and ro:
+        return None
+    assert z.returncode == 0, (
+        "Original journal requires read-only reconciliation; mutation not retried"
+    )
+    return json.loads(z.stdout)
+
+
+def load(folder, name):
+    loader = SourceFileLoader(
+        mode + "_" + name, str(R / "initiative/research" / folder / (name + ".py.txt"))
+    )
+    m = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(m)
+    return m
+
+
+try:
+    if mode == "pair":
+        coord = D / "pair_coordinate.py.txt"
+        for epoch in (1, 2, 3):
+            while True:
+                z = call(coord, ["inspect", "teacher_rank", epoch], ro=True)
+                if (
+                    z
+                    and z["status"] == "actual_original_immutable_epoch_ready_no_publication_intent"
+                ):
+                    z = call(coord, ["publish", "teacher_rank", epoch])
+                    break
+                if z and z["status"] == "actual_original_epoch_already_privately_verified":
+                    break
+                if z:
+                    assert z["status"] == "waiting_original_immutable_epoch_no_publication_intent"
+                alive()
+                time.sleep(90)
+            (L / ("epoch-" + str(epoch) + ".json")).write_text(json.dumps(z, indent=2) + "\n")
+        c = load("teacher-pair-final-serving-20261020-v2", "coordinate_once")
+        z = c.run("compile", "teacher_rank")
+        assert z["status"] == "actual_H100_pair_fixed_final_serving_sources_compiled"
+        (L / "compiled.json").write_text(json.dumps(z, indent=2) + "\n")
+    else:
+        coord = D / "zero_coordinate.py.txt"
+        pushed = json.loads(
+            (
+                R / "initiative/research/source-zero-full-T4-20261020-v1/actual-push-epoch-3.json"
+            ).read_text()
+        )
+        assert pushed["kernel_id"] == 139786921
+        while True:
+            z = call(coord, ["status", 3], ro=True)
+            if z and z.get("status") == "COMPLETE":
+                break
+            if z:
+                assert z.get("status") not in ("ERROR", "CANCELLED")
+            alive()
+            time.sleep(90)
+        assert z["receipt"]["completed"] == 1458
+        z = call(coord, ["publish", 3])
+        assert z["objects"] == 6 and z["completed"] == 1458
+        z = call(coord, ["record_publication", 3])
+        assert z["status"] == "actual_source_zero_private_epoch_pointer_recorded"
+        prepare = load("source-zero-final-serving-20261020-v1", "prepare_once")
+        account = load("source-zero-final-serving-20261020-v1", "account_once")
+        z = prepare.run()
+        assert z["status"] == "actual_source_zero_fixed_final_serving_sources_compiled"
+
+        def action(phase, serving="qualification"):
+            while True:
+                alive()
+                z = account.run(phase, serving)
+                (L / "evaluation-progress.json").write_text(
+                    json.dumps({"phase": phase, "serving": serving, "actual": z}, indent=2) + "\n"
+                )
+                if z["status"] not in (
+                    "waiting_existing_canonical_claim_no_mutation",
+                    "waiting_actual_GPU_capacity_or_budget_no_mutation",
+                    "waiting_authoritative_live_account_allowance_no_mutation",
+                ):
+                    return z
+                time.sleep(90)
+
+        assert (
+            action("prepare")["status"]
+            == "actual_preserved_epoch_serving_prepared_without_model_reupload"
+        )
+        final = R / "initiative/research/source-zero-final-serving-20261020-v1"
+        for serving in ("qualification", "competition"):
+            z = action("push", serving)
+            assert z["status"] == "one_exact_target_epoch_" + serving + "_pushed"
+            while True:
+                z = action("status", serving)
+                if z["status"] == "COMPLETE":
+                    break
+                assert z["status"] not in ("ERROR", "CANCELLED", "CANCEL_ACKNOWLEDGED")
+                time.sleep(60)
+            (final / ("actual-final-" + serving + "-accepted.json")).write_text(
+                json.dumps(z, indent=2) + "\n"
+            )
+        z = action("submit", "competition")
+        assert z["status"] == "one_exact_target_epoch_code_submission_accepted"
+        (final / "actual-final-entry.json").write_text(json.dumps(z, indent=2) + "\n")
+        while True:
+            z = action("outcome", "competition")
+            if z.get("outcome") in ("scored", "failed"):
+                break
+            time.sleep(120)
+        (final / "actual-final-hidden-outcome.json").write_text(json.dumps(z, indent=2) + "\n")
+    (L / "complete.json").write_text(
+        json.dumps({"status": "all_remaining_original_phases_completed", "mode": mode}) + "\n"
+    )
+except BaseException as error:
+    (L / "stopped.json").write_text(
+        json.dumps(
+            {
+                "error_type": type(error).__name__,
+                "original_jobs_or_mutations_not_repeated": True,
+                "automatic_retry": False,
+            }
+        )
+        + "\n"
+    )
+    raise
