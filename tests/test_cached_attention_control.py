@@ -109,3 +109,32 @@ def test_invalid_or_trainable_reference_refused(change):
         ds[0, 0, 0] = float("nan")
     with pytest.raises(ValueError):
         readout(w, v, i, logq, ds, ds, b)
+
+
+def test_relocated_CPU_screen_keeps_all_original_numerical_loops_and_stress_levels():
+    import ast
+    from pathlib import Path
+
+    d = Path("initiative/research/cached-attention-control-20261020-v1")
+    original = ast.parse((d / "screen.py.txt").read_text())
+    relocated = ast.parse((d / "screen_relocated_v2.py.txt").read_text())
+
+    # Host controls/funding differ; every actual readout/draw/statistic loop is identical.
+    def loops(tree):
+        return [ast.dump(n, include_attributes=False) for n in tree.body if isinstance(n, ast.For)]
+
+    assert loops(original) == loops(relocated)
+    for tree in (original, relocated):
+        values = {
+            n.targets[0].id: n.value
+            for n in tree.body
+            if isinstance(n, ast.Assign)
+            and len(n.targets) == 1
+            and isinstance(n.targets[0], ast.Name)
+        }
+        assert ast.literal_eval(values["levels"]) == (0.0, 0.05, 0.2, 0.5)
+        assert ast.literal_eval(values["draws"]) == 128
+        assert ast.unparse(values["selected"]) == "np.linspace(0, 3886, 32, dtype=np.int64)"
+    source = (d / "screen_relocated_v2.py.txt").read_text()
+    assert source.index("paid_controls") < source.index("D.mkdir")
+    assert "256 * 2**10 + 2 * 2**20 < 8 * 2**20" in source

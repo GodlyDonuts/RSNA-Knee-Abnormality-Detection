@@ -1,0 +1,117 @@
+"""Single CPU research dispatch; no credential, GPU, new dataset or clinical input."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/cached-attention-control-relocated-20261020-v2"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists(), (
+    "Existing original screen requires read-only reconciliation"
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+module = R / "rsna/competitive/cached_attention_control.py"
+prior = R / "initiative/audits/licensed-MIL-sampling-20261016-v1/actual3887-fidelity.json"
+for p in (module, prior, *D.glob("*.py.txt")):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+program = (D / "screen_relocated_v2.py.txt").read_text()
+value = {
+    "source_git": pin,
+    "module": module.read_text(),
+    "module_sha256": hashlib.sha256(module.read_bytes()).hexdigest(),
+    "original_fidelity_receipt": prior.read_text(),
+}
+with (L / "intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "module_sha256": value["module_sha256"],
+            "maximum_CPU_jobs": 1,
+            "new_GPU_or_entries": 0,
+            "private_controls_cap_bytes": 256 * 2**10,
+            "inside_new_admitted_control_scope_bytes": 8 * 2**20,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+s = importlib.util.spec_from_file_location(
+    "original_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:06:00",
+    "--job-name=rsna-cached-attention-fidelity",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+# Never export exception text that could include private source or records.
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except Exception as error:\n    print(type(error).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+)
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(args),
+    ],
+    input=t.envelope(program, value),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read original phase; do not repeat or change the predeclared screen"
+out = json.loads(x.stdout)
+(D / "actual-CPU-screen-relocated-v2.json").write_text(json.dumps(out, indent=2) + "\n")
+print(
+    json.dumps(
+        {
+            k: out[k]
+            for k in (
+                "status",
+                "CPU_job",
+                "source_git",
+                "fitting_studies_screened",
+                "predeclared_CPU_fidelity_gate_pass",
+                "elapsed_seconds",
+            )
+        }
+    ),
+    flush=True,
+)

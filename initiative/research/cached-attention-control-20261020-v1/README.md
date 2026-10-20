@@ -63,3 +63,16 @@ alignment and variance after actual learning remain unaccepted. Runtime serving
 must ultimately retain a single complete CNN/full94 path, with no reference cache
 required at test time; changing training to use cached teacher statistics does
 not itself prove that train/serve path or an accuracy benefit.
+
+
+Actual original CPU976785 refused during its three-second preflight. Read-only
+976787 proved all original code hashes equal and no screen directory/intent/
+progress/result exists; no numerical readout experiment ran. The historical
+607,456,016,323-byte free threshold failed against548,980,051,968 actual free;
+the old32MiB controls also lacked the proposed2MiB headroom. Originals remain
+unchanged. A distinct v2 screen uses256KiB within the currently admitted8MiB
+node33 production-control scope, retaining another2MiB for original future fit/
+serving controls and the full20GiB node/shared plus5000file reserves. It reads
+old features/head only; all numerical loops/stress levels/proposals are unchanged.
+This is explicit control relocation and fresh small-budget admission, not a
+lowered fidelity threshold, new model funding or retry of the original job.
