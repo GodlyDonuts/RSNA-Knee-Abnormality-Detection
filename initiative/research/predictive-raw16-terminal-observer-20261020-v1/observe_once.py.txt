@@ -1,0 +1,19 @@
+import json,subprocess,time
+from pathlib import Path
+R=Path('/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection');D=R/'initiative/research/predictive-raw16-learning-20261020-v1';L=R/'artifacts/predictive-raw16-learning-terminal-20261020-v1';L.mkdir(mode=0o700,exist_ok=False)
+(L/'owner.json').write_text(json.dumps({'GPU_job':'978305','read_only':True,'maximum_seconds':3600,'GPU_or_submission_or_publication_mutations':0})+'\n')
+end=time.monotonic()+3600
+while time.monotonic()<end:
+ try:
+  ssh=['ssh','-S','/tmp/rsna-research-20261001-stable.sock','-o','BatchMode=yes','newton']
+  state=subprocess.check_output([*ssh,'sacct -X -n -P -j 978305 --format=JobIDRaw,State,ExitCode'],text=True,timeout=30)
+  (L/'actual-state.json').write_text(json.dumps({'actual':state.strip()})+'\n')
+  if '|COMPLETED|0:0' in state:
+   z=json.loads(subprocess.check_output([*ssh,'tail -n 1 /home/sa305415/rsna-knee/kaggle/predictive16-learning-20261020-v1-978305.out'],text=True,timeout=30))
+   assert z['status']=='actual16_raw_MRI_BC_learning_throughput_and_complete_recovery_accepted' and z['GPU_job']=='978305'
+   (D/'actual-accepted.json').write_text(json.dumps(z,indent=2)+'\n');break
+  if any(x in state for x in ('FAILED','TIMEOUT','CANCELLED','OUT_OF_MEMORY')):
+   (D/'actual-terminal-failure.json').write_text(json.dumps({'GPU_job':'978305','actual':state.strip(),'automatic_retry':False},indent=2)+'\n');break
+ except (subprocess.SubprocessError,OSError,json.JSONDecodeError) as error:
+  (L/'observation-loss.json').write_text(json.dumps({'error_type':type(error).__name__,'no_job_terminal_inferred':True})+'\n')
+ time.sleep(60)

@@ -1,5 +1,14 @@
 # RSNA Knee continuation
 
+Latest09:32UTC: original978305 C full phase reached24/24 finite updates, final
+training exam loss0.58737 after early7.224 spike; complete resume is still running,
+not yet accepted. Read-only finite terminal observer48476/source in
+predictive-raw16-terminal-observer-20261020-v1 writes actual-accepted.json ONLY on
+exact original0:0/complete receipt. Do not restart it or either diagnostic.
+Cached-attention original977100 actuallyCOMPLETED0:0/8:43; its specific acceptance
+receipt still needs read-only collection, no accuracy claim.
+
+
 ## October20 09:30UTC live source/context pipeline
 
 Actual978232 finished all16 source caches:2,391,033,794 original bytes,
