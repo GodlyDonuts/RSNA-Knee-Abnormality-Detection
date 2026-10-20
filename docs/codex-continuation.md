@@ -273,3 +273,15 @@ already accepted full original pixels/runtime/base for a separately funded
 17train/15disjoint fitting engineering full/stop/resume diagnostic if admitted.
 No actual newGPU wrapper/cache/dispatch exists yet. Avoid infinite toy work:
 implement/readmit the actual encoder path next; keep975297/32102/33801 untouched.
+
+
+### Actual pointwise epoch2 preservation, October20 05:42UTC
+
+Original975297 completed pointwise2/972updates. CPU976879 privately fully6object
+re-download/size/SHA verified ONCE atHF755515ba5576fcadff371273d056370338ac6d3e.
+Model292867251bytes SHA3e8bf39d37137785574018bbb8d85461eb44a94920c8b64b73b774b6546d7d3d.
+Scientific7f75fd46 unchanged; publisher source4eb1a39a/same pinned numerical
+publisher. Original27713 now follows pointwise3 thenrank1/2/3; NEVER repeat1/2.
+All three local owners27713/32102/33801 verified alive,975297RUNNINGevc48/2:42.
+Epoch2receipt postdates small-source mirroraa111c78/source4eb; model/provenance
+already separately preserved at755515ba. No new score or claim of goalcompletion.

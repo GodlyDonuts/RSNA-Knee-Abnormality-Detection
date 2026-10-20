@@ -22,7 +22,7 @@ No original improvement over the public reproduction is established. Engineering
 | Experiment | Actual state at this update | Next action / sole owner |
 | --- | --- | --- |
 | Changed cross-lineage teacher, fixed three epochs | All 1,458 updates COMPLETE; all three checkpoints privately verified. Final code entry **57422143** accepted once; hidden **COMPLETE/scored0.949**, no error. E1 scored **0.948**. | Original evaluator **21960** ended normally after both outcomes. Never repeat entry or model publication. |
-| Matched two-view pointwise versus teacher-ranking | Original H100 **975297 RUNNING on evc48**, unchanged source7f75fd46. Pointwise757/1,458 updates observed throughCPU976652, finite loss/gradient; epoch1 completed and privately verified. Remaining checkpoints and ranking result unobserved. | Preservation owner **27713** handles each distinct completed epoch once. Do not alter healthy training or its reader. |
+| Matched two-view pointwise versus teacher-ranking | Original H100 **975297 RUNNING on evc48**, unchanged source7f75fd46. Pointwise epoch2/972 updates completed and privately verified throughCPU976879. Epoch3 in progress; ranking arm follows, no ranking result. | Preservation owner **27713** handles each distinct completed epoch once. Do not alter healthy training or its reader. |
 | Full source-zero paired-view fitting | **Kaggle139742882 v1 RUNNING**, first epoch of the predeclared three-epoch /1,458-update fit. Sourcebd680ac0, science509db5b9. This is production fitting on all3,887 studies, not the completed diagnostic. | Owner **32102** follows first epoch, independent private verification, then fresh quota/capacity admission before each of two possible resume sessions. It creates no competition entry. |
 
 All three use the full **73,136,096-parameter CoAtNet**, effective eight-study
@@ -204,3 +204,13 @@ result and sanitized source-zero progress receipt are now privately preserved:
 canonical lock; no pixels, reports, private arrays, individual clinical records
 or learned weights. Never repeat this mirror. This does not change the lack of
 an actual encoder/clinical result for the new mechanism.
+
+
+Latest actual production preservation: original975297 completed pointwise
+**epoch2/972updates**. CPU976879 privately published/independently downloaded/
+size/SHA verified all six objects at **HF755515ba5576fcadff371273d056370338ac6d3e**.
+Model292,867,251bytes SHA3e8bf39d37137785574018bbb8d85461eb44a94920c8b64b73b774b6546d7d3d.
+Never repeat pointwise1/2. Owner27713 now waits for pointwise3, then teacher_rank1/2/3.
+The four remaining checkpoints and fixed-final accuracy comparison are unobserved.
+This epoch2 receipt postdates the small-source mirror4eb1a39a; its model/provenance
+are separately privately preserved at the revision above.
