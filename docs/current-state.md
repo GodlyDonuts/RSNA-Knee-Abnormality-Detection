@@ -1,57 +1,66 @@
 # Current RSNA Knee research state
 
-Updated October20,2026,00:21UTC. [Agent guide](../AGENTS.md) · [Continuation](codex-continuation.md). Goal active;0.97/first place unachieved. Original receipts and actual live handles supersede historical snapshots.
+Updated October 20, 2026, 01:30 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
-| Model | Actual Kaggle score | Entry |
+## Actual competition results
+
+| Model | Kaggle score | Entry |
 | --- | --- | --- |
-| External R6 reproduction | **0.958** |57333150|
-| Released S6 reproduction |0.950|57300990|
-| Own whole94 full encoder |0.949|57336190|
-| Own influence IID16 full encoder |0.949|57332456|
-| Own paired / higher-LR adaptations |0.949 /0.949|57392062 /57394237|
-| Own uniform / source-label adaptations |0.947 /0.947|57329796 /57331631|
-| R6 with own paired member |0.957|57397292|
+| External R6 reproduction | **0.958** | 57333150 |
+| Released S6 reproduction | 0.950 | 57300990 |
+| Own whole94 full encoder | 0.949 | 57336190 |
+| Own influence IID16 full encoder | 0.949 | 57332456 |
+| Own paired / higher-LR adaptations | 0.949 / 0.949 | 57392062 / 57394237 |
+| Own uniform / source-label adaptations | 0.947 / 0.947 | 57329796 / 57331631 |
+| R6 with own paired member | 0.957 | 57397292 |
 
-No original score improvement is established.0.958 is a reproduction. Full94 already completed1458updates; repeating it unchanged is not new research. Tests, training loss and more parameters are not accuracy.
+No original improvement over the public reproduction is established. Engineering checks, training loss and more parameters are not accuracy. Public teacher/base exposure is not independent OOF evidence.
 
+## Changed-supervision full-model experiment
 
-## Latest ranking recovery and complete inputs on45
+All 3,887 fitting studies, all 73,136,096 parameters, effective batch eight, original labels/masks/proposals/LRs, fixed three epochs / 1,458 updates. Cross-lineage equal-rank teacher supervision is the changed variable. Scientific source cce4ae78b63ec80b54b806ea2e40d34c95ae15df.
 
-Actual new recovery974708 was PREEMPTED after2:01 on ordinary two-H100 evc45, not an accuracy/model failure or complete acceptance. CPU974741 found original pointwise full reference4updates plus16MRI predictions completed, stop1 complete1update, retained resumable checkpoint epoch0/cursor1/completed1; ranking arm never began. Preserve2342381655RAM bytes and all original outputs. Original974412 is held with zero runtime; only idle observer95037 was retired, no healthy model cancelled. Next: source-bound NORMAL-queue continuation on45 for remaining four processes only (pointwise resume; rank full/stop1/resume) plus unchanged full-state/CSV comparator; no automatic preemptible retry or repeated full reference. No new continuation GPU is dispatched yet. Actual receipts in teacher-pair-earlier45-20261020-v1.
+- E1 kernel 139699006 v1 COMPLETE: 486 updates, 4,016.6867 seconds. Model SHA 4a7a9f9b59493d45b2820a9619f40fe4c60aaa77a5f5fcb07699864cc5f789df, 292,873,139 bytes. CPU974836 privately published all six objects once; independent full download/size/SHA passed at HF3d69bf08b182be2d7a6e1fb0389dd8f76b2370c5. CPU974845 delivered its exact publication pointer. Never repeat.
+- E2 kernel **139710942 v1**, `godlydonuts/rsna-s6-cross-full-e2-5d1767a27206`, last authenticated RUNNING. Target cumulative972 updates. Exact optimizer/RNG continuation, no new recipe.
+- E3 not pushed. Training/preservation owner PID4836; separate compilation owner PID4837, both observed live. E1 serving compilation completed; E2/E3 wait for their real private publication.
 
-Preparation on45 is actual: runtime974672 restored exact40403members/6322691335bytes; private original32 packet974674→974673 verified815files/678564087bytes with the same original48 manifest; CPU974684 admitted model/all73136096FP32 parameters/original MRI/source. Independent full input copy then completed12files/38873662650bytes directly33→45, whole-byte/SHA verified. Full cohort decoding/trainer/production remain unadmitted. FortyGiB inputs/24GiB future checkpoints fit retained79GiB node-local liability with runtime/auxiliary scope and20GiB reserve; no new shared bulk data or deletion credit. Do not transfer these bytes again. The exact new recovery/source/input milestone11272518 is privately mirrored/download/hash verified at HF75c24179d9865e1e52fc656f6dd47465c916e03d viaCPU974697,19objects71961bytes. Five new host/AST/transport tests pass; no new4942-suite or clinical claim.
+Original publication974799 failed before model/HF mutation at an unnecessarily high file guard. Read-only reconciliation974818 proved no mutation; the distinct explicit recovery974836 retained the funded metadata/file and byte reserves. No originals deleted. Earlier owners702/1613/2264/2861/4838 are ended; never revive them.
 
-## Actual checkpoint evaluation owner
+Receipts: `initiative/research/S6-Kaggle-production-route-20261019-v1/`. Old influence control0.949 remains the matched-recipe reference; do not retrain it unchanged. No new checkpoint competition score exists.
 
-CPU974593/source40aec573 staged the separate canonical twoT4 serving account control. Owner2861/source dfb35092 waits actual prepared E1/E3 checkpoints, performs real32MRI/bothT4 qualification and public CSV checks, then makes at most two exact code entries with fresh allowance. It observes E1 hidden terminal before another slot; hidden failure stops further entries. No new Dataset/model upload, prediction shortcut or automatic mutation retry. Keep original9h hidden timeout; a600second deadline applies only to the real three-study example, preserving the original6000second/two-comparison public budget. All original image/prediction functions stay unchanged. No new-weight acceptance/entry/score yet. Freeze serving_cloud.py.txt,serving_policy.py.txt,serving_coordinate_once.py.txt,follow_serving_account_once.py.txt while live; existing training and compilation owners remain separate. Actual owner receipt in S6-Kaggle-production-route-20261019-v1; private phase outputs artifacts/S6-twoT4-serving-account-20261020-v1.43scoped tests pass.
+## Kaggle evaluation: exact runtime correction, currently waiting
 
-## October20 live ownership and new ranking evidence
+Original E1 qualification139711261 v1 was pushed with an incorrectly typed 61-hex Docker digest. Read-only reconciliation found its actual metadata did not bind the required runtime. Preserve it; never submit it or pretend it passed. It was RUNNING at the latest observation and occupies one account GPU lane alongside E2. No competition slot was spent.
 
-Full changed-target E1 kernel139699006v1 remains RUNNING at the latest authenticated observation; original read-only observer702 and full-route owner1613 are both actually live. Owner1613/source5fd1ae3ff4004df6136bc98593008f4e4dd6eece now preserves each actual completed epoch, then continues E2/E3 with exact optimizer/RNG state. It permits at most two new GPU epoch versions and three distinct private epoch publications, no automatic mutation retry or competition entries. Earlier text saying no continuation exists is superseded. Seven live controls are frozen while this owner lives: prepare_once.py.txt,prepare.py.txt,run_phase.py.txt,cloud.py.txt,publish_once.py.txt,publish_epoch.py.txt,epoch_check.py.txt. Do not format/edit these as part of separate serving work.
+Distinct corrected owner **PID5590**, source07d879cb, uses `serving_runtime64.py.txt` and separate canonical keys/phase directory. Correct digest:
 
-Separate original H100 gradient scout973601 actually COMPLETED0:0 in48seconds. Full73M/486tensors, eight fitting studies/two plain-mirrored views: all gradients finite, original BN buffers and forward RNG unchanged. Joint pointwise gradients matched sequential relativeL2 4.72e-9; teacher ranking changed the gradient (cosine0.6983), peak5.27GB. This is no optimizer/accuracy result or replicated throughput claim. Its original owner submitted recovery974412 ONCE, now HELD/zero runtime while original45 preemption outputs are preserved; same job TimeMin set15minutes for backfill while original maximum60minutes/source/config remain unchanged. Do not duplicate either job. Original receipts are in teacher-pair-admitted48-fallback-20261019-v1 and teacher-pair-real-recovery48-20261019-v2.
+`gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f`
 
-Separate serving_compile/serving_validate now bind the actual twoT4 complete-target provenance and reuse the original qualified full94 inference math. Serving preparation requires the actual private epoch publication before compilation and makes no GPU/API mutation. Thirteen scoped synthetic source/state/adverse tests pass; no actual new-weight T4 inference acceptance or accuracy gain is claimed. Follower2264 now waits actual verified publication pointers and dispatches at most three zero-GPU serving compilations. Its five serving controls are frozen while live; inspect actual-serving-preparation-owner.json and the live PID. The helpers are not yet executed against an actual completed epoch. The E1/E2/E3 checkpoint publisher and continuation are already active; preserve first, then compile and qualify the actual new weights. No changed epoch has finished yet at this update.
+Only provenance header/runtime/key change; prediction AST unchanged. Corrected qualification has **not been pushed**: its actual controller reports two occupied GPU lanes and insufficient unreserved VM time. This negative budget includes live reservations; do not infer the final settled balance or override it blindly. Inspect fresh authoritative raw quota after those sessions terminate. The controller permits E1 and E3 only, at most two code entries, actual32MRI/bothT4 qualification, actual public CSV, fresh allowance and actual E1 hidden outcome before E3. No three-row CSV upload, new model Dataset, paid credits or automatic mutation retry. Hidden limit9h;600s watchdog applies only to real three-study public examples.
 
+Actual controller records: `artifacts/S6-twoT4-runtime64-20261020-v1/`. Historical serving_policy has the bad digest intentionally preserved; never reuse the old route.
 
-## Full changed-target fitting is now running on Kaggle
+## Ranking mechanism: actual GPU recovery accepted, full comparison not started
 
-**Kernel139699006v1 [rsna-s6-cross-full-e1-85ad0c706996](https://www.kaggle.com/code/godlydonuts/rsna-s6-cross-full-e1-85ad0c706996/log) is RUNNING.** This is full3887-study E1, target486updates, of a fixed3epoch/1458update experiment. The full73M CoAtNet encoder/head learns from complete cross-lineage equal-rank teacher targets; original MRI, source labels/masks, proposals/IID16/effective8, optimizer/LR and inference remain fixed. Actual live logs confirm finite updates3/7/10, both T4s, original input admission and all73136096trainable parameters; last observed loss0.52659324/gradient norm7.5594883. This is a lower bound from visible logs, not the latest completed count or an accuracy result. No completed epoch/new score yet. [Actual source and push](../initiative/research/S6-Kaggle-production-route-20261019-v1/README.md).
+Original974708 on evc45 was PREEMPTED after2:01; it completed the pointwise reference/stop1. Distinct normal continuation **974940 COMPLETED0:0 in4:15**, independently collected by974967. Only four missing processes ran; no reference repeated.
 
-The previously completed original influence control139220032v1/0.949 is reused. Its entire teacher tensor is unchanged in the parent-only overlay. CPU974263 verified identical original numerical modules/non-main worker functions; actual new engineering prediction/proposal hashes and both-rank initial model/RNG identities match the earlier original control. This avoids repeating roughly3.5hours of baseline training. It is a matched recipe reference, not a claim of unrun final-weight identity or independent OOF performance.
+Both pointwise and teacher-ranking arms passed complete model/base/AdamW/LR/cursor/allRNG/scaler/history/snapshot equality and exact16x12 two-view full94 MRI prediction bytes, uninterrupted versus resumed. Four updates per arm, all73M parameters, same initial state and different resulting predictions. This is real numerical acceptance, not clinical gain. Receipt SHA1bc918297634a5bc75e3c789cad02fff278a3a8771f54c4d5b40b9f1ea37cb97; see `initiative/research/teacher-pair-earlier45-20261020-v1/actual-normal-continuation-terminal.json`.
 
-Fresh pre-push quota34391.7526641GPU VM seconds covers at most18000seconds for the three changed epochs plus6000serving allowance. Private target Dataset12718845v1 was fully downloaded/hash verified; all original MRI/weight inputs already existed, so no40GB upload. Current E1 observer is recorded in actual-epoch1-observer.json. It only follows this immutable version, cannot submit/restart, and does not yet continue E2/E3. Privately preserve each completed epoch before its exact optimizer continuation.
+Full12-file/38,873,662,650-byte inputs already copied and independently SHA verified once to45. Runtime and original32 packet admitted. Do not transfer again. Full-cohort decoding/trainer admission and matched production remain outstanding. Next comparison must be two-view pointwise versus ranking with the same compute/initial state; old one-view0.949 is not that causal control. Original974412 is held, zero runtime; never release a duplicate. Recovery RAM5,856,241,999 bytes is under the8GiB cap; retain originals.
 
-## The diagnostic failure was reporting, not a repeated training attempt
+## Measured input bottleneck and execution opportunity
 
-Original139695847v1 remains **ERROR** after514.3seconds. Its six full/stop/resume GPU subprocesses all returned0. The final collector then used a stale `roles['uniform']` key after both complete-state equality loops. The failure is preserved.
+CPU974909 COMPLETED0:0: original renderer built94 windows then selected16. AST-derived selected rendering produced bit-identical tensors on32 actual MRI studies /64 plain-mirrored pairs, preserving duplicate/order behavior. Renderer time8.74364s versus1.24940s, **6.99825x renderer-only speedup**. No model/GPU/optimizer/clinical operations occurred. This is neither end-to-end throughput nor accuracy.
 
-CPU974246 downloaded the65 existing outputs/5856573000bytes once to the private owning node and independently executed the original collector tail, correcting only two role keys and the local output path. Complete learned/base/AdamW/LR/cursors/all-rank RNG/scaler/history/snapshots and16-case full94 prediction equality passed for both roles; both T4s and411different learned tensors confirmed. No GPU work was repeated. This is a separate numerical engineering acceptance; the original notebook has not been relabeled COMPLETE. [Actual CPU acceptance](../initiative/research/S6-Kaggle-existing-output-replay-20261019-v1/actual-accepted.json).
+Actual receipt: `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Do not alter healthy training. To deploy the faster reader, first derive a private full-cohort per-window integrity manifest from the already verified original94 tensors and verify selected inputs against it. Pixel-derived signatures remain private; do not export them to Git/HF/Mac.
 
-## Queue, data and next work
+## Preservation and next actions
 
-All3887teacher outputs and complete targets finished, with parent-only targets bit-identical and accepted labels/masks untouched. Handoff/source compilation/bridge all completed once. Newton973904 is held PENDING/zero runtime, and only its proven idle old production/packaging/scoring followers97036/97047/97060 were retired. No running fit stopped. The separate ranking scout973601 passed the actual gradient probe; recovery974412 remains pending and no accuracy benefit is established.
+Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21c2aa8ebb013bac1d29:31objects/134789bytes independently downloaded/size/SHA verified via974893. Original11272518 milestone HF75c24179d9865e1e52fc656f6dd47465c916e03d:19objects/71961bytes. Never repeat these or earlier verified mirrors. New normal-terminal/renderer/runtime64 receipts still need their distinct later small milestone.
 
-Next: follow actual E1 optimizer/terminal progress, independently verify and privately preserve its immutable snapshot, then continue the same candidate through E2/E3 and qualify genuine full model checkpoints for useful Kaggle evaluation. Finish the source/provenance/runtime serving adaptation while training runs. Do not duplicate completed controls or healthy fits. Record negative outcomes as carefully as gains.
+1. Preserve healthy E2/E3 and reconcile actual Kaggle reservations/session outcomes before another GPU push.
+2. Admit full-cohort ranking/control execution on already present45 inputs under fresh resource accounting, then run the matched comparison; no repeated engineering recovery.
+3. Integrate selected-window rendering only with full private integrity coverage.
+4. Evaluate actual completed changed-target checkpoints once runtime capacity permits; report actual hidden scores, including failures.
 
-Model retention is funded within the original12GiB node48 recovery scope: paid replay plus at most4GiB for three production epochs/checkpoints and one verification temporary, with original87GiB liability/20GiB physical/5000shared-file reserves retained. Credentials and raw clinical/weight/source arrays stay private. New own-source/sanitized Kaggle milestone1647bc35 is on GitHub and privately mirrored/download/hash verified at HF458f9d4a9c0ebb9488973297c3132b4b4ec42a01,39objects161127bytes viaCPU974369. This is source preservation, not a model publication or accuracy result. Protected cohorts remain unused by adaptations; public teachers/base exposure are not independent OOF validation. Stanford-derived weights private/noncompetition; no newly admitted KneeCoT or unreliable MedGemma labels.
+[Continuation](codex-continuation.md) records operational bindings. Earlier detailed snapshots remain in Git history and original experiment directories.
