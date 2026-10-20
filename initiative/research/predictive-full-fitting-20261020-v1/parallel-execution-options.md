@@ -1,5 +1,32 @@
 # Parallel execution option: move C0 to a second ordinary H100 node
 
+## New forecast — October 20, 13:01 UTC
+
+Read-only `sbatch --test-only` forecasts now make **evc27** a plausible
+destination: October 20, 23:06 UTC, ahead of the current complete-input
+estimate near October 21, 03:33 UTC. Evc33 was forecast for October 21,
+01:36 UTC; evc48 for October 22, 00:11 UTC. These are scheduling estimates,
+not submitted jobs or guaranteed capacity. CPU980133 observed
+835,340,234,752 free bytes and the existing original parent/runtime on evc27.
+[Original aggregate observation](../parallel-serving-account-20261020-v1/actual-c0-placement-forecast.json).
+
+Prepare a distinct optional placement successor while leaving owner68792
+and both input producers untouched. It must copy only the completed context
+cache and small required inputs, reconstruct the identical initialization,
+and establish exclusive C0 ownership before any GPU dispatch. Combined
+deployment currently reads all three finals on one node, so the route must
+also return C0's roughly293MB model-only export and original terminal/private
+publication proofs to evc33, or explicitly support verified split-node
+collection. Merely changing a Slurm node or copying the input cache is
+insufficient. No transfer, owner handoff or new fitting job has occurred.
+
+The independently reviewed full-arm estimates are B5.41h/C5.31h/C05.31h,
+including CPU input loading but excluding six production checkpoint
+writes/hashes and queue delays. The optional placement could avoid one
+training wave. Six recent comparable teacher-model publications took
+73–103 seconds per epoch; the resulting22–31-minute estimate for18 predictive
+publications is analogous evidence, not a measurement of these new epochs.
+
 ## Current decision — October 20, 12:54 UTC
 
 **Keep the active full-fitting v2 owner 68792 unchanged.** Its frozen source is

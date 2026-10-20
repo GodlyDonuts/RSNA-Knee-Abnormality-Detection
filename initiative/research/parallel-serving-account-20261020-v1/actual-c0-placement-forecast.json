@@ -1,0 +1,47 @@
+{
+  "status": "read_only_scheduler_forecast_and_destination_capacity_observed",
+  "observed_UTC_window": ["2026-10-20T13:00:00Z", "2026-10-20T13:07:00Z"],
+  "source": "Original root tool observations; no placement mutation was performed",
+  "scheduler": {
+    "method": "sbatch --test-only",
+    "request": {
+      "GPUs": 1,
+      "GPU_type": "nvidia_h100_pcie",
+      "CPUs": 2,
+      "RAM_GiB": 32,
+      "wall_hours": 8,
+      "physical_GPU_counts": 2
+    },
+    "forecasts_UTC": {
+      "evc27": "2026-10-20T23:06:46Z",
+      "evc33": "2026-10-21T01:36:12Z",
+      "evc48": "2026-10-22T00:11:28Z"
+    },
+    "cluster_timezone": "America/New_York",
+    "printed_test_identifiers": ["980119", "980120", "980121"],
+    "identifiers_are_dispatched_jobs": false,
+    "reservations_created": 0,
+    "forecast_is_guarantee": false
+  },
+  "destination_read_only_CPU": {
+    "job": "980133",
+    "node": "evc27",
+    "free_bytes": 835340234752,
+    "original_raw16_binding_sha256": "2f52ebdbbd7f9c340e0df5ffa8c9304feb8ab5c1b4229d10c7ae77a28c65f019",
+    "parent_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+    "existing_runtime_present": true,
+    "new_files_or_transfers": 0
+  },
+  "decision": {
+    "prepare_optional_local_successor": true,
+    "destination": "evc27",
+    "current_owner_68792_changed": false,
+    "new_training_or_transfer_dispatches": 0,
+    "admission_still_required": [
+      "Complete original 3887-study contexts and exact target/source/runtime/initialization bindings",
+      "Fresh destination capacity after all existing and new obligations",
+      "Exclusive handoff before any original fitting admission/dispatch intent",
+      "Original C0 final export and terminal/publication proofs available to combined deployment"
+    ]
+  }
+}

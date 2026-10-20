@@ -1,0 +1,113 @@
+"""Read-only owning-node metadata/account observer. No claim/ledger writes."""
+
+import json
+import os
+import time
+from pathlib import Path
+
+import requests
+
+
+class ObservationUnavailable(RuntimeError):
+    pass
+
+
+def main(value):
+    assert os.uname().nodename == value["node"] == "evc33"
+    assert not os.environ.get("SLURM_JOB_GPUS")
+    root = Path(value["root"])
+    assert str(root).startswith("/tmp/rsna-predictive-final-deployment-20261020-v1-")
+    assert root.resolve() == root
+    session = requests.Session()
+    session.headers["Authorization"] = "Bearer " + value["token"]
+
+    def call(service, method, body, allow_pending=False):
+        session.cookies.clear()
+        try:
+            response = session.post(
+                "https://api.kaggle.com/v1/" + service + "/" + method,
+                json=body, timeout=(10, 60), allow_redirects=False,
+            )
+        except requests.RequestException:
+            raise ObservationUnavailable() from None
+        if allow_pending and response.status_code == 404:
+            return None
+        if response.status_code in (408, 429, 500, 502, 503, 504):
+            raise ObservationUnavailable()
+        assert response.status_code == 200, "Read-only API unavailable"
+        result = response.json()
+        assert isinstance(result, dict) and result.get("code", 0) < 400
+        return result
+
+    who = call("security.OAuthService", "IntrospectToken", {"token": value["token"]})
+    assert who.get("active") is True and who.get("username") == "godlydonuts"
+    quota = call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+    free = max(0, float(quota["totalTimeAllowed"].removesuffix("s"))
+               - float(quota.get("timeUsed", "0s").removesuffix("s"))
+               - float(quota.get("timeReserved", "0s").removesuffix("s")))
+    limits = call(
+        "competitions.CompetitionApiService", "GetSubmissionLimits",
+        {"competitionName": "rsna-knee-abnormality-detection"},
+    )
+    today, available = limits.get("numToday", 0), limits.get("numAllowedNow", 0)
+    assert type(today) is int and type(available) is int and min(today, available) >= 0
+    paid_runs = {}
+    for arm in ("B", "C", "C0"):
+        run = Path(f"/tmp/rsna-predictive-full-{arm}-20261020-v2")
+        assert run.is_dir() and not run.is_symlink() and run.resolve() == run
+        seen, total = set(), 0
+        for path in run.rglob("*"):
+            if path.is_file():
+                assert not path.is_symlink()
+                s = path.stat()
+                assert s.st_uid == os.getuid()
+                identity = (s.st_dev, s.st_ino)
+                if identity not in seen:
+                    seen.add(identity)
+                    total += s.st_size
+        assert total <= 12 * 2**30
+        paid_runs[arm] = total
+    result = {
+        "status": "actual_predictive_deployment_read_only", "observed_at": time.time(),
+        "CPU_job": os.environ["SLURM_JOB_ID"], "free_VM_seconds": free,
+        "allowance": min(available, max(0, 5 - today)), "used_today": today,
+        "canonical_claim_present": Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim").exists(),
+        "deployment_root_absent": not root.exists(),
+        "paid_full_run_bytes": paid_runs,
+        "dataset_ready": False, "dataset_pending": False, "mutations": 0,
+    }
+    if value.get("dataset_slug"):
+        # A 404 can only be pending after the exact one-time create returned.
+        prepared = json.loads((root / "prepared.json").read_text())
+        assert prepared["dataset_slug"] == value["dataset_slug"]
+        assert (root / "dataset-intent.json").exists() and (root / "dataset-response.json").exists()
+        returned = json.loads((root / "dataset-response.json").read_text())
+        assert returned["returned"] is True and returned["private_requested"] is True
+        assert returned["final_create_rpc_calls"] == 1 and returned["status"].lower() == "ok"
+        owner, slug = value["dataset_slug"].split("/")
+        body = {"ownerSlug": owner, "datasetSlug": slug}
+        metadata = call("datasets.DatasetApiService", "GetDataset", body, allow_pending=True)
+        if metadata is None:
+            result["dataset_pending"] = True
+        else:
+            assert metadata["isPrivate"] is True and metadata["currentVersionNumber"] == 1
+            assert type(metadata["id"]) is int and metadata["id"] > 0
+            status = call("datasets.DatasetApiService", "GetDatasetStatus", body, allow_pending=True)
+            actual = None if status is None else status.get("status")
+            result.update(dataset_id=metadata["id"], dataset_status=actual)
+            result["dataset_ready"] = actual in ("READY", 5)
+            result["dataset_pending"] = actual in (None, "QUEUED", "PROCESSING", "PENDING", 1, 2, 3, 4)
+    return result
+
+
+if __name__ == "__main__":
+    import sys
+
+    try:
+        print(json.dumps(main(json.load(sys.stdin))), flush=True)
+    except ObservationUnavailable:
+        print(json.dumps({"status": "read_only_observation_unavailable"}))
+        raise SystemExit(1) from None
+    except Exception as exc:
+        print(json.dumps({"status": "read_only_observation_failed", "error_type": type(exc).__name__}))
+        raise SystemExit(1) from None
