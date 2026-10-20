@@ -37,6 +37,7 @@ class Recipe:
     head_only_updates: int = 0
     clip: float = 1.0
     seed: int = 20261020
+    schedule_updates: int | None = None
 
     def __post_init__(self):
         if (
@@ -45,6 +46,10 @@ class Recipe:
             or type(self.head_only_updates) is not int
             or self.head_only_updates < 0
             or type(self.seed) is not int
+            or (
+                self.schedule_updates is not None
+                and (type(self.schedule_updates) is not int or self.schedule_updates < 1)
+            )
             or not all(
                 math.isfinite(v)
                 for v in (
@@ -168,13 +173,18 @@ def fit(
         or type(epoch_snapshots) is not bool
     ):
         raise ValueError("Nonempty original cohort and explicit immutable binding required")
-    output = Path(output)
-    output.mkdir(parents=True, exist_ok=False, mode=0o700)
     device = next(model.parameters()).device
     steps = math.ceil(len(data) / recipe.effective_batch)
     total = steps * recipe.epochs
+    # A bounded engineering run can exercise the production warmup without
+    # compressing its entire schedule into a handful of diagnostic updates.
+    schedule_total = recipe.schedule_updates if recipe.schedule_updates is not None else total
+    if schedule_total < total:
+        raise ValueError("Explicit schedule updates must cover every actual optimizer update")
     if recipe.head_only_updates >= total or (stop_after is not None and not 0 < stop_after < total):
         raise ValueError("Explicit bounded head warmup and partial-stop cursor required")
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=False, mode=0o700)
     optimizer = torch.optim.AdamW(
         [
             {"params": list(model.encoder.parameters()), "lr": recipe.encoder_lr},
@@ -224,10 +234,10 @@ def fit(
         indices = order[batch * recipe.effective_batch : (batch + 1) * recipe.effective_batch]
         model.train()
         optimizer.zero_grad(set_to_none=True)
-        fraction = step / max(1, total - 1)
+        fraction = step / max(1, schedule_total - 1)
         warm = recipe.warmup_fraction
         factor = (
-            min(1.0, (step + 1) / max(1, warm * total))
+            min(1.0, (step + 1) / max(1, warm * schedule_total))
             if fraction < warm
             else recipe.end_lr_fraction
             + (1 - recipe.end_lr_fraction)

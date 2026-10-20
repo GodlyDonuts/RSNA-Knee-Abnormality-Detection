@@ -1,0 +1,145 @@
+"""One distinct numerical engineering run; never modifies original jobs or data."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in [*D.glob("*.py.txt"), *(R / "rsna/competitive/predictive").glob("*.py")]:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+files = {
+    p.relative_to(R).as_posix(): p.read_text()
+    for p in (R / "rsna/competitive/predictive").glob("*.py")
+}
+files.update(
+    {
+        "rsna/__init__.py": "",
+        "rsna/competitive/__init__.py": "",
+        "worker.py": (D / "worker.py.txt").read_text(),
+        "driver.py": (D / "driver.py.txt").read_text(),
+    }
+)
+payload = {
+    "source_git": pin,
+    "files": files,
+    "sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()},
+}
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": pin,
+            "maximum_new_GPU_jobs": 1,
+            "original_actual_cached_engine": "978554",
+            "training_studies": 12,
+            "actual_updates_per_arm": 24,
+            "full_schedule_horizon_updates": 2916,
+            "source_acquisitions_or_pixel_copies": 0,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+spec = importlib.util.spec_from_file_location(
+    "transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+command = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc27",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:05:00",
+    "--job-name=rsna-predictive-warmup-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [*ssh, shlex.join(command)],
+    input=t.envelope((D / "prepare.py.txt").read_text(), payload),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "prepare-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original admission read-only; no retry"
+actual = json.loads(x.stdout)
+assert actual["status"] == "actual_original_contexts_zero_mean_warmup_controls_admitted"
+(D / "actual-prepare.json").write_text(json.dumps(actual, indent=2) + "\n")
+quota = subprocess.check_output([*ssh, "lfs quota -u sa305415 /home/sa305415"], text=True)
+a = next(x.split() for x in quota.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + 76 * 2**20
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 64 + 24 + 6 + 3 + 3
+script = """#!/bin/bash
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --nodelist=evc27
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:1
+#SBATCH --mem=24G
+#SBATCH --time=00:30:00
+#SBATCH --job-name=rsna-predictive-stable-warmup
+#SBATCH --output=/home/sa305415/rsna-knee/kaggle/predictive-stable-warmup-20261020-v1-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/kaggle/predictive-stable-warmup-20261020-v1-%j.err
+set -euo pipefail
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8
+exec /tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/bin/python -B -c 'import sys;sys.path.insert(0,"/tmp/rsna-predictive-portable-recovery-20261020-v1/overlay");exec(compile(open("/tmp/rsna-predictive-stable-warmup-20261020-v1/code/driver.py").read(),"stable_warmup_driver","exec"))'
+"""
+(L / "GPU-intent.json").write_text(
+    json.dumps(
+        {"script_sha256": hashlib.sha256(script.encode()).hexdigest(), "automatic_retry": False}
+    )
+    + "\n"
+)
+x = subprocess.run(
+    [*ssh, "sbatch --parsable"], input=script, text=True, capture_output=True, timeout=60
+)
+(L / "GPU-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Uncertain GPU dispatch: reconcile read-only"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+out = {
+    "GPU_job": job,
+    "source_git": pin,
+    "node": "evc27",
+    "input_CPU_job": actual["CPU_job"],
+    "training_studies": 12,
+    "disjoint_engineering_studies": 4,
+    "updates_per_arm": 24,
+    "schedule_horizon": 2916,
+    "production_or_competition_candidate": False,
+}
+(D / "actual-submit.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,618 +1,76 @@
-# RSNA Knee continuation
+# RSNA Knee execution continuation
 
-Latest09:32UTC: original978305 C full phase reached24/24 finite updates, final
-training exam loss0.58737 after early7.224 spike; complete resume is still running,
-not yet accepted. Read-only finite terminal observer48476/source in
-predictive-raw16-terminal-observer-20261020-v1 writes actual-accepted.json ONLY on
-exact original0:0/complete receipt. Do not restart it or either diagnostic.
-Cached-attention original977100 actuallyCOMPLETED0:0/8:43; its specific acceptance
-receipt still needs read-only collection, no accuracy claim.
+Updated **October 20, 2026, 10:05 UTC**. Read [AGENTS.md](../AGENTS.md) and [current state](current-state.md) first. This replaces accumulated contradictory snapshots; original receipts and Git history at `36f6d01b` preserve the old detail. Verify live state before acting. The owner is AFK and authorizes decisions; do not ask again for already granted access.
 
+## Immediate sequence
 
-## October20 09:30UTC live source/context pipeline
+1. Reconcile the original live jobs, exact journals, finite owners, quota and account capacity. Preserve healthy **975297**, **978318**, **978414**, and Kaggle **139786921 v1**. Never duplicate an uncertain phase or restart because observation was lost.
+2. Cached predictive GPU **978554 is complete and accepted**; do not run it again. Use its actual throughput and negative C/C0 gradient evidence. Two-T4 probe 139796378 v1 is pushed once and awaits its actual result. The missing-only raw-source continuation helper is implemented and locally tested, not remotely dispatched.
+3. Make a fitting-only numerical decision for the predictive evidence mechanism, complete full input admission, then run the matched B/C full fits on independently funded ordinary H100s. No full predictive fit exists yet. C0 is the required architecture-matched density ablation.
+4. Keep successor **46627** on source-zero final preservation/evaluation and **46628** on remaining teacher-ranking preservation/final compilation. New H100 models still need a real Kaggle input bridge and exact T4 acceptance; a CPU compiler alone is not deployment.
+5. Push verified source/receipts to GitHub and a distinct private small-source mirror. Never repeat a previously verified prefix.
 
-Actual978232 finished all16 source caches:2,391,033,794 original bytes,
-1,091,912,852cachebytes/62,032regions, exact both masks/targets/priors, all original
-labels/masks unchanged. These16 caches were transferred once, fully SHA-verified
-byCPU978296/978304, and GPU978305 is actually training B/C on27 (24updates/arm,
-12train/4disjoint fitting engineering, full/stop/resume). No clinical result yet.
-Do not duplicate it. Both-head LR reduction is a training-only engineering choice.
-An observed fractional-warmup overshoot is clamped only in FUTURE local train.py;
-existing staged GPU/source/cache programs remain byte-frozen. Twelve scoped CPU
-checks pass, including complete recovery and fractional-LR bounds.
+## Access, runtime and private roots
 
-Actual CPU978371 measured18.656x faster CPU input loading from EXACT FP32 cached
-masked contexts (58.611s load+render versus3.142s cached load over16 cases). All
-images, targets, metadata, support priors and RNG matched bitwise;263,296,123bytes.
-This is input-speed evidence, NOT training-speed or accuracy. New context_cache.py
-has no encoder features, teacher logits, labels or lossy casting.
+| Purpose | Exact binding |
+| --- | --- |
+| Repository | `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection` |
+| SSH | `ssh -S /tmp/rsna-research-20261001-stable.sock -o BatchMode=yes newton` |
+| Management Python | `/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python` (remote default Python is 3.6) |
+| evc33 runtime | `/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python` |
+| evc48 runtime | `/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python` |
+| evc27 runtime / overlay | `/tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/bin/python` / sibling `overlay` |
+| Canonical account ledger | `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3` |
+| Account claim | `/home/sa305415/rsna-knee/kaggle/coordinator-claim` |
+| Private HF publication lock | `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock` |
 
-Original full raw CPU978318 RUNNING on33: two concurrent source studies/4CPU/48GiB,
-all3887 fitting studies/720851 original DICOMs. It reuses16 verified raw caches;
-320GiB TOTAL includes paid originals,4GiB own scratch/256MiB controls plus separate
-24GiB future model/publication reserve; all old liabilities/20GiB reserve retained.
-Original full context consumer978414 RUNNING on33/oneCPU/12GiB, pipelines exact
-24-window FP32 inputs as raw proofs complete, reuses16 context caches.96GiB TOTAL
-includes263MB paid contexts and replaces completed unused2GiB pilot reservation;
-32MiB controls. No GPU waits for data and no full predictive fit is dispatched.
+Credentials remain ignored mode-0600 `.env`, RAM/stdin/ASKPASS only. No repeated VPN Connect/sign-in while access works. Physical four-/eight-GPU nodes are forbidden even for a one-GPU request. evc27 passed actual CUDA; evc47/evc38 have recorded device failures and must not be reset or bypassed. Use independent agents with nonoverlapping ownership; no Devin.
 
-Original978318 has12hour wall limit (ends21:07UTC). One attempt to extend it was
-rejected by scheduler permissions; no change/restart/pause occurred. Read
-predictive-full-cache-observation-20261020-v1. At actual terminal, collect completed
-registry if0:0; ifTIMEOUT reconcile completed raw/context proof prefixes and at
-most two private source buffers before continuing only missing work. Never repeat
-verified case downloads/cache writes. First use actual throughput, not linear
-extrapolation alone. New source/context stages are independent of healthy fits.
+## Predictive engineering: completed, not production
 
-Source/private GPU milestone de165575 is already67-object/352183byte privately
-full-download/size/SHA verified atHF b6c14f013ea200fa573bad8ff25e4adb5fe24793,
-CPU978283. Never repeat. Newer full-cache/context/warmup changes are not covered
-until a distinct new receipt. Original975297 and finite successor46627/46628 stay
-active; source-zero E3 kernel139786921 now actuallyRUNNING, no score yet.
+- **978305**, source `94a7c4d5`, COMPLETED 0:0 / 31:25 on evc27. Root `/tmp/rsna-predictive-raw16-learning-20261020-v1`. B/C each 12 fitting training plus four disjoint fitting engineering studies, eight epochs / 24 updates, effective four, head-only three. Complete full/stop1/resume model/AdamW/history/counters/all-RNG/CSV equality passed. Each full phase took about 438 s / 96 exposures. [Actual receipt](../initiative/research/predictive-raw16-learning-20261020-v1/actual-accepted.json).
+- **978554**, source `36f6d01b25c63b7a3ff749d6c16e80168e674879`, COMPLETED 0:0 / 3:58 on evc27. Root `/tmp/rsna-predictive-cached-engine-20261020-v1`. B/C/C0 each two epochs / four updates, effective eight including the four-study tail, head-only one, encoder/head LR 3e-5; density weight .1/.1/0. Same 12+4 engineering split. Complete recovery and four-by-12 CSV equality passed. Full fit-loop seconds B 20.834 / C 20.602 / C0 20.448 for 24 exposures; about 4.9 s CPU input load included; peak about 5.89 GB. [Actual receipt](../initiative/research/predictive-cached-engine-20261020-v1/actual-accepted.json).
+- Cached contexts transferred once from evc33 to evc27 via CPU 978552 and original sender; 17 files / about 263 MB, SHA/EOF/labels/roster bound. Reuse the accepted original copy and parent/runtime, not another transfer.
+- C/C0 loss spikes near 10 and head-gradient norms above 4,300 remain unresolved. The raw pilot's fractional-warmup overshoot is preserved; the distinct cached source clamps it. Gradient diagnostics now use one batched host transfer without changing ordered FP64 norm reductions or optimizer math. Engineering recovery does not accept accuracy, clinical recipe quality or Kaggle runtime.
+- Earlier one-case **978218**, raw-input **977456**, cache **978128**, suffix-only replica **978186/978187**, and 16-case raw **978232** are complete. Do not repeat. Failed runtime-copy **978084** and evc47 failures remain original negative receipts.
+- Cached-attention **977100**, source `9e76db5d`, completed 0:0 / 8:43 on evc48. Original `/tmp/rsna-cached-attention-encoder-20261020-v1/actual-GPU-terminal.json` reports reference/linear complete recovery on 17 fitting plus 15 disjoint engineering cases. Collect only the sanitized receipt read-only; no production promotion ahead of predictive B/C.
 
+New distinct stability controls: `initiative/research/predictive-stable-warmup-20261020-v1/`. Zero initial negative/reconstruction means in B/C/C0; exact production schedule horizon 2,916 for a 24-update fitting-only engineering run, first three head-only. Same 12+4 data reused in place, no new pixel copy. New 12-GiB checkpoint / 4-MiB control reservation. Prepared locally; actual-prepare/actual-submit/terminal receipts govern dispatch and acceptance. No full fit yet.
 
-## October20 actual learning milestone and live next work
+## Full inputs: original producer and consumer
 
-Original real-MRI B/C GPU978218 COMPLETED0:0/79seconds on healthy ordinary evc27.
-Both arms passed complete model/AdamW/history/cursor/all-RNG and disjoint-process
-prediction-byte recovery; all full encoder parameters trained after warmup.
-Full-phase4-update times B2.213s/C1.930s, peak~5.414GB. This one-case engineering
-pass is NOT a clinical/competition gain. C training exam loss briefly reached
-21.46; preserve that negative numerical evidence. New bounded16-case learning
-uses BOTH arms headLR3e-5 (tenfold lower),24context windows/mask, complete source
-region/support priors,12fitting training/4disjoint engineering cases,8epochs/
-24updates/effective4/head-only3. No protected/gold cohort or teacher loss. It is
-prepared under predictive-raw16-learning-20261020-v1, finite owner47201; inspect
-actual-inputs/submit/terminal before inferring execution. It admits inputs first,
-reserves no GPU while waiting, and never repeats uncertain transfers/jobs.
+| Job / owner | Private root on evc33 | Current obligation |
+| --- | --- | --- |
+| **978318 / 47540** | `/tmp/rsna-predictive-full-raw-cache-20261020-v1` | Original 3,887-study / 720,851-DICOM build; two concurrent studies, four CPUs, 48 GiB RAM, 12-hour limit |
+| **978414 / 48108** | `/tmp/rsna-predictive-full-context-cache-20261020-v1` | Exact FP32 24-window context consumer; one requested CPU, 12 GiB RAM, 12-hour limit |
+| Completed **978232** | `/tmp/rsna-predictive-raw16-cache-20261020-v1` | Original 16 raw caches, 1,091,912,852 bytes; reused by full producer |
+| Completed **978371** | `/tmp/rsna-predictive-context16-cache-20261020-v1` | Original 16 exact contexts, 263,296,123 bytes; reused by full consumer |
 
-CPU978232 is actually building16 complete source-level lossless fitting caches
-on33. At latest observation10/16 complete:1,370,769,026 original bytes ->
-633,162,775 cache bytes,37,104complete descriptor regions. Source fixture reused,
-other originals acquired once with pinned individual SHA; no full-cohort cache
-or full predictive production yet. New16GiBcache/2GiBowned transient/16MiBcontrols
-funded after all old liabilities and20GiBreserve. Only consumed job-owned scratch
-may be reclaimed; originals/cache/proofs retained. Read original raw16 controls.
+Last observation around 09:33 UTC: raw 107 completed (16 reused plus 91 new), contexts 91 completed. These are partial counts, not full admission. Input labels remain `/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz`, 483,656 bytes, SHA `48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285`. Fitting roster SHA `0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42`; source HF revision `52f995f4568e36bfa5fbbaf69a89af41226b4f5d`.
 
-Interrupted978084 retained2.392GB; CPU978186/978187 completed exact suffix-only
-recovery to27,55,685files/12.434GB total,10.042GB transferred, no GPU held during
-copy. Do not repeat any replica or978218. Node47 remains CUDA-unusable;27 passed.
+Raw source `c78c94d1` and context source `441c4aa1` stay frozen. The producer's extension request was denied; it remains healthy with a limit ending about **21:07 UTC**. The old handoff stopped before SIGSTOP; never rerun it. On actual completion collect the full registry; on actual TIMEOUT reconcile original `proofs/case-*.intent.json`, `.source-proof.private.json.gz`, `.verified.private.json`, cached NPZ files, and at most two partial source buffers before a separately accepted **missing-only** successor. Preserve complete raw/context prefixes; no re-download/rebuild of verified cases. [Wall-limit audit](../initiative/research/predictive-full-cache-observation-20261020-v1/README.md).
 
-Source-zero E3 kernel139786921v1 was pushed ONCE after fresh10739.90free VM seconds,
-6000fit cap/3000final-serving reserve; original E2 fully6-object privately verified
-atHF ee73db671130b6f850f551844e0a16a9ac80fcec,972updates. Distinct finite successor
-46627 handles only remaining E3 preservation/qualification/one entry/outcome;
-46628 handles only remaining teacher_rank epochs and CPU final compilation.
-Original ended owners/intents remain preserved. Do not restart them or duplicate
-any phase. Original H100975297 remains healthy. Best actual0.958external ensemble,
-own adaptation0.949; no new original accuracy gain claimed. Git milestones after
-1172d429 are not covered by prior private HF mirror until a new receipt exists.
+Funding: 320 GiB **total** raw cache including paid originals, 4 GiB owned transient, 256 MiB controls/proofs, plus separate 24 GiB future model/publication reservation. Contexts: 96 GiB **total** including paid 263 MB, 32 MiB controls. The old completed 2 GiB pilot reservation was replaced, not added twice. Current new diagnostic on evc27 separately funds 512 MiB contexts + 12 GiB snapshots + 16 MiB controls; all older liabilities remain. Every action preserves 20 GiB shared/node reserve and 5,000 shared files after liabilities. Latest shared quota: 1,026,232,780 / 1,048,576,000 kB and 994,617 / 1,000,000 files; refresh before mutation.
 
+## Healthy full-model work and owners
 
-## October20 08:55UTC actual recovery handoff
+- **975297** on evc48, original source `7f75fd46`, root `/tmp/rsna-teacher-pair-full-fitting48-20261020-v1`, remains healthy and unchanged. All 3,887 studies / two views / effective eight; pointwise three epochs then teacher-ranking three epochs, 1,458 updates per arm. All pointwise epochs private-verified; final model `da61c534…`, HF `e36bb88ffa2aa4ac62680a29a5d7ba0fdd7e7bf6`, CPU 977516. CPU 977528 compiled final sources, not T4 acceptance.
+- Teacher-ranking epoch 1 / 486 updates privately verified by **978495**: model `940efe18…`, six objects, HF `de7c492abad0d614f4edeef135dcc5887af96d77`. Do not repeat. Finite successor **46628** owns remaining ranking publications and final CPU compilation, using original per-epoch journals. [Receipts](../initiative/research/teacher-pair-epoch-preservation-20261020-v1/); [compiler](../initiative/research/teacher-pair-final-serving-20261020-v2/); [successors](../initiative/research/reconnected-training-successors-20261020-v1/).
+- **Source-zero epoch 3: Kaggle 139786921 v1**, slug `godlydonuts/rsna-zero-full-e3-a5c5b1d7f43c`, was pushed once and is RUNNING. All 3,887 studies / two views / source-label weight zero; fixed-final 1,458 updates. Epoch 1 HF `1df252b385869b4ec8372526f39ad169f33e2e6e` and epoch 2 HF `ee73db671130b6f850f551844e0a16a9ac80fcec` are already six-object private-verified; never repeat.
+- Finite successor **46627** owns remaining source-zero E3 preservation, compilation, exact T4 qualification, public inference, one code entry, and actual hidden outcome. Do not restart ended owners 32102/27713/33801/38630 or earlier evaluators. Inspect successor intent/result before recovery. [Fitting](../initiative/research/source-zero-full-T4-20261020-v1/); [serving](../initiative/research/source-zero-final-serving-20261020-v1/).
 
-Portable978084 on evc27 passed actual allocated CUDA context/memory, then FAILED
-12:03 before model/optimizer because Slurm stdout runtime copy timed out. CPU978163
-proved retained26319files/2392247988bytes, no model-start or replica acceptance.
-Preserve partials. New predictive-private-resume-20261020-v1 uses CPU-only private
-socket endpoints, exact SHA/EOF and existing prefix reuse; no GPU during copy and
-no overwrite/reacquisition. Inspect actual-resumed.json/intent before action.
-CPU978128 actually accepted lossless original67DICOM cache:14159093bytes,
-1072regions, bit-equal source pixels and both contexts/targets/supports/priors.
-This is one-case engineering, not cohort admission or accuracy.
-Source-zero E2 GPU139756869 completed972updates; original publisher977754 completed
-0:0/91seconds and verified all6objects privately atHF
- ee73db671130b6f850f551844e0a16a9ac80fcec. Do not repeat publication. Original local
-owners32102/27713/33801/38630 ended after transport loss; reconcile receipts and
-use distinct successors for only remaining phases, never restart old controls.
+## Kaggle budget and early predictive probe
 
+Canonical ledger and single claim above remain authoritative. Latest E3 admission had 10,739.90 free GPU-VM seconds, a 6,000-second fit cap and **3,000 seconds reserved for final serving**. This is a dated observation, not current quota. The new predictive probe may use at most 600 seconds only after fresh free budget of at least 3,600 seconds and available account capacity; no paid credits.
 
-## Latest device failure and next route
+Predictive T4 controls are under `initiative/research/predictive-T4-throughput-20261020-v1/`. **Kernel 139796378 v1 was pushed once**, slug `godlydonuts/rsna-predictive-t4-probe-1ce9267b1068`, source `1ce9267b…`, after CPU 978681 source admission and fresh 7,858.46 free VM seconds. Do not repeat prepare/push. Use status read-only. Its engineering test uses two actual T4s, the three public MRI studies, raw DICOM decode, 24-window contexts, fresh C heads, and FP16/FP32 timing/parity/memory checks. It emits a benchmark receipt, not `submission.csv` or a competition entry. Even a pass would not prove trained-head parity, worst-tail hidden runtime, or accuracy. Register any accepted push in a canonical capacity prefix visible to the source-zero owner; do not hide account occupancy.
 
-Old977678 cancelled PENDING/0/never started after full12.43GB replica to47;
-new977901 FAILED4seconds BEFORE GPU-run marker/model/optimizer. Actual977943/
-977963 CUDA probes show no usable device in batch or assigned step; both-device
-allocation still missing one GPU and remaining CUDA999. Exclude47/38. Do not
-retry those jobs/reset drivers/bypass isolation. The portable coordinator in
-predictive-portable-recovery-20261020-v1 may dispatch one first-eligible physical
-TWO-H100 job; inspect actual-submit.json and intents before action. No GPU pass
-or model accuracy yet. All bulk assets verified on47; original33 also retained.
-New future lossless-cache code passed eleven CPU checks; no actual full cache.
+Pinned Docker: `gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f`. Public parent Dataset 12431568 v1 is reused; no new model upload for the probe. Competition submissions require offline MRI-only output, actual `submission.csv`, both-T4 runtime acceptance, fresh allowance/max five daily, and exact source/weight bindings. Never upload the public three-row CSV itself or submit diagnostics. Public run success is not a hidden score.
 
-## Latest verified source preservation
+## Evidence, preservation and deadline
 
-Source1172d429 privately preserved once atHFb5554649716ec81e4b72f8a98a7fcdcb41c0cb80,
-CPU977741/all45objects300171bytes independently re-downloaded/size/SHA checked.
-Read hf-predictive-evidence-20261020-v2; do not repeat. Original pending-only
-CPU977688 mirror cancellation preserved. No raw MRI/IDs/weights included.
+Latest source mirror: **CPU 978283 / source de165575 / HF b6c14f013ea200fa573bad8ff25e4adb5fe24793**, all 67 small objects / 352,183 bytes independently downloaded/size/SHA verified under the canonical lock. [Receipt](../initiative/audits/hf-predictive-learning-20261020-v3/actual-private-verified.json). Later full inputs, warmup, cached execution, T4 and documentation changes need a distinct small-source mirror. Never repeat prior prefixes or export raw MRI/IDs/reports/private arrays/external source bodies/weights through source mirrors.
 
-## Latest actual predictive trainer state
+Original publisher: `/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py`, SHA `4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde`. Existing journals and whole-byte receipts govern exactly-once publication. Use `PYTHONNOUSERSITE=1 python3 -m pytest` for local scoped checks to avoid user-site `scripts` shadowing; engineering tests are not model progress claims.
 
-CPU977675 accepted original67DICOM raw case, exact full3887 fitting labels/masks
-and original72.9M MRI encoder; corrected only the unrelated32-subset label join.
-GPU977678 submitted ONCE/PENDING Priority evc33,1H100/2CPU/24GiB/20min,
-sourceafca3ce7, root /tmp/rsna-predictive-real-trainer-20261020-v1. Inspect actual
-terminal/header/logs/GPU-accepted.json; do not repeat either v1/v2 coordinator.
-Original CPU977645 failure and RO977655 no-GPU reconciliation preserved. See
-predictive-real-trainer-20261020-v2. No GPU acceptance or accuracy yet. Diagnostic
-funding12GiB+128MiB+4MiB on33, zero new shared files, all old liabilities retained.
-
-## October20 owner-directed priority (supersedes older next-action snapshots)
-
-Follow the predictive-evidence B/C proposal as the primary new branch; read the
-new opening section of current-state.md and proposal/raw-pilot original receipts.
-Actual raw-input977456 passed67DICOM/1072regions; new B/C/C0 CPU loop recovery
-checks passed. No new predictive GPU/accuracy acceptance exists. Next bind a real
-MRI parent/raw-case trainer diagnostic and actual resource/throughput admission.
-Keep975297/27713/32102/33801/38630 unchanged. Pointwise3 now fully privately
-verified HFe36bb88f/CPU977516 and compiledCPU977528; noT4/entry yet. No new bridge
-Dataset or cached-attention production dispatch. Exact deadlineOct22,23:59UTC.
-
-Updated October20,2026,04:30UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
-
-- Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.
-- Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Former claim975430 released after exact E3 reconciliation. E3 kernel139719974v1 RUNNING; sourceSHAc870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410, exact runtime/source/all inputs accepted975698. Original975430 created only draft0; separately funded/guarded first executable commit975697 returned acceptedv1, then local missing statusKeyError; read-only accept reconciled it. Both calls preserved, only one actual executable version. Read actual-epoch3-reconciliation-clarification.json; no further SaveKernel.
-- E1 privateHF3d69bf08b182be2d7a6e1fb0389dd8f76b2370c5; E2 privateHFd2afe8cedcfef8e92f7e06569571bd210d855030, complete972updates/6objects verified. Never repeat. E2 serving compiled. E3 scientificcce4ae78/final1458updates. New sole preservation/compiler25232/source20ef4a01 (`follow_epoch3_preservation_once.py.txt`) waits/status3, then publish_once3 and serving_prepare_once3; zero new training/submission launches. Artifacts/S6-epoch3-preservation-after-draft-20261020-v1. Live controls frozen. It archived exact old4837 receipt before updating the current compiler-owner pointer truthfully; do not revive4836/4837.
-- Entry57418131 exact E1 codev1 COMPLETE/**0.948**, no error, no improvement over prior0.949. Corrected qual139716471/public139717947 COMPLETE. Live evaluation owner21960 waits actual E3 compiled receipt under new pointer25232, then qualification/public/one entry/final outcome. Never repeat E1 submission. Full hidden outcome receipt appears in current evaluation artifacts and original experiment directory.
-- Exact Docker64 `gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f`; old serving_policy has historical wrong digest, never use directly. No paid credits authorized. Require fresh free quota/allowance, offline MRI-only,9h hidden limit; public completion is no score.
-- GPU975297 RUNNING evc48, at least228 finite pointwise updates under source7f75fd46, ordinary2H100 node/oneH100/twoCPU/24GiB/12h. Root `/tmp/rsna-teacher-pair-full-fitting48-20261020-v1`; matched full3887 two-view pointwise/ranking3epochs each,1458updates each, original slow reader. CPU975286/975296 admitted/dispatched once;975129 cancelled PENDINGzero after this acceptance, no repeat. Read teacher-pair-cached48 audit. All original modules/40GB pixel proofs match45, no pixel copy. Actual recovery974940 already passed and must not repeat.
-- Complete private manifest `/tmp/rsna-selected-window-full-cohort-20261020-v1/window-integrity.private.npy` on45,23384320bytes, SHA85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f. Original975028TIMEOUT prefix2369; continuation975384FAILED only at receipt line162 after all images; finalizer975656 sealed actual7774 full-tensor checks with zero new decode/render. All original drafts/intents preserved. `actual-full-cohort-integrity.json` is authoritative. Do not rerun. Selected reader actual975724 admission passed: six studies/twelve views exact tensors/labels/mask/teachers and RNG,2.8201x full-case CPU speed. It is not deployed into the already RUNNING975297; do not interrupt or alter healthy GPU work. Do not edit queued payload in place.
-- Node48 model epochs root `/tmp/rsna-S6-Newton-student-recovery-20261019-v1/Kaggle-target-epochs-v1`;4GiB under original12GiBscope after paid6.149GB. Ranking new24GiBscope funds both arms/model+optimizer+verification/source, preserve20GiB physical plus87+12GiB existing liabilities, no45deletioncredit. Shared20GiB/5000files plus remaining metadata obligations. No raw pixels/IDs/signatures/weights toGit/Mac/source mirrors.
-- Runtime33 `/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python`;45/48 `/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python`; manager `/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python`. Credentials ignored0600.env/RAM/stdin only.
-- HF sharedlock `/home/sa305415/rsna-knee/native-full-cache-two-lanes-v1/publication.lock`, runner3575a18e; publisher4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde. New small milestone **already complete**: sourcebafd73ec, CPU975743,91objects259553bytes privately fully re-downloaded/size/SHA verified at **HFcd200afd06324acce85fa8c3961c40cbdc24232d** under shared lock. Audit `initiative/audits/hf-cached-ranking-kaggle-20261020-v1/` has exact manifest/receipt; never repeat its intent/prefix/upload. Previous ecab19d8→HF83e2203c730b9b3bdd9f21c2aa8ebb013bac1d29/31objects and11272518→HF75c24179d9865e1e52fc656f6dd47465c916e03d/19objects already verified, never repeat.
-- Full QA5061passed/6skipped at recorded base with selected-reader bytes. Later host/prefix9 and finalizer2 scoped tests separate. Use relevant checks, no test counts as accuracy.
-
-- **New ranking-epoch publisher:** actual CPU975813 source/recipe/funding admission, sole successor27713/source5c12c2a9, `initiative/research/teacher-pair-epoch-preservation-20261020-v1/`; six future epochs, none yet uploaded. Original numerical proposal digest2d7515536e378b2775cbacbf4e296713e358ec8f70aba8cc9212a952bed70a77 is distinct from NPY-containerSHAe812...; both verified. Publisher sourceSHA 8d7d82bcb1dbb1d7c95297939edbf3d0f1ce587a78870cd63bad782f93a59c3f frozen while follower lives. No new training or entries.
-- **Source-zero ablation:** new `rsna/competitive/teacher_only.py` source-weight0, same data/teacher/sampler/optimizer; only exact engineSHA8384b578724022a7951ee084a45e27ac54dd038c8af84e57dbca7310f56dd3c3 accepted. CPU975869 cross-teacher derivative attribution ratio1.9622 is a full-parent logit reference, not actual sampled encoder gradients or label-error proof. Actual arrays private; aggregate receipt in cross-teacher-gradient-attribution-20261020-v1.
-- CPU975913 admitted new source45, diagnostic975914 then held/cancelled PENDINGzero only after cached48 preparation975943. CPU975952 submitted **975954 ONCE**, oneH100/twoCPU/24GiB/10min normal on physical2GPU48. Sourcepin076b83d0c3a3ac34639a03a2b61df6295cd492aa; ROOT `/tmp/rsna-teacher-only-recovery48-20261020-v1`, F `/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3`. No source/image/runtime bulk transfer; host/path AST roundtrip passed. Never revive original975914. Stage actual PENDING Priority; scheduler estimate remains late. Separate6GiB new RAM plus8MiB node controls funded with all old liabilities retained; actual full fitting not dispatched.
-- Observer27427/source d8607ee1, `teacher-only-cached48-20261020-v1/follow_terminal_once.py.txt`, waits at most24h and collects actual975954 terminal/receipt on owning node. Data16train+16engineering/fourupdates/source0 full/stop1/resume; exact state/CSV required. New tiny models are diagnostics only. On actual pass prepare separately funded full3887/threeepoch source-zero candidate using exact accepted fast inputs and its proper publisher; otherwise preserve failure. A late H100 queue motivates a separately justified T4 route only after canonical fresh quota and read-only uncertainty reconciliation; never duplicate active/pending work.
-
-- Preservation handoff: ended26435 before any epoch/model/upload intent after finding the arbitrary280MiB floor rejected actual292873139byte models. Corrected upper-bound plus tensor/count/binding validator re-admitted by976002; new27713 `follow_after_size_guard_once.py.txt` uses artifacts/teacher-pair-epoch-preservation-size-correction-20261020-v1 while reusing original per-epoch coordinator journals. Old owner/975813 admission retained in Git/artifacts. Never restart26435 or mutate27713 controls.
-- New small source helper `initiative/audits/hf-zero-source-next-20261020-v1/publish_once.py.txt` **already completed** at source05b8b4b9: CPU976026,35objects154196bytes, privateHFe81f2f23455a271a1ac7f34f5646e4a53e12ad36, all independently re-downloaded/size/SHA verified. Never repeat its intent/prefix/upload. It uses distinct source prefix under the canonical HF lock and2MiB source cap inside the already admitted8MiB zero-source pilot control on48, preserving all24+87+12GiB old node liabilities and all shared liabilities. Original91object mirror remains verified, never repeat.
-
-- Next concrete research action while the newH100 pilot waits: inspect authoritative free Kaggle GPU allowance after the actual E3 final outcome and consider a separate bounded single-rank source-zero T4 route. Existing actual H100 paired gradients peaked5.27GiB before optimizer states, so a T4 route is plausible but NOT accepted. It requires its own pinned runtime/actual tensor and recovery acceptance; keep the exact original975954 pending job held/zero-runtime before another execution of the same diagnostic, and reconcile uncertain mutations read-only. Do not infer causal equality across Torch/GPU backends or rerun a completed control solely for engineering reassurance. First collect actual E3/private publication/entry through the existing owners.
-
-- **Latest T4 handoff supersedes old pending-zero-source snapshot:** CPU976158
-  privately compiled new separable paired-view source-zero two-rank engine from
-  exact E024 and original private E1 model prefix. Scientific91707a13; model and
-  original pixel datasets reused without new bulk transfer. New Kaggle
-  **139736683v1 RUNNING**, `godlydonuts/rsna-paired-zero-recovery-a2174506987f`,
-  exact sourcea2174506987fb667932011a40ef225b30b1f09f2000803aaec2dc142e2bb7e23.
-  Once-only controller1694b54b wrote canonical intent/response/source/runtime
-  acceptance. Original H100975954 actually held PENDING/zero before T4 execution;
-  do not release it or repeat SaveKernel. Observer27427 continues observing the
-  held original; it does not dispatch. T4 no production fit/entry/accuracy yet.
-  Directory teacher-only-T4-recovery-20261020-v1 contains actual CPU/push and
-  finite follower; inspect actual original terminal before any next fit.
-  New CPU tests26passed include one/two-rank Gloo exact recovery plus final dummy
-  batch weighting. ActualGPU full/stop1/resume acceptance remains required.
-  At03:58UTC fresh allowance was4/freeGPU22185.86seconds; dispatch rechecks.
-  First read976082 failed missing remote capacity module; corrected976127 used
-  pinned original capacity source through stdin. No diagnostic score claims.
-
-- Sole new T4 observer **29168**, source d17d507e/followerSHA91e86ad768762bdd457bf448d0d8607537f2e9b86b73e1d57f3408a237079f28, actually live and observed139736683v1 RUNNING. It polls only the same exact source/runtime-bound diagnostic up to5400seconds; collects aggregate actual COMPLETE acceptance or actual ERROR, no GPU/production/entry dispatch. Source/new matching checks43passed (26new/source plus17existing paired). GitHub main d17d507e pushed successfully. This new small milestone is NOT yet private-HF mirrored; never call it verified until distinct actual publication/download proofs exist.
-
-- Latest actual H100975297 progress395/1458 pointwiseupdates (CPU976227), same
-  source/recipe/finite loss and gradients, no restart.
-- Private integrity Dataset **12722964v1** `godlydonuts/rsna-window-integrity-85c2fbb342c4`
-  created ONCE976226. Originalresponsejournal existed; RemoteError occurred on
-  a following read. Actual read-only976247 reconciled allthree objects with
-  complete streamdownload/size/SHA, originalcanonicalledger marked verified and
-  oldclaim released. Never repeatCreateDataset or transfer the array toMac/Git/HF.
-  Original node45 control `/tmp/rsna-selected-window-Kaggle-input-20261020-v1`
-  retains initialresponse; its localfinalreceipt has not yet been written back,
-  canonicalledger and local actual-private-verified.json are authoritative.
-  All32MiB node/32KiB ledger reserve proofs passed, no new permanent sharedfiles.
-- New CPU-only Kaggle input probe **139738563v1**, exact
-  `godlydonuts/rsna-selected-window-cpu-2d9456f629ab`, source
-  2d9456f629abc11ab8c77fa2b8b5a0731efcf34c044116049be9822564d906fe.
-  CPU976279 prepared atscientificb0c6c374.32 fittingstudies/64views/fullcohort
-  binding/exactselectedimages/targets/RNG, no model/optimizer/CUDA operation.
-  Sourcecontrol `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/selected-window-CPU-probe-v1`,
-  2MiB insideexisting8MiB controls; future64MiB Kaggleoutputcap. Actual runtime
-  pass remains unproven. See selected-window-Kaggle-reader-20261020-v1. Never
-  duplicatepush. Collect actualterminal via existingfiniteobserver before
-  admitting faster full source-zero production. TwoT4numericalrecovery139736683
-  stillRUNNING atlastcheck, no new gain.
-
-- **E3 now actually COMPLETE1458updates**, modelSHA
-  b968653621f9d35f92957fbe9c6ce5a7d1944a0379407a581bb8cf13b1817067,
-  CPU976299 privately published all6objects/download/size/SHA verified at
-  HF25c8cada7265f7c33f9551d1d0bc6511517bebc5. Never repeat. Existing25232
-  compiler/21960qualification/entry owner remains authoritative; no E3score yet.
-  Read actual-private-verified-epoch-3.json and originalterminal.
-- New CPU-only reader observer **30119**, source24813701, followerSHA
-  287d64eda3dd55aa25c1d667b04dbf8f00c3238091d9cb42f4099f34d0a30bee,
-  actually observed139738563v1 RUNNING. Frozen cloud/run/follower, max2700s,
-  noGPU/entry dispatch. New15compiler/readerchecks passed. Actualruntime
-  acceptance unproven; source-zeroT4139736683 stillRUNNING under29168.
-
-- **READY next scientific execution**: actual139736683v1 COMPLETE/accepted;
- 383.207s/sixupdates/17train+15prediction/73M/peak5.866GB perT4, complete
- full/stop1/resume state plus15x12 two-view full94 CSV exact. Canonicalengine
- SHA14f4b234eb6d549d7f066d6f353c65c7df525f9ff2aba02d2c76b29e07a853a2.
- Actual139738563v1 CPU input acceptance COMPLETE:32/64views/input-target-RNG
- exact,3.24414x CPUcase speed. Both finiteobservers29168/30119 ended normally;
- never restart or repeat. Agentengineeringdecision binds actualterminal hashes.
-- Prepare/stage/dispatch distinct full3887/3epochs/1458update source-zero using
- same original parent teacher/labels/masks/IID16/proposals/LRs/FP16/FP32loss/
- initiala75 and accepted selected reader68bec63a/selectedrenderer e189bd0a.
- Full fit is NOT yet staged/dispatched. Reuse original privateE1 model prefix
- and actual accepted newT4source files in node33 `paired-zero-recovery-v1`;
- newengine14f4b234 must remain byte-identical. CPUprobe `selected-window-CPU-probe-v1`
- contains exact private selected renderer and actualacceptance. Mounted manifest
- must copy once to owner-only local working file. No further diagnostic repeat
- needed; next admission is new production funding/private epoch publication and
- exact compiler/source/runtime/input closure. Preserve all original liabilities.
-- Kaggle freebudget remains finite: fresh actual allowance required, no paid
- credits. Original3epoch plan predeclared; don't call partialepochs fixedfinal,
- and don't promise threefutureVMs without actual budget. Each completed epoch
- privately publish/download/hash verify once before any dependent resume.
- ExistingE3evaluation21960 serves priority under canonicalcapacity/claim.
-- Source-zero alternate H100975954 actually CANCELLED only JobHeldUser/PENDING
- 00:00:00 after acceptedT4 route chosen, actual-superseded-zero-runtime-cancellation
- receipt preserved. Never release/revive; not H100 numerical acceptance. Original
- observer27427 collects its terminal, no new jobs. All oldsource/assets/RAM
- funding retained; no deletion/unused-liability credit.
-- Pointwise epoch1/486updates of975297 privately fully6-object verified once
- viaCPU976356 atHF87b7ef555f1205e3c38f823aedbaa5cf5827a880, model6dad5a3c.
- Do not repeat pointwise1;27713 follows pointwise2/3,teacher_rank1/2/3 only.
-- Smallsource milestonea619666c already privateHFb50caa1ad45839c7f9c31980787805da1c2bf6d6
- /44objects191323bytes independently download/size/SHA via976315. Canonical lock,
- node33B/mission-source-fast-input-v1 2MiB inside8MiB controls. Never repeat.
- Newly collected GPU/CPU terminalacceptances and H100pointwise1 receipt postdate
- that source snapshot; include in a distinct next private milestone, not sameprefix.
-
-
-## October20 05:08UTC — full source-zero dispatched; current state supersedes prior next-action snapshots
-
-- Prior turn answering which model scored0.957 supplied explanation only; no
-  goal-state change. This turn revalidated actual live handles975297,32102,
-  21960,27713 and authenticated Kaggle before further action. Goal stays active.
-- Original full source-zero **139742882v1 RUNNING**, slug
-  `godlydonuts/rsna-zero-full-e1-bd680ac064af`, sourcebd680ac064af9810e039633bf26b020c2219709a55989bb6053e379fcaf2e9c3,
-  science509db5b93aa32ce02d885df4b64107686a32c16b. Accepted engine14f4b234 and
-  worker78bd19ed unchanged. All3887/full73M/two views/effective8/threeepochs1458
-  updates, sourceweight0; original parent teacher/masks/proposals/order/LRs.
-- Full owner **32102**, source466a0a88/follower7671c4e9, max16hours/two laterGPU
-  sessions/zero competitionentries. Never restart. It independently privately
-  verifies each actual epoch before any nextresume and rechecks quota/capacity.
-- Newevc48 root `/tmp/rsna-source-zero-full-T4-20261020-v1`:4GiB models plus2MiB
-  controls,96KiB ledger,0newpermanentsharedfiles funded by976502. Publisher
-  cc38c0d8/checkerce6acf9e preserve exact73M/AdamW/RNG/scaler/counters/history/
-  accepted two-viewengine. Reference verifiedE3model supplies graph shapes/dtypes
-  only, not initialization. Old87+12+24GiB liabilities and20GiB/5000files retained.
-- Sourceevc33 root `.../S6-Kaggle-production-route-20261019-v1/source-zero-full-v1`
-  stores originalsource/pushproofs. FirstCPU976504 actuallystaged but outerwrapper
-  treatedSystemExit0asfailure; RO976536 proved existingbytes/noAPIintent. No
-  restaging. Exceptionwrapperfixeda6f71fc0; originalpayloadscienceunchanged.
-- Initial freeVMbudget20,442.6026641seconds;6000cap pernextfit plus3000final-only
-  servingreservation. Do not promise allfutureGPUVMsfunded. No paidcredits.
-- Official live-log observer976582 sawHTTP404 but actualkernelRUNNING; no optimizer
-  recordseen. This is observationloss, never failure/restartauthority.
-- Final cross-teacher qualification139739395/public6276abeb COMPLETE, exact
-  **entry57422143 accepted ONCE**; fresh authenticated05:07UTCoutcome still
-  nullstatus/nullscore. Owner21960 follows, no newpush/submission. Compiler25232
-  endednormally after actualE3privateverification25c8cada andservingcompilation.
-- H100975297 actuallyRUNNINGevc48 at05:05UTC/2:05elapsed; pointwise1privateverified
- 87b7ef55. Sole27713 observespointwise2, then3 andrank1/2/3, neverrepeats1.
-- Current-state page rewritten to remove obsolete queued/not-dispatched sections;
-  original source/receipt/historical snapshots remain inGit history. This is
-  provenance repair, not anaccuracyresult. No newgain/goalcompletionclaimed.
-
-## October20 05:19UTC — final cross-teacher outcome and next final-model evaluation owner
-
-- Original final **57422143 COMPLETE/scored0.949**, no error. Original epoch1
- 57418131 scored0.948. This ties the older0.949 solo adaptation and does not
- establish cross-teacher benefit. Existing21960 completed both outcomes and
- exited normally; never restart or submit either exact version again.
-- Source-zero full kernel139742882v1 remains actuallyRUNNING under32102; no
- optimizer record has yet been observed via the official log endpoint. Metadata
- read976695 proved exact version1, private/offline/source binding andRUNNING,
- with no usable numeric sessionID. Do not call logHTTP404 training failure or
- infer terminal state. Original H100975297 stillRUNNINGevc48; latest bounded
- scalar read976652 showed757/1458 pointwise updates, finite loss0.5570638 and
- gradient2.2708426; two views/eight studies.27713 preserves remaining epochs.
-- New final-only serving sources and account adapter at
- `initiative/research/source-zero-final-serving-20261020-v1`, source93e19967.
- Actual CPU976721 staged the canonical account controls once on evc33 under
- `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/source-zero-full-v1/serving-account-control-v1`.
- No GPU/API/entry mutation beyond private CPU control staging. Original workflow,
- components/capacity/outputCSV pinned; policy4ef0e5e6, program e0559530. No new
- raw pixels/models/teacher arrays transferred.
-- Sole finite evaluation owner **33801**, source93e19967, followerSHA
- 6eb2284fc18564dc45cb9da4bc13c1d2da9eeb09c8460de234a8a6c35d6c93a7,
- max30h, two serving GPU sessions andONE fixed-final code entry. It is actually
- alive and waiting for original fitting/private preservation; never restart.
- No compilation intent created while final source-zero model is absent.
-- The model must finish all1458updates and be independently private6object
- download/size/SHA verified; owner33's publication pointer must be recorded
- before CPU compilation. Original full94 two-view inference math unchanged.
- Actual bothT4/32MRI qualification must then pass before public CSV and one
- canonical submission with fresh freeGPU budget/capacity/live account allowance.
- E3 only, correct64hex Docker,9hourhidden limit, no paidcredits/publicCSVupload.
- No source-zero qualification/score exists yet.48scoped provenance/compiler/
- account regressionchecks passed; engineering evidence, not accuracy.
-- Selected new source and actual receipts sincea619666c are prepared for a
- DISTINCT private milestone in `hf-source-zero-full-final-route-20261020-v1`.
- It reuses the admitted2MiB source-zero control cap on evc48, retains old
- 87+12+24GiB and new4GiB model liabilities plus20GiB/5000files. Until an actual
- verified receipt exists, do not call this mirror complete or repeat oldb50caa1a.
-
-
-### Actual distinct private preservation complete
-
-Original CPU976734 privately mirrored selected source56747336 at
-**HF381ae720b6498227c4991f20d130d9f634c175e0**,46objects/209,448bytes. Independent
-full download/size/SHA checked every object under canonical shared lock. Prefix
-`research-milestones/source-zero-full-final-route-20261020-v1-567473368da9`;
-private node48 control `/tmp/rsna-source-zero-full-T4-20261020-v1/mission-source-final-route-v1`.
-It fits the original2MiB controls/4GiB models with all old liabilities/reserves;
-no model, MRI, reports, IDs, private arrays or external bodies moved. Never repeat
-this mirror or oldb50caa1a. Original33801/32102/27713 verified alive after this
-milestone; serving33801 waiting without intent, full source-zero first epoch
-still reportedRUNNING, H100975297 stillRUNNING. Goal remains active/unachieved.
-
-
-## October20 05:37UTC — actual source-zero optimization observed; new cached-attention mechanism
-
-Previous goal turn made actual deployment/controller/private preservation progress;
-this turn verified original32102/33801/27713 and975297 live before research. Goal
-still active/unachieved. Source-zero authenticated Kaggle Logs pagev1/
-script360284180 now actually shows >=213updates, finite loss0.54419657/gradient
-1.69508314, 8studies/16views/scale1024; monitor2130seconds. OriginalAPIexactsource
-bd680ac0/kernel139742882 binding unchanged. UI-only read, no edits/restarts.
-`actual-UI-finite-progress.json` preserves sanitized numeric evidence only.
-
-New `rsna/competitive/cached_attention_control.py` implements research-only cached
-moment-ratio and linearized full-attention corrections. Original current sampled
-attention, live optimizers/inference/source target modules unchanged. Twenty-four
-scoped numerical/old-sampling checks passed, including exhaustive expected full
-loss gradients at exact reference, explicit nonlinear ratio bias and negative
-normalizer refusal; synthetic checks not GPU acceptance.
-
-Original CPU976785 FAILED1:0/3seconds during old32MiB/headroom/historical607GB
-threshold checks, no experiment state. RO976787 proved all original modules exact,
-originalscreen directory absent. Distinct relocated CPU976806 used256KiB within
-current8MiB node33 controls, preserving2MiB original future headroom and20GiB/
-5000files; original BASE unchanged. Actual ratio screen on32fitting feature rows/
-128IID16draws/two views/12targets rejected2invaliddenominators atdrift.5. Keep failure.
-
-Distinct CPU976828 tested linearized correction, fixed samelevels0,.05,.2,.5,
-indices/draws/proposals/seed, no labels/protected reads, all draws included. It
-PASSED with MSE ratios.001779/.027942/.162722 and no invalid outputs. Original
-cached parent features/head on33 reused; no pixels/CNN/optimizer/transfer/entry.
-Private roots under `/tmp/rsna-S6-Kaggle-production-route-20261019-v1/`:
-`cached-attention-control-screen-v2` and`cached-attention-linear-screen-v3`.
-Numerical source6dec668b; source/actual receipts/agentdecision in
-`initiative/research/cached-attention-control-20261020-v1`.
-
-Do not mistake this synthetic-drift proxy for actual encoder drift/accuracy or
-claim a breakthrough. Next accepted scope is separately funded real-encoder
-recovery/matched deterministic mode/reference-moment alignment/finite gradients
-and measured staleness; no newGPU production dispatched. Production975297,
-sourcezero139742882/32102 and finaleval33801 remain original, unchanged. New
-small cached-attention source/receipts have not yet been privately mirrored;
-old HF381ae720 mirror only covers selected source56747336. Do not repeat it.
-
-
-### New cached-attention private preservation complete
-
-CPU976868/source4eb1a39a privately mirrored20selected own source/aggregate objects,
-187637bytes, atHFaa111c78483a5f0b79ff9b2d56be187fdd470294. Every object independently
-re-downloaded/size/SHA under shared canonical lock, existing2MiB source-zero
-controls on48/all model/future reserves unchanged. Prefix
-`research-milestones/cached-attention-mechanism-20261020-v1-4eb1a39a8f0f`, private
-controlchild `mission-source-attention-v1`. Never repeat that prefix or old381ae720.
-No pixels, clinical records, private arrays, external source body or models moved.
-
-Next concrete engineering work is a new real-readout/batch wrapper, not another
-unchanged CPU screen: preserve full94 inference default; sampled training takes
-cached parent scores/votes for selected windows plus full reference mean. Use
-matched deterministic mode in BOTH reference and linear arms, since the current
-full fits use a different mode/backend and cannot be called its causal control.
-At exact reference expected gradients are correct, but stochastic head/dropout,
-FP16 cached-feature mismatch and real stale-reference drift must be measured,
-not assumed. Existing full3887cached feature/head on33 already accepted; materialize
-only missing score/vote moments privately once, bind original ordered roster and
-head/source proofs, no raw MRI/new CNN/labels. Budget any new cache/checkpoints
-explicitly; don't borrow the full source-zero4GiB model reserve. Reuse node48's
-already accepted full original pixels/runtime/base for a separately funded
-17train/15disjoint fitting engineering full/stop/resume diagnostic if admitted.
-No actual newGPU wrapper/cache/dispatch exists yet. Avoid infinite toy work:
-implement/readmit the actual encoder path next; keep975297/32102/33801 untouched.
-
-
-### Actual pointwise epoch2 preservation, October20 05:42UTC
-
-Original975297 completed pointwise2/972updates. CPU976879 privately fully6object
-re-download/size/SHA verified ONCE atHF755515ba5576fcadff371273d056370338ac6d3e.
-Model292867251bytes SHA3e8bf39d37137785574018bbb8d85461eb44a94920c8b64b73b774b6546d7d3d.
-Scientific7f75fd46 unchanged; publisher source4eb1a39a/same pinned numerical
-publisher. Original27713 now follows pointwise3 thenrank1/2/3; NEVER repeat1/2.
-All three local owners27713/32102/33801 verified alive,975297RUNNINGevc48/2:42.
-Epoch2receipt postdates small-source mirroraa111c78/source4eb; model/provenance
-already separately preserved at755515ba. No new score or claim of goalcompletion.
-
-
-## October20 — actual full reference cache and real-encoder dispatch
-
-The original private cache was materialized and transferred exactly once by
-CPU976992/976991: all3,887 fitting studies, two views,94windows,12targets;
-71,148,396bytes, SHAee28ba94592f29fdd56f50d65350a1e6c8be2ba6d2f893e740b9ccfd46d31695.
-Exact byte/SHA/EOF, finite FP32 arrays and ordered roster passed. Original FP32
-head probability reduction gap was1.7881393432617188e-7; original cached-FP16
-probability gap was0.00029981136322021484. No arrays/UIDs reached Mac/Git/HF.
-Reuse this cache; never rebuild/retransfer it without an actual new requirement.
-
-New actual encoder implementation/source9e76db5d uses deterministic eval mode
-WITH gradients in both matched arms and an FP32 readout. Its explicit encoder
-checkpointing override preserves activation checkpointing despite eval mode;
-all encoder/head parameters remain trainable. Full94 inference remains original
-and requires no reference cache at test time. Twenty-nine scoped CPU checks
-passed; these are not H100 acceptance or clinical evidence.
-
-CPU977068 admitted exact cache/source/runtime/original full-pixel bindings and
-separately funded128MiB cache/8MiB controls/12GiB engineering-plus-runtime cap.
-CPU977099 then submitted new GPU977100 ONCE on physical two-GPU evc48, requesting
-one H100/two CPUs/32GiB/30minutes. At the actual queue observation it was
-PENDING(Priority); no optimizer progress or GPU acceptance is claimed.
-
-Scope: reference/linear arms,17 fitting engineering studies,15 disjoint fitting
-prediction studies, two epochs/six updates each, fresh full/stop1/resume
-processes. Requires complete decoded model/AdamW/LR/counter/all-RNG/scaler/history
-and snapshot equality, exact full94 two-view15x12 prediction CSV bytes, finite
-updates and actual reference drift. Engineering results cannot select a clinical
-winner or be submitted. Full production fitting is NOT funded/dispatched here.
-
-Original root `/tmp/rsna-cached-attention-encoder-20261020-v1` on evc48;
-inspect original977100 and original GPU-run/dispatch/phase receipts read-only.
-Never repeat submit_gpu or restart on observation loss. Original975297 and local
-owners27713/32102/33801 were verified live, left unchanged. Source-zero139742882
-was still RUNNING via its live original follower; final serving waits for final
-verified fitting. No new score exists. Goal remains active/unachieved.
-
-[Original new source, cache, funding and dispatch receipts](../initiative/research/cached-attention-encoder-20261020-v1/README.md).
-
-
-### Source-zero first epoch actually completed
-
-Original Kaggle139742882v1/sourcebd680ac0 now reports COMPLETE, with an actual
-terminal receipt for486updates on3,887 studies/two views. Elapsed4797.625seconds;
-immutable weight292,869,619bytes SHA0c79c9e66800dac41070e63e15751f45602fd209cbfb29679b6fcbfe2adf5e71.
-This is epoch1 of the fixed three-epoch fit, NOT final completion or a score.
-Original live follower32102 owns independent full private verification and fresh
-budget/capacity admission for any next epoch. Do not dispatch/resume/publicize a
-checkpoint independently of that owner. At collection no private epoch1 verified
-receipt existed yet; the actual terminal does not substitute for that proof.
-
-
-### Distinct encoder milestone privately verified
-
-CPU977113/sourcea08571df privately preserved23 selected own-code and sanitized
-receipt objects,144,679bytes, atHFe94663ca412ba58c9ceccbb1bb1dbffe33ea2b9f.
-Every object independently re-downloaded/size/SHA verified under canonical shared
-lock. Prefix research-milestones/cached-attention-encoder-20261020-v1-a08571df6c0c;
-controls within the separately admitted8MiB encoder scope, all engineering/cache/
-standing reserves preserved. No reference arrays, UIDs, MRI, reports, weights or
-external source bodies included. Never repeat this or prior mirrors. This snapshot
-includes original full-cache acceptance and977100dispatch, not a GPU acceptance
-or subsequent source-zero epoch1 terminal. Source-zero publication977111 was
-actually RUNNING onevc48 when observed; original32102 owns it, never duplicate.
-
-
-## October20 06:23UTC — source-zero actual resume and exact learned-drift oracle
-
-Previous goal turn made actual one-time H100 dispatch/private source preservation
-progress. This turn revalidated original975297RUNNING,977100PENDING Priority and
-all three original local owners live. Goal remains active/unachieved.
-
-Source-zero epoch1 is now privately fully verified ONCE: CPU977111,
-HF1df252b385869b4ec8372526f39ad169f33e2e6e, six objects/model0c79c9e6, actual
-complete learned graph/AdamW/all two-rank RNG/scaler/486contiguous finite updates.
-Never repeat that checkpoint or notebook. Original32102 freshly admitted
-15,623.5737freeVMseconds/empty account lanes/6,000next-fit cap/3,000final-serving
-reserve, then pushed distinct resumed epoch2 **139756869v1** ONCE, exact slug
-`godlydonuts/rsna-zero-full-e2-e98af321d8b0`, sourcee98af321d8b056d1ba7fb709a8f53f0757f194e71a54de873d4fdb9c0ba17ce4.
-ActualRUNNING; target972/fixedfinal1458. No new score, E3 not yet budget-admitted.
-Original33801 remains the sole final-only evaluation owner.
-
-New `cached_attention_diagnostics.py` analytically computes exact IID logit bias,
-variance and MSE of the linearized correction against full current attention,
-plus common128IID16 empirical ordinary-SNI MSE. FP64 mathematical diagnostic,
-not bitwise FP32 equivalence, an encoder-gradient proof, clinical metric or
-automatic recipe selection. Eight focused cases pass, including exhaustive
-ordered-pair enumeration and unchanged global RNG. Combined27 scoped cases pass.
-
-Prepared `cached-attention-learned-drift-20261020-v1/worker.py.txt` requires actual
-977100 terminal acceptance and source/snapshot/digest bindings, then measures
-full current readouts on four fitting engineering studies/two views for each arm.
-It adds no optimizer, weights, clinical score or reference arrays exported from
-node. This is PREPARED ONLY: no CPU/GPU admission or dispatch, no extra funding
-claimed. Separate immutable wrapper/fresh quota/single-dispatch review required;
-never inject it into queued977100. This avoids treating synthetic perturbation
-results as behavior after actual learning. No new clinical gain established.
-
-
-### Mechanism limit: fidelity is not new supervision
-
-For binary cross-entropy distillation with fixed teacher probability p and
-student logit z, the logit derivative is sigmoid(z)-p. At the exact full-bag
-parent initialization with the same teacher, this derivative is zero. Therefore
-source-zero fitting does not itself supply new diagnostic information: it tests
-removal of source-loss conflict and the effects of the sampled training graph.
-Sampling/noise/backend differences can still change the result, so this is not a
-prediction of its Kaggle outcome or authority to cancel the original fit.
-Likewise lower cached-attention readout error would establish a numerical
-mechanism, not new clinical knowledge or an accuracy improvement. Any production
-claim still needs actual held-out evidence; an improvement beyond the parent
-needs a useful changed inductive bias and/or informative legitimate supervision,
-not simply more precise self-imitation.
-
-
-### New learned-drift source milestone privately verified
-
-CPU977157/source2836740c preserved15selected own-source/sanitized receipt objects,
-95,474bytes, atHF78940300ebefe20f866d4918fee5ac0d571e1469. Independent complete
-re-download/size/SHA verified under canonical lock; existing8MiB encoder controls
-and all cache/engineering/standing reserves preserved. No arrays, clinical
-records, weights or external bodies included. Prefix
-research-milestones/cached-attention-learned-drift-20261020-v1-2836740cff09.
-Never repeat that mirror or earlier encoder HFe94663ca. Snapshot includes the
-prepared oracle/worker and actual source-zero epoch1 verification/epoch2 dispatch;
-it is NOT actual learned-drift GPU execution,977100 acceptance or clinical gain.
-
-
-## October20 — actual paired-fit final-model compilation owner
-
-Previous goal turn made actual source-zero resume and readout-oracle progress.
-This turn verified original975297/27713/32102/33801 live,977100 stillPENDING.
-Original pointwise/ranking full fit is unchanged. Goal remains active/unachieved.
-
-Missing deployment handoff addressed by the independent fixed-final compiler in
-`initiative/research/teacher-pair-final-serving-20261020-v2`. It admits only the
-original1458-update epoch3 for pointwise or teacher_rank after the six-object
-private proof. Original source7f75fd46/975297/974940/3887cohort/initialstate/
-objective/recipe/runtime and complete model schema are bound. Compiler reuses
-original qualified full94 MRI inference and truthfully records H100/one rank/
-Slurm, never a made-up Kaggle training kernel.57combined serving checks passed;
-none substitutes for actual new-model T4 acceptance.
-
-Original v1 CPU977213 refused BEFORE staging on an overconservative file guard.
-Read-only977215 confirmed no original directory,5,390available shared files and
-237teacher files already charged. Distinct v2 retains the same256teacher-file
-bound but budgets only19remaining; no deletion credit and5000+128+128+19+24
-future reserve remains. CPU977228 actually staged v2 controls under the original
-24GiB run/publication scope with1MiB control subcap, zero new shared bytes/files,
-all other node/shared liabilities. Original v1 intent/transport remain untouched.
-
-Sole finite CPU compiler owner **38630**, sourceddf1b7e4, SHA
-b6c60b2ef513394afb229131783810abaddac75a5cb687517ad0b4ac14c40444,
-verified live. It waits without compilation intent for each role's original
-privately verified final epoch, at most two one-CPU compiles over30h; no GPU,
-Dataset, model transfer or competition mutations. Artifacts
-`artifacts/teacher-pair-final-serving-20261020-v2`; root on evc48
-`/tmp/rsna-teacher-pair-full-fitting48-20261020-v1/final-serving-v2`.
-Never restart owner or retry v1/uncertain compilation. Original27713 alone owns
-checkpoint publication;33801 alone owns source-zero final evaluation.
-
-No paired-fit new model is T4-qualified/scored yet. Unlike the Kaggle-trained
-source-zero model, H100 snapshots have no Kaggle training-output dependency;
-a subsequent private model Dataset/one-time transport bridge is still required,
-with fresh funding, canonical account claim/ledger, exact all-byte verification,
-free GPU capacity/budget, actual T4 qualification/public acceptance and live
-competition allowance. Do not reuse a null/fictitious training kernel or upload
-the public three-row CSV. The compiler is an actual implemented handoff, not a
-claim that full Kaggle deployment is complete.
-
-
-### Paired final-compiler source milestone privately verified
-
-CPU977249/sourcee467b3fd preserved20selected own-source and sanitized receipt
-objects,139,892bytes, atHFfb1b32a3b7dd7961f80da40943613ca275806755. All objects
-independently fully re-downloaded/size/SHA checked under canonical shared lock.
-Prefix research-milestones/teacher-pair-final-compile-20261020-v1-e467b3fd1f0c;
-existing8MiB encoder controls/all standing liabilities preserved. No MRI, labels,
-UIDs, private arrays, external source body or model bytes mirrored. Never repeat.
-Snapshot covers actual v2CPU977228/compiler owner38630 and preserved v1no-write
-refusal, NOT final-model compilation/new-model Kaggle transport/T4 acceptance.
+**Deadline October 22, 23:59 UTC; latest final full-scored launch target October 22, 12:00 UTC.** Best actual score remains external R6 0.958, own adaptation 0.949. No predictive full-fit, clinical or Kaggle result exists. Preserve a qualified baseline and evaluate completed useful candidates promptly while pursuing the new mechanism.

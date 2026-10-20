@@ -104,6 +104,10 @@ class Predictive(Context):
         super().__init__(*args, **kwargs)
         self.negative = nn.Linear(self.hidden, self.classes * self.descriptor_width)
         self.shift = nn.Linear(self.hidden, self.classes * self.descriptor_width)
+        # Neutral descriptor means avoid coherently summing random decoder
+        # residuals into the initial complete-support likelihood ratio.
+        nn.init.zeros_(self.negative.weight)
+        nn.init.zeros_(self.negative.bias)
         nn.init.zeros_(self.shift.weight)
         nn.init.zeros_(self.shift.bias)
         self.register_buffer("fixed_log_variance", torch.zeros(self.classes, self.descriptor_width))
@@ -136,6 +140,8 @@ class ReconstructionControl(Context):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reconstruct = nn.Linear(self.hidden, self.descriptor_width)
+        nn.init.zeros_(self.reconstruct.weight)
+        nn.init.zeros_(self.reconstruct.bias)
         self.target_project = nn.Linear(self.descriptor_width, self.hidden)
         self.vote = nn.Linear(self.hidden, self.classes)
         self.weight = nn.Linear(self.hidden, self.classes)

@@ -1,0 +1,77 @@
+"""Reuse exact admitted node-local contexts; new immutable engineering source only."""
+
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc27" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-predictive-stable-warmup-20261020-v1")
+old = Path("/tmp/rsna-predictive-cached-engine-20261020-v1")
+assert not D.exists()
+accepted = json.loads((old / "GPU-accepted.json").read_text())
+assert accepted["GPU_job"] == "978554" and all(
+    a["full_stop_resume_complete_state_and_prediction_bytes_equal"] for a in accepted["arms"]
+)
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 87 + 12 + 24 + 4 + 12 + 12 + 12 + 4 + 12 + 12) * 2**30 + (32 + 512 + 16 + 4) * 2**20
+)
+binding = json.loads((old / "binding.private.json").read_text())
+index_path = old / "data/context-index.private.json"
+assert hashlib.sha256(index_path.read_bytes()).hexdigest() == binding["context_index_sha256"]
+rows = json.loads(index_path.read_text())
+assert len(rows) == 16
+for row in rows:
+    st = Path(row["path"]).stat()
+    assert [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns] == row["proof"]["stat"]
+assert (
+    hashlib.sha256(Path(binding["targets16_private_path"]).read_bytes()).hexdigest()
+    == binding["targets16_sha256"]
+)
+D.mkdir(mode=0o700)
+for name, source in v["files"].items():
+    p = D / "code" / name
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(source.encode()).hexdigest() == v["sha256"][name]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(source)
+binding.update(
+    source_git=v["source_git"],
+    code_sha256=v["sha256"],
+    context_index_private_path=str(index_path),
+    original_cached_engine_job="978554",
+    zero_initial_density_means=True,
+    recipe={
+        "epochs": 12,
+        "actual_updates": 24,
+        "schedule_updates": 2916,
+        "effective_batch": 8,
+        "head_only_updates": 3,
+        "encoder_lr": 3e-5,
+        "head_lr": 3e-5,
+        "density_weight_B_C": 0.1,
+        "density_weight_C0": 0,
+        "side": 320,
+        "context_cap": 24,
+    },
+)
+(D / "binding.private.json").write_text(json.dumps(binding) + "\n")
+out = {
+    "status": "actual_original_contexts_zero_mean_warmup_controls_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "existing_cached_context_job": "978554",
+    "original_context_files_reused_without_copy": 16,
+    "new_source_or_pixel_downloads": 0,
+    "new_engineering_checkpoint_cap_bytes": 12 * 2**30,
+    "new_control_cap_bytes": 4 * 2**20,
+    "old_liabilities_and_20GiB_reserve_retained": True,
+    "production_or_GPU_dispatched": False,
+}
+(D / "prepared.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)
