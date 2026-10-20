@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 03:06 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 03:38 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -13,6 +13,7 @@ Updated October 20, 2026, 03:06 UTC. Goal active; first place and 0.97 remain un
 | Own paired / higher-LR adaptations | 0.949 / 0.949 | 57392062 / 57394237 |
 | Own uniform / source-label adaptations | 0.947 / 0.947 | 57329796 / 57331631 |
 | R6 with own paired member | 0.957 | 57397292 |
+| New cross-lineage supervision, epoch1 | 0.948 | 57418131 |
 
 No original improvement over the public reproduction is established. Engineering checks, training loss and more parameters are not accuracy. Public teacher/base exposure is not independent OOF evidence.
 
@@ -44,15 +45,17 @@ The API initially reported negative unreserved time because the unusable live se
 
 Controller `artifacts/S6-twoT4-runtime64-reconciled-20261020-v1/` permits E1/E3 only, at most two code entries, actual qualification/public CSV and fresh allowance, actual E1 hidden outcome before E3. Preserve9h hidden limit and600s public-three-study watchdog. Never revive5590 or old unpinned route; never upload the example CSV.
 
-## Ranking mechanism: actual GPU recovery accepted, full comparison not started
+## Ranking mechanism: actual full comparison running
 
 Original974708 on evc45 was PREEMPTED after2:01; it completed the pointwise reference/stop1. Distinct normal continuation **974940 COMPLETED0:0 in4:15**, independently collected by974967. Only four missing processes ran; no reference repeated.
 
 Both pointwise and teacher-ranking arms passed complete model/base/AdamW/LR/cursor/allRNG/scaler/history/snapshot equality and exact16x12 two-view full94 MRI prediction bytes, uninterrupted versus resumed. Four updates per arm, all73M parameters, same initial state and different resulting predictions. This is real numerical acceptance, not clinical gain. Receipt SHA1bc918297634a5bc75e3c789cad02fff278a3a8771f54c4d5b40b9f1ea37cb97; see `initiative/research/teacher-pair-earlier45-20261020-v1/actual-normal-continuation-terminal.json`.
 
-Full12-file/38,873,662,650-byte inputs already copied and independently SHA verified once to45. Cached48 CPU975246 proved the original numerical modules and original pixel-file proofs match45; no bulk copy repeated. CPU975286 admitted all3887 inputs and six representative both-view checks, then CPU975296 submitted **GPU975297 ONCE on evc48**. Actual975734 observation now shows RUNNING with15 finite pointwise updates, loss0.5377578/gradient norm2.58435 and empty stderr. Ordinary2H100 node, oneH100/twoCPU/24GiB/12h, sequential matched pointwise/ranking fresh fits. Scheduler estimate was earlier than45, not guaranteed. Old45 job975129 was cancelled only while PENDING/zero runtime after actual cached48 admission; do not revive it. Read `initiative/research/teacher-pair-cached48-20261020-v1/`.
+Full12-file/38,873,662,650-byte inputs already copied and independently SHA verified once to45. Cached48 CPU975246 proved the original numerical modules and original pixel-file proofs match45; no bulk copy repeated. CPU975286 admitted all3887 inputs and six representative both-view checks, then CPU975296 submitted **GPU975297 ONCE on evc48**. Actual CPU975813 later observed74 contiguous finite pointwise updates, loss0.5193418/gradient norm1.52771; original source/recipe remained unchanged. Earlier975734 confirmed empty stderr. Ordinary2H100 node, oneH100/twoCPU/24GiB/12h, sequential matched pointwise/ranking fresh fits. Scheduler estimate was earlier than45, not guaranteed. Old45 job975129 was cancelled only while PENDING/zero runtime after actual cached48 admission; do not revive it. Read `initiative/research/teacher-pair-cached48-20261020-v1/`.
 
-Both full3epoch/1458update objectives use the same original73M initial state, two-view compute, original labels/masks/teachers/proposals/LRs. The old one-view0.949 is not the causal control. The pointwise arm has started; the teacher-ranking arm follows sequentially. Source7f75fd46 is frozen; the faster reader is not part of this queued payload.
+Both full3epoch/1458update objectives use the same original73M initial state, two-view compute, original labels/masks/teachers/proposals/LRs. The old one-view0.949 is not the causal control. The pointwise arm has started; the teacher-ranking arm follows sequentially. Source7f75fd46 is frozen; the faster reader is not part of this running payload.
+
+Actual CPU975813 also admitted the per-epoch publisher against the live run/source/recipe and original24GiB scope. Sole finite preservation owner **26435**, source1d65d0ee, will preserve the six actual immutable pointwise/ranking epochs once each, with private independent re-download/size/SHA verification under the canonical lock. It has not published an epoch yet. Source/actual admission in `teacher-pair-epoch-preservation-20261020-v1`. The initial CPU guard confused the proposal-file SHA with the trainer numerical-array SHA; corrected before any journal/model/upload. All original trainer files stayed unchanged.
 
 ## Measured input bottleneck and execution opportunity
 
@@ -62,7 +65,17 @@ Actual renderer receipt: `initiative/research/selected-window-rendering-20261020
 
 **Complete private input-integrity coverage now accepted:** original CPU975028 timed out after a flushed2369study prefix; continuation975384 completed remaining rendering but failed at receipt line162 because `old` was overwritten by source bytes. Distinct finalizer **975656** verified the terminal/source bindings and all populated windows, sealed the retained manifest without any new MRI decode/render calls. Actual coverage3887studies ×2views ×94windows,7774 original full-tensor checks; private manifest23384320bytes, SHA85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f. No pixel signatures exported. Original failed receipts preserved.
 
-Actual CPU975724 admitted the isolated selected reader against the complete manifest: six full-cohort studies/twelve plain-mirrored pairs,16 selected windows each, exact image/label/mask/teacher equality, unchanged CPU RNG. Original full-case loading5.43978s versus selected1.92892s, **2.8201× including decoding/finite/integrity checks**, alternating measurement order. This is a small actual CPU benchmark, not GPU/end-to-end throughput. The faster reader is **not deployed into the already running comparison**. Next admission should establish exact original labels/teacher/proposals/RNG and selected input bytes, then measure end-to-end loading. Do not alter the queued ranking source in place or rerun the completed integrity pass.
+Actual CPU975724 admitted the isolated selected reader against the complete manifest: six full-cohort studies/twelve plain-mirrored pairs,16 selected windows each, exact image/label/mask/teacher equality, unchanged CPU RNG. Original full-case loading5.43978s versus selected1.92892s, **2.8201× including decoding/finite/integrity checks**, alternating measurement order. This is a small actual CPU benchmark, not GPU/end-to-end throughput. The faster reader is **not deployed into the already running comparison**. These are input/CPU measurements, not a GPU throughput gain. Use the admitted reader only in a new explicitly bound experiment; do not alter healthy975297 or rerun the completed integrity pass.
+
+## Next supervision experiment: zero source contribution
+
+New actual fitting-only CPU975869 measures the BCE logit-derivative components at the original **full94 parent-logit reference** for the changed cross-lineage targets. Source-term norm21.6778 versus teacher-term11.0477, ratio**1.9622**; cosine0.3762, with38453/93130 nonzero component pairs opposing. These are not actual sampled-window student logits or encoder-parameter gradients, and neither source correctness nor a causal score bottleneck is established. Nearly all accepted source cells are soft probabilities (46622/46644). Do not repeat the old hard-label screen or call disagreements errors.
+
+Implemented isolated `teacher_only.py`: source_weight0.25→0.0, original labels/masks/teacher/sampler/initial state/optimizer retained. The eventual matched reference is the running H100 **parent-only two-view pointwise** arm, distinct from the one-view changed-target Kaggle role. No original positive-weight recipe or live training module is relaxed. A worker-local substitution is restored even on failure and the actual accepted engine SHA is required.
+
+CPU975913 admitted this source on cached45 and submitted a ten-minute diagnostic975914 once. It was held/cancelled only PENDING/zero runtime **after** cached48 CPU975943 accepted the host/path-only port and separately funded6GiB RAM scratch plus8MiB controls. CPU975952 submitted **975954 ONCE**, physical2H100 evc48/oneH100/twoCPU/24GiB/tenminutes. No bulk transfer, previous-state deletion or duplicate GPU execution. Actual new state is PENDING Priority; current scheduler estimate remains unfavorable and is not a guarantee. Original45 files preserved, never revive975914.
+
+Finite observer **27427** follows975954 and will collect its actual terminal once. It must pass real16training/16disjoint-engineering, four-update full/stop1/resume complete-state and exact MRI CSV equality. A queued diagnostic is not GPU acceptance or full fitting. No source-zero production fit/model/clinical/Kaggle score exists. Fresh production funding and actual acceptance remain required. If the H100 queue remains long, investigate a bounded canonical T4 route after checking actual E3 outcome/free allowance; do not duplicate the pending diagnostic blindly. See teacher-only-cached48 and its scientific decision.
 
 ## Preservation and next actions
 
@@ -71,7 +84,7 @@ Distinct sourceecab19d8 milestone privately mirrored at HF83e2203c730b9b3bdd9f21
 1. Follow actual E3 version139719974 under owner25232 and preserve the final checkpoint once; no further training push.
 2. E1 actual0.948 is negative evidence; finish the predeclared final E3 comparison through existing evaluation owner21960.
 3. Follow original975297 finite training, checkpoint and terminal outcomes; never revive cancelled975129.
-4. Admit the selected-window reader using the completed private manifest before any explicit pending-only source handoff.
+4. Collect actual975954 recovery under27427, then prepare/admit the distinct fixed-final source-zero production experiment; do not fabricate a pass or alter running controls.
 
 Full QA scope:5061passed/6skipped for the recorded base plus selected-reader bytes; later host-port/prefix9checks and finalizer2checks passed separately. Counts are engineering evidence, not accuracy.
 

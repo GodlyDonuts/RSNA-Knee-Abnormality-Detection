@@ -1,13 +1,14 @@
 # RSNA Knee agent guide
 
-Updated October20,2026,03:06UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
+Updated October20,2026,03:38UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities
 
 - Changed-target E1/E2 COMPLETE486/972updates, privately fully verified. E3 kernel139719974v1 RUNNING, exact source/runtime/inputs accepted after explicit partial-draft reconciliation; old claim released. Do not repeat any push. E3 preservation/compiler owner25232 is live.
 - Actual code entry57418131 COMPLETE/scored0.948, below older own0.949. Evaluation owner21960 waits for final E3 preservation/serving; no new gain established. Corrected qualification139716471/public139717947 both COMPLETE.
-- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, actual15 finite pointwise optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
-- Complete private3887study/two-view/window integrity manifest sealed by975656 without rerendering after receipt-only failure975384. Selected reader not yet used in training; admit actual exact inputs before a new immutable pending-only handoff.
+- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, at least74 finite pointwise optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
+- Actual975724 selected-reader admission passed,2.82x full-case CPU speed and exact inputs/RNG; not used in healthy975297. Epoch preservation owner26435 is live for its six future checkpoints.
+- New isolated source-weight-zero diagnostic975954 is PENDING on cached48, after CPU admission and zero-runtime975914 cancellation. Observer27427 follows actual terminal. No new production/model/score yet. Read current state and original scientific decision; do not duplicate or assume a pass.
 - Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
 ## Standing execution rules
