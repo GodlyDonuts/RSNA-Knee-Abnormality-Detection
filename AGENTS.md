@@ -1,6 +1,6 @@
 # RSNA Knee agent guide
 
-Updated October 20, 2026, 09:55 UTC. Goal active: the strongest legitimate competition model. The owner is AFK and has authorized independent decisions. First place and 0.97 are not achieved.
+Updated October 20, 2026, 10:24 UTC. Goal active: the strongest legitimate competition model. The owner is AFK and has authorized independent decisions. First place and 0.97 are not achieved.
 
 Read [current state](docs/current-state.md), then [execution continuation](docs/codex-continuation.md) and the exact original receipts for the action being considered. These pages contain one current snapshot; earlier snapshots remain in Git history. Actual service state and original receipts supersede dated summaries.
 
@@ -8,7 +8,7 @@ Read [current state](docs/current-state.md), then [execution continuation](docs/
 
 - Prioritize the owner's [predictive-evidence B/C proposal](initiative/research/predictive-evidence-proposal-20261020-v1/README.md). B directly classifies with diagnosis-independent reconstruction; C predicts withheld MRI descriptors conditioned on diagnosis; C0 removes the density loss from C's architecture. The inherited MRI encoder in this branch is **CoAtNet**, not DINOv3. Train the full encoder after explicit warmup, with fresh heads and no old teacher-probability or inherited-classifier-logit shortcut.
 - Actual raw-input B/C diagnostic **978305** completed. Actual cached-input B/C/C0 diagnostic **978554** completed and passed complete full/stop/resume state and prediction-byte equality. These are engineering results on 12 training plus four disjoint fitting engineering studies, not clinical accuracy or production checkpoints.
-- Full raw-input CPU **978318** and exact-context CPU **978414** are running on evc33. Full predictive fitting has **not** been dispatched. Two-T4 predictive inference is being prepared and has **not** been pushed or accepted. Address C/C0's observed loss/gradient spikes before declaring the recipe ready.
+- Full raw-input CPU **978318** and exact-context CPU **978414** are running on evc33. Full predictive fitting has **not** been dispatched. Corrected stability job **978709** completed with exact B/C/C0 recovery and bounded startup stability; full peak-LR behavior is still untested. The actual two-T4 probe **139796378 v1** reached its final duration guard, then timed out without saving timing receipts. A distinct observable correction is being prepared; no predictive T4 runtime acceptance exists.
 - Preserve healthy original teacher-pair GPU **975297** on evc48 and source-zero Kaggle epoch 3 **139786921 v1**. Finite successors **46628** and **46627**, respectively, own remaining publication/evaluation phases. Reconcile their current intents/results before any action; do not revive ended predecessors.
 - Best actual Kaggle result remains **0.958 from an external R6 ensemble reproduction**; own adaptations reach **0.949**. No original accuracy improvement over that reproduction is established.
 - Competition deadline: **October 22, 2026, 23:59 UTC**. Keep the latest full-scored final launch target **October 22, 12:00 UTC**, a qualified baseline, and time for the nine-hour hidden run.

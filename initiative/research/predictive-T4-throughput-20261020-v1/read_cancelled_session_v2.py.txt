@@ -1,0 +1,106 @@
+"""Read the original exact cancelled session/output/quota without rerunning its collector."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+ROOT = Path.cwd()
+DEST = Path(__file__).resolve().parent
+OUT = DEST / "actual-cancelled-session-v2.json"
+assert not OUT.exists(), "Read existing receipt before another observation"
+actual = json.loads((DEST / "actual-push.json").read_text())
+env = ROOT / ".env"
+assert env.stat().st_mode & 0o077 == 0
+token = next(
+    value.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for key, sep, value in [line.partition("=")]
+    if sep and key.strip() == "KAGGLE_API_TOKEN"
+)
+program = r"""
+import datetime,hashlib,importlib.util,json,os,re,sys
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);a=v['actual']
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py')
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+spec=importlib.util.spec_from_file_location('exact_cancelled_read_only',p)
+w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.username='godlydonuts';r.session=requests.Session()
+r.session.headers['Authorization']='Bearer '+v['token']
+def safe(text):
+ text=str(text)
+ text=re.sub(r'https?://[^\s]+','[URL]',text)
+ text=re.sub(r'1\.2\.826\.0\.1\.[0-9.]+','[UID]',text)
+ text=re.sub(r'KGAT_[A-Za-z0-9_-]+','[REDACTED]',text)
+ return text
+identity=r.call('security.OAuthService','IntrospectToken',{'token':v['token']})
+assert identity.get('active') and identity.get('username')=='godlydonuts'
+k=r.kernel('GetKernel',a['slug'],1);m=k['metadata']
+assert m['id']==a['kernel_id'] and m['isPrivate']
+assert hashlib.sha256(k['blob']['source'].encode()).hexdigest()==a['source_sha256']
+status=r.kernel('GetKernelSessionStatus',a['slug'],1)
+out={'status':'exact_cancelled_T4_session_read_only_v2',
+ 'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+ 'CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':a['kernel_id'],
+ 'slug':a['slug'],'version':1,'source_sha256':a['source_sha256'],
+ 'metadata':{key:m[key] for key in ('currentVersionNumber','lastRunTime','machineShape','enableGpu','enableInternet','isPrivate','dockerImage') if key in m},
+ 'actual_kernel_status':status.get('status'),
+ 'failure_message':safe(status.get('failureMessage','')),
+ 'new_GPU_or_model_or_ledger_mutations':0}
+body={'userName':'godlydonuts','kernelSlug':a['slug'].split('/')[1],
+ 'versionLabel':'1','pageSize':100}
+for method in ('ListKernelSessionOutput','ListKernelFiles'):
+ try:
+  response=r.call('kernels.KernelsApiService',method,body)
+  raw=json.dumps(response).encode();assert len(raw)<4*2**20
+  log=response.get('log','')
+  out[method]={'response_keys':sorted(response),'response_sha256':hashlib.sha256(raw).hexdigest(),
+   'files':[{key:item[key] for key in ('fileName','name','size','fileSize','contentLength') if key in item}
+     for item in response.get('files',[])],
+   'next_page_present':bool(response.get('nextPageToken')),
+   'log_bytes':len(log.encode()),'log_sha256':hashlib.sha256(log.encode()).hexdigest(),
+   'sanitized_log_tail':safe(log)[-24000:]}
+ except Exception as exc:
+  out[method]={'error_type':type(exc).__name__,'message':safe(str(exc))}
+q=r.call('kernels.KernelsApiService','GetAcceleratorQuotaStatistics',{})['gpuQuota']
+seconds=lambda z:float(str(z).removesuffix('s'))
+out['GPU_quota']=q
+out['free_unreserved_VM_seconds']=seconds(q['totalTimeAllowed'])-seconds(q.get('timeUsed','0s'))-seconds(q.get('timeReserved','0s'))
+out['source_zero_E3_status']=r.kernel('GetKernelSessionStatus','godlydonuts/rsna-zero-full-e3-a5c5b1d7f43c',1)
+from kagglesdk.kernels.types.kernels_enums import KernelWorkerStatus
+out['official_installed_SDK_worker_status_enum']={item.name:item.value for item in KernelWorkerStatus}
+assert r.kernel('GetKernel','godlydonuts/'+a['slug'].split('/')[1],1)['metadata']['id']==a['kernel_id']
+print(json.dumps(out),flush=True)
+"""
+spec = importlib.util.spec_from_file_location(
+    "read_only_transport",
+    ROOT / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+transport = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(transport)
+command = [
+    "srun", "--account=skattel", "--partition=normal", "--qos=normal",
+    "--nodelist=evc33", "--ntasks=1", "--cpus-per-task=1", "--gres=none",
+    "--mem=1G", "--time=00:05:00", "--job-name=rsna-T4-cancel-readonly-v2",
+    "env", "CUDA_VISIBLE_DEVICES=", "PYTHONNOUSERSITE=1", "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python", "-B", "-c",
+    transport.COMMAND,
+]
+result = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes",
+     "newton", shlex.join(command)],
+    input=transport.envelope(program, {"token": token, "actual": actual}),
+    capture_output=True, text=True, timeout=360,
+)
+if result.returncode:
+    raise RuntimeError(f"Read-only observation failed, returncode={result.returncode}")
+receipt = json.loads(result.stdout)
+receipt["collector_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+with OUT.open("x") as handle:
+    handle.write(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(receipt), flush=True)
