@@ -28,6 +28,7 @@ scopes = [
     "tests/test_teacher_pair_cached_host_port.py",
     "tests/test_window_manifest_prefix_continuation.py",
     "tests/test_S6_runtime64_correction.py",
+    "tests/test_selected_manifest_finalization.py",
     "initiative/audits/hf-cached-ranking-kaggle-20261020-v1/publish_once.py.txt",
 ]
 names = subprocess.check_output(
@@ -93,6 +94,12 @@ with pub.shared_publication_lock():
  assert sum(p.stat().st_size for p in D.rglob('*') if p.is_file())<8*2**20
  print(json.dumps(out))
 """
+# Network failures can contain signed download URLs. Emit only safe failure type.
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except BaseException as error:\n    print(type(error).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+)
 (L / "intent.json").write_text(
     json.dumps(
         {
