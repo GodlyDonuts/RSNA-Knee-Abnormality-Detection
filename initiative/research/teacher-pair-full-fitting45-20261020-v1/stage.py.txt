@@ -22,7 +22,13 @@ C = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1/original-pixel-repl
 assert not R.exists(), "Existing original full-fit intent must be reconciled, never repeated"
 assert shutil.disk_usage("/tmp").free > (20 + 79) * 2**30 + 64 * 2**20
 node = subprocess.check_output(["scontrol", "show", "node", "evc45", "-o"], text=True)
-assert "gpu:h100:2" in node and "gpu:h100:4" not in node and "gpu:h100:8" not in node
+cfg = dict(
+    item.split("=", 1)
+    for item in next(
+        field.split("=", 1)[1] for field in node.split() if field.startswith("CfgTRES=")
+    ).split(",")
+)
+assert cfg["gres/gpu"] == "2" and "Gres=gpu:nvidia_h100_pcie:2(" in node
 assert "974940|COMPLETED|0:0" in subprocess.check_output(
     ["sacct", "-X", "-n", "-P", "-j", "974940", "--format=JobIDRaw,State,ExitCode"], text=True
 )
@@ -185,7 +191,7 @@ args = [
     "--nodes=1",
     "--ntasks=1",
     "--cpus-per-task=2",
-    "--gres=gpu:h100:1",
+    "--gres=gpu:nvidia_h100_pcie:1",
     "--mem=24G",
     "--time=12:00:00",
     "--job-name=rsna-full-two-view-ranking-comparison",

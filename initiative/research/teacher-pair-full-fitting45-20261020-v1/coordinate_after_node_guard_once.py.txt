@@ -1,0 +1,117 @@
+"""Single CPU admission/normal GPU dispatch; no diagnostic replay or mutation retry."""
+
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-full-fitting45-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "node-guard-recovery-intent.json").exists(), (
+    "Inspect original job/intent before action"
+)
+prior = json.loads((L / "transport.json").read_text())
+assert prior["returncode"] == 1 and "line 25" in prior["stderr"]
+assert "job 975088 has been allocated resources" in prior["stderr"]
+assert (
+    json.loads((D / "actual-node-guard-failure.json").read_text())[
+        "owning_node_full_fit_directory_exists"
+    ]
+    is False
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in (
+    "worker.py.txt",
+    "driver.py.txt",
+    "stage.py.txt",
+    "coordinate_after_node_guard_once.py.txt",
+):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+terminal = json.loads(
+    (
+        R
+        / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-normal-continuation-terminal.json"
+    ).read_text()
+)
+assert terminal["actual_Slurm_terminal"] == ["974940", "COMPLETED", "0:0", "00:04:15"]
+assert (
+    terminal["receipt_sha256"] == "1bc918297634a5bc75e3c789cad02fff278a3a8771f54c4d5b40b9f1ea37cb97"
+)
+for objective in ("pointwise", "teacher_rank"):
+    assert terminal["receipt"]["roles"][objective][
+        "complete_model_AdamW_schedule_cursors_all_RNG_scaler_history_equal"
+    ]
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+with (L / "node-guard-recovery-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "maximum_GPU_jobs": 1,
+            "maximum_full_fits": 2,
+            "fixed_epochs_each": 3,
+            "fixed_updates_each": 1458,
+            "future_checkpoint_cap_bytes": 24 * 2**30,
+            "no_new_pixels_or_diagnostic_recovery": True,
+            "automatic_retry": False,
+        },
+        f,
+    )
+v = {
+    "source_git": pin,
+    "files": {
+        n.removesuffix(".txt"): (D / n).read_text() for n in ("worker.py.txt", "driver.py.txt")
+    },
+    "original_files": json.loads(
+        (
+            R / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-full-input-copy.json"
+        ).read_text()
+    )["receiver"]["files"],
+}
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:10:00",
+    "--job-name=rsna-full-pair-production-admission",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope((D / "stage.py.txt").read_text(), v),
+    capture_output=True,
+    text=True,
+    timeout=1800,
+)
+(L / "node-guard-recovery-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original CPU/GPU state; never rerun automatically"
+z = json.loads(x.stdout)
+assert z["status"] == "actual_full_cohort_CPU_admitted_and_one_matched_GPU_pair_submitted"
+(D / "actual-submitted.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)
