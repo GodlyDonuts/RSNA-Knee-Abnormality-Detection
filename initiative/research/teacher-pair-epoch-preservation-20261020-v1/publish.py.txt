@@ -1,0 +1,397 @@
+"""Preserve one immutable production ranking/control epoch on its owning node.
+
+The original model snapshot is uploaded without copying or changing it. Only
+own source, permission and aggregate provenance accompany the private model.
+Any existing journal requires read-only reconciliation; no automatic retries.
+"""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+SOURCE = "7f75fd46b5d0e772fd2767400e81d70b593619b4"
+INITIAL = "a75cb18d1dec13c4fb2f547f017ed92e81bf768f580cee54da0ffa88b712fc78"
+PARENT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+PERMISSION = "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+COHORT = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+PROPOSAL = "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+ROOT = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+CODE = Path("/tmp/rsna-teacher-pair-gradient-admitted48-20261019-v3/code")
+AUX = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+CORE = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py"
+)
+CORE_SHA = "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(4 * 2**20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def validate_binding(snapshot, run, meta, role, epoch, recipe):
+    if (
+        role not in ("pointwise", "teacher_rank")
+        or type(epoch) is not int
+        or epoch not in (1, 2, 3)
+    ):
+        raise ValueError("Exact production objective and epoch required")
+    if set(snapshot) != {"binding", "epoch", "completed", "model"}:
+        raise ValueError("Complete original immutable model snapshot required")
+    b = snapshot["binding"]
+    required = {
+        "parent_checkpoint_sha256": PARENT,
+        "source_binding": meta["source_binding"],
+        "initial_state_sha256": INITIAL,
+        "fitting_only": True,
+        "protected_or_gold_used": False,
+        "diagnostic_only": False,
+        "matched_two_view_three_epoch_comparison": True,
+        "version": "full_encoder_two_view_teacher_pair_risk_v1",
+        "teacher_proposal_sha256": PROPOSAL,
+        "recipe": recipe,
+        "population": 3887,
+        "population_sha256": COHORT,
+        "world_size": 1,
+        "anatomical_views_per_study": 2,
+        "study_coupled_batch_loss": True,
+        "device_type": "cuda",
+        "precision": "FP16_autocast_FP32_loss_dynamic_scaler",
+        "BN_running_statistics": "frozen_at_accepted_parent",
+        "total_steps": 1458,
+    }
+    if b != run.get("binding") or any(b.get(k) != value for k, value in required.items()):
+        raise ValueError(
+            "Exact original production recipe/source/population/runtime binding required"
+        )
+    if (
+        recipe.get("objective") != role
+        or snapshot["epoch"] != epoch
+        or snapshot["completed"] != 486 * epoch
+    ):
+        raise ValueError("Exact objective and completed epoch boundary required")
+    if meta["source_git"] != SOURCE or b["source_binding"].get("actual_GPU_recovery") != "974940":
+        raise ValueError("Original full production and actual GPU recovery required")
+    if not isinstance(b.get("torch_version"), str) or "H100" not in b.get("device_name", ""):
+        raise ValueError("Actual original H100 runtime required")
+    return b
+
+
+def signature(path):
+    s = path.stat()
+    if path.is_symlink() or not path.is_file() or s.st_uid != os.getuid() or s.st_mode & 0o077:
+        raise ValueError("Original owner-only regular model snapshot required")
+    return (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+
+
+def budget():
+    paid = sum(
+        p.stat().st_size
+        for p in ROOT.rglob("*")
+        if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(ROOT).parts
+    )
+    if paid + 512 * 2**20 >= 24 * 2**30:
+        raise ValueError(
+            "Original24GiB model/publication scope including temporary download required"
+        )
+    if (
+        shutil.disk_usage("/tmp").free
+        <= (20 + 87 + 12) * 2**30 + max(0, 24 * 2**30 - paid) + 64 * 2**20
+    ):
+        raise ValueError("Original retained node reserves after all liabilities required")
+    q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+    row = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+    if (int(row[2]) - int(row[1])) * 1024 <= 20 * 2**30 + 80 * 2**20 or int(row[6]) - int(
+        row[5]
+    ) <= 5000 + 128 + 4:
+        raise ValueError("Original shared reserve plus funded metadata required")
+
+
+def main(v):
+    os.umask(0o077)
+    assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+    role, epoch = v["role"], v["epoch"]
+    mode = v["mode"]
+    assert mode in ("inspect", "publish", "admit")
+    assert role in ("pointwise", "teacher_rank") and type(epoch) is int and epoch in (1, 2, 3)
+    meta = json.loads((ROOT / "staged.json").read_text())
+    assert meta["source_git"] == SOURCE
+    intent = json.loads((ROOT / "GPU-intent.json").read_text())
+    assert intent["GPU_job"] == "975297" and intent["source_git"] == SOURCE
+    path = ROOT / role / "epoch-checkpoints" / ("epoch-" + str(epoch).zfill(3) + ".pt")
+    journal = ROOT / "publication" / role / ("epoch-" + str(epoch).zfill(3))
+    if mode == "admit":
+        budget()
+        for name, expected_sha in meta["accepted_module_sha256"].items():
+            assert sha(CODE / name) == expected_sha
+        assert sha(AUX / "source/source-permission.txt") == PERMISSION
+        assert sha(CORE) == CORE_SHA
+        sys.path.insert(0, str(CODE))
+        from dataclasses import asdict
+
+        from rsna.competitive.teacher_pair import Recipe
+
+        run = json.loads((ROOT / "pointwise/run.json").read_text())
+        # This admits actual source/run bindings only. No model bytes or epoch
+        # completion are inferred from a synthetic boundary-shaped dictionary.
+        validate_binding(
+            {"binding": run["binding"], "epoch": 1, "completed": 486, "model": {}},
+            run,
+            meta,
+            "pointwise",
+            1,
+            asdict(Recipe(epochs=3, objective="pointwise")),
+        )
+        progress = json.loads((ROOT / "pointwise/progress.json").read_text())
+        return {
+            "status": "actual_running_production_source_recipe_and_private_publisher_scope_admitted",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "GPU_job": "975297",
+            "source_git": SOURCE,
+            "publisher_source_git": v["source_git"],
+            "publisher_SHA": v["publisher_SHA"],
+            "accepted_module_sha256": meta["accepted_module_sha256"],
+            "actual_run_binding": run["binding"],
+            "actual_progress": progress,
+            "new_model_hashes_or_transfers_or_uploads": 0,
+            "original24GiB_scope_and_shared_node_reserves_checked": True,
+            "snapshot_model_or_accuracy_acceptance_claim": False,
+        }
+    if not path.exists():
+        return {
+            "status": "waiting_original_immutable_epoch_no_publication_intent",
+            "role": role,
+            "epoch": epoch,
+            "GPU_job": "975297",
+        }
+    if mode == "inspect":
+        if (journal / "verified.json").exists():
+            receipt = json.loads((journal / "verified.json").read_text())
+            assert (
+                receipt["GPU_job"] == "975297"
+                and receipt["role"] == role
+                and receipt["epoch"] == epoch
+            )
+            assert path.stat().st_size == receipt["model_bytes"]
+            return {
+                "status": "actual_original_epoch_already_privately_verified",
+                "receipt": receipt,
+            }
+        if journal.exists():
+            raise ValueError("Original journal incomplete; read-only reconciliation required")
+        return {
+            "status": "actual_original_immutable_epoch_ready_no_publication_intent",
+            "GPU_job": "975297",
+            "role": role,
+            "epoch": epoch,
+            "snapshot_bytes": path.stat().st_size,
+        }
+    assert not journal.exists(), "Existing original publication journal requires reconciliation"
+    before = signature(path)
+    assert 280 * 2**20 < before[2] < 330 * 2**20
+    budget()
+    own_source = {}
+    for name, h in meta["accepted_module_sha256"].items():
+        p = CODE / name
+        assert p.resolve().is_relative_to(CODE.resolve()) and sha(p) == h
+        own_source[name] = p.read_text()
+    assert sum(len(s.encode()) for s in own_source.values()) < 2**20
+    sys.path.insert(0, str(CODE))
+    from dataclasses import asdict
+
+    import torch
+
+    from rsna.competitive.teacher_pair import Recipe
+
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    assert torch.cuda.device_count() == 0
+    snapshot = torch.load(path, map_location="cpu", weights_only=True)
+    run_path = ROOT / role / "run.json"
+    run = json.loads(run_path.read_text())
+    binding = validate_binding(
+        snapshot, run, meta, role, epoch, asdict(Recipe(epochs=3, objective=role))
+    )
+    model = snapshot["model"]
+    assert (
+        isinstance(model, dict)
+        and len(model) > 100
+        and any(n.startswith("backbone.") for n in model)
+    )
+    assert all(
+        isinstance(t, torch.Tensor) and t.device.type == "cpu" and torch.isfinite(t).all()
+        for t in model.values()
+    )
+    assert sum(t.numel() for t in model.values()) >= 73136096
+    model_schema = {n: {"shape": list(t.shape), "dtype": str(t.dtype)} for n, t in model.items()}
+    del snapshot, model
+    model_sha = sha(path)
+    assert signature(path) == before
+    permission = AUX / "source/source-permission.txt"
+    assert sha(permission) == PERMISSION
+    assert sha(CORE) == CORE_SHA
+    s = importlib.util.spec_from_file_location("canonical_teacher_epoch_publisher", CORE)
+    common = importlib.util.module_from_spec(s)
+    s.loader.exec_module(common)
+    os.environ.update(
+        HF_HUB_DISABLE_XET="1",
+        HF_HUB_DISABLE_PROGRESS_BARS="1",
+        HF_HOME=str(ROOT / "publication-hf"),
+        HF_HUB_CACHE=str(ROOT / "publication-hf/cache"),
+    )
+    from huggingface_hub import CommitOperationAdd, HfApi
+
+    prefix = (
+        "checkpoints/teacher-pair-full3887-"
+        + SOURCE[:12]
+        + "/"
+        + role
+        + "/epoch-"
+        + str(epoch).zfill(3)
+    )
+    with common.shared_publication_lock():
+        api = HfApi(token=v["token"])
+        info = api.repo_info("GodlyDonuts/RSNA-Data", repo_type="dataset")
+        assert info.private is True
+        names = (
+            "model.pt",
+            "run.json",
+            "source-permission.txt",
+            "own-source.json",
+            "provenance.json",
+            "manifest.json",
+        )
+        assert not list(
+            api.get_paths_info(
+                "GodlyDonuts/RSNA-Data",
+                paths=[prefix + "/" + n for n in names],
+                repo_type="dataset",
+            )
+        )
+        journal.mkdir(mode=0o700, parents=True)
+        provenance = {
+            "scientific_source_git": SOURCE,
+            "publisher_source_git": v["source_git"],
+            "GPU_job": "975297",
+            "role": role,
+            "epoch": epoch,
+            "completed_updates": 486 * epoch,
+            "binding": binding,
+            "model_schema_sha256": hashlib.sha256(
+                json.dumps(model_schema, sort_keys=True).encode()
+            ).hexdigest(),
+            "trainable_parameters_from_actual_accepted_trainer": 73136096,
+            "snapshot_sha256": model_sha,
+            "upstream_author": "nartaa",
+            "upstream_parent_checkpoint_sha256": PARENT,
+            "upstream_parent_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+            "source_permission_sha256": PERMISSION,
+            "optimizer_RNG_kept_on_owning_node": True,
+            "original_MRI_labels_UIDs_private_arrays_included": False,
+            "public_teacher_exposure_not_independent_OOF": True,
+            "clinical_or_Kaggle_gain_claim": False,
+            "new_training_or_competition_submissions": 0,
+        }
+        common.atomic_new(journal / "provenance.json", provenance)
+        common.atomic_new(journal / "own-source.json", own_source)
+        payload = {
+            "model.pt": path,
+            "run.json": run_path,
+            "source-permission.txt": permission,
+            "own-source.json": journal / "own-source.json",
+            "provenance.json": journal / "provenance.json",
+        }
+        table = {
+            n: {"bytes": p.stat().st_size, "sha256": model_sha if n == "model.pt" else sha(p)}
+            for n, p in payload.items()
+        }
+        common.atomic_new(
+            journal / "manifest.json",
+            {"source_git": SOURCE, "role": role, "epoch": epoch, "files": table},
+        )
+        payload["manifest.json"] = journal / "manifest.json"
+        table["manifest.json"] = {
+            "bytes": payload["manifest.json"].stat().st_size,
+            "sha256": sha(payload["manifest.json"]),
+        }
+        common.atomic_new(
+            journal / "intent.json",
+            {
+                "prefix": prefix,
+                "parent": info.sha,
+                "files": table,
+                "source_git": v["source_git"],
+                "CPU_job": os.environ["SLURM_JOB_ID"],
+                "automatic_retry": False,
+            },
+        )
+        result = api.create_commit(
+            "GodlyDonuts/RSNA-Data",
+            repo_type="dataset",
+            parent_commit=info.sha,
+            commit_message="Preserve original matched "
+            + role
+            + " full-encoder epoch "
+            + str(epoch)
+            + " with exact provenance; no accuracy claim",
+            operations=[
+                CommitOperationAdd(path_in_repo=prefix + "/" + n, path_or_fileobj=p)
+                for n, p in payload.items()
+            ],
+        )
+        common.atomic_new(journal / "commit.json", {"revision": result.oid})
+        for name, item in table.items():
+            with tempfile.TemporaryDirectory(
+                prefix="ranking-epoch-full-byte-check-", dir="/tmp"
+            ) as tmp:
+                downloaded = Path(
+                    api.hf_hub_download(
+                        "GodlyDonuts/RSNA-Data",
+                        prefix + "/" + name,
+                        repo_type="dataset",
+                        revision=result.oid,
+                        local_dir=tmp,
+                        force_download=True,
+                    )
+                )
+                assert (
+                    downloaded.stat().st_size == item["bytes"] and sha(downloaded) == item["sha256"]
+                )
+        assert signature(path) == before
+        out = {
+            "status": "actual_teacher_pair_immutable_epoch_private_all_objects_download_size_SHA_verified",
+            "GPU_job": "975297",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": SOURCE,
+            "publisher_source_git": v["source_git"],
+            "role": role,
+            "epoch": epoch,
+            "completed_updates": 486 * epoch,
+            "revision": result.oid,
+            "prefix": prefix,
+            "objects": len(table),
+            "model_bytes": before[2],
+            "model_sha256": model_sha,
+            "canonical_shared_publication_lock_used": True,
+            "raw_MRI_labels_IDs_private_arrays_or_optimizer_exported": False,
+        }
+        common.atomic_new(journal / "verified.json", out)
+    budget()
+    return out
+
+
+if __name__ == "__main__":
+    try:
+        print(json.dumps(main(json.load(sys.stdin))), flush=True)
+    except BaseException as error:
+        print(type(error).__name__, file=sys.stderr)
+        raise SystemExit(1)

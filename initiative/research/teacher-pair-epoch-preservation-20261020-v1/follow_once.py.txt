@@ -1,0 +1,125 @@
+"""Preserve the six distinct immutable epochs of original GPU975297, without relaunch."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-epoch-preservation-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "owner-intent.json").exists()
+control = {
+    n: hashlib.sha256((D / n).read_bytes()).hexdigest()
+    for n in ("publish.py.txt", "coordinate_once.py.txt", "follow_once.py.txt")
+}
+owner = {
+    "PID": os.getpid(),
+    "GPU_job": "975297",
+    "maximum_distinct_epoch_publications": 6,
+    "maximum_seconds": 16 * 3600,
+    "source_git": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+    "controls": control,
+    "new_training_jobs_or_competition_entries": 0,
+    "automatic_mutation_retry": False,
+}
+with (L / "owner-intent.json").open("x") as f:
+    json.dump(owner, f, indent=2)
+(L / "owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+start = time.monotonic()
+
+
+def run(mode, role, epoch):
+    assert time.monotonic() - start < 16 * 3600
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == h for n, h in control.items())
+    x = subprocess.run(
+        [sys.executable, str(D / "coordinate_once.py.txt"), mode, role, str(epoch)],
+        capture_output=True,
+        text=True,
+        timeout=6800 if mode == "publish" else 650,
+    )
+    if x.returncode:
+        (L / "follower-last-failure.json").write_text(
+            json.dumps(
+                {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2
+            )
+            + "\n"
+        )
+        raise RuntimeError("Inspect original transport/publication journal; do not retry mutation")
+    return json.loads(x.stdout)
+
+
+try:
+    preserved = []
+    for role in ("pointwise", "teacher_rank"):
+        for epoch in (1, 2, 3):
+            while True:
+                z = run("inspect", role, epoch)
+                (L / "progress.json").write_text(
+                    json.dumps(
+                        {"role": role, "epoch": epoch, "actual": z, "preserved": len(preserved)},
+                        indent=2,
+                    )
+                    + "\n"
+                )
+                if z["status"] == "actual_original_immutable_epoch_ready_no_publication_intent":
+                    z = run("publish", role, epoch)
+                    preserved.append(z)
+                    break
+                if z["status"] == "actual_original_epoch_already_privately_verified":
+                    preserved.append(z["receipt"])
+                    break
+                assert z["status"] == "waiting_original_immutable_epoch_no_publication_intent"
+                state = subprocess.check_output(
+                    [
+                        "ssh",
+                        "-S",
+                        "/tmp/rsna-research-20261001-stable.sock",
+                        "-o",
+                        "BatchMode=yes",
+                        "newton",
+                        "sacct -X -n -P -j 975297 --format=JobIDRaw,State,ExitCode",
+                    ],
+                    text=True,
+                    timeout=30,
+                )
+                rows = [x.split("|") for x in state.splitlines() if x.startswith("975297|")]
+                assert len(rows) == 1
+                assert rows[0][1] in (
+                    "PENDING",
+                    "RUNNING",
+                    "CONFIGURING",
+                    "COMPLETING",
+                    "SUSPENDED",
+                ), (
+                    "Original GPU terminal before expected epoch; preserve existing results and inspect, never relaunch"
+                )
+                time.sleep(180)
+    (D / "actual-all-six-epochs-private-verified.json").write_text(
+        json.dumps(
+            {
+                "status": "actual_both_original_objectives_all_six_epochs_privately_verified",
+                "publications": preserved,
+                "new_GPU_jobs_or_competition_entries": 0,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+except BaseException as error:
+    (L / "stopped.json").write_text(
+        json.dumps(
+            {
+                "error_type": type(error).__name__,
+                "original_GPU_must_not_be_restarted": True,
+                "automatic_retry": False,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    raise
