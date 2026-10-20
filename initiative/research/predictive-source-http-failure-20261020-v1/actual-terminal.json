@@ -1,0 +1,48 @@
+{
+  "status": "actual_source_http_rejection_terminal",
+  "jobs": [
+    {
+      "job": "980743",
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "start_UTC": "2026-10-20T14:28:21",
+      "end_UTC": "2026-10-20T14:42:04",
+      "elapsed": "00:13:43"
+    },
+    {
+      "job": "980744",
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "start_UTC": "2026-10-20T14:28:53",
+      "end_UTC": "2026-10-20T14:42:22",
+      "elapsed": "00:13:29"
+    }
+  ],
+  "source_git": "370f2c598f4a25d92fc4764c899a1632ff50b675",
+  "owner_stopped": {
+    "status": "stopped_without_retry_or_remote_cancellation",
+    "error_type": "AssertionError",
+    "source_git": "370f2c598f4a25d92fc4764c899a1632ff50b675",
+    "attempted_phases": [
+      "context",
+      "raw"
+    ],
+    "known_jobs": {
+      "raw": "980743",
+      "context": "980744"
+    }
+  },
+  "raw_error": {
+    "type": "AssertionError",
+    "line": 264,
+    "condition": "response.status == 200",
+    "before_body_or_member_output_open": true
+  },
+  "historical_HTTP_status": null,
+  "context_error": {
+    "type": "RuntimeError",
+    "line": 198,
+    "condition": "producer terminated unsuccessfully"
+  },
+  "retained_buffer_receipt_sha256": "af3b1bafe4fa267b51a9481ca1d53c3b4c4b5a8b9260ef5c31e4581739c05675"
+}

@@ -1,0 +1,26 @@
+"""One current pre-body GET for a privately resolved missing source member."""
+import csv,gzip,hashlib,json,os,sys,time
+from datetime import datetime,timezone
+from pathlib import Path
+from urllib.parse import quote
+import requests
+v=json.load(sys.stdin); token=v.pop('token')
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+base=Path('/tmp/rsna-predictive-full-raw-cache-20261020-v1')
+index=base/'original-fitting-source-index.private.jsonl.gz'
+loc=json.loads(Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/RAM-location.private.json').read_text())
+assert hashlib.sha256(index.read_bytes()).hexdigest()==loc['sha256']
+with gzip.open(index,'rt') as f: records=[json.loads(x) for x in f]
+by_uid={x['uid']:x for x in records}
+root=Path('/tmp/rsna-predictive-full-raw-capacity-recovery-20261020-v1')
+failures=list((root/'scratch').glob('*/source-failure.private.json')); assert len(failures)==1
+data=failures[0].parent/'data'
+with (data/'train.csv').open() as f: case=by_uid[list(csv.DictReader(f))[0]['StudyInstanceUID']]
+missing=[r for r in case['source_files'] if not (data/'train_series'/case['uid']/r['series_uid']/(r['sop_uid']+'.dcm')).exists()]
+assert len(missing)==431
+row=missing[0]; revision='52f995f4568e36bfa5fbbaf69a89af41226b4f5d'; started=time.monotonic()
+url='https://huggingface.co/datasets/GodlyDonuts/RSNA-Data/resolve/'+revision+'/'+quote(row['path'],safe='/')
+with requests.get(url,headers={'Authorization':'Bearer '+token,'Accept-Encoding':'identity'},timeout=(10,30),stream=True) as response:
+    safe={k:response.headers[k] for k in ('Content-Length','Content-Encoding','Retry-After','RateLimit','RateLimit-Policy','X-RateLimit-Remaining','X-RateLimit-Reset') if k in response.headers}
+    receipt={'status':'actual_current_missing_member_response_observed','CPU_job':os.environ['SLURM_JOB_ID'],'observed_at':datetime.now(timezone.utc).isoformat(),'response_status':response.status_code,'headers':safe,'redirect_statuses':[r.status_code for r in response.history],'elapsed_seconds':time.monotonic()-started,'MRI_body_bytes_read':0,'writes':0,'source_requests':1,'historical_failure_status_remains_unknown':True,'progress':{role:json.loads(Path(f'/tmp/rsna-predictive-full-{role}-capacity-recovery-20261020-v1/progress.private.json').read_text()) for role in ('raw','context')}}
+print(json.dumps(receipt),flush=True)

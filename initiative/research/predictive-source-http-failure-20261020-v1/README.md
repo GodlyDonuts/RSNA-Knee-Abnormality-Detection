@@ -1,0 +1,9 @@
+# Source HTTP interruption, October 20
+
+Raw cache job **980743 failed 1:0 at 14:42:04 UTC** after 13:43; its consumer **980744 failed 1:0 at 14:42:22** after 13:29. Local owner86560 stopped without retry or remote cancellation. The frozen raw worker's line264 asserted that a fresh source HTTP response was200, before reading its MRI body or creating that member's output. The context worker propagated the failed producer. No MRI/model or capacity failure is established by this event.
+
+The historical response code and headers were discarded by the original assertion. We cannot distinguish429,403 or5xx after the fact. [Read-only CPU980889](actual-retained-buffers.json) found one retained failed source buffer:501 declared members,70 present at their expected sizes,431 missing,zero partial or oversized files,29,133,846 retained bytes. This observation did not repeat body hashes; exact byte verification belongs to missing-only continuation admission.
+
+[CPU980898](actual-current-source-response.json) resolved one of those missing members from the exact original pinned source and observed **HTTP200**,0.505 seconds, Content-Length296358, with no MRI body consumed or files written. That proves current availability for that member, not the historical failure's status or all members' availability. The last progress records were raw1038/3887 and context1041/3887; concurrent raw completions not consumed by the failed outer loop may exceed its last progress count. The actual proof inventory must determine the reusable prefix.
+
+A distinct successor is being prepared with bounded status-aware pre-body HTTP retries and a shared eight-request concurrency gate. All completed cases and retained source buffers remain original; source bytes, labels, renderer and predictive scientific recipe are unchanged. A prepared correction is not a resumed job or model improvement.

@@ -1,0 +1,31 @@
+"""Read only exact failed source buffers; emit sanitized inventory only."""
+import csv,gzip,hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+v=json.load(sys.stdin)
+assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+base=Path('/tmp/rsna-predictive-full-raw-cache-20261020-v1')
+index=base/'original-fitting-source-index.private.jsonl.gz'
+loc=json.loads(Path('/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/RAM-location.private.json').read_text())
+assert hashlib.sha256(index.read_bytes()).hexdigest()==loc['sha256']
+with gzip.open(index,'rt') as f: records=[json.loads(x) for x in f]
+by_uid={x['uid']:x for x in records}
+roots={r:Path(f'/tmp/rsna-predictive-full-{r}-capacity-recovery-20261020-v1') for r in ('raw','context')}
+roles={}
+for role,d in roots.items():
+    ib=(d/'intent.json').read_bytes(); intent=json.loads(ib)
+    progress=json.loads((d/'progress.json').read_text()) if (d/'progress.json').exists() else None
+    roles[role]={'job':intent['CPU_job'],'source_git':intent['source_git'],'intent_sha256':hashlib.sha256(ib).hexdigest(),'progress':progress,'final_present':(d/'actual.json').exists()}
+failures=[]
+for p in sorted((roots['raw']/'scratch').glob('*/source-failure.private.json')):
+    raw=p.read_bytes(); failure=json.loads(raw); data=p.parent/'data'
+    with (data/'train.csv').open() as f: rows=list(csv.DictReader(f))
+    assert len(rows)==1
+    record=by_uid[rows[0]['StudyInstanceUID']]
+    counts={'complete_size':0,'partial':0,'missing':0,'oversize':0}; retained=0
+    for r in record['source_files']:
+        f=data/'train_series'/record['uid']/r['series_uid']/(r['sop_uid']+'.dcm')
+        if not f.exists(): counts['missing']+=1; continue
+        size=f.stat().st_size; retained+=size
+        counts['complete_size' if size==r['bytes'] else ('partial' if size<r['bytes'] else 'oversize')]+=1
+    failures.append({'error_type':failure['error_type'],'failure_sha256':hashlib.sha256(raw).hexdigest(),'members':len(record['source_files']),'counts':counts,'retained_bytes':retained,'body_hash_rechecked':False})
+print(json.dumps({'status':'actual_http_failure_retained_buffers_observed_read_only','CPU_job':os.environ['SLURM_JOB_ID'],'roles':roles,'failed_buffers':failures,'free_bytes':shutil.disk_usage('/tmp').free,'source_HTTP_requests':0,'pixel_decodes':0,'writes':0}),flush=True)
