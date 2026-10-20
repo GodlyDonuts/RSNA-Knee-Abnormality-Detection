@@ -1,6 +1,10 @@
 # RSNA Knee Abnormality Detection
 
-Latest October20: the new predictive-evidence architecture now passes actual raw-MRI full-encoder training and exact recovery (GPU978218), not an accuracy result. A16-study input/learning expansion and the existing final Kaggle training ablation are active. See [current evidence](docs/current-state.md).
+Updated October 20, 2026. The predictive-evidence B/C/C0 engineering runs have
+passed; full-cohort input preparation is running, and full predictive fitting
+has not started. The completed pointwise and ranking models are privately
+preserved. Pointwise has passed two-T4 qualification and its public notebook is
+queued. See [current evidence](docs/current-state.md).
 
 **October 20, 2026: best verified Kaggle score is 0.958, from an attributed
 external R6 ensemble reproduction. Target 0.97 is not achieved.** Current encoder
@@ -16,8 +20,9 @@ artifacts, not instructions to restart completed or uncertain operations.
 Following the owner's supplied research, we are implementing a matched comparison
 between direct classification plus generic reconstruction and finding-conditioned
 prediction of withheld MRI descriptors. The source-level masking test passed on
-67 original DICOMs: withheld-pixel changes cannot alter context inputs. Both new
-arms have a trainable encoder, complete region priors and a tested recovery loop.
+67 original DICOMs: withheld-pixel changes cannot alter context inputs. The three
+matched arms have a trainable encoder, complete region priors and a tested
+recovery loop. C0 uses C's architecture without the density loss.
 **No trained predictive-model result exists yet.** See the
 [proposal, decisions and exact limits](initiative/research/predictive-evidence-proposal-20261020-v1/README.md)
 and [current implementation/next gates](docs/current-state.md).
@@ -40,23 +45,26 @@ make their complete encoders independent OOF models.
 
 ## Active full-model work
 
-Three distinct experiments are moving: the fixed-final cross-teacher model has
-completed all1,458 updates and was submitted once as57422143 (actual hidden score **0.949**, tying the existing adaptation); the matched pointwise/ranking comparison is training on H100975297;
-and source-zero paired-view epoch1 is complete/privately verified, with resumed
-epoch2 RUNNING as Kaggle139756869v1.
-Each fits all73Mparameters on3,887 MRI studies. The source-zero run uses an
-actual byte-equivalent selected-input path measured3.244× faster for CPU case
-loading; no GPU-throughput or accuracy improvement is inferred from that.
-The independent final-model compiler now watches each pointwise/ranking final
-checkpoint, so the pointwise model can move toward evaluation while ranking
-continues. Actual H100 snapshot packaging as a private Kaggle input and new-model
-T4 qualification are still required; these models have no new scores yet.
+The pointwise/ranking comparison completed all three epochs per arm on
+H100 job975297, with all six checkpoints privately verified. Pointwise final
+qualification139818636v1 passed all32 studies on both T4s; its exact public
+notebook139819877v1 is queued, with no competition entry or score yet. Ranking's
+final model is ready, but its deployment is unadmitted while the remaining
+Kaggle GPU budget is reserved for the predictive comparison.
 
-A new cached-attention mechanism estimates a sampled student's change from its
-full94 frozen reference. The complete3887-study reference is privately verified;
-actual encoder recovery977100 is queued. Synthetic-drift approximation evidence
-is not trained-model or clinical improvement. An exact bias/variance diagnostic
-is prepared for actual learned readouts, not used to select clinical recipes.
+Cross-teacher fixed-final entry57422143 scored **0.949**. Source-zero fixed-final
+entry57435296 scored **0.948 without an error**. Both fit all73Mparameters on
+3,887 MRI studies; neither improves the external baseline.
+
+The primary next experiment is the matched six-epoch B/C/C0 predictive-evidence
+comparison. Its accepted recipe fixes2,916 updates and identical fitting labels,
+masks, order and shared initialization. Original raw/context producers
+979664/979665 remain healthy; at13:32UTC they had prepared842/840 of3,887 studies.
+Training and deployment controllers wait for complete inputs and actual final
+checkpoints. No predictive full-model score exists.
+
+Cached-attention diagnostic977100 completed its engineering recovery. It is
+retained as research evidence; it has not been promoted to a full production fit.
 
 The latest actual scores still show no original gain over the0.958 reproduction.
 See [current state](docs/current-state.md) for exact owners, private preservation
@@ -85,34 +93,31 @@ alignment-specific gain: stop expanding this unchanged version.** No target
 cherry-picking or new Kaggle promotion is supported.
 [Actual result, limits and decision](initiative/research/path-fixed-final-analysis-recovery-20261018-v2/result.md).
 
-## Active learning experiments
+## Earlier learning experiments
 
 - **Encoder learning rate:** same3887-study/full73Mencoder recipe; encoderLR
-  3e-6→3e-5, headLR stays3e-5. Original epoch1 is complete/privateverified;
-  epoch2 is accepted, with no final score yet.
+  3e-6→3e-5, headLR stays3e-5. The final higher-LR adaptation scored0.949,
+  without an improvement over the corresponding parent.
 - **Finding/family supervision:** full3epoch fits are complete and privately
-  preserved. Neither has a final hidden competition score recorded; execution stage is in
-  current-state receipts. Training/public-example completion is not hidden acceptance.
+  preserved. Original audit receipts retain their outcomes and limits.
 - **Paired-logit correction:** production-objective frozen-feature diagnostic
   reduced head-gradient MSE88.48% on16fitting studies/64draws. This used CPUFP32,
   no dropout and both views averaged; it is not full-encoder or accuracy proof.
-  Original real-encoder recovery and combined gradient/cost measurement remain
-  under their existing finite owners.
-- **H100 alternative:** a new CPU-only check confirms retained32-study source
-  descriptors and RAM availability. Actual tensors/source/runtime and a bounded
-  GPU wrapper remain prerequisites. No H100 measurement has run from this route.
+  Subsequent real-encoder work and completed paired adaptations are documented
+  in the original audits and current results; this diagnostic is not an active
+  dispatch instruction.
 
 [Encoder learning rate](initiative/research/encoder-lr-comparison-20261018-v1/README.md),
 [combined measurement](initiative/research/paired-encoder-gradient-noise-v2-20261018-v1/README.md),
 [prospective decision](initiative/research/paired-probe-promotion-20261018-v1/README.md),
 [H100 route availability](initiative/research/paired-encoder-H100-memory-probe-20261018-v1/README.md).
 
-The prospective correction decision requires lower complete/encoder gradient
+The original prospective correction decision required lower complete/encoder gradient
 and prediction error, no increased empirical mean-gradient error, acceptable
 reference precision and at most10%measured optimizer-step overhead before
-considering a separately funded matched full fit. It does not prove unbiasedness
-or admit an accuracy gain. A correction-input Dataset creation returned503;
-its exact uncertain intent is preserved and subsequent checks are read-only.
+considering a matched full fit. It does not prove unbiasedness or an accuracy
+gain. Historical uncertain mutations remain preserved; dated audit instructions
+must not be used to repeat them.
 
 ## Supervision and MRI review
 
