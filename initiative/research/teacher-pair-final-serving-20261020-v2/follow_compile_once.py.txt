@@ -1,0 +1,67 @@
+"""Finite two-model CPU compilation owner; no model transfer or Kaggle mutation."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-final-serving-20261020-v2"
+L.mkdir(mode=0o700, exist_ok=True)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+assert (D / "actual-stage.json").exists()
+owner = {
+    "PID": os.getpid(),
+    "source_git": pin,
+    "follower_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    "maximum_CPU_compilations": 2,
+    "maximum_wait_seconds": 30 * 3600,
+    "GPU_Dataset_or_competition_mutations": 0,
+    "automatic_retry": False,
+}
+with (L / "compile-owner-intent.json").open("x") as f:
+    json.dump(owner, f, indent=2)
+(D / "actual-compile-owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+loader = SourceFileLoader("pair_final_compile_once", str(D / "coordinate_once.py.txt"))
+c = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+loader.exec_module(c)
+deadline = time.monotonic() + owner["maximum_wait_seconds"]
+try:
+    for role in ("pointwise", "teacher_rank"):
+        while True:
+            assert time.monotonic() < deadline, "Finite original compilation window ended"
+            actual = c.run("compile", role)
+            (L / "progress.json").write_text(
+                json.dumps({"role": role, "actual": actual}, indent=2) + "\n"
+            )
+            if actual["status"] == "actual_H100_pair_fixed_final_serving_sources_compiled":
+                break
+            assert actual["status"] == "waiting_actual_fixed_final_private_publication_no_intent"
+            # The existing original publisher remains sole checkpoint owner.
+            assert subprocess.run(["ps", "-p", "27713"], capture_output=True).returncode == 0, (
+                "Original publisher missing; reconcile, never start another"
+            )
+            time.sleep(90)
+    (L / "complete.json").write_text(
+        json.dumps(
+            {
+                "status": "both_original_fixed_final_models_CPU_compiled",
+                "GPU_or_Kaggle_mutations": 0,
+            }
+        )
+        + "\n"
+    )
+except BaseException as error:
+    (L / "stopped.json").write_text(
+        json.dumps({"error_type": type(error).__name__, "automatic_retry": False}) + "\n"
+    )
+    raise

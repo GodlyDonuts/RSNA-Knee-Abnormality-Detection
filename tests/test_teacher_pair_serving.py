@@ -14,7 +14,7 @@ from test_licensed_parent_serving_notebook import fixture_parent
 
 from rsna.competitive import teacher_pair_serving as helper
 
-D = Path("initiative/research/teacher-pair-final-serving-20261020-v1")
+D = Path("initiative/research/teacher-pair-final-serving-20261020-v2")
 loader = SourceFileLoader("pair_final_compiler", str(D / "compile.py.txt"))
 compiler = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
 loader.exec_module(compiler)

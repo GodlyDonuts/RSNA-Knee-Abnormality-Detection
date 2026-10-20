@@ -1,0 +1,65 @@
+"""Bind a new final model to the exact previously qualified full94 inference."""
+
+import hashlib
+
+LEGACY_SHA = "9b1798683fe21cbc36cbceb48837ee7a4e7da3e464d238e683636163939d04c2"
+PARENT_SOURCE = "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+PARENT_WEIGHT = "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+
+
+def digest(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def namespace(legacy, helper):
+    if digest(legacy) != LEGACY_SHA:
+        raise ValueError("Exact actual qualified original inference compiler required")
+    h = {"__name__": "teacher_pair_final_provenance"}
+    exec(compile(helper, "teacher_pair_final_validator", "exec"), h)
+    replacements = {
+        "from rsna.competitive.licensed_importance_serving import provenance": "",
+        "from scripts.kaggle.series_boundary_notebook import GUARD, PARENT_SOURCE_SHA256, WEIGHTS_SHA256": "",
+        'SERVING_SHA = "e4c7a71ec219bbe645274af0c72dde851fcd2b7990b2d4888cf2b16b93b43f8d"': "SERVING_SHA = "
+        + repr(digest(helper)),
+    }
+    for before, after in replacements.items():
+        if legacy.count(before) != 1:
+            raise ValueError("One original compiler import/constant site required")
+        legacy = legacy.replace(before, after)
+    if legacy.count("actual_matched_IID16_parent_epoch_") != 2:
+        raise ValueError("Two exact original receipt names required")
+    legacy = legacy.replace(
+        "actual_matched_IID16_parent_epoch_", "actual_teacher_pair_final_epoch_"
+    )
+    n = {
+        "__name__": "unchanged_original_full94_teacher_pair_final",
+        "provenance": h["provenance"],
+        "GUARD": '\nif __name__ == "__main__":\n    main()',
+        "PARENT_SOURCE_SHA256": PARENT_SOURCE,
+        "WEIGHTS_SHA256": PARENT_WEIGHT,
+    }
+    exec(compile(legacy, "original_full94_compiler_new_provenance", "exec"), n)
+    return n
+
+
+def build(
+    parent, bounded, helper, codec, mixin, importance, training, publication, *, mode, legacy_source
+):
+    training = dict(training)
+    source, metadata = namespace(legacy_source, helper)["build"](
+        parent, bounded, helper, codec, mixin, importance, training, publication, mode=mode
+    )
+    return source, {
+        **metadata,
+        "objective": training["role"],
+        "sampling_role": "influence",
+        "source_loss_weight": 0.25,
+        "anatomical_views_per_study": 2,
+        "training_hardware": "oneH100",
+        "training_Slurm_job": "975297",
+        "training_world_size": 1,
+        "original_full94_inference_math_unchanged": True,
+        "actual_new_weight_T4_serving_accepted": False,
+        "competition_entry": False,
+        "clinical_accuracy_claim": False,
+    }

@@ -1,0 +1,128 @@
+"""One CPU stage/compile operation; waiting on an unfinished model has no intent."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-final-serving-20261020-v2"
+
+
+def run(phase, role=None):
+    assert phase in ("stage", "compile")
+    assert role in ("pointwise", "teacher_rank") if phase == "compile" else role is None
+    if phase == "compile":
+        proof = (
+            R
+            / "initiative/research/teacher-pair-epoch-preservation-20261020-v1"
+            / ("actual-" + role + "-epoch-3.json")
+        )
+        if not proof.exists():
+            return {
+                "status": "waiting_actual_fixed_final_private_publication_no_intent",
+                "role": role,
+                "new_GPU_or_Kaggle_mutations": 0,
+            }
+        p = json.loads(proof.read_text())
+        assert p["role"] == role and p["epoch"] == 3 and p["completed_updates"] == 1458
+    pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    paths = {
+        "compiler.py": D / "compile.py.txt",
+        "validate.py": R / "rsna/competitive/teacher_pair_serving.py",
+        "legacy.py": R / "scripts/kaggle/licensed_importance_serving.py",
+        "bounded.py": R / "rsna/competitive/bounded_preparation.py",
+        "codec.py": R / "rsna/competitive/licensed_pixel_cache.py",
+        "mixin.py": R / "rsna/competitive/licensed_full_bag.py",
+        "importance.py": R / "rsna/competitive/licensed_importance.py",
+    }
+    for p in (*paths.values(), *D.glob("*.py.txt")):
+        assert p.read_bytes() == subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+        )
+    v = {"phase": phase, "role": role, "source_git": pin}
+    if phase == "stage":
+        v["source"] = {n: p.read_text() for n, p in paths.items()}
+        v["source_SHA"] = {
+            n: hashlib.sha256(s.encode()).hexdigest() for n, s in v["source"].items()
+        }
+    else:
+        v["stage_source_git"] = json.loads((D / "actual-stage.json").read_text())["source_git"]
+    key = phase if phase == "stage" else role + "-compile"
+    L.mkdir(mode=0o700, exist_ok=True)
+    with (L / (key + "-intent.json")).open("x") as f:
+        json.dump(
+            {
+                "source_git": pin,
+                "phase": phase,
+                "role": role,
+                "automatic_retry": False,
+                "new_GPU_or_Kaggle_mutations": 0,
+            },
+            f,
+        )
+    program = (D / "cpu.py.txt").read_text()
+    program = (
+        "import sys\ntry:\n"
+        + "".join("    " + line + "\n" for line in program.splitlines())
+        + 'except Exception as error:\n    import traceback\n    frame=traceback.extract_tb(error.__traceback__)[-1]\n    print(__import__("json").dumps({"error_type":type(error).__name__,"line":frame.lineno}),file=sys.stderr)\n    raise SystemExit(1)\n'
+    )
+    spec = importlib.util.spec_from_file_location(
+        "original_transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc48",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=3G",
+        "--time=00:08:00",
+        "--job-name=rsna-pair-final-" + key,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    x = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=t.envelope(program, v),
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    (L / (key + "-transport.json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, "Reconcile original CPU intent/state; never retry uncertainty"
+    out = json.loads(x.stdout)
+    (D / ("actual-" + key + ".json")).write_text(json.dumps(out, indent=2) + "\n")
+    return out
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)
