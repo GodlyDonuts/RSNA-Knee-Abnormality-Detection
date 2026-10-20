@@ -1,0 +1,8 @@
+import json,os
+from pathlib import Path
+assert os.uname().nodename=="evc48" and not os.environ.get("SLURM_JOB_GPUS")
+p=Path("/tmp/rsna-pointwise-final-deployment-20261020-v1/account-phase-v1")
+out={"status":"actual_original_pointwise_budget_intents_read_only","CPU_job":os.environ["SLURM_JOB_ID"],"new_mutations":0,"budgets":{}}
+for mode in ("qualification","competition"):
+ z=json.loads((p/(mode+"-push-intent.json")).read_text());out["budgets"][mode]={k:z[k] for k in ("role","slug","version","model_sha256","source_sha256","budget")}
+print(json.dumps(out))
