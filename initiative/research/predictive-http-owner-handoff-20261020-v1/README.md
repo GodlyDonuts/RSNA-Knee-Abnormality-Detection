@@ -1,0 +1,21 @@
+# HTTP-recovery fitting/deployment handoff
+
+**Prepared locally; no successor owner, model fit, transfer or deployment has been launched.** Original idle fitting87673, deployment87674 and read-only observer87804 have actual exclusive stop receipts here. CPUs980915/980914 proved all original evc33/evc27 phase paths absent before the local stops; no remote job was cancelled. Keep their journals and failed raw980743/context980744 originals intact.
+
+These thin controls reuse exact operational source **88dfbf5dcab62e820ad746d1d482c0b8c5471642** and its three SHA-pinned source files. The inherited portable loop remains926b6577, model science remains **44cc559e947560a635c34fee7b1f2a3b7be3a241**, and actual CPU preparation **979667** is reused. Worker, publisher, numerical modules, initialization, labels, masks and six-epoch recipe are unchanged; no model reconstruction or repeated weight transfer is introduced. Placement remains B/C on evc33 and C0 on evc27.
+
+The new cache producers live in `predictive-cache-http-recovery-20261020-v1`, roots `/tmp/rsna-predictive-full-{raw,context}-http-recovery-20261020-v1`. Their final receipts preserve the original accepted status family, while `continuation_chain` binds failed980743/980744 and each complete `ancestor_chain` binds failed979664/979665. The operational admission checks every original predecessor terminal and original intent hash, including ancestor equality against the retained v4 intent. All four new raw/context intent/final records must have identical capacity-decision, mixed-prefix-admission, HTTP-recovery-decision and source-HTTP SHA fields, plus six-GiB scratch. The old staged admission helper is never overwritten: the exact88 in-memory helper is adapted only to these roots/proofs.
+
+Funding remains **123 MiB/376 shared files**, **6 GiB total source scratch**, and deployment other-node base **73,637,298,176 bytes (68 GiB +594 MiB)**, with original paid-byte/log accounting and20GiB/5,000-file floors. The initial predictive Kaggle allocation remains **3,360 GPU-VM seconds**; no paid credits. Deadline, runtime qualification, exact final-only publication, canonical account phases and failure handling remain inherited. No mutating phase is automatically retried.
+
+The accepted fitting decision must use `status=accepted_http_cache_owner_handoff`, the new exact `placement_source_git`, unchanged science, shared scope and scratch, and `no_paid_credits=true`. The deployment decision retains the exact original population/runtime/funding contract and binds the new source plus actual fitting/deployment stop hashes. Only after root freezes and accepts these controls may it use each distinct launcher once:
+
+```text
+launch.py fitting --source-git <new commit> --decision <accepted decision> --handoff actual-fitting-owner87673-stopped.json --deployment-handoff actual-deployment-owner87674-stopped.json --observer-handoff actual-observer87804-stopped.json
+launch.py deployment --source-git <new commit> --decision <same fitting decision> --deployment-decision <accepted deployment decision> --handoff actual-fitting-owner87673-stopped.json --deployment-handoff actual-deployment-owner87674-stopped.json --observer-handoff actual-observer87804-stopped.json
+observe.py --source-git <same commit> --observer-handoff actual-observer87804-stopped.json
+```
+
+The new fitting journal is `artifacts/predictive-http-owner-handoff-20261020-v1/finite-owner/`; deployment has the same name with `-deployment`; the separate observer intent lives at the parent fitting artifact directory. The observer reads the new fitting intent and exact source manifest, retains only original aggregate progress/first200 telemetry, and allocates nothing. It requires the actual87804 stop and absence of previous updates before starting; no duplicate observer is allowed. Observation cannot launch or stop training.
+
+Focused tests exercise actual979667 reuse, real stop receipts, both ancestry levels and retained bytes, unchanged initialization/scientific helper functions, actual derived deployment accounting, new observer receipt selection and its early read-only mode guard. These are operational acceptance tests, not fitting, throughput or accuracy evidence.
