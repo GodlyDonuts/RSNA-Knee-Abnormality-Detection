@@ -126,8 +126,13 @@ Small source milestonea619666c is privately mirrored at
 independently downloaded/size/SHA verified under the canonical shared lock.
 Its snapshot predates later CPU/GPU terminal acceptances and full-source-zero
 production dispatch. Never repeat its prefix or claim those later receipts were
-included. Subsequent code/receipts are in Git; a distinct small private milestone
-will preserve them. Models are preserved separately by their original publishers.
+included. Subsequent selected source56747336 and46 small objects/209,448bytes are now
+privately verified at **HF381ae720b6498227c4991f20d130d9f634c175e0**, CPU976734.
+This distinct milestone includes full source-zero dispatch/final serving controls,
+actual input/numerical acceptance and final cross-teacher0.949; every object was
+independently downloaded/size/SHA checked under the canonical lock. No MRI/IDs/
+private arrays/weights were included. Never repeat its prefix. Models remain
+separately preserved by their original publishers.
 
 Historical exact sources, failures, numerical checks and older model lineages
 remain in the linked original audit directories and Git history. This current

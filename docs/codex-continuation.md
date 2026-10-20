@@ -190,3 +190,17 @@ Updated October20,2026,04:30UTC. Read [current state](current-state.md) and orig
  It reuses the admitted2MiB source-zero control cap on evc48, retains old
  87+12+24GiB and new4GiB model liabilities plus20GiB/5000files. Until an actual
  verified receipt exists, do not call this mirror complete or repeat oldb50caa1a.
+
+
+### Actual distinct private preservation complete
+
+Original CPU976734 privately mirrored selected source56747336 at
+**HF381ae720b6498227c4991f20d130d9f634c175e0**,46objects/209,448bytes. Independent
+full download/size/SHA checked every object under canonical shared lock. Prefix
+`research-milestones/source-zero-full-final-route-20261020-v1-567473368da9`;
+private node48 control `/tmp/rsna-source-zero-full-T4-20261020-v1/mission-source-final-route-v1`.
+It fits the original2MiB controls/4GiB models with all old liabilities/reserves;
+no model, MRI, reports, IDs, private arrays or external bodies moved. Never repeat
+this mirror or oldb50caa1a. Original33801/32102/27713 verified alive after this
+milestone; serving33801 waiting without intent, full source-zero first epoch
+still reportedRUNNING, H100975297 stillRUNNING. Goal remains active/unachieved.
