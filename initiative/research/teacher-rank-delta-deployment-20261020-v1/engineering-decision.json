@@ -1,0 +1,84 @@
+{
+  "status": "accepted_teacher_rank_delta_runtime_and_storage_plan",
+  "decision_at_UTC": "2026-10-20T18:32:31Z",
+  "decision_maker": "root_agent_under_owner_independent_authority",
+  "model_sha256": "d478a502e6fd33be2ad9d781acd91d3d2b6b252629262031fba8282a91cf5bca",
+  "original_compile_CPU": "979767",
+  "original_publication_CPU": "979757",
+  "evidence_sha256": {
+    "initiative/research/pointwise-final-deployment-20261020-v1/actual-qualification-accepted.json": "13d7e576e15a9036ebf463ea3a74b5ff39c6c836a1f3d2bef9f49274a8c7463a",
+    "initiative/research/pointwise-final-deployment-20261020-v1/actual-competition-accepted.json": "235f2fea694c1066b16a819aeb0a7d6b9dd885394be081be38ff7d10508730bd",
+    "initiative/research/pointwise-final-deployment-20261020-v1/actual-runtime-budget.json": "a66cbf3458fcf089dcf88ec63682c161fdd48eb1fb7cf4bd2daec41ba8919dd3",
+    "initiative/research/parallel-serving-account-20261020-v1/actual-account-after-pointwise-entry.json": "5bb080f7f956cd12524c31b55f0c914818faf36c29f1947d6e1aafbca3d1c50e",
+    "initiative/research/parallel-serving-account-20261020-v1/actual-account-1823.json": "b1f6abc63bd0aa8299961f0fc1773f22ccb783e68646c8e5df92cdcbb949af8f",
+    "initiative/research/teacher-pair-final-serving-20261020-v2/actual-teacher_rank-compile.json": "2db4773227612c1da98ece6ab2b3fd3b0b74974cac7d35767429b75cfb0c7e1e",
+    "initiative/research/teacher-pair-epoch-preservation-20261020-v1/actual-teacher_rank-epoch-3.json": "30c0c75ffdc2ced4364b53b522f92c4bd9f6a2ef0dec70dd292bb258dccfeab8"
+  },
+  "qualification_scope": {
+    "inherited": "Original pointwise same compiler, full94 two-view graph and preprocessing passed 32 original MRI studies on both T4s. The model weights differ.",
+    "new_weight_acceptance": "Exact official public three MRI studies, both original94 views, CPU/GPU input equality, complete serving/reference state equality, FP16 graph probabilities finite and equal within1e-6 on both T4s, then unchanged real competition CSV with no fallback.",
+    "qualified_studies_new_weights": 3,
+    "inherited_code_qualified_studies": 32,
+    "new_weight_32_case_pass_claim": false,
+    "FP32_FP16_precision_validation_claim": false,
+    "single_public_execution_and_same_immutable_version_submission": true,
+    "clinical_accuracy_or_hidden_tail_acceptance": false
+  },
+  "public_watchdog_seconds": 180,
+  "public_VM_setup_reserve_seconds": 80,
+  "predictive_reserved_VM_seconds": 3360,
+  "required_free_VM_seconds": 3620,
+  "measured_timing_evidence": {
+    "pointwise_32_both_device_qualification_charge_VM_seconds": 450.798,
+    "pointwise_public_script_elapsed_seconds": 15.773118699000008,
+    "pointwise_public_charge_VM_seconds": 42.674,
+    "pointwise_public_observed_outside_script_seconds": 26.90088130099999,
+    "new_weight_reference_forward_bags": 24,
+    "original_reference_forward_bags": 256,
+    "rough_proxy_seconds_with_observed_overhead": 84.9363125,
+    "proxy_is_not_bound": true,
+    "risk": "The old qualification uses pixels32; the new check decodes actual public DICOMs. Startup variability and resource contention can exceed estimates. One180-second watchdog covers new check and public output, with80seconds separately reserved for VM startup. No retry or paid credit if it fails.",
+    "startup_allowance_is_enforceable_cap": false
+  },
+  "budget_observation": {
+    "CPU_job": "982396",
+    "observed_at": "2026-10-20T18:23:46.505936+00:00",
+    "free_VM_seconds": 3672.736664099997,
+    "spare_above_required_VM_seconds": 52.73666409999714,
+    "daily_slots": 1,
+    "fresh_read_required_before_every_account_mutation": true
+  },
+  "engineering_review": {
+    "full_32_case_repeat_required_for_identical_code": false,
+    "reason": "The repeated32 checks validate unchanged rendering/graph code. The new three-case check separately exercises the actual ranking learned tensors and both physical T4 paths. This is an explicitly narrower weight delta check, not a fabricated32-case qualification.",
+    "learning_recipe_or_checkpoint_selection_changed": false,
+    "probability_math_changed": false
+  },
+  "resource_scope": {
+    "node_bytes_cap": 671088640,
+    "new_shared_ledger_bytes_cap": 1048576,
+    "new_shared_files": 0,
+    "retained_shared_total_future_bytes": 128974848,
+    "retained_shared_future_files": 376,
+    "shared_reserve_bytes": 21474836480,
+    "shared_reserve_files": 5000,
+    "no_deletion_credit": true,
+    "paid_credits_allowed": false
+  },
+  "operational_contract": {
+    "distinct_route": "teacher-rank-delta-deployment-20261020-v1",
+    "old_prepared_ranking_route_remains_unexecuted": true,
+    "canonical_ledger_and_single_account_claim": true,
+    "maximum_new_Datasets": 1,
+    "maximum_new_GPU_sessions": 1,
+    "maximum_new_entries": 1,
+    "no_uncertain_retry": true,
+    "separate_qualification_status_invented": false,
+    "exact_public_roster_only_checks_and_watchdog": true,
+    "hidden_session_timeout_seconds": 32400,
+    "exact_private_Dataset_download_size_SHA_verification_required": true,
+    "fresh_allowance_required_before_submit": true,
+    "no_launch_before_frozen_code_and_tests": true,
+    "measure_actual_charge_after_public_and_stop_non_primary_GPU_if_reserve_consumed": true
+  }
+}
