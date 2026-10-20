@@ -84,7 +84,8 @@ def test_four_original_generations_preserve_retained_buffers_and_no_writes(tmp_p
     original, records, initial, data = prior.fixture.case.__wrapped__(tmp_path)
     extra = []
     for n in range(3):
-        root = tmp_path / ("generation-" + str(n)); root.mkdir(mode=0o700)
+        root = tmp_path / ("generation-" + str(n))
+        root.mkdir(mode=0o700)
         for name in ("scratch", "cache", "proofs"):
             (root / name).mkdir(mode=0o700)
         extra.append(root)
@@ -97,7 +98,8 @@ def test_four_original_generations_preserve_retained_buffers_and_no_writes(tmp_p
 
 
 def test_original_one_case_only_adds_exact_provenance(monkeypatch):
-    b = bundle(monkeypatch); helper = suffix_from(b)
+    b = bundle(monkeypatch)
+    helper = suffix_from(b)
     original = b["payloads"]["raw"]["original_program"]
     tree = ast.parse(original)
     function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "one")
@@ -110,13 +112,15 @@ def test_original_one_case_only_adds_exact_provenance(monkeypatch):
 
 
 def test_original_failure_ancestry_and_live_queue_rejected(tmp_path, monkeypatch):
-    b = bundle(monkeypatch); helper = suffix_from(b)
+    b = bundle(monkeypatch)
+    helper = suffix_from(b)
     ancestors = {"raw": {"job": "980743"}, "context": {"job": "980744"}}
     scope = helper.predecessor_guard.__globals__
     scope["_http_guard"] = lambda *a: ancestors
     roots, hashes = {}, {}
     for role, job in owner.ORIGINALS.items():
-        root = tmp_path / role; root.mkdir(mode=0o700)
+        root = tmp_path / role
+        root.mkdir(mode=0o700)
         data = json.dumps({"CPU_job": job, "source_git": owner.PREVIOUS, "continuation_chain": ancestors}).encode()
         (root / "intent.json").write_bytes(data)
         roots[role], hashes[role] = str(root), owner.sha(data)

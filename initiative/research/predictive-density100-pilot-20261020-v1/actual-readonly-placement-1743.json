@@ -1,0 +1,110 @@
+{
+  "status": "actual_read_only_C100_placement_comparison_no_mutations",
+  "scheduler_observed_at_UTC": "2026-10-20T17:42:28.451614+00:00",
+  "forecast_observed_at_UTC": "2026-10-20T17:43:01.084615+00:00",
+  "scheduler_timezone": "UTC",
+  "original_pilot": {
+    "job": "981620",
+    "state": "PENDING",
+    "reason": "Resources",
+    "requested_node": "evc27",
+    "forecast_start_UTC": "2026-10-20T23:06:46+00:00",
+    "left_unchanged": true
+  },
+  "targeted_current_capacity": {
+    "evc42": {
+      "physical_H100s": 2,
+      "allocated_GPUs": 0,
+      "allocated_CPUs": 0,
+      "total_CPUs": 64,
+      "state": "IDLE+PLANNED"
+    },
+    "evc48": {
+      "physical_H100s": 2,
+      "allocated_GPUs": 2,
+      "allocated_CPUs": 16,
+      "total_CPUs": 64,
+      "state": "MIXED",
+      "current_GPU_job_end_times_UTC": [
+        "2026-10-22T00:11:28+00:00",
+        "2026-10-22T09:34:02+00:00"
+      ]
+    },
+    "evc33": {
+      "physical_H100s": 2,
+      "allocated_GPUs": 2,
+      "current_GPU_job_end_time_UTC": "2026-10-20T21:57:48+00:00"
+    },
+    "evc27": {
+      "physical_H100s": 2,
+      "allocated_GPUs": 2,
+      "current_GPU_job_end_times_UTC": [
+        "2026-10-20T23:02:15+00:00",
+        "2026-10-20T23:06:46+00:00"
+      ]
+    }
+  },
+  "excluded_apparent_capacity": {
+    "evc26": "IDLE+DRAIN+INVALID_REG",
+    "evc38": "Prior unresolved CUDA failures; not an eligible destination",
+    "evc47": "Prior unresolved CUDA failures; not an eligible destination",
+    "evc50": "IDLE+MAINTENANCE+RESERVED",
+    "physical_four_or_eight_GPU_nodes": "Owner prohibited"
+  },
+  "read_only_sbatch_test_only": {
+    "account": "skattel",
+    "partition": "normal",
+    "qos": "normal",
+    "GPUs": 1,
+    "GPU_type": "nvidia_h100_pcie",
+    "CPUs": 2,
+    "memory_GiB": 24,
+    "walltime_seconds": 1800,
+    "forecast_start_UTC": {
+      "evc42": "2026-10-20T18:12:01+00:00",
+      "evc33": "2026-10-20T22:26:48+00:00",
+      "evc27": "2026-10-20T23:35:46+00:00",
+      "evc48": "2026-10-22T00:40:28+00:00"
+    },
+    "all_commands_returned_zero": true,
+    "test_only_creates_no_job_or_reservation": true,
+    "forecast_is_not_guaranteed_capacity": true
+  },
+  "node_local_inspection": {
+    "evc42": "Direct SSH denied by pam_slurm_adopt: no active owned job",
+    "evc27": "Direct SSH denied by pam_slurm_adopt: no active owned job",
+    "access_restriction_bypassed": false,
+    "fresh_destination_free_space_or_runtime_claim": false
+  },
+  "existing_local_proofs": {
+    "original_27_runtime_parent_replica": {
+      "receipt": "../predictive-private-resume-20261020-v1/actual-resumed.json",
+      "CPU_job": "978186",
+      "files": 55685,
+      "bytes": 12434309116,
+      "payload_sha256": "d5a56a8a48bce368e4380a7ed197bb01330c6698c1dc7544109306737bd8f183"
+    },
+    "original_16_context_inputs": {
+      "receipt": "../predictive-cached-engine-20261020-v1/actual-inputs.json",
+      "CPU_job": "978552",
+      "files": 17,
+      "cache_bytes": 263312380
+    },
+    "evc42_existing_accepted_runtime_or_context_replica": "Unobserved"
+  },
+  "decision": {
+    "retain_original_pending_pilot": true,
+    "reason": "Current full-cache completion and C0 placement remain prerequisites for full C100. Moving the pilot is not yet established to shorten that critical path.",
+    "reconsider_when": "Actual cache completion or scheduling evidence makes the original pilot the limiting prerequisite.",
+    "moving_would_require": [
+      "Fresh authorized destination storage and runtime admission",
+      "Exact node-local input/runtime relocation with original byte proofs",
+      "Exclusive original-pilot disposition before any distinct GPU dispatch",
+      "Explicit new placement and pilot-acceptance provenance"
+    ]
+  },
+  "new_allocations": 0,
+  "new_transfers": 0,
+  "jobs_cancelled_or_modified": 0,
+  "GPU_dispatches": 0
+}
