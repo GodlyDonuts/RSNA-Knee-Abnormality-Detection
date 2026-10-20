@@ -1,5 +1,47 @@
 # Current RSNA Knee research state
 
+## October20 09:30UTC live source/context pipeline
+
+Actual978232 finished all16 source caches:2,391,033,794 original bytes,
+1,091,912,852cachebytes/62,032regions, exact both masks/targets/priors, all original
+labels/masks unchanged. These16 caches were transferred once, fully SHA-verified
+byCPU978296/978304, and GPU978305 is actually training B/C on27 (24updates/arm,
+12train/4disjoint fitting engineering, full/stop/resume). No clinical result yet.
+Do not duplicate it. Both-head LR reduction is a training-only engineering choice.
+An observed fractional-warmup overshoot is clamped only in FUTURE local train.py;
+existing staged GPU/source/cache programs remain byte-frozen. Twelve scoped CPU
+checks pass, including complete recovery and fractional-LR bounds.
+
+Actual CPU978371 measured18.656x faster CPU input loading from EXACT FP32 cached
+masked contexts (58.611s load+render versus3.142s cached load over16 cases). All
+images, targets, metadata, support priors and RNG matched bitwise;263,296,123bytes.
+This is input-speed evidence, NOT training-speed or accuracy. New context_cache.py
+has no encoder features, teacher logits, labels or lossy casting.
+
+Original full raw CPU978318 RUNNING on33: two concurrent source studies/4CPU/48GiB,
+all3887 fitting studies/720851 original DICOMs. It reuses16 verified raw caches;
+320GiB TOTAL includes paid originals,4GiB own scratch/256MiB controls plus separate
+24GiB future model/publication reserve; all old liabilities/20GiB reserve retained.
+Original full context consumer978414 RUNNING on33/oneCPU/12GiB, pipelines exact
+24-window FP32 inputs as raw proofs complete, reuses16 context caches.96GiB TOTAL
+includes263MB paid contexts and replaces completed unused2GiB pilot reservation;
+32MiB controls. No GPU waits for data and no full predictive fit is dispatched.
+
+Original978318 has12hour wall limit (ends21:07UTC). One attempt to extend it was
+rejected by scheduler permissions; no change/restart/pause occurred. Read
+predictive-full-cache-observation-20261020-v1. At actual terminal, collect completed
+registry if0:0; ifTIMEOUT reconcile completed raw/context proof prefixes and at
+most two private source buffers before continuing only missing work. Never repeat
+verified case downloads/cache writes. First use actual throughput, not linear
+extrapolation alone. New source/context stages are independent of healthy fits.
+
+Source/private GPU milestone de165575 is already67-object/352183byte privately
+full-download/size/SHA verified atHF b6c14f013ea200fa573bad8ff25e4adb5fe24793,
+CPU978283. Never repeat. Newer full-cache/context/warmup changes are not covered
+until a distinct new receipt. Original975297 and finite successor46627/46628 stay
+active; source-zero E3 kernel139786921 now actuallyRUNNING, no score yet.
+
+
 ## October20 actual learning milestone and live next work
 
 Original real-MRI B/C GPU978218 COMPLETED0:0/79seconds on healthy ordinary evc27.

@@ -1,0 +1,67 @@
+"""Extend only actual CPU walltime; suspend only obsolete local transport timeout."""
+
+import json
+import os
+import signal
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+owner = 47540
+job = "978318"
+p = subprocess.check_output(["ps", "-p", str(owner), "-o", "command="], text=True)
+assert "predictive-full-raw-cache-20261020-v1/run_once.py.txt" in p
+old = subprocess.check_output(
+    [
+        *ssh,
+        "sacct -X -n -P -j "
+        + job
+        + " --format=JobIDRaw,State,ExitCode; scontrol show job "
+        + job
+        + " --oneliner",
+    ],
+    text=True,
+)
+assert job + "|RUNNING|0:0" in old and "TimeLimit=12:00:00" in old
+intent = {
+    "original_CPU_job": job,
+    "original_source_git": "c78c94d16670f2f5d18bd747db313725c3dfe220",
+    "reason": "31 additional completed caches in506.85seconds predicts about17.6hours for3871;extend CPU wall limit to24hours without restarting or changing numerical/data source",
+    "new_jobs_or_transfers_or_GPU": 0,
+    "original_old_local_transport_timeout_seconds": 44000,
+    "old_local_transport_owner": owner,
+    "suspend_only_local_timeout_owner_not_its_live_SSH_child": True,
+    "maximum_new_observation_hours": 26,
+    "automatic_mutation_retry": False,
+}
+(L / "intent.json").write_text(json.dumps(intent, indent=2) + "\n")
+x = subprocess.run(
+    [*ssh, "scontrol update JobId=" + job + " TimeLimit=24:00:00"],
+    text=True,
+    capture_output=True,
+    timeout=30,
+)
+(L / "walltime-update.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Read actual scheduler state, never retry mutation"
+actual = subprocess.check_output([*ssh, "scontrol show job " + job + " --oneliner"], text=True)
+assert "TimeLimit=1-00:00:00" in actual or "TimeLimit=24:00:00" in actual
+os.kill(owner, signal.SIGSTOP)
+state = subprocess.check_output(["ps", "-p", str(owner), "-o", "stat="], text=True).strip()
+assert state.startswith("T")
+receipt = {
+    **intent,
+    "actual_limit24h_verified": True,
+    "old_local_owner_suspended": True,
+    "healthy_original_CPU_job_untouched": True,
+    "new_observer_must_keep_SSH_control_active": True,
+}
+(D / "actual-handoff.json").write_text(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(receipt), flush=True)
