@@ -21,6 +21,7 @@ class RawGroup:
     aliases: torch.Tensor
     acquisition: torch.Tensor
     ordinal: torch.Tensor
+    descriptors: torch.Tensor | None = None
 
 
 def assemble(groups, *, side=320, halo=8, context_cap=94, classes=12):
@@ -64,7 +65,13 @@ def assemble(groups, *, side=320, halo=8, context_cap=94, classes=12):
         frame_offset = 0
         for group_id, g in enumerate(groups):
             view = masked_study(
-                g.frames, g.aliases, g.acquisition, g.ordinal, pattern=pattern, halo=halo
+                g.frames,
+                g.aliases,
+                g.acquisition,
+                g.ordinal,
+                pattern=pattern,
+                halo=halo,
+                cached_descriptors=g.descriptors,
             )
             n, height, width = g.frames.shape
             metadata = torch.tensor(

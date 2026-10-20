@@ -92,6 +92,28 @@ not cancellation or retry of either healthy fit or queued977678 diagnostic.
 New MRI-only inference has an explicit FP32/FP16/BF16 policy; CPU checks passed,
 but no actual T4 FP16 acceptance or hidden runtime estimate exists yet.
 
+### Device failure supersedes the earlier pending977678 snapshot
+
+Original977678 was cancelled ONLY while PENDING/zero runtime/never started, after
+all55685files/12434309116bytes of the admitted private replica independently
+matched on47. Distinct977901 allocated47 but FAILED1:0 in4seconds BEFORE its
+GPU-run marker/model/optimizer. No actual B/C GPU update or learning result.
+Device tests977943/977963 completed: one-GPU assignment exposed no GPU; a
+both-GPU assignment exposed only one, whose real CUDA initialization returned999
+in batch and assigned steps. This is device access/health evidence, not evidence
+against the predictive learning hypothesis. No resets or isolation bypass.
+
+Node47/38 are excluded from the new portable first-eligible ordinary-two-H100
+route. On original33 it reuses admitted assets; on another eligible node it
+restores only the already verified peer replica after an actual driver context
+passes. Read predictive-portable-recovery-20261020-v1; actual-submit.json, if
+present, governs its exact job. No portable dispatch/result is inferred here.
+Existing975297 and owners continue unchanged. New lossless source cache code
+preserves16-bit integer samples, encoding metadata and fixed descriptors; eleven
+CPU checks pass exact reconstructed context/target/prior equality. No actual
+full-cohort cache is admitted/materialized/funded yet. This future cache source
+is separate from the unchanged684b02a7 diagnostic numerical modules.
+
 ## Actual competition results
 
 | Model | Kaggle score | Entry |

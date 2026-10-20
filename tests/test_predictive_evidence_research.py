@@ -196,6 +196,53 @@ def fixture():
     return t, mu, delta, var, supports, observed
 
 
+def test_lossless_original_integer_cache_preserves_all_masked_inputs_and_targets(tmp_path):
+    from rsna.competitive.predictive.cache import SourceGroup, load, normalized, write
+    from rsna.competitive.predictive.cases import RawGroup, assemble
+
+    g = torch.Generator().manual_seed(741)
+    sources = [
+        SourceGroup(
+            torch.randint(0, 4096, (2, 96, 96), generator=g, dtype=torch.int32),
+            torch.tensor([12, 12]),
+            torch.tensor([False, False]),
+            torch.tensor([False, False]),
+            torch.tensor([0, 1]),
+            torch.tensor([0, 0]),
+            torch.tensor([0, 1]),
+        ),
+        SourceGroup(
+            torch.randint(-32768, 32768, (1, 128, 128), generator=g, dtype=torch.int32),
+            torch.tensor([16]),
+            torch.tensor([True]),
+            torch.tensor([True]),
+            torch.tensor([2]),
+            torch.tensor([1]),
+            torch.tensor([0]),
+        ),
+    ]
+    original = [RawGroup(normalized(x), x.aliases, x.acquisition, x.ordinal) for x in sources]
+    path = tmp_path / "private-source.npz"
+    proof = write(path, sources, {"synthetic_encoding_fixture_only": True}, cap_bytes=2**20)
+    assert path.stat().st_mode & 0o077 == 0
+    restored, provenance = load(path, proof)
+    assert provenance == {"synthetic_encoding_fixture_only": True}
+    for a, b in zip(original, restored):
+        assert torch.equal(a.frames, b.frames)
+    a, b = (assemble(x, side=32, context_cap=2, classes=2) for x in (original, restored))
+    for first, second in zip(a, b):
+        for name in ("images", "targets", "observed", "token_metadata", "region_metadata"):
+            assert torch.equal(first[name], second[name])
+        for name in ("indptr", "regions", "log_prior"):
+            assert torch.equal(getattr(first["supports"], name), getattr(second["supports"], name))
+    with pytest.raises(FileExistsError):
+        write(path, sources, {"synthetic_encoding_fixture_only": True}, cap_bytes=2**20)
+    with path.open("ab") as f:
+        f.write(b"changed")
+    with pytest.raises(ValueError):
+        load(path, proof)
+
+
 def test_sparse_complete_roster_density_and_gradient_equal_independent_provided_oracle():
     t, mu, delta, var, s, o = fixture()
     a = evidence(t, mu, delta, var, s, o, edge_chunk=2)

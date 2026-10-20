@@ -88,7 +88,9 @@ class MaskedStudy:
     acquisition: torch.Tensor
 
 
-def masked_study(frames, aliases, acquisition, ordinal, *, pattern, halo=8, fill=0.5):
+def masked_study(
+    frames, aliases, acquisition, ordinal, *, pattern, halo=8, fill=0.5, cached_descriptors=None
+):
     """Non-overlapping4x4 regions; mask raw-grid targets and pixel halo globally.
 
     Input frames are metadata-scaled raw matrices, not old percentile-normalized
@@ -135,6 +137,16 @@ def masked_study(frames, aliases, acquisition, ordinal, *, pattern, halo=8, fill
                 raise ValueError("Alias frames disagree; never guess a duplicate transformation")
         else:
             representatives[key] = i
+    if cached_descriptors is not None and (
+        cached_descriptors.shape != (len(representatives) * 16, 64)
+        or cached_descriptors.dtype != torch.float32
+        or cached_descriptors.device != frames.device
+        or cached_descriptors.requires_grad
+        or not torch.isfinite(cached_descriptors).all()
+    ):
+        raise ValueError(
+            "Exact detached complete source descriptors from an admitted lossless cache required"
+        )
     hidden = torch.zeros_like(frames, dtype=torch.bool)
     descriptors = []
     observed = []
@@ -148,7 +160,11 @@ def masked_study(frames, aliases, acquisition, ordinal, *, pattern, halo=8, fill
                 x0, x1 = col * width // 4, (col + 1) * width // 4
                 # Metadata only, shared for all alias occurrences and all arms.
                 held = (row + col + int(ordinal[i]) // 4 + int(acquisition[i])) % 2 == pattern
-                descriptors.append(descriptor64(frames[i, y0:y1, x0:x1]))
+                descriptors.append(
+                    descriptor64(frames[i, y0:y1, x0:x1])
+                    if cached_descriptors is None
+                    else cached_descriptors[len(descriptors)]
+                )
                 observed.append(held)
                 region_frame.append(i)
                 region_tile.append((row, col))

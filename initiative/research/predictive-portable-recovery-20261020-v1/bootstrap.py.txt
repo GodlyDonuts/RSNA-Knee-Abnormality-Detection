@@ -1,0 +1,183 @@
+"""First eligible ordinary H100: driver context, admitted inputs, original loop."""
+
+import base64
+import ctypes
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+v = json.load(sys.stdin)
+node = os.uname().nodename
+assert node in v["allowed_nodes"] and os.environ.get("SLURM_JOB_GPUS")
+assert os.environ.get("SLURM_GPUS_ON_NODE") == "1"
+assert len(os.sched_getaffinity(0)) <= 4
+raw = subprocess.check_output(["scontrol", "show", "node", node, "--oneliner"], text=True)
+assert "Gres=gpu:nvidia_h100_pcie:2" in raw
+os.umask(0o077)
+driver = ctypes.CDLL("libcuda.so.1")
+initial = int(driver.cuInit(0))
+facts = {
+    "GPU_job": os.environ["SLURM_JOB_ID"],
+    "node": node,
+    "control_source_git": v["source_git"],
+    "cuInit": initial,
+    "environment": {
+        n: os.environ.get(n)
+        for n in ("CUDA_VISIBLE_DEVICES", "SLURM_JOB_GPUS", "SLURM_GPUS_ON_NODE")
+    },
+}
+if initial != 0:
+    print(
+        json.dumps({"status": "allocated_driver_refused_before_replica_or_model", **facts}),
+        flush=True,
+    )
+    raise SystemExit(2)
+count = ctypes.c_int()
+assert driver.cuDeviceGetCount(ctypes.byref(count)) == 0 and count.value == 1
+device = ctypes.c_int()
+assert driver.cuDeviceGet(ctypes.byref(device), 0) == 0
+name = ctypes.create_string_buffer(256)
+assert driver.cuDeviceGetName(name, 256, device) == 0 and b"H100" in name.value
+context = ctypes.c_void_p()
+context_result = int(driver.cuCtxCreate_v2(ctypes.byref(context), 0, device))
+facts["cuCtxCreate"] = context_result
+if context_result != 0:
+    print(
+        json.dumps({"status": "allocated_driver_refused_before_replica_or_model", **facts}),
+        flush=True,
+    )
+    raise SystemExit(2)
+pointer = ctypes.c_uint64()
+assert driver.cuMemAlloc_v2(ctypes.byref(pointer), ctypes.c_size_t(16)) == 0
+assert driver.cuMemFree_v2(pointer) == 0
+assert driver.cuCtxDestroy_v2(context) == 0
+facts["actual_driver_context_and_memory_pass"] = True
+print(json.dumps({"status": "allocated_driver_context_accepted", **facts}), flush=True)
+if node == "evc33":
+    # Original admitted assets already exist here; never create a duplicate copy.
+    root = Path("/tmp/rsna-predictive-real-trainer-20261020-v1")
+    assert not (root / "GPU-run-start.json").exists()
+    (root / "portable-driver-context.json").write_text(json.dumps(facts) + "\n")
+    subprocess.run(
+        [
+            "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+            "-B",
+            str(root / "code/driver.py"),
+        ],
+        check=True,
+    )
+    raise SystemExit(0)
+
+# Every source/runtime/input byte was admitted on47. Provisioning is a bounded
+# setup phase; no new acquisition or unaccepted learning recipe waits on a GPU.
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 87 + 12 + 24 + 4 + 12 + 12) * 2**30 + (512 + 128 + 32) * 2**20
+)
+os.environ["RSNA_EXPECTED_NODE"] = node
+
+
+def encoded(source):
+    return (
+        "exec(__import__('base64').b64decode("
+        + repr(base64.b64encode(source.encode()).decode())
+        + "))"
+    )
+
+
+sender_environment = {k: x for k, x in os.environ.items() if not k.startswith("SLURM_")}
+sender_environment["CUDA_VISIBLE_DEVICES"] = ""
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc47",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:12:00",
+    "--job-name=rsna-predictive-pinned-source",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    encoded(v["sender"]),
+]
+with tempfile.TemporaryFile() as sender_errors:
+    sender = subprocess.Popen(
+        a, env=sender_environment, stdout=subprocess.PIPE, stderr=sender_errors
+    )
+    receiver = subprocess.Popen(
+        [sys.executable, "-B", "-c", encoded(v["receiver"])],
+        stdin=sender.stdout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    sender.stdout.close()
+    output, errors = receiver.communicate(timeout=720)
+    sender_code = sender.wait(timeout=30)
+    if receiver.returncode or sender_code:
+        print(
+            json.dumps(
+                {
+                    "status": "original_replica_refused_no_retry",
+                    "GPU_job": os.environ["SLURM_JOB_ID"],
+                    "node": node,
+                    "receiver_returncode": receiver.returncode,
+                    "sender_returncode": sender_code,
+                    "receiver_error_tail": errors.decode(errors="replace").splitlines()[-1:],
+                }
+            ),
+            flush=True,
+        )
+        raise SystemExit(3)
+replica = json.loads(output)
+assert replica["all_numerical_function_and_class_AST_unchanged"] is True
+D = Path("/tmp/rsna-predictive-portable-recovery-20261020-v1")
+(D / "driver-context.json").write_text(json.dumps(facts) + "\n")
+(D / "portable-control.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "bootstrap_sha256": v["bootstrap_sha256"],
+            "sender_sha256": hashlib.sha256(v["sender"].encode()).hexdigest(),
+            "receiver_sha256": hashlib.sha256(v["receiver"].encode()).hexdigest(),
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+print(
+    json.dumps(
+        {
+            "status": "actual_driver_and_replica_admitted_starting_original_real_MRI_BC",
+            "node": node,
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "replica": replica,
+        }
+    ),
+    flush=True,
+)
+subprocess.run(
+    [str(D / "runtime/bin/python"), "-B", str(D / "code/driver.py")],
+    check=True,
+    env={
+        **os.environ,
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "OMP_NUM_THREADS": "2",
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    },
+)

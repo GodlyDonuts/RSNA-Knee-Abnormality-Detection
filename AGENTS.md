@@ -4,6 +4,8 @@ Updated October20,2026,06:23UTC. Goal active: strongest legitimate competition m
 
 ## Current priorities
 
+- **Device update supersedes earlier pending977678:** original cancelled PENDING/zero/never-started after actual node47 replica;977901 FAILED before model/optimizer. Actual977943/977963 prove no usable CUDA context on47 (one device missing, remaining CUDA999 even with both allocated/assigned steps). Exclude47/38; no reset or isolation bypass. Use only the single new portable original diagnostic coordinator if not already dispatched; actual-submit.json governs. Original684b02a7 numerical loop unchanged; eleven scoped CPU tests cover new separate lossless raw-cache source, not an actual cohort cache or GPU pass. See current-state and predictive-portable-recovery-20261020-v1.
+
 - Predictive source1172d429/actual input+dispatch sources privately fully45object download/size/SHA verified atHFb5554649716ec81e4b72f8a98a7fcdcb41c0cb80 byCPU977741; do not repeat. Original metadata-only977688 cancelled PENDING/0seconds/never started, not a model run. MRI-only readout has explicit precision controls; actualT4 still unaccepted.
 
 - **Latest actual predictive dispatch:** CPU977675 accepted original raw MRI/fitting labels/full MRI encoder. GPU977678 submitted ONCE, PENDING Priority evc33/1H100/2CPU/20min; sourceafca3ce7 and root `/tmp/rsna-predictive-real-trainer-20261020-v1`. Inspect actual result; never repeat v1/v2 coordinators. See `predictive-real-trainer-20261020-v2`. Original CPU977645 label-subset join failure was corrected without changing labels/numerical modules; no GPU started in that attempt. No actual GPU pass or predictive accuracy yet. Queued numerical sources frozen.

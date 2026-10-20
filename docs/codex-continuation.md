@@ -1,5 +1,17 @@
 # RSNA Knee continuation
 
+## Latest device failure and next route
+
+Old977678 cancelled PENDING/0/never started after full12.43GB replica to47;
+new977901 FAILED4seconds BEFORE GPU-run marker/model/optimizer. Actual977943/
+977963 CUDA probes show no usable device in batch or assigned step; both-device
+allocation still missing one GPU and remaining CUDA999. Exclude47/38. Do not
+retry those jobs/reset drivers/bypass isolation. The portable coordinator in
+predictive-portable-recovery-20261020-v1 may dispatch one first-eligible physical
+TWO-H100 job; inspect actual-submit.json and intents before action. No GPU pass
+or model accuracy yet. All bulk assets verified on47; original33 also retained.
+New future lossless-cache code passed eleven CPU checks; no actual full cache.
+
 ## Latest verified source preservation
 
 Source1172d429 privately preserved once atHFb5554649716ec81e4b72f8a98a7fcdcb41c0cb80,

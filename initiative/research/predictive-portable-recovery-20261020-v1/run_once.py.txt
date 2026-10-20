@@ -1,0 +1,142 @@
+"""One portable original diagnostic, ordinary two-H100 nodes only, no auto retry."""
+
+import base64
+import hashlib
+import json
+import re
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/predictive-portable-recovery-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+files = {p.stem.removesuffix(".py"): p.read_text() for p in D.glob("*.py.txt")}
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()]
+    )
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+raw = subprocess.check_output([*ssh, "scontrol show nodes --oneliner"], text=True)
+allowed, excluded = [], []
+for line in raw.splitlines():
+    values = dict(t.split("=", 1) for t in line.split() if "=" in t)
+    name = values.get("NodeName", "")
+    if "normal" not in values.get("Partitions", "").split(","):
+        continue
+    if (
+        values.get("Gres", "").startswith("gpu:nvidia_h100_pcie:2(")
+        and name not in {"evc38", "evc47"}
+        and not any(v in values.get("State", "") for v in ("DOWN", "DRAIN", "MAINT"))
+    ):
+        allowed.append(name)
+    else:
+        excluded.append(name)
+assert allowed and all(re.fullmatch(r"[A-Za-z0-9_-]+", n) for n in allowed + excluded)
+payload = {
+    "source_git": git,
+    "allowed_nodes": sorted(allowed),
+    "sender": files["sender"],
+    "receiver": files["receiver"],
+    "bootstrap_sha256": hashlib.sha256(files["bootstrap"].encode()).hexdigest(),
+}
+# Embed only own controls; no credentials, raw MRI, labels or weights in argv.
+program = (
+    "import io,sys;sys.stdin=io.StringIO("
+    + repr(json.dumps(payload))
+    + ");exec(__import__('base64').b64decode("
+    + repr(base64.b64encode(files["bootstrap"].encode()).decode())
+    + "))"
+)
+command = ["/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python", "-B", "-c", program]
+# Limit only the shared log stream, never checkpoint/runtime file sizes.
+logger = (
+    "import os,signal,subprocess,sys;command="
+    + repr(command)
+    + "\np=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)\nn=0\nwhile True:\n b=p.stdout.read1(4096)\n if not b:break\n n+=len(b)\n if n>2**20:\n  os.killpg(p.pid,signal.SIGTERM);raise SystemExit(4)\n sys.stdout.buffer.write(b);sys.stdout.buffer.flush()\nraise SystemExit(p.wait())\n"
+)
+command = ["/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python", "-B", "-c", logger]
+log = "/home/sa305415/rsna-knee/kaggle/predictive-portable-20261020-v1"
+subprocess.run([*ssh, "test ! -e " + log + ".intent.json"], check=True)
+script = "\n".join(
+    [
+        "#!/bin/bash",
+        "#SBATCH --account=skattel",
+        "#SBATCH --partition=normal",
+        "#SBATCH --qos=normal",
+        "#SBATCH --constraint=h100",
+        "#SBATCH --exclude=" + ",".join(sorted(set(excluded + ["evc38", "evc47"]))),
+        "#SBATCH --nodes=1",
+        "#SBATCH --ntasks=1",
+        "#SBATCH --cpus-per-task=2",
+        "#SBATCH --gres=gpu:nvidia_h100_pcie:1",
+        "#SBATCH --mem=24G",
+        "#SBATCH --time=00:20:00",
+        "#SBATCH --job-name=rsna-predictive-BC-first-healthy",
+        "#SBATCH --output=" + log + "-%j.out",
+        "#SBATCH --error=" + log + "-%j.err",
+        "set -euo pipefail",
+        "umask 077",
+        "export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8",
+        "exec " + shlex.join(command),
+        "",
+    ]
+)
+intent = {
+    "source_git": git,
+    "allowed_physical_two_H100_nodes": sorted(allowed),
+    "excluded_nodes": sorted(set(excluded + ["evc38", "evc47"])),
+    "maximum_GPU_jobs": 1,
+    "maximum_source_CPU_jobs_after_driver_context": 1,
+    "shared_log_cap_bytes": 2 * 2**20,
+    "shared_files": 3,
+    "per_node_future_reserve_GiB": 171,
+    "time_cap_minutes": 20,
+    "old_failed_node47_job": "977901",
+    "healthy_running_job_untouched": "975297",
+    "automatic_retry": False,
+}
+(L / "intent.json").write_text(json.dumps(intent, indent=2) + "\n")
+guard = (
+    "import json,pathlib,subprocess,sys;v=json.load(sys.stdin);q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True);a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'));assert (int(a[2])-int(a[1]))*1024>20*2**30+70*2**20+2*2**20 and int(a[6])-int(a[5])>5000+128+128+64+3;p=pathlib.Path("
+    + repr(log + ".intent.json")
+    + ");f=p.open('x');json.dump(v,f);f.close()"
+)
+x = subprocess.run(
+    [
+        *ssh,
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(guard),
+    ],
+    input=json.dumps(intent),
+    text=True,
+    capture_output=True,
+    timeout=60,
+)
+assert x.returncode == 0, "Original shared intent requires read-only reconciliation"
+x = subprocess.run(
+    [*ssh, "sbatch --parsable"], input=script, text=True, capture_output=True, timeout=90
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0 and x.stdout.strip().split(";")[0].isdigit(), (
+    "Reconcile exact receipt, never repeat"
+)
+out = {
+    "status": "one_original_BC_diagnostic_queued_for_first_eligible_healthy_ordinary_H100",
+    "GPU_job": x.stdout.strip().split(";")[0],
+    "source_git": git,
+    "allowed_nodes": sorted(allowed),
+    "MRI_optimizer_or_accuracy_pass": False,
+    "actual_driver_context_required_before_replica": True,
+    "failed_nodes38_47_excluded": True,
+    "physical_four_or_eight_GPU_nodes_excluded": True,
+    "automatic_retry": False,
+}
+(D / "actual-submit.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
