@@ -195,3 +195,12 @@ existing MIL graph; it is not a claim that these ideas are newly invented.
 Next is a separately funded actual-encoder diagnostic with matched deterministic
 mode, exact moment alignment, complete recovery and gradient/drift measurements;
 no full model/GPU dispatch or submission exists for this mechanism yet.
+
+
+The selected new mechanism sources/negative ratio result/positive linearized CPU
+result and sanitized source-zero progress receipt are now privately preserved:
+**HFaa111c78483a5f0b79ff9b2d56be187fdd470294**, CPU976868/source4eb1a39a,
+20objects/187,637bytes. Every object independently re-downloaded/size/SHA under
+canonical lock; no pixels, reports, private arrays, individual clinical records
+or learned weights. Never repeat this mirror. This does not change the lack of
+an actual encoder/clinical result for the new mechanism.

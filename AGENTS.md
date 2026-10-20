@@ -13,6 +13,7 @@ Updated October20,2026,05:37UTC. Goal active: strongest legitimate competition m
 - Private integrity Dataset12722964v1 is fully download/hash verified once. CPU-only Kaggle reader probe139738563v1 actually COMPLETE/accepted:32studies/64views/exact tensors/targets/RNG,3.244x case-loading speed. No GPU training-speed or accuracy gain claimed. Never repeat the upload or push.
 - Selected new full-source-zero/final-serving sources and actual0.949 receipt are privately fully46object download/size/SHA verified once atHF381ae720b6498227c4991f20d130d9f634c175e0, CPU976734/source56747336. Never repeat mirror.
 - New cached-attention ratio CPU976806 rejected on2invalid denominators atlargest synthetic drift. Distinct linearized correction CPU976828 passed all32fitting-feature/12target/fourlevel proxy gates, MSE ratios.001779/.027942/.162722, no invalid outputs. These are synthetic-drift approximation results, not actual student drift or accuracy. Source6dec668b; next separately funded actual-encoder diagnostic/matched deterministic modes, no GPU production yet.
+- Cached-attention mechanism sources/results and UI optimizer progress privately20object byteverified atHFaa111c78483a5f0b79ff9b2d56be187fdd470294, CPU976868/source4eb1a39a. Never repeat prefix. Next implement actual encoder/readout and privately aligned cache with explicit new funding; no more unchanged CPU screen.
 - Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
 ## Standing execution rules

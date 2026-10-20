@@ -246,3 +246,30 @@ and measured staleness; no newGPU production dispatched. Production975297,
 sourcezero139742882/32102 and finaleval33801 remain original, unchanged. New
 small cached-attention source/receipts have not yet been privately mirrored;
 old HF381ae720 mirror only covers selected source56747336. Do not repeat it.
+
+
+### New cached-attention private preservation complete
+
+CPU976868/source4eb1a39a privately mirrored20selected own source/aggregate objects,
+187637bytes, atHFaa111c78483a5f0b79ff9b2d56be187fdd470294. Every object independently
+re-downloaded/size/SHA under shared canonical lock, existing2MiB source-zero
+controls on48/all model/future reserves unchanged. Prefix
+`research-milestones/cached-attention-mechanism-20261020-v1-4eb1a39a8f0f`, private
+controlchild `mission-source-attention-v1`. Never repeat that prefix or old381ae720.
+No pixels, clinical records, private arrays, external source body or models moved.
+
+Next concrete engineering work is a new real-readout/batch wrapper, not another
+unchanged CPU screen: preserve full94 inference default; sampled training takes
+cached parent scores/votes for selected windows plus full reference mean. Use
+matched deterministic mode in BOTH reference and linear arms, since the current
+full fits use a different mode/backend and cannot be called its causal control.
+At exact reference expected gradients are correct, but stochastic head/dropout,
+FP16 cached-feature mismatch and real stale-reference drift must be measured,
+not assumed. Existing full3887cached feature/head on33 already accepted; materialize
+only missing score/vote moments privately once, bind original ordered roster and
+head/source proofs, no raw MRI/new CNN/labels. Budget any new cache/checkpoints
+explicitly; don't borrow the full source-zero4GiB model reserve. Reuse node48's
+already accepted full original pixels/runtime/base for a separately funded
+17train/15disjoint fitting engineering full/stop/resume diagnostic if admitted.
+No actual newGPU wrapper/cache/dispatch exists yet. Avoid infinite toy work:
+implement/readmit the actual encoder path next; keep975297/32102/33801 untouched.
