@@ -1,0 +1,368 @@
+"""Download and preserve one actual changed-target epoch, CPU only, once."""
+
+import ast
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sqlite3
+import sys
+import tempfile
+from pathlib import Path
+from urllib.parse import urljoin, urlparse
+
+import requests
+import torch
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+a = v["actual"]
+z = a["receipt"]
+epoch = a["epoch"]
+assert a["status"] == "COMPLETE" and a["version"] == 1 and type(epoch) is int and 1 <= epoch <= 3
+assert (
+    z["status"] == "actual_complete_S6_target_full_encoder_epoch_session_complete"
+    and z["teacher_target_role"] == "cross_lineage_equal_rank"
+)
+assert z["segment"] == epoch and z["completed"] == 486 * epoch and z["total"] == 1458
+key = "licensed-importance-full-fit:complete-S6-cross:" + a["source_sha256"]
+with sqlite3.connect(
+    "file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro", uri=True
+) as db:
+    row = json.loads(db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0])
+assert (
+    row["state"] == "complete_teacher_cross_full_fit_actual_complete"
+    and row["receipt"] == z
+    and row["kernel_id"] == a["kernel_id"]
+    and row["slug"] == a["slug"]
+)
+B = Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1")
+R = B / "Kaggle-target-epochs-v1"
+D = R / ("epoch-" + str(epoch).zfill(3))
+assert not D.exists(), "Existing collection/publication requires read-only reconciliation"
+engine = json.loads((B / "kaggle-existing-output-replay-v1/accepted.json").read_text())
+assert (
+    engine["CPU_job"] == "974246"
+    and engine["status"] == "actual_existing_twoT4_outputs_independent_CPU_replay_accepted"
+)
+paid = sum(p.stat().st_size for p in B.rglob("*") if p.is_file() and not p.is_symlink())
+paid_models = sum(p.stat().st_size for p in R.rglob("*") if p.is_file()) if R.exists() else 0
+assert paid + max(0, 4 * 2**30 - paid_models) < 12 * 2**30
+assert shutil.disk_usage("/tmp").free > (20 + 87) * 2**30 + max(0, 12 * 2**30 - paid) + 32 * 2**20
+assert (
+    paid_models
+    + sum(z[n]["bytes"] for n in ("checkpoint", "epoch", "run"))
+    + z["epoch"]["bytes"]
+    + 2 * 2**20
+    < 4 * 2**30
+)
+q = __import__("subprocess").check_output(
+    ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True
+)
+c = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(c[2]) - int(c[1])) * 1024 > 20 * 2**30 + 80 * 2**20 and int(c[6]) - int(c[5]) > 5400
+F = Path("/tmp/rsna-S6-final-serving-control-20261019-v1")
+staged = json.loads((F / "staged.json").read_text())
+p = F / "code/workflow.py"
+assert hashlib.sha256(p.read_bytes()).hexdigest() == staged["source_sha256"]["workflow.py"]
+s = importlib.util.spec_from_file_location("canonical_workflow", p)
+w = importlib.util.module_from_spec(s)
+s.loader.exec_module(w)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["kaggle_token"]
+k = r.kernel("GetKernel", a["slug"], 1)
+assert (
+    k["metadata"]["id"] == a["kernel_id"]
+    and k["metadata"]["isPrivate"]
+    and hashlib.sha256(k["blob"]["source"].encode()).hexdigest() == a["source_sha256"]
+)
+assert r.kernel("GetKernelSessionStatus", a["slug"], 1)["status"] == "COMPLETE"
+assert r.output_json(a["slug"], 1, "licensed-importance-full-session-accepted.json") == z
+literals = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(k["blob"]["source"]).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id in ("FILES", "WORKER", "PERMISSION", "BINDING")
+}
+assert set(literals) == {"FILES", "WORKER", "PERMISSION", "BINDING"}
+assert (
+    literals["BINDING"] == z["binding"]
+    and hashlib.sha256(base64.b64decode(literals["WORKER"])).hexdigest() == z["worker_sha256"]
+)
+permission = base64.b64decode(literals["PERMISSION"])
+assert (
+    len(permission) == 4411
+    and hashlib.sha256(permission).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+files = literals["FILES"]
+assert {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()} == engine["receipt"][
+    "source_module_sha256"
+]
+D.mkdir(mode=0o700, parents=True)
+w.new_json(
+    D / "collection-intent.json",
+    {
+        "actual": a,
+        "publisher_source_git": v["source_git"],
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "automatic_retry": False,
+        "new_GPU_jobs": 0,
+    },
+)
+
+
+def download(name, dest, item):
+    owner, slug = a["slug"].split("/")
+    r.session.cookies.clear()
+    response = r.session.post(
+        "https://api.kaggle.com/v1/kernels.KernelsApiService/DownloadKernelOutput",
+        json={"ownerSlug": owner, "kernelSlug": slug, "versionNumber": 1, "filePath": name},
+        timeout=(10, 90),
+        allow_redirects=False,
+        stream=True,
+    )
+    for _ in range(6):
+        if response.status_code == 200:
+            break
+        assert response.status_code in (301, 302, 303, 307, 308)
+        url = urljoin(response.url, response.headers["Location"])
+        response.close()
+        u = urlparse(url)
+        assert (
+            u.scheme == "https"
+            and u.hostname
+            and (
+                u.hostname
+                in (
+                    "storage.googleapis.com",
+                    "api.kaggle.com",
+                    "www.kaggle.com",
+                    "www.kaggleusercontent.com",
+                )
+                or u.hostname.endswith(".googleusercontent.com")
+            )
+        )
+        response = (r.session if u.hostname == "api.kaggle.com" else requests).get(
+            url, timeout=(10, 90), allow_redirects=False, stream=True
+        )
+    assert response.status_code == 200
+    h = hashlib.sha256()
+    count = 0
+    try:
+        with dest.open("xb") as f:
+            for block in response.iter_content(2**20):
+                count += len(block)
+                assert count <= item["bytes"]
+                f.write(block)
+                h.update(block)
+    finally:
+        response.close()
+    assert count == item["bytes"] and h.hexdigest() == item["sha256"]
+
+
+for kind, remote, name in [
+    (
+        "epoch",
+        "importance-full/fit/epoch-checkpoints/epoch-" + str(epoch).zfill(3) + ".pt",
+        "model.pt",
+    ),
+    ("checkpoint", "importance-full/fit/checkpoint.pt", "optimizer-checkpoint.pt"),
+    ("run", "importance-full/fit/run.json", "run.json"),
+]:
+    download(remote, D / name, z[kind])
+(D / "source-permission.txt").write_bytes(permission)
+code = D / "validation-code"
+assert set(v["validator_modules"]) == {
+    "rsna/__init__.py",
+    "rsna/competitive/__init__.py",
+    "rsna/competitive/licensed_parent_epoch.py",
+}
+assert (
+    v["validator_modules"]["rsna/__init__.py"]
+    == v["validator_modules"]["rsna/competitive/__init__.py"]
+    == ""
+)
+assert (
+    hashlib.sha256(
+        v["validator_modules"]["rsna/competitive/licensed_parent_epoch.py"].encode()
+    ).hexdigest()
+    == "e191f47cdc87cacd779ecc20f040c453cd670aef330e26580abdd1ce318a5773"
+)
+for name, source in {**files, **v["validator_modules"]}.items():
+    p = code / name
+    assert p.resolve().is_relative_to(code.resolve())
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(source)
+checker = D / "epoch_check.py"
+checker.write_text(v["checker_source"])
+assert hashlib.sha256(checker.read_bytes()).hexdigest() == v["checker_sha256"]
+sys.path.insert(0, str(code))
+s = importlib.util.spec_from_file_location("actual_twoT4_epoch_check", checker)
+check = importlib.util.module_from_spec(s)
+s.loader.exec_module(check)
+state = torch.load(D / "optimizer-checkpoint.pt", map_location="cpu", weights_only=True)
+snapshot = torch.load(D / "model.pt", map_location="cpu", weights_only=True)
+verification = check.verify(state, snapshot, z, engine)
+assert json.loads((D / "run.json").read_text())["binding"] == state["binding"]
+complete_binding = state["binding"]
+del state, snapshot
+w.new_json(D / "actual-epoch.json", a)
+(D / "own-source.json").write_text(
+    json.dumps(
+        {
+            "numerical_source": files,
+            "validators": v["validator_modules"],
+            "checker": v["checker_source"],
+        },
+        sort_keys=True,
+    )
+    + "\n"
+)
+provenance = {
+    "source_git": z["binding"]["source_git"],
+    "publisher_source_git": v["source_git"],
+    "actual_Kaggle": a,
+    "teacher_target_role": "cross_lineage_equal_rank",
+    "sampling_role": "influence",
+    "complete_binding": complete_binding,
+    "actual_changed_engine": engine,
+    "independent_CPU_verification": verification,
+    "upstream_author": "nartaa",
+    "upstream_weight_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+    "upstream_source_sha256": "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde",
+    "license_and_author_permission_sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+    "base_and_public_teacher_exposure_not_independent_OOF": True,
+    "optimizer_RNG_node_private_not_HF": True,
+    "no_MRI_UID_label_teacher_or_case_prediction_arrays_published": True,
+    "actual_T4_competition_inference_still_unaccepted": True,
+    "clinical_accuracy_claim": False,
+}
+w.new_json(D / "provenance.json", provenance)
+core = Path(
+    "/home/sa305415/rsna-knee/production-launch-native384-a32-c9-v1/publish_native384_epoch.py"
+)
+assert (
+    hashlib.sha256(core.read_bytes()).hexdigest()
+    == "4e327e271816e4a4055b4f3ad28a8dab59fc650a1367fd13bbd7fe06d9a5efde"
+)
+os.environ.update(
+    HF_HUB_DISABLE_XET="1",
+    HF_HUB_DISABLE_PROGRESS_BARS="1",
+    HF_HOME=str(R / "hf"),
+    HF_HUB_CACHE=str(R / "hf-cache"),
+    HF_XET_CACHE=str(R / "xet"),
+)
+s = importlib.util.spec_from_file_location("canonical_publisher", core)
+pub = importlib.util.module_from_spec(s)
+s.loader.exec_module(pub)
+from huggingface_hub import CommitOperationAdd, HfApi  # noqa: E402
+
+payload = {
+    n: D / n
+    for n in (
+        "model.pt",
+        "actual-epoch.json",
+        "source-permission.txt",
+        "own-source.json",
+        "provenance.json",
+    )
+}
+table = {n: {"bytes": p.stat().st_size, "sha256": pub.sha(p)} for n, p in payload.items()}
+w.new_json(
+    D / "manifest.json",
+    {
+        "source_git": z["binding"]["source_git"],
+        "teacher_target_role": "cross_lineage_equal_rank",
+        "epoch": epoch,
+        "files": table,
+    },
+)
+payload["manifest.json"] = D / "manifest.json"
+table["manifest.json"] = {
+    "bytes": payload["manifest.json"].stat().st_size,
+    "sha256": pub.sha(payload["manifest.json"]),
+}
+prefix = (
+    "checkpoints/complete-S6-target-twoT4-"
+    + z["binding"]["source_git"][:12]
+    + "/cross_lineage_equal_rank/epoch-"
+    + str(epoch).zfill(3)
+)
+with pub.shared_publication_lock():
+    api = HfApi(token=v["hf_token"])
+    info = api.repo_info("GodlyDonuts/RSNA-Data", repo_type="dataset")
+    assert info.private
+    assert not list(
+        api.get_paths_info(
+            "GodlyDonuts/RSNA-Data", paths=[prefix + "/" + n for n in payload], repo_type="dataset"
+        )
+    )
+    pub.atomic_new(
+        D / "publication-intent.json",
+        {
+            "source_git": z["binding"]["source_git"],
+            "prefix": prefix,
+            "parent": info.sha,
+            "files": table,
+            "automatic_retry": False,
+        },
+    )
+    commit = api.create_commit(
+        "GodlyDonuts/RSNA-Data",
+        repo_type="dataset",
+        parent_commit=info.sha,
+        commit_message="Preserve immutable complete-S6 cross-lineage full3887 twoT4 epoch "
+        + str(epoch)
+        + " and exact provenance; no accuracy claim",
+        operations=[
+            CommitOperationAdd(path_in_repo=prefix + "/" + n, path_or_fileobj=p)
+            for n, p in payload.items()
+        ],
+    )
+    pub.atomic_new(D / "publication-commit.json", {"revision": commit.oid})
+    for name, item in table.items():
+        with tempfile.TemporaryDirectory(prefix="S6-changed-model-verify-", dir="/tmp") as tmp:
+            p = Path(
+                api.hf_hub_download(
+                    "GodlyDonuts/RSNA-Data",
+                    prefix + "/" + name,
+                    repo_type="dataset",
+                    revision=commit.oid,
+                    local_dir=tmp,
+                    force_download=True,
+                )
+            )
+            assert p.stat().st_size == item["bytes"] and pub.sha(p) == item["sha256"]
+    result = {
+        "status": "actual_complete_target_twoT4_epoch_private_all_objects_download_size_SHA_verified",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": z["binding"]["source_git"],
+        "epoch": epoch,
+        "completed": epoch * 486,
+        "kernel_id": a["kernel_id"],
+        "version": 1,
+        "original_source_sha256": a["source_sha256"],
+        "teacher_target_role": "cross_lineage_equal_rank",
+        "model_sha256": z["epoch"]["sha256"],
+        "revision": commit.oid,
+        "prefix": prefix,
+        "files": table,
+        "objects": len(table),
+        "independent_CPU_state_verification": verification,
+        "canonical_shared_publication_lock_used": True,
+        "original_notebook_or_model_transfer_repeated": False,
+        "clinical_accuracy_claim": False,
+    }
+    pub.atomic_new(D / "verified.json", result)
+assert sum(p.stat().st_size for p in R.rglob("*") if p.is_file()) < 4 * 2**30
+print(json.dumps(result), flush=True)
