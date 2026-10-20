@@ -16,6 +16,8 @@ Updated October20,2026,05:37UTC. Goal active: strongest legitimate competition m
 - Cached-attention mechanism sources/results and UI optimizer progress privately20object byteverified atHFaa111c78483a5f0b79ff9b2d56be187fdd470294, CPU976868/source4eb1a39a. Never repeat prefix. Next implement actual encoder/readout and privately aligned cache with explicit new funding; no more unchanged CPU screen.
 - Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
+- New cached-attention source9e76db5d/full3887 private reference cache accepted; actual CPU977068 admitted real-encoder recovery. GPU977100 submitted ONCE on evc48/oneH100/twoCPU/30min, lastPENDING Priority. Never repeat dispatch. Root /tmp/rsna-cached-attention-encoder-20261020-v1; inspect original logs/receipts. Reference/linear17train/15disjoint fitting predictions/sixupdates require actual complete recovery; no GPU acceptance, production fit or accuracy gain yet. See cached-attention-encoder-20261020-v1. Original975297/27713/32102/33801 verified live unchanged.
+
 ## Standing execution rules
 
 Accepted labels/masks/folds/base/order stay unchanged; protected gold/confirmation unused. Public teachers are not independent OOF evidence. Daenerys outputs are review candidates, never automatic labels. Stanford-derived weights private/noncompetition; no newly admitted KneeCoT. Failed MedGemma protocols remain negative evidence.

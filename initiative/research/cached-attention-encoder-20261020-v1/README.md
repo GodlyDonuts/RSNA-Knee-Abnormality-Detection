@@ -48,3 +48,43 @@ recovery, original inference and cache/input/mode/gradient/precision checks on
 fitting-only engineering studies. Measure actual teacher/student drift, not the
 old synthetic perturbations. Retain both arms/negative outcomes and use fixed
 final evaluation; no tiny engineering score or proxy fidelity selects a winner.
+
+
+## October20 — actual full reference cache and real-encoder dispatch
+
+The original private cache was materialized and transferred exactly once by
+CPU976992/976991: all3,887 fitting studies, two views,94windows,12targets;
+71,148,396bytes, SHAee28ba94592f29fdd56f50d65350a1e6c8be2ba6d2f893e740b9ccfd46d31695.
+Exact byte/SHA/EOF, finite FP32 arrays and ordered roster passed. Original FP32
+head probability reduction gap was1.7881393432617188e-7; original cached-FP16
+probability gap was0.00029981136322021484. No arrays/UIDs reached Mac/Git/HF.
+Reuse this cache; never rebuild/retransfer it without an actual new requirement.
+
+New actual encoder implementation/source9e76db5d uses deterministic eval mode
+WITH gradients in both matched arms and an FP32 readout. Its explicit encoder
+checkpointing override preserves activation checkpointing despite eval mode;
+all encoder/head parameters remain trainable. Full94 inference remains original
+and requires no reference cache at test time. Twenty-nine scoped CPU checks
+passed; these are not H100 acceptance or clinical evidence.
+
+CPU977068 admitted exact cache/source/runtime/original full-pixel bindings and
+separately funded128MiB cache/8MiB controls/12GiB engineering-plus-runtime cap.
+CPU977099 then submitted new GPU977100 ONCE on physical two-GPU evc48, requesting
+one H100/two CPUs/32GiB/30minutes. At the actual queue observation it was
+PENDING(Priority); no optimizer progress or GPU acceptance is claimed.
+
+Scope: reference/linear arms,17 fitting engineering studies,15 disjoint fitting
+prediction studies, two epochs/six updates each, fresh full/stop1/resume
+processes. Requires complete decoded model/AdamW/LR/counter/all-RNG/scaler/history
+and snapshot equality, exact full94 two-view15x12 prediction CSV bytes, finite
+updates and actual reference drift. Engineering results cannot select a clinical
+winner or be submitted. Full production fitting is NOT funded/dispatched here.
+
+Original root `/tmp/rsna-cached-attention-encoder-20261020-v1` on evc48;
+inspect original977100 and original GPU-run/dispatch/phase receipts read-only.
+Never repeat submit_gpu or restart on observation loss. Original975297 and local
+owners27713/32102/33801 were verified live, left unchanged. Source-zero139742882
+was still RUNNING via its live original follower; final serving waits for final
+verified fitting. No new score exists. Goal remains active/unachieved.
+
+Original sanitized receipts: actual-transfer.json, actual-prepare_gpu.json and actual-submit_gpu.json.
