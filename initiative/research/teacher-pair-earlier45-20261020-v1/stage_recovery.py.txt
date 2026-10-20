@@ -1,0 +1,228 @@
+"""Admit actual positive gradient evidence then stage/submit one fresh recovery."""
+
+import hashlib
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+R = Path("/tmp/rsna-teacher-pair-optimizer-recovery45-20261020-v1")
+F = Path("/tmp/rsna-teacher-pair-gradient-evc45-20261019-v1")
+assert os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS") and not R.exists()
+receipt = v["gradient"]["receipt"]
+meta = json.loads((F / "staged.json").read_text())
+assert (
+    v["gradient"]["receipt_sha256"]
+    == v["gradient_receipt_sha256"]
+    == "1326eed87e457066882a58c88fcfc24f72670131d7db0eaa2026e792fa01ec41"
+)
+assert (
+    receipt["status"]
+    == "actual_full_encoder_paired_view_teacher_ranking_gradient_memory_probe_passed"
+    and receipt["GPU_job"] == "973601"
+)
+assert (
+    receipt["all_parameter_gradients_present_finite"]
+    and receipt["same_forward_end_all_RNG_states"]
+    and receipt["all_original_BN_buffers_and_parameter_versions_unchanged"]
+)
+assert "973601|COMPLETED|0:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", "973601", "--format=JobIDRaw,State,ExitCode"], text=True
+)
+admission = json.loads((F / "CPU-verified.json").read_text())
+assert (
+    admission == v["admission"]
+    and admission["node"] == "evc45"
+    and admission["trainable_parameters"] == 73136096
+)
+assert admission["CPU_job"] + "|COMPLETED|0:0" in subprocess.check_output(
+    ["sacct", "-X", "-n", "-P", "-j", admission["CPU_job"], "--format=JobIDRaw,State,ExitCode"],
+    text=True,
+)
+aux = json.loads(
+    (Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1") / "auxiliary-verified-v2.json").read_text()
+)
+assert (
+    aux["bytes"] == 678564087
+    and aux["files"] == 815
+    and aux["manifest_sha256"] == "db93efcd68d1d7f225e34c566ee3a064e558325ee78cb3fcf994509b0aa64858"
+)
+held = subprocess.check_output(["scontrol", "show", "job", "974412", "-o"], text=True)
+assert "JobState=PENDING" in held and "Reason=JobHeldUser" in held and "RunTime=00:00:00" in held
+assert hashlib.sha256((F / "gpu_probe.py").read_bytes()).hexdigest() == meta["gpu_worker_sha256"]
+for name, h in {
+    **meta["new_source_sha256"],
+    **{"code/" + k: sha for k, sha in meta["original_source_sha256"].items()},
+}.items():
+    assert hashlib.sha256((F / name).read_bytes()).hexdigest() == h
+permission = Path(
+    "/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2/source/source-permission.txt"
+)
+assert (
+    hashlib.sha256(permission.read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+assert v["QA"]["numerical_worker_and_complete_state_comparison_AST_equal_to_original"] is True
+assert v["QA"]["focused_cases"] >= 5
+assert (
+    v["private_source_proof"]["source_git"] == v["source_git"]
+    and v["private_source_proof"]["status"]
+    == "selected_sanitized_mission_sources_all_objects_private_download_size_SHA_verified"
+)
+assert (
+    shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+    and shutil.disk_usage("/dev/shm").free > (20 + 8) * 2**30 + 32 * 2**20
+)
+node = subprocess.check_output(["scontrol", "show", "node", "evc45", "-o"], text=True)
+assert "gres/gpu=2" in node and "gres/gpu=4" not in node and "gres/gpu=8" not in node
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+t = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+owned = [p for p in t.rglob("*") if p.is_file()]
+assert len(owned) < 256
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - sum(p.stat().st_size for p in owned)
+)
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + 24 + max(0, 256 - len(owned))
+assert (
+    set(v["files"]) == {"driver.py", "worker.py"}
+    and sum(len(x.encode()) for x in v["files"].values()) < 64 * 2**10
+)
+for name, text in v["files"].items():
+    compile(text, name, "exec")
+header = Path("/tmp/rsna-medgemma15-runtime-headers-20261019-v1/verified.json")
+assert (
+    hashlib.sha256(header.read_bytes()).hexdigest()
+    == "fb587efe77486f5fee42f996a4a72c9ee9bec80d71ab8e7cdea91baa55c58bff"
+)
+R.mkdir(mode=0o700)
+for name, text in v["files"].items():
+    (R / name).write_text(text)
+staged = {
+    "source_git": v["source_git"],
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "worker_sha256": hashlib.sha256(v["files"]["worker.py"].encode()).hexdigest(),
+    "driver_sha256": hashlib.sha256(v["files"]["driver.py"].encode()).hexdigest(),
+    "gradient_probe_GPU": "973601",
+    "gradient_receipt_sha256": v["gradient_receipt_sha256"],
+    "gradient_worker_sha256": meta["gpu_worker_sha256"],
+    "source_binding": {
+        "gradient_probe_GPU": "973601",
+        "actual_gradient_receipt_sha256": v["gradient_receipt_sha256"],
+        "source_git": v["source_git"],
+        "teacher_pair_helper_sha256": meta["new_source_sha256"][
+            "code/rsna/competitive/teacher_pair.py"
+        ],
+        "actual_engine_sha256": meta["new_source_sha256"][
+            "code/rsna/competitive/teacher_pair_train.py"
+        ],
+        "parent_checkpoint_sha256": "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef",
+        "permission_sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+        "diagnostic_only": True,
+        "protected_or_gold_used": False,
+    },
+    "private_source_proof": v["private_source_proof"],
+    "RAM_scratch_cap_bytes": 8 * 2**30,
+    "node_control_cap_bytes": 16 * 2**20,
+    "automatic_retry": False,
+}
+(R / "staged.json").write_text(json.dumps(staged, indent=2) + "\n")
+include = json.loads(header.read_text())["include_path"]
+env = [
+    "env",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "MKL_NUM_THREADS=1",
+    "OPENBLAS_NUM_THREADS=1",
+    "HF_HUB_OFFLINE=1",
+    "TRANSFORMERS_OFFLINE=1",
+    "CUBLAS_WORKSPACE_CONFIG=:4096:8",
+    "CUDA_CACHE_MAXSIZE=" + str(32 * 2**20),
+    "C_INCLUDE_PATH=" + include,
+    "CPLUS_INCLUDE_PATH=" + include,
+]
+for name in ("XDG_CACHE_HOME", "TORCHINDUCTOR_CACHE_DIR", "TRITON_CACHE_DIR", "CUDA_CACHE_PATH"):
+    env.append(name + "=" + str(F / name.lower()))
+command = [
+    "srun",
+    "--exact",
+    "--cpu-bind=none",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    *env,
+    sys.executable,
+    "-B",
+    str(R / "driver.py"),
+]
+args = [
+    "sbatch",
+    "--parsable",
+    "--no-requeue",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=2",
+    "--gres=gpu:nvidia_h100_pcie:1",
+    "--mem=64G",
+    "--time=01:00:00",
+    "--time-min=00:15:00",
+    "--job-name=rsna-teacher-pair-real-recovery",
+    "--output=" + str(R / "GPU-%j.stdout.private.log"),
+    "--error=" + str(R / "GPU-%j.stderr.private.log"),
+    "--wrap=" + shlex.join(command),
+]
+with (R / "dispatch-intent.json").open("x") as out:
+    json.dump(
+        {
+            "source_git": v["source_git"],
+            "maximum_GPU_jobs": 1,
+            "stage": staged,
+            "args": args,
+            "automatic_retry": False,
+        },
+        out,
+    )
+clean = {
+    k: val
+    for k, val in os.environ.items()
+    if not k.startswith(
+        ("SLURM_CPU_BIND", "SLURM_STEP_CPU_BIND", "SRUN_CPU_BIND", "SBATCH_CPU_BIND")
+    )
+    and k not in ("CUDA_VISIBLE_DEVICES", "SLURM_TRES_BIND", "SLURM_GPU_BIND")
+}
+x = subprocess.run(args, env=clean, capture_output=True, text=True)
+(R / "dispatch-response.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Uncertain mutation must be reconciled read-only; no retry"
+job = x.stdout.strip().split(";")[0]
+assert job.isdigit()
+actual = {
+    "status": "actual_positive_gradient_source_one_H100_optimizer_recovery_submitted_once",
+    "GPU_job": job,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "gradient_probe_GPU": "973601",
+    "gradient_receipt_sha256": v["gradient_receipt_sha256"],
+    "one_H100": True,
+    "node": "evc45",
+    "partition": "preemptable",
+    "old_974412_held_zero_runtime": True,
+    "physical_node_GPUs": 2,
+    "CPU": 2,
+    "RAM_GiB": 64,
+    "maximum_minutes": 60,
+    "full_training_or_clinical_or_Kaggle_admission": False,
+    "automatic_retry": False,
+}
+(R / "submitted.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)

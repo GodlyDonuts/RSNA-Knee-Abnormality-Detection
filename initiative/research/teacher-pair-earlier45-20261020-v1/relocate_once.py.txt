@@ -1,0 +1,143 @@
+"""Hold only an unstarted original recovery, then submit one source-bound earlier-host recovery."""
+
+import ast
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-pair-earlier45-20261020-v1"
+assert not (L / "GPU-relocation-intent.json").exists()
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+proof = json.loads(
+    (
+        R / "initiative/audits/hf-teacher-pair-earlier45-20261020-v1/actual-private-verified.json"
+    ).read_text()
+)
+assert proof["source_git"] == pin and proof["canonical_shared_publication_lock_used"] is True
+admission = json.loads((D / "actual-admitted.json").read_text())
+assert admission["node"] == "evc45" and admission["GPU_jobs"] == 0
+old = R / "initiative/research/teacher-pair-real-recovery48-20261019-v2"
+files = {n: (D / (n + ".txt")).read_text() for n in ("driver.py", "worker.py")}
+
+
+def functions(source):
+    return {
+        n.name: ast.dump(n)
+        for n in ast.parse(source).body
+        if isinstance(n, ast.FunctionDef) and n.name != "main"
+    }
+
+
+for name, source in files.items():
+    assert functions(source) == functions((old / (name + ".txt")).read_text())
+for name in ("driver.py.txt", "worker.py.txt", "stage_recovery.py.txt", "relocate_once.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+before = subprocess.check_output(ssh + ["scontrol show job 974412 -o"], text=True)
+assert (
+    "JobState=PENDING" in before and "RunTime=00:00:00" in before and "ReqNodeList=evc48" in before
+)
+with (L / "GPU-relocation-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "old_job": 974412,
+            "before": before,
+            "earlier_node_admission": admission,
+            "maximum_new_GPU_recoveries": 1,
+            "cancel_or_restart_running_job": False,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+x = subprocess.run(ssh + ["scontrol hold 974412"], capture_output=True, text=True)
+(L / "GPU-old-hold-result.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}) + "\n"
+)
+assert x.returncode == 0, "Reconcile exact original job; do not retry"
+held = subprocess.check_output(ssh + ["scontrol show job 974412 -o"], text=True)
+assert "JobState=PENDING" in held and "Reason=JobHeldUser" in held and "RunTime=00:00:00" in held, (
+    "Old job began; preserve original and do not dispatch another"
+)
+(D / "actual-old-pending-held.json").write_text(
+    json.dumps(
+        {
+            "old_job": 974412,
+            "actual_held_zero_runtime": True,
+            "state": held,
+            "running_job_cancelled": False,
+            "GPU_restarts": 0,
+        }
+    )
+    + "\n"
+)
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+grad = json.loads(
+    (
+        R
+        / "initiative/research/teacher-pair-admitted48-fallback-20261019-v1/actual-gradient-terminal.json"
+    ).read_text()
+)
+payload = {
+    "source_git": pin,
+    "files": files,
+    "gradient": grad,
+    "gradient_receipt_sha256": grad["receipt_sha256"],
+    "admission": admission,
+    "private_source_proof": proof,
+    "QA": {
+        "numerical_worker_and_complete_state_comparison_AST_equal_to_original": True,
+        "focused_cases": 5,
+    },
+}
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=preemptable",
+    "--qos=preemptable",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:05:00",
+    "--job-name=rsna-ranking45-original-dispatch",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+y = subprocess.run(
+    ssh + [shlex.join(args)],
+    input=t.envelope((D / "stage_recovery.py.txt").read_text(), payload),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / "GPU-relocation-transport.json").write_text(
+    json.dumps({"returncode": y.returncode, "stdout": y.stdout, "stderr": y.stderr}, indent=2)
+    + "\n"
+)
+assert y.returncode == 0, (
+    "Original intent may already have submitted; inspect exact remote original, no retry"
+)
+result = json.loads(y.stdout)
+(D / "actual-recovery-submitted.json").write_text(json.dumps(result, indent=2) + "\n")
+print(json.dumps(result), flush=True)

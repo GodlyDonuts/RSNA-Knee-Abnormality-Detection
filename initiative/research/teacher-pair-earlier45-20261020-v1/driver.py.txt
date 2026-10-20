@@ -1,0 +1,257 @@
+"""Six fresh actual engine processes; compare every decoded state and prediction.
+
+Only newly owned diagnostic RAM scratch is released after complete acceptance.
+On failure retain scratch and private logs; never restart or publish these models.
+"""
+
+import hashlib
+import json
+import math
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+import torch
+
+
+def same(a, b):
+    if isinstance(a, torch.Tensor):
+        assert (
+            isinstance(b, torch.Tensor)
+            and a.dtype == b.dtype
+            and a.shape == b.shape
+            and torch.equal(a, b)
+        )
+    elif isinstance(a, dict):
+        assert isinstance(b, dict) and a.keys() == b.keys()
+        for k in a:
+            same(a[k], b[k])
+    elif isinstance(a, (list, tuple)):
+        assert type(a) is type(b) and len(a) == len(b)
+        for x, y in zip(a, b, strict=True):
+            same(x, y)
+    else:
+        assert type(a) is type(b) and a == b
+
+
+def compare(work, objective):
+    root = Path(work) / objective
+    a = torch.load(root / "full/checkpoint.pt", map_location="cpu", weights_only=True)
+    b = torch.load(root / "resumed/checkpoint.pt", map_location="cpu", weights_only=True)
+    same(a, b)
+    assert (
+        a["completed"] == 4
+        and a["epoch"] == 2
+        and a["cursor"] == 0
+        and a["optimizer_boundary"] is True
+    )
+    assert (
+        a["binding"]["recipe"]["objective"] == objective and a["binding"]["diagnostic_only"] is True
+    )
+    assert (
+        a["binding"]["anatomical_views_per_study"] == 2
+        and a["binding"]["study_coupled_batch_loss"] is True
+    )
+    assert a["binding"]["population"] == 16 and a["binding"]["world_size"] == 1
+    assert a["schedule"] == {"completed": 4, "total": 4, "kind": "warmup_cosine"}
+    assert len(a["rng_by_rank"]) == len(a["scaler_by_rank"]) == 1
+    assert [h["update"] for h in a["history"]] == [1, 2, 3, 4]
+    assert all(
+        h["studies"] == 8
+        and h["anatomical_views"] == 16
+        and math.isfinite(h["loss"])
+        and math.isfinite(h["gradient_norm"])
+        and h["gradient_norm"] > 0
+        and h["scale"] > 0
+        for h in a["history"]
+    )
+    assert a["optimizer"]["state"] and all(
+        float(row["step"]) == 4 for row in a["optimizer"]["state"].values()
+    )
+    for epoch in (1, 2):
+        x = torch.load(
+            root / f"full/epoch-checkpoints/epoch-{epoch:03d}.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+        y = torch.load(
+            root / f"resumed/epoch-checkpoints/epoch-{epoch:03d}.pt",
+            map_location="cpu",
+            weights_only=True,
+        )
+        same(x, y)
+        assert x["completed"] == 2 * epoch
+    raw = (root / "full/engineering-predictions.private.csv").read_bytes()
+    assert raw == (root / "resumed/engineering-predictions.private.csv").read_bytes()
+    process = [
+        json.loads((root / p / f"{phase}-process.json").read_text())
+        for p, phase in [("full", "full"), ("resumed", "stop1"), ("resumed", "resume")]
+    ]
+    assert len({p["initial_state_sha256"] for p in process}) == 1
+    assert all(p["unchanged_BN"] and p["objective"] == objective for p in process)
+    assert process[0]["prediction_studies"] == process[2]["prediction_studies"] == 16
+    # Return aggregate numerical evidence, never tensors, identities or per-case probabilities.
+    return {
+        "complete_model_AdamW_schedule_cursors_all_RNG_scaler_history_equal": True,
+        "all_epoch_snapshot_states_equal": True,
+        "exact_16x12_two_view_full94_MRI_CSV_bytes_equal": True,
+        "prediction_sha256": hashlib.sha256(raw).hexdigest(),
+        "initial_state_sha256": process[0]["initial_state_sha256"],
+        "completed_updates": 4,
+        "optimizer_parameter_states": len(a["optimizer"]["state"]),
+        "final_state_digest": _digest(a["model"]),
+    }
+
+
+def _digest(state):
+    h = hashlib.sha256()
+    for name, t in sorted(state.items()):
+        h.update(name.encode())
+        h.update(str(t.dtype).encode())
+        h.update(str(tuple(t.shape)).encode())
+        h.update(t.contiguous().numpy().tobytes())
+    return h.hexdigest()
+
+
+def paid(root):
+    return sum(p.stat().st_size for p in Path(root).rglob("*") if p.is_file())
+
+
+def main():
+    os.umask(0o077)
+    root = Path("/tmp/rsna-teacher-pair-optimizer-recovery45-20261020-v1")
+    stage = json.loads((root / "staged.json").read_text())
+    assert os.uname().nodename == "evc45" and os.environ.get("SLURM_JOB_GPUS")
+    assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["driver_sha256"]
+    assert hashlib.sha256((root / "worker.py").read_bytes()).hexdigest() == stage["worker_sha256"]
+    assert not (root / "GPU-intent.json").exists()
+    assert shutil.disk_usage("/dev/shm").free > (20 + 8) * 2**30 + 32 * 2**20
+    work = Path(tempfile.mkdtemp(prefix="rsna-teacher-pair-recovery-", dir="/dev/shm"))
+    os.chmod(work, 0o700)
+    (root / "GPU-intent.json").write_text(
+        json.dumps(
+            {
+                "GPU_job": os.environ["SLURM_JOB_ID"],
+                "source_git": stage["source_git"],
+                "owned_temporary_RAM_root": str(work),
+                "cap_bytes": 8 * 2**30,
+                "automatic_retry": False,
+            }
+        )
+        + "\n"
+    )
+    env = {
+        **os.environ,
+        "TEACHER_PAIR_RECOVERY_WORK": str(work),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONNOUSERSITE": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+    }
+    phases = []
+    child = None
+    start = time.monotonic()
+    try:
+        for objective in ("pointwise", "teacher_rank"):
+            for phase in ("full", "stop1", "resume"):
+                assert time.monotonic() - start < 3400
+                with (
+                    (root / f"{objective}-{phase}.stdout.private.log").open("x") as out,
+                    (root / f"{objective}-{phase}.stderr.private.log").open("x") as err,
+                ):
+                    child = subprocess.Popen(
+                        [sys.executable, "-B", str(root / "worker.py"), phase, objective],
+                        env=env,
+                        stdout=out,
+                        stderr=err,
+                        start_new_session=True,
+                    )
+                    begun = time.monotonic()
+                    while child.poll() is None:
+                        assert paid(work) < 8 * 2**30 and paid(root) < 16 * 2**20
+                        assert shutil.disk_usage("/dev/shm").free > 20 * 2**30 + 32 * 2**20 + max(
+                            0, 8 * 2**30 - paid(work)
+                        )
+                        assert shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + 32 * 2**20
+                        assert time.monotonic() - begun < 550 and time.monotonic() - start < 3500
+                        time.sleep(2)
+                    assert child.returncode == 0, (
+                        "Original fresh engine process failed; retain all diagnostic bytes, no retry"
+                    )
+                phases.append(
+                    {"objective": objective, "phase": phase, "seconds": time.monotonic() - begun}
+                )
+        roles = {objective: compare(work, objective) for objective in ("pointwise", "teacher_rank")}
+        assert (
+            roles["pointwise"]["initial_state_sha256"]
+            == roles["teacher_rank"]["initial_state_sha256"]
+        )
+        assert (
+            roles["pointwise"]["final_state_digest"] != roles["teacher_rank"]["final_state_digest"]
+        )
+        for objective in roles:
+            for directory, phase in [("full", "full"), ("resumed", "stop1"), ("resumed", "resume")]:
+                r = json.loads((work / objective / directory / f"{phase}-process.json").read_text())
+                assert (
+                    r["device_type"] == "cuda"
+                    and r["trainable_parameters"] == 73136096
+                    and r["BN_buffers"] > 0
+                )
+        result = {
+            "status": "actual_full_encoder_teacher_pair_GPU_optimizer_recovery_accepted",
+            "GPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": stage["source_git"],
+            "gradient_probe_GPU": stage["gradient_probe_GPU"],
+            "gradient_receipt_sha256": stage["gradient_receipt_sha256"],
+            "trainable_parameters": 73136096,
+            "training_engineering_studies": 16,
+            "disjoint_prediction_engineering_studies": 16,
+            "roles": roles,
+            "phases": phases,
+            "temporary_RAM_checkpoint_bytes": paid(work),
+            "temporary_checkpoint_cap_bytes": 8 * 2**30,
+            "permanent_model_publication_or_full_fit_or_clinical_accuracy_or_competition_admission": False,
+            "automatic_retry": False,
+        }
+        (root / "verified-before-owned-scratch-release.json").write_text(
+            json.dumps(result, indent=2) + "\n"
+        )
+        # This newly created private test scratch is not an original production asset.
+        # Preserve originals and every failure; release only after complete acceptance.
+        shutil.rmtree(work)
+        result["only_new_verified_diagnostic_RAM_scratch_released"] = True
+        (root / "verified.json").write_text(json.dumps(result, indent=2) + "\n")
+        print(json.dumps(result), flush=True)
+    except BaseException as e:
+        if child is not None and child.poll() is None:
+            os.killpg(child.pid, signal.SIGTERM)
+            try:
+                child.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                os.killpg(child.pid, signal.SIGKILL)
+                child.wait(timeout=10)
+        (root / "failed.json").write_text(
+            json.dumps(
+                {
+                    "status": "original_actual_recovery_failed_no_retry",
+                    "GPU_job": os.environ["SLURM_JOB_ID"],
+                    "exception_type": type(e).__name__,
+                    "owned_RAM_scratch_retained": str(work),
+                    "source_git": stage["source_git"],
+                    "automatic_retry": False,
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        raise
+
+
+if __name__ == "__main__":
+    main()
