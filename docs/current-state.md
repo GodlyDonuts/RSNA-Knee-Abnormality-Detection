@@ -255,3 +255,29 @@ was still RUNNING via its live original follower; final serving waits for final
 verified fitting. No new score exists. Goal remains active/unachieved.
 
 [Original new source, cache, funding and dispatch receipts](../initiative/research/cached-attention-encoder-20261020-v1/README.md).
+
+
+### Source-zero first epoch actually completed
+
+Original Kaggle139742882v1/sourcebd680ac0 now reports COMPLETE, with an actual
+terminal receipt for486updates on3,887 studies/two views. Elapsed4797.625seconds;
+immutable weight292,869,619bytes SHA0c79c9e66800dac41070e63e15751f45602fd209cbfb29679b6fcbfe2adf5e71.
+This is epoch1 of the fixed three-epoch fit, NOT final completion or a score.
+Original live follower32102 owns independent full private verification and fresh
+budget/capacity admission for any next epoch. Do not dispatch/resume/publicize a
+checkpoint independently of that owner. At collection no private epoch1 verified
+receipt existed yet; the actual terminal does not substitute for that proof.
+
+
+### Distinct encoder milestone privately verified
+
+CPU977113/sourcea08571df privately preserved23 selected own-code and sanitized
+receipt objects,144,679bytes, atHFe94663ca412ba58c9ceccbb1bb1dbffe33ea2b9f.
+Every object independently re-downloaded/size/SHA verified under canonical shared
+lock. Prefix research-milestones/cached-attention-encoder-20261020-v1-a08571df6c0c;
+controls within the separately admitted8MiB encoder scope, all engineering/cache/
+standing reserves preserved. No reference arrays, UIDs, MRI, reports, weights or
+external source bodies included. Never repeat this or prior mirrors. This snapshot
+includes original full-cache acceptance and977100dispatch, not a GPU acceptance
+or subsequent source-zero epoch1 terminal. Source-zero publication977111 was
+actually RUNNING onevc48 when observed; original32102 owns it, never duplicate.
