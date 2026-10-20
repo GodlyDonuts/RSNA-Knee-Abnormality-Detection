@@ -1,0 +1,233 @@
+"""Private CPU-only input preparation/push/status. No GPU or competition entry."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import types
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+D = B / "selected-window-CPU-probe-v1"
+if v["phase"] == "prepare":
+    assert not D.exists()
+    assert sum(p.stat().st_size for p in B.rglob("*") if p.is_file()) + 2 * 2**20 < 8 * 2**20
+    assert shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + 32 * 2**20
+    compiler = types.ModuleType("original_CPU_selected_compiler")
+    exec(
+        compile(v["compiler"], "original_private_CPU_selected_compiler", "exec"), compiler.__dict__
+    )
+    source, meta = compiler.build(
+        (B / "epoch-1/source.private.py").read_text(), v["reader"], v["worker"], v["source_git"]
+    )
+    assert len(source.encode()) < 2**20
+    D.mkdir(mode=0o700)
+    (D / "source.private.py").write_text(source)
+    (D / "prepared.json").write_text(json.dumps(meta, sort_keys=True, indent=2))
+    out = {
+        "status": "actual_CPU_selected_window_Kaggle_probe_privately_compiled",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        **meta,
+        "new_Kaggle_GPU_or_competition_mutations": 0,
+    }
+    (D / "CPU-prepared.json").write_text(json.dumps(out, sort_keys=True, indent=2))
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
+assert v["phase"] in ("push", "status")
+source = (D / "source.private.py").read_text()
+meta = json.loads((D / "prepared.json").read_text())
+assert hashlib.sha256(source.encode()).hexdigest() == meta["source_sha256"]
+C = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control")
+
+
+def module(name, h):
+    p = C / (name + ".py")
+    assert hashlib.sha256(p.read_bytes()).hexdigest() == h
+    spec = importlib.util.spec_from_file_location("original_selected_CPU_" + name, p)
+    value = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(value)
+    return value
+
+
+w = module("workflow", "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900")
+p = module("publication", "e426dfe2dc39a82b36d7c26fd3c300f9dcd7efe310052158d214b701ce7b1336")
+import requests
+
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+slug = "godlydonuts/rsna-selected-window-cpu-" + meta["source_sha256"][:12]
+key = "licensed-importance-full-fit:selected-window-CPU:" + meta["source_sha256"]
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}), flush=True)
+    raise SystemExit(0)
+owner = {
+    "kind": "CPU_only_selected_window_runtime_probe",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "phase": v["phase"],
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        raw = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        if v["phase"] == "push":
+            assert raw is None and not (D / "push-intent.json").exists()
+            dataset = v["verified_input"]["dataset"]
+            assert dataset == p.metadata(r, "godlydonuts/rsna-window-integrity-85c2fbb342c4")
+            assert dataset["id"] == 12722964 and v["verified_input"]["downloaded_all_bytes"]
+            refs = [
+                "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+                *[
+                    "godlydonuts/rsna-parent-pixels-full-s" + str(i) + "-" + h
+                    for i, h in enumerate(
+                        ("a1e397b02232", "de046eb0aa17", "230f83898475", "4e7107a78606")
+                    )
+                ],
+            ]
+            for ref in refs:
+                assert r.kernel("GetKernelSessionStatus", ref, 1).get("status") == "COMPLETE"
+            absence = r.require_absent_kernel(slug)
+            request = {
+                "slug": slug,
+                "newTitle": slug.split("/")[1].replace("-", " "),
+                "text": source,
+                "language": "python",
+                "kernelType": "script",
+                "isPrivate": True,
+                "enableGpu": False,
+                "enableInternet": False,
+                "datasetDataSources": [
+                    dataset["slug"],
+                    "godlydonuts/rsna-parent-fit-targets-48b4485f03b6",
+                ],
+                "kernelDataSources": refs,
+                "competitionDataSources": [],
+                "sessionTimeoutSeconds": 1200,
+                "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                "dockerImagePinningType": "original",
+            }
+            row = {
+                "state": "selected_window_CPU_probe_push_intent",
+                "slug": slug,
+                "version": 1,
+                "source_sha256": meta["source_sha256"],
+                "request": {n: x for n, x in request.items() if n != "text"},
+                "absence": absence,
+                "source_git": v["source_git"],
+                "automatic_retry": False,
+            }
+            w.new_json(D / "push-intent.json", row)
+            db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row, sort_keys=True)))
+            db.commit()
+            retain = True
+            result = r.call("kernels.KernelsApiService", "SaveKernel", request)
+            w.new_json(D / "push-response.json", result)
+            assert result.get("ref") == "/code/" + slug and result.get("versionNumber") == 1
+            assert (
+                type(result.get("kernelId")) is int
+                and result["kernelId"] > 0
+                and not result.get("error")
+            )
+            assert all(
+                not result.get(n)
+                for n in (
+                    "invalidDatasetSources",
+                    "invalidKernelSources",
+                    "invalidCompetitionSources",
+                )
+            )
+            row.update(state="selected_window_CPU_probe_pushed", kernel_id=result["kernelId"])
+            db.execute(
+                "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+            )
+            db.commit()
+            actual = r.kernel("GetKernel", slug, 1)
+            assert (
+                actual["metadata"]["id"] == row["kernel_id"] and actual["blob"]["source"] == source
+            )
+            for name in ("isPrivate", "enableGpu", "enableInternet", "dockerImage"):
+                assert (
+                    actual["metadata"].get(
+                        name, False if name in ("enableGpu", "enableInternet") else None
+                    )
+                    == request[name]
+                )
+            for name in ("datasetDataSources", "kernelDataSources", "competitionDataSources"):
+                assert sorted(actual["metadata"].get(name, [])) == sorted(request[name])
+            out = {
+                "status": "actual_CPU_only_selected_window_runtime_probe_pushed",
+                "kernel_id": row["kernel_id"],
+                "slug": slug,
+                "version": 1,
+                "source_sha256": meta["source_sha256"],
+                "initial_status": r.kernel("GetKernelSessionStatus", slug, 1).get(
+                    "status", "INITIALIZING_UNREPORTED"
+                ),
+                "new_GPU_or_competition_jobs": 0,
+            }
+            w.new_json(D / "pushed.json", out)
+            retain = False
+        else:
+            assert raw is not None
+            row = json.loads(raw[0])
+            actual = r.kernel("GetKernel", slug, 1)
+            assert (
+                actual["metadata"]["id"] == row["kernel_id"]
+                and actual["blob"]["source"] == source
+                and not actual["metadata"].get("enableGpu", False)
+            )
+            status = r.kernel("GetKernelSessionStatus", slug, 1).get(
+                "status", "INITIALIZING_UNREPORTED"
+            )
+            out = {
+                "status": status,
+                "kernel_id": row["kernel_id"],
+                "version": 1,
+                "slug": slug,
+                "source_sha256": meta["source_sha256"],
+                "new_GPU_or_competition_jobs": 0,
+            }
+            if status == "COMPLETE":
+                receipt = r.output_json(slug, 1, "selected-window-runtime-accepted.json")
+                assert (
+                    receipt["status"]
+                    == "actual_Kaggle_CPU_selected_windows_original_tensors_targets_RNG_exact"
+                )
+                assert (
+                    receipt["binding"] == meta["binding"]
+                    and receipt["actual_plain_mirrored_pairs"] == 64
+                )
+                assert (
+                    receipt["all_images_labels_masks_teachers_exact"]
+                    and receipt["CPU_RNG_unchanged"]
+                )
+                out["receipt"] = receipt
+                if not (D / "actual-accepted.json").exists():
+                    w.new_json(D / "actual-accepted.json", out)
+                    row.update(state="selected_window_CPU_probe_actual_complete", receipt=receipt)
+                    db.execute(
+                        "UPDATE meta SET value=? WHERE key=?",
+                        (json.dumps(row, sort_keys=True), key),
+                    )
+                    db.commit()
+    print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()

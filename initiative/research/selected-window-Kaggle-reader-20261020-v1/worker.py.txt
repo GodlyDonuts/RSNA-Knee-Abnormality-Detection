@@ -1,0 +1,107 @@
+import hashlib
+import json
+import os
+import pickle
+import random
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from rsna.competitive.licensed_parent_population import load, locate
+from rsna.competitive.licensed_selected_pixel_bags import SelectedPixelBags
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+D = Path("/kaggle/working/selected-window-runtime-probe")
+p = locate(
+    "/kaggle/input",
+    "window-integrity.private.npy",
+    23384320,
+    "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f",
+)
+manifest = D / p.name
+with manifest.open("xb") as out, p.open("rb") as source:
+    while block := source.read(2**20):
+        out.write(block)
+manifest.chmod(0o600)
+p = locate(
+    "/kaggle/input",
+    "integrity-receipt.json",
+    1372,
+    "7351e1012b9fe09ae7a4d54e1971f6b9a6fdec4e10c4bb81686b18949cd8501c",
+)
+integrity = json.loads(p.read_text())
+original = load(
+    "/kaggle/input",
+    _PROOFS,
+    lambda v, m, mirror: eval_windows(v, m, 94, 320, norm=NORM, mirror=mirror),
+)
+selected = SelectedPixelBags(
+    original,
+    manifest,
+    integrity,
+    lambda v, m, positions, mirror: _selected_original_windows(
+        v, m, 94, 320, positions, norm=NORM, mirror=mirror
+    ),
+)
+assert len(selected) == 3887 and selected.uids == original.uids
+indices = [round(i * 3886 / 31) for i in range(32)]
+assert len(set(indices)) == 32
+positions = [93, 0, 47, 2, 83, 9, 14, 75, 26, 51, 66, 35, 60, 21, 41, 7]
+
+
+def rng():
+    return hashlib.sha256(
+        torch.get_rng_state().numpy().tobytes()
+        + pickle.dumps(np.random.get_state())
+        + pickle.dumps(random.getstate())
+    ).hexdigest()
+
+
+before = rng()
+old_time = fast_time = 0.0
+start = time.monotonic()
+for order, index in enumerate(indices):
+    for mirror in (False, True):
+        values = {}
+        for name, reader in (
+            (("original", original), ("selected", selected))
+            if order % 2 == 0
+            else (("selected", selected), ("original", original))
+        ):
+            t = time.monotonic()
+            values[name] = reader.case(index, positions, mirror)
+            elapsed = time.monotonic() - t
+            if name == "original":
+                old_time += elapsed
+            else:
+                fast_time += elapsed
+        assert torch.equal(values["original"]["images"], values["selected"]["images"])
+        for key in ("labels", "mask", "parent_logits"):
+            torch.testing.assert_close(
+                values["original"][key], values["selected"][key], atol=0, rtol=0, equal_nan=True
+            )
+assert rng() == before
+assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 64 * 2**20
+receipt = {
+    "status": "actual_Kaggle_CPU_selected_windows_original_tensors_targets_RNG_exact",
+    "binding": _BINDING,
+    "full_population": 3887,
+    "measured_studies": 32,
+    "actual_plain_mirrored_pairs": 64,
+    "selected_windows_per_view": 16,
+    "all_images_labels_masks_teachers_exact": True,
+    "CPU_RNG_unchanged": True,
+    "original_case_seconds": old_time,
+    "selected_case_seconds": fast_time,
+    "full_case_ratio": old_time / fast_time,
+    "elapsed_seconds": time.monotonic() - start,
+    "measurement_order_alternated": True,
+    "model_GPU_optimizer_or_clinical_operations": 0,
+    "actual_GPU_training_speed_or_accuracy_claim": False,
+}
+(D / "accepted.json").write_text(json.dumps(receipt, sort_keys=True, indent=2))
+print(json.dumps(receipt), flush=True)

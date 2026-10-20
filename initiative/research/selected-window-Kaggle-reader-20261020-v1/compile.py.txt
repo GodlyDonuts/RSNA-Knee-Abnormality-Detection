@@ -1,0 +1,141 @@
+"""Compile a CPU-only exact-window probe from the immutable private E1 source."""
+
+import ast
+import base64
+import copy
+import hashlib
+
+BASE_SHA = "85ad0c706996079e1e05e98e81d7dc3930ccaab2bb089ecf4106db84d06bcfb3"
+READER_SHA = "68bec63addd22c811c8aac5132c825e1c6daad4b4185a6cdc1c82129bf0f2fcf"
+
+
+def digest(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def extract(source):
+    if digest(source) != BASE_SHA:
+        raise ValueError("Exact immutable private E1 source required")
+    literals = {}
+    for n in ast.parse(source).body:
+        if isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name):
+            if n.targets[0].id in ("FILES", "WORKER", "PERMISSION"):
+                literals[n.targets[0].id] = ast.literal_eval(n.value)
+    if set(literals) != {"FILES", "WORKER", "PERMISSION"}:
+        raise ValueError("Exact private original numerical closure and permission required")
+    worker = base64.b64decode(literals["WORKER"], validate=True).decode()
+    tree = ast.parse(worker)
+    ends = [
+        i
+        for i, n in enumerate(tree.body)
+        if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+    ]
+    if len(ends) != 1:
+        raise ValueError("Unique original renderer prefix before any model definitions required")
+    original = [
+        n
+        for n in tree.body[: ends[0]]
+        if isinstance(n, ast.FunctionDef) and n.name == "eval_windows"
+    ]
+    if len(original) != 1:
+        raise ValueError("Exact original renderer required")
+    fn = copy.deepcopy(original[0])
+    if [a.arg for a in fn.args.args] != ["vol", "mask", "k", "res", "norm", "mirror"]:
+        raise ValueError("Unchanged original renderer interface required")
+    expected = ast.dump(ast.parse("cs = _eval_centers(mask,D,k)").body[0])
+    sites = [i for i, n in enumerate(fn.body) if ast.dump(n) == expected]
+    if len(sites) != 1:
+        raise ValueError("One exact original center assignment required")
+    fn.name = "_selected_original_windows"
+    fn.args.args.insert(4, ast.arg(arg="positions"))
+    fn.body.insert(sites[0] + 1, ast.parse("cs = [cs[i] for i in positions]").body[0])
+    fn.body.insert(
+        0,
+        ast.parse(
+            "if k != 94 or res != 320 or not isinstance(positions,list) or not 1 <= len(positions) <= 94 or any(type(i) is not int or not 0 <= i < 94 for i in positions):\n raise ValueError('Exact original window indices and geometry required')"
+        ).body[0],
+    )
+    proof_nodes = [
+        n
+        for n in tree.body
+        if isinstance(n, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "_PROOFS" for t in n.targets)
+    ]
+    if len(proof_nodes) != 1:
+        raise ValueError("Exact original four-shard proof required")
+    prefix = ast.unparse(
+        ast.fix_missing_locations(ast.Module(body=tree.body[: ends[0]], type_ignores=[]))
+    )
+    selected = ast.unparse(ast.fix_missing_locations(ast.Module(body=[fn], type_ignores=[])))
+    return (
+        literals,
+        prefix,
+        selected,
+        ast.literal_eval(proof_nodes[0].value),
+        digest(ast.dump(original[0])),
+    )
+
+
+def build(source, reader, main, source_git):
+    if digest(reader) != READER_SHA or len(source_git) != 40:
+        raise ValueError("Exact admitted selected reader and scientific source pin required")
+    old, prefix, selected, proofs, original_ast = extract(source)
+    names = ("licensed_parent_population", "licensed_pixel_bags", "licensed_pixel_cache")
+    files = {
+        "rsna/competitive/" + name + ".py": old["FILES"]["rsna/competitive/" + name + ".py"]
+        for name in names
+    }
+    files["rsna/competitive/licensed_selected_pixel_bags.py"] = reader
+    binding = {
+        "source_git": source_git,
+        "original_E1_source_sha256": BASE_SHA,
+        "original_renderer_AST_sha256": original_ast,
+        "selected_renderer_sha256": digest(selected),
+        "own_module_sha256": {n: digest(s) for n, s in files.items()},
+        "CPU_only": True,
+        "model_optimizer_or_clinical_operations": 0,
+    }
+    worker = (
+        prefix
+        + "\n"
+        + selected
+        + "\n_PROOFS="
+        + repr(proofs)
+        + "\n_BINDING="
+        + repr(binding)
+        + "\n"
+        + main
+    )
+    compile(worker, "private_CPU_selected_window_runtime_probe", "exec")
+    bootstrap = """import base64,json,os,shutil,subprocess,sys
+from pathlib import Path
+FILES=FILES_VALUE
+WORKER=WORKER_VALUE
+PERMISSION=PERMISSION_VALUE
+os.environ.update(HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',CUDA_VISIBLE_DEVICES='')
+D=Path('/kaggle/working/selected-window-runtime-probe');assert not D.exists() and shutil.disk_usage(D.parent).free>12*2**30;D.mkdir(mode=0o700);code=D/'code';code.mkdir(mode=0o700)
+for name,text in {**FILES,'rsna/__init__.py':'','rsna/competitive/__init__.py':''}.items():
+ p=code/name;assert p.resolve().is_relative_to(code.resolve());p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text);p.chmod(0o600)
+(D/'permission.txt').write_bytes(base64.b64decode(PERMISSION,validate=True));worker=code/'worker.private.py';worker.write_bytes(base64.b64decode(WORKER,validate=True));worker.chmod(0o600)
+with (D/'original.private.log').open('x') as log:
+ result=subprocess.run([sys.executable,str(worker)],env={**os.environ,'PYTHONPATH':str(code)},stdout=log,stderr=subprocess.STDOUT,timeout=1100)
+assert result.returncode==0,'Original CPU input failure retained, no retry'
+receipt=json.loads((D/'accepted.json').read_text());assert receipt['status']=='actual_Kaggle_CPU_selected_windows_original_tensors_targets_RNG_exact'
+Path('/kaggle/working/selected-window-runtime-accepted.json').write_text(json.dumps(receipt,sort_keys=True,indent=2));print(json.dumps(receipt),flush=True)
+"""
+    for name, value in {
+        "FILES_VALUE": files,
+        "WORKER_VALUE": base64.b64encode(worker.encode()).decode(),
+        "PERMISSION_VALUE": old["PERMISSION"],
+    }.items():
+        assert bootstrap.count(name) == 1
+        bootstrap = bootstrap.replace(name, repr(value))
+    compile(bootstrap, "private_CPU_only_input_probe", "exec")
+    return bootstrap, {
+        "source_sha256": digest(bootstrap),
+        "worker_sha256": digest(worker),
+        "binding": binding,
+        "maximum_CPU_seconds": 1200,
+        "maximum_new_GPU_jobs": 0,
+        "private_output_cap_bytes": 64 * 2**20,
+    }
