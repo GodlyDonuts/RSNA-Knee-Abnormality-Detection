@@ -1,0 +1,111 @@
+"""One explicit bounded CPU continuation after confirmed original TIMEOUT."""
+
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/selected-window-full-cohort-20261020-v1"
+assert not (L / "continuation-intent.json").exists()
+actual = subprocess.check_output(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "newton",
+        "sacct -X -n -P -j 975028 --format=JobIDRaw,State",
+    ],
+    text=True,
+)
+assert any(row.split("|")[:2] == ["975028", "TIMEOUT"] for row in actual.splitlines()), (
+    "Original job must be terminal at its actual time limit"
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for name in ("continue_manifest.py.txt", "continue_manifest_once.py.txt", "manifest_stage.py.txt"):
+    p = D / name
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+loader = importlib.machinery.SourceFileLoader(
+    "original_prefix_continuation", str(D / "continue_manifest.py.txt")
+)
+m = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+loader.exec_module(m)
+program = m.build((D / "manifest_stage.py.txt").read_text())
+files = json.loads(
+    (
+        R / "initiative/research/teacher-pair-earlier45-20261020-v1/actual-full-input-copy.json"
+    ).read_text()
+)["receiver"]["files"]
+modules = {
+    n: hashlib.sha256((R / n).read_bytes()).hexdigest()
+    for n in (
+        "rsna/competitive/licensed_parent_population.py",
+        "rsna/competitive/licensed_pixel_bags.py",
+        "rsna/competitive/licensed_pixel_cache.py",
+    )
+}
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+with (L / "continuation-intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "original_CPU": "975028",
+            "original_actual_terminal": "TIMEOUT",
+            "maximum_new_CPU_jobs": 1,
+            "new_GPU_or_pixel_copies": 0,
+            "same_original32MiB_draft_scope": True,
+            "automatic_retry": False,
+        },
+        f,
+    )
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=4G",
+    "--time=00:45:00",
+    "--job-name=rsna-window-integrity-prefix-continuation",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(a)],
+    input=t.envelope(program, {"source_git": pin, "modules": modules, "original_files": files}),
+    capture_output=True,
+    text=True,
+    timeout=3600,
+)
+(L / "continuation-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect original continuation state; never repeat automatically"
+z = json.loads(x.stdout)
+assert (
+    z["original_full94_tensor_hash_checks"] == 7774
+    and z["completed_original_prefix_repeated"] is False
+)
+(D / "actual-full-cohort-integrity.json").write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)

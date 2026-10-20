@@ -1,0 +1,72 @@
+"""Continue only a flushed draft prefix after the original bounded CPU timeout."""
+
+import hashlib
+
+BASE_SHA = "e3078e5eaeef35d36fd0a560f45173860fb17f56765339130a393f9526bbdc3b"
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("One exact original draft-lifecycle site required")
+    return source.replace(before, after)
+
+
+def build(source):
+    if hashlib.sha256(source.encode()).hexdigest() != BASE_SHA:
+        raise ValueError("Exact original full-cohort manifest source required")
+    source = once(source, "import sys\n", "import sys\nimport subprocess\n")
+    source = once(
+        source,
+        'assert not D.exists(), "Original intent/outputs require read-only reconciliation"',
+        '''assert D.is_dir() and not (D / "verified.json").exists()
+old = json.loads((D / "intent.json").read_text())
+assert old["CPU_job"] == "975028" and old["source_git"] == "baa2a5ecf46c3911abb1923b9f2771a4363ac6e1"
+terminal = subprocess.check_output(["sacct", "-X", "-n", "-P", "-j", "975028", "--format=JobIDRaw,State"], text=True)
+assert any(row.split("|")[:2] == ["975028", "TIMEOUT"] for row in terminal.splitlines()), "Actual original time limit, never assumed failure, required"
+progress = json.loads((D / "progress.json").read_text())
+prefix = progress["completed_studies"]
+assert type(prefix) is int and 0 < prefix < 3887 and prefix % 64 == 1
+assert progress["total_studies"] == 3887
+K = D / "continuation-v1"
+assert not K.exists(), "Existing continuation requires read-only reconciliation"''',
+    )
+    source = once(
+        source,
+        "D.mkdir(mode=0o700)",
+        """K.mkdir(mode=0o700)
+(K / "original-progress.private.json").write_text(json.dumps(progress, indent=2) + "\\n")""",
+    )
+    source = once(source, '(D / "intent.json").write_text(', '(K / "intent.json").write_text(')
+    start = source.index("inputs.mkdir(mode=0o700)")
+    end = source.index('ns = {"__name__": "original_CPU_renderer"', start)
+    source = source[:start] + "assert inputs.is_dir()\n" + source[end:]
+    source = once(
+        source,
+        'windows = np.lib.format.open_memmap(path, mode="w+", dtype=np.uint8, shape=(3887, 2, 94, 32))',
+        """windows = np.load(path, mmap_mode="r+", allow_pickle=False)
+assert windows.dtype == np.uint8 and windows.shape == (3887, 2, 94, 32)
+assert path.stat().st_size < 32 * 2**20
+assert not np.any(np.all(windows[:prefix] == 0, axis=-1)), "Every retained prefix window must already be populated"
+private_prefix_sha = hashlib.sha256(windows[:prefix].tobytes()).hexdigest()""",
+    )
+    source = once(source, "for i in range(3887):", "for i in range(prefix, 3887):")
+    source = once(source, '(D / "progress.json").write_text(', '(K / "progress.json").write_text(')
+    source = once(
+        source,
+        '"elapsed_CPU_seconds": time.monotonic() - started,',
+        """"continuation_CPU_seconds": time.monotonic() - started,
+    "original_CPU_job": "975028",
+    "original_actual_terminal": "TIMEOUT",
+    "original_source_git": old["source_git"],
+    "retained_flushed_prefix_studies": prefix,
+    "retained_prefix_sha256": private_prefix_sha,
+    "completed_original_prefix_repeated": False,
+    "at_most63_unsealed_tail_studies_may_be_recomputed": True,""",
+    )
+    source = once(
+        source,
+        '"original_full94_tensor_hash_checks": len(data.verified_inputs),',
+        '"original_full94_tensor_hash_checks": prefix * 2 + len(data.verified_inputs),',
+    )
+    compile(source, "original_full_MRI_draft_prefix_continuation", "exec")
+    return source
