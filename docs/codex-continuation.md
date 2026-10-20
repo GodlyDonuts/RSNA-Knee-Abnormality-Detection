@@ -1,5 +1,43 @@
 # RSNA Knee continuation
 
+## October20 actual learning milestone and live next work
+
+Original real-MRI B/C GPU978218 COMPLETED0:0/79seconds on healthy ordinary evc27.
+Both arms passed complete model/AdamW/history/cursor/all-RNG and disjoint-process
+prediction-byte recovery; all full encoder parameters trained after warmup.
+Full-phase4-update times B2.213s/C1.930s, peak~5.414GB. This one-case engineering
+pass is NOT a clinical/competition gain. C training exam loss briefly reached
+21.46; preserve that negative numerical evidence. New bounded16-case learning
+uses BOTH arms headLR3e-5 (tenfold lower),24context windows/mask, complete source
+region/support priors,12fitting training/4disjoint engineering cases,8epochs/
+24updates/effective4/head-only3. No protected/gold cohort or teacher loss. It is
+prepared under predictive-raw16-learning-20261020-v1, finite owner47201; inspect
+actual-inputs/submit/terminal before inferring execution. It admits inputs first,
+reserves no GPU while waiting, and never repeats uncertain transfers/jobs.
+
+CPU978232 is actually building16 complete source-level lossless fitting caches
+on33. At latest observation10/16 complete:1,370,769,026 original bytes ->
+633,162,775 cache bytes,37,104complete descriptor regions. Source fixture reused,
+other originals acquired once with pinned individual SHA; no full-cohort cache
+or full predictive production yet. New16GiBcache/2GiBowned transient/16MiBcontrols
+funded after all old liabilities and20GiBreserve. Only consumed job-owned scratch
+may be reclaimed; originals/cache/proofs retained. Read original raw16 controls.
+
+Interrupted978084 retained2.392GB; CPU978186/978187 completed exact suffix-only
+recovery to27,55,685files/12.434GB total,10.042GB transferred, no GPU held during
+copy. Do not repeat any replica or978218. Node47 remains CUDA-unusable;27 passed.
+
+Source-zero E3 kernel139786921v1 was pushed ONCE after fresh10739.90free VM seconds,
+6000fit cap/3000final-serving reserve; original E2 fully6-object privately verified
+atHF ee73db671130b6f850f551844e0a16a9ac80fcec,972updates. Distinct finite successor
+46627 handles only remaining E3 preservation/qualification/one entry/outcome;
+46628 handles only remaining teacher_rank epochs and CPU final compilation.
+Original ended owners/intents remain preserved. Do not restart them or duplicate
+any phase. Original H100975297 remains healthy. Best actual0.958external ensemble,
+own adaptation0.949; no new original accuracy gain claimed. Git milestones after
+1172d429 are not covered by prior private HF mirror until a new receipt exists.
+
+
 ## October20 08:55UTC actual recovery handoff
 
 Portable978084 on evc27 passed actual allocated CUDA context/memory, then FAILED

@@ -1,5 +1,7 @@
 # RSNA Knee Abnormality Detection
 
+Latest October20: the new predictive-evidence architecture now passes actual raw-MRI full-encoder training and exact recovery (GPU978218), not an accuracy result. A16-study input/learning expansion and the existing final Kaggle training ablation are active. See [current evidence](docs/current-state.md).
+
 **October 20, 2026: best verified Kaggle score is 0.958, from an attributed
 external R6 ensemble reproduction. Target 0.97 is not achieved.** Current encoder
 adaptation uses a **73M CoAtNet**, with earlier DINOv3 research retained separately.
