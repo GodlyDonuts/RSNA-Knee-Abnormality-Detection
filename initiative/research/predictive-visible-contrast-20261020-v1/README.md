@@ -23,9 +23,21 @@ inputs, insufficient capacity, exclusive output, and interrupted scratch
 cleanup. These are implementation checks, not real full-cohort preparation,
 GPU acceptance or an accuracy gain. No running source or queued pilot changed.
 
+`visible_contrast_stream.py` now supplies the private sender/receiver protocol.
+It validates a separately admitted source/terminal/roster manifest, hashes each
+body on receipt, binds the complete ordered stream and requires exact EOF.
+The destination checks both pixel and index bounds before each pixel write,
+creates files privately/exclusively, records destination-owned stat proofs and
+reuses its independently verified original control copy. Corruption, truncation,
+wrong order/source, excess bytes or an incomplete cohort leaves partial output
+without an acceptance receipt. It never retries or overwrites a destination.
+Fourteen local transport tests passed, including complete two-study synthetic
+roundtrip, exact both-role inputs and independent destination file proofs. No
+real MRI transfer or full-cohort receiver has run through this new protocol.
+
 Before using this path, inspect the actual **984784** matched learning outcome,
 make an explicit scientific decision, and bind the completed 3,887-case raw and
-context receipts. A full private receiver/coordinator, destination capacity,
+context receipts. Accepted CPU wrappers/coordinator, destination capacity,
 source scratch funding and full-worker ten-coordinate initialization still need
 admission. The original **96 GiB** context budget cannot be reassigned to new
 normalized inputs; the new destination needs its own bound. Use exact per-file
