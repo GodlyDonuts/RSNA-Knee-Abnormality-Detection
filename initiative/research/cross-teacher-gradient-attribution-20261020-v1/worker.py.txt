@@ -1,0 +1,76 @@
+"""One CPU-only fitting-target diagnostic; no images, held-out values or model."""
+
+import hashlib
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+import numpy as np
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+R = Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+D = R / "cross-teacher-gradient-audit-v1"
+assert not D.exists()
+paid = sum(
+    p.stat().st_size
+    for p in R.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(R).parts
+)
+assert paid + 2**20 < 24 * 2**30
+assert (
+    shutil.disk_usage("/tmp").free > (20 + 87 + 12) * 2**30 + max(0, 24 * 2**30 - paid) + 64 * 2**20
+)
+candidates = list(
+    Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2/targets").rglob(
+        "targets.private.npz"
+    )
+)
+assert len(candidates) == 1
+A = candidates[0]
+B = Path(
+    "/tmp/rsna-S6-target-execution-inputs-20261019-v1/complete-target-input-v1/teacher-targets.private.npz"
+)
+assert (
+    hashlib.sha256(A.read_bytes()).hexdigest()
+    == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"
+)
+assert (
+    hashlib.sha256(B.read_bytes()).hexdigest()
+    == "3d7014e7758c25bd4c39aa3676954fa6cd378e0aaf7c46d1510af05ad3c077ba"
+)
+with np.load(A, allow_pickle=False) as x, np.load(B, allow_pickle=False) as y:
+    assert set(x.files) == {"uids", "labels", "masks", "parent_logits"} and set(y.files) == {
+        "uids",
+        "parent_only",
+        "cross_lineage_equal_rank",
+    }
+    assert x["uids"].tolist() == y["uids"].tolist() and len(x["uids"]) == 3887
+    assert (
+        hashlib.sha256(json.dumps(x["uids"].tolist(), separators=(",", ":")).encode()).hexdigest()
+        == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+    )
+    assert np.array_equal(x["parent_logits"], y["parent_only"])
+    namespace = {"__name__": "isolated_derivative_audit"}
+    assert hashlib.sha256(v["module"].encode()).hexdigest() == v["module_SHA"]
+    exec(compile(v["module"], "own_fitting_only_derivative_audit", "exec"), namespace)
+    result = namespace["audit"](
+        x["parent_logits"], y["cross_lineage_equal_rank"], x["labels"], x["masks"]
+    )
+out = {
+    "status": "actual_complete_fitting_cross_teacher_logit_derivative_attribution_CPU",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "module_SHA": v["module_SHA"],
+    "original_target_SHA": "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285",
+    "complete_teacher_target_SHA": "3d7014e7758c25bd4c39aa3676954fa6cd378e0aaf7c46d1510af05ad3c077ba",
+    "result": result,
+    "new_GPU_optimizer_model_or_pixel_operations": 0,
+    "private_IDs_arrays_or_labels_exported": False,
+}
+D.mkdir(mode=0o700)
+(D / "verified.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
