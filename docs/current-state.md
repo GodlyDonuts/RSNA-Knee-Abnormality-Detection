@@ -192,9 +192,10 @@ existing MIL graph; it is not a claim that these ideas are newly invented.
  another2MiB for original future fit/serving; no original deletion/funding credit.
 
 [Mechanism, primary papers, all negative/positive evidence and agent decision](../initiative/research/cached-attention-control-20261020-v1/README.md).
-Next is a separately funded actual-encoder diagnostic with matched deterministic
-mode, exact moment alignment, complete recovery and gradient/drift measurements;
-no full model/GPU dispatch or submission exists for this mechanism yet.
+The actual-encoder diagnostic is now admitted and submitted once as GPU977100;
+see the latest section below. It uses matched deterministic mode, exact moment
+alignment, complete recovery and gradient/drift measurements. No production fit
+or competition submission exists for this mechanism.
 
 
 The selected new mechanism sources/negative ratio result/positive linearized CPU
