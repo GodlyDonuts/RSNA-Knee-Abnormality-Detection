@@ -1,6 +1,8 @@
 # All three predictive arms on evc27
 
-Prepared locally; this directory has not launched a transfer, GPU job, publication or Kaggle entry. The actual 19:54 UTC scheduler observation placed both evc33 H100 job end times after the intended entry window. This successor therefore moves B and C to the already planned C0 destination, evc27. The original waiting owners remain authoritative until the explicit, independently recorded idle handoff.
+At **October 20 20:15:31 UTC**, fitting continuation **33107** and deployment **32378** were live with empty stderr, waiting for the complete inputs. The [actual live receipt](../predictive-evc27-startup-continuation-20261020-v1/actual-live.json) binds the unchanged `2a224ae0` controls. No full-cache transfer, GPU fit or account phase has started. Original fitting32377 stopped before any phase because its launcher marker triggered the startup guard; the distinct continuation preserves that failure and the original journal.
+
+The actual 19:55:26 UTC scheduler observation placed both evc33 H100 job end times after the intended entry window. This successor moves B and C to the already planned C0 destination, evc27. The preceding idle fitting/deployment/observer owners were stopped with explicit absence proofs; no remote job was cancelled.
 
 The numerical source remains `44cc559e947560a635c34fee7b1f2a3b7be3a241`, with the original CPU preparation 979667, parent, shared initialization, targets, corrected-source lineage and six-epoch recipes. The original portable initializer validates **all three models** against that preparation. B, C and C0 receive separate recipe, input, funding and binding files; the worker and publisher bytes are unchanged.
 
