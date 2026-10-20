@@ -1,0 +1,26 @@
+"""Correct an engineering-subset join, never change labels or the numerical engine."""
+
+import hashlib
+
+
+def build(original):
+    assert (
+        hashlib.sha256(original.encode()).hexdigest()
+        == "4d0b9a189c43bac448a54e8e3f61ec37396bededc1289846d4bcfc3ef2525813"
+    )
+    changes = [
+        ("assert not D.exists()", 'assert D.is_dir() and not (D / "prepared.json").exists()'),
+        (
+            'D.mkdir(mode=0o700)\n(D / "intent.json").write_text(\n    json.dumps(\n        {\n            "source_git": v["source_git"],\n            "CPU_job": os.environ["SLURM_JOB_ID"],\n            "engineering_checkpoints_cap_bytes": 12 * 2**30,\n            "private_case_cap_bytes": 128 * 2**20,\n            "controls_cap_bytes": 4 * 2**20,\n            "new_shared_bytes_files": 0,\n            "automatic_retry": False,\n        }\n    )\n    + "\\n"\n)\nfor n, text in v["files"].items():\n    p = D / "code" / n\n    assert p.resolve().is_relative_to((D / "code").resolve())\n    assert hashlib.sha256(text.encode()).hexdigest() == v["sha256"][n]\n    p.parent.mkdir(parents=True, exist_ok=True)\n    p.write_text(text)\n',
+            'assert json.loads((D / "intent.json").read_text())["CPU_job"] == "977645"\nassert not (D / "prepared.json").exists() and not (D / "case.private.pt").exists()\nassert not (D / "GPU-run-start.json").exists()\nwith (D / "admission-v2-intent.json").open("x") as f:\n    json.dump({"CPU_job":os.environ["SLURM_JOB_ID"],"source_git":v["source_git"],"reuse_original_funding_and_controls":True,"change":"join existing admitted full3887 labels instead of unrelated32-case diagnostic subset","automatic_retry":False}, f)\nfor n,text in v["files"].items():\n    p = D / "code" / n\n    assert p.is_file() and hashlib.sha256(p.read_bytes()).hexdigest() == v["sha256"][n]\n',
+        ),
+        (
+            'old = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py").read_text()\nassert (\n    hashlib.sha256(old.encode()).hexdigest()\n    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"\n)\nconstants = {\n    n.targets[0].id: ast.literal_eval(n.value)\n    for n in ast.parse(old).body\n    if isinstance(n, ast.Assign)\n    and len(n.targets) == 1\n    and isinstance(n.targets[0], ast.Name)\n    and n.targets[0].id == "TARGETS"\n}\noriginal = json.loads(base64.b64decode(constants["TARGETS"], validate=True))\nassert original["eligible_fitting_only"] is True and len(original["uids"]) == 32\ni = original["uids"].index(uid)\nlabels = torch.tensor(original["labels"][i], dtype=torch.float32).reshape(1, 12)\nmask = torch.tensor(original["masks"][i], dtype=torch.bool).reshape(1, 12)\n',
+            'target = Path("/tmp/rsna-licensed-parent-production-inputs-20261016-v1/targets.private.npz")\nassert target.stat().st_size == 483656\nassert hashlib.sha256(target.read_bytes()).hexdigest() == "48b4485f03b680161b0d2e1a22c73100ec53591bce93e5a2c8826aeec3eb9285"\nwith np.load(target, allow_pickle=False) as arrays:\n    uids = arrays["uids"].tolist()\n    assert len(uids) == 3887 and uids == sorted(set(uids))\n    assert hashlib.sha256(json.dumps(uids,separators=(",",":")).encode()).hexdigest() == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"\n    i = uids.index(uid)\n    labels = torch.from_numpy(arrays["labels"][i].copy()).float().reshape(1,12)\n    mask = torch.from_numpy(arrays["masks"][i].copy()).bool().reshape(1,12)\n',
+        ),
+    ]
+    for old, new in changes:
+        assert original.count(old) == 1
+        original = original.replace(old, new)
+    compile(original, "corrected_original_full_fitting_label_join", "exec")
+    return original
