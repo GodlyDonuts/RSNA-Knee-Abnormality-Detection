@@ -1,0 +1,74 @@
+"""Read-only actual mixed-prefix inventory. No cache/model/source writes or downloads."""
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert hashlib.sha256(v["reconcile"].encode()).hexdigest() == v["control_sha256"]["reconcile"]
+recon = importlib.util.module_from_spec(importlib.util.spec_from_loader("original_reconcile", loader=None))
+exec(v["reconcile"], recon.__dict__)
+assert hashlib.sha256(v["suffix_reconcile"].encode()).hexdigest() == v["suffix_reconcile_sha256"]
+suffix = importlib.util.module_from_spec(importlib.util.spec_from_loader("mixed_reconcile", loader=None))
+exec(v["suffix_reconcile"], suffix.__dict__)
+chain = suffix.predecessor_guard(v, recon, subprocess.check_output, {
+    "raw": "/tmp/rsna-predictive-full-raw-alias-recovery-20261020-v3",
+    "context": "/tmp/rsna-predictive-full-context-alias-recovery-20261020-v3",
+})
+rawroots = [Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1"), Path(chain["raw"]["root"])]
+ctxroots = [Path("/tmp/rsna-predictive-full-context-cache-20261020-v1"), Path(chain["context"]["root"])]
+index = rawroots[0] / "original-fitting-source-index.private.jsonl.gz"
+location = recon.bound_json(Path("/tmp/rsna-S6-fitting-teacher-stream-20261018-v1/RAM-location.private.json"))
+assert hashlib.sha256(index.read_bytes()).hexdigest() == location["sha256"]
+with gzip.open(index, "rt") as stream:
+    records = [json.loads(line) for line in stream]
+uids = [r["uid"] for r in records]
+assert len(records) == 3887 and uids == sorted(set(uids))
+roster = hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+assert roster == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+initial_raw = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+prior_path = initial_raw / "cache-index.private.json"
+assert hashlib.sha256(prior_path.read_bytes()).hexdigest() == recon.bound_json(initial_raw / "actual.json")["private_index_sha256"]
+prior = recon.bound_json(prior_path)
+assert len(prior) == 16
+raw = suffix.raw_inventory(recon, rawroots, records, prior, maximum_buffers=6)
+ctx16 = Path("/tmp/rsna-predictive-context16-cache-20261020-v1")
+assert recon.bound_json(ctx16 / "actual.json")["exact_both_view_images_targets_metadata_priors"]
+initial = recon.bound_json(ctx16 / "context-index.private.json")
+assert len(initial) == 16 and {r["uid"] for r in initial} == {r["uid"] for r in prior}
+renderer = {name: value for name, value in v["context_module_sha256"].items()
+            if name.rsplit("/", 1)[-1] in ("inputs.py", "cases.py", "supports.py")}
+assert len(renderer) == 3
+original_renderer = dict(renderer)
+original_renderer["rsna/competitive/predictive/cases.py"] = v["original_cases_sha256"]
+
+def provenance(row, *, original=False):
+    return {"original_raw_cache_sha256": row["proof"]["sha256"],
+            "original_source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+            "side": 320, "context_cap": 24, "halo": 8, "classes": 12,
+            "module_sha256": original_renderer if original else renderer}
+
+contexts = suffix.context_inventory(recon, ctxroots, initial, raw["complete"], uids, provenance)
+print(json.dumps({
+    "status": "actual_mixed_v3_prefix_read_only_admitted", "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"], "original_jobs": suffix.PREDECESSORS,
+    "continuation_chain": chain, "fitting_roster_sha256": roster,
+    "raw_complete": len(raw["complete"]), "raw_pending": len(raw["pending"]),
+    "context_complete": len(contexts["complete"]), "context_pending": 3887 - len(contexts["complete"]),
+    "retained_source_buffers": sum(map(len, raw["all_buffers"].values())),
+    "unfinished_source_buffers": len(raw["buffers"]), "raw_orphans": len(raw["orphan_caches"]),
+    "context_orphans": len(contexts["orphan_caches"]),
+    "raw_inventory_sha256": suffix.inventory_digest(raw, recon),
+    "context_inventory_sha256": suffix.inventory_digest(contexts, recon),
+    "suffix_reconcile_sha256": v["suffix_reconcile_sha256"],
+    "capacity_decision_sha256": v["capacity_decision_sha256"],
+    "raw_paid_bytes": recon.physical_bytes([Path(r["path"]) for r in prior] + [p for root in rawroots for p in (root / "cache").glob("*.npz")]),
+    "context_paid_bytes": recon.physical_bytes([Path(r["path"]) for r in initial] + [p for root in ctxroots for p in root.glob("context-*.npz")]),
+    "retained_source_bytes": recon.physical_bytes([root / "scratch" for root in rawroots]),
+    "no_original_writes": True, "pixel_reads_or_transfers_or_models": 0,
+}), flush=True)
