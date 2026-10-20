@@ -1,0 +1,96 @@
+"""Run the original B/C numerical diagnostic from accepted retained assets, no copy."""
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+a = json.loads(
+    (D.with_name("predictive-private-resume-20261020-v1") / "actual-resumed.json").read_text()
+)
+assert (
+    a["CPU_job"] == "978186"
+    and a["node"] == "evc27"
+    and a["files"] == 55685
+    and a["all_numerical_function_and_class_AST_unchanged"]
+    and a["GPU_allocated_during_copy"] is False
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert Path(__file__).read_bytes() == subprocess.check_output(
+    ["git", "show", pin + ":" + Path(__file__).relative_to(R).as_posix()]
+)
+script = """#!/bin/bash
+#SBATCH --account=skattel
+#SBATCH --partition=normal
+#SBATCH --qos=normal
+#SBATCH --nodelist=evc27
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --gres=gpu:nvidia_h100_pcie:1
+#SBATCH --mem=24G
+#SBATCH --time=00:20:00
+#SBATCH --job-name=rsna-predictive-actual-BC
+#SBATCH --output=/home/sa305415/rsna-knee/kaggle/predictive-retained27-20261020-v1-%j.out
+#SBATCH --error=/home/sa305415/rsna-knee/kaggle/predictive-retained27-20261020-v1-%j.err
+set -euo pipefail
+export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8
+D=/tmp/rsna-predictive-portable-recovery-20261020-v1
+exec "$D/runtime/bin/python" -B -c 'import sys;sys.path.insert(0,"/tmp/rsna-predictive-portable-recovery-20261020-v1/overlay");exec(compile(open("/tmp/rsna-predictive-portable-recovery-20261020-v1/code/driver.py").read(),"original_actual_BC_driver","exec"))'
+"""
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+preflight = subprocess.check_output(
+    [
+        *ssh,
+        "sacct -X -n -P -j 978084,978186,978187 --format=JobIDRaw,State,ExitCode; lfs quota -u sa305415 /home/sa305415",
+    ],
+    text=True,
+)
+assert (
+    "978084|FAILED|1:0" in preflight
+    and "978186|COMPLETED|0:0" in preflight
+    and "978187|COMPLETED|0:0" in preflight
+)
+q = next(x.split() for x in preflight.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(q[2]) - int(q[1])) * 1024 > 20 * 2**30 + 72 * 2**20 and int(q[6]) - int(
+    q[5]
+) > 5000 + 512
+intent = {
+    "source_git": pin,
+    "original_numerical_modules": "684b02a7",
+    "replica_CPU_jobs": ["978186", "978187"],
+    "maximum_new_GPU_jobs": 1,
+    "node": "evc27",
+    "GPU": 1,
+    "CPUs": 2,
+    "seconds": 1200,
+    "new_node_bulk_bytes": 0,
+    "existing_12GiB_diagnostic_funding_retained": True,
+    "new_shared_cap_bytes": 2 * 2**20,
+    "new_shared_files": 3,
+    "no_runtime_source_copy_in_GPU_job": True,
+    "script_sha256": hashlib.sha256(script.encode()).hexdigest(),
+    "automatic_retry": False,
+}
+(L / "intent.json").write_text(json.dumps(intent, indent=2) + "\n")
+z = subprocess.run(
+    [*ssh, "sbatch --parsable"], input=script, text=True, capture_output=True, timeout=60
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": z.returncode, "stdout": z.stdout, "stderr": z.stderr}, indent=2)
+    + "\n"
+)
+assert z.returncode == 0
+job = z.stdout.strip().split(";")[0]
+assert job.isdigit()
+a = {
+    "status": "one_retained_original_real_MRI_BC_GPU_diagnostic_submitted",
+    "GPU_job": job,
+    **intent,
+}
+(D / "actual-submit.json").write_text(json.dumps(a, indent=2) + "\n")
+print(json.dumps(a), flush=True)
