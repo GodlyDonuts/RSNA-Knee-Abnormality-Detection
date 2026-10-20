@@ -1,57 +1,60 @@
-# Measure whether the new objective reaches the predictive heads
+# Actual C24 objective-balance measurement
 
-The full B/C/C0 input jobs are healthy. Their immutable numerical recipe stays
-unchanged. This is a separate, fitting-only measurement on the already completed
-24-update C engineering checkpoint; it is not another training run, an accuracy
-test, or evidence about the future full model.
+CPU **981494 completed 0:0** on evc27, October 20, 16:30:21–16:31:33 UTC.
+The program measured 68.400 seconds and 2,830,712,832 bytes peak RSS using
+two CPUs and zero GPUs. It read the retained original C checkpoint at update 24,
+science `39e315c65546aa5205518713bc27349ec63e7538`, and the predeclared fitting
+ordinals 0 and 1 from its twelve-case engineering cohort, with both complete
+complementary contexts. It performed no optimizer steps or remote file writes;
+checkpoint/model state was unchanged.
 
-## The concrete question
+[Actual measurements](actual-result.json) and the
+[bound interpretation](actual-interpretation.json) preserve the result.
+The measurement receipt SHA256 is
+`6f10fc5a21e8149731e1600088e601b97c16be42b0a9e944baa05c67f6920e2a`.
 
-The implemented density objective for one diagnosis and complementary mask is
+## What was measured
 
-`density = (-log p0 - q × logBF) / (64 × observed_regions)`.
+The density gradient includes its **0.1 coefficient exactly once**. The table
+reports `100 × ||0.1 ∇density|| / ||∇exam BCE||`; these are gradient ratios,
+not loss ratios or estimated parameter-update ratios.
 
-Its production coefficient is 0.1. With 536 observed regions, its direct
-log-Bayes-factor derivative relative to exam BCE near `q=1, p=0.5` is roughly
-`0.2 / (64 × 536) = 5.83e-6`. The retained initial C density loss is
-0.9195934609, but 0.9189385332 is the fixed Gaussian constant. Its variable
-weighted value is therefore about 0.0000655, rather than the apparent 0.092.
+| Gradient scope | Fitting ordinal 0 | Fitting ordinal 1 |
+| --- | ---: | ---: |
+| All nonencoder parameters | 0.01024% | 0.01400% |
+| Finding-shift head | 0.000540% | 0.000404% |
+| Negative-mean head | 0.05985% | 0.07334% |
+| Context representation `h` | 0.07924% | 0.19561% |
 
-These facts identify a scale risk, not a demonstrated failure. The negative
-mean head initially receives density gradients that the exam term cannot supply
-when the finding shift is zero. Adam can amplify small coordinatewise signals.
-Similar combined gradient norms do not determine the auxiliary gradient vector.
+The density term has no direct prior-head gradient. All-head objective-gradient
+cosines were 0.03687 and 0.01646; per-head values are retained in the receipt.
+The independently computed total gradient matched the vector sum of the two
+objectives, with maximum relative L2 discrepancy below `8.91e-7` across groups.
 
-Measure the actual two objectives separately, at the same original checkpoint
-and on exactly fitting indices 0 and 1 of the original 12-case engineering
-training partition. Retain both complete complementary contexts. Report
-unweighted exam and **once-weighted** density gradient norms and cosines for the
-nonencoder parameter groups, their vector-sum identity, and the observed
-posterior contribution of the log Bayes factor relative to context logits.
-Remove no observation regions or diagnosis masks.
+Evidence was active: removing the log Bayes factor changed the mean posterior
+by **0.025159** and **0.020489**. Its effect on the fitting BCE had opposite
+signs: full minus context-only BCE was **+0.001033** and **−0.000951**.
+Neither averaged posterior had saturated targets at the declared
+`p ≤ 1e-4` or `p ≥ 1−1e-4` thresholds. Density above the fixed unit-Gaussian
+constant `0.9189385332` was 0.00033484 and 0.00026207.
 
-The encoder runs on CPU in FP32 evaluation mode and its features are detached
-for the head-gradient calculation. This is not a BF16 training-gradient replay,
-an encoder-gradient measurement, an Adam update, or proof of optimization impact.
-No individual labels, predictions, identifiers, images or checkpoint bytes leave
-the owning node. Only sanitized aggregate numerical findings are collected.
+## Interpretation and limits
 
-## Execution scope
+At this checkpoint and on these two fitting cases, the measured density
+gradient is much smaller than the exam gradient. This supports testing
+objective balance in a **separately declared experiment**. It does not establish
+an optimal coefficient, a collapse, or C/C0 irrelevance. Evidence already
+changes the posterior; the mixed BCE direction does not establish a benefit.
 
-Use the already retained original stable-warmup C checkpoint on evc27, original
-binding, exact accepted source modules, context cache and fitting targets. Bind
-the completed original engineering receipt and inspect original state before
-execution. Do not recreate the pilot, transfer its assets, change healthy input
-producers, or modify staged full-fitting code.
+This was CPU FP32 evaluation with detached encoder features. It measured
+nonencoder and context-representation gradients before clipping, and measured
+neither encoder gradients nor an Adam update. Adam can amplify small
+coordinatewise signals; the density term also supplies negative-mean-head
+signal absent from exam loss at neutral initialization. Two fitting cases at
+an early engineering checkpoint provide no held-out, clinical, first-200
+training, full-model, or competition-accuracy evidence. Image summary statistics
+include mask fill and do not measure unmasked MRI contrast.
 
-One CPU allocation requests two cores, 12 GiB RAM, zero GPUs and at most 30
-minutes. It streams its small source through stdin, writes no remote files and
-has no new node-local or shared-storage liability. The launcher creates one
-exclusive ignored local intent and retains any uncertain outcome without retry.
-No credentials, network downloads, Kaggle operations, new checkpoints, parameter
-updates, protected labels or model selection are involved.
-
-If gradients are weak, preserve that finding and its limitations. Do not retune
-the frozen matched comparison from this tiny measurement. It can motivate a
-separately declared future intervention; it cannot establish which loss weight
-improves competition accuracy.
+The ongoing model pipeline and frozen B/C/C0 recipe remain unchanged. No
+training, new checkpoint, protected-data read, model selection, source download,
+or Kaggle operation was performed for this diagnostic.

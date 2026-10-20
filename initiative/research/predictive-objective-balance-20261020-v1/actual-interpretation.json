@@ -1,0 +1,153 @@
+{
+  "Adam_update_claim": false,
+  "CPU_job": "981494",
+  "C_C0_irrelevance_claim": false,
+  "actual_result_file": "actual-result.json",
+  "actual_result_sha256": "6f10fc5a21e8149731e1600088e601b97c16be42b0a9e944baa05c67f6920e2a",
+  "binding_sha256": "43304b78b34b407f55088d4f8e610af8d1cbb112a9960f75311689a0078a75cc",
+  "checkpoint_model_state_unchanged": true,
+  "clinical_or_held_out_accuracy_claim": false,
+  "contexts_per_fitting_case": 2,
+  "density_coefficient_applied_exactly_once": 0.1,
+  "density_minus_fixed_gaussian_constant_by_fitting_ordinal": [
+    0.00033484326017108046,
+    0.0002620659889003285
+  ],
+  "diagnostic_sha256": "36a87becf4a79aeda7f6c491c82ff58c69b779902348f231648b5f00bec3aac0",
+  "diagnostic_source_git": "7b277c4e75a3ee25cdf5247b3dfad93eb5f9eefa",
+  "elapsed_seconds": 68.40039915801026,
+  "encoder_gradient_claim": false,
+  "finding": "At this retained C24 checkpoint, the once-weighted density gradient is much smaller than the exam gradient in every measured nonencoder group. Evidence changes the posterior, but its training BCE effect has opposite signs in the two cases.",
+  "fitting_ordinals": [
+    0,
+    1
+  ],
+  "full_minus_context_only_exam_BCE_by_fitting_ordinal": [
+    0.0010325312614440918,
+    -0.000950932502746582
+  ],
+  "gradient_ratios_and_cosines": {
+    "all_nonencoder_parameters": {
+      "cosine_by_fitting_ordinal": [
+        0.03687306403100711,
+        0.016462928791460392
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.010236126526153798,
+        0.014001837502336774
+      ]
+    },
+    "attention": {
+      "cosine_by_fitting_ordinal": [
+        0.73592629792024,
+        0.14152721261397236
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.060892608210291244,
+        0.1457972565821506
+      ]
+    },
+    "h": {
+      "cosine_by_fitting_ordinal": [
+        0.8204093682569021,
+        0.4774294524622169
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.07924352214732433,
+        0.1956064779965389
+      ]
+    },
+    "negative": {
+      "cosine_by_fitting_ordinal": [
+        0.06547936378822374,
+        0.0420070639881865
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.05984539060387133,
+        0.07333638030049223
+      ]
+    },
+    "norm": {
+      "cosine_by_fitting_ordinal": [
+        0.9216367997697459,
+        0.6609674955949394
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.07968175858619053,
+        0.23973009628969694
+      ]
+    },
+    "position": {
+      "cosine_by_fitting_ordinal": [
+        0.06089018309719769,
+        0.09735032385002568
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.0009714436299492955,
+        0.00109559539553353
+      ]
+    },
+    "prior": {
+      "cosine_by_fitting_ordinal": [
+        null,
+        null
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.0,
+        0.0
+      ]
+    },
+    "project": {
+      "cosine_by_fitting_ordinal": [
+        0.07519442813061994,
+        0.05411171123844501
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.0005383044435631301,
+        0.0005709348985804942
+      ]
+    },
+    "shift": {
+      "cosine_by_fitting_ordinal": [
+        0.7110551050364311,
+        0.5017753709625521
+      ],
+      "weighted_density_over_exam_L2_percent_by_fitting_ordinal": [
+        0.0005403948748161195,
+        0.0004035932143148876
+      ]
+    }
+  },
+  "gradient_scope": "nonencoder_parameters_and_context_h_before_any_clipping_or_Adam",
+  "limits": [
+    "Exactly two fitting cases, one early engineering checkpoint; no held-out accuracy or clinical result.",
+    "CPU FP32 evaluation with detached encoder features differs from original BF16 GPU training.",
+    "No encoder gradients, Adam update, clipping impact, optimization trajectory, or future full-model effect was measured.",
+    "Small raw gradient norms do not prove a small Adam effect; the density term supplies signal absent from exam loss in the neutral negative-mean head.",
+    "This is not a direct C-versus-C0 outcome test and does not prove that C or its density objective is irrelevant.",
+    "Input image summary statistics include mask fill and are not measurements of unmasked MRI contrast."
+  ],
+  "maximum_gradient_sum_identity_relative_L2_error": 8.9071268334854e-07,
+  "mean_absolute_posterior_change_by_fitting_ordinal": [
+    0.02515929937362671,
+    0.02048874832689762
+  ],
+  "measurement_precision": "CPU_FP32_eval_not_original_BF16_GPU_training",
+  "model_pipeline_or_recipe_changed": false,
+  "new_training_or_model_selection": false,
+  "optimizer_steps": 0,
+  "original_GPU_job": "978709",
+  "original_checkpoint_step": 24,
+  "original_engineering_receipt_sha256": "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82b10",
+  "original_science_git": "39e315c65546aa5205518713bc27349ec63e7538",
+  "peak_process_RSS_bytes": 2830712832,
+  "permitted_inference": "Motivates a separately declared objective-balance experiment; does not establish an optimal coefficient or justify altering the frozen B/C/C0 comparison.",
+  "posterior_saturation_fraction_at_1e_minus4_by_fitting_ordinal": [
+    0.0,
+    0.0
+  ],
+  "remote_files_written": 0,
+  "selection": "predeclared first two of the original twelve fitting cases",
+  "status": "actual_C24_two_fitting_case_objective_balance_interpreted",
+  "terminal_sha256": "9fbdb4f4e34a23a612eca050d994edee721003acb9f99e387146587b889936f4"
+}
