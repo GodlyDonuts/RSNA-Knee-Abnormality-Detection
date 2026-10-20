@@ -47,6 +47,28 @@ def test_actual_new_loop_recovery_and_complete_target_roster(tmp_path, arm):
     encoder = nn.Sequential(nn.Conv2d(3, 4, 3), nn.GELU(), nn.AdaptiveAvgPool2d(1), nn.Flatten())
     B, C, _ = matched_modules(encoder, 4, hidden=8, classes=2)
     base = B if arm == "B" else C
+    from rsna.competitive.predictive.infer import predict
+    from rsna.competitive.predictive.train import objective
+
+    base.eval()
+    inference_recipe = Recipe(arm, density_weight=0 if arm == "C0" else 0.1)
+    probabilities = predict(base, contexts)
+    with torch.inference_mode():
+        _, measures = objective(
+            base,
+            {
+                "contexts": contexts,
+                "labels": torch.zeros(1, 2),
+                "mask": torch.ones(1, 2, dtype=torch.bool),
+            },
+            inference_recipe,
+            torch.device("cpu"),
+        )
+    torch.testing.assert_close(probabilities, measures["probabilities"][0], atol=1e-7, rtol=1e-6)
+    with pytest.raises(ValueError):
+        predict(base, [{**contexts[0], "labels": torch.ones(1, 2)}, contexts[1]])
+    with pytest.raises(ValueError):
+        predict(base, contexts, precision="fp16")
 
     class Data:
         def __len__(self):

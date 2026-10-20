@@ -1,0 +1,137 @@
+"""Preserve selected sanitized mission sources once under the canonical HF lock."""
+
+import hashlib
+import importlib.util
+import json
+import re
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/hf-predictive-evidence-20261020-v2"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+scopes = [
+    "AGENTS.md",
+    "README.md",
+    "docs/current-state.md",
+    "docs/codex-continuation.md",
+    "rsna/competitive/predictive",
+    "tests/test_predictive_evidence_research.py",
+    "initiative/research/predictive-evidence-proposal-20261020-v1",
+    "initiative/research/predictive-raw-input-pilot-20261020-v1",
+    "initiative/research/predictive-real-trainer-20261020-v1",
+    "initiative/research/predictive-real-trainer-20261020-v2",
+    "initiative/research/teacher-pair-epoch-preservation-20261020-v1/actual-pointwise-epoch-3.json",
+    "initiative/research/teacher-pair-final-serving-20261020-v2/actual-pointwise-compile.json",
+    "initiative/audits/hf-predictive-evidence-20261020-v1",
+    "initiative/audits/hf-predictive-evidence-20261020-v2",
+]
+
+names = subprocess.check_output(
+    ["git", "diff", "--name-only", "5f2e8fdf", git, "--", *scopes],
+    text=True,
+).splitlines()
+files = {n: subprocess.check_output(["git", "show", git + ":" + n]) for n in names}
+assert 0 < len(files) < 200 and sum(map(len, files.values())) < 2**20
+assert all(n.endswith((".md", ".json", ".py.txt", ".py")) for n in files)
+assert all(not re.search(rb"1\.2\.826\.0\.1\.\d{3,}", b) for b in files.values())
+manifest = {
+    "source_git": git,
+    "scope": "selected new own source and sanitized aggregate receipts; not all historical unmirrored commits",
+    "files": {
+        n: {"bytes": len(b), "sha256": hashlib.sha256(b).hexdigest()} for n, b in files.items()
+    },
+    "MRI_reports_UIDs_per_case_predictions_external_weights_included": False,
+}
+(D / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+files["source-manifest.json"] = (D / "manifest.json").read_bytes()
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): x.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, x in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+program = (D / "program.py.txt").read_text()
+# Network failures can contain signed download URLs. Emit only safe failure type.
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except BaseException as error:\n    print(type(error).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+)
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "objects": len(files),
+            "bytes": sum(map(len, files.values())),
+            "small_source_cap_bytes": 4 * 2**20,
+            "inside_admitted_new_encoder_control_cap": 4 * 2**20,
+            "canonical_shared_lock": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+)
+s = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=01:45:00",
+    "--job-name=rsna-private-mission-source-milestone",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(a),
+    ],
+    input=t.envelope(
+        program,
+        {
+            "source_git": git,
+            "files": {n: b.decode() for n, b in files.items()},
+            "token": values["HF_TOKEN"],
+        },
+    ),
+    capture_output=True,
+    text=True,
+    timeout=6600,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+)
+assert x.returncode == 0, (
+    "Uncertain publication requires original intent/commit reconciliation: " + x.stderr[-1000:]
+)
+(D / "actual-private-verified.json").write_text(json.dumps(json.loads(x.stdout), indent=2) + "\n")
+print(x.stdout, flush=True)
