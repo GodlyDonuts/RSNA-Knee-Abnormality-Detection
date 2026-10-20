@@ -1,0 +1,199 @@
+# ruff: noqa: E402
+"""Admit one original raw fitting case and MRI-parent encoder; no GPU yet."""
+
+import ast
+import base64
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+import pydicom
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-real-trainer-20261020-v1")
+assert not D.exists()
+# New bounded diagnostic funding, separate from production models. No deletion credit.
+B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+paid = sum(
+    p.stat().st_size
+    for p in B.rglob("*")
+    if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+)
+assert (
+    shutil.disk_usage("/tmp").free > (20 + 8 + 12) * 2**30 + max(0, 8 * 2**20 - paid) + 166 * 2**20
+)
+T = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+files = [p for p in T.rglob("*") if p.is_file()]
+q = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+a = next(x.split() for x in q.splitlines() if x.strip().startswith("/home/sa305415"))
+assert (int(a[2]) - int(a[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - sum(p.stat().st_size for p in files)
+) + 192 * 2**10
+assert int(a[6]) - int(a[5]) > 5000 + 128 + 128 + max(0, 256 - len(files)) + 24
+prior = Path("/tmp/rsna-predictive-raw-input-pilot-20261020-v1")
+assert json.loads((prior / "actual.json").read_text())["CPU_job"] == "977456"
+P = Path("/tmp/rsna-S6-checkpoint-admission-20261017-v1")
+location = json.loads((P / "HF-raw-input-bridge-v1/RAM-location.private.json").read_text())
+ram = Path(location["path"])
+assert ram.resolve().is_relative_to(Path("/dev/shm"))
+selection = json.loads((ram / "selection.private.json").read_text())
+assert selection["source_revision"] == "52f995f4568e36bfa5fbbaf69a89af41226b4f5d"
+uid, rows = selection["study_uid"], selection["source_files"]
+assert len(rows) == 67 and selection["source_bytes"] == 25131360
+assert hashlib.sha256(uid.encode()).hexdigest() == selection["original8_uid_sha256"]
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "engineering_checkpoints_cap_bytes": 12 * 2**30,
+            "private_case_cap_bytes": 128 * 2**20,
+            "controls_cap_bytes": 4 * 2**20,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+for n, text in v["files"].items():
+    p = D / "code" / n
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(text.encode()).hexdigest() == v["sha256"][n]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import inputs as m
+from rsna.competitive.predictive.cases import RawGroup, assemble
+
+# Reuse the exact inspected original decoder block; do not execute its old intent.
+s = v["original_raw_decoder"]
+assert hashlib.sha256(s.encode()).hexdigest() == v["original_raw_decoder_sha256"]
+assert s.count("groups = {}") == s.count("roster = 0") == 1
+decoder = s[s.index("groups = {}") : s.index("roster = 0")]
+decoder_namespace = {**globals(), "np": np, "pydicom": pydicom, "m": m}
+exec(compile(decoder, "same_original67_raw_decoder", "exec"), decoder_namespace)
+groups = decoder_namespace["groups"]
+all_items = sorted(
+    (x for values in groups.values() for x in values), key=lambda x: (x[0], x[1], x[2])
+)
+order = {}
+for ac in sorted({x[0] for x in all_items}):
+    for i, x in enumerate(y for y in all_items if y[0] == ac):
+        order[(x[0], x[1], x[2], x[5])] = i
+raw_groups = []
+for items in groups.values():
+    items.sort(key=lambda x: (x[0], x[1], x[2]))
+    raw_groups.append(
+        RawGroup(
+            torch.stack([x[4] for x in items]),
+            torch.tensor([x[5] for x in items]),
+            torch.tensor([x[0] for x in items]),
+            torch.tensor([order[(x[0], x[1], x[2], x[5])] for x in items]),
+        )
+    )
+contexts = assemble(raw_groups, side=320, halo=8, context_cap=8, classes=12)
+old = Path("/tmp/rsna-licensed-parent-whole94-recovery-20261016-v1/recovery.private.py").read_text()
+assert (
+    hashlib.sha256(old.encode()).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+constants = {
+    n.targets[0].id: ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "TARGETS"
+}
+original = json.loads(base64.b64decode(constants["TARGETS"], validate=True))
+assert original["eligible_fitting_only"] is True and len(original["uids"]) == 32
+i = original["uids"].index(uid)
+labels = torch.tensor(original["labels"][i], dtype=torch.float32).reshape(1, 12)
+mask = torch.tensor(original["masks"][i], dtype=torch.bool).reshape(1, 12)
+assert mask.any() and torch.isfinite(labels[mask]).all()
+case = {"contexts": contexts, "labels": labels, "mask": mask}
+torch.save(case, D / "case.private.pt")
+assert (D / "case.private.pt").stat().st_size < 128 * 2**20
+del groups, all_items, raw_groups, contexts, case
+gc.collect()
+
+# Exact original MRI parent graph/weights; only its encoder is kept. No old head.
+S = Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1")
+source = (S / "parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(source.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+asset = json.loads(
+    Path("/tmp/rsna-S6-Newton-student-recovery-20261019-v1/asset-private.json").read_text()
+)
+weight = Path(asset["weight_path"])
+st = weight.stat()
+assert {"bytes": st.st_size, "mtime_ns": st.st_mtime_ns, "inode": st.st_ino} == asset["stat"]
+sys.path.insert(0, "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay")
+import timm
+
+ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(source).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(
+    compile(ast.Module(body=selected, type_ignores=[]), "unchanged_original_MRI_parent", "exec"), ns
+)
+with contextlib.redirect_stdout(io.StringIO()):
+    parent, res = ns["load_model"](
+        str(weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert res == 320 and sum(p.numel() for p in parent.parameters()) == 73136096
+assert all(p.requires_grad for p in parent.backbone.parameters())
+binding = {
+    "parent_source_sha256": hashlib.sha256(source.encode()).hexdigest(),
+    "parent_weight_stat": asset["stat"],
+    "parent_weight_private_path": str(weight),
+    "source_git": v["source_git"],
+    "code_sha256": v["sha256"],
+    "raw_case_sha256": hashlib.sha256((D / "case.private.pt").read_bytes()).hexdigest(),
+    "fitting_case_uid_sha256": hashlib.sha256(uid.encode()).hexdigest(),
+    "private_engineering_only": True,
+}
+(D / "binding.private.json").write_text(json.dumps(binding) + "\n")
+out = {
+    "status": "actual_raw_MRI_parent_BC_trainer_CPU_inputs_and_source_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "original_DICOMs": 67,
+    "original_bytes": 25131360,
+    "unique_descriptor_regions": 1072,
+    "context_windows_per_mask": 8,
+    "complementary_masks": 2,
+    "original_parent_parameters": 73136096,
+    "retained_encoder_parameters": sum(p.numel() for p in parent.backbone.parameters()),
+    "feature_width": parent.backbone.num_features,
+    "original_fitting_labels_masks_only": True,
+    "old_classifier_logits_or_teacher_objective": False,
+    "new_GPU_training_or_accuracy": False,
+    "engineering_checkpoints_cap_bytes": 12 * 2**30,
+    "private_case_cap_bytes": 128 * 2**20,
+    "controls_cap_bytes": 4 * 2**20,
+    "new_shared_bytes_files": 0,
+}
+(D / "prepared.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,6 +1,53 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 06:23 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026; predictive proposal implementation and actual raw-input receipt reconciled. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+
+## Primary new branch: owner-proposed predictive MRI evidence
+
+The owner's October20 proposal is now the next primary research experiment:
+**B**, an end-to-end spatial classifier with diagnosis-independent masked
+reconstruction, versus **C**, diagnosis-conditioned prediction of genuinely
+withheld MRI descriptors with complete-support evidence. Neither new arm uses
+old teacher probabilities or an inherited classifier-logit shortcut. **C0** is
+the required identical-architecture density-loss ablation. This is a falsifiable
+proposal, not a demonstrated breakthrough or globally novel architecture.
+
+Actual original raw-input CPU **977456** passed on **67 DICOMs / three
+acquisitions / 1,072 unique source regions**, with complementary536-region masks.
+Changing withheld source pixels changed descriptors while leaving every masked
+context/triplet/resize byte identical. Header-based12bit scaling avoids the old
+percentile-normalized cache. This is one small fitting-only case; descriptor
+clinical sufficiency, full-cohort input admission and throughput remain unknown.
+See [proposal and source receipts](../initiative/research/predictive-evidence-proposal-20261020-v1/)
+and [actual raw-input receipt](../initiative/research/predictive-raw-input-pilot-20261020-v1/actual.json).
+
+The new implementation includes complete variable-matrix study assembly,
+sparse complete-roster priors, full-trainable-encoder B/C heads, mean-two-mask
+posterior loss, and a distinct AdamW loop with immutable epochs and complete
+model/optimizer/cursor/history/Python/NumPy/Torch RNG recovery. **10 scoped CPU
+checks passed**, including actual new-loop full/stop/resume equality in B/C/C0.
+These use a tiny synthetic encoder and do **not** accept a real MRI classifier,
+H100 run, T4 throughput or accuracy. No predictive-model GPU training/full fit
+has been dispatched. Next: bind the original MRI parent and fitting-only raw
+cohort, actual tiny-MRI gradients/overfit/recovery, earlyT4 timing, then fixed
+matched B/C training if actual capacity permits. Do not silently use the unsafe
+old cache, freeze the encoder, truncate target priors, or handicap B.
+
+Authenticated competition metadata independently confirms **October22,2026,
+23:59UTC** deadline. Preserve a qualified baseline and latest final-launch target
+**October22,12UTC**; the proposal's12–16H100hours/arm is not measured. Keep healthy
+original975297 and its finite owners unchanged. Queued cached-attention977100
+remains engineering only; do not expand it to production ahead of this branch.
+
+Pointwise fixed-final epoch3 now completed1,458updates and all six private
+objects independently downloaded/size/SHA verified at
+**HFe36bb88ffa2aa4ac62680a29a5d7ba0fdd7e7bf6** byCPU977516. ModelSHA
+`da61c53480931166cd13c89a30f8062e386353e77c257fc9a94dd26afb215084`.
+CPU977528 compiled exact qualification/competition sources; **no actual newT4
+acceptance, private model Dataset or score**. Sole owners27713/38630 continue;
+never repeat pointwise epochs1–3 or compilation. The H100→Kaggle input bridge is
+prepared only, not funded/staged/dispatched. Source-zero owners32102/33801 remain
+independent. No original improvement over the external0.958 baseline is proven.
 
 ## Actual competition results
 

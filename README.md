@@ -9,6 +9,17 @@ work, and [execution continuation](docs/codex-continuation.md) for original live
 owners and exact operational bindings. Historical dispatch files are audit
 artifacts, not instructions to restart completed or uncertain operations.
 
+## New primary research: predictive evidence
+
+Following the owner's supplied research, we are implementing a matched comparison
+between direct classification plus generic reconstruction and finding-conditioned
+prediction of withheld MRI descriptors. The source-level masking test passed on
+67 original DICOMs: withheld-pixel changes cannot alter context inputs. Both new
+arms have a trainable encoder, complete region priors and a tested recovery loop.
+**No trained predictive-model result exists yet.** See the
+[proposal, decisions and exact limits](initiative/research/predictive-evidence-proposal-20261020-v1/README.md)
+and [current implementation/next gates](docs/current-state.md).
+
 ## Verified results and model lineage
 
 | Result | What produced it | Interpretation |

@@ -44,3 +44,27 @@ Primary sources independently checked:
 - https://arxiv.org/abs/2603.19122 (2026 generative classification/order effects)
 Neither establishes this proposal's MRI benefit. Full references and failure
 criteria remain in the supplied plan. Protected confirmation/gold remain unused.
+
+## Implementation and actual evidence
+
+Actual CPU977456 passed the original67-DICOM raw intervention test:1072regions,
+536observed/mask, three acquisitions/two matrix groups, no target-pixel influence
+on masked frames or overlapping triplets. See the adjacent raw-pilot actual.json.
+No encoder or diagnosis labels ran in that pilot.
+
+`rsna/competitive/predictive/{inputs,cases,supports,density,model,train}.py` now
+implements source masking, full-study variable-matrix assembly, fixed64D targets,
+sparse geometry priors, trainable B/C heads and separate AdamW B/C/C0 loop. The
+encoder-window budget never drops descriptor/support regions. Two contexts share
+one original label/mask and are probability-averaged. The new direct B control
+also receives actual observed descriptors. Head-only warmup is explicit in the
+recipe, not a permanently frozen encoder. Private immutable checkpoints retain
+complete model/optimizer/cursor/history/all RNG for exact restart.
+
+Ten CPU checks passed, including both source interventions and complete new-loop
+full/stop/resume equality in B/C/C0. These synthetic tests do not establish real
+MRI gradients, descriptor sufficiency, H100/T4 acceptance, accuracy or throughput.
+No new predictive GPU/full run dispatched. Raw full-source admission, immutable
+parent/base/runtime bindings, actual tiny-MRI overfit/gradient/recovery, resource
+funding and earlyT4 timing remain prerequisites. The old unsafe selected cache
+cannot substitute for the source-masked input path. Healthy earlier fits continue.

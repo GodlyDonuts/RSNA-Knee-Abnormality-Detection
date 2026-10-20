@@ -1,5 +1,6 @@
 """Source-pixel causal interventions and independent dense-oracle comparisons."""
 
+import copy
 import importlib.util
 import sys
 from pathlib import Path
@@ -9,6 +10,111 @@ import torch
 
 from rsna.competitive.predictive.density import Supports, evidence, two_mask_loss
 from rsna.competitive.predictive.inputs import fixed_metadata_scale, masked_study, triplets
+
+
+@pytest.mark.parametrize("arm", ["B", "C", "C0"])
+def test_actual_new_loop_recovery_and_complete_target_roster(tmp_path, arm):
+    """CPU engineering: real new loop, never a clinical/model acceptance claim."""
+    import numpy as np
+    from torch import nn
+
+    from rsna.competitive.predictive.cases import RawGroup, assemble
+    from rsna.competitive.predictive.model import matched_modules
+    from rsna.competitive.predictive.train import Recipe, fit, restore_rng, rng_state
+
+    groups = [
+        RawGroup(
+            torch.rand(2, 64, 64), torch.tensor([0, 1]), torch.tensor([0, 0]), torch.tensor([0, 1])
+        ),
+        RawGroup(torch.rand(1, 80, 80), torch.tensor([2]), torch.tensor([1]), torch.tensor([0])),
+    ]
+    contexts = assemble(groups, side=32, halo=2, context_cap=2, classes=2)
+    assert len(contexts[0]["images"]) == 2
+    assert len(contexts[0]["targets"]) == 48  # Unselected frame is still present.
+    assert contexts[0]["supports"].region_count == 48
+    before = copy.deepcopy(contexts)
+    altered = []
+    for g in groups:
+        mask = masked_study(
+            g.frames, g.aliases, g.acquisition, g.ordinal, pattern=0, halo=2
+        ).raw_hidden
+        value = g.frames.clone()
+        value[mask] = 1 - value[mask]
+        altered.append(RawGroup(value, g.aliases, g.acquisition, g.ordinal))
+    changed = assemble(altered, side=32, halo=2, context_cap=2, classes=2)
+    assert torch.equal(contexts[0]["images"], changed[0]["images"])
+    assert not torch.equal(contexts[0]["targets"], changed[0]["targets"])
+    encoder = nn.Sequential(nn.Conv2d(3, 4, 3), nn.GELU(), nn.AdaptiveAvgPool2d(1), nn.Flatten())
+    B, C, _ = matched_modules(encoder, 4, hidden=8, classes=2)
+    base = B if arm == "B" else C
+
+    class Data:
+        def __len__(self):
+            return 3
+
+        def case(self, index, epoch):
+            # Exercise restored RNG through a common stochastic loader feature.
+            torch.rand(1)
+            np.random.rand()
+            return {
+                "contexts": contexts,
+                "labels": torch.tensor([[float(index % 2), 0.25]]),
+                "mask": torch.tensor([[True, True]]),
+            }
+
+    recipe = Recipe(
+        arm,
+        epochs=2,
+        effective_batch=2,
+        head_only_updates=1,
+        density_weight=0 if arm == "C0" else 0.1,
+    )
+    binding = {
+        "synthetic_engineering_only": True,
+        "immutable_fixture": "three-cases-two-matrixgroups",
+    }
+    initial_rng = rng_state()
+    complete = fit(copy.deepcopy(base), Data(), recipe, binding=binding, output=tmp_path / "full")
+    restore_rng(initial_rng)
+    stopped = fit(
+        copy.deepcopy(base), Data(), recipe, binding=binding, output=tmp_path / "stop", stop_after=1
+    )
+    assert stopped["step"] == 1
+    resumed = fit(
+        copy.deepcopy(base),
+        Data(),
+        recipe,
+        binding=binding,
+        output=tmp_path / "resumed",
+        resume=tmp_path / "stop/stopped.pt",
+    )
+    assert complete["step"] == resumed["step"] == 4
+    assert complete["history"] == resumed["history"]
+    assert [r["studies"] for r in complete["history"]] == [2, 1, 2, 1]
+    assert all(r["encoder_gradient_norm"] > 0 for r in complete["history"])
+    assert not complete["history"][0]["encoder_updated"]
+    assert complete["history"][1]["encoder_updated"]
+
+    def equal(a, b):
+        if isinstance(a, torch.Tensor):
+            assert torch.equal(a, b)
+        elif isinstance(a, np.ndarray):
+            assert np.array_equal(a, b)
+        elif isinstance(a, dict):
+            assert a.keys() == b.keys()
+            for k in a:
+                equal(a[k], b[k])
+        elif isinstance(a, (list, tuple)):
+            assert len(a) == len(b)
+            for x, y in zip(a, b):
+                equal(x, y)
+        else:
+            assert a == b
+
+    equal(complete, resumed)
+    for x, y in zip(before, contexts):
+        assert torch.equal(x["images"], y["images"])
+
 
 P = Path(
     "initiative/research/predictive-evidence-proposal-20261020-v1/reference/predictive_evidence.py"
@@ -117,3 +223,106 @@ def test_training_uses_BCE_of_mean_posterior_not_mean_BCE():
     loss.backward()
     assert torch.isfinite(z.grad).all()
     torch.testing.assert_close(out["probabilities"], p)
+
+
+def test_new_B_C_modules_train_encoder_without_teacher_or_target_leakage():
+    import copy
+
+    from torch import nn
+
+    from rsna.competitive.predictive.model import (
+        Predictive,
+        ReconstructionControl,
+        control_two_mask_loss,
+    )
+
+    torch.manual_seed(6)
+    encoder = nn.Sequential(
+        nn.Conv2d(3, 8, 3, padding=1),
+        nn.BatchNorm2d(8),
+        nn.GELU(),
+        nn.AdaptiveAvgPool2d(1),
+        nn.Flatten(),
+        nn.Linear(8, 16),
+    )
+    common = copy.deepcopy(encoder.state_dict())
+    images = [torch.rand(6, 3, 32, 32) for _ in range(2)]
+    token = torch.rand(6, 8)
+    region = torch.rand(16, 8)
+    targets = torch.rand(16, 64)
+    observations = [torch.arange(16) % 2 == i for i in (0, 1)]
+    supports = Supports(torch.arange(17), torch.arange(16), torch.zeros(2, 16), 16)
+    q = torch.tensor([[0.2, 0.8]])
+    mask = torch.ones_like(q, dtype=torch.bool)
+    for cls in (Predictive, ReconstructionControl):
+        backbone = copy.deepcopy(encoder)
+        backbone.load_state_dict(common)
+        model = cls(backbone, 16, hidden=16, classes=2).train()
+        bn = model.encoder[1].running_mean.clone()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+        before = model.encoder[0].weight.detach().clone()
+        if cls is Predictive:
+            first = model.predict_hypotheses(images[0], token, region)
+            changed = targets.flip(0)
+            a = model(images[0], token, region, targets, observations[0], supports)
+            b = model(images[0], token, region, changed, observations[0], supports)
+            # Targets enter only the likelihood scorer, never the context means.
+            second = model.predict_hypotheses(images[0], token, region)
+            for x, y in zip(first, second):
+                torch.testing.assert_close(x, y, atol=0, rtol=0)
+            assert not hasattr(model, "parent_logits")
+            torch.testing.assert_close(
+                a["evidence"].log_bayes_factor, torch.zeros(1, 2), atol=1e-6, rtol=0
+            )
+            outputs = [
+                model(x, token, region, targets, o, supports) for x, o in zip(images, observations)
+            ]
+            loss, _ = two_mask_loss(
+                [x["evidence"] for x in outputs],
+                torch.stack([x["context_logits"] for x in outputs])[None],
+                q,
+                mask,
+                [o[None] for o in observations],
+            )
+            assert b["logits"].shape == (2,)
+        else:
+            outputs = [model(x, token, region, targets, o) for x, o in zip(images, observations)]
+            loss, _ = control_two_mask_loss(outputs, q, mask)
+            # The strong comparator actually receives the observed evidence.
+            altered = model(images[0], token, region, targets + 1, observations[0])
+            assert not torch.equal(altered["logits"], outputs[0]["logits"])
+        assert torch.isfinite(loss)
+        loss.backward()
+        assert model.encoder[0].weight.grad.abs().sum() > 0
+        optimizer.step()
+        assert not torch.equal(before, model.encoder[0].weight)
+        assert torch.equal(bn, model.encoder[1].running_mean)
+
+
+def test_complete_multiscale_priors_ignore_observation_pattern_and_shared_init_exact():
+    from torch import nn
+
+    from rsna.competitive.predictive.model import matched_modules
+    from rsna.competitive.predictive.supports import build_supports, coordinates
+
+    raw = torch.rand(4, 64, 64)
+    alias = torch.arange(4)
+    acq = torch.zeros(4, dtype=torch.int64)
+    ordinal = torch.arange(4)
+    a = masked_study(raw, alias, acq, ordinal, pattern=0, halo=2)
+    b = masked_study(raw, alias, acq, ordinal, pattern=1, halo=2)
+    left = build_supports(a.region_frame, a.region_tile, acq, ordinal, classes=2)
+    right = build_supports(b.region_frame, b.region_tile, acq, ordinal, classes=2)
+    assert torch.equal(left.indptr, right.indptr) and torch.equal(left.regions, right.regions)
+    torch.testing.assert_close(left.log_prior.log_softmax(-1).exp().sum(-1), torch.ones(2))
+    ta, ra = coordinates(a, ordinal)
+    tb, rb = coordinates(b, ordinal)
+    assert torch.equal(ta, tb) and torch.equal(ra, rb)
+    before = torch.get_rng_state().clone()
+    backbone = nn.Sequential(nn.Conv2d(3, 4, 1), nn.AdaptiveAvgPool2d(1), nn.Flatten())
+    before = torch.get_rng_state().clone()
+    B, C, proof = matched_modules(backbone, 4, hidden=16, classes=2, seed=11)
+    assert torch.equal(before, torch.get_rng_state())
+    assert proof["same_shared_tensor_values"] and proof["C_parameters"] != proof["B_parameters"]
+    for n in proof["shared_tensor_names"]:
+        assert torch.equal(B.state_dict()[n], C.state_dict()[n])

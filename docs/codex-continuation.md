@@ -1,5 +1,16 @@
 # RSNA Knee continuation
 
+## October20 owner-directed priority (supersedes older next-action snapshots)
+
+Follow the predictive-evidence B/C proposal as the primary new branch; read the
+new opening section of current-state.md and proposal/raw-pilot original receipts.
+Actual raw-input977456 passed67DICOM/1072regions; new B/C/C0 CPU loop recovery
+checks passed. No new predictive GPU/accuracy acceptance exists. Next bind a real
+MRI parent/raw-case trainer diagnostic and actual resource/throughput admission.
+Keep975297/27713/32102/33801/38630 unchanged. Pointwise3 now fully privately
+verified HFe36bb88f/CPU977516 and compiledCPU977528; noT4/entry yet. No new bridge
+Dataset or cached-attention production dispatch. Exact deadlineOct22,23:59UTC.
+
 Updated October20,2026,04:30UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
 
 - Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.

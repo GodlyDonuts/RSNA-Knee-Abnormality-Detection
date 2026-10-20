@@ -1,0 +1,162 @@
+# ruff: noqa: E402
+"""Fresh actual-MRI B/C full/stop/resume process; private engineering only."""
+
+import ast
+import contextlib
+import gc
+import hashlib
+import io
+import json
+import os
+import random
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+
+D = Path("/tmp/rsna-predictive-real-trainer-20261020-v1")
+os.umask(0o077)
+assert os.uname().nodename == "evc33" and os.environ.get("SLURM_JOB_GPUS")
+assert torch.cuda.device_count() == 1 and "H100" in torch.cuda.get_device_name(0)
+assert torch.ones(1, device="cuda").item() == 1
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+torch.use_deterministic_algorithms(True)
+binding = json.loads((D / "binding.private.json").read_text())
+for n, h in binding["code_sha256"].items():
+    assert hashlib.sha256((D / "code" / n).read_bytes()).hexdigest() == h
+assert (
+    hashlib.sha256((D / "case.private.pt").read_bytes()).hexdigest() == binding["raw_case_sha256"]
+)
+arm, phase = sys.argv[1:]
+assert arm in ("B", "C") and phase in ("full", "stop1", "resume")
+sys.path[:0] = [str(D / "code"), "/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay"]
+import timm
+
+from rsna.competitive.predictive.model import Predictive, ReconstructionControl
+from rsna.competitive.predictive.train import Recipe, fit, objective
+
+source = Path(
+    "/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py"
+).read_text()
+assert hashlib.sha256(source.encode()).hexdigest() == binding["parent_source_sha256"]
+weight = Path(binding["parent_weight_private_path"])
+st = weight.stat()
+assert {"bytes": st.st_size, "mtime_ns": st.st_mtime_ns, "inode": st.st_ino} == binding[
+    "parent_weight_stat"
+]
+ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(source).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(
+    compile(ast.Module(body=selected, type_ignores=[]), "original_MRI_parent_encoder_only", "exec"),
+    ns,
+)
+with contextlib.redirect_stdout(io.StringIO()):
+    parent, res = ns["load_model"](
+        str(weight), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert res == 320 and sum(p.numel() for p in parent.parameters()) == 73136096
+
+
+class FixedEncoder(torch.nn.Module):
+    def __init__(self, backbone):
+        super().__init__()
+        self.backbone = backbone
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406])[None, :, None, None])
+        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225])[None, :, None, None])
+
+    def forward(self, images):
+        return self.backbone((images - self.mean) / self.std)
+
+
+seed = 20261020
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+cls = ReconstructionControl if arm == "B" else Predictive
+model = cls(FixedEncoder(parent.backbone), parent.backbone.num_features, hidden=128).cuda()
+del parent
+gc.collect()
+case = torch.load(D / "case.private.pt", map_location="cpu", weights_only=False)
+
+
+class Case:
+    def __len__(self):
+        return 1
+
+    def case(self, index, epoch):
+        assert index == 0 and 0 <= epoch < 4
+        return case
+
+
+recipe = Recipe(arm, epochs=4, effective_batch=1, head_only_updates=1)
+model.eval()
+with torch.inference_mode():
+    initial_loss, initial_metrics = objective(model, case, recipe, torch.device("cuda"))
+# Initial diagnostic forward must not perturb the matched optimization RNG.
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+root = D / "engineering" / arm
+torch.cuda.reset_peak_memory_stats()
+torch.cuda.synchronize()
+start = time.monotonic()
+state = fit(
+    model,
+    Case(),
+    recipe,
+    binding=binding,
+    output=root / phase,
+    resume=root / "stop1/stopped.pt" if phase == "resume" else None,
+    stop_after=1 if phase == "stop1" else None,
+    epoch_snapshots=False,
+    on_update=lambda r: print(json.dumps({"arm": arm, "phase": phase, **r}), flush=True),
+)
+torch.cuda.synchronize()
+elapsed = time.monotonic() - start
+if phase != "stop1":
+    model.eval()
+    with torch.inference_mode():
+        final_loss, metrics = objective(model, case, recipe, torch.device("cuda"))
+    values = metrics["probabilities"].cpu().numpy().reshape(12)
+    assert np.isfinite(values).all() and ((values >= 0) & (values <= 1)).all()
+    (root / phase / "prediction.private.csv").write_text(
+        ",".join(format(float(x), ".17g") for x in values) + "\n"
+    )
+    end_loss = float(final_loss)
+else:
+    end_loss = None
+out = {
+    "arm": arm,
+    "phase": phase,
+    "steps": state["step"],
+    "optimizer_seconds": elapsed,
+    "peak_GPU_bytes": torch.cuda.max_memory_allocated(),
+    "parameters": sum(p.numel() for p in model.parameters()),
+    "initial_exam_loss": float(initial_metrics["exam_loss"]),
+    "final_total_loss": end_loss,
+    "source_studies": 1,
+    "complete_source_regions": 1072,
+    "context_windows_per_mask": 8,
+    "density_weight": 0.1,
+    "fixed_ImageNet_channel_normalization": True,
+    "all_encoder_parameters_trainable": all(p.requires_grad for p in model.encoder.parameters()),
+    "clinical_accuracy_or_submission_candidate": False,
+}
+(root / phase / "terminal.json").write_text(json.dumps(out) + "\n")
+assert sum(p.stat().st_size for p in (D / "engineering").rglob("*") if p.is_file()) < 12 * 2**30
+print(json.dumps(out), flush=True)
