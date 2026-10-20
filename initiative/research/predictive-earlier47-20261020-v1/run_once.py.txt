@@ -1,0 +1,186 @@
+"""Single in-cluster replica, then move only an actually unstarted GPU diagnostic."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/predictive-earlier47-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()]
+    )
+payload = {
+    "sender": (D / "sender.py.txt").read_text(),
+    "receiver": (D / "receiver.py.txt").read_text(),
+    "source_git": git,
+}
+program = """import base64,hashlib,json,os,shlex,subprocess,sys
+v=json.load(sys.stdin)
+old=subprocess.check_output(['sacct','-X','-n','-P','-j','977678','--format=JobIDRaw,State,ElapsedRaw,Start,ExitCode'],text=True)
+assert '|PENDING|0|' in old and '|Unknown|' in old,'Original diagnostic has started or is uncertain; do not copy or move'
+node=subprocess.check_output(['scontrol','show','node','evc47','--oneliner'],text=True)
+assert 'Gres=gpu:nvidia_h100_pcie:2' in node
+q=subprocess.check_output(['lfs','quota','-u','sa305415','/home/sa305415'],text=True)
+a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415'))
+assert (int(a[2])-int(a[1]))*1024>20*2**30+(32+16+16+2+4)*2**20+192*2**10 and int(a[6])-int(a[5])>5000+128+128+64
+def command(node,source,memory):
+ code="exec(__import__('base64').b64decode("+repr(base64.b64encode(source.encode()).decode())+"))"
+ return ['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem='+memory,'--time=00:15:00','--job-name=rsna-predictive-private-replica','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','python3','-B','-c',code]
+with __import__('tempfile').TemporaryFile() as sender_errors:
+ sender=subprocess.Popen(command('evc33',v['sender'],'2G'),stdout=subprocess.PIPE,stderr=sender_errors)
+ receiver=subprocess.Popen(command('evc47',v['receiver'],'4G'),stdin=sender.stdout,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+ sender.stdout.close()
+ output,errors=receiver.communicate(timeout=1050)
+ sender_result=sender.wait(timeout=30)
+ sender_errors.seek(0);sender_log=sender_errors.read().decode(errors='replace')
+ assert sender_result==receiver.returncode==0,json.dumps({'sender_returncode':sender_result,'receiver_returncode':receiver.returncode,'sender_error_type':sender_log.strip().splitlines()[-1:] if sender_log else [],'receiver_error_tail':errors.decode(errors='replace').strip().splitlines()[-2:]})
+ out=json.loads(output)
+ assert out['status']=='actual_predictive_node47_original_replica_all_bytes_SHA_and_CPU_runtime_accepted'
+ out['relocation_source_git']=v['source_git'];out['original_GPU_job']='977678';out['original_job_before_transfer']=old.strip()
+ print(json.dumps(out),flush=True)
+"""
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "maximum_replica_transfers": 1,
+            "source": "evc33",
+            "destination": "evc47",
+            "parent_and_case_raw_data_enter_Mac_or_Git": False,
+            "all_originals_retained": True,
+            "cancel_only_pending_old_GPU": True,
+            "maximum_distinct_GPU_diagnostics": 1,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+x = subprocess.run(
+    [*ssh, "python3 -c " + shlex.quote(t.COMMAND)],
+    input=t.envelope(program, payload),
+    text=True,
+    capture_output=True,
+    timeout=1120,
+)
+(L / "replica-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Reconcile original endpoint intents read-only; never repeat copy"
+replica = json.loads(x.stdout)
+(D / "actual-replica.json").write_text(json.dumps(replica, indent=2) + "\n")
+old = subprocess.check_output(
+    [*ssh, "sacct -X -n -P -j 977678 --format=JobIDRaw,State,ElapsedRaw,Start,ExitCode"], text=True
+)
+assert "|PENDING|0|Unknown|" in old, (
+    "Original began; preserve replica but never run duplicate diagnostic"
+)
+(L / "pending-only-move-intent.json").write_text(
+    json.dumps(
+        {
+            "original_GPU_job": "977678",
+            "state_before": old,
+            "replica": replica,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+subprocess.run([*ssh, "scancel --state=PENDING 977678"], check=True)
+terminal = subprocess.check_output(
+    [*ssh, "sacct -X -n -P -j 977678 --format=JobIDRaw,State,ElapsedRaw,Start,ExitCode"], text=True
+)
+assert "|CANCELLED" in terminal and "|0|None|" in terminal, (
+    "Do not run another diagnostic without exact never-started proof"
+)
+(D / "actual-original-pending-cancel.json").write_text(
+    json.dumps(
+        {
+            "GPU_job": "977678",
+            "before": old.strip(),
+            "after": terminal.strip(),
+            "run_started": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+root = "/tmp/rsna-predictive-real-trainer47-20261020-v1"
+script = "\n".join(
+    [
+        "#!/bin/bash",
+        "#SBATCH --account=skattel",
+        "#SBATCH --partition=normal",
+        "#SBATCH --qos=normal",
+        "#SBATCH --nodelist=evc47",
+        "#SBATCH --ntasks=1",
+        "#SBATCH --cpus-per-task=2",
+        "#SBATCH --gres=gpu:nvidia_h100_pcie:1",
+        "#SBATCH --mem=24G",
+        "#SBATCH --time=00:20:00",
+        "#SBATCH --job-name=rsna-predictive-BC-earlier47",
+        "#SBATCH --output=" + root + "/GPU-%j.out",
+        "#SBATCH --error=" + root + "/GPU-%j.err",
+        "set -euo pipefail",
+        "umask 077",
+        "export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 CUBLAS_WORKSPACE_CONFIG=:4096:8",
+        "exec " + root + "/runtime/bin/python -B " + root + "/code/driver.py",
+        "",
+    ]
+)
+(L / "GPU-submit-intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "script_sha256": hashlib.sha256(script.encode()).hexdigest(),
+            "original_terminal": terminal.strip(),
+            "maximum_distinct_diagnostics": 1,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+x = subprocess.run(
+    [*ssh, "sbatch --parsable"], input=script, text=True, capture_output=True, timeout=90
+)
+(L / "GPU-submit-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0 and x.stdout.strip().split(";")[0].isdigit(), (
+    "Read-only reconciliation required; no repeat"
+)
+out = {
+    "status": "one_distinct_predictive_BC_diagnostic_submitted_after_original_never_started",
+    "GPU_job": x.stdout.strip().split(";")[0],
+    "cancelled_unstarted_GPU_job": "977678",
+    "source_git": git,
+    "original_numerical_source_git": "684b02a72e6272b67bb2fd2ea515b16fd2c33313",
+    "node": "evc47",
+    "physical_node_GPUs": 2,
+    "requested_GPU": 1,
+    "CPUs": 2,
+    "time_cap_minutes": 20,
+    "numerical_functions_and_classes_unchanged": True,
+    "actual_GPU_or_accuracy_acceptance": False,
+    "automatic_retry": False,
+}
+(D / "actual-submit.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,0 +1,74 @@
+"""Single private node33→47 framed copy, sent only into the remote Slurm pipe."""
+
+import hashlib
+import json
+import os
+import stat
+import sys
+from pathlib import Path
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-predictive-real-trainer-20261020-v1")
+binding = json.loads((D / "binding.private.json").read_text())
+items = []
+links = []
+
+
+def add(prefix, source):
+    paths = [source] if source.is_file() else [source, *source.rglob("*")]
+    for p in paths:
+        relative = Path(prefix) if p == source else Path(prefix) / p.relative_to(source)
+        if "__pycache__" in relative.parts or p.suffix == ".pyc":
+            continue
+        s = p.lstat()
+        if stat.S_ISLNK(s.st_mode):
+            links.append({"name": relative.as_posix(), "target": os.readlink(p)})
+        elif stat.S_ISREG(s.st_mode):
+            items.append(
+                (relative.as_posix(), p, (s.st_size, s.st_mtime_ns, s.st_ino), s.st_mode & 0o111)
+            )
+        else:
+            assert stat.S_ISDIR(s.st_mode)
+
+
+add("runtime", Path("/tmp/rsna-environment-907632-7sr9a7i6/environment"))
+add("overlay", Path("/tmp/rsna-compact-native-n3-assets-20261016-v1/runtime-overlay"))
+add("assets/parent.pt", Path(binding["parent_weight_private_path"]))
+add(
+    "assets/parent_source.private.py",
+    Path("/tmp/rsna-S6-target-execution-inputs-20261019-v1/parent_source.private.py"),
+)
+add("case.private.pt", D / "case.private.pt")
+add("binding-original.private.json", D / "binding.private.json")
+add("code", D / "code")
+assert len(items) < 200000 and sum(x[2][0] for x in items) < 12 * 2**30
+header = {
+    "files": [{"name": n, "bytes": sig[0], "executable": mode} for n, p, sig, mode in items],
+    "links": links,
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+}
+encoded = json.dumps(header, separators=(",", ":")).encode()
+assert len(encoded) < 64 * 2**20
+out = sys.stdout.buffer
+out.write(len(encoded).to_bytes(8, "big"))
+out.write(encoded)
+digests = {}
+whole = hashlib.sha256()
+for name, path, signature, mode in items:
+    h = hashlib.sha256()
+    count = 0
+    with path.open("rb") as f:
+        while block := f.read(2**20):
+            count += len(block)
+            h.update(block)
+            whole.update(block)
+            out.write(block)
+    st = path.stat()
+    assert (st.st_size, st.st_mtime_ns, st.st_ino) == signature and count == signature[0]
+    digests[name] = h.hexdigest()
+footer = json.dumps(
+    {"files": digests, "whole_sha256": whole.hexdigest()}, separators=(",", ":")
+).encode()
+out.write(len(footer).to_bytes(8, "big"))
+out.write(footer)
+out.flush()
