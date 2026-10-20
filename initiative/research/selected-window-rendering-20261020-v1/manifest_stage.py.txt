@@ -1,0 +1,159 @@
+# ruff: noqa: E402
+"""One private full-cohort window-integrity admission on existing original pixels.
+
+No pixel copy, clinical fitting, model, GPU or external request. Per-window
+signatures are private derived input metadata and never printed/exported.
+"""
+
+import ast
+import base64
+import hashlib
+import json
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-selected-window-full-cohort-20261020-v1")
+A = Path("/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2")
+C = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1/original-pixel-replica-v2")
+assert not D.exists(), "Original intent/outputs require read-only reconciliation"
+assert shutil.disk_usage("/tmp").free > (20 + 79) * 2**30 + 32 * 2**20
+actual = json.loads((C / "verified.json").read_text())
+assert (
+    actual["status"]
+    == "actual_original_four_pixel_shards_private_node33_to_node45_whole_bytes_verified"
+)
+assert actual["files"] == v["original_files"] and actual["total_bytes"] == 38873662650
+for name, expected in actual["files"].items():
+    p = C / name
+    assert not p.is_symlink() and p.stat().st_size == expected["bytes"]
+    if not name.endswith("pixels.tar"):
+        assert hashlib.sha256(p.read_bytes()).hexdigest() == expected["sha256"]
+for name, expected in v["modules"].items():
+    assert hashlib.sha256((A / "source/code" / name).read_bytes()).hexdigest() == expected
+parent = (A / "source/parent_source.private.py").read_text()
+assert (
+    hashlib.sha256(parent.encode()).hexdigest()
+    == "493c7b0d44fe5244b02024448a93f5393cdb073781a068951badb3ffd53fcbde"
+)
+old = (A / "old_recovery/recovery.private.py").read_bytes()
+assert (
+    hashlib.sha256(old).hexdigest()
+    == "a45d2a00322d84e412c4bd28235fc49d81a42f3ec3e733f9b7da76f68ec57b39"
+)
+encoded = next(
+    ast.literal_eval(n.value)
+    for n in ast.parse(old).body
+    if isinstance(n, ast.Assign)
+    and len(n.targets) == 1
+    and isinstance(n.targets[0], ast.Name)
+    and n.targets[0].id == "WORKER"
+)
+tree = ast.parse(base64.b64decode(encoded, validate=True).decode())
+end = next(
+    i
+    for i, n in enumerate(tree.body)
+    if isinstance(n, ast.Import) and any(a.name == "timm" for a in n.names)
+)
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": v["source_git"],
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "node_local_cap_bytes": 32 * 2**20,
+            "new_shared_bytes": 0,
+            "GPU_model_or_clinical_fit": False,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+inputs = D / "inputs"
+inputs.mkdir(mode=0o700)
+for name, path in {
+    "probe": A / "pixels32",
+    "targets": A / "targets",
+    **{f"s{i}": C / f"shard-{i}" for i in range(4)},
+}.items():
+    (inputs / name).symlink_to(path, target_is_directory=True)
+ns = {"__name__": "original_CPU_renderer", "__file__": str(D / "private_renderer.py")}
+exec(compile(ast.Module(body=tree.body[:end], type_ignores=[]), "original_renderer", "exec"), ns)
+import numpy as np
+import torch
+
+assert torch.cuda.device_count() == 0
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+sys.path.insert(0, str(A / "source/code"))
+from rsna.competitive.licensed_parent_population import load
+from rsna.competitive.licensed_pixel_bags import POPULATION_SHA
+
+proofs = [json.loads((C / f"shard-{i}/source-proof.private.json").read_text()) for i in range(4)]
+data = load(
+    inputs,
+    proofs,
+    lambda volume, mask, mirror: ns["eval_windows"](
+        volume, mask, 94, 320, norm=ns["NORM"], mirror=mirror
+    ),
+)
+assert len(data) == 3887
+path = D / "window-integrity.private.npy"
+windows = np.lib.format.open_memmap(path, mode="w+", dtype=np.uint8, shape=(3887, 2, 94, 32))
+started = time.monotonic()
+for i in range(3887):
+    for mirror in (False, True):
+        # Unchanged reader decodes original member SHA, volume/mask SHA, then
+        # verifies original full94 tensor SHA before deriving private window SHA.
+        images = data.case(i, list(range(94)), mirror)["images"]
+        for j in range(94):
+            windows[i, int(mirror), j] = np.frombuffer(
+                hashlib.sha256(images[j].contiguous().numpy().tobytes()).digest(), dtype=np.uint8
+            )
+        del images
+    if i % 64 == 0:
+        windows.flush()
+        (D / "progress.json").write_text(
+            json.dumps(
+                {
+                    "completed_studies": i + 1,
+                    "total_studies": 3887,
+                    "elapsed_seconds": time.monotonic() - started,
+                }
+            )
+            + "\n"
+        )
+windows.flush()
+del windows
+assert path.stat().st_size < 32 * 2**20
+for p in data.roots.values():
+    data.stat(p)
+receipt = {
+    "status": "actual_full_fitting_original94_both_views_and_private_per_window_integrity_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "studies": 3887,
+    "views": 2,
+    "windows_per_view": 94,
+    "cohort_sha256": POPULATION_SHA,
+    "record_binding_sha256": hashlib.sha256(
+        json.dumps(data.records, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest(),
+    "manifest_bytes": path.stat().st_size,
+    "manifest_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    "elapsed_CPU_seconds": time.monotonic() - started,
+    "original_full94_tensor_hash_checks": len(data.verified_inputs),
+    "original_whole_archive_transfer_or_rehash_repeated": False,
+    "private_window_signatures_or_pixels_or_labels_exported": False,
+    "GPU_model_optimizer_or_clinical_result": False,
+    "faster_training_reader_or_production_accepted": False,
+    "automatic_retry": False,
+}
+assert receipt["original_full94_tensor_hash_checks"] == 7774
+(D / "verified.json").write_text(json.dumps(receipt, indent=2) + "\n")
+print(json.dumps(receipt), flush=True)
