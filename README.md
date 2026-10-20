@@ -3,8 +3,8 @@
 Updated October 20, 2026. The predictive-evidence B/C/C0 engineering runs have
 passed; full-cohort input preparation is running, and full predictive fitting
 has not started. The completed pointwise and ranking models are privately
-preserved. Pointwise has passed two-T4 qualification and its public notebook is
-queued. See [current evidence](docs/current-state.md).
+preserved. Pointwise passed two-T4 qualification and public execution; code entry
+**57440657** is accepted once and awaits its hidden score. See [current evidence](docs/current-state.md).
 
 **October 20, 2026: best verified Kaggle score is 0.958, from an attributed
 external R6 ensemble reproduction. Target 0.97 is not achieved.** Current encoder
@@ -47,8 +47,10 @@ make their complete encoders independent OOF models.
 
 The pointwise/ranking comparison completed all three epochs per arm on
 H100 job975297, with all six checkpoints privately verified. Pointwise final
-qualification139818636v1 passed all32 studies on both T4s; its exact public
-notebook139819877v1 is queued, with no competition entry or score yet. Ranking's
+qualification139818636v1 passed all32 studies on both T4s. Public notebook
+139819877v1 completed in15.773 seconds with zero decode errors and a verified
+three-row/13-column CSV. Code entry **57440657** was accepted exactly once;
+hidden status and score are unreported. [Entry receipt](initiative/research/pointwise-final-deployment-20261020-v1/actual-entry.json). Ranking's
 final model is ready, but its deployment is unadmitted while the remaining
 Kaggle GPU budget is reserved for the predictive comparison.
 
@@ -59,7 +61,8 @@ entry57435296 scored **0.948 without an error**. Both fit all73Mparameters on
 The primary next experiment is the matched six-epoch B/C/C0 predictive-evidence
 comparison. Its accepted recipe fixes2,916 updates and identical fitting labels,
 masks, order and shared initialization. Original raw/context producers
-979664/979665 remain healthy; at13:32UTC they had prepared842/840 of3,887 studies.
+979664/979665 remain healthy; at13:51UTC CPU980483 verified919 raw/917 contexts of3,887 studies.
+[Actual progress](initiative/research/parallel-serving-account-20261020-v1/actual-input-progress-1351.json).
 Training and deployment controllers wait for complete inputs and actual final
 checkpoints. No predictive full-model score exists.
 

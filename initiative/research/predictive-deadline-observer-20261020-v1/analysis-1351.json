@@ -1,0 +1,194 @@
+{
+  "analyzed_at": "2026-10-20T13:52:31Z",
+  "limitations": [
+    "Conditional arithmetic from original count/time deltas; not a confidence interval or guarantee.",
+    "The slow/fast spread uses at most the last three observed intervals plus cumulative pace; unseen tails may fall outside it.",
+    "The context renderer waits on raw supply; its rate is not independent compute throughput.",
+    "Sidecars update after completed studies; observation timestamps do not reveal in-flight case age.",
+    "Counter completion does not establish original COMPLETED0:0, sealed index or consumer admission.",
+    "A forecast never authorizes cancellation, restart, transfer or duplicate work."
+  ],
+  "mutations": 0,
+  "pipeline_conditional_finish_UTC": {
+    "cumulative": "2026-10-21T04:03:37.010113Z",
+    "fastest_observed_pace": "2026-10-21T02:17:45.701599Z",
+    "latest_interval": "2026-10-21T02:17:45.701599Z",
+    "slowest_observed_pace": "2026-10-21T06:45:30.315659Z"
+  },
+  "progress_receipts": [
+    {
+      "bytes": 953,
+      "file": "actual-recovery-started.json",
+      "sha256": "70332ce02ce1d45ff7308bbbc1f85ce06114456bdf440c9c35d41d3bab45900e"
+    },
+    {
+      "bytes": 800,
+      "file": "actual-input-progress-1246.json",
+      "sha256": "8bfaf09b76405c066ea1a536c7bc662133da8f0ca47efd885c5972bd2ba990ad"
+    },
+    {
+      "bytes": 799,
+      "file": "actual-input-progress-1315.json",
+      "sha256": "8a38f3d3ed281da198c33fc25d607f50c58332c75e6b239825675eb71e23f01c"
+    },
+    {
+      "bytes": 799,
+      "file": "actual-input-progress-1332.json",
+      "sha256": "73fd07ef26ed60b0c887a95c120ba26808e62011f7dcc58a9d0a5c0977632617"
+    },
+    {
+      "bytes": 799,
+      "file": "actual-input-progress-1351.json",
+      "sha256": "3b2d2f6a7d56b0bfb51d22c8fd0e6bd1142cd66d220357d5245edb76bd3527bb"
+    },
+    {
+      "bytes": 801,
+      "file": "actual-input-progress.json",
+      "sha256": "a44a062883f50b08e9b8499b1991bb07686786624c41a899d17d4e34c8211a11"
+    }
+  ],
+  "raw_minus_context_completed": 2,
+  "remote_calls": 0,
+  "restart_authorized": false,
+  "roles": {
+    "context": {
+      "completed": 917,
+      "cumulative_basis": "observed_context_window_includes_upstream_wait_not_intrinsic_renderer_speed",
+      "job": "979665",
+      "progress_observed_at": "2026-10-20T13:51:26.191986Z",
+      "progress_stale_or_undated": false,
+      "recent_intervals": [
+        {
+          "seconds": 1761.816375715949,
+          "studies": 86,
+          "studies_per_second": 0.048813259534525665
+        },
+        {
+          "seconds": 999.2925761830411,
+          "studies": 58,
+          "studies_per_second": 0.058041059627942336
+        },
+        {
+          "seconds": 1137.7583753009676,
+          "studies": 77,
+          "studies_per_second": 0.06767693534194502
+        }
+      ],
+      "remaining": 2970,
+      "required_studies_per_minute_at_observation": 2.7337238799237995,
+      "risk": "observed_pace_scenarios_fit_current_wall_limit_conditionally",
+      "sample_count": 6,
+      "scenarios": {
+        "cumulative": {
+          "conditional_finish_UTC": "2026-10-21T04:03:18.290222Z",
+          "remaining_seconds_at_observation": 51112.098236289865,
+          "scheduler_slack_seconds": 14073.709778,
+          "studies_per_minute": 3.4864544041253436
+        },
+        "fastest_observed_pace": {
+          "conditional_finish_UTC": "2026-10-21T02:02:51.157890Z",
+          "remaining_seconds_at_observation": 43884.96590446589,
+          "scheduler_slack_seconds": 21300.84211,
+          "studies_per_minute": 4.060616120516701
+        },
+        "latest_interval": {
+          "conditional_finish_UTC": "2026-10-21T02:02:51.157890Z",
+          "remaining_seconds_at_observation": 43884.96590446589,
+          "scheduler_slack_seconds": 21300.84211,
+          "studies_per_minute": 4.060616120516701
+        },
+        "slowest_observed_pace": {
+          "conditional_finish_UTC": "2026-10-21T06:45:30.315659Z",
+          "remaining_seconds_at_observation": 60844.12367298103,
+          "scheduler_slack_seconds": 4341.684341,
+          "studies_per_minute": 2.92879557207154
+        }
+      },
+      "scheduler": {
+        "end_UTC": "2026-10-21T07:57:52Z",
+        "observed_at": "2026-10-20T13:52:30.594328Z",
+        "start_UTC": "2026-10-20T11:57:52Z",
+        "state": "RUNNING",
+        "time_limit": "20:00:00",
+        "wall_seconds_remaining_at_analysis": 65121.0
+      },
+      "sidecar_age_lower_bound_seconds": 64.808014,
+      "total": 3887,
+      "worker_elapsed_seconds": 6778.754353054974
+    },
+    "raw": {
+      "completed": 919,
+      "cumulative_basis": "new_raw_studies_only_excludes522_reused_originals",
+      "job": "979664",
+      "progress_observed_at": "2026-10-20T13:51:26.191986Z",
+      "progress_stale_or_undated": false,
+      "recent_intervals": [
+        {
+          "seconds": 1770.831825294008,
+          "studies": 87,
+          "studies_per_second": 0.049129453603283614
+        },
+        {
+          "seconds": 986.7376969570178,
+          "studies": 58,
+          "studies_per_second": 0.058779552234464266
+        },
+        {
+          "seconds": 1161.7325607059756,
+          "studies": 77,
+          "studies_per_second": 0.06628031494030581
+        }
+      ],
+      "remaining": 2968,
+      "required_studies_per_minute_at_observation": 2.733224740474645,
+      "risk": "observed_pace_scenarios_fit_current_wall_limit_conditionally",
+      "sample_count": 6,
+      "scenarios": {
+        "cumulative": {
+          "conditional_finish_UTC": "2026-10-21T04:03:37.010113Z",
+          "remaining_seconds_at_observation": 51130.8181268044,
+          "scheduler_slack_seconds": 14022.989887,
+          "studies_per_minute": 3.4828310307564747
+        },
+        "fastest_observed_pace": {
+          "conditional_finish_UTC": "2026-10-21T02:17:45.701599Z",
+          "remaining_seconds_at_observation": 44779.50961266669,
+          "scheduler_slack_seconds": 20374.298401,
+          "studies_per_minute": 3.9768188964183486
+        },
+        "latest_interval": {
+          "conditional_finish_UTC": "2026-10-21T02:17:45.701599Z",
+          "remaining_seconds_at_observation": 44779.50961266669,
+          "scheduler_slack_seconds": 20374.298401,
+          "studies_per_minute": 3.9768188964183486
+        },
+        "slowest_observed_pace": {
+          "conditional_finish_UTC": "2026-10-21T06:38:18.017934Z",
+          "remaining_seconds_at_observation": 60411.8259479611,
+          "scheduler_slack_seconds": 4741.982066,
+          "studies_per_minute": 2.947767216197017
+        }
+      },
+      "scheduler": {
+        "end_UTC": "2026-10-21T07:57:20Z",
+        "observed_at": "2026-10-20T13:52:30.594328Z",
+        "start_UTC": "2026-10-20T11:57:20Z",
+        "state": "RUNNING",
+        "time_limit": "20:00:00",
+        "wall_seconds_remaining_at_analysis": 65089.0
+      },
+      "sidecar_age_lower_bound_seconds": 64.808014,
+      "total": 3887,
+      "worker_elapsed_seconds": 6839.263745398028
+    }
+  },
+  "scheduler_observation_age_seconds": 0.405672,
+  "scheduler_observation_stale": false,
+  "scheduler_receipt": {
+    "bytes": 1704,
+    "file": "actual-input-schedule-1351.json",
+    "sha256": "8bcc36d80bc9a361f1a18306361d809cde0ff3819d8acad92ec272c91d7f238e"
+  },
+  "source_git": "91224c242c5758fcb25b71c27d0a0b920458ee6b",
+  "status": "conditional_original_predictive_cache_deadline_analysis"
+}
