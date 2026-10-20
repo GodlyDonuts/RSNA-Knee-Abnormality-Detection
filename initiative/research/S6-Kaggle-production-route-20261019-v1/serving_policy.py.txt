@@ -1,0 +1,192 @@
+"""Two justified epoch comparisons within the original 6000s public serving scope."""
+
+import ast
+import hashlib
+import math
+
+EPOCHS = (1, 3)
+CAPS = {"qualification": 1800, "competition": 32400}
+PUBLIC_WATCHDOG_SECONDS = 600
+PER_EPOCH_RESERVATION = 3000
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f2f6b083ad2b2f"
+OFFLINE = "godlydonuts/rsna-paired-full-e3-7e6aa56c53a3"
+PIXELS32 = "godlydonuts/rsna-parent-exact-pixels32-09254e97913d"
+ROSTER = "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b"
+COLUMNS = [
+    "StudyInstanceUID",
+    "ACL",
+    "MCL",
+    "Medial Meniscus",
+    "Lateral Meniscus",
+    "Medial OA",
+    "Lateral OA",
+    "PF OA",
+    "Effusion",
+    "Synovitis",
+    "Baker's",
+    "Contusion",
+    "Fracture",
+]
+
+
+def public_bounded_source(source, mode):
+    if mode not in CAPS:
+        raise ValueError("Known actual serving mode required")
+    if mode == "qualification":
+        return source
+    nodes = ast.parse(source).body
+    final = nodes[-1]
+    if not isinstance(final, ast.If) or ast.unparse(final.test) != "__name__ == '__main__'":
+        raise ValueError("One original final serving entry point required")
+    rows = source.splitlines(keepends=True)
+    hook = """
+def _actual_public_only_watchdog():
+    # Same real MRI/CSV path in both runs. Limit only the three-study example,
+    # never emit substitute predictions or shorten the full hidden-run timeout.
+    import pandas as pd
+    root=find_test_root()
+    count=len(pd.read_csv(str(root)+'/test.csv',usecols=['StudyInstanceUID']))
+    if count==3:
+        timer=threading.Timer(600,lambda:os._exit(124));timer.daemon=True;timer.start()
+"""
+    body = "".join(rows[final.lineno :])
+    # It runs only for competition, before model initialization, without touching prediction math.
+    out = (
+        "".join(rows[: final.lineno - 1])
+        + hook
+        + rows[final.lineno - 1]
+        + "    _actual_public_only_watchdog()\n"
+        + body
+    )
+    compile(out, "same_inference_public_watchdog", "exec")
+    return out
+
+
+def budget(quota, epoch, mode, *, latest_training_epoch):
+    if (
+        epoch not in EPOCHS
+        or mode not in CAPS
+        or type(latest_training_epoch) is not int
+        or not epoch <= latest_training_epoch <= 3
+    ):
+        raise ValueError("Actual registered epoch/training state required")
+    values = []
+    for key in ("totalTimeAllowed", "timeUsed", "timeReserved"):
+        if key == "totalTimeAllowed" and key not in quota:
+            raise ValueError("Actual total allowance required")
+        x = float(str(quota.get(key, "0s")).removesuffix("s"))
+        if not math.isfinite(x) or x < 0:
+            raise ValueError("Finite nonnegative authoritative budget required")
+        values.append(x)
+    free = values[0] - values[1] - values[2]
+    # Worst-case remaining unchanged fitting epochs plus remaining public serving obligation.
+    # Reserved account time is already subtracted: this deliberately errs conservatively.
+    future_training = (3 - latest_training_epoch) * 6000
+    serving = (
+        6000
+        if epoch == 1 and mode == "qualification"
+        else (4200 if epoch == 1 else (3000 if mode == "qualification" else 1200))
+    )
+    required = future_training + serving
+    return {
+        "available": free >= required,
+        "unreserved_VM_seconds": free,
+        "required_VM_seconds": required,
+        "remaining_fitting_bound_seconds": future_training,
+        "public_serving_reservation_seconds": serving,
+        "session_timeout_seconds": CAPS[mode],
+        "public_example_watchdog_seconds": PUBLIC_WATCHDOG_SECONDS,
+        "hidden_session_timeout_seconds": 32400,
+        "minimumTimeAllowed_used_as_ceiling": False,
+        "paid_credits_allowed": False,
+    }
+
+
+def request(epoch, mode, source, training):
+    if (
+        epoch not in EPOCHS
+        or mode not in CAPS
+        or training.get("epoch") != epoch
+        or training.get("version") != 1
+        or training.get("status") != "COMPLETE"
+    ):
+        raise ValueError("Actual immutable completed training version required")
+    sha = hashlib.sha256(source.encode()).hexdigest()
+    slug = (
+        "godlydonuts/rsna-s6-target-e"
+        + str(epoch)
+        + "-"
+        + ("qual-" if mode == "qualification" else "offline-")
+        + sha[:12]
+    )
+    return {
+        "slug": slug,
+        "newTitle": slug.split("/")[1].replace("-", " "),
+        "text": source,
+        "language": "python",
+        "kernelType": "script",
+        "isPrivate": True,
+        "enableGpu": True,
+        "machineShape": "NvidiaTeslaT4",
+        "enableInternet": False,
+        "datasetDataSources": [],
+        "kernelDataSources": [OFFLINE, training["slug"]]
+        + ([PIXELS32] if mode == "qualification" else []),
+        "competitionDataSources": []
+        if mode == "qualification"
+        else ["rsna-knee-abnormality-detection"],
+        "sessionTimeoutSeconds": CAPS[mode],
+        "dockerImage": DOCKER,
+        "dockerImagePinningType": "original",
+    }
+
+
+def receipt(r, candidate, mode):
+    if (
+        mode not in CAPS
+        or r.get("epoch") != candidate["epoch"]
+        or r.get("model_sha256") != candidate["model_sha256"]
+        or r.get("training_source_sha256") != candidate["training_source_sha256"]
+        or r.get("role") != "cross_lineage_equal_rank"
+        or r.get("training_windows") != 16
+        or r.get("serving_windows") != 94
+        or r.get("proposal_sha256")
+        != "e812a9f90cd2b3db92d9acafd28688d5ee6fe16fc188d6517c2bab565f79205e"
+        or r.get("competition_entry") is not False
+        or r.get("clinical_accuracy_claim") is not False
+    ):
+        raise ValueError("Exact actual model/source/target-role receipt required")
+    if mode == "qualification":
+        ds = r.get("devices", [])
+        if (
+            r.get("status")
+            != "actual_complete_target_twoT4_epoch_bothT4_original32_MRI_and_training_graph_qualified"
+            or r.get("qualified_studies") != 32
+            or r.get("qualification_cannot_submit") is not True
+            or len(ds) != 2
+            or {d.get("index") for d in ds} != {0, 1}
+            or any(
+                "T4" not in d.get("GPU", "")
+                or d.get("MRI_studies") != 32
+                or d.get("both_original94_input_views_bit_equal") is not True
+                or d.get("complete_learned_graph_tensor_values_equal") is not True
+                or not 0
+                <= d.get("maximum_original_class_vs_training_graph_probability_error", math.inf)
+                <= 1e-6
+                or not 0 < d.get("peak_allocated_bytes", 0) < 16 * 2**30
+                for d in ds
+            )
+        ):
+            raise ValueError("Actual original32 MRI/new complete graph on both T4s required")
+    elif (
+        r.get("status") != "actual_complete_target_twoT4_epoch_MRI_test_roster_CSV_complete"
+        or r.get("studies") != 3
+        or r.get("columns") != 13
+        or r.get("test_roster_sha256") != ROSTER
+        or r.get("prediction_counts")
+        != {"started": 6, "completed": 6, "failed": 0, "decode_errors": 0, "empty_views": 0}
+        or len(r.get("devices", [])) != 2
+        or any("T4" not in d for d in r["devices"])
+    ):
+        raise ValueError("Real public MRI/CSV/test roster with no fallback required")
+    return True
