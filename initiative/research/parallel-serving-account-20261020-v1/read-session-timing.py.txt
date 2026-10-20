@@ -1,0 +1,17 @@
+import hashlib,importlib.util,json,sqlite3,sys,os
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+C=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control')
+def module(name,h):
+ p=C/(name+'.py');assert hashlib.sha256(p.read_bytes()).hexdigest()==h
+ s=importlib.util.spec_from_file_location('exact_read_only_'+name,p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+w=module('workflow','2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900')
+r=w.Remote.__new__(w.Remote);r.username='godlydonuts';r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token']
+who=r.call('security.OAuthService','IntrospectToken',{'token':v['token']});assert who.get('active') and who.get('username')=='godlydonuts'
+out={'status':'actual_original_serving_session_timing_read_only','CPU_job':os.environ['SLURM_JOB_ID'],'sessions':{}}
+for slug in ['godlydonuts/rsna-zero-final-e3-qual-906ebf0d4964','godlydonuts/rsna-zero-final-e3-offline-61ebf8bceff0']:
+ status=r.kernel('GetKernelSessionStatus',slug,1)
+ meta=r.kernel('GetKernel',slug,1)['metadata']
+ out['sessions'][slug]={'session':status,'metadata_keys':sorted(meta),'timing_metadata':{k:v for k,v in meta.items() if any(x in k.lower() for x in ['time','duration','run','status'])}}
+print(json.dumps(out),flush=True)

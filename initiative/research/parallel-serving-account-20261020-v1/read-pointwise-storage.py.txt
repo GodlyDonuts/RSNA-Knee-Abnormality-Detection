@@ -1,0 +1,9 @@
+import json,os,shutil
+from pathlib import Path
+assert os.uname().nodename=="evc48" and not os.environ.get("SLURM_JOB_GPUS")
+base=Path("/tmp/rsna-teacher-pair-full-fitting48-20261020-v1")
+model=base/"pointwise/epoch-checkpoints/epoch-003.pt"
+assert model.is_file() and model.stat().st_size==292867251
+serv=base/"final-serving-v2/pointwise"
+assert all((serv/x).is_file() for x in ("compiled.json","actual-accepted.json","publication-private-verified.json","qualification.private.py","competition.private.py"))
+print(json.dumps({"CPU_job":os.environ["SLURM_JOB_ID"],"node":"evc48","node_free_bytes":shutil.disk_usage("/tmp").free,"original_pointwise_model_bytes":model.stat().st_size,"original_serving_metadata_present":True,"new_pointwise_control_absent":not Path("/tmp/rsna-pointwise-final-deployment-20261020-v1").exists(),"new_mutations":0}))

@@ -1,0 +1,54 @@
+import hashlib,importlib.util,json,math,os,sys,time
+from pathlib import Path
+import requests
+v=json.load(sys.stdin);assert os.uname().nodename=='evc33' and not os.environ.get('SLURM_JOB_GPUS')
+p=Path('/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900'
+s=importlib.util.spec_from_file_location('original_live_progress',p);w=importlib.util.module_from_spec(s);s.loader.exec_module(w)
+r=w.Remote.__new__(w.Remote);r.username='godlydonuts';r.session=requests.Session();r.session.headers['Authorization']='Bearer '+v['token'];a=v['actual']
+k=r.kernel('GetKernel',a['slug'],1);assert k['metadata']['id']==a['kernel_id'] and k['metadata']['isPrivate'] and hashlib.sha256(k['blob']['source'].encode()).hexdigest()==a['source_sha256']
+status=r.kernel('GetKernelSessionStatus',a['slug'],1).get('status','INITIALIZING_UNREPORTED')
+api=Path('/home/sa305415/rsna-knee/kaggle/management-cp312-v1/lib/python3.12/site-packages/kagglesdk/kernels/services/kernels_api_service.py').read_text();assert 'def get_kernel_session_logs_stream' in api and 'GetKernelSessionLogsStream' in api
+found=[]
+def walk(value,depth=0):
+ if depth>10:return
+ if isinstance(value,dict):
+  for child in value.values():walk(child,depth+1)
+ elif isinstance(value,list):
+  for child in value:walk(child,depth+1)
+ elif isinstance(value,str):
+  found.append(value)
+r.session.cookies.clear();response=r.session.post('https://api.kaggle.com/v1/kernels.KernelsApiService/GetKernelSessionLogsStream',json={'userName':'godlydonuts','kernelSlug':a['slug'].split('/')[1],'versionLabel':'1','waitForLogsUrlSeconds':2},timeout=(10,35),allow_redirects=False,stream=True)
+http=response.status_code;kind=response.headers.get('Content-Type','').split(';')[0];start=time.monotonic();count=0;observation_error=None
+try:
+ if http==200:
+  if kind=='application/json':
+   raw=bytearray()
+   for block in response.iter_content(16384):
+    raw.extend(block);assert len(raw)<2*2**20
+   walk(json.loads(raw))
+  else:
+   for line in response.iter_lines(chunk_size=128):
+    count+=len(line)
+    if count>2*2**20 or time.monotonic()-start>45:break
+    text=line.decode('utf8',errors='replace').strip()
+    if text.startswith('data:'):
+     data=text[5:].strip()
+     if data=='END_OF_LOG':break
+     try:walk(json.loads(data))
+     except (ValueError,TypeError):pass
+
+except (requests.RequestException,ValueError,TypeError) as exc:observation_error=type(exc).__name__
+finally:response.close()
+text="\n".join(found)
+numeric=[];keys=set()
+for line in text.splitlines():
+ try:
+  z=json.loads(line)
+  if isinstance(z,dict):
+   keys.update(z)
+   numeric.extend({k:x for k,x in z.items() if isinstance(x,(int,float))}.items())
+ except (ValueError,TypeError):pass
+import re
+seconds=[float(x) for x in re.findall(r'(?m)^\s*(\d+(?:\.\d+)?)s\s',text)]
+out={'status':'actual_qualification_log_timing_observed_read_only','CPU_job':os.environ['SLURM_JOB_ID'],'kernel_id':a['kernel_id'],'kernel_status':status,'http':http,'response_kind':kind,'observation_error':observation_error,'log_bytes':len(text.encode()),'log_sha256':hashlib.sha256(text.encode()).hexdigest(),'json_keys':sorted(keys),'numeric_tail':numeric[-20:],'max_formatted_seconds':max(seconds) if seconds else None,'safe_log_tail':re.sub(r'https?://[^\s]+','[URL]',re.sub(r'1\.2\.826\.0\.1\.[0-9.]+','[UID]',text))[-2200:],'new_GPU_or_account_mutations':0}
+print(json.dumps(out),flush=True)
