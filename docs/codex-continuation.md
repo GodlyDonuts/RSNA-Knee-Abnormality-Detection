@@ -24,7 +24,7 @@ Main directory `initiative/research/S6-Kaggle-production-route-20261019-v1`:
 
 45 auxiliary `/tmp/rsna-S6-earlier-H100-route-20261019-v1/auxiliary-v2`; fullshards `/tmp/rsna-S6-Newton-student-production-20261019-v1/original-pixel-replica-v2/shard-{0..3}`. Reuse original whole-byte proofs/stat bindings; do not redundantly rehash40GB or collide old48 aliases. Runtime974672 alias `/tmp/rsna-environment-971427-pyk8rld8` points restored `/tmp/rsna-environment-974672-ad0yt74p`.
 
-Selected-window source91992a46, actualCPU974909:32MRI/64pairs, identical selected tensors,6.99825x renderer-only speed. `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Private complete per-window integrity manifest and reader admission needed before integration. Do not modify already running E2/E3 or publish pixel-derived hashes.
+Selected-window source91992a46, actualCPU974909:32MRI/64pairs, identical selected tensors,6.99825x renderer-only speed. `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Private complete per-window integrity manifest pass975028 is submitted once/PENDING, owner6107/sourcebaa2a5ec; `manifest_once.py.txt` and `manifest_stage.py.txt` frozen while active. New private32MiB funded against fresh20+79GiB conservative reserve; no shared pixels or duplicate40GB hashing. Reader admission still needed before integration. Do not modify already running E2/E3 or publish pixel-derived hashes.
 
 ## Resource and publication bindings
 

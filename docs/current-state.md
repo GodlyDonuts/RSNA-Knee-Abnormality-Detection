@@ -52,7 +52,7 @@ Full12-file/38,873,662,650-byte inputs already copied and independently SHA veri
 
 CPU974909 COMPLETED0:0: original renderer built94 windows then selected16. AST-derived selected rendering produced bit-identical tensors on32 actual MRI studies /64 plain-mirrored pairs, preserving duplicate/order behavior. Renderer time8.74364s versus1.24940s, **6.99825x renderer-only speedup**. No model/GPU/optimizer/clinical operations occurred. This is neither end-to-end throughput nor accuracy.
 
-Actual receipt: `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Do not alter healthy training. To deploy the faster reader, first derive a private full-cohort per-window integrity manifest from the already verified original94 tensors and verify selected inputs against it. Pixel-derived signatures remain private; do not export them to Git/HF/Mac.
+Actual receipt: `initiative/research/selected-window-rendering-20261020-v1/actual-CPU-measured.json`. Distinct CPU-only full-cohort integrity pass975028 was submitted once and is actually PENDING; owner6107/sourcebaa2a5ec. It reserves32MiB node-local, zero shared pixels, oneCPU/zeroGPU/45minutes and uses existing archives. No full-cohort integrity or faster training admission yet. Do not repeat this pass or alter healthy training. To deploy the faster reader, first derive a private full-cohort per-window integrity manifest from the already verified original94 tensors and verify selected inputs against it. Pixel-derived signatures remain private; do not export them to Git/HF/Mac.
 
 ## Preservation and next actions
 
