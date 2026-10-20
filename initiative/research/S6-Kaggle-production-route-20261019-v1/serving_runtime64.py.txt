@@ -1,0 +1,62 @@
+"""Explicit runtime-policy correction over the unchanged tested account protocol.
+
+Old qualification remains preserved under its original key/version. A new key
+and deterministic source header distinguish the corrected execution; never
+resubmit the unpinned old notebook or waive its actual runtime mismatch.
+"""
+
+import hashlib
+import re
+
+CORE_SHA = "f9430f3c1a98a2a1d383a2e9896d037ac67c60534d30a278a8a88e2dcd5dbb6e"
+DOCKER = "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f"
+
+
+def namespace(core, correction_source_git):
+    if hashlib.sha256(core.encode()).hexdigest() != CORE_SHA or not re.fullmatch(
+        r"gcr\.io/kaggle-private-byod/python@sha256:[0-9a-f]{64}", DOCKER
+    ):
+        raise ValueError("Exact accepted account protocol and canonical64-hex runtime required")
+    replacements = {
+        'key = "licensed-parent-full-epoch-serving:" + model_sha': 'key = "licensed-parent-full-epoch-serving:runtime64:" + model_sha',
+        'target = S / "account-phase-v1"': 'target = S / "account-phase-runtime64-v1"',
+        '"kind": "complete_target_twoT4_epoch_serving",': '"kind": "complete_target_twoT4_epoch_runtime64_serving", "runtime_correction_source_git": '
+        + repr(correction_source_git)
+        + ",",
+    }
+    for before, after in replacements.items():
+        if core.count(before) != 1:
+            raise ValueError("One exact original control site required")
+        core = core.replace(before, after)
+    ns = {"__name__": "explicit_runtime64_account_protocol"}
+    exec(compile(core, "same_account_protocol_explicit_runtime64_correction", "exec"), ns)
+    original_load = ns["load"]
+
+    def load(name):
+        module = original_load(name)
+        if name != "policy":
+            return module
+        module.DOCKER = DOCKER
+        original_source = module.public_bounded_source
+
+        def bounded(source, mode):
+            return "# Canonical pinned T4 runtime: " + DOCKER + "\n" + original_source(source, mode)
+
+        module.public_bounded_source = bounded
+        original_request = module.request
+
+        def request(*args, **kwargs):
+            value = original_request(*args, **kwargs)
+            if (
+                value["dockerImage"] != DOCKER
+                or value["sessionTimeoutSeconds"] > 32400
+                or value["enableInternet"] is not False
+            ):
+                raise ValueError("Actual canonical offline runtime request required")
+            return value
+
+        module.request = request
+        return module
+
+    ns["load"] = load
+    return ns

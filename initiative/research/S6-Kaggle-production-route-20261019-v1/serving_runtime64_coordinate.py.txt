@@ -1,0 +1,126 @@
+"""Use a corrected runtime without overwriting the original staged code or entry."""
+
+import importlib.machinery
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/S6-twoT4-runtime64-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+
+
+def run(phase, epoch=1, mode="qualification"):
+    epoch = int(epoch)
+    assert phase in ("prepare", "push", "status", "submit", "outcome") and epoch in (1, 3)
+    pointer = D / "actual-runtime64-control.json"
+    if pointer.exists():
+        pin = json.loads(pointer.read_text())["source_git"]
+    else:
+        pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        with pointer.open("x") as f:
+            json.dump(
+                {
+                    "source_git": pin,
+                    "core_source_git": "40aec573b999ed599af75f7c6382ed25992cd8f8",
+                    "old_qualification_preserved": 139711261,
+                    "maximum_corrected_epoch_candidates": 2,
+                },
+                f,
+            )
+    for name in ("serving_runtime64.py.txt", "serving_runtime64_coordinate.py.txt"):
+        p = D / name
+        assert p.read_bytes() == subprocess.check_output(
+            ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+        )
+    original = json.loads((D / "actual-serving-account-staged.json").read_text())
+    assert original["source_git"] == "40aec573b999ed599af75f7c6382ed25992cd8f8"
+    core = subprocess.check_output(
+        [
+            "git",
+            "show",
+            original["source_git"] + ":" + str((D / "serving_cloud.py.txt").relative_to(R)),
+        ],
+        text=True,
+    )
+    fix = (D / "serving_runtime64.py.txt").read_text()
+    env = R / ".env"
+    assert env.stat().st_mode & 0o077 == 0
+    values = {
+        k.strip(): v.strip().strip("\"'")
+        for line in env.read_text().splitlines()
+        for k, sep, v in [line.partition("=")]
+        if sep and not line.lstrip().startswith("#")
+    }
+    program = """import json,sys
+v=json.load(sys.stdin);ns={'__name__':'actual_explicit_runtime64_policy'};exec(compile(v.pop('correction'),'actual_runtime64_correction','exec'),ns)
+core=v.pop('core');pin=v.pop('correction_source_git');fixed=ns['namespace'](core,pin)
+try:
+ result=fixed['execute'](v);result['runtime_correction_source_git']=pin;result['old_unpinned_qualification_not_submitted']=True;print(json.dumps(result),flush=True)
+except BaseException as e:
+ import traceback
+ frames=traceback.extract_tb(e.__traceback__);print(json.dumps({'status':'explicit_runtime64_phase_stopped_no_retry','exception_type':type(e).__name__,'site_line':frames[-1].lineno if frames else None,'phase':v.get('phase')}),file=sys.stderr,flush=True);raise SystemExit(1) from None
+"""
+    spec = importlib.util.spec_from_file_location(
+        "transport",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    )
+    t = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(t)
+    payload = {
+        "phase": phase,
+        "epoch": epoch,
+        "mode": mode,
+        "source_git": original["source_git"],
+        "source_sha256": original["source_sha256"],
+        "core": core,
+        "correction": fix,
+        "correction_source_git": pin,
+        "token": values["KAGGLE_API_TOKEN"],
+    }
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:10:00",
+        "--job-name=rsna-runtime64-" + phase,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "-c",
+        t.COMMAND,
+    ]
+    x = subprocess.run(
+        ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+        input=t.envelope(program, payload),
+        capture_output=True,
+        text=True,
+        timeout=1200,
+    )
+    (L / (str(epoch) + "-" + phase + "-" + mode + "-" + str(time.time_ns()) + ".json")).write_text(
+        json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+        + "\n"
+    )
+    assert x.returncode == 0, (
+        "Reconcile exact corrected phase; no automatic mutation retry: " + x.stderr[-700:]
+    )
+    return json.loads(x.stdout)
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)
