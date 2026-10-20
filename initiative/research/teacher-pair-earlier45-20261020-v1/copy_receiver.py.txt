@@ -1,0 +1,92 @@
+# ruff: noqa: F821
+"""Fresh original four-shard copy on48; exact admitted TLS primitives only."""
+
+import ipaddress
+import json
+import os
+import shutil
+import socket
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+secret = bytes.fromhex(v.pop("secret"))
+assert len(secret) == 32 and os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+P = Path("/tmp/rsna-S6-Newton-student-production-20261019-v1")
+C = P / "original-pixel-replica-v2"
+N = P / "transport-earlier-v1"
+assert not C.exists() and not N.exists(), (
+    "An existing original copy/intent requires read-only reconciliation"
+)
+assert shutil.disk_usage("/tmp").free > 108 * 2**30 + 32 * 2**20
+old = v["files"]
+assert len(old) == 12 and sum(r["bytes"] for r in old.values()) < 40 * 2**30
+P.mkdir(mode=0o700, exist_ok=True)
+C.mkdir(mode=0o700)
+N.mkdir(mode=0o700)
+(C / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": old,
+            "old_source39_and_node33_assets_preserved": True,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+states, digests, stats = prefix_states(C, old)
+assert all(r["offset"] == 0 for r in states.values())
+context, certificate = server_context()
+address = socket.gethostbyname("ivc45")
+assert ipaddress.ip_address(address).is_private and not ipaddress.ip_address(address).is_loopback
+listener = socket.socket()
+listener.bind((address, 0))
+listener.listen(3)
+listener.settimeout(1800)
+ready = {
+    "status": "original_private_TLS_receiver_ready",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "node": "evc45",
+    "private_address": address,
+    "port": listener.getsockname()[1],
+    "certificate_sha256": certificate,
+    "files": old,
+    "prefixes": states,
+}
+print(json.dumps(ready), flush=True)
+raw, _ = listener.accept()
+raw.settimeout(180)
+with context.wrap_socket(raw, server_side=True) as channel:
+    authenticate_server(channel, secret, certificate)
+    del secret
+    with channel.makefile("rb") as stream:
+        assert header(stream, v["expected"]) == old
+        receive_remaining(stream, C, old, states, digests, stats)
+listener.close()
+for i in range(4):
+    proof = json.loads((C / f"shard-{i}/source-proof.private.json").read_text())
+    assert (
+        proof["archive_sha256"] == old[f"shard-{i}/pixels.tar"]["sha256"]
+        and proof["index_sha256"] == old[f"shard-{i}/index.private.json"]["sha256"]
+    )
+actual = {
+    "status": "actual_original_four_pixel_shards_private_node33_to_node45_whole_bytes_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "files": old,
+    "archive_bytes": sum(r["bytes"] for n, r in old.items() if n.endswith("pixels.tar")),
+    "total_bytes": sum(r["bytes"] for r in old.values()),
+    "source_originals_and_node33_replica_preserved": True,
+    "raw_bytes_or_records_on_Mac_Git_HF": False,
+    "transport": "direct_pinned_TLS_mutual_HMAC_RAM_key",
+    "private_key_and_secret_RAM_only": True,
+    "new_input_cap_bytes": 40 * 2**30,
+    "new_future_training_checkpoint_publication_cap_bytes": 24 * 2**30,
+    "actual_GPU_or_MRI_decode_or_production_acceptance": False,
+    "automatic_retry": False,
+}
+(C / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+(N / "verified.json").write_text(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
