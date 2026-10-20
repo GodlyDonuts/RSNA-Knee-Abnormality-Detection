@@ -114,12 +114,12 @@ def test_reviewed_caps_match_timer_request_and_fresh_budget(admitted):
     exec(generated(admitted)["policy.py"], p.__dict__)
     p.PLAN = config["runtime_plan"]
     result = p.budget(
-        dict(totalTimeAllowed="3625s", timeUsed="0s", timeReserved="0s"),
+        dict(totalTimeAllowed="3985s", timeUsed="0s", timeReserved="0s"),
         3,
         "qualification",
         latest_training_epoch=3,
     )
-    assert result["available"] and result["required_VM_seconds"] == 3625
+    assert result["available"] and result["required_VM_seconds"] == 3985
     assert (
         result["session_timeout_seconds"] == 500
         and result["public_example_watchdog_seconds"] == 100
@@ -341,7 +341,7 @@ def test_both_metadata_404s_wait_then_eventual_ready_verifies_without_create(tmp
     )
 
 
-@pytest.mark.parametrize("mode,required", [("qualification", 3625), ("competition", 3125)])
+@pytest.mark.parametrize("mode,required", [("qualification", 3985), ("competition", 3485)])
 def test_public_startup_is_funded_separately_at_actual_threshold(admitted, mode, required):
     policy = types.ModuleType("synthetic_startup_budget")
     exec(generated(admitted)["policy.py"], policy.__dict__)
@@ -357,7 +357,34 @@ def test_public_startup_is_funded_separately_at_actual_threshold(admitted, mode,
         assert result["required_VM_seconds"] == required
         assert result["public_VM_setup_reserve_seconds"] == 25
         assert result["public_example_watchdog_seconds"] == 100
-        assert result["predictive_reserved_VM_seconds"] == 3000
+        assert result["predictive_reserved_VM_seconds"] == 3360
+
+
+@pytest.mark.parametrize("reserve", [3000, 3359, True, float("inf")])
+def test_predictive_startup_reserve_cannot_be_spent_by_ranking(admitted, reserve):
+    config, text = admitted
+    decision = json.loads(text)
+    decision["predictive_reserved_VM_seconds"] = reserve
+    text = json.dumps(decision)
+    config["runtime_plan"].update(
+        predictive_reserved_VM_seconds=reserve,
+        actual_same_graph_timing_receipt_sha256=hashlib.sha256(text.encode()).hexdigest(),
+    )
+    with pytest.raises(AssertionError, match="Preserve predictive"):
+        runner._delta.accepted(config, text)
+
+
+def test_generated_runtime_guard_retains_3360_and_current_grant_does_not_fund_rank(admitted):
+    policy = types.ModuleType("synthetic_predictive_startup_guard")
+    exec(generated(admitted)["policy.py"], policy.__dict__)
+    policy.PLAN = admitted[0]["runtime_plan"]
+    quota = dict(totalTimeAllowed="3715.4106641s", timeUsed="0s", timeReserved="0s")
+    result = policy.budget(quota, 3, "qualification", latest_training_epoch=3)
+    assert result["required_VM_seconds"] == 3985 and result["available"] is False
+    # Even a post-admission config change cannot silently restore the old floor.
+    policy.PLAN["predictive_reserved_VM_seconds"] = 3000
+    with pytest.raises(ValueError, match="predictive reserve"):
+        policy.budget(quota, 3, "qualification", latest_training_epoch=3)
 
 
 @pytest.mark.parametrize("reserve", [None, -1, float("inf"), float("nan"), True, 19])

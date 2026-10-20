@@ -72,7 +72,11 @@ def accepted(config, decision_text):
     )
     assert evidence["observed_setup_seconds"] == max(0, charge - elapsed)
     assert setup >= evidence["observed_setup_seconds"], "Reserve must cover observed startup charge"
-    assert plan["predictive_reserved_VM_seconds"] >= 3000
+    reserve = plan["predictive_reserved_VM_seconds"]
+    assert type(reserve) is int and reserve >= 3360, (
+        "Preserve predictive qualification/public execution plus VM startup"
+    )
+    assert decision["predictive_reserved_VM_seconds"] == reserve
     assert plan["same32_case_checks_and_inference_unchanged"] is True
     return plan
 
@@ -183,6 +187,12 @@ def sources(parent, config, decision_text):
         policy,
         'PLAN["public_watchdog_seconds"] != 300',
         'PLAN["public_watchdog_seconds"] != ' + str(public),
+    )
+    policy = replace(
+        policy,
+        'PLAN["predictive_reserved_VM_seconds"] < 3000',
+        '(type(PLAN["predictive_reserved_VM_seconds"]) is not int '
+        'or PLAN["predictive_reserved_VM_seconds"] < 3360)',
     )
     policy = replace(
         policy, "PUBLIC_WATCHDOG_SECONDS = 300", "PUBLIC_WATCHDOG_SECONDS = " + str(public)
