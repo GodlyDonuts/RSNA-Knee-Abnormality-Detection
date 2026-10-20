@@ -77,6 +77,21 @@ reserves. This is not production funding. No new source acquisition. Inspect
 actual job/header/logs and GPU-accepted.json before advancing; a pending dispatch
 is not a GPU pass. See predictive-real-trainer-20261020-v2 and its actual receipts.
 
+
+### Verified private source preservation
+
+The owner-proposed research package, new predictive source/loop/readout, original
+raw intervention result, original failed label admission and corrected actual
+GPU dispatch are privately preserved at **HFb5554649716ec81e4b72f8a98a7fcdcb41c0cb80**,
+source1172d429/CPU977741,45objects/300171bytes. Every object independently
+re-downloaded/size/SHA verified under the canonical shared lock. No MRI, labels,
+IDs, private arrays, predictions or external weights included. Do not repeat.
+Old CPU977688 was cancelled only while PENDING/0seconds/never started; its
+original intent/transport remain preserved. This was a source-mirror relocation,
+not cancellation or retry of either healthy fit or queued977678 diagnostic.
+New MRI-only inference has an explicit FP32/FP16/BF16 policy; CPU checks passed,
+but no actual T4 FP16 acceptance or hidden runtime estimate exists yet.
+
 ## Actual competition results
 
 | Model | Kaggle score | Entry |

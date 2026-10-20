@@ -1,5 +1,12 @@
 # RSNA Knee continuation
 
+## Latest verified source preservation
+
+Source1172d429 privately preserved once atHFb5554649716ec81e4b72f8a98a7fcdcb41c0cb80,
+CPU977741/all45objects300171bytes independently re-downloaded/size/SHA checked.
+Read hf-predictive-evidence-20261020-v2; do not repeat. Original pending-only
+CPU977688 mirror cancellation preserved. No raw MRI/IDs/weights included.
+
 ## Latest actual predictive trainer state
 
 CPU977675 accepted original67DICOM raw case, exact full3887 fitting labels/masks
