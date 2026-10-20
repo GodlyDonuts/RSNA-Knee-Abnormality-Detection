@@ -1,0 +1,186 @@
+"""One private integrity-manifest publication; no MRI/model/GPU/competition work."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import zipfile
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc45" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-selected-window-Kaggle-input-20261020-v1")
+assert not D.exists(), "Existing original intent/output requires read-only reconciliation"
+original = Path("/tmp/rsna-selected-window-full-cohort-20261020-v1")
+manifest = original / "window-integrity.private.npy"
+receipt = json.loads((original / "verified.json").read_text())
+assert receipt == v["integrity"]
+assert (
+    receipt["manifest_sha256"] == "85c2fbb342c4018ba77a5027a22b266b12c4ff59a766fd2af517c7c9ff30763f"
+)
+assert receipt["manifest_bytes"] == manifest.stat().st_size == 23384320
+assert hashlib.sha256(manifest.read_bytes()).hexdigest() == receipt["manifest_sha256"]
+assert receipt["studies"] == 3887 and receipt["original_full94_tensor_hash_checks"] == 7774
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+paid = [p for p in teacher.rglob("*") if p.is_file()]
+paid_bytes = sum(p.stat().st_size for p in paid)
+assert len(paid) < 256 and paid_bytes < 4 * 2**20
+quota = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+row = next(line.split() for line in quota.splitlines() if line.strip().startswith("/home/sa305415"))
+assert (int(row[2]) - int(row[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+) + 32 * 2**10
+assert int(row[6]) - int(row[5]) > 5000 + 128 + 128 + max(0, 256 - len(paid)) + 24
+assert shutil.disk_usage("/tmp").free > (20 + 87 + 12 + 24) * 2**30 + 32 * 2**20
+D.mkdir(mode=0o700)
+for name, text in v["components"].items():
+    assert name in ("workflow", "components", "publication")
+    assert hashlib.sha256(text.encode()).hexdigest() == v["component_SHA"][name]
+    p = D / "scripts/kaggle" / (name + ".py")
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+
+
+def module(name):
+    spec = importlib.util.spec_from_file_location(
+        "original_integrity_" + name, D / "scripts/kaggle" / (name + ".py")
+    )
+    value = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(value)
+    return value
+
+
+w, publication = module("workflow"), module("publication")
+import requests
+
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+slug = "godlydonuts/rsna-window-integrity-85c2fbb342c4"
+key = "selected-window-integrity-private-input:" + receipt["manifest_sha256"]
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+claim.mkdir(mode=0o700)
+owner = {
+    "kind": "one_private_selected_window_integrity_input",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        assert db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone() is None
+        publication.require_absent(r, slug)
+        provenance = D / "integrity-receipt.json"
+        provenance.write_text(json.dumps(receipt, sort_keys=True, indent=2) + "\n")
+        paths = {"window-integrity.private.npy": manifest, "integrity-receipt.json": provenance}
+        files = {
+            name: {"bytes": p.stat().st_size, "sha256": publication.digest(p)}
+            for name, p in paths.items()
+        }
+        bundle = D / "bundle-manifest.json"
+        bundle.write_text(
+            json.dumps(
+                {
+                    "kind": "private_original_MRI_window_integrity_not_pixels_or_labels",
+                    "source_git": v["source_git"],
+                    "files": files,
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
+        paths[bundle.name] = bundle
+        files[bundle.name] = {"bytes": bundle.stat().st_size, "sha256": publication.digest(bundle)}
+        upload = D / "upload"
+        upload.mkdir(mode=0o700)
+        archive = upload / "bundle.zip"
+        with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_STORED) as z:
+            for name in sorted(paths):
+                assert name in (
+                    "window-integrity.private.npy",
+                    "integrity-receipt.json",
+                    "bundle-manifest.json",
+                )
+                z.write(paths[name], arcname=name)
+        publication.validate_zip(archive, files)
+        assert sum(p.stat().st_size for p in D.rglob("*") if p.is_file()) < 32 * 2**20
+        context = {
+            "source_git": v["source_git"],
+            "archive_sha256": publication.digest(archive),
+            "original_manifest_sha256": receipt["manifest_sha256"],
+            "new_node_cap_bytes": 32 * 2**20,
+            "new_shared_ledger_bytes_cap": 32 * 2**10,
+            "new_permanent_shared_files": 0,
+            "existing_all_liabilities_retained": True,
+        }
+        intent = {
+            "state": "selected_window_integrity_dataset_create_intent",
+            "slug": slug,
+            "files": files,
+            "context": context,
+            "automatic_retry": False,
+        }
+        db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(intent, sort_keys=True)))
+        db.commit()
+        retain = True
+        publication.create_once(r, v["token"], slug, files, upload, D / "publication", context)
+        ready = False
+        for _ in range(30):
+            status = r.call(
+                "datasets.DatasetApiService",
+                "GetDatasetStatus",
+                {"ownerSlug": "godlydonuts", "datasetSlug": slug.split("/")[1]},
+            )
+            if status.get("status") in ("READY", 5):
+                ready = True
+                break
+            time.sleep(5)
+        assert ready, "Read-only reconciliation required; never repeat CreateDataset"
+        verified = publication.reconcile(r, slug, files)
+        assert verified["private"] and verified["version"] == 1 and verified["downloaded_all_bytes"]
+        out = {
+            "status": "actual_private_full_window_integrity_dataset_all_objects_download_size_SHA_verified",
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "dataset": {n: verified[n] for n in ("id", "slug", "version", "private")},
+            "files": files,
+            "verified_objects": len(files),
+            "downloaded_all_bytes": True,
+            "original_manifest_CPU": receipt["CPU_job"],
+            "new_node_cap_bytes": 32 * 2**20,
+            "new_shared_ledger_bytes_cap": 32 * 2**10,
+            "new_GPU_or_competition_jobs": 0,
+            "MRI_pixels_reports_labels_UIDs_exported": False,
+            "signatures_remain_private_Kaggle_input": True,
+            "actual_T4_reader_acceptance_or_accuracy": False,
+        }
+        w.new_json(D / "actual-verified.json", out)
+        db.execute(
+            "UPDATE meta SET value=? WHERE key=?",
+            (
+                json.dumps(
+                    {"state": "selected_window_integrity_dataset_private_verified", "receipt": out},
+                    sort_keys=True,
+                ),
+                key,
+            ),
+        )
+        db.commit()
+        retain = False
+        print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()

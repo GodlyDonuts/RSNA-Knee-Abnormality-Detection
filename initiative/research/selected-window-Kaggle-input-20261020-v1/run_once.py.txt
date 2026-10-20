@@ -1,0 +1,109 @@
+"""Create only the bounded private integrity Dataset; credentials through stdin."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/selected-window-Kaggle-input-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+names = ["workflow", "components", "publication"]
+components = {}
+for p in (
+    D / "program.py.txt",
+    D / "run_once.py.txt",
+    *[R / "scripts/kaggle" / (n + ".py") for n in names],
+):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+for name in names:
+    components[name] = (R / "scripts/kaggle" / (name + ".py")).read_text()
+integrity = json.loads(
+    (
+        R
+        / "initiative/research/selected-window-rendering-20261020-v1/actual-full-cohort-integrity.json"
+    ).read_text()
+)
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+payload = {
+    "source_git": pin,
+    "integrity": integrity,
+    "components": components,
+    "component_SHA": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in components.items()},
+    "token": values["KAGGLE_API_TOKEN"],
+}
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+program = (D / "program.py.txt").read_text()
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except BaseException as exc:\n    print(type(exc).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+)
+with (L / "intent.json").open("x") as f:
+    json.dump(
+        {
+            "source_git": pin,
+            "maximum_CreateDataset_calls": 1,
+            "new_GPU_or_competition_jobs": 0,
+            "new_node_bytes_cap": 32 * 2**20,
+            "new_permanent_shared_files": 0,
+            "new_shared_ledger_bytes_cap": 32 * 2**10,
+            "automatic_retry": False,
+        },
+        f,
+        indent=2,
+    )
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc45",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:10:00",
+    "--job-name=rsna-private-window-integrity",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope(program, payload),
+    capture_output=True,
+    text=True,
+    timeout=1200,
+)
+(L / "transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Inspect exact original private journal/ledger read-only; never repeat CreateDataset"
+)
+out = json.loads(x.stdout)
+(D / "actual-private-verified.json").write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)
