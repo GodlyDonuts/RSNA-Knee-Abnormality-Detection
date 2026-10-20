@@ -16,6 +16,9 @@ FAMILIES = (
     "licensed-importance-full-fit:",
     "licensed-parent-full-epoch-serving:",
 )
+# Official KernelWorkerStatus distinguishes a cancellation request from the
+# worker's acknowledgement. Keep the legacy spelling for older API receipts.
+TERMINAL_STATUSES = frozenset(("COMPLETE", "ERROR", "CANCEL_ACKNOWLEDGED", "CANCELLED"))
 
 
 def admission(db, remote, *, caller, now=None):
@@ -79,7 +82,7 @@ def admission(db, remote, *, caller, now=None):
         status = remote.kernel("GetKernelSessionStatus", value["slug"], value["version"]).get(
             "status"
         )
-        if status not in ("COMPLETE", "ERROR", "CANCELLED"):
+        if status not in TERMINAL_STATUSES:
             active.append({**value, "status": status})
     main_active = sum(v["main"] for v in active)
     auxiliary_active = len(active) - main_active

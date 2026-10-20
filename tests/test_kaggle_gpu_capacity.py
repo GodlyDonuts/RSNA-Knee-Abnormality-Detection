@@ -86,7 +86,9 @@ def test_live_serving_lease_gets_next_auxiliary_lane_but_expires():
     assert admission(db, Remote({}), caller="sampling", now=201)["available"]
 
 
-@pytest.mark.parametrize("state", [None, "QUEUED", "RUNNING", "VERSION_DRIFT"])
+@pytest.mark.parametrize(
+    "state", [None, "QUEUED", "RUNNING", "CANCEL_REQUESTED", "NEW_SCRIPT", "VERSION_DRIFT"]
+)
 def test_unresolved_or_changed_execution_is_never_called_idle(state):
     db = ledger((FAMILIES[1] + "b", pushed("godlydonuts/sample")))
     remote = Remote({"godlydonuts/sample": state})
@@ -110,3 +112,33 @@ def test_repeated_nested_identity_is_counted_once():
         )
         == 1
     )
+
+
+@pytest.mark.parametrize("terminal", ["COMPLETE", "ERROR", "CANCEL_ACKNOWLEDGED", "CANCELLED"])
+def test_terminal_auxiliary_releases_only_its_lane_and_preserves_main_reservation(terminal):
+    db = ledger(
+        (FAMILIES[0] + "main", pushed("godlydonuts/main", True)),
+        (FAMILIES[1] + "probe", pushed("godlydonuts/probe")),
+    )
+    remote = Remote({"godlydonuts/main": "RUNNING", "godlydonuts/probe": terminal})
+    out = admission(db, remote, caller="serving")
+    assert out["available"] and out["effective_occupied_lanes"] == 1
+    assert out["reserved_main_lanes"] == 1
+    assert [entry["slug"] for entry in out["actual_active_registered_sessions"]] == [
+        "godlydonuts/main"
+    ]
+    assert out["new_GPU_mutations"] == 0
+    assert set(remote.calls) == {"GetKernel", "GetKernelSessionStatus"}
+
+
+def test_cancel_request_still_occupies_lane_while_other_cancellation_is_acknowledged():
+    db = ledger(
+        (FAMILIES[1] + "ack", pushed("godlydonuts/ack")),
+        (FAMILIES[1] + "request", pushed("godlydonuts/request")),
+    )
+    remote = Remote(
+        {"godlydonuts/ack": "CANCEL_ACKNOWLEDGED", "godlydonuts/request": "CANCEL_REQUESTED"}
+    )
+    out = admission(db, remote, caller="sampling")
+    assert not out["available"] and out["effective_occupied_lanes"] == 2
+    assert out["actual_active_registered_sessions"][0]["slug"] == "godlydonuts/request"
