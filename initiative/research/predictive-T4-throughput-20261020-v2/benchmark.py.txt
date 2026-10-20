@@ -1,0 +1,408 @@
+# ruff: noqa: E402, F821
+"""Actual public-MRI two-T4 engineering benchmark; never a trained candidate."""
+
+import ast
+import base64
+import contextlib
+import copy
+import csv
+import gc
+import hashlib
+import io
+import json
+import os
+import resource
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+FILES = __FILES_VALUE__
+PARENT_SOURCE = __PARENT_SOURCE_VALUE__
+PERMISSION = __PERMISSION_VALUE__
+BINDING = __BINDING_VALUE__
+start = time.monotonic()
+os.umask(0o077)
+root = Path("/kaggle/working/predictive-T4-engineering-v2")
+root.mkdir(mode=0o700, exist_ok=False)
+progress_lock = threading.Lock()
+progress = {
+    "schema_version": 2,
+    "status": "predictive_T4_v2_in_progress",
+    "binding": BINDING,
+    "events": [],
+    "trained_model_acceptance_or_accuracy": False,
+    "hidden_size_runtime_acceptance": False,
+    "competition_entry": False,
+}
+
+
+def atomic_json(path, value):
+    """Persist complete finite JSON before publishing its new filename."""
+    path = Path(path)
+    temporary = path.with_name(path.name + ".tmp")
+    encoded = json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n"
+    with temporary.open("x") as output:
+        output.write(encoded)
+        output.flush()
+        os.fsync(output.fileno())
+    os.replace(temporary, path)
+
+
+def stage(name, **metrics):
+    """Only caller-supplied aggregate metrics; never IDs, source bodies or arrays."""
+    with progress_lock:
+        event = {
+            "stage": name,
+            "elapsed_seconds": time.monotonic() - start,
+            "metrics": metrics,
+        }
+        json.dumps(event, allow_nan=False)  # Reject before contaminating retained progress.
+        progress["events"].append(event)
+        atomic_json(root / "progress.json", progress)
+        atomic_json(Path("/kaggle/working/predictive-T4-progress-v2.json"), progress)
+        print(
+            json.dumps({"status": "predictive_T4_v2_progress", **event}, allow_nan=False),
+            flush=True,
+        )
+
+
+stage("started", session_cap_seconds=1200, original_runtime_target_seconds=550)
+os.environ.update(
+    HF_HUB_OFFLINE="1",
+    TRANSFORMERS_OFFLINE="1",
+    PYTHONDONTWRITEBYTECODE="1",
+    CUBLAS_WORKSPACE_CONFIG=":4096:8",
+    OMP_NUM_THREADS="2",
+    MKL_NUM_THREADS="2",
+)
+import numpy as np
+import pydicom
+import timm
+import torch
+
+stage("imports_complete", import_seconds=time.monotonic() - start)
+torch.set_num_threads(2)
+torch.set_num_interop_threads(1)
+torch.backends.cudnn.benchmark = False
+torch.backends.cuda.matmul.allow_tf32 = False
+(root / "permission.txt").write_bytes(base64.b64decode(PERMISSION, validate=True))
+assert (
+    hashlib.sha256((root / "permission.txt").read_bytes()).hexdigest()
+    == "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79"
+)
+for name, source in FILES.items():
+    p = root / "code" / name
+    assert p.resolve().is_relative_to((root / "code").resolve())
+    assert hashlib.sha256(source.encode()).hexdigest() == BINDING["module_sha256"][name]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(source)
+sys.path.insert(0, str(root / "code"))
+from rsna.competitive.predictive.cases import assemble
+from rsna.competitive.predictive.dicom import load_study
+from rsna.competitive.predictive.infer import predict
+from rsna.competitive.predictive.model import Predictive
+
+assert torch.cuda.device_count() == 2
+assert all("T4" in torch.cuda.get_device_name(i) for i in range(2))
+model_load_start = time.monotonic()
+stage("model_load_started", devices=2)
+source = base64.b64decode(PARENT_SOURCE, validate=True).decode()
+assert hashlib.sha256(source.encode()).hexdigest() == BINDING["parent_source_sha256"]
+ns = dict(torch=torch, nn=torch.nn, timm=timm, gc=gc, hashlib=hashlib, INPUT_RES=320)
+selected = [
+    n
+    for n in ast.parse(source).body
+    if isinstance(n, (ast.FunctionDef, ast.ClassDef))
+    and n.name in ("build_backbone", "RaptorClassifier", "load_model")
+]
+assert len(selected) == 3
+exec(
+    compile(ast.Module(body=selected, type_ignores=[]), "attributed_original_MRI_parent", "exec"),
+    ns,
+)
+weights = list(Path("/kaggle/input").rglob("raptor_ft_alldata_t16_blendjev_oai_d96_r384_swa.pt"))
+assert len(weights) == 1 and weights[0].stat().st_size == 292840787
+with weights[0].open("rb") as f:
+    assert hashlib.file_digest(f, "sha256").hexdigest() == BINDING["parent_weight_sha256"]
+with contextlib.redirect_stdout(io.StringIO()):
+    parent, res = ns["load_model"](
+        str(weights[0]), "coatnet_rmlp_2_rw_384.sw_in12k_ft_in1k", 384, torch.device("cpu")
+    )
+assert res == 320 and sum(p.numel() for p in parent.parameters()) == 73136096
+
+
+class FixedEncoder(torch.nn.Module):
+    def __init__(self, backbone):
+        super().__init__()
+        self.backbone = backbone
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406])[None, :, None, None])
+        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225])[None, :, None, None])
+
+    def forward(self, images):
+        return self.backbone((images - self.mean) / self.std)
+
+
+torch.manual_seed(20261020)
+base = Predictive(FixedEncoder(parent.backbone), parent.backbone.num_features, hidden=128).eval()
+assert all(
+    torch.count_nonzero(tensor).item() == 0
+    for layer in (base.negative, base.shift)
+    for tensor in (layer.weight, layer.bias)
+)
+del parent
+models = [copy.deepcopy(base).to("cuda:" + str(i)).eval() for i in range(2)]
+del base
+gc.collect()
+for device in range(2):
+    torch.cuda.synchronize(device)
+stage(
+    "model_load_complete",
+    model_load_seconds=time.monotonic() - model_load_start,
+    devices=2,
+    inherited_parent_parameters=73136096,
+    fresh_zero_descriptor_mean_and_shift=True,
+    fresh_head_parameters=sum(
+        p.numel() for n, p in models[0].named_parameters() if not n.startswith("encoder.")
+    ),
+)
+rosters = [
+    p for p in Path("/kaggle/input").rglob("test.csv") if (p.parent / "test_series").is_dir()
+]
+assert len(rosters) == 1
+with rosters[0].open() as f:
+    records = list(csv.DictReader(f))
+uids = [r["StudyInstanceUID"] for r in records]
+assert len(uids) == len(set(uids)) == 3, "Public example engineering only; never hidden rerun"
+cases = []
+input_stats = []
+input_start = time.monotonic()
+for study_index, uid in enumerate(uids):
+    t = time.monotonic()
+    groups, stats = load_study(rosters[0].parent / "test_series" / uid, uid)
+    decoded = time.monotonic() - t
+    stage("study_decode_complete", study_index=study_index, decode_seconds=decoded, **stats)
+    t = time.monotonic()
+    contexts = assemble(groups, side=320, context_cap=24, classes=12)
+    record = {
+        **stats,
+        "decode_seconds": decoded,
+        "render_seconds": time.monotonic() - t,
+        "regions": len(contexts[0]["targets"]),
+        "windows_per_mask": len(contexts[0]["images"]),
+    }
+    input_stats.append(record)
+    stage("study_render_complete", study_index=study_index, **record)
+    cases.append(contexts)
+    del groups
+input_seconds = time.monotonic() - input_start
+
+
+def nonzero_shift_precision_check(model, contexts):
+    """Exercise evidence arithmetic separately from the zero-shift fresh head.
+
+    This fixed synthetic perturbation is neither learned nor clinically useful.
+    It is restored before returning. The unchanged fresh model is used for all
+    timed measurements and prediction hashes.
+    """
+    assert not torch.count_nonzero(model.shift.weight) and not torch.count_nonzero(model.shift.bias)
+    device = next(model.parameters()).device
+    captures = []
+
+    def capture(module, arguments, result):
+        captures.append(result["evidence"].log_bayes_factor.detach().float().cpu())
+
+    hook = model.register_forward_hook(capture)
+    try:
+        with torch.no_grad():
+            model.shift.weight.copy_(
+                (
+                    (torch.arange(model.shift.weight.numel(), device=device) % 17 - 8).float()
+                    * 1e-4
+                ).reshape_as(model.shift.weight)
+            )
+            model.shift.bias.copy_(
+                (
+                    (torch.arange(model.shift.bias.numel(), device=device) % 13 - 6).float() * 1e-4
+                ).reshape_as(model.shift.bias)
+            )
+        low = predict(model, contexts, precision="fp16")
+        assert len(captures) == 2
+        low_evidence = torch.cat(captures)
+        captures.clear()
+        reference = predict(model, contexts, precision="fp32")
+        assert len(captures) == 2
+        reference_evidence = torch.cat(captures)
+        probability_gap = float((reference - low).abs().max())
+        evidence_gap = float((reference_evidence - low_evidence).abs().max())
+        maximum_evidence = float(reference_evidence.abs().max())
+        assert torch.isfinite(low_evidence).all() and torch.isfinite(reference_evidence).all()
+        assert maximum_evidence > 1e-6, "Precision stress must actually exercise nonzero evidence"
+        assert probability_gap < 0.02
+        return {
+            "fixed_synthetic_shift_scale": 1e-4,
+            "maximum_absolute_FP32_log_bayes_factor": maximum_evidence,
+            "maximum_FP16_FP32_log_bayes_factor_gap": evidence_gap,
+            "maximum_FP16_FP32_probability_gap": probability_gap,
+            "trained_head_precision_acceptance": False,
+        }
+    finally:
+        hook.remove()
+        with torch.no_grad():
+            model.shift.weight.zero_()
+            model.shift.bias.zero_()
+
+
+def run(device):
+    torch.cuda.set_device(device)
+    model = models[device]
+    with torch.inference_mode():
+        stage("device_warmup_started", device=device)
+        warm_start = time.monotonic()
+        warm = predict(model, cases[0], precision="fp16")
+        torch.cuda.synchronize(device)
+        stage("device_warmup_complete", device=device, seconds=time.monotonic() - warm_start)
+        torch.cuda.reset_peak_memory_stats(device)
+        began = time.monotonic()
+        rows = []
+        for case in cases:
+            rows.append(predict(model, case, precision="fp16").cpu().numpy())
+        torch.cuda.synchronize(device)
+        elapsed = time.monotonic() - began
+        throughput_peak_allocated = torch.cuda.max_memory_allocated(device)
+        throughput_peak_reserved = torch.cuda.max_memory_reserved(device)
+        measured = {
+            "device": device,
+            "GPU": torch.cuda.get_device_name(device),
+            "studies": len(rows),
+            "encoder_windows": sum(len(context["images"]) for case in cases for context in case),
+            "seconds": elapsed,
+            "throughput_FP16_peak_allocated_bytes": throughput_peak_allocated,
+            "throughput_FP16_peak_reserved_bytes": throughput_peak_reserved,
+            "finite_predictions": bool(np.isfinite(rows).all()),
+            "prediction_sha256": hashlib.sha256(
+                np.asarray(rows, dtype="<f4").tobytes()
+            ).hexdigest(),
+        }
+        stage("device_FP16_timed_measurement_complete", **measured)
+        precision_start = time.monotonic()
+        reference = predict(model, cases[0], precision="fp32")
+        max_gap = float((reference - warm).abs().max())
+        stage(
+            "device_zero_shift_precision_complete",
+            device=device,
+            seconds=time.monotonic() - precision_start,
+            maximum_probability_gap=max_gap,
+            context_prior_only=True,
+        )
+        assert max_gap < 0.02 and np.isfinite(rows).all()
+        precision_start = time.monotonic()
+        precision_stress = nonzero_shift_precision_check(model, cases[0])
+        stage(
+            "device_nonzero_shift_precision_complete",
+            device=device,
+            seconds=time.monotonic() - precision_start,
+            **precision_stress,
+        )
+    return {
+        **measured,
+        "peak_allocated_bytes": torch.cuda.max_memory_allocated(device),
+        "peak_reserved_bytes": torch.cuda.max_memory_reserved(device),
+        "maximum_first_public_FP16_FP32_probability_gap": max_gap,
+        "fresh_zero_shift_probability_comparison_checks_context_prior_only": True,
+        "separate_nonzero_shift_precision_stress": precision_stress,
+    }
+
+
+began = time.monotonic()
+devices, errors = [], []
+with ThreadPoolExecutor(max_workers=2) as pool:
+    futures = {pool.submit(run, device): device for device in range(2)}
+    for future in as_completed(futures):
+        device = futures[future]
+        try:
+            result = future.result()
+        except Exception as error:
+            failed = {"device": device, "error_type": type(error).__name__}
+            errors.append(failed)
+            stage("device_failed", **failed)
+        else:
+            devices.append(result)
+            stage("device_complete", **result)
+devices.sort(key=lambda row: row["device"])
+concurrent_seconds = time.monotonic() - began
+rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+memory_within_bounds = (
+    len(devices) == 2
+    and rss < 22 * 2**30
+    and all(d["peak_allocated_bytes"] < 13 * 2**30 for d in devices)
+)
+timed_measurements = [
+    event["metrics"]
+    for event in progress["events"]
+    if event["stage"] == "device_FP16_timed_measurement_complete"
+]
+receipt = {
+    "schema_version": 2,
+    "status": "actual_public_MRI_predictive_two_T4_measurements_recorded",
+    "binding": BINDING,
+    "devices": devices,
+    "timed_device_measurements": timed_measurements,
+    "device_errors": errors,
+    "completed_device_count": len(devices),
+    "input_stats": input_stats,
+    "input_seconds_three_studies": input_seconds,
+    "concurrent_wall_seconds_including_warmup_precision_check": concurrent_seconds,
+    "concurrent_workload": "each_device_processes_all_three_public_studies_independently",
+    "actual_unique_public_studies": len(cases),
+    "timed_study_device_executions": sum(d["studies"] for d in timed_measurements),
+    "host_peak_RSS_bytes": rss,
+    "host22GiB_device13GiB_memory_checks": bool(memory_within_bounds),
+    "torch": torch.__version__,
+    "timm": timm.__version__,
+    "pydicom": pydicom.__version__,
+    "elapsed_seconds": time.monotonic() - start,
+    "fresh_untrained_heads": True,
+    "trained_model_acceptance_or_accuracy": False,
+    "hidden_size_runtime_acceptance": False,
+    "competition_entry": False,
+    "submission_csv_absent": not Path("/kaggle/working/submission.csv").exists(),
+}
+# Measurement retention is unconditional with respect to duration and acceptance.
+# A slow/incomplete result is evidence, never silently discarded or called a pass.
+atomic_json(root / "actual.json", receipt)
+atomic_json(Path("/kaggle/working/predictive-T4-benchmark-v2.json"), receipt)
+print(json.dumps(receipt), flush=True)
+
+
+def classify(receipt):
+    complete = (
+        receipt["completed_device_count"] == 2
+        and not receipt["device_errors"]
+        and receipt["host22GiB_device13GiB_memory_checks"]
+        and receipt["submission_csv_absent"]
+    )
+    elapsed = receipt["elapsed_seconds"]
+    return {
+        "status": (
+            "measured_incomplete_or_failed_checks"
+            if not complete
+            else "measured_slow"
+            if elapsed >= 550
+            else "measured_within_original_runtime_target"
+        ),
+        "original_runtime_target_seconds": 550,
+        "session_cap_seconds": 1200,
+        "measured_elapsed_seconds": elapsed,
+        "session_headroom_seconds_at_measurement": 1200 - elapsed,
+        "trained_model_acceptance_or_accuracy": False,
+        "hidden_size_runtime_acceptance": False,
+        "competition_entry": False,
+    }
+
+
+classification = classify(receipt)
+atomic_json(root / "classification.json", classification)
+atomic_json(Path("/kaggle/working/predictive-T4-classification-v2.json"), classification)
+stage("measurement_receipt_persisted_and_classified", **classification)

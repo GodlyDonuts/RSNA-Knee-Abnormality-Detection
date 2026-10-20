@@ -1,0 +1,132 @@
+"""One phase per original intent; credentials and private source travel via stdin."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+L.mkdir(mode=0o700, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("prepare", "inspect", "push", "status")
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+program = (D / "cloud.py.txt").read_text()
+capacity = (R / "scripts/kaggle/gpu_capacity.py").read_text()
+sources = {
+    p.relative_to(R).as_posix(): p.read_text()
+    for p in (R / "rsna/competitive/predictive").glob("*.py")
+}
+sources.update({"rsna/__init__.py": "", "rsna/competitive/__init__.py": ""})
+for p in [
+    D / "run_once.py.txt",
+    D / "cloud.py.txt",
+    D / "benchmark.py.txt",
+    R / "scripts/kaggle/gpu_capacity.py",
+    *(R / "rsna/competitive/predictive").glob("*.py"),
+]:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+value = {
+    "phase": phase,
+    "source_git": pin,
+    "capacity": capacity,
+    "files": sources,
+    "benchmark": (D / "benchmark.py.txt").read_text(),
+}
+if phase != "prepare":
+    env = R / ".env"
+    assert env.stat().st_mode & 0o077 == 0
+    values = {
+        k.strip(): z.strip().strip("\"'")
+        for line in env.read_text().splitlines()
+        for k, sep, z in [line.partition("=")]
+        if sep and not line.lstrip().startswith("#")
+    }
+    value["token"] = values["KAGGLE_API_TOKEN"]
+suffix = "" if phase in ("prepare", "push") else "-" + str(time.time_ns())
+intent = L / (phase + suffix + "-intent.json")
+assert not intent.exists(), "Original intent exists; reconcile read-only"
+with intent.open("x") as f:
+    json.dump(
+        {
+            "phase": phase,
+            "source_git": pin,
+            "program_sha256": hashlib.sha256(program.encode()).hexdigest(),
+            "maximum_GPU_pushes": int(phase == "push"),
+            "competition_submissions": 0,
+            "automatic_retry": False,
+        },
+        f,
+    )
+spec = importlib.util.spec_from_file_location(
+    "transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+command = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:05:00",
+    "--job-name=rsna-predictive-T4-v2-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+# Exception messages from service clients can contain response/request data.
+# Retain only exception type and source line in this public operational receipt.
+safe = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in program.splitlines())
+    + "except Exception as error:\n"
+    + "    import traceback,json\n"
+    + "    frame=traceback.extract_tb(error.__traceback__)[-1]\n"
+    + '    print(json.dumps({"error_type":type(error).__name__,"line":frame.lineno}),file=sys.stderr)\n'
+    + "    raise SystemExit(1)\n"
+)
+x = subprocess.run(
+    [
+        "ssh",
+        "-S",
+        "/tmp/rsna-research-20261001-stable.sock",
+        "-o",
+        "BatchMode=yes",
+        "newton",
+        shlex.join(command),
+    ],
+    input=t.envelope(safe, value),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+result = {"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}
+(L / (phase + suffix + "-transport.json")).write_text(json.dumps(result, indent=2) + "\n")
+assert x.returncode == 0, "Preserve original intent and reconcile actual remote state read-only"
+actual = json.loads(x.stdout)
+name = (
+    "actual-" + phase + ".json"
+    if phase in ("prepare", "push")
+    else "actual-" + phase + suffix + ".json"
+)
+with (D / name).open("x") as f:
+    f.write(json.dumps(actual, indent=2) + "\n")
+print(json.dumps(actual), flush=True)
