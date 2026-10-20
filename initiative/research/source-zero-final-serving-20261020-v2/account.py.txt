@@ -1,0 +1,81 @@
+"""Versioned account controls for the already compiled original final checkpoint."""
+
+import hashlib
+
+ORIGINAL_PROGRAM_SHA = "e0559530fc3683b9bcf3296efef00a334c7f60690ec70be8056914d17db0c4df"
+CAPACITY_SOURCE_GIT = "d8941397826b6061159c71375eafde30b3c9cfaf"
+CAPACITY_SHA = "cd4dfb8261b6dba74e4e78ee6177a4027a19963560bc6fa3d244e6b878199092"
+MODEL_SHA = "d5f583b84e5cdb153045065bd48ada3e3b1ee7aba8014ed47761956d61f12e42"
+ORIGINAL_STAGE_GIT = "93e19967bf57e809c117c90ab48df676ff437915"
+
+
+def exact(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("One exact immutable account control site required")
+    return source.replace(before, after)
+
+
+def build(original):
+    if hashlib.sha256(original.encode()).hexdigest() != ORIGINAL_PROGRAM_SHA:
+        raise ValueError("Exact originally staged source-zero account program required")
+    source = exact(
+        original,
+        'F = D / "serving-account-control-v1"',
+        'F = D / "serving-account-control-v2"',
+    )
+    helper = """
+def reconcile_original(v):
+    # Read original controls and canonical ledger; do not repair or replace them.
+    import sqlite3
+    old = D / "serving-account-control-v1"
+    stage = read(old / "staged.json")
+    assert stage == v["original_stage"]
+    assert stage["source_git"] == "93e19967bf57e809c117c90ab48df676ff437915"
+    assert all(sha(old / "code" / n) == h for n, h in stage["source_sha256"].items())
+    assert v["source_sha256"]["gpu_capacity.py"] == "cd4dfb8261b6dba74e4e78ee6177a4027a19963560bc6fa3d244e6b878199092"
+    assert set(v["source_sha256"]) == set(stage["source_sha256"])
+    assert all(v["source_sha256"][n] == h for n, h in stage["source_sha256"].items()
+               if n not in ("program.py", "gpu_capacity.py"))
+    compiled = read(D / "epoch-3/serving-v1/compiled.json")
+    assert compiled == v["original_compiled"]
+    assert compiled["status"] == "actual_source_zero_fixed_final_serving_sources_compiled"
+    assert compiled["CPU_job"] == "978933" and compiled["epoch"] == 3
+    assert compiled["model_sha256"] == "d5f583b84e5cdb153045065bd48ada3e3b1ee7aba8014ed47761956d61f12e42"
+    for mode, expected in compiled["outputs"].items():
+        p = D / "epoch-3/serving-v1" / (mode + ".private.py")
+        assert {"bytes": p.stat().st_size, "sha256": sha(p)} == expected
+    target = D / "epoch-3/serving-v1/account-phase-v1"
+    assert not target.exists(), "Original serving work exists: reconcile read-only"
+    ledger = Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3")
+    assert ledger.is_file()
+    with sqlite3.connect(ledger.as_uri() + "?mode=ro", uri=True) as db:
+        key = "licensed-parent-full-epoch-serving:source-zero-final:" + compiled["model_sha256"]
+        assert db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone() is None
+    if Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim").exists():
+        return {"status": "waiting_existing_canonical_claim_no_mutation"}
+    return {"status": "original_compiled_final_and_absent_serving_reconciled_read_only",
+            "model_sha256": compiled["model_sha256"], "original_CPU_job": "978933",
+            "old_controls_preserved": True, "new_GPU_or_entry_mutations": 0}
+
+"""
+    source = exact(source, "def execute(v):", helper + "def execute(v):")
+    source = exact(
+        source,
+        'phase in ("stage", "prepare", "push", "status", "submit", "outcome")',
+        'phase in ("inspect", "stage", "prepare", "push", "status", "submit", "outcome")',
+    )
+    source = exact(
+        source,
+        '    bounds()\n    if phase == "stage":',
+        """    bounds()
+    if phase in ("inspect", "stage"):
+        reconciled = reconcile_original(v)
+        if phase == "inspect" or reconciled["status"].startswith("waiting_"):
+            return reconciled
+    if phase == "stage":""",
+    )
+    # All canonical model keys, phase paths, requests, inference/policy and entry
+    # logic below are the original program. Only control location and stage
+    # reconciliation were added; the corrected capacity helper is a separate file.
+    compile(source, "distinct_source_zero_account_controls_v2", "exec")
+    return source

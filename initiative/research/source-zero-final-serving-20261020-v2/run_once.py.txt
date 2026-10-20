@@ -1,0 +1,191 @@
+"""One serving phase using immutable versioned controls and original compiled sources."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+OLD = R / "initiative/research/source-zero-final-serving-20261020-v1"
+L = R / "artifacts" / D.name
+WAITING = {
+    "waiting_existing_canonical_claim_no_mutation",
+    "waiting_actual_GPU_capacity_or_budget_no_mutation",
+    "waiting_authoritative_live_account_allowance_no_mutation",
+}
+
+
+def load(path, name):
+    loader = SourceFileLoader(name, str(path))
+    module = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader))
+    loader.exec_module(module)
+    return module
+
+
+def git_bytes(pin, path):
+    return subprocess.check_output(["git", "show", pin + ":" + path.relative_to(R).as_posix()])
+
+
+def sources(pin):
+    adapter = load(D / "account.py.txt", "source_zero_controls_v2")
+    original_stage = json.loads((OLD / "actual-account-staged.json").read_text())
+    assert original_stage["source_git"] == adapter.ORIGINAL_STAGE_GIT
+    old_pin = adapter.ORIGINAL_STAGE_GIT
+    old_builder_path = OLD / "account.py.txt"
+    old_builder = {"__name__": "frozen_original_account_builder"}
+    exec(compile(git_bytes(old_pin, old_builder_path), str(old_builder_path), "exec"), old_builder)
+    origin = R / "initiative/research/S6-Kaggle-production-route-20261019-v1"
+    files = {
+        n + ".py": git_bytes(old_pin, R / "scripts/kaggle" / (n + ".py")).decode()
+        for n in ("workflow", "components", "gpu_capacity", "output_csv")
+    }
+    files["policy.py"] = old_builder["policy"](
+        git_bytes(old_pin, origin / "serving_policy.py.txt").decode()
+    )
+    files["program.py"] = old_builder["core"](
+        git_bytes(old_pin, origin / "serving_cloud.py.txt").decode()
+    )
+    assert {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()} == original_stage[
+        "source_sha256"
+    ]
+    capacity_path = R / "scripts/kaggle/gpu_capacity.py"
+    capacity = git_bytes(adapter.CAPACITY_SOURCE_GIT, capacity_path)
+    assert hashlib.sha256(capacity).hexdigest() == adapter.CAPACITY_SHA
+    assert git_bytes(pin, capacity_path) == capacity, "Launch commit must retain admitted capacity"
+    files["gpu_capacity.py"] = capacity.decode()
+    files["program.py"] = adapter.build(files["program.py"])
+    for path in (
+        D / "account.py.txt",
+        D / "run_once.py.txt",
+        D / "follow_once.py.txt",
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+    ):
+        assert path.read_bytes() == git_bytes(pin, path), "Successor controls are frozen at launch"
+    compiled = json.loads((OLD / "actual-final-serving-compiled.json").read_text())
+    assert compiled["CPU_job"] == "978933" and compiled["model_sha256"] == adapter.MODEL_SHA
+    return files, original_stage, compiled
+
+
+def run(phase, mode="qualification"):
+    assert phase in ("inspect", "stage", "prepare", "push", "status", "submit", "outcome")
+    assert mode in ("qualification", "competition")
+    if phase in ("inspect", "stage"):
+        owner = L / "owner-intent.json"
+        stage_intent = L / "stage-qualification-intent.json"
+        frozen = owner if owner.exists() else stage_intent
+        pin = (
+            json.loads(frozen.read_text())["source_git"]
+            if frozen.exists()
+            else subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        )
+    else:
+        pin = json.loads((D / "actual-account-staged.json").read_text())["source_git"]
+    files, original_stage, compiled = sources(pin)
+    payload = {
+        "phase": phase,
+        "epoch": 3,
+        "mode": mode,
+        "source_git": pin,
+        "source_sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in files.items()},
+        "original_stage": original_stage,
+        "original_compiled": compiled,
+    }
+    if phase == "stage":
+        payload["sources"] = files
+    elif phase != "inspect":
+        env = R / ".env"
+        assert env.stat().st_mode & 0o077 == 0
+        values = {
+            k.strip(): z.strip().strip("\"'")
+            for line in env.read_text().splitlines()
+            for k, sep, z in [line.partition("=")]
+            if sep and not line.lstrip().startswith("#")
+        }
+        payload["token"] = values["KAGGLE_API_TOKEN"]
+    L.mkdir(mode=0o700, exist_ok=True)
+    stem = phase + "-" + mode
+    guard = L / (stem + "-intent.json")
+    result = L / (stem + "-result.json")
+    if phase in ("stage", "prepare", "push", "submit"):
+        if guard.exists():
+            assert result.exists() and json.loads(result.read_text())["status"] in WAITING, (
+                "Original phase attempted or uncertain; read-only reconciliation required"
+            )
+            result.unlink()  # Each prior complete result remains in its timestamped receipt.
+        else:
+            with guard.open("x") as handle:
+                json.dump(
+                    {"source_git": pin, "phase": phase, "automatic_mutation_retry": False}, handle
+                )
+    transport = load(
+        R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+        "original_stdin_transport",
+    )
+    args = [
+        "srun",
+        "--account=skattel",
+        "--partition=normal",
+        "--qos=normal",
+        "--nodelist=evc33",
+        "--ntasks=1",
+        "--cpus-per-task=1",
+        "--gres=none",
+        "--mem=2G",
+        "--time=00:10:00",
+        "--job-name=rsna-zero-serving-v2-" + phase,
+        "env",
+        "CUDA_VISIBLE_DEVICES=",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONNOUSERSITE=1",
+        "OMP_NUM_THREADS=1",
+        "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+        "-B",
+        "-c",
+        transport.COMMAND,
+    ]
+    stamp = str(time.time_ns())
+    completed = subprocess.run(
+        [
+            "ssh",
+            "-S",
+            "/tmp/rsna-research-20261001-stable.sock",
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            shlex.join(args),
+        ],
+        input=transport.envelope(files["program.py"], payload),
+        capture_output=True,
+        text=True,
+        timeout=1200,
+    )
+    (L / (stem + "-" + stamp + ".json")).write_text(
+        json.dumps(
+            {
+                "returncode": completed.returncode,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    assert completed.returncode == 0, (
+        "Original phase uncertain: reconcile; never automatically retry"
+    )
+    value = json.loads(completed.stdout)
+    result.write_text(json.dumps(value, indent=2) + "\n")
+    if phase == "stage" and value["status"] == "actual_twoT4_epoch_serving_account_control_staged":
+        with (D / "actual-account-staged.json").open("x") as handle:
+            json.dump(value, handle, indent=2)
+    return value
+
+
+if __name__ == "__main__":
+    print(json.dumps(run(*sys.argv[1:])), flush=True)

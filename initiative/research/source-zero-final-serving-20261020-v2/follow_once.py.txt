@@ -1,0 +1,117 @@
+"""Finite serving-only successor; original fitting/publication/compiler never rerun."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import time
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts" / D.name
+OLD_OWNER = R / "artifacts/reconnected-training-successors-20261020-v1/source_zero"
+
+
+def original_owner_ended():
+    original = json.loads((OLD_OWNER / "owner-intent.json").read_text())
+    stopped = json.loads((OLD_OWNER / "stopped.json").read_text())
+    assert original["PID"] == 46627 and original["mode"] == "source_zero"
+    assert stopped["error_type"] == "AssertionError" and not stopped["automatic_retry"]
+    trace = (OLD_OWNER / "stderr").read_text()
+    assert (
+        'account_once.py.txt", line 49' in trace and "Live account sources are immutable" in trace
+    )
+    for pid in (46627, 32102, 33801):
+        assert subprocess.run(["ps", "-p", str(pid)], capture_output=True).returncode != 0, (
+            "Original owner remains live; never duplicate its work"
+        )
+    return {"old_ended_owners": [46627, 32102, 33801], "failure_before_account_transport": True}
+
+
+def main():
+    old = original_owner_ended()
+    pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    assert Path(__file__).read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + Path(__file__).relative_to(R).as_posix()]
+    )
+    loader = SourceFileLoader("source_zero_serving_successor", str(D / "run_once.py.txt"))
+    account = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
+    loader.exec_module(account)
+    # All launch dependencies must be committed before writing any owner intent.
+    account.sources(pin)
+    L.mkdir(mode=0o700, exist_ok=True)
+    owner = {
+        "PID": os.getpid(),
+        "source_git": pin,
+        **old,
+        "owner_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        "maximum_wait_seconds": 12 * 3600,
+        "maximum_new_GPU_sessions": 2,
+        "maximum_code_entries": 1,
+        "compilation_training_or_publication_repeated": False,
+        "automatic_mutation_retry": False,
+    }
+    with (L / "owner-intent.json").open("x") as handle:
+        json.dump(owner, handle, indent=2)
+    (D / "actual-owner.json").write_text(json.dumps(owner, indent=2) + "\n")
+    deadline = time.monotonic() + owner["maximum_wait_seconds"]
+
+    def record(name, value):
+        (L / (name + ".json")).write_text(json.dumps(value, indent=2) + "\n")
+        return value
+
+    def action(phase, mode="qualification"):
+        while True:
+            assert time.monotonic() < deadline, "Finite serving-only window ended"
+            value = account.run(phase, mode)
+            record("last-action", {"phase": phase, "mode": mode, "actual": value})
+            if value["status"] not in account.WAITING:
+                return value
+            time.sleep(45)
+
+    try:
+        if not (D / "actual-account-staged.json").exists():
+            assert action("inspect")["status"] == (
+                "original_compiled_final_and_absent_serving_reconciled_read_only"
+            )
+            assert action("stage")["status"] == "actual_twoT4_epoch_serving_account_control_staged"
+        assert action("prepare")["status"] == (
+            "actual_preserved_epoch_serving_prepared_without_model_reupload"
+        )
+        for mode in ("qualification", "competition"):
+            assert action("push", mode)["status"] == "one_exact_target_epoch_" + mode + "_pushed"
+            while True:
+                value = action("status", mode)
+                if value["status"] == "COMPLETE":
+                    break
+                assert value["status"] not in (
+                    "ERROR",
+                    "FAILED",
+                    "CANCELLED",
+                    "CANCEL_ACKNOWLEDGED",
+                ), "Actual serving failure; stop before any entry"
+                time.sleep(45)
+            with (D / ("actual-final-" + mode + "-accepted.json")).open("x") as handle:
+                json.dump(value, handle, indent=2)
+        value = action("submit", "competition")
+        assert value["status"] == "one_exact_target_epoch_code_submission_accepted"
+        with (D / "actual-final-entry.json").open("x") as handle:
+            json.dump(value, handle, indent=2)
+        while True:
+            value = action("outcome", "competition")
+            if value.get("outcome") in ("scored", "failed"):
+                break
+            time.sleep(60)
+        with (D / "actual-final-hidden-outcome.json").open("x") as handle:
+            json.dump(value, handle, indent=2)
+        record("complete", {"actual_hidden_outcome": value, "repeat_or_reupload": False})
+    except Exception as error:
+        record("stopped", {"error_type": type(error).__name__, "automatic_retry": False})
+        raise
+
+
+if __name__ == "__main__":
+    main()
