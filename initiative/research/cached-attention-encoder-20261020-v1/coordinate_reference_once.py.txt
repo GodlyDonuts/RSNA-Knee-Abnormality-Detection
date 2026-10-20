@@ -1,0 +1,127 @@
+"""Stage endpoints, then stream derivatives only through a private cluster pipe."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/cached-attention-encoder-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+phase = sys.argv[1]
+assert phase in ("stage33", "fund48", "transfer")
+assert not (L / (phase + "-intent.json")).exists(), (
+    "Original phase requires read-only reconciliation"
+)
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in D.glob("*.py.txt"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+SSH = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=2G",
+    "--time=00:15:00",
+]
+environment = [
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "PYTHONNOUSERSITE=1",
+    "OMP_NUM_THREADS=1",
+]
+python33 = "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python"
+python48 = "/tmp/rsna-environment-971427-pyk8rld8/environment/bin/python"
+spec = importlib.util.spec_from_file_location(
+    "original_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+if phase == "transfer":
+    s = json.loads((D / "actual-stage33.json").read_text())
+    f = json.loads((D / "actual-fund48.json").read_text())
+    assert s["source_git"] == f["source_git"]
+    # Both endpoint files are source-hashed by their committed stage records. No payload/IDs traverse this Mac.
+    sender = [
+        *args,
+        "--nodelist=evc33",
+        "--job-name=rsna-parent-moments-send",
+        *environment,
+        python33,
+        "-B",
+        "/tmp/rsna-S6-Kaggle-production-route-20261019-v1/cached-attention-reference-builder-v1/sender.py",
+    ]
+    receiver = [
+        *args,
+        "--nodelist=evc48",
+        "--job-name=rsna-parent-moments-receive",
+        *environment,
+        python48,
+        "-B",
+        "/tmp/rsna-cached-attention-encoder-20261020-v1/receiver.py",
+    ]
+    command = "set -o pipefail; " + shlex.join(sender) + " | " + shlex.join(receiver)
+    payload = None
+else:
+    node = "33" if phase == "stage33" else "48"
+    program = (D / "stage.py.txt").read_text()
+    values = {"source_git": pin}
+    for name in ("sender", "receiver"):
+        text = (D / ("reference_" + name + ".py.txt")).read_text()
+        values[name] = text
+        values[name + "_sha256"] = hashlib.sha256(text.encode()).hexdigest()
+    program = (
+        "import sys\ntry:\n"
+        + "".join("    " + line + "\n" for line in program.splitlines())
+        + "except Exception as error:\n    print(type(error).__name__,file=sys.stderr)\n    raise SystemExit(1)\n"
+    )
+    command = shlex.join(
+        [
+            *args,
+            "--nodelist=evc" + node,
+            "--job-name=rsna-cached-reference-" + phase,
+            *environment,
+            python33 if node == "33" else python48,
+            "-B",
+            "-c",
+            t.COMMAND,
+        ]
+    )
+    payload = t.envelope(program, values)
+with (L / (phase + "-intent.json")).open("x") as fp:
+    json.dump(
+        {
+            "source_git": pin,
+            "phase": phase,
+            "new_GPU_or_entries": 0,
+            "maximum_new_private_reference_cache_bytes": 128 * 2**20 if phase == "transfer" else 0,
+            "raw_pixel_or_weight_or_label_transfer": False,
+            "arrays_or_IDs_traverse_Mac": False,
+            "automatic_retry": False,
+        },
+        fp,
+        indent=2,
+    )
+x = subprocess.run([*SSH, command], input=payload, capture_output=True, text=True, timeout=1800)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Original endpoint intents/terminal/partial bytes require read-only reconciliation; no automatic retry"
+)
+out = json.loads(x.stdout)
+(D / ("actual-" + phase + ".json")).write_text(json.dumps(out, indent=2) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,0 +1,160 @@
+# ruff: noqa: E402
+"""Build only missing fitting teacher moments and stream them within the cluster."""
+
+import hashlib
+import io
+import json
+import os
+import struct
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.nn import functional as F
+
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+D = Path(__file__).resolve().parent
+stage = json.loads((D / "staged.json").read_text())
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == stage["sender_sha256"]
+assert not (D / "sending-intent.json").exists(), (
+    "Original transfer attempt requires read-only reconciliation"
+)
+BASE = Path("/tmp/rsna-licensed-importance-encoder-20261017-v1")
+m = json.loads((BASE / "staged.json").read_text())
+assert m["source_git"] == "be837f9b569b16942e6cd290a7898b4a75863766"
+S = BASE / "code"
+assert all(
+    hashlib.sha256((S / n).read_bytes()).hexdigest() == h for n, h in m["source_files"].items()
+)
+sys.path.insert(0, str(S))
+from rsna.competitive.released_context_train import FrozenFeatures
+from rsna.schema import TARGETS
+
+R = Path("/tmp/rsna-released-context-head-fit-20261016-v1")
+admitted = json.loads((R / "full-input-admitted.json").read_text())
+assert admitted["all3887_feature_members_exact_size_SHA_NPY_metadata"] is True
+raw = (R / "full-features/index.private.json").read_bytes()
+assert (
+    hashlib.sha256(raw).hexdigest()
+    == admitted["binding"]["feature_index_sha256"]
+    == "5a1a4c77be60a46973c9513b7115ba68edfc7bf76c6205a89de61217a75bf113"
+)
+records = json.loads(raw)["records"]
+uids = [r["study_uid"] for r in records]
+assert len(uids) == len(set(uids)) == 3887 and uids == sorted(uids)
+population_sha = hashlib.sha256(json.dumps(uids, separators=(",", ":")).encode()).hexdigest()
+assert population_sha == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+roots = {
+    "self": str(R / "full-features"),
+    "godlydonuts/rsna-released-context-probe-d077e354611d": str(R / "features32"),
+    "godlydonuts/rsna-released-full-features-5ab9b091c0f1": str(R / "failed-prefix800"),
+}
+data = FrozenFeatures(
+    records,
+    roots,
+    np.zeros((3887, 12), np.float32),
+    np.zeros((3887, 12), bool),
+    {"scope": "source_bound_full_parent_score_vote_cache_no_labels"},
+)
+p = Path("/tmp/rsna-licensed-MIL-sampling-20261016-v1/parent-MIL-readout.pt")
+assert p.stat().st_size == 1122765
+head = torch.load(p, map_location="cpu", weights_only=True)
+assert (
+    head["format"] == "licensed_parent_MIL_readout_v1"
+    and head["parent_checkpoint_sha256"]
+    == "7e5315dad125b99fc65b340b3de41de628e9be51ff5835355dd61c86472244ef"
+)
+h = head["model"]
+assert all(t.dtype == torch.float32 and torch.isfinite(t).all() for t in h.values())
+with (D / "sending-intent.json").open("x") as f:
+    json.dump(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": stage["source_git"],
+            "population_sha256": population_sha,
+            "new_CNN_or_labels": False,
+            "automatic_retry": False,
+        },
+        f,
+    )
+scores = np.empty((3887, 2, 94, 12), np.float32)
+votes = np.empty_like(scores)
+max_cached_gap = 0.0
+max_reduction_gap = 0.0
+start = time.monotonic()
+with torch.no_grad():
+    for i in range(3887):
+        features, cached = data[i][:2]
+        z = F.layer_norm(features, (1024,), h["norm.weight"], h["norm.bias"], eps=1e-5)
+        s = F.linear(
+            F.linear(z, h["att.0.weight"], h["att.0.bias"]).tanh(),
+            h["att.3.weight"],
+            h["att.3.bias"],
+        )
+        v = torch.einsum("bkd,td->bkt", z, h["clsW"])
+        a = s.softmax(1)
+        logits = (a * v).sum(1) + h["clsb"]
+        old = (torch.einsum("bkn,bkf->bnf", a, z) * h["clsW"]).sum(-1) + h["clsb"]
+        assert (
+            s.shape == v.shape == (2, 94, 12)
+            and torch.isfinite(s).all()
+            and torch.isfinite(v).all()
+        )
+        max_cached_gap = max(
+            max_cached_gap,
+            float((logits.sigmoid().mean(0) - cached.float().sigmoid().mean(0)).abs().max()),
+        )
+        max_reduction_gap = max(
+            max_reduction_gap, float((logits.sigmoid() - old.sigmoid()).abs().max())
+        )
+        scores[i] = s.numpy()
+        votes[i] = v.numpy()
+        if (i + 1) % 512 == 0:
+            (D / "progress.json").write_text(
+                json.dumps(
+                    {"completed": i + 1, "total": 3887, "elapsed_seconds": time.monotonic() - start}
+                )
+                + "\n"
+            )
+assert max_cached_gap <= 0.003 and max_reduction_gap <= 3e-6
+buffer = io.BytesIO()
+np.savez(buffer, scores=scores, votes=votes, uids=np.asarray(uids, dtype=np.str_))
+payload = buffer.getvalue()
+assert 0 < len(payload) < 128 * 2**20
+header = {
+    "status": "actual_all3887_original_parent_scores_votes_materialized_once",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": stage["source_git"],
+    "population": 3887,
+    "views": 2,
+    "windows": 94,
+    "targets": 12,
+    "target_order": list(TARGETS),
+    "population_sha256": population_sha,
+    "feature_index_sha256": admitted["binding"]["feature_index_sha256"],
+    "parent_checkpoint_sha256": head["parent_checkpoint_sha256"],
+    "parent_readout_proof_sha256": "8ce6546b4ec7a50fe6a3e9c0a0dd51e813d78a418ad61094427282bbbd72b8c5",
+    "source_permission_sha256": "34c44b20e4d7ace4eb523b0423b36d36dec826fe6ae54c66346796bba0190e79",
+    "bytes": len(payload),
+    "sha256": hashlib.sha256(payload).hexdigest(),
+    "array_shape": [3887, 2, 94, 12],
+    "dtype": "float32",
+    "max_cached_FP16_probability_gap": max_cached_gap,
+    "max_original_FP32_head_reduction_probability_gap": max_reduction_gap,
+    "elapsed_seconds": time.monotonic() - start,
+    "clinical_labels_reports_gold_confirmation_read": False,
+    "new_CNN_encoder_optimizer_or_GPU": False,
+    "arrays_or_IDs_exported_outside_cluster": False,
+}
+raw = json.dumps(header, sort_keys=True).encode()
+assert len(raw) < 16384
+sys.stdout.buffer.write(struct.pack("!Q", len(raw)))
+sys.stdout.buffer.write(raw)
+sys.stdout.buffer.write(payload)
+sys.stdout.buffer.flush()
+(D / "sent.json").write_text(json.dumps(header, sort_keys=True, indent=2) + "\n")

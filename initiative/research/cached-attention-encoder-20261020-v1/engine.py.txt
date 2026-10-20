@@ -1,0 +1,69 @@
+"""Derive a distinct paired, deterministic-head loop; keep original trainers frozen."""
+
+import hashlib
+
+BASE_SHA = "e024a8ee91d5d64967e6128bfeac1ab2774468613ccaa43d13fc8ea569a5de7d"
+
+
+def once(source, before, after):
+    if source.count(before) != 1:
+        raise ValueError("Exact single original optimizer-engine site required")
+    return source.replace(before, after)
+
+
+def build(original):
+    if hashlib.sha256(original.encode()).hexdigest() != BASE_SHA:
+        raise ValueError("Exact original accepted sampler/optimizer/recovery source required")
+    s = once(
+        original,
+        "from rsna.competitive.licensed_importance import VERSION, ProposalCases, Recipe, sample",
+        "from rsna.competitive.cached_attention_training import VERSION, ReferenceCases as ProposalCases, Recipe, sample",
+    )
+    s = once(
+        s,
+        "if world not in (1, 2) or recipe.effective_batch % world:",
+        "if world != 1 or recipe.effective_batch % world:",
+    )
+    s = once(
+        s,
+        '        "teacher_proposal_sha256": data.proposal_sha256,',
+        '        "teacher_proposal_sha256": data.proposal_sha256,\n        "attention_reference_sha256": data.reference_sha256,\n        "model_head_mode": "eval_with_grad_all_parameters_FP32_head",',
+    )
+    s = once(
+        s,
+        "    output = Path(output)",
+        """    if getattr(model, "cached_attention_variant", None) != recipe.variant:
+        raise ValueError("Model and source-bound reference/linear recipe must match")
+    output = Path(output)""",
+    )
+    s = once(
+        s,
+        "        train_with_frozen_bn(model)",
+        "        model.eval()  # Deterministic mode still computes all parameter gradients.",
+    )
+    a = s.index("                case = data.case(index, selected, mirror)")
+    b = s.index("            scaler.unscale_(optimizer)", a)
+    s = (
+        s[:a]
+        + """                for view in (mirror, not mirror):
+                    case = data.case(index, selected, view)
+                    images = case["images"].to(device)
+                    if images.ndim != 4 or images.shape[0] != 16 or not torch.isfinite(images).all():
+                        raise ValueError("Exact finite selected16 original MRI inputs required")
+                    reference = {n:t.to(device).unsqueeze(0) for n,t in case["attention_reference"].items()}
+                    with torch.autocast(device_type=device.type,dtype=torch.float16,enabled=device.type=="cuda"):
+                        logits=ddp(images.unsqueeze(0),log_proposal.to(device).unsqueeze(0),reference).float()
+                    loss=anchored_loss(logits,case["parent_logits"].to(device).reshape(1,12).float(),case["labels"].to(device).reshape(1,12).float(),case["mask"].to(device).reshape(1,12),source_weight=recipe.source_weight)
+                    weighted=loss*(.5/len(indices))
+                    scaler.scale(weighted).backward()
+                    local_loss+=loss.detach().double()/(2*len(indices))
+"""
+        + s[b:]
+    )
+    s = once(
+        s,
+        '                    "studies": len(indices),',
+        '                    "studies": len(indices),\n                    "anatomical_views": 2*len(indices),',
+    )
+    compile(s, "new_cached_attention_deterministic_paired_engine", "exec")
+    return s

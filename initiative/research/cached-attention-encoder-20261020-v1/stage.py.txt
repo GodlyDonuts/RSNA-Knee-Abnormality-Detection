@@ -1,0 +1,80 @@
+"""Fresh small controls and separately funded cache/recovery capacity; no GPU."""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+os.umask(0o077)
+assert not os.environ.get("SLURM_JOB_GPUS") and os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+node = os.uname().nodename
+assert node in ("evc33", "evc48")
+teacher = Path("/home/sa305415/rsna-knee/kaggle/S6-resident-owner-20261019-v1")
+paid = [p for p in teacher.rglob("*") if p.is_file()]
+paid_bytes = sum(p.stat().st_size for p in paid)
+assert len(paid) < 256 and paid_bytes < 4 * 2**20
+raw = subprocess.check_output(["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True)
+c = next(s.split() for s in raw.splitlines() if s.strip().startswith("/home/sa305415"))
+assert (int(c[2]) - int(c[1])) * 1024 > 20 * 2**30 + (32 + 16 + 16 + 2) * 2**20 + max(
+    0, 4 * 2**20 - paid_bytes
+) + 96 * 2**10
+assert int(c[6]) - int(c[5]) > 5000 + 128 + 128 + max(0, 256 - len(paid)) + 24
+if node == "evc33":
+    B = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1")
+    count = sum(
+        p.stat().st_size
+        for p in B.rglob("*")
+        if p.is_file() and not p.is_symlink() and "inputs" not in p.relative_to(B).parts
+    )
+    assert count + 256 * 2**10 + 2 * 2**20 < 8 * 2**20
+    assert (
+        shutil.disk_usage("/tmp").free > (20 + 8) * 2**30 + max(0, 8 * 2**20 - count) + 32 * 2**20
+    )
+    D = B / "cached-attention-reference-builder-v1"
+    assert not D.exists()
+    D.mkdir(mode=0o700)
+    source = v["sender"]
+    assert hashlib.sha256(source.encode()).hexdigest() == v["sender_sha256"]
+    (D / "sender.py").write_text(source)
+    out = {
+        "status": "actual_private_reference_sender_source_staged_no_materialization",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "sender_sha256": v["sender_sha256"],
+        "control_cap_bytes": 256 * 2**10,
+        "inside_original_control_cap_bytes": 8 * 2**20,
+        "original_future_control_headroom_bytes": 2 * 2**20,
+        "new_GPU_or_models_or_transfers": 0,
+    }
+    (D / "staged.json").write_text(json.dumps(out, sort_keys=True) + "\n")
+else:
+    D = Path("/tmp/rsna-cached-attention-encoder-20261020-v1")
+    assert not D.exists()
+    # All prior standing future upper bounds remain reserved. No deletion or paid-byte credit.
+    threshold = (20 + 87 + 12 + 24 + 4 + 12) * 2**30 + 128 * 2**20 + 8 * 2**20
+    assert shutil.disk_usage("/tmp").free > threshold
+    source = v["receiver"]
+    assert hashlib.sha256(source.encode()).hexdigest() == v["receiver_sha256"]
+    D.mkdir(mode=0o700)
+    (D / "receiver.py").write_text(source)
+    out = {
+        "status": "actual_new_cached_attention_reference_and_real_recovery_scope_funded",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "source_git": v["source_git"],
+        "receiver_sha256": v["receiver_sha256"],
+        "reference_cap_bytes": 128 * 2**20,
+        "engineering_checkpoints_cap_bytes": 12 * 2**30,
+        "controls_cap_bytes": 8 * 2**20,
+        "required_free_before_reference_bytes": threshold,
+        "all_previous_future_upper_bounds_and_20GiB_5000files_preserved": True,
+        "original_paid_assets_deleted_or_credit": False,
+        "new_shared_bytes_files": 0,
+        "new_GPU_dispatched": False,
+        "full_production_models_funded": False,
+    }
+    (D / "funded.json").write_text(json.dumps(out, sort_keys=True) + "\n")
+print(json.dumps(out), flush=True)

@@ -1,0 +1,105 @@
+"""Receive one private cluster-only cache with exact framing, bytes and roster."""
+
+import hashlib
+import json
+import os
+import shutil
+import struct
+import sys
+from pathlib import Path
+
+import numpy as np
+
+assert os.uname().nodename == "evc48" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path(__file__).resolve().parent
+fund = json.loads((D / "funded.json").read_text())
+assert fund["reference_cap_bytes"] == 128 * 2**20
+assert shutil.disk_usage("/tmp").free > fund["required_free_before_reference_bytes"]
+assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == fund["receiver_sha256"]
+assert not (D / "reference").exists(), "Original transfer requires read-only reconciliation"
+R = D / "reference"
+R.mkdir(mode=0o700)
+(R / "receiving-intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": fund["source_git"],
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+stream = sys.stdin.buffer
+raw = stream.read(8)
+assert len(raw) == 8
+length = struct.unpack("!Q", raw)[0]
+assert 0 < length < 16384
+header = json.loads(stream.read(length))
+assert header["status"] == "actual_all3887_original_parent_scores_votes_materialized_once"
+assert (
+    header["source_git"] == fund["source_git"]
+    and header["array_shape"] == [3887, 2, 94, 12]
+    and header["dtype"] == "float32"
+)
+assert (
+    header["population_sha256"]
+    == "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
+)
+assert (
+    header["max_cached_FP16_probability_gap"] <= 0.003
+    and header["max_original_FP32_head_reduction_probability_gap"] <= 3e-6
+)
+remaining = header["bytes"]
+assert type(remaining) is int and 0 < remaining < fund["reference_cap_bytes"]
+h = hashlib.sha256()
+partial = R / "reference.private.npz.partial"
+with partial.open("xb") as out:
+    while remaining:
+        block = stream.read(min(2**20, remaining))
+        assert block
+        out.write(block)
+        h.update(block)
+        remaining -= len(block)
+    out.flush()
+    os.fsync(out.fileno())
+assert stream.read(1) == b"" and h.hexdigest() == header["sha256"]
+with np.load(partial, allow_pickle=False) as z:
+    assert set(z.files) == {"scores", "votes", "uids"}
+    for name in ("scores", "votes"):
+        a = z[name]
+        assert a.shape == (3887, 2, 94, 12) and a.dtype == np.float32 and np.isfinite(a).all()
+    uids = z["uids"]
+    assert uids.ndim == 1 and len(uids) == 3887 and uids.dtype.kind == "U"
+    ids = uids.tolist()
+    assert len(set(ids)) == 3887 and ids == sorted(ids)
+    assert (
+        hashlib.sha256(json.dumps(ids, separators=(",", ":")).encode()).hexdigest()
+        == header["population_sha256"]
+    )
+path = R / "reference.private.npz"
+os.replace(partial, path)
+(R / "origin.json").write_text(json.dumps(header, sort_keys=True, indent=2) + "\n")
+out = {
+    "status": "actual_all3887_private_parent_attention_reference_cache_received_verified",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_CPU": header["CPU_job"],
+    "source_git": fund["source_git"],
+    "population": 3887,
+    "shape": [3887, 2, 94, 12],
+    "dtype": "float32",
+    "bytes": path.stat().st_size,
+    "sha256": header["sha256"],
+    "population_sha256": header["population_sha256"],
+    "original_FP32_head_max_probability_gap": header[
+        "max_original_FP32_head_reduction_probability_gap"
+    ],
+    "cached_FP16_max_probability_gap": header["max_cached_FP16_probability_gap"],
+    "all_arrays_finite_and_UID_order_exact": True,
+    "private_cluster_pipe_byte_SHA_EOF_verified": True,
+    "new_CNN_GPU_or_optimizer": False,
+    "arrays_or_IDs_exported_outside_cluster": False,
+}
+(R / "verified.json").write_text(json.dumps(out, sort_keys=True, indent=2) + "\n")
+assert sum(p.stat().st_size for p in R.rglob("*") if p.is_file()) < fund["reference_cap_bytes"]
+print(json.dumps(out), flush=True)
