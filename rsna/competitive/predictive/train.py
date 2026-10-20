@@ -245,22 +245,17 @@ def fit(
             loss_value += float(loss.detach()) / len(indices)
             exam_value += float(measures["exam_loss"].detach()) / len(indices)
             density_value += float(measures["density_loss"].detach()) / len(indices)
-        encoder_norm = (
-            sum(
-                float(p.grad.detach().double().square().sum())
-                for p in model.encoder.parameters()
-                if p.grad is not None
-            )
-            ** 0.5
-        )
-        head_norm = (
-            sum(
-                float(p.grad.detach().double().square().sum())
-                for n, p in model.named_parameters()
-                if not n.startswith("encoder.") and p.grad is not None
-            )
-            ** 0.5
-        )
+        # One device-to-host transfer preserves each original FP64 reduction and
+        # Python's ordered summation while avoiding a CUDA sync per parameter.
+        squares = []
+        encoder_flags = []
+        for name, parameter in model.named_parameters():
+            if parameter.grad is not None:
+                squares.append(parameter.grad.detach().double().square().sum())
+                encoder_flags.append(name.startswith("encoder."))
+        values = torch.stack(squares).cpu().tolist() if squares else []
+        encoder_norm = sum(v for v, flag in zip(values, encoder_flags) if flag) ** 0.5
+        head_norm = sum(v for v, flag in zip(values, encoder_flags) if not flag) ** 0.5
         if not math.isfinite(encoder_norm) or not math.isfinite(head_norm):
             raise FloatingPointError("Nonfinite encoder or head gradient before warmup/clipping")
         if step < recipe.head_only_updates:

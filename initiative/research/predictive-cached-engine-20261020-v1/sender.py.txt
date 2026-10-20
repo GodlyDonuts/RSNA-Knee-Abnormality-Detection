@@ -1,0 +1,75 @@
+"""Transfer only16 already accepted exact contexts privately to the existing runtime node."""
+
+import hashlib
+import json
+import os
+import socket
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+D = Path("/tmp/rsna-predictive-context16-cache-20261020-v1")
+a = json.loads((D / "actual.json").read_text())
+assert a["studies"] == 16 and a["exact_both_view_images_targets_metadata_priors"]
+index = D / "context-index.private.json"
+assert hashlib.sha256(index.read_bytes()).hexdigest() == a["private_index_sha256"]
+rows = json.loads(index.read_text())
+files = []
+for r in rows:
+    p = Path(r["path"])
+    s = p.stat()
+    assert [s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns] == r["proof"]["stat"]
+    files.append({"name": p.name, "path": p, "bytes": s.st_size, "sha256": r["proof"]["sha256"]})
+files.append(
+    {
+        "name": index.name,
+        "path": index,
+        "bytes": index.stat().st_size,
+        "sha256": a["private_index_sha256"],
+    }
+)
+assert len(files) == 17 and sum(r["bytes"] for r in files) < 512 * 2**20
+c = socket.create_connection((v["endpoint"]["host"], v["endpoint"]["port"]), timeout=120)
+c.settimeout(300)
+c.sendall(v["endpoint"]["token"].encode() + b"\n")
+out = c.makefile("wb")
+h = json.dumps(
+    {
+        "files": [{k: x for k, x in r.items() if k != "path"} for r in files],
+        "source_actual": a,
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+    }
+).encode()
+out.write(len(h).to_bytes(8, "big"))
+out.write(h)
+for r in files:
+    p = r["path"]
+    before = p.stat()
+    digest = hashlib.sha256()
+    with p.open("rb") as f:
+        while chunk := f.read(2**20):
+            digest.update(chunk)
+            out.write(chunk)
+    after = p.stat()
+    assert (before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) == (
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+        after.st_ctime_ns,
+    )
+    assert digest.hexdigest() == r["sha256"]
+out.write(b"RSNA_PRIVATE_CACHE_EOF_V1")
+out.flush()
+c.shutdown(socket.SHUT_WR)
+print(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "files": 17,
+            "bytes": sum(r["bytes"] for r in files),
+            "new_original_downloads": 0,
+        }
+    ),
+    flush=True,
+)

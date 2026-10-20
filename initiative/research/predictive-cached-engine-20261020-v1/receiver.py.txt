@@ -1,0 +1,140 @@
+"""Admit exact contexts and new bounded cached-engine controls; no GPU reserved here."""
+
+import hashlib
+import json
+import os
+import re
+import secrets
+import shutil
+import socket
+import sys
+from pathlib import Path
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc27" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+D = Path("/tmp/rsna-predictive-cached-engine-20261020-v1")
+assert not D.exists()
+# Original27 liabilities retained in full, plus512MiB contexts,12GiB diagnostic
+# snapshots and16MiB controls. This does not fund any production fit.
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 87 + 12 + 24 + 4 + 12 + 12 + 12 + 4 + 12) * 2**30 + (32 + 512 + 16) * 2**20
+)
+D.mkdir(mode=0o700)
+(D / "data").mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "context_cap_bytes": 512 * 2**20,
+            "engineering_cap_bytes": 12 * 2**30,
+            "control_cap_bytes": 16 * 2**20,
+            "all_old_liabilities_retained": True,
+            "no_full_fit_funding": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+s = socket.socket()
+s.bind(("0.0.0.0", 0))
+s.listen(1)
+s.settimeout(180)
+token = secrets.token_hex(32)
+print(json.dumps({"host": "evc27", "port": s.getsockname()[1], "token": token}), flush=True)
+c, _ = s.accept()
+s.close()
+c.settimeout(300)
+f = c.makefile("rb")
+assert f.readline(80) == token.encode() + b"\n"
+
+
+def exact(n):
+    b = f.read(n)
+    assert len(b) == n
+    return b
+
+
+n = int.from_bytes(exact(8), "big")
+assert 0 < n < 2**20
+header = json.loads(exact(n))
+files = header["files"]
+assert (
+    len(files) == len(set(r["name"] for r in files)) == 17
+    and sum(r["bytes"] for r in files) < 512 * 2**20
+)
+for r in files:
+    assert re.fullmatch(r"context-[0-9]{3}\.private\.npz|context-index\.private\.json", r["name"])
+    h = hashlib.sha256()
+    left = r["bytes"]
+    with (D / "data" / r["name"]).open("xb") as out:
+        while left:
+            b = exact(min(left, 2**20))
+            out.write(b)
+            h.update(b)
+            left -= len(b)
+    assert h.hexdigest() == r["sha256"]
+assert exact(len(b"RSNA_PRIVATE_CACHE_EOF_V1")) == b"RSNA_PRIVATE_CACHE_EOF_V1" and f.read(1) == b""
+p = D / "data/context-index.private.json"
+original = p.read_bytes()
+rows = json.loads(original)
+(D / "data/source-index-original.private.json").write_bytes(original)
+old = Path("/tmp/rsna-predictive-raw16-learning-20261020-v1")
+old_rows = json.loads((old / "data/cache-index.private.json").read_text())
+assert len(rows) == 16 and [r["uid"] for r in rows] == [r["uid"] for r in old_rows]
+for r, raw in zip(rows, old_rows):
+    p2 = D / "data" / Path(r["path"]).name
+    st = p2.stat()
+    assert r["provenance"]["original_raw_cache_sha256"] == raw["proof"]["sha256"]
+    assert r["proof"]["sha256"] == next(x["sha256"] for x in files if x["name"] == p2.name)
+    r["path"] = str(p2)
+    r["proof"]["stat"] = [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+p.write_text(json.dumps(rows) + "\n")
+for n, source in v["files"].items():
+    file = D / "code" / n
+    assert file.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(source.encode()).hexdigest() == v["sha256"][n]
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file.write_text(source)
+binding = json.loads((old / "binding.private.json").read_text())
+assert (
+    hashlib.sha256((old / "data/targets.private.npz").read_bytes()).hexdigest()
+    == binding["targets16_sha256"]
+)
+binding.update(
+    source_git=v["source_git"],
+    code_sha256=v["sha256"],
+    context_index_sha256=hashlib.sha256(p.read_bytes()).hexdigest(),
+    targets16_private_path=str(old / "data/targets.private.npz"),
+    source_context_index_sha256=hashlib.sha256(original).hexdigest(),
+    recipe={
+        "epochs": 2,
+        "effective_batch": 8,
+        "head_only_updates": 1,
+        "encoder_lr": 3e-5,
+        "head_lr": 3e-5,
+        "density_weight_B_C": 0.1,
+        "density_weight_C0": 0,
+        "side": 320,
+        "context_cap": 24,
+        "full_region_roster": True,
+    },
+    prior_raw16_job="978305",
+    fractional_warmup_clamped=True,
+    batched_gradient_diagnostic_transfer=True,
+)
+(D / "binding.private.json").write_text(json.dumps(binding) + "\n")
+result = {
+    "status": "actual_cached16_new_engine_inputs_admitted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "sender_CPU_job": header["CPU_job"],
+    "source_git": v["source_git"],
+    "files": 17,
+    "cache_bytes": sum(r["bytes"] for r in files),
+    "exact_original16_membership_labels_masks": True,
+    "new_GPU_or_full_fit": False,
+}
+(D / "prepared.json").write_text(json.dumps(result) + "\n")
+print(json.dumps(result), flush=True)
