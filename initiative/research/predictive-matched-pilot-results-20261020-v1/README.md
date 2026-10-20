@@ -18,10 +18,14 @@ separately, because the actual pilot batches alternate eight and four studies.
 It preserves clipping rates and gradient norms. These are training diagnostics
 on twelve fitting studies, not clinical accuracy or automatic promotion.
 
-At23:00UTC original raw983422/context983435 remain RUNNING, with emitted
-lower bounds3,400/3,887 (87.5%) in each stream. G100986011 is now RUNNING;
-its original startup and32 finite C100 updates were read on the owning node.
-See [actual live state](actual-live.json).
+At23:22UTC original raw983422/context983435 remain RUNNING, with emitted
+lower bounds3,600/3,887 (92.6%) in each stream. Sole cache/fitting/deployment
+processes28954/33107/32378 remain live. No full predictive fit has started.
+Read-only CPU987515 used the unchanged original progress reader and observed
+all200 finite C100 updates plus85 finite G100 updates at23:20UTC, with no
+stderr. Original GPU986011 is still RUNNING; its complete comparison and
+G100 stop/resume acceptance remain unobserved. No weights or predictions
+were collected. See [actual live state](actual-live-2322.json).
 
 ## Completed contrast comparison
 
