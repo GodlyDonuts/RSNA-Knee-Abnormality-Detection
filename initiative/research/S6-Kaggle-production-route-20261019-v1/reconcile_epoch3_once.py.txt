@@ -12,7 +12,7 @@ D = Path(__file__).resolve().parent
 L = R / "artifacts/S6-epoch3-SaveKernel-reconciliation-20261020-v1"
 L.mkdir(mode=0o700, exist_ok=True)
 phase = sys.argv[1]
-assert phase in ("observe", "accept", "absence")
+assert phase in ("observe", "accept", "absence", "draft")
 assert not (L / (phase + "-intent.json")).exists()
 pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for name in ("reconcile_epoch3.py.txt", "reconcile_epoch3_once.py.txt"):
@@ -88,6 +88,7 @@ z = json.loads(x.stdout)
         "observe": "actual-epoch3-remote-observed.json",
         "accept": "actual-push-epoch-3.json",
         "absence": "actual-epoch3-absence-observed.json",
+        "draft": "actual-epoch3-draft-observed.json",
     }[phase]
 ).write_text(json.dumps(z, indent=2) + "\n")
 print(json.dumps(z), flush=True)

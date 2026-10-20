@@ -13,7 +13,7 @@ import requests
 
 v = json.load(sys.stdin)
 phase = v["phase"]
-assert phase in ("observe", "accept", "absence")
+assert phase in ("observe", "accept", "absence", "draft")
 assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
 D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
 source = (D / "source.private.py").read_text()
@@ -54,6 +54,51 @@ assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel
 assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
 slug = row["slug"]
 assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
+if phase == "draft":
+    rows = r.call(
+        "kernels.KernelsApiService",
+        "ListKernels",
+        {
+            "group": "PROFILE",
+            "page": 1,
+            "pageSize": 100,
+            "language": "all",
+            "kernelType": "all",
+            "outputType": "all",
+            "search": slug.split("/")[1],
+        },
+    ).get("kernels", [])
+    allowed = (
+        "id",
+        "ref",
+        "title",
+        "slug",
+        "kernelSlug",
+        "currentVersionNumber",
+        "lastRunTime",
+        "scriptVersionId",
+        "versionNumber",
+        "status",
+        "isPrivate",
+        "kernelId",
+        "url",
+        "author",
+    )
+    print(
+        json.dumps(
+            {
+                "status": "actual_draft_search_and_quota_read_only",
+                "CPU_job": os.environ["SLURM_JOB_ID"],
+                "rows": [{**{k: x[k] for k in allowed if k in x}, "keys": sorted(x)} for x in rows],
+                "actual_GPU_quota": r.call(
+                    "kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {}
+                )["gpuQuota"],
+                "new_GPU_or_submission_mutations": 0,
+            }
+        ),
+        flush=True,
+    )
+    raise SystemExit(0)
 if phase == "absence":
     absence = r.require_absent_kernel(slug)
     quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]

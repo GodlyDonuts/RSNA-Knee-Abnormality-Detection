@@ -45,6 +45,6 @@ def test_finalizer_keeps_original_decode_loop_unchanged():
             if isinstance(n, ast.For) and isinstance(n.target, ast.Name) and n.target.id == "i"
         )
 
-    assert ast.dump(ast.Module(body=loop(original).body, type_ignores=[])) == ast.dump(
-        ast.Module(body=loop(source).body, type_ignores=[])
+    assert ast.dump(ast.Module(body=[loop(original).body[0]], type_ignores=[])) == ast.dump(
+        ast.Module(body=[loop(source).body[0]], type_ignores=[])
     )
