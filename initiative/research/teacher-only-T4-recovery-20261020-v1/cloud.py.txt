@@ -1,0 +1,294 @@
+"""One canonical recovery push, or read-only status of that exact version."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+import types
+from pathlib import Path
+
+import requests
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+assert v["phase"] in ("push", "status")
+os.umask(0o077)
+D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/paired-zero-recovery-v1")
+source = (D / "source.private.py").read_text()
+meta = json.loads((D / "prepared.json").read_text())
+sha = hashlib.sha256(source.encode()).hexdigest()
+assert sha == meta["source_sha256"] == v["prepared"]["source_sha256"]
+assert meta["maximum_VM_seconds"] == 3600 and meta["competition_entries"] == 0
+C = Path("/tmp/rsna-compact-T4-probe-20261016-v1/cloud-control/workflow.py")
+assert (
+    hashlib.sha256(C.read_bytes()).hexdigest()
+    == "2d3074fbf677285687e80c0e6b58721407bc61ddea39a990797da0e1d4e3b900"
+)
+spec = importlib.util.spec_from_file_location("exact_original_workflow", C)
+w = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(w)
+assert hashlib.sha256(v["capacity_source"].encode()).hexdigest() == v["capacity_sha256"]
+capacity = types.ModuleType("exact_original_capacity")
+exec(compile(v["capacity_source"], "original_capacity", "exec"), capacity.__dict__)
+r = w.Remote.__new__(w.Remote)
+r.username = "godlydonuts"
+r.session = requests.Session()
+r.session.headers["Authorization"] = "Bearer " + v["token"]
+who = r.call("security.OAuthService", "IntrospectToken", {"token": v["token"]})
+assert who.get("active") and who.get("username") == "godlydonuts"
+slug = "godlydonuts/rsna-paired-zero-recovery-" + sha[:12]
+key = "licensed-importance-full-fit:paired-zero-recovery:" + sha
+claim = Path("/home/sa305415/rsna-knee/kaggle/coordinator-claim")
+try:
+    claim.mkdir(mode=0o700)
+except FileExistsError:
+    print(json.dumps({"status": "waiting_existing_canonical_claim_no_mutation"}), flush=True)
+    raise SystemExit(0)
+owner = {
+    "kind": "paired_zero_T4_recovery",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "phase": v["phase"],
+}
+w.new_json(claim / "owner.json", owner)
+retain = False
+try:
+    with w.ledger(
+        Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3"), "godlydonuts"
+    ) as db:
+        w.verify_account(db, r)
+        raw = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        if v["phase"] == "push":
+            assert raw is None and not (D / "push-intent.json").exists()
+            quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})[
+                "gpuQuota"
+            ]
+
+            def seconds(z):
+                return float(z.removesuffix("s"))
+
+            remaining = (
+                seconds(quota["totalTimeAllowed"])
+                - seconds(quota.get("timeUsed", "0s"))
+                - seconds(quota.get("timeReserved", "0s"))
+            )
+            cap = capacity.admission(db, r, caller="sampling")
+            if remaining < 9600 or not cap["available"]:
+                out = {
+                    "status": "waiting_fresh_free_budget_or_capacity_no_mutation",
+                    "remaining_VM_seconds": remaining,
+                    "required_pilot_plus_final_serving_seconds": 9600,
+                    "capacity": cap,
+                }
+            else:
+                original = r.kernel(
+                    "GetKernel", "godlydonuts/rsna-s6-cross-full-e1-85ad0c706996", 1
+                )
+                assert original["metadata"]["id"] == 139699006
+                assert (
+                    hashlib.sha256(original["blob"]["source"].encode()).hexdigest()
+                    == meta["binding"]["base_E1_source_sha256"]
+                )
+                assert (
+                    r.kernel(
+                        "GetKernelSessionStatus",
+                        "godlydonuts/rsna-s6-cross-full-e1-85ad0c706996",
+                        1,
+                    ).get("status")
+                    == "COMPLETE"
+                )
+                refs = [
+                    "godlydonuts/rsna-parent-exact-pixels32-09254e97913d",
+                    *[
+                        "godlydonuts/rsna-parent-pixels-full-s" + str(i) + "-" + h
+                        for i, h in enumerate(
+                            ("a1e397b02232", "de046eb0aa17", "230f83898475", "4e7107a78606")
+                        )
+                    ],
+                ]
+                for ref in refs:
+                    assert r.kernel("GetKernelSessionStatus", ref, 1).get("status") == "COMPLETE"
+                    assert r.kernel("GetKernel", ref, 1)["metadata"].get("isPrivate") is True
+                absence = r.require_absent_kernel(slug)
+                before = subprocess.check_output(
+                    ["scontrol", "show", "job", "975954", "-o"], text=True
+                )
+                assert "JobState=PENDING" in before and "RunTime=00:00:00" in before
+                assert "JobHeldUser" not in before, (
+                    "An existing owner must reconcile its original hold"
+                )
+                hold = {
+                    "status": "original_H100_diagnostic_held_only_while_PENDING_zero_before_T4_execution",
+                    "job": 975954,
+                    "before": before,
+                }
+                w.new_json(D / "original-H100-hold-intent.json", hold)
+                subprocess.run(
+                    ["scontrol", "hold", "975954"], check=True, capture_output=True, text=True
+                )
+                after = subprocess.check_output(
+                    ["scontrol", "show", "job", "975954", "-o"], text=True
+                )
+                assert (
+                    "JobState=PENDING" in after
+                    and "Reason=JobHeldUser" in after
+                    and "RunTime=00:00:00" in after
+                )
+                hold["after"] = after
+                w.new_json(D / "original-H100-held.json", hold)
+                request = {
+                    "slug": slug,
+                    "newTitle": slug.split("/")[1].replace("-", " "),
+                    "text": source,
+                    "language": "python",
+                    "kernelType": "script",
+                    "isPrivate": True,
+                    "enableGpu": True,
+                    "machineShape": "NvidiaTeslaT4",
+                    "enableInternet": False,
+                    "datasetDataSources": [
+                        "nartaa/rsna-knee-publication-swa-weights-20261007",
+                        "godlydonuts/rsna-parent-fit-targets-48b4485f03b6",
+                        "godlydonuts/rsna-parent-iid16-q-e812a9f90cd2",
+                    ],
+                    "kernelDataSources": refs,
+                    "competitionDataSources": [],
+                    "sessionTimeoutSeconds": 3600,
+                    "dockerImage": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+                    "dockerImagePinningType": "original",
+                }
+                row = {
+                    "state": "paired_zero_recovery_push_intent",
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "request": {n: x for n, x in request.items() if n != "text"},
+                    "fresh_quota": quota,
+                    "capacity": cap,
+                    "source_git": v["source_git"],
+                    "original_H100_held_zero": True,
+                    "automatic_retry": False,
+                    "competition_entry": False,
+                }
+                w.new_json(D / "push-intent.json", row)
+                db.execute("INSERT INTO meta VALUES (?,?)", (key, json.dumps(row, sort_keys=True)))
+                db.commit()
+                retain = True
+                result = r.call("kernels.KernelsApiService", "SaveKernel", request)
+                w.new_json(D / "push-response.json", result)
+                assert result.get("ref") == "/code/" + slug and result.get("versionNumber") == 1
+                assert (
+                    type(result.get("kernelId")) is int
+                    and result["kernelId"] > 0
+                    and not result.get("error")
+                )
+                assert all(
+                    not result.get(n)
+                    for n in (
+                        "invalidDatasetSources",
+                        "invalidKernelSources",
+                        "invalidCompetitionSources",
+                    )
+                )
+                row.update(state="paired_zero_recovery_pushed", kernel_id=result["kernelId"])
+                db.execute(
+                    "UPDATE meta SET value=? WHERE key=?", (json.dumps(row, sort_keys=True), key)
+                )
+                db.commit()
+                actual = r.kernel("GetKernel", slug, 1)
+                assert (
+                    actual["blob"]["source"] == source
+                    and actual["metadata"]["id"] == row["kernel_id"]
+                )
+                for n in (
+                    "isPrivate",
+                    "enableGpu",
+                    "enableInternet",
+                    "machineShape",
+                    "dockerImage",
+                ):
+                    assert (
+                        actual["metadata"].get(n, False if n == "enableInternet" else None)
+                        == request[n]
+                    )
+                for n in ("kernelDataSources", "datasetDataSources", "competitionDataSources"):
+                    assert sorted(actual["metadata"].get(n, [])) == sorted(request[n])
+                out = {
+                    "status": "actual_paired_zero_recovery_twoT4_pushed",
+                    "kernel_id": row["kernel_id"],
+                    "slug": slug,
+                    "version": 1,
+                    "source_sha256": sha,
+                    "maximum_VM_seconds": 3600,
+                    "original_H100_job_held_zero": 975954,
+                    "initial_status": r.kernel("GetKernelSessionStatus", slug, 1).get(
+                        "status", "INITIALIZING_UNREPORTED"
+                    ),
+                    "competition_entry": False,
+                }
+                w.new_json(D / "pushed.json", out)
+                retain = False
+        else:
+            assert raw is not None
+            row = json.loads(raw[0])
+            assert (
+                row["state"]
+                in (
+                    "paired_zero_recovery_pushed",
+                    "paired_zero_recovery_actual_complete",
+                    "paired_zero_recovery_failed",
+                )
+                and row["version"] == 1
+            )
+            actual = r.kernel("GetKernel", slug, 1)
+            assert (
+                actual["metadata"]["id"] == row["kernel_id"] and actual["blob"]["source"] == source
+            )
+            out = {
+                "status": r.kernel("GetKernelSessionStatus", slug, 1).get(
+                    "status", "INITIALIZING_UNREPORTED"
+                ),
+                "kernel_id": row["kernel_id"],
+                "slug": slug,
+                "version": 1,
+                "source_sha256": sha,
+                "new_GPU_mutations": 0,
+            }
+            if out["status"] == "COMPLETE":
+                receipt = r.output_json(slug, 1, "paired-zero-recovery-accepted.json")
+                assert receipt["status"] == "actual_paired_zero_source_twoT4_recovery_accepted"
+                assert receipt["binding"] == meta["binding"] and receipt["finite_updates"] == 6
+                assert receipt[
+                    "complete_model_AdamW_LR_allrank_RNG_scaler_history_snapshots_exact_resume"
+                ]
+                assert receipt["both_view_full94_15x12_CSV_bytes_equal"]
+                assert not receipt["competition_entry"] and not receipt["production_fit"]
+                assert len(receipt["devices"]) == 2 and all(
+                    x["GPU"] == "Tesla T4" and x["trainable_parameters"] == 73136096
+                    for x in receipt["devices"]
+                )
+                out["receipt"] = receipt
+                if not (D / "actual-accepted.json").exists():
+                    w.new_json(D / "actual-accepted.json", out)
+                    row.update(state="paired_zero_recovery_actual_complete", receipt=receipt)
+                    db.execute(
+                        "UPDATE meta SET value=? WHERE key=?",
+                        (json.dumps(row, sort_keys=True), key),
+                    )
+                    db.commit()
+            elif out["status"] in ("ERROR", "CANCELLED"):
+                if not (D / "actual-failed.json").exists():
+                    w.new_json(D / "actual-failed.json", out)
+                    row.update(state="paired_zero_recovery_failed", actual_status=out["status"])
+                    db.execute(
+                        "UPDATE meta SET value=? WHERE key=?",
+                        (json.dumps(row, sort_keys=True), key),
+                    )
+                    db.commit()
+    print(json.dumps(out), flush=True)
+finally:
+    if not retain:
+        assert json.loads((claim / "owner.json").read_text()) == owner
+        (claim / "owner.json").unlink()
+        claim.rmdir()

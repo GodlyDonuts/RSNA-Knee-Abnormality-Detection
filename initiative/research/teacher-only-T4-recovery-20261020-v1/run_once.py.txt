@@ -1,0 +1,92 @@
+"""Credential-through-stdin CPU controller; one push, no uncertainty retry."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-T4-recovery-20261020-v1"
+phase = sys.argv[1]
+assert phase in ("push", "status")
+pin = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+for p in (D / "cloud.py.txt", D / "run_once.py.txt", R / "scripts/kaggle/gpu_capacity.py"):
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", pin + ":" + p.relative_to(R).as_posix()]
+    )
+prepared = json.loads((D / "actual-CPU-prepared.json").read_text())
+assert prepared["status"] == "actual_new_paired_zero_twoT4_recovery_privately_compiled_CPU_only"
+env = R / ".env"
+assert env.stat().st_mode & 0o077 == 0
+values = {
+    k.strip(): z.strip().strip("\"'")
+    for line in env.read_text().splitlines()
+    for k, sep, z in [line.partition("=")]
+    if sep and not line.lstrip().startswith("#")
+}
+capacity = (R / "scripts/kaggle/gpu_capacity.py").read_text()
+payload = {
+    "phase": phase,
+    "source_git": pin,
+    "prepared": prepared,
+    "token": values["KAGGLE_API_TOKEN"],
+    "capacity_source": capacity,
+    "capacity_sha256": hashlib.sha256(capacity.encode()).hexdigest(),
+}
+if phase == "push":
+    with (L / "push-intent.json").open("x") as f:
+        json.dump(
+            {
+                "source_git": pin,
+                "maximum_SaveKernel_calls": 1,
+                "diagnostic_only": True,
+                "automatic_retry": False,
+            },
+            f,
+        )
+spec = importlib.util.spec_from_file_location(
+    "transport", R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py"
+)
+t = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(t)
+args = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=1G",
+    "--time=00:05:00",
+    "--job-name=rsna-source0-T4-" + phase,
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python",
+    "-c",
+    t.COMMAND,
+]
+x = subprocess.run(
+    ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "newton", shlex.join(args)],
+    input=t.envelope((D / "cloud.py.txt").read_text(), payload),
+    capture_output=True,
+    text=True,
+    timeout=900,
+)
+(L / (phase + "-transport.json")).write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, (
+    "Reconcile exact existing canonical intent read-only; never repeat SaveKernel"
+)
+z = json.loads(x.stdout)
+(D / ("actual-" + phase + ".json")).write_text(json.dumps(z, indent=2) + "\n")
+print(json.dumps(z), flush=True)
