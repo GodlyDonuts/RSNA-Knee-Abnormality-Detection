@@ -18,7 +18,7 @@ REPO = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 JOURNAL = REPO / "artifacts" / HERE.name
 MANAGEMENT = "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python"
-ORIGINAL_OWNER = REPO / "initiative/research/predictive-http499-owner-handoff-20261020-v1"
+ORIGINAL_OWNER = REPO / "initiative/research/predictive-evc27-deadline-placement-20261020-v1"
 ORIGINAL_JOURNAL = REPO / "artifacts" / ORIGINAL_OWNER.name / "finite-owner"
 PLACEMENT_PIN = "2b834507e19c405971228e1bc405462cd370f560"
 PLACEMENT_PATH = "initiative/research/predictive-c0-portable-placement-20261020-v1/placement.py"
@@ -80,30 +80,34 @@ def frozen(args):
 
 
 def original_jobs():
-    jobs = {}
-    owner = json.loads((ORIGINAL_JOURNAL / "owner-intent.json").read_bytes())
-    a.require(owner["source_git"] == a.PRIMARY_SOURCE and owner["science_git"] == a.BASE
-              and owner["pid"] == a.PRIMARY_OWNER_PID, "Exact current primary fitting owner required")
-    for role in ("BC", "C0"):
-        path = ORIGINAL_OWNER / ("actual-owner-dispatch-" + role + ".json")
+    raw = (ORIGINAL_JOURNAL / "owner-intent.json").read_bytes()
+    a.validate_primary_ownership(raw, (REPO / a.CONTINUATION_REL).read_bytes())
+    a.require(json.loads(raw)["science_git"] == a.BASE, "Exact original primary science required")
+    path = ORIGINAL_OWNER / "actual-owner-dispatch-all27.json"
+    if not path.exists():
+        path = ORIGINAL_OWNER / "actual-known-dispatches-all27.json"
         if not path.exists():
-            continue
-        receipt = json.loads(path.read_text())
-        phase = "dispatch-" + role
-        result = json.loads((ORIGINAL_JOURNAL / (phase + "-result.json")).read_bytes())
-        intent = json.loads((ORIGINAL_JOURNAL / (phase + "-intent.json")).read_bytes())
-        node = "evc27" if role == "C0" else "evc33"
-        a.require(receipt == result and intent["mode"] == "dispatch" and intent["node"] == node
-                  and intent["placement_source_git"] == a.PRIMARY_SOURCE
-                  and re.fullmatch("[0-9a-f]{64}", intent["program_sha256"]),
-                  "Current primary phase intent/result must match actual dispatch receipt")
-        a.require(receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
-                  and receipt["source_git"] == a.BASE
-                  and set(receipt["jobs"]) == ({"B", "C"} if role == "BC" else {"C0"}),
-                  "Only exact original primary dispatch receipts can supply shared-log credit")
-        a.validate_primary_jobs(receipt["jobs"], {"B", "C"} if role == "BC" else {"C0"})
-        jobs.update(receipt["jobs"])
-    return a.validate_primary_jobs(jobs)
+            return {}
+        receipt = json.loads(path.read_bytes())
+        result = json.loads((ORIGINAL_JOURNAL / "known-dispatches-all27.json").read_bytes())
+        recovered = json.loads((ORIGINAL_OWNER / "actual-dispatch-reconciled.json").read_bytes())
+        a.require(recovered == json.loads((ORIGINAL_JOURNAL / "dispatch-reconciled.json").read_bytes())
+                  and recovered["status"] == "actual_all27_original_dispatch_reconciled_readonly"
+                  and recovered["jobs"] == receipt["jobs"] and recovered["new_GPU_jobs"] == 0
+                  and isinstance(recovered["submission_completeness_known"], bool),
+                  "Exact original read-only dispatch reconciliation required")
+    else:
+        receipt = json.loads(path.read_bytes())
+        result = json.loads((ORIGINAL_JOURNAL / "dispatch-all27-result.json").read_bytes())
+    intent = json.loads((ORIGINAL_JOURNAL / "dispatch-all27-intent.json").read_bytes())
+    a.require(receipt == result and intent["mode"] == "dispatch" and intent["node"] == "evc27"
+              and intent["placement_source_git"] == a.PRIMARY_SOURCE
+              and re.fullmatch("[0-9a-f]{64}", intent["program_sha256"]),
+              "Original all27 phase intent/result must match actual dispatch receipt")
+    a.require(receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
+              and receipt["source_git"] == a.BASE,
+              "Only exact original primary dispatch receipts can supply shared-log credit")
+    return a.validate_primary_jobs(receipt["jobs"], {"B", "C", "C0"})
 
 
 def token():
@@ -122,7 +126,7 @@ def token():
 
 def call(args, frozen_source, phase, *, decision=None, epoch=None):
     base, program, transport = frozen_source
-    payload = {**base, "phase": phase, "original_dispatched_jobs": original_jobs()}
+    payload = {**base, "phase": phase, "original_dispatched_jobs": original_jobs(), "primary_control": a.primary_control()}
     if decision is not None:
         payload["decision"] = decision
     if epoch is not None:

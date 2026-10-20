@@ -171,7 +171,7 @@ def paid_log_count(jobs, root=Path("/home/sa305415/rsna-knee/kaggle")):
         name = "rsna-predictive-full2-" + arm
         require(re.fullmatch(r"[0-9]+", job["GPU_job"]) and job["arm"] == arm
                 and job["source_git"] == "44cc559e947560a635c34fee7b1f2a3b7be3a241"
-                and job["node"] == ("evc27" if arm == "C0" else "evc33")
+                and job["node"] == "evc27"
                 and job["job_name"] == name, "Original primary dispatch identity required")
         size = 0
         for field, suffix in (("stdout", "out"), ("stderr", "err")):

@@ -59,27 +59,37 @@ def freeze(pin):
                 control_sha256={n: B.sha(body.encode()) for n, body in own.items()}), own
 
 
-def original_jobs(audit=PRIMARY_AUDIT, journal=PRIMARY_JOURNAL):
-    """No guessed paid files: require original current phase intent/result equality."""
-    owner = json.loads((journal / "owner-intent.json").read_bytes())
-    assert owner["source_git"] == PRIMARY_SOURCE and owner["science_git"] == FULL_SCIENCE
-    assert owner["pid"] == PRIMARY_OWNER_PID
-    jobs = {}
-    for role, node, arms in (("BC", "evc33", {"B", "C"}), ("C0", "evc27", {"C0"})):
-        path = audit / ("actual-owner-dispatch-" + role + ".json")
+def original_jobs(audit=PRIMARY_AUDIT, journal=PRIMARY_JOURNAL, continuation=None):
+    """Read exact all27 phase proofs through the explicit startup continuation."""
+    continuation = REPO / P.CONTINUATION_REL if continuation is None else continuation
+    raw = (journal / "owner-intent.json").read_bytes()
+    P.validate_primary_ownership(raw, continuation.read_bytes())
+    assert json.loads(raw)["science_git"] == FULL_SCIENCE
+    path = audit / "actual-owner-dispatch-all27.json"
+    if not path.exists():
+        path = audit / "actual-known-dispatches-all27.json"
         if not path.exists():
-            continue
+            return {}
         receipt = json.loads(path.read_bytes())
-        phase = "dispatch-" + role
-        result = json.loads((journal / (phase + "-result.json")).read_bytes())
-        intent = json.loads((journal / (phase + "-intent.json")).read_bytes())
-        assert receipt == result and intent["mode"] == "dispatch" and intent["node"] == node
-        assert intent["placement_source_git"] == PRIMARY_SOURCE
-        assert re.fullmatch("[0-9a-f]{64}", intent["program_sha256"])
-        assert receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
-        assert receipt["source_git"] == FULL_SCIENCE and set(receipt["jobs"]) == arms
-        jobs.update(receipt["jobs"])
-    return jobs
+        result = json.loads((journal / "known-dispatches-all27.json").read_bytes())
+        recovered = json.loads((audit / "actual-dispatch-reconciled.json").read_bytes())
+        assert recovered == json.loads((journal / "dispatch-reconciled.json").read_bytes())
+        assert recovered["status"] == "actual_all27_original_dispatch_reconciled_readonly"
+        assert recovered["jobs"] == receipt["jobs"] and recovered["new_GPU_jobs"] == 0
+        assert isinstance(recovered["submission_completeness_known"], bool)
+    else:
+        receipt = json.loads(path.read_bytes())
+        result = json.loads((journal / "dispatch-all27-result.json").read_bytes())
+    intent = json.loads((journal / "dispatch-all27-intent.json").read_bytes())
+    assert receipt == result and intent["mode"] == "dispatch" and intent["node"] == "evc27"
+    assert intent["placement_source_git"] == PRIMARY_SOURCE
+    assert re.fullmatch("[0-9a-f]{64}", intent["program_sha256"])
+    assert receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
+    assert receipt["source_git"] == FULL_SCIENCE and set(receipt["jobs"]) == {"B", "C", "C0"}
+    assert len({j["GPU_job"] for j in receipt["jobs"].values()}) == 3
+    assert all(j["node"] == "evc27" and j["arm"] == arm and j["source_git"] == FULL_SCIENCE
+               for arm, j in receipt["jobs"].items())
+    return receipt["jobs"]
 
 
 def script(decision):

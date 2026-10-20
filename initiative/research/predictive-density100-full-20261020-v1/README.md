@@ -35,13 +35,16 @@ separate agent decision must bind its actual receipt, scheduler outcome, all
 warnings and the full recipe. Prepared plans and the four engineering-label
 predictions cannot supply this decision.
 
-It then waits for the original C0 portable placement to complete and reuses all
+It then waits for the original all-evc27 portable placement to complete and reuses all
 3,887 node-local context files by original hash/stat proof. It does not download
 or transfer the MRI cache again. Parent/runtime, original input admission,
 renderer lineage and common initialization remain explicitly bound; a distinct
 C100 admission records the new worker/source instead of relabelling C0's receipt.
-The prepared coordinator now binds the current `29128354` fitting owner29171,
-its original dispatch intent/result bytes and exact owned log paths. Portable
+The prepared coordinator binds the unchanged `2a224ae0` controller and original
+owner32377 intent, together with the actual `7dcd87e3` continuation33107 intent.
+It admits the exact original all-three-arm dispatch records and owned log paths.
+A lost dispatch reply is handled only through matching sealed-job reconciliation
+receipts, never another submission. Portable
 input admission must retain the baseline-plus-two-authoritative-files policy
 and the actual strict-decoder regression, plus the exact HTTP499 recovery decision and transport hashes in both the original control and its accepted proof map. Stale e9 or pre-correction C0 proofs fail. Original pilot981620, its binding, science44cc and the distinct unadmitted C100 output/funding scopes are unchanged. This retarget does not admit or launch the extra branch.
 
@@ -49,21 +52,24 @@ Private paths on evc27:
 
 - Controls: `/tmp/rsna-predictive-density100-full-20261020-v1`.
 - Full output: `/tmp/rsna-predictive-full-C100-20261020-v1`.
-- Original inputs: `/tmp/rsna-predictive-c0-portable-placement-20261020-v1`.
+- Original inputs: `/tmp/rsna-predictive-evc27-deadline-placement-20261020-v1`.
 
 [coordinator.py](coordinator.py) exposes `status`, `admit`, `dispatch`, `publish`
 and `preserve` phases. Each mutation has one durable intent and no retry. An
 existing intent requires read-only reconciliation. `admit` first checks actual
-prerequisites without writing an intent. `dispatch` requires the real original
-C0 dispatch and adds `after:C0_job`, preserving C0's allocation priority.
+prerequisites without writing an intent. `dispatch` requires all three actual
+primary jobs and adds `after:C_job:B_job:C0_job`. Every primary must have started
+before the optional job becomes eligible; this is not a completion dependency.
 
 The separate full job requests one H100/two CPUs/32GiB/eight hours on physically
 two-GPU evc27. New dispatch stops October21 20:00UTC; Slurm's finish deadline is
 October22 04:00UTC. These are limits, not guaranteed allocation or completion
 times. Both scheduler inspection and submission explicitly use `TZ=UTC`.
 The preservation phase continues to October22 noonUTC and never cancels a
-healthy original job. The updated admission/coordinator/log-accounting checks
-passed55 focused local tests; no operation was launched by these changes.
+healthy original job. The updated optional routes passed123 focused local tests
+and independent review. They retain all36GiB of primary fitting scope, the
+additional64MiB placement controls, and every optional/descriptor obligation
+without speculative paid credit. No operation was launched by these changes.
 
 Example invocation after source freeze and actual pilot review:
 

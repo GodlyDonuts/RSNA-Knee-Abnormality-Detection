@@ -82,12 +82,17 @@ The driver requires original C100 pilot981620's actual successful terminal
 receipt, an explicit subsequent agent engineering decision, separate fresh
 capacity for6GiB checkpoints plus4MiB controls, and all older storage obligations.
 Worker, driver, CPU admission and coordinator are locally prepared and tested.
-Prepared shared-log ownership binds actual fitting owner29171/source29128354 and
-the HTTP499 audit; the original981620 pilot, its16 engineering inputs and its
-runtime remain unchanged. G100 retains the full C100 future scope and the
+Prepared shared-log ownership binds original controller `2a224ae0`/owner32377 and
+the actual `7dcd87e3`/33107 continuation, including both original intent hashes.
+All primary jobs and paid log proofs belong to evc27; an uncertain original
+dispatch can be adopted only through matching sealed-job reconciliation records.
+The original981620 pilot, its16 engineering inputs and its runtime remain
+unchanged. G100 retains all36GiB of primary fitting scope,128MiB placement
+controls, the full C100 future scope and the
 existing descriptor-normalizer1MiB liability. Full C100 likewise reserves the
 independent G1006GiB+4MiB scope, without speculative paid-byte credit, so optional
 execution order cannot spend the other branch’s storage. These are conservative
-future obligations, not job authority. **No matched GPU job or full G100 fit is staged,
+future obligations, not job authority. The two prepared optional routes passed123
+focused local tests and independent review. **No matched GPU job or full G100 fit is staged,
 submitted or accepted.** The current C100 pilot and primary B/C/C0 jobs are
 unchanged. There is no automatic promotion or claimed clinical improvement.

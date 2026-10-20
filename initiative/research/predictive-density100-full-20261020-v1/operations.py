@@ -76,14 +76,12 @@ def load_binding(source_git):
 def original_jobs(v):
     """Only exact original dispatch receipts can retire their charged log inodes."""
     jobs = a.validate_primary_jobs(dict(v.get("original_dispatched_jobs", {})))
-    for root in (a.C0, a.Path("/tmp/rsna-predictive-full-fitting-20261020-v2")):
-        # The evc33 directory is node-local and normally absent here. Its logs
-        # cannot receive credit from guessed IDs or paths.
+    for root in (a.C0,):
         path = root / "dispatch/submitted.json"
         if path.is_file():
             receipt = json.loads(a.read_ref(a.reference(path)))
             intent = json.loads(a.read_ref(a.reference(root / "dispatch/intent.json")))
-            expected = {"C0"} if root == a.C0 else {"B", "C"}
+            expected = {"B", "C", "C0"}
             a.require(intent["owner_git"] == a.PRIMARY_SOURCE and intent["source_git"] == a.BASE
                       and set(intent["arms"]) == expected
                       and receipt["status"] == "actual_predictive_placement_jobs_submitted_once"
@@ -96,19 +94,32 @@ def original_jobs(v):
     return a.validate_primary_jobs(jobs)
 
 
-def shared(v):
+def paid_primary_logs(source, jobs, root=None):
     ns = {}
-    a.require(a.sha(v["placement_source"].encode()) == v["placement_sha256"] == PLACEMENT_SHA,
+    a.require(a.sha(source.encode()) == PLACEMENT_SHA,
               "Pinned original log-accounting source required")
-    exec(compile(v["placement_source"], "original_placement_file_accounting", "exec"), ns)
-    paid = ns["paid_shared_logs"](original_jobs(v))
+    exec(compile(source, "original_placement_file_accounting", "exec"), ns)
+    a.validate_primary_jobs(jobs)
+    compatible = {arm: dict(job, node="evc27" if arm == "C0" else "evc33")
+                  for arm, job in jobs.items()}
+    # Reuse the pinned exact job/path/inode checker; never store this historical
+    # node-field projection as an actual dispatch or input proof.
+    return ns["paid_shared_logs"](compatible, root) if root is not None else ns["paid_shared_logs"](compatible)
+
+
+def shared(v):
+    a.require(v["placement_sha256"] == PLACEMENT_SHA, "Original placement source binding changed")
+    paid = paid_primary_logs(v["placement_source"], original_jobs(v))
     quota = a.shared_budget(subprocess.check_output(
         ["lfs", "quota", "-u", "sa305415", "/home/sa305415"], text=True,
     ), paid["files"])
     return {**quota, "paid_original_logs": paid}
 
 
-def script(binding_sha, c0_job):
+def script(binding_sha, primary_jobs):
+    a.require(len(primary_jobs) == 3 and len(set(primary_jobs)) == 3
+              and all(re.fullmatch(r"\d+", job) for job in primary_jobs),
+              "All three original primary job dependencies required")
     command = [
         a.PYTHON, "-B", str(a.ROOT / "code/worker.py"), "--binding",
         str(a.ROOT / "binding.private.json"), "--binding-sha256", binding_sha,
@@ -119,7 +130,7 @@ def script(binding_sha, c0_job):
         "#SBATCH --cpus-per-task=2", "#SBATCH --gres=gpu:nvidia_h100_pcie:1",
         "#SBATCH --mem=32G", "#SBATCH --time=08:00:00",
         "#SBATCH --deadline=2026-10-22T04:00:00",
-        "#SBATCH --dependency=after:" + c0_job,
+        "#SBATCH --dependency=after:" + ":".join(primary_jobs),
         "#SBATCH --job-name=rsna-predictive-full-C100",
         "#SBATCH --chdir=" + str(a.ROOT),
         "#SBATCH --output=" + str(a.ROOT / "GPU-%j.out"),
@@ -137,14 +148,15 @@ def dispatch(v):
     a.require(not (a.ROOT / "GPU-intent.json").exists() and not a.RUN.exists(),
               "Existing C100 dispatch/output requires read-only reconciliation")
     jobs = original_jobs(v)
-    a.require("C0" in jobs, "Keep the primary C0 dispatch ahead of C100")
+    a.require(set(jobs) == {"B", "C", "C0"}, "Keep all three primary dispatches ahead of C100")
     c0 = jobs["C0"]
     a.require(c0["source_git"] == a.BASE and c0["node"] == "evc27"
               and c0["arm"] == "C0" and c0["job_name"] == "rsna-predictive-full2-C0",
               "Actual original C0 dispatcher receipt required")
-    c0_state = scheduler(c0["GPU_job"])
-    a.require(c0_state["state"] in {"PENDING", "RUNNING", "COMPLETING", "COMPLETED"},
-              "Review a failed primary C0 before reserving a secondary full run")
+    for primary in jobs.values():
+        state = scheduler(primary["GPU_job"])
+        a.require(state["state"] in {"PENDING", "RUNNING", "COMPLETING", "COMPLETED"},
+                  "Review any failed primary before reserving a secondary full run")
     node_text = subprocess.check_output(["scontrol", "show", "node", "evc27", "-o"], text=True)
     node = dict(t.split("=", 1) for t in node_text.split() if "=" in t)
     a.require(node["NodeName"] == "evc27" and "gpu:nvidia_h100_pcie:2" in node["Gres"]
@@ -152,11 +164,12 @@ def dispatch(v):
               "Only the admitted physical two-H100 node")
     portable = json.loads(a.read_ref(a.reference(a.C0 / "portable-accepted.json")))
     budget = {"node": a.fresh_node(portable), "shared": shared(v)}
-    body = script(ref["sha256"], c0["GPU_job"])
+    dependencies = [jobs[arm]["GPU_job"] for arm in ("C", "B", "C0")]
+    body = script(ref["sha256"], dependencies)
     a.once(a.ROOT / "GPU-intent.json", {
         "source_git": v["source_git"], "binding_sha256": ref["sha256"],
         "script_sha256": a.sha(body.encode()), "fresh_capacity": budget,
-        "original_C0_job": c0, "automatic_retry": False,
+        "original_C0_job": c0, "original_primary_jobs": jobs, "automatic_retry": False,
     })
     result = subprocess.run(["sbatch", "--parsable"], input=body, text=True,
                             capture_output=True, timeout=60, check=False,
@@ -171,6 +184,7 @@ def dispatch(v):
         "node": "evc27", "binding_sha256": ref["sha256"],
         "density100_pilot_sha256": prepared["density100_pilot_sha256"],
         "script_sha256": a.sha(body.encode()), "original_C0_job": c0["GPU_job"],
+        "original_primary_after_dependencies": dependencies,
         "runtime_cap_seconds": 28800, "new_shared_files": 0,
         "clinical_or_Kaggle_result": False,
     }

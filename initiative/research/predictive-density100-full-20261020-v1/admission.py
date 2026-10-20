@@ -12,8 +12,14 @@ from pathlib import Path
 
 GIB, MIB = 2**30, 2**20
 BASE = "44cc559e947560a635c34fee7b1f2a3b7be3a241"
-PRIMARY_SOURCE = "291283545c930b730bb257abb10c2a0814b055eb"
-PRIMARY_OWNER_PID = 29171
+PRIMARY_SOURCE = "2a224ae05fc7c2fc78d4d508b6407344ac523a1c"
+PRIMARY_OWNER_PID = 32377
+PRIMARY_AUDIT_REL = "initiative/research/predictive-evc27-deadline-placement-20261020-v1"
+CONTINUATION_REL = "artifacts/predictive-evc27-startup-continuation-20261020-v1/continuation-intent.json"
+PRIMARY_INTENT_SHA = "b310a8cf6267ea4ce1b40b4efef27ad375b9bc869dfaee435b9c86ed0f40ebd0"
+CONTINUATION_SOURCE = "7dcd87e3749998ee7d8f84c08f8f7f118072bf9d"
+CONTINUATION_PID = 33107
+CONTINUATION_INTENT_SHA = "360bc552517cdc0a886ae36e4efa55100327eebf0a4204b233aa20159c0b7a71"
 HTTP499_PROOFS = {
     "http499_recovery_decision_sha256": "6c655a431a17f2e4052913216836816a3d88fbf8bb018b11b2403e120bf35d88",
     "previous_source_http_sha256": "ea7bf0f44af60ec4b0876e85af5cc1536d15cad671ea45d4ac548adccca0e28c",
@@ -25,7 +31,7 @@ PILOT_SOURCE = "068a14a75e4d2b3bd83dda7783528956f7a2ca0f"
 PILOT_BINDING = "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37a"
 INITIAL = "dbf69ff87261f7a0657c866ef8e41db8b125a62c6245d80017945c634e60158b"
 ROSTER = "0485d1b1df7af2b8ef10207bfa37545e2c65f7dc68f47a254f2af0c475de7f42"
-C0 = Path("/tmp/rsna-predictive-c0-portable-placement-20261020-v1")
+C0 = Path("/tmp/rsna-predictive-evc27-deadline-placement-20261020-v1")
 C0_RUN = Path("/tmp/rsna-predictive-full-C0-20261020-v2")
 PILOT = Path("/tmp/rsna-predictive-density100-pilot-20261020-v1")
 ROOT = Path("/tmp/rsna-predictive-density100-full-20261020-v1")
@@ -36,8 +42,33 @@ FIT_CAP, CONTROL_CAP = 12 * GIB, 16 * MIB
 # No paid credit for these independent scopes without separate original proof.
 G100_RESERVED_BYTES = 6 * GIB + 4 * MIB
 DESCRIPTOR_RESERVED_BYTES = MIB
+PRIMARY_OTHER_FITS_RESERVED_BYTES = 24 * GIB
+PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES = 64 * MIB
 SHARED_BYTES, SHARED_FILES = 123 * MIB, 376
 LAST_DISPATCH = datetime(2026, 10, 21, 20, 0, tzinfo=timezone.utc)
+
+
+def primary_control():
+    """Bind the unchanged original capsule and its separately recorded continuation."""
+    return {"source_git": PRIMARY_SOURCE, "original_owner_pid": PRIMARY_OWNER_PID,
+            "audit_directory": PRIMARY_AUDIT_REL,
+            "original_intent_sha256": PRIMARY_INTENT_SHA,
+            "continuation_source_git": CONTINUATION_SOURCE,
+            "continuation_pid": CONTINUATION_PID,
+            "continuation_intent_sha256": CONTINUATION_INTENT_SHA}
+
+
+def validate_primary_ownership(original_raw, continuation_raw):
+    assert hashlib.sha256(original_raw).hexdigest() == PRIMARY_INTENT_SHA, "Original primary intent changed"
+    assert hashlib.sha256(continuation_raw).hexdigest() == CONTINUATION_INTENT_SHA, "Actual continuation intent changed"
+    owner, resumed = json.loads(original_raw), json.loads(continuation_raw)
+    assert owner["source_git"] == PRIMARY_SOURCE and owner["pid"] == PRIMARY_OWNER_PID
+    assert resumed["source_git"] == CONTINUATION_SOURCE and resumed["pid"] == CONTINUATION_PID
+    assert resumed["original_source_git"] == PRIMARY_SOURCE and resumed["original_owner_pid"] == PRIMARY_OWNER_PID
+    assert resumed["original_startup_sha256"]["owner-intent.json"] == PRIMARY_INTENT_SHA
+    assert resumed["original_owner_intent_retained"] is True and resumed["only_startup_marker_renamed"] is True
+    assert resumed["automatic_retry"] is False
+    return primary_control()
 
 
 def require(ok, message):
@@ -148,6 +179,8 @@ def validate_reuse(portable, old_binding, old_binding_sha, original_input, index
     require(
         portable["status"] == "actual_C0_context_transfer_and_CPU_admission_accepted"
         and portable["science_git"] == old_binding["source_git"] == BASE
+        and portable["admitted_arms"] == ["C", "B", "C0"]
+        and set(portable["binding_sha256"]) == {"B", "C", "C0"}
         and portable["binding_sha256"]["C0"] == old_binding_sha
         and portable["initial_shared_tensor_sha256"]
         == old_binding["expected_initial_shared_tensor_sha256"] == INITIAL
@@ -184,7 +217,10 @@ def validate_reuse(portable, old_binding, old_binding_sha, original_input, index
             "Exact current source-corrected HTTP499 C0 admission lineage required")
     # main() verifies the retained input's actual bytes through read_ref().
     # Do not replace that proof with a serialization-dependent JSON hash.
-    require(portable["input_admission_sha256"] == {"C0": old_binding["input_admission"]["sha256"]},
+    require(set(portable["input_admission_sha256"]) == {"B", "C", "C0"}
+            and portable["input_admission_sha256"]["C0"] == old_binding["input_admission"]["sha256"]
+            and all(re.fullmatch("[0-9a-f]{64}", h)
+                    for h in portable["input_admission_sha256"].values()),
             "Portable C0 must bind the exact retained corrected-input admission")
 
 
@@ -198,7 +234,7 @@ def validate_primary_jobs(jobs, arms=None):
         name = "rsna-predictive-full2-" + arm
         require(isinstance(identity, str) and re.fullmatch(r"\d+", identity)
                 and identity not in identities and job["arm"] == arm
-                and job["node"] == ("evc27" if arm == "C0" else "evc33")
+                and job["node"] == "evc27"
                 and job["source_git"] == BASE and job["job_name"] == name
                 and job["run_root"] == f"/tmp/rsna-predictive-full-{arm}-20261020-v2"
                 and all(re.fullmatch("[0-9a-f]{64}", job[k]) for k in
@@ -243,13 +279,16 @@ def node_budget(free, *, contexts_paid, C0_controls_paid, C0_fit_paid,
     require(all(type(paid) is int and 0 <= paid <= cap for cap, paid in scopes),
             "Only actual paid bytes within separately funded caps can retire obligations")
     other = (205676085248 + G100_RESERVED_BYTES + DESCRIPTOR_RESERVED_BYTES
+             + PRIMARY_OTHER_FITS_RESERVED_BYTES + PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES
              + sum(cap - paid for cap, paid in scopes[:-1]))
     required = 20 * GIB + other + FIT_CAP - own_fit_paid
     require(type(free) is int and free > required, "Retain every original/pilot/C0 liability")
     return {"free_bytes": free, "required_bytes": required, "remaining_bytes": free - required,
             "other_unpaid_node_liabilities_bytes": other,
             "conservative_G100_reserved_bytes_no_paid_credit": G100_RESERVED_BYTES,
-            "descriptor_reserved_bytes_no_paid_credit": DESCRIPTOR_RESERVED_BYTES}
+            "descriptor_reserved_bytes_no_paid_credit": DESCRIPTOR_RESERVED_BYTES,
+            "primary_other_fits_reserved_bytes_no_paid_credit": PRIMARY_OTHER_FITS_RESERVED_BYTES,
+            "primary_additional_controls_reserved_bytes_no_paid_credit": PRIMARY_ADDITIONAL_CONTROLS_RESERVED_BYTES}
 
 
 def fresh_node(portable):
@@ -278,6 +317,7 @@ def shared_budget(text, paid_logs=0):
 
 def main(v):
     os.umask(0o077)
+    require(v["primary_control"] == primary_control(), "Exact all27 primary continuation required")
     require(os.uname().nodename == "evc27" and not os.environ.get("SLURM_JOB_GPUS")
             and os.environ.get("CUDA_VISIBLE_DEVICES") == "", "Owning-node CPU-only admission")
     require(datetime.now(timezone.utc) < LAST_DISPATCH, "Full C100 launch window expired")
@@ -339,6 +379,7 @@ def main(v):
     }
     once(ROOT / "funding.json", funding)
     admitted = {
+        "primary_control": primary_control(),
         **copy.deepcopy(original_input), "source_git": v["source_git"], "code_sha256": hashes,
         "original_C0_input_admission_sha256": old["input_admission"]["sha256"],
         "original_portable_admission_sha256": portable_ref["sha256"],

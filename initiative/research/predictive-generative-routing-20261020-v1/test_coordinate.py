@@ -53,7 +53,7 @@ def test_management_admission_reuses_driver_controls_without_importing_Torch(mon
 
 
 def test_funding_preserves_all_prior_scopes_and_refuses_stale_or_naive_clock():
-    old = 205676085248 + 96*P.GIB + 12*P.GIB + 64*P.MIB
+    old = 205676085248 + 96*P.GIB + 36*P.GIB + 128*P.MIB
     assert P.MINIMUM_OTHER_BYTES == old + 6*P.GIB + 4*P.MIB + 12*P.GIB + 16*P.MIB + P.MIB
     _, _, decision, funding = inputs()
     P.decision_time(decision, funding, NOW)
@@ -142,39 +142,64 @@ def test_one_flow_exact_string_envelope_and_no_retry_after_uncertainty(tmp_path,
         assert (journal / "GPU-intent.json").exists() is (failure != "admit")
 
 
-def test_current_primary_dispatch_must_match_original_phase_not_old_owner(tmp_path):
+def test_current_primary_dispatch_must_match_original_phase_not_old_owner(tmp_path, monkeypatch):
     audit, journal = tmp_path / "audit", tmp_path / "journal"
     audit.mkdir()
     journal.mkdir()
     def put(path, value):
         path.write_text(json.dumps(value))
-    put(journal / "owner-intent.json", dict(source_git=C.PRIMARY_SOURCE, science_git=C.FULL_SCIENCE, pid=C.PRIMARY_OWNER_PID))
+    original_raw = json.dumps(dict(source_git=C.PRIMARY_SOURCE, science_git=C.FULL_SCIENCE, pid=C.PRIMARY_OWNER_PID)).encode()
+    (journal / "owner-intent.json").write_bytes(original_raw)
+    original_sha = P.hashlib.sha256(original_raw).hexdigest()
+    resumed = dict(source_git=P.CONTINUATION_SOURCE, pid=P.CONTINUATION_PID,
+                   original_source_git=C.PRIMARY_SOURCE, original_owner_pid=C.PRIMARY_OWNER_PID,
+                   original_startup_sha256={"owner-intent.json": original_sha},
+                   original_owner_intent_retained=True, only_startup_marker_renamed=True, automatic_retry=False)
+    continuation = tmp_path / "continuation.json"
+    put(continuation, resumed)
+    monkeypatch.setattr(C.P, "PRIMARY_INTENT_SHA", original_sha)
+    monkeypatch.setattr(C.P, "CONTINUATION_INTENT_SHA", P.hashlib.sha256(continuation.read_bytes()).hexdigest())
     receipt = dict(status="actual_predictive_placement_jobs_submitted_once", source_git=C.FULL_SCIENCE,
-                   jobs={"B": {"GPU_job": "123"}, "C": {"GPU_job": "124"}})
-    put(audit / "actual-owner-dispatch-BC.json", receipt)
-    put(journal / "dispatch-BC-result.json", receipt)
-    intent = dict(mode="dispatch", node="evc33", placement_source_git=C.PRIMARY_SOURCE,
-                  program_sha256="d"*64)
-    put(journal / "dispatch-BC-intent.json", intent)
-    assert C.original_jobs(audit, journal) == receipt["jobs"]
-    put(journal / "dispatch-BC-intent.json", {**intent, "placement_source_git": "f"*40})
+                   jobs={a:dict(GPU_job=str(123+i),arm=a,node="evc27",source_git=C.FULL_SCIENCE)
+                         for i,a in enumerate(("B","C","C0"))})
+    put(audit / "actual-owner-dispatch-all27.json", receipt)
+    put(journal / "dispatch-all27-result.json", receipt)
+    intent = dict(mode="dispatch", node="evc27", placement_source_git=C.PRIMARY_SOURCE, program_sha256="d"*64)
+    put(journal / "dispatch-all27-intent.json", intent)
+    assert C.original_jobs(audit, journal, continuation) == receipt["jobs"]
+    (audit / "actual-owner-dispatch-all27.json").unlink()
+    (journal / "dispatch-all27-result.json").unlink()
+    put(audit / "actual-known-dispatches-all27.json", receipt)
+    put(journal / "known-dispatches-all27.json", receipt)
+    reconciled = dict(status="actual_all27_original_dispatch_reconciled_readonly",
+                      jobs=receipt["jobs"], new_GPU_jobs=0, submission_completeness_known=False)
+    put(audit / "actual-dispatch-reconciled.json", reconciled)
+    put(journal / "dispatch-reconciled.json", reconciled)
+    assert C.original_jobs(audit, journal, continuation) == receipt["jobs"]
+    put(audit / "actual-dispatch-reconciled.json", {**reconciled, "new_GPU_jobs": 1})
     with pytest.raises(AssertionError):
-        C.original_jobs(audit, journal)
+        C.original_jobs(audit, journal, continuation)
+    put(audit / "actual-dispatch-reconciled.json", reconciled)
+    put(journal / "dispatch-all27-intent.json", {**intent, "node": "evc33"})
+    with pytest.raises(AssertionError):
+        C.original_jobs(audit, journal, continuation)
 
 
 def test_exact_actual_new_owner_and_old_owner_rejection():
-    expected = {"source_git": "291283545c930b730bb257abb10c2a0814b055eb",
-                "owner_pid": 29171,
-                "audit_directory": "initiative/research/predictive-http499-owner-handoff-20261020-v1"}
+    expected = P.primary_control()
+    assert expected["source_git"] == "2a224ae05fc7c2fc78d4d508b6407344ac523a1c"
+    assert expected["original_owner_pid"] == 32377
+    assert expected["continuation_pid"] == 33107
     assert P.validate_primary_control(expected) == expected
-    assert set(C.original_jobs()) <= {"B", "C", "C0"}  # Only actual current dispatch receipts.
-    old = {**expected, "source_git": "e9bdd1249fa7cf75f792b3762c2028bd7beb4337", "owner_pid": 11013}
+    assert set(C.original_jobs()) <= {"B", "C", "C0"}
+    old = {**expected, "source_git": "291283545c930b730bb257abb10c2a0814b055eb"}
     with pytest.raises(AssertionError, match="current primary"):
         P.validate_primary_control(old)
-    with pytest.raises(AssertionError):
-        C.original_jobs(
-            C.REPO / "initiative/research/predictive-source-correction-owner-handoff-20261020-v1",
-            C.REPO / "artifacts/predictive-source-correction-owner-handoff-20261020-v1/finite-owner")
+    original = (C.PRIMARY_JOURNAL / "owner-intent.json").read_bytes()
+    continuation = (C.REPO / P.CONTINUATION_REL).read_bytes()
+    assert P.validate_primary_ownership(original, continuation) == expected
+    with pytest.raises(AssertionError, match="continuation intent"):
+        P.validate_primary_ownership(original, continuation + b" ")
 
 
 def test_primary_retarget_preserves_exact_original_pilot_and_numerical_sources():
@@ -186,7 +211,7 @@ def test_primary_retarget_preserves_exact_original_pilot_and_numerical_sources()
 
 
 def test_G100_other_funding_cannot_omit_existing_descriptor_scope():
-    old_without_descriptor = (205676085248 + 96 * P.GIB + 12 * P.GIB + 64 * P.MIB
+    old_without_descriptor = (205676085248 + 96 * P.GIB + 36 * P.GIB + 128 * P.MIB
                               + 6 * P.GIB + 4 * P.MIB + 12 * P.GIB + 16 * P.MIB)
     funding = {"prior_C0_and_full_C100_scopes_retained": True,
                "other_unpaid_node_liabilities_bytes": old_without_descriptor}
@@ -195,3 +220,11 @@ def test_G100_other_funding_cannot_omit_existing_descriptor_scope():
     P.validate_other_funding({**funding, "other_unpaid_node_liabilities_bytes":
                              old_without_descriptor + P.MIB})
     assert P.DESCRIPTOR_RESERVED_BYTES == P.MIB
+
+
+def test_G100_and_primary_all27_admission_reserve_the_same_complete_total():
+    assert P.MINIMUM_OTHER_BYTES + 20*P.GIB + 6*P.GIB + 4*P.MIB == 394815078400
+    funding = {"prior_C0_and_full_C100_scopes_retained": True,
+               "other_unpaid_node_liabilities_bytes": P.MINIMUM_OTHER_BYTES - 24*P.GIB - 64*P.MIB}
+    with pytest.raises(AssertionError):
+        P.validate_other_funding(funding)

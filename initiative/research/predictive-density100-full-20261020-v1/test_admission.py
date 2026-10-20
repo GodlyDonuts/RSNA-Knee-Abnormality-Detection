@@ -162,7 +162,8 @@ def reuse_fixture(a, monkeypatch):
                context_index={"sha256": index_sha})
     portable = dict(
         status="actual_C0_context_transfer_and_CPU_admission_accepted",
-        science_git=a.BASE, binding_sha256={"C0": binding_sha},
+        science_git=a.BASE, admitted_arms=["C","B","C0"],
+        binding_sha256={"C0": binding_sha, "B": "b"*64, "C": "c"*64},
         initial_shared_tensor_sha256=a.INITIAL, destination_context_index_sha256=index_sha,
         context_bytes=sum(row["proof"]["bytes"] for row in index),
     )
@@ -188,7 +189,7 @@ def reuse_fixture(a, monkeypatch):
         value["cache_successor_control"] = copy.deepcopy(control)
         value["placement_control_source_git"] = a.PRIMARY_SOURCE
     old["input_admission"] = {"sha256": "d" * 64}
-    portable["input_admission_sha256"] = {"C0": old["input_admission"]["sha256"]}
+    portable["input_admission_sha256"] = {"C0": old["input_admission"]["sha256"], "B": "b"*64, "C": "c"*64}
     return portable, old, binding_sha, proof, index
 
 
@@ -330,7 +331,7 @@ def quota_text(a, free_files, free_bytes=None):
 def job_fixture(a, root, arm, job):
     name = "rsna-predictive-full2-" + arm
     return dict(arm=arm, GPU_job=job, source_git=a.BASE,
-                node="evc27" if arm == "C0" else "evc33", job_name=name,
+                node="evc27", job_name=name,
                 run_root=f"/tmp/rsna-predictive-full-{arm}-20261020-v2",
                 binding_sha256="b" * 64, script_sha256="c" * 64,
                 stdout=str(root / f"{name}-{job}.out"),
@@ -341,20 +342,24 @@ def primary_dispatch_fixture(a, c, monkeypatch, tmp_path):
     audit, journal = tmp_path / "primary-audit", tmp_path / "primary-journal"
     monkeypatch.setattr(c, "ORIGINAL_OWNER", audit)
     monkeypatch.setattr(c, "ORIGINAL_JOURNAL", journal)
-    private(journal / "owner-intent.json", a.canonical({
-        "source_git": a.PRIMARY_SOURCE, "science_git": a.BASE, "pid": a.PRIMARY_OWNER_PID,
-    }))
+    raw = a.canonical({"source_git": a.PRIMARY_SOURCE, "science_git": a.BASE, "pid": a.PRIMARY_OWNER_PID})
+    private(journal / "owner-intent.json", raw)
+    monkeypatch.setattr(a, "PRIMARY_INTENT_SHA", a.sha(raw))
+    continued = a.canonical({"source_git": a.CONTINUATION_SOURCE, "pid": a.CONTINUATION_PID,
+        "original_source_git": a.PRIMARY_SOURCE, "original_owner_pid": a.PRIMARY_OWNER_PID,
+        "original_startup_sha256": {"owner-intent.json": a.PRIMARY_INTENT_SHA},
+        "original_owner_intent_retained": True, "only_startup_marker_renamed": True, "automatic_retry": False})
+    continuation = private(tmp_path / "continuation.json", continued)
+    monkeypatch.setattr(a, "CONTINUATION_INTENT_SHA", a.sha(continued))
+    monkeypatch.setattr(a, "CONTINUATION_REL", str(continuation))
     jobs = {arm: job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), arm, str(900020 + i))
             for i, arm in enumerate(("B", "C", "C0"))}
-    for role, arms in (("BC", ("B", "C")), ("C0", ("C0",))):
-        receipt = dict(status="actual_predictive_placement_jobs_submitted_once",
-                       source_git=a.BASE, jobs={arm: jobs[arm] for arm in arms})
-        private(audit / f"actual-owner-dispatch-{role}.json", a.canonical(receipt))
-        private(journal / f"dispatch-{role}-result.json", a.canonical(receipt))
-        private(journal / f"dispatch-{role}-intent.json", a.canonical({
-            "mode": "dispatch", "node": "evc27" if role == "C0" else "evc33",
-            "placement_source_git": a.PRIMARY_SOURCE, "program_sha256": "e" * 64,
-        }))
+    receipt = dict(status="actual_predictive_placement_jobs_submitted_once", source_git=a.BASE, jobs=jobs)
+    private(audit / "actual-owner-dispatch-all27.json", a.canonical(receipt))
+    private(journal / "dispatch-all27-result.json", a.canonical(receipt))
+    private(journal / "dispatch-all27-intent.json", a.canonical({
+        "mode": "dispatch", "node": "evc27", "placement_source_git": a.PRIMARY_SOURCE,
+        "program_sha256": "e" * 64}))
     return jobs
 
 
@@ -373,13 +378,33 @@ def test_current_owner_retains_all_six_paid_logs_including_four_bc(
             value[key] = str(logs / Path(value[key]).name)
             private(Path(value[key]), b"")
     placement = module(PLACEMENT, "C100_current_owner_paid_logs")
-    paid = placement.paid_shared_logs(local_jobs, logs)
+    paid = placement.paid_shared_logs({a:dict(j,node="evc27" if a=="C0" else "evc33") for a,j in local_jobs.items()}, logs)
     assert paid["files"] == 6
     funded = a.shared_budget(quota_text(a, 5373), paid["files"])
     assert funded["free_files"] - funded["unpaid_files"] == 5003
     old_c0_only = placement.paid_shared_logs({"C0": local_jobs["C0"]}, logs)
     with pytest.raises(ValueError, match="shared reserve"):
         a.shared_budget(quota_text(a, 5373), old_c0_only["files"])
+
+
+def test_exact_readonly_reconciliation_can_supply_sealed_primary_jobs(coordinator, monkeypatch, tmp_path):
+    a, c = coordinator
+    jobs = primary_dispatch_fixture(a, c, monkeypatch, tmp_path)
+    path = c.ORIGINAL_OWNER / "actual-owner-dispatch-all27.json"
+    receipt = json.loads(path.read_bytes())
+    path.unlink()
+    (c.ORIGINAL_JOURNAL / "dispatch-all27-result.json").unlink()
+    private(c.ORIGINAL_OWNER / "actual-known-dispatches-all27.json", a.canonical(receipt))
+    private(c.ORIGINAL_JOURNAL / "known-dispatches-all27.json", a.canonical(receipt))
+    reconciled = dict(status="actual_all27_original_dispatch_reconciled_readonly",
+                      jobs=jobs, new_GPU_jobs=0, submission_completeness_known=False)
+    private(c.ORIGINAL_OWNER / "actual-dispatch-reconciled.json", a.canonical(reconciled))
+    private(c.ORIGINAL_JOURNAL / "dispatch-reconciled.json", a.canonical(reconciled))
+    assert c.original_jobs() == jobs
+    private(c.ORIGINAL_OWNER / "actual-dispatch-reconciled.json",
+            a.canonical({**reconciled, "jobs": {"C0": jobs["C0"]}}))
+    with pytest.raises(ValueError, match="reconciliation"):
+        c.original_jobs()
 
 
 @pytest.mark.parametrize("stale_part", ["owner", "phase", "unmatched_result", "job_source"])
@@ -393,19 +418,19 @@ def test_coordinator_refuses_stale_or_unmatched_primary_dispatch(
         value = json.loads(path.read_bytes())
         value["source_git"] = "2b834507e19c405971228e1bc405462cd370f560"
     elif stale_part == "phase":
-        path = c.ORIGINAL_JOURNAL / "dispatch-BC-intent.json"
+        path = c.ORIGINAL_JOURNAL / "dispatch-all27-intent.json"
         value = json.loads(path.read_bytes())
         value["placement_source_git"] = "2b834507e19c405971228e1bc405462cd370f560"
     else:
-        path = c.ORIGINAL_OWNER / "actual-owner-dispatch-BC.json"
+        path = c.ORIGINAL_OWNER / "actual-owner-dispatch-all27.json"
         value = json.loads(path.read_bytes())
         if stale_part == "unmatched_result":
             value["jobs"]["B"]["binding_sha256"] = "0" * 64
         else:
             value["jobs"]["B"]["source_git"] = "0" * 40
-            private(c.ORIGINAL_JOURNAL / "dispatch-BC-result.json", a.canonical(value))
+            private(c.ORIGINAL_JOURNAL / "dispatch-all27-result.json", a.canonical(value))
     private(path, a.canonical(value))
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, AssertionError)):
         c.original_jobs()
 
 
@@ -414,12 +439,12 @@ def test_shared_reserve_credits_only_existing_exact_original_logs(api, tmp_path)
     placement = module(PLACEMENT, "C100_test_actual_placement")
     jobs = {arm: job_fixture(a, tmp_path, arm, str(900000 + i))
             for i, arm in enumerate(("B", "C", "C0"))}
-    assert placement.paid_shared_logs(jobs, tmp_path)["files"] == 0
+    assert placement.paid_shared_logs({a:dict(j,node="evc27" if a=="C0" else "evc33") for a,j in jobs.items()}, tmp_path)["files"] == 0
     a.shared_budget(quota_text(a, 5379), 0)
     for job in jobs.values():
         private(Path(job["stdout"]), b'{"step":1}\n')
         private(Path(job["stderr"]), b"")
-    paid = placement.paid_shared_logs(jobs, tmp_path)
+    paid = placement.paid_shared_logs({a:dict(j,node="evc27" if a=="C0" else "evc33") for a,j in jobs.items()}, tmp_path)
     assert paid["files"] == 6 and paid["originals_deleted"] is False
     assert a.shared_budget(quota_text(a, 5373), paid["files"])["unpaid_files"] == 370
     with pytest.raises(ValueError, match="shared reserve"):
@@ -427,13 +452,13 @@ def test_shared_reserve_credits_only_existing_exact_original_logs(api, tmp_path)
     spoofed = copy.deepcopy(jobs)
     spoofed["B"]["stdout"] = str(tmp_path / "unrelated.out")
     with pytest.raises(ValueError, match="Log path"):
-        placement.paid_shared_logs(spoofed, tmp_path)
+        placement.paid_shared_logs({a:dict(j,node="evc27" if a=="C0" else "evc33") for a,j in spoofed.items()}, tmp_path)
     # Hard links cannot produce two physically paid original log credits.
     err = Path(jobs["B"]["stderr"])
     err.unlink()
     os.link(jobs["B"]["stdout"], err)
     with pytest.raises(ValueError, match="Duplicate paid log inode"):
-        placement.paid_shared_logs(jobs, tmp_path)
+        placement.paid_shared_logs({a:dict(j,node="evc27" if a=="C0" else "evc33") for a,j in jobs.items()}, tmp_path)
 
 
 def test_shared_budget_retains_byte_floor_and_rejects_guessed_credit(api):
@@ -456,10 +481,10 @@ def test_original_jobs_merges_exact_submitted_receipt_and_rejects_conflicts(api,
     assert ops.original_jobs(payload) == payload["original_dispatched_jobs"]
     private(a.C0 / "dispatch/submitted.json", a.canonical({
         "status": "actual_predictive_placement_jobs_submitted_once",
-        "source_git": a.BASE, "jobs": {"C0": jobs["C0"]},
+        "source_git": a.BASE, "jobs": jobs,
     }))
     private(a.C0 / "dispatch/intent.json", a.canonical({
-        "source_git": a.BASE, "owner_git": a.PRIMARY_SOURCE, "arms": ["C0"],
+        "source_git": a.BASE, "owner_git": a.PRIMARY_SOURCE, "arms": ["C", "B", "C0"],
     }))
     assert ops.original_jobs(payload) == jobs
     assert ops.original_jobs({"original_dispatched_jobs": jobs}) == jobs
@@ -469,7 +494,7 @@ def test_original_jobs_merges_exact_submitted_receipt_and_rejects_conflicts(api,
         ops.original_jobs({"original_dispatched_jobs": changed})
     private(a.C0 / "dispatch/intent.json", a.canonical({
         "source_git": a.BASE, "owner_git": "2b834507e19c405971228e1bc405462cd370f560",
-        "arms": ["C0"],
+        "arms": ["C", "B", "C0"],
     }))
     with pytest.raises(ValueError, match="Stale primary dispatch"):
         ops.original_jobs(payload)
@@ -497,8 +522,8 @@ def test_completed_job_can_be_absent_from_live_controller(api, monkeypatch):
 
 def test_full_c100_cannot_jump_primary_c0_and_uses_node_local_logs(api):
     a, ops = api
-    script = ops.script("a" * 64, "900012")
-    assert "#SBATCH --dependency=after:900012\n" in script
+    script = ops.script("a" * 64, ["900010", "900011", "900012"])
+    assert "#SBATCH --dependency=after:900010:900011:900012\n" in script
     assert "#SBATCH --nodelist=evc27\n" in script
     assert "#SBATCH --gres=gpu:nvidia_h100_pcie:1\n" in script
     assert "#SBATCH --time=08:00:00\n" in script
@@ -520,7 +545,7 @@ def test_dispatch_refuses_before_primary_c0_without_any_sbatch(api, monkeypatch,
 
     monkeypatch.setattr(ops.subprocess, "run", prohibited)
     monkeypatch.setattr(ops.subprocess, "check_output", prohibited)
-    with pytest.raises(ValueError, match="primary C0 dispatch"):
+    with pytest.raises(ValueError, match="all three primary dispatches"):
         ops.dispatch({"source_git": "a" * 40})
     assert not a.ROOT.exists() and not a.RUN.exists()
 
@@ -536,7 +561,9 @@ def test_dispatch_applies_utc_before_slurm_parses_deadline(api, monkeypatch, tmp
     monkeypatch.setattr(ops, "load_binding", lambda source: (
         {"density100_pilot_sha256": "b" * 64}, {}, {"sha256": "a" * 64},
     ))
-    monkeypatch.setattr(ops, "original_jobs", lambda v: {"C0": c0})
+    monkeypatch.setattr(ops, "original_jobs", lambda v: {"C0": c0,
+        "C": job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), "C", "900010"),
+        "B": job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), "B", "900011")})
     monkeypatch.setattr(ops, "scheduler", lambda job: {"state": "RUNNING"})
     monkeypatch.setattr(a, "fresh_node", lambda portable: {"synthetic": True})
     monkeypatch.setattr(ops, "shared", lambda v: {"synthetic": True})
@@ -555,7 +582,7 @@ def test_dispatch_applies_utc_before_slurm_parses_deadline(api, monkeypatch, tmp
         assert command == ["sbatch", "--parsable"]
         assert kwargs["env"]["TZ"] == "UTC"
         assert "#SBATCH --deadline=2026-10-22T04:00:00\n" in kwargs["input"]
-        assert "#SBATCH --dependency=after:900012\n" in kwargs["input"]
+        assert "#SBATCH --dependency=after:900010:900011:900012\n" in kwargs["input"]
         calls.append(command)
         return SimpleNamespace(returncode=0, stdout="999001\n", stderr="")
 
@@ -797,8 +824,9 @@ def test_reuse_rejects_consistently_changed_HTTP499_proofs(api, monkeypatch, fie
 
 def test_retarget_uses_actual_new_primary_but_original_C100_pilot(coordinator):
     a, c = coordinator
-    assert a.PRIMARY_SOURCE == "291283545c930b730bb257abb10c2a0814b055eb"
-    assert a.PRIMARY_OWNER_PID == 29171
+    assert a.PRIMARY_SOURCE == "2a224ae05fc7c2fc78d4d508b6407344ac523a1c"
+    assert a.PRIMARY_OWNER_PID == 32377
+    assert a.CONTINUATION_PID == 33107
     assert set(c.original_jobs()) <= {"B", "C", "C0"}
     assert a.PILOT_SOURCE == "068a14a75e4d2b3bd83dda7783528956f7a2ca0f"
     assert a.PILOT_BINDING == "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37a"
@@ -812,8 +840,29 @@ def test_old_node_threshold_cannot_spend_independent_G100_or_descriptor_reserves
         a.node_budget(old_required + 1, **zero_paid())
     with pytest.raises(ValueError, match="liability"):
         a.node_budget(old_required + 6 * a.GIB + 4 * a.MIB, **zero_paid())
-    extra = 6 * a.GIB + 4 * a.MIB + a.MIB
+    extra = 6 * a.GIB + 4 * a.MIB + a.MIB + 24 * a.GIB + 64 * a.MIB
     result = a.node_budget(old_required + extra + 1, **zero_paid())
     assert result["remaining_bytes"] == 1
     assert result["conservative_G100_reserved_bytes_no_paid_credit"] == 6 * a.GIB + 4 * a.MIB
     assert result["descriptor_reserved_bytes_no_paid_credit"] == a.MIB
+    assert result["required_bytes"] == 394815078400
+    assert result["primary_other_fits_reserved_bytes_no_paid_credit"] == 24*a.GIB
+    assert result["primary_additional_controls_reserved_bytes_no_paid_credit"] == 64*a.MIB
+
+
+def test_actual_all27_job_proofs_feed_pinned_log_checker_without_rewriting_receipts(api):
+    a, ops = api
+    jobs = {arm: job_fixture(a, Path("/home/sa305415/rsna-knee/kaggle"), arm, str(900030+i))
+            for i, arm in enumerate(("B", "C", "C0"))}
+    original = copy.deepcopy(jobs)
+    assert ops.paid_primary_logs(PLACEMENT.read_text(), jobs)["files"] == 0
+    assert jobs == original
+    jobs["B"]["node"] = "evc33"
+    with pytest.raises(ValueError, match="job/source"):
+        ops.paid_primary_logs(PLACEMENT.read_text(), jobs)
+
+
+def test_partial_primary_dependency_is_not_enough_for_optional_C100(api):
+    _, ops = api
+    with pytest.raises(ValueError, match="All three"):
+        ops.script("a"*64, ["981000"])

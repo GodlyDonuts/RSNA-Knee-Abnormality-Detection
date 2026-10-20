@@ -15,14 +15,19 @@ from pathlib import Path
 GIB, MIB = 2**30, 2**20
 PORTABLE = Path("/tmp/rsna-predictive-portable-recovery-20261020-v1")
 PILOT = Path("/tmp/rsna-predictive-density100-pilot-20261020-v1")
-PRIMARY_SOURCE = "291283545c930b730bb257abb10c2a0814b055eb"
-PRIMARY_OWNER_PID = 29171
-PRIMARY_AUDIT_REL = "initiative/research/predictive-http499-owner-handoff-20261020-v1"
+PRIMARY_SOURCE = "2a224ae05fc7c2fc78d4d508b6407344ac523a1c"
+PRIMARY_OWNER_PID = 32377
+PRIMARY_AUDIT_REL = "initiative/research/predictive-evc27-deadline-placement-20261020-v1"
+CONTINUATION_REL = "artifacts/predictive-evc27-startup-continuation-20261020-v1/continuation-intent.json"
+PRIMARY_INTENT_SHA = "b310a8cf6267ea4ce1b40b4efef27ad375b9bc869dfaee435b9c86ed0f40ebd0"
+CONTINUATION_SOURCE = "7dcd87e3749998ee7d8f84c08f8f7f118072bf9d"
+CONTINUATION_PID = 33107
+CONTINUATION_INTENT_SHA = "360bc552517cdc0a886ae36e4efa55100327eebf0a4204b233aa20159c0b7a71"
 ENGINEERING_SHA = "66bf73182bd4aefa6dbf7444a65bd1f841ab4279cabb1bec3ea058ebbbb82b10"
 # Preserve all old obligations conservatively, including prepared full C100.
 # The existing descriptor artifact remains reserved, with no speculative paid credit.
 DESCRIPTOR_RESERVED_BYTES = MIB
-MINIMUM_OTHER_BYTES = (205676085248 + 96 * GIB + 12 * GIB + 64 * MIB
+MINIMUM_OTHER_BYTES = (205676085248 + 96 * GIB + 36 * GIB + 128 * MIB
                        + 6 * GIB + 4 * MIB + 12 * GIB + 16 * MIB + DESCRIPTOR_RESERVED_BYTES)
 PURE_DRIVER_FUNCTIONS = {
     "require", "sha", "digest", "recipe", "once", "pilot_completed",
@@ -31,9 +36,26 @@ PURE_DRIVER_FUNCTIONS = {
 
 
 def primary_control():
-    """Operational log ownership only; original16 engineering tensors stay unchanged."""
-    return {"source_git": PRIMARY_SOURCE, "owner_pid": PRIMARY_OWNER_PID,
-            "audit_directory": PRIMARY_AUDIT_REL}
+    """Bind the unchanged original capsule and its separately recorded continuation."""
+    return {"source_git": PRIMARY_SOURCE, "original_owner_pid": PRIMARY_OWNER_PID,
+            "audit_directory": PRIMARY_AUDIT_REL,
+            "original_intent_sha256": PRIMARY_INTENT_SHA,
+            "continuation_source_git": CONTINUATION_SOURCE,
+            "continuation_pid": CONTINUATION_PID,
+            "continuation_intent_sha256": CONTINUATION_INTENT_SHA}
+
+
+def validate_primary_ownership(original_raw, continuation_raw):
+    assert hashlib.sha256(original_raw).hexdigest() == PRIMARY_INTENT_SHA, "Original primary intent changed"
+    assert hashlib.sha256(continuation_raw).hexdigest() == CONTINUATION_INTENT_SHA, "Actual continuation intent changed"
+    owner, resumed = json.loads(original_raw), json.loads(continuation_raw)
+    assert owner["source_git"] == PRIMARY_SOURCE and owner["pid"] == PRIMARY_OWNER_PID
+    assert resumed["source_git"] == CONTINUATION_SOURCE and resumed["pid"] == CONTINUATION_PID
+    assert resumed["original_source_git"] == PRIMARY_SOURCE and resumed["original_owner_pid"] == PRIMARY_OWNER_PID
+    assert resumed["original_startup_sha256"]["owner-intent.json"] == PRIMARY_INTENT_SHA
+    assert resumed["original_owner_intent_retained"] is True and resumed["only_startup_marker_renamed"] is True
+    assert resumed["automatic_retry"] is False
+    return primary_control()
 
 
 def validate_primary_control(value):
