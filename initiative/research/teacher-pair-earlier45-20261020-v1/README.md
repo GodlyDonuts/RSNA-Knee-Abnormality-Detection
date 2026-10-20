@@ -1,0 +1,7 @@
+# Data-local paired ranking recovery on an earlier permitted H100
+
+Preparation only. Original973601 H100 gradient acceptance remains the numerical mechanism evidence. Original974412 is still pending on48 until an explicit zero-runtime handoff. Scheduler read-only test at00:35UTC offered ordinary physical2-H100 evc45 in the preemptable queue near00:44UTC; this is no reservation/guarantee or GPU submission. Node32 is under cudaCheck maintenance;26 has an unresolved actual CUDA failure and is excluded. No running job may be displaced.
+
+Restore the exact previously verified6.32GB original runtime and copy the exact678.56MB/815-file original32-engineering MRI/model/metadata packet from33 once privately via the unchanged pinned TLS endpoints. Nothing passes through Mac/Git/HF. Existing26/33/48 originals remain intact; no deletion credit. This new45 scope separately admits at most8GiB runtime plus2GiB auxiliary plus16MiB controls, with20GiB physical reserve and79GiB future liability retained. Its eventual GPU recovery reassigns only the old unstarted8GiB RAM scratch obligation, retaining20GiB RAM reserve. No new shared pixel/environment bytes, no gold/confirmation read, no accuracy inference. Fresh actual reserve/terminal/source/input/model bindings are required before GPU dispatch.
+
+The numerical worker.run and complete state/CSV decoder will remain unchanged; only host/path/runtime bindings may differ. No production fitting or Kaggle submission in this scope. Never repeat a phase with an existing intent; inspect original endpoints/receipts on uncertainty.
