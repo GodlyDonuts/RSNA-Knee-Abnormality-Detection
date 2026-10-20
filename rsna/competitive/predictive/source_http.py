@@ -20,7 +20,11 @@ import requests
 
 from .source_resume import SourceResponse
 
-_TRANSIENT = frozenset({429, 500, 502, 503, 504})
+# The immutable source endpoint returned499 before any body was exposed in
+# actual job981958. Treat that observed transport response like the other
+# bounded pre-body failures; do not reinterpret authentication/not-found errors
+# or retry after source bytes have escaped to a consumer.
+_TRANSIENT = frozenset({429, 499, 500, 502, 503, 504})
 _SLOTS = threading.BoundedSemaphore(8)
 
 

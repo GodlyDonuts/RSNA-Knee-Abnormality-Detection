@@ -101,7 +101,7 @@ def test_transient_before_body_retries_preserve_identity_and_close_responses():
     assert TOKEN not in repr(events) and ROW["path"] not in repr(events)
 
 
-@pytest.mark.parametrize("status", [429, 500, 502, 503, 504])
+@pytest.mark.parametrize("status", [429, 499, 500, 502, 503, 504])
 def test_only_designated_statuses_are_transient(status):
     rejected, accepted = Response(status), Response()
     http, calls, _, _ = transport([rejected, accepted])
@@ -156,15 +156,34 @@ def test_nonretryable_request_errors_are_sanitized(error):
     assert TOKEN not in text and ROW["path"] not in text
 
 
-def test_attempt_exhaustion_closes_every_response_without_body():
-    responses = [Response(503) for _ in range(4)]
+@pytest.mark.parametrize("status", [499, 503])
+def test_attempt_exhaustion_closes_every_response_without_body(status):
+    responses = [Response(status) for _ in range(4)]
     http, calls, clock, events = transport(responses)
     with pytest.raises(SourceHTTPError, match="retry budget exhausted"):
         with http.open_response(ROW):
             pass
     assert len(calls) == 4 and clock.sleeps == [1, 2, 4]
     assert all(r.closed == 1 and r.raw.reads == 0 for r in responses)
-    assert events[-1] == {"status": 503, "retry_delay_seconds": 0.0, "attempt": 4}
+    assert events[-1] == {"status": status, "retry_delay_seconds": 0.0, "attempt": 4}
+
+
+def test_observed_499_suffix_retry_keeps_exact_range_and_source_bytes():
+    rejected = Response(499, headers={"Retry-After": "3"}, body=b"not-MRI")
+    accepted = Response(206, headers={
+        "Content-Range": "bytes 2-5/6", "Content-Length": "4",
+    }, body=b"xels")
+    http, calls, clock, events = transport([rejected, accepted])
+    with http.open_response(ROW, offset=2) as received:
+        assert received.revision == REVISION and received.path == ROW["path"]
+        assert received.status == 206 and received.stream.read() == b"xels"
+    assert len(calls) == 2 and calls[0][0] == calls[1][0]
+    assert calls[0][1]["headers"] == calls[1][1]["headers"]
+    assert calls[0][1]["stream"] is calls[1][1]["stream"] is True
+    assert calls[0][1]["headers"]["Range"] == "bytes=2-"
+    assert rejected.raw.reads == 0 and rejected.closed == accepted.closed == 1
+    assert clock.sleeps == [3]
+    assert events == [{"status": 499, "retry_delay_seconds": 3.0, "attempt": 1}]
 
 
 def test_timeout_exhaustion_suppresses_original_secret_traceback():

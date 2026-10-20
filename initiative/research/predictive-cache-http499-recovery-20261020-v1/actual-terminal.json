@@ -1,0 +1,61 @@
+{
+  "status": "actual_original_HTTP499_cache_failure_terminal",
+  "observed_at": "2026-10-20T19:37:51.401502+00:00",
+  "source_git": "e9bdd1249fa7cf75f792b3762c2028bd7beb4337",
+  "original_jobs": {
+    "raw": "981958",
+    "context": "981960"
+  },
+  "scheduler": [
+    {
+      "job": "981958",
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "node": "evc33",
+      "start_UTC": "2026-10-20T17:44:44",
+      "end_UTC": "2026-10-20T19:29:56",
+      "elapsed": "01:45:12"
+    },
+    {
+      "job": "981960",
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "node": "evc33",
+      "start_UTC": "2026-10-20T17:45:16",
+      "end_UTC": "2026-10-20T19:30:30",
+      "elapsed": "01:45:14"
+    }
+  ],
+  "local_owner_and_transport_PIDs_absent": [
+    10824,
+    10896,
+    10975
+  ],
+  "owner_stop": {
+    "status": "stopped_without_retry_or_remote_cancellation",
+    "error_type": "AssertionError",
+    "source_git": "e9bdd1249fa7cf75f792b3762c2028bd7beb4337",
+    "attempted_phases": [
+      "context",
+      "raw"
+    ],
+    "known_jobs": {
+      "raw": "981958",
+      "context": "981960"
+    }
+  },
+  "actual_prebody_HTTP_event": {
+    "status": 499,
+    "retry_delay_seconds": 0.0,
+    "attempt": 1
+  },
+  "original_source_http_sha256": "ea7bf0f44af60ec4b0876e85af5cc1536d15cad671ea45d4ac548adccca0e28c",
+  "original_failure_line": 248,
+  "last_stdout_completed_studies": {
+    "raw": 2300,
+    "context": 2300
+  },
+  "last_stdout_count_is_not_final_inventory": true,
+  "rejected_response_body_admitted": false,
+  "remote_cancel_or_restart": false
+}
