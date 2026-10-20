@@ -155,7 +155,7 @@ root retains the copies. Fresh destination funding keeps the entire prior
 394,815,078,400byte requirement and adds1GiB input copies,6GiB future checkpoint
 scope and4MiB controls; no existing C100/G100 scope is reassigned and shared
 usage adds zero files/bytes. Funding that future checkpoint scope does not
-submit a GPU. At this source preparation the transfer is not executed.
+submit a GPU. Actual sender984690 and receiver984691 both COMPLETED0:0 /10seconds. All32 files/538,307,806bytes passed destination size/SHA/EOF checks, and the original16-study order matched. See [transfer](actual-private-transfer.json) and [terminals](actual-private-transfer-terminal.json). No copy was repeated.
 
 `worker_builder.py` prepares an exact derivation of the accepted39e315 worker
 with the original train/model/density numerical modules unchanged. The two
@@ -168,5 +168,30 @@ complete-state/RNG/history/prediction recovery regression covers the new graph.
 The intended GPU comparison uses control full200, normalized stop1/resume199:
 400 updates total, with no redundant full rerun solely to repeat an already
 accepted training-engine check. That actual sequence would demonstrate a real
-resume, not full-versus-resume equivalence on this new GPU graph. No GPU driver,
-admission, dispatch or trained contrast result exists yet.
+resume, not full-versus-resume equivalence on this new GPU graph. The one-hour GPU driver and single-dispatch coordinator are now prepared; no GPU admission, dispatch or trained contrast result exists at this source snapshot.
+
+
+## Bounded learning decision
+
+[Decision](learning-decision.json) admits one matched200-update-per-role test
+after actual transferred-input, original-engine, resource and code checks.
+`learning_once.py` first stages a distinct capsule on one CPU, then submits
+one1H100/twoCPU/32GiB/one-hour job on ordinary two-GPU evc27. All outputs stay
+on node-local private storage. It does not acquire any new data or change
+the original B/C/C0/C100 jobs. Deadline is October21 17:15UTC.
+
+The driver requires identical initial model/encoder/head digests across both
+roles, finite200-update histories through the original LR peak, encoder
+updates from step4, exact resumption of the first normalized update, and
+finite4x12 prediction checks. It preserves measured training losses, gradient
+norms, numerical ranges, time and memory. The four prediction cases cannot
+select a recipe. Real stop/resume completion is not a new full-versus-resume
+equality result; a complete-state CPU regression covers the new10-coordinate
+graph. The original actual GPU engine acceptance remains separately bound.
+
+New resource obligations remain1GiB contexts +6GiB checkpoints +4MiB
+controls on evc27, additive to every old scope. Only proved existing bytes
+are deducted. Shared-file credits require the original sealed primary
+dispatch, exact returned job/script/binding and existing owned logs, at most
+six; planned jobs grant no credit. No shared files or paid Kaggle capacity
+are added. No automatic full training or competition promotion follows.
