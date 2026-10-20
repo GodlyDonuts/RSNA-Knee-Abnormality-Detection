@@ -15,22 +15,33 @@ reconnect_only = (L / "intent.json").exists()
 if reconnect_only:
     original = json.loads((L / "replica-transport.json").read_text())
     proof = json.loads((D / "actual-auth-reconciliation.json").read_text())
-    assert original["returncode"] == 255 and "Permission denied" in original["stderr"]
-    assert (
-        proof["replica_root_exists"] is False
-        and proof["old_GPU_job_still_pending_zero_runtime"] is True
-    )
-    with (L / "authentication-resume-intent.json").open("x") as handle:
+    assert proof["replica_root_exists"] is False
+    if original["returncode"] == 255 and "Permission denied" in original["stderr"]:
+        phase = "authentication-resume-intent.json"
+        archived = "original-auth-denial.json"
+    else:
+        assert (
+            original["returncode"] == 1
+            and "unexpected keyword argument 'text'" in original["stderr"]
+        )
+        assert (
+            "original_frozen_scientific_program" in original["stderr"]
+            and "line 3" in original["stderr"]
+        )
+        phase = "management-runtime-resume-intent.json"
+        archived = "original-python36-before-endpoints.json"
+    with (L / phase).open("x") as handle:
         json.dump(
             {
-                "original_command_never_executed": True,
+                "original_endpoints_never_executed": True,
                 "fresh_read_only_CPU_job": proof["CPU_job"],
                 "maximum_actual_transfers": 1,
                 "automatic_retry": False,
             },
             handle,
         )
-    (L / "original-auth-denial.json").write_text(json.dumps(original, indent=2) + "\n")
+    (L / archived).write_text(json.dumps(original, indent=2) + "\n")
+
 git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 for p in D.glob("*.py.txt"):
     assert p.read_bytes() == subprocess.check_output(
@@ -52,7 +63,7 @@ a=next(x.split() for x in q.splitlines() if x.strip().startswith('/home/sa305415
 assert (int(a[2])-int(a[1]))*1024>20*2**30+(32+16+16+2+4)*2**20+192*2**10 and int(a[6])-int(a[5])>5000+128+128+64
 def command(node,source,memory):
  code="exec(__import__('base64').b64decode("+repr(base64.b64encode(source.encode()).decode())+"))"
- return ['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem='+memory,'--time=00:15:00','--job-name=rsna-predictive-private-replica','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','python3','-B','-c',code]
+ return ['srun','--account=skattel','--partition=normal','--qos=normal','--nodelist='+node,'--ntasks=1','--cpus-per-task=1','--gres=none','--mem='+memory,'--time=00:15:00','--job-name=rsna-predictive-private-replica','env','CUDA_VISIBLE_DEVICES=','PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=1','/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python','-B','-c',code]
 with __import__('tempfile').TemporaryFile() as sender_errors:
  sender=subprocess.Popen(command('evc33',v['sender'],'2G'),stdout=subprocess.PIPE,stderr=sender_errors)
  receiver=subprocess.Popen(command('evc47',v['receiver'],'4G'),stdin=sender.stdout,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -92,7 +103,11 @@ t = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(t)
 ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
 x = subprocess.run(
-    [*ssh, "python3 -c " + shlex.quote(t.COMMAND)],
+    [
+        *ssh,
+        "/home/sa305415/rsna-knee/kaggle/management-cp312-v1/bin/python -B -c "
+        + shlex.quote(t.COMMAND),
+    ],
     input=t.envelope(program, payload),
     text=True,
     capture_output=True,
