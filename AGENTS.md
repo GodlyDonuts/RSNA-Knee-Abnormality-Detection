@@ -3,6 +3,10 @@
 Updated October20,2026,00:21UTC. Goal active: strongest legitimate competition model;0.97/first place unachieved. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then original receipts. Live state supersedes snapshots; earlier guides remain in Git history.
 
 
+## Actual checkpoint evaluation owner
+
+CPU974593/source40aec573 staged the separate canonical twoT4 serving account control. Owner2861/source dfb35092 waits actual prepared E1/E3 checkpoints, performs real32MRI/bothT4 qualification and public CSV checks, then makes at most two exact code entries with fresh allowance. It observes E1 hidden terminal before another slot; hidden failure stops further entries. No new Dataset/model upload, prediction shortcut or automatic mutation retry. Keep original9h hidden timeout; a600second deadline applies only to the real three-study example, preserving the original6000second/two-comparison public budget. All original image/prediction functions stay unchanged. No new-weight acceptance/entry/score yet. Freeze serving_cloud.py.txt,serving_policy.py.txt,serving_coordinate_once.py.txt,follow_serving_account_once.py.txt while live; existing training and compilation owners remain separate. Actual owner receipt in S6-Kaggle-production-route-20261019-v1; private phase outputs artifacts/S6-twoT4-serving-account-20261020-v1.43scoped tests pass.
+
 ## October20 live ownership and new ranking evidence
 
 Full changed-target E1 kernel139699006v1 remains RUNNING at the latest authenticated observation; original read-only observer702 and full-route owner1613 are both actually live. Owner1613/source5fd1ae3ff4004df6136bc98593008f4e4dd6eece now preserves each actual completed epoch, then continues E2/E3 with exact optimizer/RNG state. It permits at most two new GPU epoch versions and three distinct private epoch publications, no automatic mutation retry or competition entries. Earlier text saying no continuation exists is superseded. Seven live controls are frozen while this owner lives: prepare_once.py.txt,prepare.py.txt,run_phase.py.txt,cloud.py.txt,publish_once.py.txt,publish_epoch.py.txt,epoch_check.py.txt. Do not format/edit these as part of separate serving work.
@@ -42,7 +46,7 @@ Original48 full MRI/runtime/FP32 model admission971665 and alias/import971721 re
 
 ## Separate paired-ranking experiment
 
-Scout973601 remains PENDING Priority on48/oneH100/twoCPU/32GiB/20min/normal. Observer94271 and coherent recovery95036/collector95037 remain untouched, waiting actual positive gradients. Source24e96a77, `teacher-pair-real-recovery48-20261019-v2`. No actual gradient/recovery/accuracy gain yet. Original26 failed CUDA admission before MRI;973573/973577 observed zero Torch/NVML devices, physical cause unproven. V100 health probe973661 timed out87s before cuInit, no runtime/model/MRI transfer. No isolation bypass. Full4942 prior numerical tests are engineering evidence only.
+Original scout973601 passed; actual gradient receipt and pending recovery974412 are described above. Source24e96a77, `teacher-pair-real-recovery48-20261019-v2`; no accuracy result yet. Original26 failed CUDA admission before MRI;973573/973577 observed zero Torch/NVML devices, physical cause unproven. V100 health probe973661 timed out87s before cuInit, no runtime/model/MRI transfer. No isolation bypass. Full4942 prior numerical tests are engineering evidence only.
 
 ## Resources, publication and deployment
 
