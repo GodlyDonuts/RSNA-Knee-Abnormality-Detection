@@ -42,6 +42,20 @@ def prepare(source_git, c100_reference):
         "GPU_job": "981620", "state": "COMPLETED", "exit_code": "0:0", "node": "evc27",
     }.items()):
         raise ValueError("Pending/failed pilot cannot admit a matched comparison")
+    capsule = _base_capsule(source_git)
+    capsule["payload"]["C100_reference"] = reference
+    return capsule
+
+
+def prepare_baseline(source_git):
+    """Explicit C24-only capsule; no C100 reference or implied matched comparison."""
+    capsule = _base_capsule(source_git)
+    capsule["payload"]["execution_mode"] = "C24_only"
+    capsule["execution"]["comparison_scope"] = "C24_only_no_C100_model_loaded"
+    return capsule
+
+
+def _base_capsule(source_git):
     bodies = {name: git_file(source_git, HERE / name) for name in ("diagnostic.py", "prepare.py")}
     if any(body != (HERE / name).read_bytes() for name, body in bodies.items()):
         raise ValueError("Freeze exact local diagnostic before preparing a capsule")
@@ -58,7 +72,6 @@ def prepare(source_git, c100_reference):
         "original_loader_source": loader.decode(), "prior_result_text": prior.decode(),
         "original_engineering_receipt_sha256": ENGINEERING_SHA,
         "original_engineering_receipt": json.loads(engineering), "fitting_indices": [0, 1],
-        "C100_reference": reference,
     }
     return {
         "program": bodies["diagnostic.py"].decode(), "payload": payload,

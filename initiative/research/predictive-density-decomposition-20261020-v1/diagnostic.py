@@ -19,6 +19,7 @@ PILOT_BINDING = "e11c7c7fe5c1fd7cae87df313fb5d42be7128b7906f8d716a486b0857bbdd37
 PILOT = Path("/tmp/rsna-predictive-density100-pilot-20261020-v1")
 CONSTANT = 0.5 * math.log(2 * math.pi)
 STATUS = "actual_matched_C24_C10024_fitting_density_decomposition"
+BASELINE_STATUS = "actual_C24_only_fitting_density_decomposition"
 
 
 def sha(body):
@@ -114,6 +115,30 @@ def readout(logits, labels, mask):
     return logp.exp(), float(bce / mask.sum().clamp_min(1))
 
 
+@torch.no_grad()
+def cached_image_statistics(images):
+    """Descriptive cached-tensor aggregates; exact-fill exclusion is not anatomy masking."""
+    values = images.detach().float()
+    require(values.numel() > 0 and bool(torch.isfinite(values).all()), "Finite cached images")
+    nonfill = values[values != 0.5]
+    details = None
+    if nonfill.numel():
+        quantiles = torch.quantile(nonfill, nonfill.new_tensor([0.01, 0.5, 0.99]))
+        details = {
+            "mean": float(nonfill.mean()), "std_population": float(nonfill.std(correction=0)),
+            "minimum": float(nonfill.min()), "maximum": float(nonfill.max()),
+            "quantile_0.01": float(quantiles[0]), "quantile_0.5": float(quantiles[1]),
+            "quantile_0.99": float(quantiles[2]),
+        }
+    return {
+        "fraction_elements_exact_fill_0.5": 1 - nonfill.numel() / values.numel(),
+        "nonfill_elements": nonfill.numel(), "nonfill_summary": details,
+        "interpretation": "Excludes exact fill only; interpolation mixing and background remain. "
+                          "This is not an anatomical visibility mask.",
+        "raw_image_values_exported": False,
+    }
+
+
 def diagnose_case(model, contexts, labels, mask, ordinal, two_mask_loss, density_weight):
     from rsna.competitive.predictive.density import evidence
 
@@ -121,8 +146,9 @@ def diagnose_case(model, contexts, labels, mask, ordinal, two_mask_loss, density
     require(density_weight in (0.1, 100.0) and not model.training,
             "Matched original evaluation recipes required")
     require(torch.count_nonzero(model.fixed_log_variance) == 0, "Original unit covariance")
-    evidences, priors, changed = [], [], []
+    evidences, priors, changed, image_statistics = [], [], [], []
     for context in contexts:
+        image_statistics.append(cached_image_statistics(context["images"]))
         mu, delta, prior = model.predict_hypotheses(
             *(context[n] for n in ("images", "token_metadata", "region_metadata")))
         target, observed, supports = (context[n] for n in ("targets", "observed", "supports"))
@@ -142,6 +168,8 @@ def diagnose_case(model, contexts, labels, mask, ordinal, two_mask_loss, density
         [c["observed"][None] for c in contexts], model.descriptor_width, density_weight)
     a, d, per_context = components(
         evidences, labels, mask, [c["observed"][None] for c in contexts], model.descriptor_width)
+    for row, summary in zip(per_context, image_statistics):
+        row["cached_image_statistics"] = summary
     gap = abs(float((a + d - metrics["density_loss"]).detach()))
     require(gap <= 2e-6, "A+D differs from original density loss")
     require(torch.allclose(total, metrics["exam_loss"] + density_weight * (a + d),
@@ -308,9 +336,70 @@ def run(payload):
     return result
 
 
+def baseline_case(model, contexts, labels, mask, ordinal, loss):
+    """Use the already loaded original C24 model; no load_state_dict or new model."""
+    return {"fitting_ordinal": ordinal,
+            "C24": diagnose_case(model, contexts, labels, mask, ordinal, loss, 0.1)}
+
+
+def run_baseline(payload):
+    """Separate original-checkpoint-only entry; never reads the C100 root."""
+    started = time.monotonic()
+    require(payload.get("execution_mode") == "C24_only"
+            and not any(str(k).startswith("C100") for k in payload),
+            "Explicit C24-only scope without C100 references required")
+    require(os.uname().nodename == "evc27" and os.environ.get("CUDA_VISIBLE_DEVICES") == ""
+            and not os.environ.get("SLURM_JOB_GPUS")
+            and os.environ.get("SLURM_CPUS_PER_TASK") == "1" and sys.dont_write_bytecode,
+            "Owning-node one-CPU zero-GPU read-only invocation required")
+    loader = payload["original_loader_source"]
+    require(sha(loader) == LOADER_SHA and sha(payload["prior_result_text"]) == PRIOR_SHA,
+            "Exact original CPU981494 loader and receipt required")
+    for old, new in (('os.environ["SLURM_CPUS_PER_TASK"] == "2"',
+                      'os.environ["SLURM_CPUS_PER_TASK"] == "1"'),
+                     ("torch.set_num_threads(2)", "torch.set_num_threads(1)")):
+        require(loader.count(old) == 1, "Original single-CPU loader anchor differs")
+        loader = loader.replace(old, new)
+    ns = {"__name__": "original_readonly_C24_only_loader"}
+    exec(compile(loader, "original_readonly_C24_only_loader", "exec"), ns)
+    prior = json.loads(payload["prior_result_text"])
+    old, stat = ns["ROOT"], ns["stat"]
+    require(stat(old / "engineering/C/full/final.pt") == prior["checkpoint_stat_before_and_after"]
+            and sha((old / "binding.private.json").read_bytes()) == prior["binding_sha256"]
+            and sha((old / "engineering/C/full/terminal.json").read_bytes()) == prior["terminal_sha256"],
+            "Original retained C24 state differs")
+    require(Path(sys.executable).resolve() == (ns["PORTABLE"] / "runtime/bin/python").resolve()
+            and str(torch.__version__) == "2.14.0+cu130"
+            and torch.version.git_version == "08187d9e0fba026dc8217405802ab5381dc88d90",
+            "Use the original admitted predictive runtime")
+    ns["diagnose_case"] = baseline_case
+    result = ns["run"](payload)
+    result.update(
+        status=BASELINE_STATUS, comparison_scope="C24_only_no_C100_model_loaded",
+        requested_CPUs=1, original_loader_sha256=LOADER_SHA,
+        one_CPU_loader_sha256=sha(loader), previous_actual_receipt_sha256=PRIOR_SHA,
+        actual_density_coefficients=[0.1], optimizer_steps=0, remote_files_written=0,
+        gradient_scope="nonencoder_parameters_before_clipping_or_Adam",
+        Gaussian_constant_has_zero_gradient=True, weak_labels_are_not_ground_truth=True,
+        clinical_or_held_out_claim=False, diagnostic_cohort_four_used=False,
+        automatic_training_or_recipe_decision=False,
+        total_elapsed_seconds=time.monotonic() - started,
+    )
+    require(result["total_elapsed_seconds"] < 1800
+            and all(set(row) == {"fitting_ordinal", "C24"} for row in result["cases"]),
+            "Baseline result exceeds scope or elapsed bound")
+    return result
+
+
+def execute(payload):
+    mode = payload.get("execution_mode")
+    require(mode in (None, "C24_only"), "Unknown diagnostic scope")
+    return run_baseline(payload) if mode == "C24_only" else run(payload)
+
+
 if __name__ == "__main__":
     try:
-        print(json.dumps(run(json.load(sys.stdin)), sort_keys=True, allow_nan=False), flush=True)
+        print(json.dumps(execute(json.load(sys.stdin)), sort_keys=True, allow_nan=False), flush=True)
     except BaseException as error:
         tb = error.__traceback__
         while tb.tb_next:

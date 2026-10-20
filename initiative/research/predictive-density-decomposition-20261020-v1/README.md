@@ -2,6 +2,13 @@
 
 Prepared only. No CPU execution, new checkpoint, training, selection or score.
 
+`prepare.py:prepare_baseline(source_git)` separately prepares an explicitly
+**C24-only** measurement now. It needs no C100 reference, never opens the C100
+root, and never loads a second model. Its result status is
+`actual_C24_only_fitting_density_decomposition`, with exactly `C24` entries.
+Passing C100 references to that execution mode fails. The original C24
+checkpoint/input proofs and exact original runtime remain mandatory.
+
 This one-CPU diagnostic compares the original C24 checkpoint and the **actually
 completed** C10024 pilot on the same original fitting ordinals0/1, both contexts.
 It uses the exact previously executed CPU981494 loader and its input/checkpoint

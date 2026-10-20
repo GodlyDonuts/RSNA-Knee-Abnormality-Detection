@@ -200,3 +200,74 @@ def test_preparation_refuses_pending_before_source_access_or_any_execution(monke
     with pytest.raises(ValueError, match="Pending"):
         P.prepare("c" * 40, reference)
     assert calls == []
+
+
+def test_baseline_capsule_has_only_exact_original_receipts_and_no_C100_claim(monkeypatch):
+    paths = []
+
+    def local_source(_pin, path):
+        paths.append(path)
+        return path.read_bytes()
+
+    monkeypatch.setattr(P, "git_file", local_source)
+    capsule = P.prepare_baseline("a" * 40)
+    payload = capsule["payload"]
+    assert payload["execution_mode"] == "C24_only"
+    assert payload["fitting_indices"] == [0, 1]
+    assert not any(k.startswith("C100") for k in payload)
+    assert capsule["execution"]["comparison_scope"] == "C24_only_no_C100_model_loaded"
+    assert capsule["execution"]["CPUs"] == 1 and capsule["execution"]["GPUs"] == 0
+    assert P.digest(payload["prior_result_text"].encode()) == D.PRIOR_SHA
+    assert P.digest(payload["original_loader_source"].encode()) == D.LOADER_SHA
+    assert len(paths) == 3  # two new helper sources plus the pinned existing loader.
+
+
+def test_baseline_model_has_two_forwards_no_new_state_load_and_no_C100_result(monkeypatch):
+    model, contexts = toy()
+    original = copy.deepcopy(model.state_dict())
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("Baseline must not load any second model")
+
+    monkeypatch.setattr(model, "load_state_dict", forbidden)
+    result = D.baseline_case(model, contexts, torch.full((1, 12), .3),
+                             torch.ones(1, 12, dtype=torch.bool), 0, two_mask_loss)
+    assert model.encoder.calls == 2
+    assert set(result) == {"fitting_ordinal", "C24"}
+    assert result["C24"]["density_weight"] == .1
+    assert all(p.grad is None for p in model.parameters())
+    assert all(torch.equal(v, original[n]) for n, v in model.state_dict().items())
+
+
+def test_baseline_rejects_C100_reference_or_unknown_scope_before_any_loader(monkeypatch):
+    with pytest.raises(ValueError, match="without C100"):
+        D.run_baseline({"execution_mode": "C24_only", "C100_reference": {}})
+    with pytest.raises(ValueError, match="Explicit C24-only"):
+        D.run_baseline({})
+    with pytest.raises(ValueError, match="Unknown"):
+        D.execute({"execution_mode": "C100_only"})
+    calls = []
+    monkeypatch.setattr(D, "run", lambda payload: calls.append("matched"))
+    monkeypatch.setattr(D, "run_baseline", lambda payload: calls.append("baseline"))
+    D.execute({"C100_reference": {}})
+    D.execute({"execution_mode": "C24_only"})
+    assert calls == ["matched", "baseline"]
+
+
+def test_cached_image_exact_fill_summary_is_descriptive_and_preserves_source():
+    values = torch.tensor([.5, .5, 0., .25, .75, 1.]).reshape(1, 1, 2, 3)
+    original = values.clone()
+    result = D.cached_image_statistics(values)
+    assert result["fraction_elements_exact_fill_0.5"] == pytest.approx(1/3)
+    assert result["nonfill_elements"] == 4
+    s = result["nonfill_summary"]
+    assert s["mean"] == .5 and s["minimum"] == 0 and s["maximum"] == 1
+    assert s["std_population"] == pytest.approx(math.sqrt(.15625))
+    assert [s[f"quantile_{q}"] for q in ("0.01", "0.5", "0.99")] \
+        == pytest.approx([.0075, .5, .9925])
+    assert torch.equal(values, original)
+    assert "not an anatomical visibility mask" in result["interpretation"]
+    assert result["raw_image_values_exported"] is False
+    all_fill = D.cached_image_statistics(torch.full_like(values, .5))
+    assert all_fill["fraction_elements_exact_fill_0.5"] == 1
+    assert all_fill["nonfill_summary"] is None and all_fill["nonfill_elements"] == 0
