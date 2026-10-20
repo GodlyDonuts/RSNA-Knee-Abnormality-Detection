@@ -76,3 +76,32 @@ serving controls and the full20GiB node/shared plus5000file reserves. It reads
 old features/head only; all numerical loops/stress levels/proposals are unchanged.
 This is explicit control relocation and fresh small-budget admission, not a
 lowered fidelity threshold, new model funding or retry of the original job.
+
+
+## Actual ratio result and distinct linearized hypothesis
+
+CPU976806 completed the original numerical screen once in1.153seconds. At eps0,
+reference error was3.9e-16; eps.05/.2 MSE ratios were.001789/.028719 with no
+invalid denominators. At eps.5 the conditional ratio was.18950, but TWO of49,152
+target/draw combinations had nonpositive denominators (min-.1669). The original
+predeclared gate FAILED. Do not promote or GPU-train that unmodified estimator.
+
+A distinct `linear_readout` removes the random denominator by explicitly using
+only the full-attention first-order change:
+
+```
+mu0 = sum(w0*v0)
+z_linear = mu0 + mean(w0_i/q_i * (dv_i + (v0_i-mu0)*ds_i)) + current_bias
+```
+
+It is unbiased for this linearized logit, not for the nonlinear current model;
+finite drift adds Taylor error. Exact-reference forward/expected gradients still
+match the full bag; complete enumeration after finite drift is deliberately NOT
+claimed to equal the full current attention. This is a new hypothesis, not a
+post-hoc relaxation of the failed ratio gate. A separate CPU v3 screen retains
+all32fitting indices/levels/draws/proposals/functions/seeds/thresholds, but measures
+this linear estimator on ALL draws, with no conditional omissions or denominator
+clipping. It reads only the same existing fitting features/head. Another256KiB
+inside the same8MiB controls is admitted only after current paid controls plus
+2MiB original future headroom and all current20GiB/5000file reserves pass again.
+No GPU, optimizer, new MRI/feature transfer, source-label change or entry.

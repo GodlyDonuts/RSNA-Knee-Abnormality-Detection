@@ -138,3 +138,48 @@ def test_relocated_CPU_screen_keeps_all_original_numerical_loops_and_stress_leve
     source = (d / "screen_relocated_v2.py.txt").read_text()
     assert source.index("paid_controls") < source.index("D.mkdir")
     assert "256 * 2**10 + 2 * 2**20 < 8 * 2**20" in source
+
+
+def test_linear_control_has_no_ratio_pole_but_has_explicit_Taylor_error():
+    from rsna.competitive.cached_attention_control import linear_readout
+
+    w = torch.tensor([[[0.9], [0.1]]], dtype=torch.float64)
+    v = torch.tensor([[[2.0], [-1.0]]], dtype=w.dtype)
+    i = torch.tensor([[0]])
+    logq = torch.tensor([[0.5]], dtype=w.dtype).log()
+    ds = torch.tensor([[[-5.0]]], dtype=w.dtype)
+    dv = torch.zeros_like(ds)
+    bias = torch.zeros(1, dtype=w.dtype)
+    z = linear_readout(w, v, i, logq, ds, dv, bias)
+    assert torch.isfinite(z).all()
+    # Dense enumeration is a first-order approximation after drift, never an exact-model claim.
+    i = torch.tensor([[0, 1]])
+    ds = torch.tensor([[[0.3], [-0.2]]], dtype=w.dtype)
+    dv = torch.tensor([[[0.1], [0.3]]], dtype=w.dtype)
+    z = linear_readout(w, v, i, logq.expand(1, 2), ds, dv, bias)
+    a = w * ds.exp()
+    exact = (a * (v + dv)).sum(1) / a.sum(1)
+    assert not torch.allclose(z, exact, atol=1e-5, rtol=0)
+
+
+def test_linear_control_exhaustive_reference_loss_gradients_match_full_bag():
+    from rsna.competitive.cached_attention_control import linear_readout
+
+    w, v, q, b = fixture()
+    ds = torch.zeros_like(w, requires_grad=True)
+    dv = torch.zeros_like(v, requires_grad=True)
+    bias = b.clone().requires_grad_(True)
+    target = torch.tensor([[0.15, 0.8]], dtype=w.dtype)
+    a = w * ds.exp()
+    z = (a * (v + dv)).sum(1) / a.sum(1) + bias
+    expected = torch.autograd.grad(F.binary_cross_entropy_with_logits(z, target), (ds, dv, bias))
+    actual = [torch.zeros_like(x) for x in expected]
+    for j in range(3):
+        i = torch.tensor([[j]])
+        logits = linear_readout(w, v, i, q[i].log(), ds[:, j : j + 1], dv[:, j : j + 1], bias)
+        assert torch.equal(logits, (w * v).sum(1) + bias)
+        grad = torch.autograd.grad(
+            F.binary_cross_entropy_with_logits(logits, target), (ds, dv, bias)
+        )
+        actual = [x + q[j] * g for x, g in zip(actual, grad)]
+    assert all(torch.allclose(x, y, atol=1e-14, rtol=0) for x, y in zip(actual, expected))

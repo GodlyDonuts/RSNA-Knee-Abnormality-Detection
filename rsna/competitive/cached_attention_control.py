@@ -12,7 +12,7 @@ from __future__ import annotations
 import torch
 
 
-def moments(reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta):
+def _inputs(reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta):
     """Return sampled numerator/normalizer; expose invalid ratio states explicitly.
 
     Arrays are BxNxT, BxK, BxK and BxKxT respectively. Fixed reference weights
@@ -57,6 +57,14 @@ def moments(reference_weights, reference_votes, indices, log_proposal, score_del
     tolerance = 1e-6 if w.dtype == torch.float32 else 1e-12
     if not torch.allclose(w.sum(1), torch.ones_like(w.sum(1)), atol=tolerance, rtol=0):
         raise ValueError("Fixed full reference attention must have unit class mass")
+    return w, v, i, q, ds, dv
+
+
+def moments(reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta):
+    """Unbiased change moments; the ratio may have a nonpositive denominator."""
+    w, v, i, q, ds, dv = _inputs(
+        reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta
+    )
     selected = i.unsqueeze(-1).expand_as(ds)
     a0 = w.gather(1, selected)
     v0 = v.gather(1, selected)
@@ -92,3 +100,34 @@ def readout(
     if not torch.isfinite(result).all():
         raise ValueError("Finite sampled logits required")
     return result
+
+
+def linear_readout(
+    reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta, bias
+):
+    """Sample the full-attention first-order change, with no random denominator.
+
+    This is unbiased for a fixed reference's linearized logit, not for the exact
+    nonlinear current model. Reference logits/expected first derivatives are
+    exact; finite drift introduces deterministic Taylor error. No clipping,
+    automatic refresh, fallback or production-engine substitution occurs.
+    """
+    w, v, i, q, ds, dv = _inputs(
+        reference_weights, reference_votes, indices, log_proposal, score_delta, vote_delta
+    )
+    center = (w * v).sum(1)
+    if (
+        not isinstance(bias, torch.Tensor)
+        or bias.shape not in (center.shape, center.shape[1:])
+        or bias.dtype != center.dtype
+        or bias.device != center.device
+        or not torch.isfinite(bias).all()
+    ):
+        raise ValueError("Finite aligned current class bias required")
+    selected = i.unsqueeze(-1).expand_as(ds)
+    a0, v0 = w.gather(1, selected), v.gather(1, selected)
+    delta = (a0 * (-q).exp().unsqueeze(-1) * (dv + (v0 - center.unsqueeze(1)) * ds)).mean(1)
+    logits = center + delta + bias
+    if not torch.isfinite(logits).all():
+        raise ValueError("Finite linearized logits required; no silent clipping")
+    return logits
