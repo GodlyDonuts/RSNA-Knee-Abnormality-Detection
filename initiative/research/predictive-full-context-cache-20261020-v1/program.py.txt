@@ -1,0 +1,209 @@
+# ruff: noqa: E402
+"""Exact retained FP32 masked contexts for16 admitted raw studies, CPU only."""
+
+import hashlib
+import json
+import os
+import shutil
+import sys
+import time
+from pathlib import Path
+
+import torch
+
+v = json.load(sys.stdin)
+assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
+os.umask(0o077)
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
+D = Path("/tmp/rsna-predictive-full-context-cache-20261020-v1")
+assert not D.exists()
+raw = Path("/tmp/rsna-predictive-raw16-cache-20261020-v1")
+actual = json.loads((raw / "actual.json").read_text())
+assert (
+    actual["fitting_studies"] == 16
+    and actual["both_masked_contexts_targets_supports_priors_bit_equal"]
+)
+full = Path("/tmp/rsna-predictive-full-raw-cache-20261020-v1")
+fund = json.loads((full / "intent.json").read_text())
+assert (
+    fund["raw_cache_total_cap_bytes"] == 320 * 2**30
+    and fund["future_model_and_publication_scope_bytes"] == 24 * 2**30
+)
+initial_context = Path("/tmp/rsna-predictive-context16-cache-20261020-v1")
+initial_actual = json.loads((initial_context / "actual.json").read_text())
+assert (
+    initial_actual["studies"] == 16
+    and initial_actual["measured_CPU_load_render_speed_ratio"] >= 1.5
+    and initial_actual["exact_both_view_images_targets_metadata_priors"]
+)
+initial_rows = json.loads((initial_context / "context-index.private.json").read_text())
+assert len(initial_rows) == 16
+paid_context = initial_actual["cache_bytes"]
+assert paid_context == sum(Path(r["path"]).stat().st_size for r in initial_rows)
+paid_raw = actual["cache_bytes"] + sum(p.stat().st_size for p in (full / "cache").glob("*.npz"))
+assert (
+    shutil.disk_usage("/tmp").free
+    > (20 + 8 + 12 + 4 + 24) * 2**30
+    + max(0, 320 * 2**30 - paid_raw)
+    + max(0, 96 * 2**30 - paid_context)
+    + (166 + 64 + 4 + 16 + 256 + 8 + 32) * 2**20
+)
+D.mkdir(mode=0o700)
+(D / "intent.json").write_text(
+    json.dumps(
+        {
+            "CPU_job": os.environ["SLURM_JOB_ID"],
+            "source_git": v["source_git"],
+            "total_exact_FP32_context_cap_bytes_including16": 96 * 2**30,
+            "already_physically_charged_context_bytes": paid_context,
+            "completed16_unused2GiB_context_reservation_retired": True,
+            "controls_cap_bytes": 32 * 2**20,
+            "all_old_funding_retained": True,
+            "no_new_source_downloads": True,
+            "zeroGPU": True,
+            "automatic_retry": False,
+        }
+    )
+    + "\n"
+)
+for name, s in v["files"].items():
+    p = D / "code" / name
+    assert p.resolve().is_relative_to((D / "code").resolve())
+    assert hashlib.sha256(s.encode()).hexdigest() == v["sha256"][name]
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(s)
+sys.path.insert(0, str(D / "code"))
+from rsna.competitive.predictive import cache, context_cache
+from rsna.competitive.predictive.cases import assemble
+
+with __import__("gzip").open(full / "original-fitting-source-index.private.jsonl.gz", "rt") as f:
+    uids = [json.loads(line)["uid"] for line in f]
+assert len(uids) == 3887 and uids == sorted(set(uids))
+raw16 = {r["uid"]: r for r in json.loads((raw / "cache-index.private.json").read_text())}
+context16 = {r["uid"]: r for r in initial_rows}
+index = []
+paid = paid_context
+render_seconds = []
+write_seconds = []
+read_seconds = []
+rng = torch.get_rng_state().clone()
+start = time.monotonic()
+renderer = {
+    k: h
+    for k, h in v["sha256"].items()
+    if k
+    in (
+        "rsna/competitive/predictive/inputs.py",
+        "rsna/competitive/predictive/cases.py",
+        "rsna/competitive/predictive/supports.py",
+    )
+}
+for i, uid in enumerate(uids):
+    if uid in context16:
+        row = context16[uid]
+        p = Path(row["path"])
+        st = p.stat()
+        assert row["proof"]["stat"] == [st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns]
+        assert row["provenance"]["module_sha256"] == renderer
+        index.append(row)
+        continue
+    record = full / "proofs" / ("case-" + str(i).zfill(4) + ".verified.private.json")
+    while not record.exists():
+        state = __import__("subprocess").check_output(
+            ["sacct", "-X", "-n", "-P", "-j", "978318", "--format=JobIDRaw,State,ExitCode"],
+            text=True,
+        )
+        if any(z in state for z in ("TIMEOUT", "FAILED", "CANCELLED", "OUT_OF_MEMORY")):
+            raise RuntimeError(
+                "Original source build terminal;retain all context prefixes for exact continuation"
+            )
+        if "|COMPLETED|" in state:
+            assert record.exists(), "Original completed build lacks expected case proof"
+        time.sleep(10)
+    row = json.loads(record.read_text())
+    assert row["uid"] == uid
+    assert paid + 128 * 2**20 < 96 * 2**30
+    t = time.monotonic()
+    groups, _ = cache.load(Path(row["path"]), row["proof"])
+    contexts = assemble(groups, side=320, context_cap=24, classes=12)
+    render_seconds.append(time.monotonic() - t)
+    provenance = {
+        "original_raw_cache_sha256": row["proof"]["sha256"],
+        "original_source_revision": "52f995f4568e36bfa5fbbaf69a89af41226b4f5d",
+        "side": 320,
+        "context_cap": 24,
+        "halo": 8,
+        "classes": 12,
+        "module_sha256": renderer,
+    }
+    p = D / ("context-" + str(i).zfill(4) + ".private.npz")
+    t = time.monotonic()
+    proof = context_cache.write(p, contexts, provenance, cap_bytes=128 * 2**20)
+    write_seconds.append(time.monotonic() - t)
+    t = time.monotonic()
+    restored = context_cache.load(p, proof, provenance=provenance)
+    read_seconds.append(time.monotonic() - t)
+    for left, right in zip(contexts, restored):
+        for key in context_cache.KEYS:
+            assert torch.equal(left[key], right[key])
+        for key in ("indptr", "regions", "log_prior"):
+            assert torch.equal(getattr(left["supports"], key), getattr(right["supports"], key))
+    assert torch.equal(rng, torch.get_rng_state())
+    paid += proof["bytes"]
+    entry = {"uid": uid, "path": str(p), "proof": proof, "provenance": provenance}
+    index.append(entry)
+    (D / ("context-" + str(i).zfill(4) + ".verified.private.json")).write_text(
+        json.dumps(entry) + "\n"
+    )
+    (D / "progress.private.json").write_text(
+        json.dumps(
+            {
+                "complete": len(index),
+                "total": 3887,
+                "cache_bytes": paid,
+                "elapsed_seconds": time.monotonic() - start,
+            }
+        )
+        + "\n"
+    )
+    if len(index) % 100 == 0:
+        print(
+            json.dumps(
+                {
+                    "status": "exact_context_cache_progress",
+                    "completed": len(index),
+                    "total": 3887,
+                    "elapsed_seconds": time.monotonic() - start,
+                }
+            ),
+            flush=True,
+        )
+    del groups, contexts, restored
+assert len(index) == 3887
+(D / "context-index.private.json").write_text(json.dumps(index) + "\n")
+out = {
+    "status": "actual_complete3887_exact_FP32_context_cache_and_RNG_parity_accepted",
+    "CPU_job": os.environ["SLURM_JOB_ID"],
+    "source_git": v["source_git"],
+    "studies": 3887,
+    "original16_reused": 16,
+    "context_cap": 24,
+    "all_original_source_regions_retained": True,
+    "cache_bytes": paid,
+    "uncached_load_and_render_seconds": sum(render_seconds),
+    "independent_cache_write_SHA_seconds": sum(write_seconds),
+    "cached_load_seconds": sum(read_seconds),
+    "measured_CPU_load_render_speed_ratio": sum(render_seconds) / sum(read_seconds),
+    "exact_both_view_images_targets_metadata_priors": True,
+    "global_RNG_unchanged": True,
+    "new_raw_source_downloads": 0,
+    "model_encoder_or_optimizer_or_GPU": False,
+    "clinical_accuracy": False,
+    "elapsed_seconds": time.monotonic() - start,
+    "private_index_sha256": hashlib.sha256(
+        (D / "context-index.private.json").read_bytes()
+    ).hexdigest(),
+}
+(D / "actual.json").write_text(json.dumps(out) + "\n")
+print(json.dumps(out), flush=True)

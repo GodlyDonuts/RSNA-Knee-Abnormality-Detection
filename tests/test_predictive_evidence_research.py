@@ -419,10 +419,16 @@ def test_exact_context_cache_preserves_probabilities_and_source_binding(tmp_path
             torch.arange(3),
         )
     ]
-    contexts = assemble(groups, side=32, context_cap=2, classes=2)
+    contexts = assemble(groups, side=32, halo=2, context_cap=2, classes=2)
     encoder = nn.Sequential(nn.Conv2d(3, 4, 3), nn.AdaptiveAvgPool2d(1), nn.Flatten())
     B, C, _ = matched_modules(encoder, 4, classes=2, hidden=8)
-    provenance = {"raw_cache_sha256": "a" * 64, "side": 32, "context_cap": 2, "classes": 2}
+    provenance = {
+        "raw_cache_sha256": "a" * 64,
+        "side": 32,
+        "context_cap": 2,
+        "classes": 2,
+        "halo": 2,
+    }
     before = torch.get_rng_state().clone()
     path = tmp_path / "contexts.npz"
     proof = context_cache.write(path, contexts, provenance, cap_bytes=2**20)

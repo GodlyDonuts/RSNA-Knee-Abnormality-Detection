@@ -1,0 +1,107 @@
+"""One CPU admission, then at most one distinct real-MRI B/C H100 diagnostic."""
+
+import hashlib
+import importlib.util
+import json
+import shlex
+import subprocess
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/predictive-full-context-cache-20261020-v1"
+L.mkdir(mode=0o700, exist_ok=True)
+assert not (L / "intent.json").exists()
+git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+sources = {
+    p.relative_to(R).as_posix(): p.read_text()
+    for p in (R / "rsna/competitive/predictive").glob("*.py")
+}
+sources.update(
+    {
+        "rsna/__init__.py": "",
+        "rsna/competitive/__init__.py": "",
+    }
+)
+for p in [*D.glob("*.py.txt"), *(R / "rsna/competitive/predictive").glob("*.py")]:
+    assert p.read_bytes() == subprocess.check_output(
+        ["git", "show", git + ":" + p.relative_to(R).as_posix()]
+    )
+source = (D / "program.py.txt").read_text()
+raw = (R / "initiative/research/predictive-raw-input-pilot-20261020-v1/program.py.txt").read_text()
+payload = {
+    "source_git": git,
+    "files": sources,
+    "sha256": {n: hashlib.sha256(s.encode()).hexdigest() for n, s in sources.items()},
+    "original_raw_decoder": raw,
+    "original_raw_decoder_sha256": hashlib.sha256(raw.encode()).hexdigest(),
+}
+(L / "intent.json").write_text(
+    json.dumps(
+        {
+            "source_git": git,
+            "maximum_CPU_admission_jobs": 1,
+            "maximum_GPU_diagnostics": 0,
+            "fitting_studies": 3887,
+            "arms": ["B", "C"],
+            "new_source_downloads": 0,
+            "total_exact_FP32_context_cap_bytes_including16": 96 * 2**30,
+            "no_source_pixel_or_model_copy": True,
+            "control_cap_bytes": 32 * 2**20,
+            "new_shared_bytes_files": 0,
+            "automatic_retry": False,
+        },
+        indent=2,
+    )
+    + "\n"
+)
+s = importlib.util.spec_from_file_location(
+    "original_stdin_transport",
+    R / "initiative/research/paired-logit-head-gradient-20261018-v1/stdin_transport.py",
+)
+t = importlib.util.module_from_spec(s)
+s.loader.exec_module(t)
+program = (
+    "import sys\ntry:\n"
+    + "".join("    " + line + "\n" for line in source.splitlines())
+    + 'except Exception as error:\n    import traceback,json\n    frame=traceback.extract_tb(error.__traceback__)[-1]\n    print(json.dumps({"error_type":type(error).__name__,"line":frame.lineno}),file=sys.stderr)\n    raise SystemExit(1)\n'
+)
+a = [
+    "srun",
+    "--account=skattel",
+    "--partition=normal",
+    "--qos=normal",
+    "--nodelist=evc33",
+    "--ntasks=1",
+    "--cpus-per-task=1",
+    "--gres=none",
+    "--mem=12G",
+    "--time=12:00:00",
+    "--job-name=rsna-predictive-trainer-inputs",
+    "env",
+    "CUDA_VISIBLE_DEVICES=",
+    "PYTHONNOUSERSITE=1",
+    "PYTHONDONTWRITEBYTECODE=1",
+    "OMP_NUM_THREADS=1",
+    "/tmp/rsna-environment-907632-7sr9a7i6/environment/bin/python",
+    "-B",
+    "-c",
+    t.COMMAND,
+]
+ssh = ["ssh", "-S", "/tmp/rsna-research-20261001-stable.sock", "-o", "BatchMode=yes", "newton"]
+x = subprocess.run(
+    [*ssh, shlex.join(a)],
+    input=t.envelope(program, payload),
+    text=True,
+    capture_output=True,
+    timeout=44000,
+)
+(L / "prepare-transport.json").write_text(
+    json.dumps({"returncode": x.returncode, "stdout": x.stdout, "stderr": x.stderr}, indent=2)
+    + "\n"
+)
+assert x.returncode == 0, "Inspect original admission state; no mutation retry"
+prepared = json.loads(x.stdout)
+assert prepared["status"] == "actual_complete3887_exact_FP32_context_cache_and_RNG_parity_accepted"
+(D / "actual-prepare.json").write_text(json.dumps(prepared, indent=2) + "\n")
+print(json.dumps(prepared), flush=True)
