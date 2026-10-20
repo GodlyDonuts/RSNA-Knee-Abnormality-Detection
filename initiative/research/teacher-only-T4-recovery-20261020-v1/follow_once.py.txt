@@ -1,0 +1,93 @@
+"""Finite observer of the already pushed exact diagnostic; no new execution."""
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+R = Path.cwd()
+D = Path(__file__).resolve().parent
+L = R / "artifacts/teacher-only-T4-recovery-20261020-v1"
+pushed = json.loads((D / "actual-push.json").read_text())
+assert pushed["status"] == "actual_paired_zero_recovery_twoT4_pushed"
+frozen = {
+    name: hashlib.sha256((D / name).read_bytes()).hexdigest()
+    for name in ("run_once.py.txt", "cloud.py.txt", "follow_once.py.txt")
+}
+with (L / "observer-intent.json").open("x") as f:
+    json.dump(
+        {
+            "PID": os.getpid(),
+            "kernel_id": pushed["kernel_id"],
+            "version": 1,
+            "frozen_controls": frozen,
+            "maximum_seconds": 5400,
+            "new_GPU_mutations": 0,
+        },
+        f,
+    )
+start = time.monotonic()
+while time.monotonic() - start < 5400:
+    assert all(hashlib.sha256((D / n).read_bytes()).hexdigest() == sha for n, sha in frozen.items())
+    try:
+        result = subprocess.run(
+            [sys.executable, str(D / "run_once.py.txt"), "status"],
+            cwd=R,
+            capture_output=True,
+            text=True,
+            timeout=1000,
+        )
+        if result.returncode == 0:
+            actual = json.loads(result.stdout)
+            (L / "observer-progress.json").write_text(json.dumps(actual, indent=2) + "\n")
+            if actual["status"] in ("COMPLETE", "ERROR", "CANCELLED"):
+                with (D / "actual-terminal.json").open("x") as f:
+                    json.dump(actual, f, indent=2)
+                print(
+                    json.dumps(
+                        {
+                            "status": actual["status"],
+                            "kernel_id": pushed["kernel_id"],
+                            "actual_GPU_acceptance": "receipt" in actual,
+                        }
+                    ),
+                    flush=True,
+                )
+                break
+        else:
+            (L / "observer-observation-error.json").write_text(
+                json.dumps(
+                    {
+                        "returncode": result.returncode,
+                        "same_kernel_id": pushed["kernel_id"],
+                        "observation_loss_not_terminal": True,
+                    }
+                )
+                + "\n"
+            )
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        (L / "observer-observation-error.json").write_text(
+            json.dumps(
+                {
+                    "type": type(exc).__name__,
+                    "same_kernel_id": pushed["kernel_id"],
+                    "observation_loss_not_terminal": True,
+                }
+            )
+            + "\n"
+        )
+    time.sleep(90)
+else:
+    print(
+        json.dumps(
+            {
+                "status": "finite_observation_expired_no_terminal_inference",
+                "same_kernel_id": pushed["kernel_id"],
+                "new_GPU_mutations": 0,
+            }
+        ),
+        flush=True,
+    )

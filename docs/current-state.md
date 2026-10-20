@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 03:45 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 04:05 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -91,3 +91,31 @@ Full QA scope:5061passed/6skipped for the recorded base plus selected-reader byt
 [Continuation](codex-continuation.md) records operational bindings. Earlier snapshots and original receipts remain in Git history.
 
 Latest preservation: source05b8b4b9 and35 distinct selected code/aggregate objects (154196bytes) privately mirrored under the canonical lock at **HFe81f2f23455a271a1ac7f34f5646e4a53e12ad36**, CPU976026. Every object independently re-downloaded/size/SHA verified; no models, MRI, reports, IDs, labels or private input signatures included. This is source/provenance preservation, not an accuracy result. Never repeat the zero-source-next prefix.
+
+## New source-zero route: actual two-T4 execution
+
+CPU976158 privately compiled exact original E1 model/renderer plus a separate
+separable paired-view source-zero loop, scientific91707a13. Source SHA
+`a2174506987fb667932011a40ef225b30b1f09f2000803aaec2dc142e2bb7e23`.
+Actual local numerical/source checks26passed include one-rank and real two-process
+Gloo full/stop1/resume, complete state/snapshots/prediction equality and padded
+final-one-study normalization. No clinical accuracy follows from these checks.
+
+**Kaggle diagnostic139736683v1 actually RUNNING**, private/offline two T4s,
+`godlydonuts/rsna-paired-zero-recovery-a2174506987f`. Canonical ledger/claim, exact
+source/runtime/inputs, free quota and available campaign lane were checked.
+Original H100 diagnostic975954 was held only after actual PENDING/zero-runtime
+proof; it remains JobHeldUser and must not be released into duplicate execution.
+No Dataset/pixel/weight upload, production fit or competition entry was made.
+The diagnostic uses17 fitting engineering cases,15 disjoint fitting predictions,
+two epochs/six updates and both-view full94 predictions. It requires actual exact
+full/resumed state and CSV bytes, both actual T4 devices, fixed initial model,
+frozen BN and bounded output/runtime. GPU acceptance remains unproven.
+
+The actual03:58UTC account read found22,185.86 free GPU-VM seconds and four entry
+slots; dispatch rechecked quota/capacity and reserved a9600second minimum for the
+bounded3600second pilot plus final serving. No paid credits authorized.
+See `initiative/research/teacher-only-T4-recovery-20261020-v1/`. This changes
+source-label loss tozero while retaining original parent teacher/proposals, and
+is not the same comparison as the one-view cross-lineage E1 which scored0.948.
+Running975297 and cross-targetE3 payloads remain unchanged.

@@ -1,6 +1,6 @@
 # RSNA Knee continuation
 
-Updated October20,2026,03:45UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
+Updated October20,2026,04:05UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
 
 - Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.
 - Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Former claim975430 released after exact E3 reconciliation. E3 kernel139719974v1 RUNNING; sourceSHAc870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410, exact runtime/source/all inputs accepted975698. Original975430 created only draft0; separately funded/guarded first executable commit975697 returned acceptedv1, then local missing statusKeyError; read-only accept reconciled it. Both calls preserved, only one actual executable version. Read actual-epoch3-reconciliation-clarification.json; no further SaveKernel.
@@ -23,3 +23,21 @@ Updated October20,2026,03:45UTC. Read [current state](current-state.md) and orig
 - New small source helper `initiative/audits/hf-zero-source-next-20261020-v1/publish_once.py.txt` **already completed** at source05b8b4b9: CPU976026,35objects154196bytes, privateHFe81f2f23455a271a1ac7f34f5646e4a53e12ad36, all independently re-downloaded/size/SHA verified. Never repeat its intent/prefix/upload. It uses distinct source prefix under the canonical HF lock and2MiB source cap inside the already admitted8MiB zero-source pilot control on48, preserving all24+87+12GiB old node liabilities and all shared liabilities. Original91object mirror remains verified, never repeat.
 
 - Next concrete research action while the newH100 pilot waits: inspect authoritative free Kaggle GPU allowance after the actual E3 final outcome and consider a separate bounded single-rank source-zero T4 route. Existing actual H100 paired gradients peaked5.27GiB before optimizer states, so a T4 route is plausible but NOT accepted. It requires its own pinned runtime/actual tensor and recovery acceptance; keep the exact original975954 pending job held/zero-runtime before another execution of the same diagnostic, and reconcile uncertain mutations read-only. Do not infer causal equality across Torch/GPU backends or rerun a completed control solely for engineering reassurance. First collect actual E3/private publication/entry through the existing owners.
+
+- **Latest T4 handoff supersedes old pending-zero-source snapshot:** CPU976158
+  privately compiled new separable paired-view source-zero two-rank engine from
+  exact E024 and original private E1 model prefix. Scientific91707a13; model and
+  original pixel datasets reused without new bulk transfer. New Kaggle
+  **139736683v1 RUNNING**, `godlydonuts/rsna-paired-zero-recovery-a2174506987f`,
+  exact sourcea2174506987fb667932011a40ef225b30b1f09f2000803aaec2dc142e2bb7e23.
+  Once-only controller1694b54b wrote canonical intent/response/source/runtime
+  acceptance. Original H100975954 actually held PENDING/zero before T4 execution;
+  do not release it or repeat SaveKernel. Observer27427 continues observing the
+  held original; it does not dispatch. T4 no production fit/entry/accuracy yet.
+  Directory teacher-only-T4-recovery-20261020-v1 contains actual CPU/push and
+  finite follower; inspect actual original terminal before any next fit.
+  New CPU tests26passed include one/two-rank Gloo exact recovery plus final dummy
+  batch weighting. ActualGPU full/stop1/resume acceptance remains required.
+  At03:58UTC fresh allowance was4/freeGPU22185.86seconds; dispatch rechecks.
+  First read976082 failed missing remote capacity module; corrected976127 used
+  pinned original capacity source through stdin. No diagnostic score claims.

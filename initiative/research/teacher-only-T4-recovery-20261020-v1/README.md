@@ -48,3 +48,11 @@ has started. Fresh canonical claim, free quota and source/runtime/input bindings
 remain required. A T4 pass proves recovery on T4, not bitwise equality with the
 different H100/PyTorch runtime. Full fitting needs a separate actual acceptance,
 budget and checkpoint-preservation decision.
+
+Actual CPU976158 compiled the private302,505byte source. The once-only canonical
+controller then accepted **139736683v1 RUNNING**, exact source
+`a2174506987fb667932011a40ef225b30b1f09f2000803aaec2dc142e2bb7e23`.
+Original975954 was held only while PENDING/zero and remains JobHeldUser.
+`actual-push.json` is execution evidence, not a GPU recovery pass or an accuracy
+result. `follow_once.py.txt` observes only this version and collects the aggregate
+acceptance receipt after actual COMPLETE; it never dispatches production.
