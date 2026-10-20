@@ -1,6 +1,6 @@
 # RSNA Knee continuation
 
-Updated October20,2026,04:24UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
+Updated October20,2026,04:30UTC. Read [current state](current-state.md) and original receipts. Live services supersede older snapshots.
 
 - Repo `/Users/sairamen/projects/RSNA-Knee-Abnormality-Detection`; SSH `newton`, control `/tmp/rsna-research-20261001-stable.sock` actually reachable. Observation loss never authorizes duplicate work.
 - Canonical ledger `/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3`. Former claim975430 released after exact E3 reconciliation. E3 kernel139719974v1 RUNNING; sourceSHAc870ded987b8e006abc36f65ed9bfddd64cf9ceb6ed71148429aa3995e3f2410, exact runtime/source/all inputs accepted975698. Original975430 created only draft0; separately funded/guarded first executable commit975697 returned acceptedv1, then local missing statusKeyError; read-only accept reconciled it. Both calls preserved, only one actual executable version. Read actual-epoch3-reconciliation-clarification.json; no further SaveKernel.
@@ -78,3 +78,39 @@ Updated October20,2026,04:24UTC. Read [current state](current-state.md) and orig
   actually observed139738563v1 RUNNING. Frozen cloud/run/follower, max2700s,
   noGPU/entry dispatch. New15compiler/readerchecks passed. Actualruntime
   acceptance unproven; source-zeroT4139736683 stillRUNNING under29168.
+
+- **READY next scientific execution**: actual139736683v1 COMPLETE/accepted;
+ 383.207s/sixupdates/17train+15prediction/73M/peak5.866GB perT4, complete
+ full/stop1/resume state plus15x12 two-view full94 CSV exact. Canonicalengine
+ SHA14f4b234eb6d549d7f066d6f353c65c7df525f9ff2aba02d2c76b29e07a853a2.
+ Actual139738563v1 CPU input acceptance COMPLETE:32/64views/input-target-RNG
+ exact,3.24414x CPUcase speed. Both finiteobservers29168/30119 ended normally;
+ never restart or repeat. Agentengineeringdecision binds actualterminal hashes.
+- Prepare/stage/dispatch distinct full3887/3epochs/1458update source-zero using
+ same original parent teacher/labels/masks/IID16/proposals/LRs/FP16/FP32loss/
+ initiala75 and accepted selected reader68bec63a/selectedrenderer e189bd0a.
+ Full fit is NOT yet staged/dispatched. Reuse original privateE1 model prefix
+ and actual accepted newT4source files in node33 `paired-zero-recovery-v1`;
+ newengine14f4b234 must remain byte-identical. CPUprobe `selected-window-CPU-probe-v1`
+ contains exact private selected renderer and actualacceptance. Mounted manifest
+ must copy once to owner-only local working file. No further diagnostic repeat
+ needed; next admission is new production funding/private epoch publication and
+ exact compiler/source/runtime/input closure. Preserve all original liabilities.
+- Kaggle freebudget remains finite: fresh actual allowance required, no paid
+ credits. Original3epoch plan predeclared; don't call partialepochs fixedfinal,
+ and don't promise threefutureVMs without actual budget. Each completed epoch
+ privately publish/download/hash verify once before any dependent resume.
+ ExistingE3evaluation21960 serves priority under canonicalcapacity/claim.
+- Source-zero alternate H100975954 actually CANCELLED only JobHeldUser/PENDING
+ 00:00:00 after acceptedT4 route chosen, actual-superseded-zero-runtime-cancellation
+ receipt preserved. Never release/revive; not H100 numerical acceptance. Original
+ observer27427 collects its terminal, no new jobs. All oldsource/assets/RAM
+ funding retained; no deletion/unused-liability credit.
+- Pointwise epoch1/486updates of975297 privately fully6-object verified once
+ viaCPU976356 atHF87b7ef555f1205e3c38f823aedbaa5cf5827a880, model6dad5a3c.
+ Do not repeat pointwise1;27713 follows pointwise2/3,teacher_rank1/2/3 only.
+- Smallsource milestonea619666c already privateHFb50caa1ad45839c7f9c31980787805da1c2bf6d6
+ /44objects191323bytes independently download/size/SHA via976315. Canonical lock,
+ node33B/mission-source-fast-input-v1 2MiB inside8MiB controls. Never repeat.
+ Newly collected GPU/CPU terminalacceptances and H100pointwise1 receipt postdate
+ that source snapshot; include in a distinct next private milestone, not sameprefix.

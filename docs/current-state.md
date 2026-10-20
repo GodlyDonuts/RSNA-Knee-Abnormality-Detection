@@ -1,6 +1,6 @@
 # Current RSNA Knee research state
 
-Updated October 20, 2026, 04:24 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
+Updated October 20, 2026, 04:30 UTC. Goal active; first place and 0.97 remain unachieved. Original receipts and live service state supersede this snapshot.
 
 ## Actual competition results
 
@@ -166,3 +166,43 @@ CPU-only selected-reader probe139738563v1 is now actually RUNNING, observer30119
 (source24813701,2700second bound). It has zeroGPU/competition mutations. Actual
 T4numericalrecovery139736683 remains RUNNING under29168, no production source-zero
 fit or accuracy result yet. All new state is evidence of execution, not a gain.
+
+## Actual acceptance clears next full candidate
+
+**139736683v1 COMPLETE/accepted**: original73,136,096parameter model, six finite
+updates on17 fitting engineering studies,15 disjoint engineering predictions.
+Both actualT4ranks started at originala75cb18d model; full/stop1/resume model,
+AdamW/LR/counters/all-rank RNG/scaler/history/epoch snapshots and15x12 two-view
+full94 CSV bytes matched exactly. Actual diagnostic383.207seconds; peak
+5,866,004,480bytes/GPU. This is engineering acceptance, not clinical accuracy.
+
+**CPU139738563v1 COMPLETE/accepted**:32 predeclared studies/64views, exact selected
+images/original labels/masks/teacher arrays/CPU RNG. Original case84.7192seconds
+versus selected26.1145seconds, **3.24414× CPU case speed**, alternating order.
+No actual GPU training throughput or accuracy improvement follows from it.
+Original private manifest Dataset12722964v1 remains fully verified.
+
+The explicit agent decision in teacher-only-T4-recovery-20261020-v1 accepts
+preparing the next distinct full3887/threeepoch/1458update source-zero candidate
+using the exact14f4b234 engine and accepted fast inputs, original parent teacher
+and all73Mparameters. Full fitting is **not yet staged or dispatched**; fresh
+checkpoint/publication/freeVM funding is the next action. Do not repeat the
+completed diagnostics. Scores across T4sequential/DDP and H100joint/one-rank
+aren't a strict loss-weight-only causal estimate; hardware/RNG grouping differs.
+Original975954 was cancelled only while JobHeldUser/PENDING/00:00:00 after this
+choice. All original controls/assets remain; no deletion/liability credit used.
+
+H100975297 completed pointwise epoch1/486updates. CPU976356 privately published
+all6objects once and independently re-downloaded/size/SHA verified at
+**HF87b7ef555f1205e3c38f823aedbaa5cf5827a880**, modelSHA
+6dad5a3ce5c1a800f0291373ac96b7d311c4b1f183babb2361407a59514c7fac.
+Never repeat pointwise1;27713 follows only remaining five actual epochs.
+
+Distinct small source milestonea619666c privately mirrored at
+**HFb50caa1ad45839c7f9c31980787805da1c2bf6d6**, CPU976315,44objects/191323bytes
+fully re-downloaded/size/SHA under the shared lock. No pixels/reports/UIDs/labels/
+private signatures/weights included; never repeat this prefix. Its source snapshot
+precedes the newly collected CPU/GPU acceptance receipts, which are recorded in
+Git and will join the next distinct private milestone. E3 final model is already
+privately verified at25c8cada; serving compiled,21960 now follows qualification.
+There is still **no new score improvement**.

@@ -1,15 +1,15 @@
 # RSNA Knee agent guide
 
-Updated October20,2026,04:24UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
+Updated October20,2026,04:30UTC. Goal active: strongest legitimate competition model. Read [current state](docs/current-state.md), [continuation](docs/codex-continuation.md), then the referenced original receipts. Earlier snapshots remain in Git history; live service/job state governs action.
 
 ## Current priorities
 
 - Changed-target E1/E2/E3 COMPLETE486/972/1458updates and all privately fully verified. E3 modelb9686536 atHF25c8cada7265f7c33f9551d1d0bc6511517bebc5, CPU976299, sixobjects. Do not repeat any push/publication. Existing compiler25232/evaluator21960 handle final serving/qualification/entry; actual final score remains unknown.
 - Actual code entry57418131 COMPLETE/scored0.948, below older own0.949. Evaluation owner21960 waits for final E3 preservation/serving; no new gain established. Corrected qualification139716471/public139717947 both COMPLETE.
-- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, at least395 finite pointwise optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
-- Actual975724 selected-reader admission passed,2.82x full-case CPU speed and exact inputs/RNG; not used in healthy975297. Epoch preservation owner27713 is live after a pre-epoch size-guard correction (zero prior upload attempts) for its six future checkpoints.
-- New paired source-zero two-T4 diagnostic139736683v1 is actually RUNNING, sourcea2174506987f. Original H100 diagnostic975954 is held only after actual PENDING/zero-runtime proof; do not release/restart it while T4 work exists. CPU/Gloo recovery passed; actual GPU recovery and full fitting remain unproven. Read teacher-only-T4-recovery-20261020-v1 and exact original intents.
-- Private integrity Dataset12722964v1 is fully download/hash verified once. CPU-only Kaggle reader probe139738563v1 is actually RUNNING under observer30119; actual runtime acceptance remains pending. It uses no GPU quota. Never repeat the upload or push.
+- Matched full pointwise/ranking GPU975297 is RUNNING on cached evc48, completed pointwise epoch1/486 finite optimizer updates; old975129 cancelled while zero-runtime pending after actual admission. Never duplicate. Both full numerical sources frozen.
+- Actual975724 selected-reader admission passed,2.82x full-case CPU speed and exact inputs/RNG; not used in healthy975297. Epoch preservation owner27713 privately verified pointwise epoch1 once atHF87b7ef555f1205e3c38f823aedbaa5cf5827a880; never repeat it. Five later checkpoints remain.
+- Paired source-zero two-T4 diagnostic139736683v1 actually COMPLETE/accepted: six finite updates, complete full/resume state and15x12 full94 two-view CSV equal. Original H100975954 CANCELLED only held/PENDING/zero after this acceptance; never revive or call it a H100 pass. Next action is distinct full3887/threeepoch source-zero fitting, accepted14f4b234 engine, after fresh resource/publication/freeVM funding; no more repeated diagnostics. Read agent-engineering-decision.json.
+- Private integrity Dataset12722964v1 is fully download/hash verified once. CPU-only Kaggle reader probe139738563v1 actually COMPLETE/accepted:32studies/64views/exact tensors/targets/RNG,3.244x case-loading speed. No GPU training-speed or accuracy gain claimed. Never repeat the upload or push.
 - Best Kaggle0.958 external reproduction; own adaptations0.949, no original improvement established. Keep actual results and negative evidence current.
 
 ## Standing execution rules
