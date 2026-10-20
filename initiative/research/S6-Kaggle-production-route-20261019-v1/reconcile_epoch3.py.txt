@@ -13,7 +13,7 @@ import requests
 
 v = json.load(sys.stdin)
 phase = v["phase"]
-assert phase in ("observe", "accept")
+assert phase in ("observe", "accept", "absence")
 assert os.uname().nodename == "evc33" and not os.environ.get("SLURM_JOB_GPUS")
 D = Path("/tmp/rsna-S6-Kaggle-production-route-20261019-v1/epoch-3")
 source = (D / "source.private.py").read_text()
@@ -54,6 +54,25 @@ assert row["state"] == "complete_teacher_cross_full_fit_push_intent" and "kernel
 assert not (D / "push-response.json").exists() and not (D / "pushed.json").exists()
 slug = row["slug"]
 assert slug == "godlydonuts/rsna-s6-cross-full-e3-" + sha[:12]
+if phase == "absence":
+    absence = r.require_absent_kernel(slug)
+    quota = r.call("kernels.KernelsApiService", "GetAcceleratorQuotaStatistics", {})["gpuQuota"]
+    out = {
+        "status": "actual_exact_E3_absence_reconciled_read_only",
+        "CPU_job": os.environ["SLURM_JOB_ID"],
+        "reconciliation_source_git": v["source_git"],
+        "slug": slug,
+        "version": 1,
+        "source_sha256": sha,
+        "canonical_state": row["state"],
+        "old_claim_owner": owner,
+        "absence_proof": absence,
+        "actual_GPU_quota": quota,
+        "new_SaveKernel_or_submission_requests": 0,
+        "canonical_ledger_mutated": False,
+    }
+    print(json.dumps(out), flush=True)
+    raise SystemExit(0)
 k = r.kernel("GetKernel", slug, 1)
 m = k["metadata"]
 req = row["request"]
