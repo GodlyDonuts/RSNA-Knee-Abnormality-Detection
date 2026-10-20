@@ -1,17 +1,25 @@
-# Optional C0 placement on evc27
+# Accepted C0 placement on evc27
 
-Prepared locally only. **Owners68792 and77985 remain active and unchanged.**
-No transfer, CPU admission, GPU request, publication or entry has been performed
-by these controls. The pending decision cannot authorize a launch.
+At **October 20, 13:43 UTC**, the exclusive idle-owner handoff completed.
+Fitting **68792** and deployment **77985** stopped before any phase; no remote
+job was cancelled. New fitting owner **80995** and deployment successor
+**80996** are live with original intent files and empty stderr, from committed
+and pushed control source `926b657770564c79b23509592e2d6a95761abd70`.
+They wait for the complete cache and actual finals respectively. **No context
+transfer, full predictive GPU fitting or predictive deployment phase has run.**
+[Actual handoff/start](actual-owner-started.json); [fitting handoff](actual-fitting-owner68792-stopped.json);
+[deployment handoff](actual-deployment-owner77985-stopped.json).
+The [13:45 UTC readback](actual-owners-live.json) confirms both new owners alive,
+empty stderr and zero phases; the original deployment phase directory is absent.
 
-The [13:00–13:07UTC observation](../parallel-serving-account-20261020-v1/actual-c0-placement-forecast.json)
-reports835,340,234,752 free bytes on27 and a test-only scheduler forecast of
-Oct20 23:06UTC for one H100 on27. The corresponding48 forecast was Oct22 00:11.
-These are forecasts, not reservations or guaranteed start times. Latest
-13:15:42UTC cache progress is784 raw/782 contexts; observed rates conditionally
-put complete inputs aroundOct21 04:42–06:43UTC. A third fitting lane could avoid
-the second roughly5.4-hour GPU wave, less the context transfer delay. Full-cohort
-throughput and future queue availability remain unmeasured.
+The accepted future placement is **B/C on evc33 and C0 on evc27**, one ordinary
+H100 per arm, preserving frozen `44cc559e` numerical science and initialization.
+Healthy cache owner **68411** and jobs **979664/979665** remain unchanged.
+The [13:32 UTC observation](../parallel-serving-account-20261020-v1/actual-input-progress-1332.json)
+recorded **842 raw/840 contexts of 3,887**. Raw throughput of approximately
+3.38 studies/minute leaves about 3.4 hours against the 20-hour limit if sustained.
+Earlier node-27 scheduler forecasts are not reservations or guaranteed starts;
+no full-cohort training or relocation speedup has been measured.
 
 ## Narrow execution path
 
@@ -92,11 +100,13 @@ stdout/stderr files once they physically exist as owned private regular files.
 At most six files are subtracted; missing files remain reserved. The deployment
 observer applies the same proof to its other368-file scope, retaining its own
 eight serialized account files. Shared byte liabilities stay conservative.
-Shared future-byte/file values are deliberately unset in the pending decision
-and must retain all current obligations plus20GiB/5,000-file reserves.
+The accepted decision retains **123 MiB/376 future shared files**, minus only
+those exact physically paid GPU logs. Pending decision files remain disabled
+templates; they are not the decisions used by the live owners. Retain all
+current obligations plus the 20 GiB/5,000-file reserves.
 
-Before launch, root must commit/review these controls, verify and stop both idle
-owners, save actual handoff receipts, and accept fresh funding. `deployment.py`
+Root completed the committed-control review, idle-owner handoff and funding
+acceptance before launching these two owners once. `deployment.py`
 is the distinct finite successor over frozen account-owner source8fd43b98. It
 reads this directory's actual finals/publications, requires actual B/C node33
 and C0 node27, verifies the explicit final-return receipt, and uses the returned
@@ -107,14 +117,16 @@ seven-file mirror and checks the original C0 Slurm job. No node33 C0 training
 receipt is fabricated. Numerical serving and canonical account controls remain
 frozen8fd; the new placement/deployment adapter has separately bound source.
 
-`deployment-decision.pending.json` is also disabled. Its unchanged planned
-Kaggle envelope is1,200seconds combined qualification plus three600-second
-public watchdogs and three120-second VM startup allowances:3,360seconds. Actual
+`deployment-decision.pending.json` remains disabled; the live owner uses
+`deployment-decision.accepted.json`. Its initial Kaggle requirement is
+**3,360 GPU-VM seconds**: 1,200 for combined qualification, three 600-second
+public watchdogs and three 120-second public VM startup allowances. Actual
 trained precision/memory, runtime decision, authoritative capacity and submission
 allowance still govern each mutation. Hidden runtime remains unproven. The new
 control is not permission to overdraw that envelope or use paid credits.
 
-Prepared invocation after those real prerequisites:
+Launch interfaces retained for provenance; **the owners have already started,
+so do not rerun these commands**:
 
 ```sh
 python3 initiative/research/predictive-c0-portable-placement-20261020-v1/owner.py \
@@ -124,7 +136,7 @@ python3 initiative/research/predictive-c0-portable-placement-20261020-v1/owner.p
   --deployment-handoff <actual-deployment-owner77985-stopped.json>
 ```
 
-The separate finite deployment command after those same actual handoffs is:
+The separate deployment launch interface is:
 
 ```sh
 python3 initiative/research/predictive-c0-portable-placement-20261020-v1/deployment.py \
@@ -141,5 +153,5 @@ node27 final/return provenance, real generated observer filesystem accounting,
 and disabled unaccepted decisions. These are operational tests, not actual
 transfer, GPU acceptance, training progress or clinical accuracy.
 
-No current acceptance, speedup, model improvement, completed transfer or new
-training is implied by this preparation.
+Operational ownership and placement are accepted. No measured speedup, model
+improvement, completed transfer or full predictive training is claimed.
