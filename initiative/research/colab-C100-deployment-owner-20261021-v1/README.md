@@ -6,9 +6,10 @@ final model or an accuracy result yet. This directory provides a finite final
 consumer, separate from Newton C100 and the already submitted B/C/C0 entries.
 Original consumer **89950 stopped before any handoff or account phase** after
 the Colab epoch2 publication429 required a separate recovery. Its original
-journal remains unchanged. A distinct successor uses `epoch2-successor/` and
-the actual epoch002 recovery contract; its dispatch receipt is recorded only
-after it starts. Newton consumer86015 and primary outcome observer81657 remain
+journal remains unchanged. Distinct successor **95310** started once at14:28:16UTC from
+source8939d3fd and is live with empty stderr, using `epoch2-successor/` and the
+actual epoch002 recovery contract. It is waiting for the original final and
+seven private proofs; no handoff or account phase has started. Newton consumer86015 and primary outcome observer81657 remain
 live and unchanged.
 
 ## Keep healthy training and its queued publisher
@@ -79,3 +80,5 @@ finite Newton owner86015 and primary outcome observer81657.
 
 Sources and sanitized receipts are committed to GitHub separately from the
 private model storage. This milestone is not yet included in an HF mirror.
+
+[Actual successor start](actual-epoch2-successor-started.json); [fresh read-only preflight](actual-epoch2-successor-preflight.json). CPU998311 confirms two daily slots and3,056.1426641 free GPU-VM seconds, no claim/prior deployment, and sufficient separately funded storage.
