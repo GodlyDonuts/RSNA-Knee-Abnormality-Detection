@@ -93,3 +93,5 @@ epochs and the terminal receipt are privately fully preserved.
 serving worker, actual lineage and required terminal state. It is a prepared
 handoff, not a ready checkpoint or qualification. This Colab run must never
 borrow Newton995351's scheduler, initialization or publication receipts.
+
+**Actual training at11:24UTC:** All3,907 original members (3,887 studies plus20 assets) passed independent byte/hash verification. The actual full-data C100 fit has begun on A10040; the first20updates completed in182.804seconds with finite observed losses and full encoder updates from4. This early throughput projects about7–8hours of fitting plus publication overhead; it is not a guaranteed completion time. See `actual-training-start.json` for original UI records, exact code/lease bindings and the293.26-unit/5.3-per-hour budget observation. Six epochs/2,916updates are planned; no epoch or accuracy result is claimed. The queued release requires successful preservation of all epochs and terminal. Newton C0 is in epoch6 and its fifth immutable epoch is independently privately verified; the original Newton jobs and owners continue.
