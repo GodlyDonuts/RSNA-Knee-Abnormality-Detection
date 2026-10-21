@@ -36,11 +36,23 @@ def payload(pin):
     return files
 
 
-def main(pin, socket):
+def main(pin, socket, hardware_admission=None):
     os.umask(0o077)
     files = payload(pin)
     code_sha = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in files.items()}
-    journal = REPO / "artifacts" / HERE.name / "checkpoint-lease"
+    hardware = None
+    if hardware_admission:
+        hardware = json.loads(Path(hardware_admission).read_text())
+        assert hardware["GPU"] == "NVIDIA A100-SXM4-40GB"
+        assert hardware["GPU_bytes"] >= 35 * 2**30
+        assert hardware["input_root_exists"] is False and hardware["training_updates"] == 0
+        assert hardware["old_control_exists"] is True
+    journal = (
+        REPO
+        / "artifacts"
+        / HERE.name
+        / ("checkpoint-lease-A10040" if hardware else "checkpoint-lease")
+    )
     journal.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (journal / "intent.json").open("x") as f:
         json.dump({"source_git": pin, "code_sha256": code_sha}, f)
@@ -84,7 +96,14 @@ try:
   slugs={k:'godlydonuts/rsna-colab-c100-'+k+'-'+manifest_sha[:12] for k in keys}
   for s in slugs.values():p.require_absent(r,s)
   key='private-colab-checkpoint-lease:'+manifest_sha
-  assert db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone() is None
+  previous=db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()
+  if v.get('hardware_admission'):
+   assert previous is not None
+   previous=json.loads(previous[0])
+   assert previous==json.loads((root/'checkpoint-lease.json').read_text())
+   assert previous['storage_control_git']=='8a9f74bb'
+   assert previous['input_manifest_sha256']==manifest_sha and previous['slugs']==slugs
+  else:assert previous is None
   record={'status':'canonical_isolated_Colab_checkpoint_namespace_admitted',**owner,
     'input_slug':slug,'input_dataset':meta,'input_manifest_sha256':manifest_sha,'seed':20261021,
     'storage_control_git':v['source_git'],'code_sha256':v['code_sha256'],'slugs':slugs,
@@ -93,8 +112,14 @@ try:
     'only_one_Colab_writer':True,'automatic_mutation_retry':False,
     'GPU_allocations_or_competition_entries_authorized_by_this_lease':False,
     'original_B_C_C0_coordinator_unchanged':True}
-  w.new_json(root/'checkpoint-lease.json',record)
-  db.execute('INSERT INTO meta VALUES (?,?)',(key,json.dumps(record)));db.commit()
+  if v.get('hardware_admission'):
+   record.update(superseded_before_inputs_or_training=previous,actual_hardware_admission=v['hardware_admission'])
+   w.new_json(root/'checkpoint-lease-A10040.json',record)
+   db.execute('UPDATE meta SET value=? WHERE key=?',(json.dumps(record),key))
+  else:
+   w.new_json(root/'checkpoint-lease.json',record)
+   db.execute('INSERT INTO meta VALUES (?,?)',(key,json.dumps(record)))
+  db.commit()
   print(json.dumps(record),flush=True)
 finally:
  assert json.loads((claim/'owner.json').read_text())==owner
@@ -120,7 +145,14 @@ finally:
     ]
     result = subprocess.run(
         ["ssh", "-S", socket, "-o", "BatchMode=yes", "newton", shlex.join(cmd)],
-        input=json.dumps({"token": token, "source_git": pin, "code_sha256": code_sha}),
+        input=json.dumps(
+            {
+                "token": token,
+                "source_git": pin,
+                "code_sha256": code_sha,
+                "hardware_admission": hardware,
+            }
+        ),
         text=True,
         capture_output=True,
         timeout=360,
@@ -142,5 +174,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--source-git", required=True)
     p.add_argument("--socket", required=True)
+    p.add_argument("--hardware-admission", type=Path)
     args = p.parse_args()
-    main(args.source_git, args.socket)
+    main(args.source_git, args.socket, args.hardware_admission)

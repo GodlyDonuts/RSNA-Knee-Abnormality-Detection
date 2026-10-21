@@ -16,6 +16,11 @@ def build():
     text = d.original_files()["colab_train.py"]
     text = d.once(
         text,
+        "assert torch.cuda.get_device_properties(0).total_memory >= 75 * 2**30",
+        "assert torch.cuda.get_device_properties(0).total_memory >= 35 * 2**30",
+    )
+    text = d.once(
+        text,
         "    from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download",
         "    from colab_storage import Store, CONTROL",
     )

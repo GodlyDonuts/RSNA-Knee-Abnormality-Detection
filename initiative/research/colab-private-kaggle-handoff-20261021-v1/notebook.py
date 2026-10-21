@@ -32,7 +32,7 @@ from pathlib import Path
 os.umask(0o077)
 os.environ.update(CUBLAS_WORKSPACE_CONFIG=":4096:8", OMP_NUM_THREADS="2", MKL_NUM_THREADS="2",
                   HF_HUB_DISABLE_TELEMETRY="1", HF_HUB_DISABLE_PROGRESS_BARS="1")
-control = Path('/content/rsna-colab-private-control-20261021-v1')
+control = Path('/content/rsna-colab-private-control-20261021-v2')
 assert not control.exists(), 'Reconcile original execution before any continuation'
 body = gzip.decompress(base64.b64decode({encoded!r}))
 assert hashlib.sha256(body).hexdigest() == {hashlib.sha256(body).hexdigest()!r}
@@ -47,7 +47,7 @@ subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', 'kaggle==2.2.3',
 import torch, timm
 assert torch.__version__.startswith('2.11.0') and timm.__version__ == '1.0.29'
 assert torch.cuda.device_count() == 1 and 'A100' in torch.cuda.get_device_name(0)
-assert torch.cuda.get_device_properties(0).total_memory >= 75*2**30
+assert torch.cuda.get_device_properties(0).total_memory >= 35*2**30
 print(json.dumps({{'phase':'actual_A100_runtime', 'torch':torch.__version__,
                   'timm':timm.__version__, 'GPU':torch.cuda.get_device_name(0),
                   'storage_control_git':package['lease']['storage_control_git']}}), flush=True)
