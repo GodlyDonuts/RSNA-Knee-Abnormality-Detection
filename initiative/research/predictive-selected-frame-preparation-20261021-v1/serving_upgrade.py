@@ -156,8 +156,8 @@ def capsule(files):
     # Admit exact frozen worker/helpers before adding a compiler transform.
     upgrade({n: files['serving/' + n] for n in ('worker.py.txt', 'descriptor_cache.py')})
     portable = replace(Path(__file__).read_text(),
-                       'BATCH = HERE.parent / "predictive-descriptor-batch-20261021-v1"',
-                       'BATCH = HERE')
+                       '\n' + 'BATCH = HERE.parent / ' + '"predictive-descriptor-batch-20261021-v1"' + '\n',
+                       '\nBATCH = HERE\n')
     files = {**files,
              'serving/preparation_upgrade.py': portable,
              'serving/descriptor_batch.py': (BATCH / 'descriptor_batch.py').read_text(),

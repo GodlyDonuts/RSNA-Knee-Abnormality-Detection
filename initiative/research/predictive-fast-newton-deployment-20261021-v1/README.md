@@ -1,0 +1,20 @@
+# Exact faster final deployment successor
+
+Prepared, not dispatched. The original scientific run and checkpoints are
+unchanged. This distinct finite consumer retains the original final-model,
+private-publication, canonical account, two-T4, budget and numerical precision
+checks. It adds the actually measured selected-frame and descriptor-batching
+preparation; its own trained qualification must prove every complete original
+context byte unchanged on all three public studies. The old worker and original
+contract remain intact in the capsule; the compiler facade transforms only
+preparation when building the new notebook.
+
+The same1920-second qualification/public/startup allocation is retained. No
+additional GPU reservation or slot is authorized by this change. One exact
+final entry follows fresh live allowance and actual qualification. No uncertain
+phase retries. Old journals remain preserved and cannot be restarted.
+
+Colab additionally admits the truthful local-only terminal from its executed
+second recovery, while requiring the separate seven private publication proofs.
+It still waits for the exact canonical Newton entry and protects its budget.
+The Colab fit and queued publication cell must not be interrupted.
