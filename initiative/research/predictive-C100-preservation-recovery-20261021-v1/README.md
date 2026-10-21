@@ -1,0 +1,20 @@
+# C100 preservation continuation
+
+Original preservation owner67205 stopped after CPU996617 failed1:0 in one second.
+The actual owning-node inspection proved the failure occurred before a remote
+publication directory or funding receipt existed. A strict original-file check
+rejected Slurm-created GPU-995351.out because its mode was0644. Original checkpoint,
+scientific source and training remained intact; GPU995351 continues running.
+
+Only the two original Slurm log files were tightened to0600. Their inodes and
+contents were unchanged; no training source, recipe, input or optimizer changed.
+The actual original failure and permission correction are retained here.
+
+The distinct continuation refuses a live original owner or uncertain remote
+publication. It invokes the exact original8f1e8f2b publisher and shared private
+publication lock, with new exclusive local intents, fresh original storage
+checks and the same six immutable HF paths. Epoch1's old failed intent is the
+only explicitly reconciled exception. Later uncertain intents stop immediately.
+The original owner/journals remain preserved; no GPU is restarted or resubmitted.
+The finite owner ends by October22 noonUTC. Actual launch and successful private
+preservation must be recorded separately; this code alone is not publication.
