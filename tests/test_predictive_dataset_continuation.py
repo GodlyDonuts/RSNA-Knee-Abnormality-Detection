@@ -69,9 +69,11 @@ def test_only_completed_prefix_removed():
         self.action("compile")
         self.action("push")
 '''
+    body += '\n    def config(self):\n        assert 0 <= time.time() - observed["observed_at"] <= 180\n'
     changed = m.remaining_owner(body)
-    assert changed[changed.index('        self.action("dataset-reconcile")'):] == body[body.index('        self.action("dataset-reconcile")'):]
+    assert changed[changed.index('        self.action("dataset-reconcile")'):].replace('assert -2 <=', 'assert 0 <=') == body[body.index('        self.action("dataset-reconcile")'):]
     assert 'self.action("dataset")' not in changed
     assert 'self.action("stage")' not in changed
     assert 'self.action("prepare")' not in changed
     assert "self.admit_existing_dataset()" in changed
+    assert 'self.action("dataset-reconcile")' not in m.remaining_owner(body, after_verified=True)

@@ -33,14 +33,19 @@ def module(body, name, path):
     return value
 
 
-def remaining_owner(body):
+def remaining_owner(body, after_verified=False):
     start = body.index("    def run(self):\n")
     end = body.index('        self.action("dataset-reconcile")\n', start)
     prefix = body[start:end]
     assert prefix.count('self.action("stage")') == 1
     assert prefix.count('self.action("prepare")') == 1
     assert prefix.count('self.action("dataset")') == 1
-    return body[:start] + "    def run(self):\n        self.admit_existing_dataset()\n" + body[end:]
+    if after_verified:
+        end += len('        self.action("dataset-reconcile")\n')
+    result = body[:start] + "    def run(self):\n        self.admit_existing_dataset()\n" + body[end:]
+    check = 'assert 0 <= time.time() - observed["observed_at"] <= 180'
+    assert result.count(check) == 1
+    return result.replace(check, 'assert -2 <= time.time() - observed["observed_at"] <= 180')
 
 
 def validate_original(journal, actual, command):
@@ -70,7 +75,7 @@ def validate_original(journal, actual, command):
     return prepared
 
 
-def build():
+def build(after_verified=False):
     contract = module(source(PLACEMENT_PIN, PLACEMENT / "contract.py"), "continue_placement_contract", PLACEMENT / "contract.py")
     import sys
     old = sys.modules.get("contract")
@@ -87,7 +92,7 @@ def build():
     _, lineage = fitting.previous()
     path = ROOT / dep.CANONICAL_DIR / "owner.py"
     body = dep.final_reader(lineage.derived_deployment_owner(source(dep.CANONICAL, path).decode()))
-    original = module(remaining_owner(body), "continue_primary_owner", path)
+    original = module(remaining_owner(body, after_verified), "continue_primary_owner", path)
     reader = type("Reader", (), {"full_finals": staticmethod(original.full_finals)})
     original.full_finals = lambda: dep.finals(reader, lineage)
     placement_body = fitting.git_file(lineage.PARENT, lineage.OLD + "/placement.py").decode()
@@ -98,6 +103,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-git", required=True)
     parser.add_argument("--socket", default="/tmp/rsna-research-20261001-stable.sock")
+    parser.add_argument("--after-verified", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     assert source(args.source_git, Path(__file__)) == Path(__file__).read_bytes()
@@ -107,17 +113,31 @@ def main():
     def command(pid):
         return subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
     prepared = validate_original(OLD_JOURNAL, actual, command)
-    fitting, dep, original, reader, lineage, placement_body = build()
+    journal = JOURNAL
+    if args.after_verified:
+        assert read(JOURNAL / "continuation-intent.json")["pid"] == 80774
+        assert (JOURNAL / "continuation-stopped.json").is_file() and command(80774).strip() == ""
+        verified = read(JOURNAL / "result-00001.json")
+        assert verified["status"] == "all_payload_bytes_verified" and verified["id"] == DATASET_ID
+        assert verified["version"] == 1 and verified["private"] and verified["downloaded_all_bytes"]
+        assert verified["files"] == prepared["files"]
+        assert not list(JOURNAL.glob("compile-*-intent.json"))
+        assert not list(JOURNAL.glob("push-*-intent.json"))
+        journal = JOURNAL / "after-verified"
+        journal.mkdir(mode=0o700, exist_ok=True)
+    fitting, dep, original, reader, lineage, placement_body = build(args.after_verified)
     decision = read(PLACEMENT / "deployment-decision.accepted.json")
     original.validate_decision(decision)
     lineage.deployment_funding(decision)
     assert decision["portable_placement_source_git"] == PLACEMENT_PIN
     assert original.full_finals() is not None
-    original.once(JOURNAL / "continuation-intent.json", dict(
+    original.once(journal / "continuation-intent.json", dict(
         pid=os.getpid(), source_git=args.source_git, original_owner_pid=32378,
         original_placement_source_git=PLACEMENT_PIN, canonical_source_git=dep.CANONICAL,
         Dataset_id=DATASET_ID, Dataset_slug=DATASET, new_Dataset_calls=0,
-        original_phases_preserved=True, automatic_mutation_retry=False))
+        original_phases_preserved=True, automatic_mutation_retry=False,
+        existing_full_byte_verification_reused=args.after_verified,
+        maximum_remote_clock_lead_seconds=2))
 
     class Continuation(original.Owner):
         def _observe(self, dataset_slug=None):
@@ -137,13 +157,13 @@ def main():
             observed = self.observe(DATASET)
             assert observed["dataset_ready"] and observed["dataset_id"] == DATASET_ID
             assert not observed["deployment_root_absent"] and not observed["canonical_claim_present"]
-            original.once(JOURNAL / "existing-dataset-admitted.json", observed)
+            original.once(journal / "existing-dataset-admitted.json", observed)
             assert prepared["bundle_identity"] == actual["bundle_identity"]
 
     try:
-        Continuation(dep.CANONICAL, decision, args.socket, JOURNAL).run()
+        Continuation(dep.CANONICAL, decision, args.socket, journal).run()
     except BaseException as exc:
-        original.once(JOURNAL / "continuation-stopped.json", dict(error_type=type(exc).__name__, automatic_retry=False))
+        original.once(journal / "continuation-stopped.json", dict(error_type=type(exc).__name__, automatic_retry=False))
         raise
 
 
