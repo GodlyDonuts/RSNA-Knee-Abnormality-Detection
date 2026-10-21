@@ -1,0 +1,131 @@
+{
+  "arms": {
+    "B": {
+      "GPU_job": "989036",
+      "contiguous_finite_updates": 13,
+      "encoder_update_schedule_matches": true,
+      "last": {
+        "CPU_context_load_seconds": 21.853891866863705,
+        "LR": [
+          2.6748971193415637e-06,
+          2.6748971193415637e-06
+        ],
+        "arm": "B",
+        "density_loss": 0.9197332710027695,
+        "elapsed_seconds": 87.41999294806737,
+        "encoder_gradient_norm": 3.8960097157299676,
+        "encoder_updated": true,
+        "epoch": 1,
+        "exam_loss": 0.6967865824699402,
+        "gradient_norm": 5.971704959869385,
+        "head_gradient_norm": 4.525745038823872,
+        "loss": 0.7887599095702171,
+        "output_bytes": 11675,
+        "output_files": 2,
+        "peak_GPU_bytes": 5886432256,
+        "peak_host_RSS_bytes": 2531135488,
+        "sealed_epoch_sidecars": 0,
+        "seconds_since_previous_update": 6.626075996086001,
+        "step": 13,
+        "studies": 8,
+        "studies_per_second_since_previous_update": 1.2073510784853012,
+        "study_exposures": 104
+      },
+      "maxima": {
+        "density_loss": 0.920223742723465,
+        "encoder_gradient_norm": 11.362337973216043,
+        "exam_loss": 0.8645448237657547,
+        "gradient_norm": 13.063873291015625,
+        "head_gradient_norm": 9.288746513846466,
+        "loss": 0.9565671980381012
+      },
+      "stderr_bytes": 0
+    },
+    "C": {
+      "GPU_job": "989035",
+      "contiguous_finite_updates": 164,
+      "encoder_update_schedule_matches": true,
+      "last": {
+        "CPU_context_load_seconds": 272.601755594369,
+        "LR": [
+          2.999741510129818e-05,
+          2.999741510129818e-05
+        ],
+        "arm": "C",
+        "density_loss": 0.9198505356907845,
+        "elapsed_seconds": 1090.5552161869127,
+        "encoder_gradient_norm": 4.032090137205546,
+        "encoder_updated": true,
+        "epoch": 1,
+        "exam_loss": 0.6057926714420319,
+        "gradient_norm": 4.1156487464904785,
+        "head_gradient_norm": 0.8251160943044993,
+        "loss": 0.6977777183055878,
+        "output_bytes": 119095,
+        "output_files": 2,
+        "peak_GPU_bytes": 5900707840,
+        "peak_host_RSS_bytes": 2614181888,
+        "sealed_epoch_sidecars": 0,
+        "seconds_since_previous_update": 6.621633308939636,
+        "step": 164,
+        "studies": 8,
+        "studies_per_second_since_previous_update": 1.2081611328732866,
+        "study_exposures": 1312
+      },
+      "maxima": {
+        "density_loss": 0.9207578152418137,
+        "encoder_gradient_norm": 9.444612699084413,
+        "exam_loss": 0.8597047105431557,
+        "gradient_norm": 46.273738861083984,
+        "head_gradient_norm": 46.24240122007585,
+        "loss": 0.951727107167244
+      },
+      "stderr_bytes": 0
+    }
+  },
+  "clinical_accuracy_claim": false,
+  "new_jobs_or_input_model_mutations": 0,
+  "observed_at_UTC": "2026-10-21T00:48:21.433448+00:00",
+  "original_dispatch_receipt_sha256": "c5ae84816a45422379db0b5049e681e6dddd763f99a000480660c74ec3134ab0",
+  "original_job_bindings": {
+    "B": {
+      "GPU_job": "989036",
+      "arm": "B",
+      "binding_sha256": "d54d69d6e07dfc5314cf41a2830b1fbbf18557e6b81b646c1e379340447ddf9e",
+      "job_name": "rsna-predictive-full2-B",
+      "node": "evc27",
+      "run_root": "/tmp/rsna-predictive-full-B-20261020-v2",
+      "script_sha256": "b61a3a152e4e174baa471331ec3f31cdb9c4cdd4d03b2d611af98a0ab4886474",
+      "source_git": "44cc559e947560a635c34fee7b1f2a3b7be3a241",
+      "stderr": "/home/sa305415/rsna-knee/kaggle/rsna-predictive-full2-B-989036.err",
+      "stdout": "/home/sa305415/rsna-knee/kaggle/rsna-predictive-full2-B-989036.out"
+    },
+    "C": {
+      "GPU_job": "989035",
+      "arm": "C",
+      "binding_sha256": "f207261814605bba41391a161d637f8ed2b03abdc94d77c193dcddd39739af29",
+      "job_name": "rsna-predictive-full2-C",
+      "node": "evc27",
+      "run_root": "/tmp/rsna-predictive-full-C-20261020-v2",
+      "script_sha256": "c6a0495deab05310011edbf5fec30dc9185db86063f0f156659638e2a3825841",
+      "source_git": "44cc559e947560a635c34fee7b1f2a3b7be3a241",
+      "stderr": "/home/sa305415/rsna-knee/kaggle/rsna-predictive-full2-C-989035.err",
+      "stdout": "/home/sa305415/rsna-knee/kaggle/rsna-predictive-full2-C-989035.out"
+    }
+  },
+  "original_second_monitor_recovery": {
+    "B": null,
+    "C": null,
+    "C0": null
+  },
+  "sacct": [
+    "989035|RUNNING|0:0|00:18:23|evc27",
+    "989036|RUNNING|0:0|00:01:43|evc27",
+    "989037|PENDING|0:0|00:00:00|None assigned"
+  ],
+  "scheduler_estimates_UTC": [
+    "JOBID      STATE               START_TIME                 END_TIME         NODELIST(REASON)",
+    "      989037    PENDING      2026-10-21T08:29:58      2026-10-21T16:29:58               (Priority)"
+  ],
+  "status": "actual_two_primary_full_data_jobs_learning_on_allowed_two_GPU_node"
+}
