@@ -1,9 +1,9 @@
-> **Current update — October 21, 2026, 19:31 UTC.** Best actual Kaggle score
+> **Current update — October 21, 2026, 19:49 UTC.** Best actual Kaggle score
 > remains external R6 reproduction **0.958**; own adaptations remain **0.949**.
 > Newton C100 finished all six epochs and scored **0.692**, a substantial
 > negative model result with successful hidden execution. The independent
 > Colab C100 also finished 6 epochs / 2,916 updates; private preservation is
-> complete through epoch 4, with remaining backups and deployment pending.
+> complete through epoch 5, with remaining backups and deployment pending.
 > Both proposed C100 ensembles fail their fixed score criterion and have not
 > run. Dense96 has engineering acceptance but no accuracy result or entry.
 > Read [current state](current-state.md) for live evidence. Older dated

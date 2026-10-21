@@ -1,6 +1,29 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 19:31 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 19:49 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+
+## October21,19:49UTC — final-model diagnostic queued; Colab epoch5 preserved
+
+Colab's original publisher has privately preserved epoch5 asDataset12765042;
+epochs1–5 are complete, with epoch6/terminal still pending. Six training epochs
+are already complete. Original consumer8603 remains live and unchanged.
+
+A new bounded readout diagnostic **1002912 is PENDING(Priority)** on ordinary
+physical-two-H100 evc27, after CPU1002911 admitted the exact original final model,
+inputs and fresh quota. It compares context-only versus density-corrected
+probabilities on128 label-blind selected **fitting** studies, with1H100/2CPU and
+a25minute cap. There has been no actual diagnostic forward or result yet.
+It changes no weights/inputs, transfers no model/cache, and makes no Kaggle
+mutation. Four focused local statistics/selection tests passed; these do not
+establish accuracy. [Source, purpose and actual dispatch](../initiative/research/predictive-readout-diagnostic-20261021-v1/README.md).
+
+The scored C100 result remains0.692 and best externalR6 remains0.958. Conditional
+ensembles remain held. Newton's two evc27 GPUs are currently assigned to other
+jobs; this diagnostic does not displace them. Colab's original publisher releases
+its A100 only after seven private proofs; no duplicate runtime or training is
+started. The16MiB diagnostic scope raises retained evc27 liabilities from518GiB
+plus176MiB to518GiB plus192MiB; fresh admitted free bytes were662,122,541,056.
+
 
 ## October21,19:31UTC — first C100 hidden score is0.692
 
