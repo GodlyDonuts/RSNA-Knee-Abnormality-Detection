@@ -74,3 +74,17 @@ Three further private checkpoint tests passed for successful independent downloa
 uncertain creation and mismatched downloaded bytes; neither failure can recreate
 the original Dataset. Total focused checks are24. The notebook cell was compiled
 and staged; actual training progress is not inferred from runtime allocation.
+
+**Actual Colab admission at11:03UTC:** This allocation is an A100-SXM4-40GB
+(42,405,855,232 CUDA-visible bytes), with207,507,820,544 free disk bytes.
+The first cell stopped at its unnecessary75GiB GPU guard before credential
+prompts, input creation or training. The numerical loop is unchanged; only
+the capacity guard now admits35GiB. Canonical CPU996503 rebound the same seven
+still-absent private namespaces, preserving the earlier lease in its receipt.
+Actual code commit5cfe5650 is bound by all six source hashes; the originally
+supplied `HEAD` label is resolved explicitly in
+`actual-A10040-checkpoint-lease.json`. The new control directory isv2; the
+failed v1 control remains untouched. The current cell has verified assets.tar
+and is downloading the original contexts. No optimizer update is claimed yet.
+A separate queued completion cell releases the paid runtime only after all six
+epochs and the terminal receipt are privately fully preserved.
