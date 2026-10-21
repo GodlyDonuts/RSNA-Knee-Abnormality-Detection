@@ -12,6 +12,21 @@ Updated **October21,2026,16:45UTC**. Read [current state](current-state.md) and 
 6. Large-study CPU140052135v1 and observer4458 completed: all7selected studies passed with bitwise-equal complete contexts. Four-core CPU140055931v1 also completed from b770860b/candidated20cfeda884e: warm preparation19.95%lower, image maxdifference1.1920928955078125e-7, other fields exact. Both original receipts/decisions are in their research directories. Never repeat either notebook. Keep the current frozen final consumers; two-thread preparation is a contingency requiring its own trained prediction comparison before deployment.
 7. Keep GitHub current. HF storage is exhausted; no new private source mirror or billing change is authorized by assumption. Preserve best0.958 baseline and resolve final two selections before deadline.
 
+Additional16:48UTC read-only outcome check is in
+`predictive-hidden-input-audit-20261021-v1/actual-hidden-outcomes-1648.json`:
+B/Cfailed,C0pending/unknown,two slots. CPU1000147 observer first rejected the
+actual `predictive_final_submitted` state because it expected `submitted`;
+original error is preserved. The corrected read-only authenticated local query
+made no ledger/account mutation. Do not confuse this with a model failure.
+
+Prepared four-core contingency:
+`predictive-thread-budget-serving-20261021-v1/`. Two focused tests/Ruff pass;
+no GPU/owner/notebook/entry dispatched. It adds one-thread input plus same-model
+FP32 references to its own required qualification, image tolerance1e-6 and
+FP32 probability tolerance1e-5, retaining original FP16/cross-device checks.
+Current consumers3332/3333 remain unchanged. Use only after explicit runtime and
+remaining-budget review; never silently replace a pushed candidate.
+
 ## Original live jobs and controllers
 
 | Work | Actual identity | State / dependency |

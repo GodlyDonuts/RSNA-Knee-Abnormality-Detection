@@ -44,6 +44,17 @@ The separate four-core CPU experiment140055931v1 also completed. Balanced warm p
 
 The apparently flat density loss is dominated by a fixed Gaussian normalization constant: at weight100,91.89385 of the reported92.50460 contributes zero gradient. At update1860 the nonconstant objective is about0.61075. This corrects interpretation; no loss or healthy recipe was changed, and loss scale is not clinical accuracy or a measure of gradient contribution. [Source-bound calculation](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-progress-1860-objective.json).
 
+The four-core contingency now has a separate implemented compiler layer and two
+passing focused tests. It retains original one-thread contexts for comparison
+against the same trained model and requires FP32 probability difference<=1e-5
+before deployment. No owner, model, notebook or account phase changed; actual
+trained acceptance remains outstanding. [Prepared contingency](../initiative/research/predictive-thread-budget-serving-20261021-v1/README.md).
+
+A fresh authenticated read at16:48UTC still found B/Cfailed, C0pending/unknown,
+and two slots. The original canonical rows were inspected read-only. A preceding
+CPU observer used the wrong ledger-state literal and stopped; this was an
+observer error, not a new training or submission failure. [Original receipt](../initiative/research/predictive-hidden-input-audit-20261021-v1/actual-hidden-outcomes-1648.json).
+
 ## Decisions and limitations
 
 - B directly classifies with a diagnosis-independent reconstruction objective; C predicts withheld MRI descriptors conditioned on diagnosis; C0 is the no-density-loss ablation. All inherited this branch's public CoAtNet encoder and train it after the first three head-only updates. The principal original comparisons were fixed epoch6 C−B/C−C0; hidden failures currently prevent those comparisons.
