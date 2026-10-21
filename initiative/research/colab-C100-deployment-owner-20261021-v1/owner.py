@@ -83,7 +83,9 @@ def observer_body(m, frozen_fit, jobs):
                 and row.get('model_files') == {model['model_filename']:model['model']})
     result['original_Newton_C100_submitted'] = submitted
 """
-    return m.replace(body, "    return result\n\n\nif __name__", extra + "\n    return result\n\n\nif __name__")
+    return m.replace(
+        body, "    return result\n\n\nif __name__", extra + "\n    return result\n\n\nif __name__"
+    )
 
 
 def configuration(m, o, observed, mode):

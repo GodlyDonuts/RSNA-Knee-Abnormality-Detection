@@ -149,3 +149,37 @@ def decode_output(encoded, contract):
     bundle = json.loads(raw)
     validate(bundle, contract)
     return bundle
+
+
+def from_saved_output(terminal, completion, own_source, contract):
+    """Recover exact original serialized metadata from existing notebook output.
+
+    The queued cell already prints all seven original publication proofs and
+    the trainer prints its terminal. Every reconstructed byte string must match
+    those original hashes; no new claim of checkpoint verification is made.
+    """
+    require(
+        completion["phase"] == "COLAB_FULL_RECOVERY_COMPLETE_PRIVATE_PRESERVED"
+        and completion["updates"] == 2916
+        and completion["epochs"] == 6
+        and completion["seed"] == 20261021
+        and completion["continuation"] == terminal["execution_continuation"],
+        "Actual original queued completion output required",
+    )
+    proofs = completion["publication_proofs"]
+    require(len(proofs) == 7, "Seven original printed publication proofs required")
+    evidence = dict(
+        binding_text=(canonical(terminal["binding"]) + b"\n").decode(),
+        terminal_text=(canonical(terminal) + b"\n").decode(),
+        epoch_publications=proofs[:6],
+        terminal_publication=proofs[6],
+        own_source_text=json.dumps(own_source, sort_keys=True),
+    )
+    bundle = dict(
+        schema=SCHEMA,
+        evidence=evidence,
+        evidence_sha256=sha(canonical(evidence)),
+        weights_or_pixels_included=False,
+    )
+    validate(bundle, contract)
+    return bundle

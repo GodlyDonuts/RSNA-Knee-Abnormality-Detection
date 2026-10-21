@@ -133,6 +133,26 @@ def test_readonly_collector_rejects_symlink(tmp_path):
         H.read_small(q)
 
 
+def test_existing_queued_output_reconstructs_only_exact_original_bytes(bundle):
+    evidence = bundle["evidence"]
+    terminal = json.loads(evidence["terminal_text"])
+    completion = dict(
+        phase="COLAB_FULL_RECOVERY_COMPLETE_PRIVATE_PRESERVED",
+        updates=2916,
+        epochs=6,
+        seed=20261021,
+        continuation=terminal["execution_continuation"],
+        publication_proofs=evidence["epoch_publications"] + [evidence["terminal_publication"]],
+    )
+    rebuilt = H.from_saved_output(
+        terminal, completion, json.loads(evidence["own_source_text"]), F.C
+    )
+    assert H.validate(rebuilt, F.C)["terminal_text"] == evidence["terminal_text"]
+    completion["publication_proofs"][6]["files"]["terminal.json.bin"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        H.from_saved_output(terminal, completion, json.loads(evidence["own_source_text"]), F.C)
+
+
 def test_adopt_is_an_exclusive_mutation_and_requires_actual_proof():
     _, b = OWNER.base()
     assert "adopt" in b.MUTATIONS and b.DEPLOY == OWNER.DEPLOY
