@@ -64,10 +64,10 @@ Private final Dataset12762386v1, actual qualification140062137v1 and public
 notebook140062846v1 bind the exact final model. Code entry57491555 was accepted
 once and scored 0.692, with no reported hidden execution error. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
 
-Independent Colab C100 runs on one A10040GB, seed20261021. Latest visible output
-is epoch6/update2,720, with finite gradients and actual encoder updates. It has
-256.6of the authorized300resource units remaining; its original training cell
-and queued publisher are intact. No subagents or Devin are active.
+Independent Colab C100 completed six epochs / 2,916 updates on one A10040GB,
+seed20261021. Its original queued publisher is preserving the remaining
+checkpoints after verifying epochs1–4; approximately251resource units remained
+at the latest displayed reading. No subagents or Devin are active.
 
 Pointwise, ranking and source-zero finals each scored0.948. Cross-teacher scored
 0.949. They do not improve the external0.958baseline. B/C hidden failures remain

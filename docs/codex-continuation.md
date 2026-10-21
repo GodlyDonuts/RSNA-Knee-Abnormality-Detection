@@ -26,6 +26,13 @@ publication. Next investigate the actual low score using the existing fixed
 model comparisons; do not imply dense coverage or another random seed is
 already an improvement. Best scored system remains R6 **0.958**.
 
+The original four-arm optimizer histories were compared read-only on CPU1002793.
+C100 had the lowest epoch6 fitting BCE (0.56426 versus B0.57551, C0.58385,
+C00.59866), despite its low competition score. These are training-trajectory
+averages, not held-out evidence or fixed-final predictions. They do not justify
+more training by loss alone or identify the root cause. No new labels, model
+forwards or GPU run were used. [Actual comparison and limitations](../initiative/research/predictive-score-regression-20261021-v1/README.md).
+
 ## October 21, 19:17 UTC — Colab training completed
 
 The original Colab A100 run **completed all six epochs and 2,916 updates on
