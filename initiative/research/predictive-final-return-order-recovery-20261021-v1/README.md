@@ -42,6 +42,4 @@ intent. CPU997049 independently found only the original intent and failed
 manifest, with22,743,916,544 bytes/5,003 files after all shared liabilities and
 256,043,753,472 bytes free on evc33. `original_sender` keeps historical B/C
 behavior and permits only this reconciled C0 fallback. The exact transport and
-scientific code are unchanged. Seventeen scoped tests/Ruff pass. Source-prefix
-inspection and the one corrected transfer remain to execute from this commit;
-no new training or private model upload is required.
+scientific code are unchanged. Seventeen scoped tests/Ruff pass. Source-prefix CPU997050 passed; corrected receiver997060 completed and all seven original objects passed independent size/SHA/EOF checks. The canonical C0 return is populated with explicit recovery provenance. [Actual recovered return](actual-C0-recovered-return.json). All three finals are returned; no training or model publication was repeated.

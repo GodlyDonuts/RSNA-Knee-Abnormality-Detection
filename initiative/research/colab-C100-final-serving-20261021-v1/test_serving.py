@@ -4,6 +4,7 @@ import ast
 import copy
 import importlib.util
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -150,6 +151,79 @@ def test_final_reuses_actual_private_dataset_and_honest_lineage(case):
     assert chosen["provenance"]["completed_updates"] == 2916
     assert "GPU_job" not in chosen["provenance"]
     assert chosen["branch"] == C.BRANCH
+
+
+def recovered(entry):
+    """Synthetic final publications with the actual, separately observed recovery."""
+    path = HERE.parent / "colab-C100-epoch1-recovery-20261021-v1/actual-resumed-progress.json"
+    recovery = json.loads(path.read_text())["admission"]
+    recovery.pop("phase")
+    recovery["original_ten_hour_deadline"] = (
+        datetime.fromisoformat(json.loads(entry["binding_text"])["started_UTC"]).timestamp()
+        + 36000
+    )
+    first = entry["epoch_publications"][0]
+    first.update(id=12756621, revision="Kaggle:12756621:v1")
+    first["files"]["full-state.private.pt.bin"]["sha256"] = C.RESUME_CHECKPOINT
+    source = HERE.parent / "colab-C100-epoch1-recovery-20261021-v1/resume.py"
+    assert C.digest(source.read_bytes()) == C.RESUME_CONTROL
+    for r in entry["epoch_publications"][1:]:
+        r["files"].update({
+            "resume-control.py.bin": fileproof(source.read_bytes()),
+            "continuation.json.bin": fileproof(C.canonical(recovery) + b"\n"),
+        })
+    terminal = json.loads(entry["terminal_text"])
+    terminal["execution_continuation"] = recovery
+    entry["terminal_text"] = encode(terminal)
+    entry["terminal_publication"]["files"]["terminal.json.bin"] = fileproof(
+        entry["terminal_text"].encode()
+    )
+    return recovery
+
+
+def test_recovery_final_retains_original_export_and_discloses_exact_continuation(case):
+    a, entry = case
+    original = a.candidate(**entry)
+    recovery = recovered(entry)
+    chosen = a.candidate(**entry)
+    assert chosen["execution_continuation"] == recovery
+    assert chosen["provenance"] == original["provenance"]
+    assert chosen["model"] == original["model"]
+    assert chosen["all_publications_sha256"] != original["all_publications_sha256"]
+    assert len(entry["epoch_publications"][0]["files"]) == 7
+    assert all(len(r["files"]) == 9 for r in entry["epoch_publications"][1:])
+
+
+@pytest.mark.parametrize("failure", [
+    "checkpoint", "source", "step", "first_epoch", "missing_source",
+    "different_continuation", "hidden_continuation", "first_epoch_changed",
+])
+def test_recovery_cannot_substitute_or_hide_execution(case, failure):
+    a, entry = case
+    recovered(entry)
+    t = json.loads(entry["terminal_text"])
+    if failure in ("checkpoint", "source", "step"):
+        field = {"checkpoint": "source_checkpoint_sha256", "source": "control_sha256",
+                 "step": "resume_update"}[failure]
+        t["execution_continuation"][field] = 480 if failure == "step" else "0" * 64
+    elif failure == "first_epoch":
+        entry["epoch_publications"][0]["files"]["full-state.private.pt.bin"]["sha256"] = "0" * 64
+    elif failure == "missing_source":
+        del entry["epoch_publications"][3]["files"]["resume-control.py.bin"]
+    elif failure == "different_continuation":
+        entry["epoch_publications"][4]["files"]["continuation.json.bin"]["sha256"] = "0" * 64
+    elif failure == "hidden_continuation":
+        del t["execution_continuation"]
+    else:
+        entry["epoch_publications"][0]["files"]["resume-control.py.bin"] = copy.deepcopy(
+            entry["epoch_publications"][1]["files"]["resume-control.py.bin"]
+        )
+    entry["terminal_text"] = encode(t)
+    entry["terminal_publication"]["files"]["terminal.json.bin"] = fileproof(
+        entry["terminal_text"].encode()
+    )
+    with pytest.raises(ValueError):
+        a.candidate(**entry)
 
 
 @pytest.mark.parametrize(

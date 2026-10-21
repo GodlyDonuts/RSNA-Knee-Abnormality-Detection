@@ -5,6 +5,7 @@ import json
 import math
 import re
 import types
+from datetime import datetime
 
 SCIENCE = "94a3921aefdf333624caf41aff77aa10b4a0c57e"
 BASE = "44cc559e947560a635c34fee7b1f2a3b7be3a241"
@@ -12,6 +13,8 @@ MANIFEST = "bce57e766fe4be00fb5ea41d9be7fd498f4296fbc033f663f68f50e0a2b3570b"
 ORIGINAL_BINDING = "f0d73e6cc04cbf7b34f06499f5aef4ba60ea2c593662764b8f64ec5105a289cd"
 BRANCH = "Colab-C100-seed20261021"
 ORIGINAL_CONTRACT = "ee830d60e578163524c9534064e07badca6e05fbd488df0029c2b6d53c5b1075"
+RESUME_CONTROL = "27b87a02e899fda775bb9985841b0354c614805bbdc6ea08ea92855cf6bfea0f"
+RESUME_CHECKPOINT = "43c1c75920bd31356f5fad96441e43bd1317eac504a3083613a33f89b6e49fdc"
 CODE = {
     "actual_colab_train.py": "15e17223c6eda06bf417df0fe8b64e2fd9729e8a5571ae012274974eb29267a3",
     "colab_storage.py": "0eb47a1edb2c73a113e57e43ccae0253311f08df9a11d1a1bd5a83bd2448c4a6",
@@ -87,6 +90,39 @@ def publication(v, key, names):
         sum(p["bytes"] for p in v["files"].values()) < 2 * 2**30,
         "Original private Dataset cap exceeded",
     )
+
+
+def execution_continuation(terminal, binding, first_publication):
+    """Accept only the executed epoch001 recovery, without inventing weight provenance."""
+    if "execution_continuation" not in terminal:
+        return None
+    original = "/content/rsna-independent-C100-20261021-v1/run-C100-seed20261021"
+    expected = dict(
+        status="exact_epoch001_resume_after_publication_observation_failure",
+        source_checkpoint_sha256=RESUME_CHECKPOINT,
+        resume_update=486,
+        discarded_unsaved_updates=[487, 488, 489],
+        original_updates_preserved=True,
+        original_run=original,
+        resumed_run=original + "-recovery-v1",
+        control_path="/content/rsna-colab-epoch001-recovery-20261021-v1/resume.py",
+        control_sha256=RESUME_CONTROL,
+        original_control_sha256=CODE["actual_colab_train.py"],
+        original_ten_hour_deadline=(
+            datetime.fromisoformat(binding["started_UTC"]).timestamp() + 36000
+        ),
+        initial_epoch_Dataset_id=12756621,
+        first_epoch_reuploaded=False,
+        numerical_functions_or_recipe_changed=False,
+    )
+    require(terminal["execution_continuation"] == expected, "Exact executed recovery required")
+    require(
+        first_publication["id"] == 12756621
+        and first_publication["files"]["full-state.private.pt.bin"]["sha256"]
+        == RESUME_CHECKPOINT,
+        "Recovery must use the original privately verified epoch001 checkpoint",
+    )
+    return expected
 
 
 class Contract:
@@ -165,6 +201,7 @@ class Contract:
             "Actual full six-epoch Colab terminal required",
         )
         require(len(epoch_publications) == 6, "Six ordered original epoch publications required")
+        continuation = execution_continuation(t, b, epoch_publications[0])
         names = {
             n + ".bin"
             for n in (
@@ -179,8 +216,16 @@ class Contract:
         }
         identities = []
         for epoch, receipt in enumerate(epoch_publications, 1):
-            publication(receipt, f"epoch-{epoch:03d}", names)
+            recovered = continuation is not None and epoch >= 2
+            recovery_names = {"resume-control.py.bin", "continuation.json.bin"} if recovered else set()
+            publication(receipt, f"epoch-{epoch:03d}", names | recovery_names)
             files = receipt["files"]
+            if recovered:
+                require(
+                    files["resume-control.py.bin"]["sha256"] == RESUME_CONTROL,
+                    "Published recovery source must equal the actually executed source",
+                )
+                matches(files["continuation.json.bin"], canonical(continuation) + b"\n")
             matches(files["run-start.json.bin"], binding_text.encode())
             matches(files["source-permission.txt.bin"], license_bytes)
             for name in ("colab_train.py", "colab_storage.py", "kaggle_io.py"):
@@ -223,6 +268,9 @@ class Contract:
                 canonical(epoch_publications + [terminal_publication])
             ),
             "module_sha256": dict(self.module_sha256),
+            # Model exports retain their original scientific binding. Execution
+            # recovery is disclosed separately and included in candidate identity.
+            **({"execution_continuation": continuation} if continuation is not None else {}),
         }
 
     def validate_export(self, export, expected, initialized):

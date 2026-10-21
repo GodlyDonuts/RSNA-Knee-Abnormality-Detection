@@ -43,3 +43,6 @@ is now implemented with11 scoped integration tests; actual final evidence
 collection and dispatch are still pending. No GPU notebook, competition entry or further upload was made by this
 implementation. The changed seed and A100/runtime mean this is not a strict
 single-variable comparison with Newton C100.
+
+
+The actual Colab process resumed original epoch001 after a publication-observation failure. The contract now validates the specific executed source27b87a02…, original checkpoint43c1c759…,486-update boundary, unchanged recipe, and explicit discarded unsaved updates487–489. Epoch1 retains seven original files; epochs2–6 require the two added recovery source/continuation objects. The candidate includes the execution receipt while keeping model-export scientific provenance unchanged. Canonical adoption downloads those two small files with the final serving objects, never recreates a Dataset, and does not redownload the full optimizer.49 scoped recovery/serving/account tests plus Ruff passed. The live numerical trainer was not changed; final data/qualification/score remain absent.

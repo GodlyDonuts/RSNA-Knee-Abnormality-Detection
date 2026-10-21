@@ -184,14 +184,20 @@ def adopt_environment(capsule, monkeypatch, fail_download=None):
     return cpu, v, db, lease, calls, downloads, prepared
 
 
-def test_actual_adoption_records_existing_ids_without_reupload(capsule, monkeypatch):
+@pytest.mark.parametrize("resumed", [False, True])
+def test_actual_adoption_records_existing_ids_without_reupload(capsule, monkeypatch, resumed):
+    if resumed:
+        FIX.recovered(capsule[2])
     cpu, v, db, _, calls, downloads, prepared = adopt_environment(capsule, monkeypatch)
     result = ADOPT.execute(cpu, v)
     assert result["id"] == 10006 and result["version"] == 1
     assert result["new_Dataset_uploads_or_GPU_or_entries"] == 0
     assert not result["full_optimizer_downloaded_again"]
     assert "full-state.private.pt.bin" not in {n for _, n in downloads}
-    assert len(downloads) == 7
+    assert len(downloads) == (9 if resumed else 7)
+    if resumed:
+        assert {"resume-control.py.bin", "continuation.json.bin"} <= {n for _, n in downloads}
+        assert prepared["models"][0]["execution_continuation"]["resume_update"] == 486
     assert set(calls) == {"IntrospectToken", "GetDatasetStatus"}
     ADOPT.require_adopted(cpu, Path(v["root"]), prepared, db)
     before = list(downloads)

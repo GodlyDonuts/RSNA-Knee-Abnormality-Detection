@@ -20,3 +20,6 @@ The finite owner ends by October22 noonUTC. Actual launch and successful private
 preservation must be recorded separately; this code alone is not publication.
 
 Actual continuation76338 started from25d31344. Its original C100 epoch1 publication completed successfully: all five objects privately re-downloaded/size/SHA verified at HF48776e64f8a9175565e208045568f36a766a6a31. The finite owner continues with the unchanged GPU995351. Eleven targeted continuation tests and Ruff passed.
+
+
+October21 12:55UTC: original GPU995351 remains RUNNING. Epoch2 is now fully five-object privately downloaded/size/SHA verified at HF7af232482d88d1231618afec0223d59f43da25f8; [exact receipt](actual-epoch002-preserved.json). Epoch1/2 must not be republished; owner76338 remains responsible for later epochs.
