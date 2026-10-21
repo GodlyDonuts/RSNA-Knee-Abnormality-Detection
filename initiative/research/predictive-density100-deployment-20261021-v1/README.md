@@ -35,7 +35,7 @@ final model; it cannot substitute pilot 981620 or an intermediate epoch.
 Use `run_once.py --help` for the original explicit phases: `stage`, `prepare`,
 `dataset`, `dataset-reconcile`, `compile`, `push`, `status`, `submit`, `outcome`.
 The modes are `qualification` and `C`; the latter remains internally architecture
-C but is externally distinguished as **C100**. There is no automatic owner or retry.
+C but is externally distinguished as **C100**. The separate [finite owner86015](../predictive-C100-deployment-owner-20261021-v1/README.md) now waits for the actual original final and drives these explicit phases. There is no automatic mutation retry.
 
 Create a private, token-free configuration only after reviewing original job
 995351 and its completed publication journal. Alongside the original deployment
