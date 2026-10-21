@@ -1,10 +1,15 @@
 # Separate full-cohort C100 objective experiment
 
-Prepared October 20, 2026. **No full C100 admission, GPU dispatch, checkpoint or
-accuracy result exists.** Original pilot981620 completed0:0 and its exact
-acceptance is collected. Root admitted the separate matched G100 engineering
-pilot; a full-C100 decision is still absent. The primary
-B/C/C0 owners remain unchanged.
+Updated October21 08:51UTC. **Full C100 GPU job995351 was submitted once and is PENDING (Priority)** on evc27. Original B/C/C0 training and deployment remain unchanged. The new run is six epochs/2,916 updates over all3,887 fitting studies, with C's density coefficient100; no full C100 checkpoint or accuracy result exists yet.
+
+The [explicit full-training decision](agent-full-training-recovery-decision-20261021.json) binds actual pilot981620 and the matched200-update C100 result from986011. It accepts Newton training/private preservation under the owner's renewed deadline instruction. It does **not** allocate additional Kaggle time or claim a held-out gain. Deployment requires actual free allowance after the primary3,360-second allocation, final preservation/return and trained runtime acceptance. Both evc27 GPUs were occupied at dispatch; this queued job cannot displace their users. Original eight-hour runtime and October22 04:00UTC completion deadline remain.
+
+- CPU admission995349: [exact receipt](actual-full-input-admission-20261021.json), no new MRI transfer/shared files, all original sources and quota liabilities retained.
+- GPU995351: [one dispatch](actual-full-GPU-dispatch-20261021.json), source `8f1e8f2bb9f2ded8a2e4a582718188b68639db8b`, binding `f0d73e6cc04cbf7b34f06499f5aef4ba60ea2c593662764b8f64ec5105a289cd`.
+- Private checkpoint owner67205: [finite original preservation owner](actual-preservation-owner-20261021.json), ending October22 noonUTC; no GPU retries.
+- Original admission995315 failed before any staging/model/optimizer execution. [Read-only reconciliation](actual-admission-readonly-reconciliation-20261021.json) and [exact failing path](actual-admission-path-reconciliation-20261021.json) identified completed pilot stdout/stderr permissions0644. [CPU995339](actual-pilot-log-permission-repair-20261021.json) changed only modes to0600, preserving bytes/inodes/sizes/mtimes, and the complete admission preflight passed. The distinct successful admission uses a separate local journal under `admission-after-permission-reconciliation-20261021`; the original failed intent/transport are preserved. The original decision's nominal08:49 timestamp is not execution evidence; the recovery decision and original Slurm times supply actual chronology.
+
+Never repeat admission, dispatch or an attempted publication. The original control source is unchanged; only the already terminal pilot log permissions were repaired.
 
 ## Why this experiment
 
@@ -47,7 +52,7 @@ It admits the exact original all-three-arm dispatch records and owned log paths.
 A lost dispatch reply is handled only through matching sealed-job reconciliation
 receipts, never another submission. Portable
 input admission must retain the baseline-plus-two-authoritative-files policy
-and the actual strict-decoder regression, plus the exact HTTP499 recovery decision and transport hashes in both the original control and its accepted proof map. Stale e9 or pre-correction C0 proofs fail. Original pilot981620, its binding, science44cc and the distinct unadmitted C100 output/funding scopes are unchanged. This retarget does not admit or launch the extra branch.
+and the actual strict-decoder regression, plus the exact HTTP499 recovery decision and transport hashes in both the original control and its accepted proof map. Stale e9 or pre-correction C0 proofs fail. Original pilot981620, its binding and science44cc remain unchanged. The separate original full-run admission and dispatch above now instantiate the C100 output/funding scopes.
 
 Private paths on evc27:
 
