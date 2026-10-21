@@ -53,3 +53,29 @@ CPU1002514 then pushed **140075914 v1 once**, private/offline/two T4, slug
 `godlydonuts/rsna-context96-fourcore-5cc94175a2f2`. Initial state RUNNING.
 No competition entry or Dataset creation. Original preparation/push receipts
 are `actual-prepare.json` and `actual-push.json`. Do not repeat either action.
+
+## Actual completed comparison, 19:08 UTC
+
+Original140075914v1 **COMPLETED** in136.09seconds. BothT4s used about1.45GB
+peak allocated GPU memory; host peak4.78GB. All non-image context fields were
+byte-identical. Maximum image difference1.1921e-7, trained FP32 difference
+1.7881e-7, trained FP16 difference2.41995e-5; all fixed tolerances passed.
+Four private paired prediction files were independently downloaded/hash checked
+and decoded on the owning CPU node, with every numerical difference replayed.
+
+The initial observer1002541 failed before reading these files because NumPy is
+absent from its lightweight management environment. Distinct status-only
+reconciliation1002565 used standard-library bounded NPY decoding, source4fa4fb4e.
+No GPU or notebook rerun, dependency installation, model or scientific edit.
+
+Candidate-first public timing projects to **21,642seconds/6.01hours** for
+1,300studies/two lanes, including600setup/1,800tail seconds. The maximum-study
+scenario is37,980seconds/10.55hours. These are three public examples, not hidden
+runtime acceptance or a controlled speed ratio. Old mean planning was9.44hours.
+The result makes this new candidate feasible under the mean scenario; it does
+not demonstrate an accuracy improvement or establish the old hash discrepancy's
+cause. Original140068692 remains held.
+
+At19:07UTC the account had2,423.82free GPU-VMseconds, four entries today and one
+slot. Preserve the original Colab1,920seconds/last-slot allocation. No new dense
+entry is made. Read `actual-complete.json` and `agent-decision.json`.

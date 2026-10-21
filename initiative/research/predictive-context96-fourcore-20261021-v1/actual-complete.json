@@ -1,0 +1,395 @@
+{
+  "status": "COMPLETE",
+  "slug": "godlydonuts/rsna-context96-fourcore-5cc94175a2f2",
+  "version": 1,
+  "kernel_id": 140075914,
+  "source_sha256": "5cc94175a2f2f3c3d5d0814201dda7fa154dbdc01e861c95bd999254a537571e",
+  "competition_entry": false,
+  "new_Dataset": false,
+  "CPU_job": "1002565",
+  "receipt": {
+    "CSV_bytes": 1021,
+    "CSV_sha256": "1f7245f4ca7ac1f5a3960dc0e33fdb473904ae79956d62b696a2c47f920a4003",
+    "GPU_names": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "actual_test_studies": 3,
+    "clinical_score": null,
+    "competition_entry": false,
+    "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+    "elapsed_seconds": 136.093825627,
+    "hidden_runtime_acceptance": false,
+    "inference_context_cap": 96,
+    "mode": "competition",
+    "model_dataset_ref": "godlydonuts/rsna-predictive-c100-final-3d49d387375a",
+    "models": [
+      {
+        "FP16_FP32_tolerance": 0.005,
+        "arm": "C",
+        "candidate_sha256": "6fad927a7c4500278a5d51ad9658170daa849ccde7a36b19f12a3f97a4c10306",
+        "cross_device_FP16_gap": 5.960464477539063e-08,
+        "cross_device_FP16_tolerance": 0.0001,
+        "device_peak_bytes": [
+          1452758528,
+          1452759552
+        ],
+        "host_peak_bytes": 4777984000,
+        "illustrative_runtime_seconds": {
+          "1000": {
+            "one_lane_max_times_1_5": 82209.52004221398,
+            "two_lane_mean_estimate": 14903.151931380671
+          },
+          "3887": {
+            "one_lane_max_times_1_5": 319255.2774069364,
+            "two_lane_mean_estimate": 57635.42456012735
+          },
+          "5000": {
+            "one_lane_max_times_1_5": 410641.4665122139,
+            "two_lane_mean_estimate": 74109.62595804736
+          }
+        },
+        "inference_wall_seconds": 34.293692969999995,
+        "measurements": [
+          {
+            "FP16_seconds": 5.887734163999994,
+            "FP32_seconds": 12.991992477999986,
+            "bits_stored_counts": {
+              "12": 284
+            },
+            "candidate_prepared_before_reference": true,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": false,
+            "decode_seconds": 43.26364712,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 0,
+            "dicoms": 284,
+            "duplicate_frames": 0,
+            "geometry_frames": 284,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 5,
+            "matrix_shapes": [
+              [
+                960,
+                960
+              ],
+              [
+                800,
+                800
+              ],
+              [
+                896,
+                896
+              ],
+              [
+                640,
+                640
+              ],
+              [
+                640,
+                1280
+              ]
+            ],
+            "maximum_probability_gap": 0.0001023411750793457,
+            "original_context_bitwise_equal": null,
+            "original_render_comparison_seconds": null,
+            "original_source_order_supplied": false,
+            "paired_prediction_file": "thread-paired-study-0-gpu-0.npz",
+            "paired_prediction_file_bytes": 1254,
+            "paired_prediction_file_sha256": "0447c5069b19d165e970f57107189a426ad20e094531fa9e18ee5891e63d3f97",
+            "photometric_counts": {
+              "MONOCHROME2": 284
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "regions": 4544,
+            "render_seconds": 5.587276460999988,
+            "series": 5,
+            "signed_frames": 0,
+            "source_bytes": 436378362,
+            "study_index": 0,
+            "thread1_reference_context_bitwise_equal": false,
+            "thread1_reference_image_max_absolute_difference": 1.1920928955078125e-07,
+            "thread1_reference_other_fields_exact": true,
+            "thread_FP16_probability_gap": 5.602836608886719e-06,
+            "thread_FP32_probability_gap": 5.960464477539063e-08,
+            "thread_reference_count": 1,
+            "threads_per_lane": 2,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 284,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 2.145949786000017,
+            "FP32_seconds": 13.250798115999999,
+            "bits_stored_counts": {
+              "16": 138
+            },
+            "candidate_prepared_before_reference": true,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": false,
+            "decode_seconds": 10.256244815999992,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 0,
+            "dicoms": 138,
+            "duplicate_frames": 0,
+            "geometry_frames": 138,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 1,
+            "matrix_shapes": [
+              [
+                512,
+                512
+              ]
+            ],
+            "maximum_probability_gap": 4.312396049499512e-05,
+            "original_context_bitwise_equal": null,
+            "original_render_comparison_seconds": null,
+            "original_source_order_supplied": false,
+            "paired_prediction_file": "thread-paired-study-2-gpu-0.npz",
+            "paired_prediction_file_bytes": 1254,
+            "paired_prediction_file_sha256": "c4ebe963fca489a27c9f6fafcd7cbd13dc84672dfbe0567015360749085edb66",
+            "photometric_counts": {
+              "MONOCHROME2": 138
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "regions": 2208,
+            "render_seconds": 1.5646801209999808,
+            "series": 5,
+            "signed_frames": 138,
+            "source_bytes": 72556336,
+            "study_index": 2,
+            "thread1_reference_context_bitwise_equal": false,
+            "thread1_reference_image_max_absolute_difference": 1.1920928955078125e-07,
+            "thread1_reference_other_fields_exact": true,
+            "thread_FP16_probability_gap": 2.4199485778808594e-05,
+            "thread_FP32_probability_gap": 1.7881393432617188e-07,
+            "thread_reference_count": 1,
+            "threads_per_lane": 2,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 138,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 5.861852834000047,
+            "FP32_seconds": 12.632984220000026,
+            "bits_stored_counts": {
+              "16": 135
+            },
+            "candidate_prepared_before_reference": true,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": false,
+            "decode_seconds": 12.632908536000002,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 1,
+            "dicoms": 135,
+            "duplicate_frames": 0,
+            "geometry_frames": 135,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 4,
+            "matrix_shapes": [
+              [
+                640,
+                640
+              ],
+              [
+                512,
+                512
+              ],
+              [
+                672,
+                672
+              ],
+              [
+                640,
+                512
+              ]
+            ],
+            "maximum_probability_gap": 9.644031524658203e-05,
+            "original_context_bitwise_equal": null,
+            "original_render_comparison_seconds": null,
+            "original_source_order_supplied": false,
+            "paired_prediction_file": "thread-paired-study-1-gpu-1.npz",
+            "paired_prediction_file_bytes": 1254,
+            "paired_prediction_file_sha256": "0e3dacd697e6e7a2025c6f91127fbf6c576b033becdf0501849e717344e34e8c",
+            "photometric_counts": {
+              "MONOCHROME2": 135
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "regions": 2160,
+            "render_seconds": 1.609417202000003,
+            "series": 5,
+            "signed_frames": 135,
+            "source_bytes": 91028286,
+            "study_index": 1,
+            "thread1_reference_context_bitwise_equal": false,
+            "thread1_reference_image_max_absolute_difference": 1.1920928955078125e-07,
+            "thread1_reference_other_fields_exact": true,
+            "thread_FP16_probability_gap": 1.8835067749023438e-05,
+            "thread_FP32_probability_gap": 5.960464477539063e-08,
+            "thread_reference_count": 1,
+            "threads_per_lane": 2,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 135,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 2.1183421650000014,
+            "FP32_seconds": 12.934080039000037,
+            "bits_stored_counts": {
+              "12": 284
+            },
+            "candidate_prepared_before_reference": true,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": false,
+            "decode_seconds": 43.26364712,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 1,
+            "dicoms": 284,
+            "duplicate_frames": 0,
+            "geometry_frames": 284,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 5,
+            "matrix_shapes": [
+              [
+                960,
+                960
+              ],
+              [
+                800,
+                800
+              ],
+              [
+                896,
+                896
+              ],
+              [
+                640,
+                640
+              ],
+              [
+                640,
+                1280
+              ]
+            ],
+            "maximum_probability_gap": 0.00010228157043457031,
+            "original_context_bitwise_equal": null,
+            "original_render_comparison_seconds": null,
+            "original_source_order_supplied": false,
+            "paired_prediction_file": "thread-paired-study-0-gpu-1.npz",
+            "paired_prediction_file_bytes": 1254,
+            "paired_prediction_file_sha256": "2c1b3f10a6950622d8ec69187d80e5223d2ef406a3507f35138f3733135b369b",
+            "photometric_counts": {
+              "MONOCHROME2": 284
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "regions": 4544,
+            "render_seconds": 5.587276460999988,
+            "series": 5,
+            "signed_frames": 0,
+            "source_bytes": 436378362,
+            "study_index": 0,
+            "thread1_reference_context_bitwise_equal": false,
+            "thread1_reference_image_max_absolute_difference": 1.1920928955078125e-07,
+            "thread1_reference_other_fields_exact": true,
+            "thread_FP16_probability_gap": 5.662441253662109e-06,
+            "thread_FP32_probability_gap": 5.960464477539063e-08,
+            "thread_reference_count": 1,
+            "threads_per_lane": 2,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 284,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          }
+        ],
+        "memory_accepted": true,
+        "precision_accepted": true,
+        "prediction_sha256": "b4d759f12130df1bc24a916207c997f4f0e433bedaa875f5dec4d1943bb855c1",
+        "runtime_estimate_is_not_hidden_size_acceptance": true,
+        "trained_export_sha256": "e606d974f4aa8bcc2a4e07375353e41f1e4d31d7151f7d223380624c8116d8d6"
+      }
+    ],
+    "pinned_Docker": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+    "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+    "public_studies": 3,
+    "public_watchdog_seconds": 480,
+    "public_watchdog_started": true,
+    "pydicom": "3.0.2",
+    "serving_contract_sha256": "c91e85ff23f3648f77af53d079acabdf406a9ed4efb5eab148dbf8bc1fa40a08",
+    "serving_helpers_sha256": {
+      "_predictive_descriptor_cache.py": "db1639c38574087f1aebda1097b31c203d3b3469444a374db4fa13c85ecdcfff",
+      "_predictive_serving_mounts.py": "f2a302499720bb3a439f40f174d334588d69aa1333e750ea672aff3f6516462d"
+    },
+    "serving_resilience_version": "exact_first_MRI_FP32_recovery_v1",
+    "serving_worker_sha256": "fd618c2d819a31fc602fec0479ca673a9610c82c18a3c7d14607c17e9d7c223d",
+    "status": "actual_fourcore_fixed96_public_comparison_complete",
+    "submission_csv_absent": false,
+    "test_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+    "thread_comparison_version": "fixed96_fourcore_direct_thread_reference_v1",
+    "threads_per_lane": 2,
+    "timm": "1.0.29",
+    "torch": "2.11.0+cu128",
+    "training_context_cap": 24,
+    "public_CSV_verification": {
+      "status": "versioned_public_CSV_verified_in_RAM",
+      "studies": 3,
+      "columns": 13,
+      "bytes": 1021,
+      "CSV_sha256": "1f7245f4ca7ac1f5a3960dc0e33fdb473904ae79956d62b696a2c47f920a4003",
+      "test_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+      "individual_records_exported": false,
+      "clinical_or_hidden_score_inferred": false
+    },
+    "private_paired_objects_verified": [
+      {
+        "file": "thread-paired-study-0-gpu-0.npz",
+        "bytes": 1254,
+        "sha256": "0447c5069b19d165e970f57107189a426ad20e094531fa9e18ee5891e63d3f97",
+        "independent_array_comparison": true
+      },
+      {
+        "file": "thread-paired-study-2-gpu-0.npz",
+        "bytes": 1254,
+        "sha256": "c4ebe963fca489a27c9f6fafcd7cbd13dc84672dfbe0567015360749085edb66",
+        "independent_array_comparison": true
+      },
+      {
+        "file": "thread-paired-study-1-gpu-1.npz",
+        "bytes": 1254,
+        "sha256": "0e3dacd697e6e7a2025c6f91127fbf6c576b033becdf0501849e717344e34e8c",
+        "independent_array_comparison": true
+      },
+      {
+        "file": "thread-paired-study-0-gpu-1.npz",
+        "bytes": 1254,
+        "sha256": "2c1b3f10a6950622d8ec69187d80e5223d2ef406a3507f35138f3733135b369b",
+        "independent_array_comparison": true
+      }
+    ],
+    "runtime_planning": {
+      "studies_assumed": 1300,
+      "lanes": 2,
+      "setup_seconds": 600,
+      "tail_seconds": 1800,
+      "mean_scenario_seconds": 21642.10405866667,
+      "max_scenario_seconds": 37980.12753424999,
+      "mean_below_9_hours": true,
+      "hidden_runtime_guaranteed": false
+    },
+    "raw_predictions_exported": false
+  }
+}

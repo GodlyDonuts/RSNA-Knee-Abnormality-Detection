@@ -1,8 +1,8 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 19:01 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 19:08 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
 
-## October 21, 19:01 UTC — Colab training completed
+## October 21, 19:08 UTC — Colab training completed
 
 The original Colab A100 run **completed all six epochs and 2,916 updates on
 3,887 fitting studies**. All six immutable checkpoints are saved locally.
@@ -16,13 +16,16 @@ Newton C100 entry **57491555** still has null hidden status/score in its origina
 consumer observation. Best actual R6 remains **0.958**. No predictive accuracy
 improvement is established. Original consumers8547/8603 remain live.
 
-A distinct four-core dense96 comparison, **140075914 v1**, was pushed once and
-is RUNNING. It compares exact original one-thread preparation against two
-threads per GPU lane, using the same final C100 model and retaining paired
-prediction arrays privately. The candidate is measured first, before the warm
-reference pass. Its480-second public watchdog plus120startup protects Colab's
-1,920-second allocation. No competition slot was spent. The older dense96
-version remains held; no explanation for its exact hash discrepancy is invented.
+The distinct four-core dense96 comparison **140075914v1 COMPLETED** in136.09seconds.
+Original/reference trained predictions differ by at most2.41995e-5 inFP16 and
+1.7881e-7 inFP32; all other context fields are exact. CPU1002565 independently
+verified four saved paired arrays, correcting an observer-only missing-NumPy
+failure without rerunning the GPU. Candidate-first public timing projects to
+6.01hours for1,300studies/two lanes withsetup/tail; maximum-study scenario10.55hours.
+This is useful deployment evidence, not hidden-runtime acceptance or accuracy.
+Old dense140068692 remains held. No competition slot was spent. Fresh19:07quota
+is2,423.82GPU-VMseconds/four entries today/one slot; preserve Colab's1,920seconds
+and last daily slot. The exact old prediction-hash discrepancy remains unexplained.
 [Source and actual dispatch](../initiative/research/predictive-context96-fourcore-20261021-v1/README.md).
 
 The conditional C100+completeR6 source remains prepared only, pending C100's
