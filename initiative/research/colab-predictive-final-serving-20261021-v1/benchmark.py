@@ -145,6 +145,20 @@ def main(config, hf_token, kaggle_token):
                 members.append((f['relativeUrl'], int(f['totalBytes'])))
     assert 0 < len(members) < 10000 and len(set(n for n,_ in members)) == len(members)
     assert sum(n for _,n in members) < 2*2**30
+    public_roster_count=len(uids)
+    if config.get('use_complete_existing_studies_only'):
+        complete=[]
+        for uid in uids:
+            original=[(n,b) for n,b in members if PurePosixPath(n).parts[1]==uid]
+            if original and all((ROOT/'public'/n).is_file() and not (ROOT/'public'/n).is_symlink()
+                                and (ROOT/'public'/n).stat().st_size==b for n,b in original):
+                complete.append(uid)
+        assert complete, 'No complete public study is available'
+        uids=complete
+        members=[(n,b) for n,b in members if PurePosixPath(n).parts[1] in uids]
+        emit('complete_existing_studies_selected',original_public_studies=public_roster_count,
+             complete_studies=len(uids),omitted_incomplete_studies=public_roster_count-len(uids),
+             additional_DownloadDataFile_requests=0,selection_uses_labels_or_predictions=False)
     with ThreadPoolExecutor(max_workers=4) as pool:
         proofs=[]
         for proof in pool.map(lambda row: download(*row), members):
@@ -152,7 +166,7 @@ def main(config, hf_token, kaggle_token):
             if len(proofs) % 100 == 0:
                 emit('public_download_progress',files=len(proofs),total_files=len(members))
     (ROOT/'public-inputs.private.json').write_text(json.dumps(proofs,sort_keys=True))
-    emit('complete_public_MRI_downloaded', studies=3, DICOM_files=len(proofs),
+    emit('complete_public_MRI_downloaded', studies=len(uids), DICOM_files=len(proofs),
          bytes=sum(p['bytes'] for p in proofs))
 
     api=HfApi(token=hf_token)
@@ -255,7 +269,7 @@ def main(config, hf_token, kaggle_token):
         del model,base;gc.collect();torch.cuda.empty_cache()
     result={'status':'actual_single_T4_final_B_C_public_MRI_diagnostic_complete','source_git':config['source_git'],
         'models':outcomes,'GPU':'single Tesla T4','torch':torch.__version__,'timm':timm.__version__,
-        'studies':3,'elapsed_seconds':time.monotonic()-START,'public_input_manifest_sha256':sha(ROOT/'public-inputs.private.json'),
+        'studies':len(uids),'original_public_roster_count':public_roster_count,'elapsed_seconds':time.monotonic()-START,'public_input_manifest_sha256':sha(ROOT/'public-inputs.private.json'),
         'two_T4_offline_Kaggle_acceptance':False,'clinical_accuracy_or_score':False,
         'cloud_uploads_or_Kaggle_mutations':0,'training_updates':0}
     (ROOT/'result.json').write_text(json.dumps(result,sort_keys=True,allow_nan=False))
