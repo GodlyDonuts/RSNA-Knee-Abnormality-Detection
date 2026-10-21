@@ -15,6 +15,8 @@ BRANCH = "Colab-C100-seed20261021"
 ORIGINAL_CONTRACT = "ee830d60e578163524c9534064e07badca6e05fbd488df0029c2b6d53c5b1075"
 RESUME_CONTROL = "27b87a02e899fda775bb9985841b0354c614805bbdc6ea08ea92855cf6bfea0f"
 RESUME_CHECKPOINT = "43c1c75920bd31356f5fad96441e43bd1317eac504a3083613a33f89b6e49fdc"
+RESUME2_CONTROL = "9576fb26cea626754bc7cc4d94be0c25e0b545d41bf3ef428066a6b7d6f0eb28"
+RESUME2_CHECKPOINT = "0fab361de8da414968391b8f7a596190d68cb1e2966e72e96429bcc8b5dae516"
 CODE = {
     "actual_colab_train.py": "15e17223c6eda06bf417df0fe8b64e2fd9729e8a5571ae012274974eb29267a3",
     "colab_storage.py": "0eb47a1edb2c73a113e57e43ccae0253311f08df9a11d1a1bd5a83bd2448c4a6",
@@ -97,6 +99,35 @@ def execution_continuation(terminal, binding, first_publication):
     if "execution_continuation" not in terminal:
         return None
     original = "/content/rsna-independent-C100-20261021-v1/run-C100-seed20261021"
+    actual = terminal["execution_continuation"]
+    if actual.get("status") == "exact_epoch002_resume_with_network_independent_local_preservation":
+        prior = actual["previous_continuation"]
+        require(
+            prior.get("status") == "exact_epoch001_resume_after_publication_observation_failure",
+            "One exact prior recovery",
+        )
+        execution_continuation({"execution_continuation": prior}, binding, first_publication)
+        expected2 = dict(
+            status="exact_epoch002_resume_with_network_independent_local_preservation",
+            source_checkpoint_sha256=RESUME2_CHECKPOINT,
+            resume_update=972,
+            discarded_logged_unsaved_updates=[973, 974, 975],
+            possible_unlogged_update_replayed=976,
+            original_run=original,
+            prior_run=original + "-recovery-v1",
+            resumed_run=original + "-recovery-v2",
+            control_path="/content/rsna-colab-epoch002-recovery-20261021-v1/resume.py",
+            control_sha256=RESUME2_CONTROL,
+            previous_recovery_sha256=RESUME_CONTROL,
+            previous_continuation=prior,
+            original_control_sha256=CODE["actual_colab_train.py"],
+            original_ten_hour_deadline=prior["original_ten_hour_deadline"],
+            new_account_mutations=0,
+            remote_publication_deferred=True,
+            numerical_functions_or_recipe_changed=False,
+        )
+        require(actual == expected2, "Exact executed epoch002 recovery required")
+        return actual
     expected = dict(
         status="exact_epoch001_resume_after_publication_observation_failure",
         source_checkpoint_sha256=RESUME_CHECKPOINT,
@@ -118,11 +149,34 @@ def execution_continuation(terminal, binding, first_publication):
     require(terminal["execution_continuation"] == expected, "Exact executed recovery required")
     require(
         first_publication["id"] == 12756621
-        and first_publication["files"]["full-state.private.pt.bin"]["sha256"]
-        == RESUME_CHECKPOINT,
+        and first_publication["files"]["full-state.private.pt.bin"]["sha256"] == RESUME_CHECKPOINT,
         "Recovery must use the original privately verified epoch001 checkpoint",
     )
     return expected
+
+
+def terminal_storage_state(terminal):
+    return terminal.get("all_epochs_private_verified") is True or (
+        terminal.get("all_epochs_private_verified") is False
+        and terminal.get("all_epochs_local_immutable") is True
+        and terminal.get("execution_continuation", {}).get("control_sha256") == RESUME2_CONTROL
+    )
+
+
+def epoch_continuation(continuation, epoch):
+    if continuation is None or epoch == 1:
+        return None
+    if continuation.get("control_sha256") == RESUME2_CONTROL and epoch == 2:
+        return continuation["previous_continuation"]
+    return continuation
+
+
+def recovery_checkpoint_binding(continuation, publications):
+    if continuation and continuation.get("control_sha256") == RESUME2_CONTROL:
+        require(
+            publications[1]["files"]["full-state.private.pt.bin"]["sha256"] == RESUME2_CHECKPOINT,
+            "Recovered epoch002 must have actual independent private byte proof",
+        )
 
 
 class Contract:
@@ -194,7 +248,7 @@ class Contract:
             and t["binding"] == b
             and t["updates"] == 2916
             and t["epochs"] == 6
-            and t["all_epochs_private_verified"] is True
+            and terminal_storage_state(t)
             and t["clinical_or_Kaggle_score"] is None
             and math.isfinite(t["elapsed_seconds"])
             and t["elapsed_seconds"] > 0,
@@ -202,6 +256,7 @@ class Contract:
         )
         require(len(epoch_publications) == 6, "Six ordered original epoch publications required")
         continuation = execution_continuation(t, b, epoch_publications[0])
+        recovery_checkpoint_binding(continuation, epoch_publications)
         names = {
             n + ".bin"
             for n in (
@@ -216,16 +271,19 @@ class Contract:
         }
         identities = []
         for epoch, receipt in enumerate(epoch_publications, 1):
-            recovered = continuation is not None and epoch >= 2
-            recovery_names = {"resume-control.py.bin", "continuation.json.bin"} if recovered else set()
+            executed = epoch_continuation(continuation, epoch)
+            recovered = executed is not None
+            recovery_names = (
+                {"resume-control.py.bin", "continuation.json.bin"} if recovered else set()
+            )
             publication(receipt, f"epoch-{epoch:03d}", names | recovery_names)
             files = receipt["files"]
             if recovered:
                 require(
-                    files["resume-control.py.bin"]["sha256"] == RESUME_CONTROL,
+                    files["resume-control.py.bin"]["sha256"] == executed["control_sha256"],
                     "Published recovery source must equal the actually executed source",
                 )
-                matches(files["continuation.json.bin"], canonical(continuation) + b"\n")
+                matches(files["continuation.json.bin"], canonical(executed) + b"\n")
             matches(files["run-start.json.bin"], binding_text.encode())
             matches(files["source-permission.txt.bin"], license_bytes)
             for name in ("colab_train.py", "colab_storage.py", "kaggle_io.py"):

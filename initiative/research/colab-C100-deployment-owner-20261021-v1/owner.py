@@ -13,7 +13,7 @@ ROOT = HERE.parents[2]
 DEPLOY = HERE.parent / "colab-C100-deployment-20261021-v1"
 C100 = HERE.parent / "predictive-C100-deployment-owner-20261021-v1"
 PIN = "7bd57083f0aab360dddca0d3087f8a559f3fa82b"
-JOURNAL = ROOT / "artifacts" / HERE.name
+JOURNAL = ROOT / "artifacts" / HERE.name / "epoch2-successor"
 
 
 def load(body, path, name):

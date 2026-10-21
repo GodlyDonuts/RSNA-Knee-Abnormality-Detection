@@ -159,8 +159,7 @@ def recovered(entry):
     recovery = json.loads(path.read_text())["admission"]
     recovery.pop("phase")
     recovery["original_ten_hour_deadline"] = (
-        datetime.fromisoformat(json.loads(entry["binding_text"])["started_UTC"]).timestamp()
-        + 36000
+        datetime.fromisoformat(json.loads(entry["binding_text"])["started_UTC"]).timestamp() + 36000
     )
     first = entry["epoch_publications"][0]
     first.update(id=12756621, revision="Kaggle:12756621:v1")
@@ -168,10 +167,12 @@ def recovered(entry):
     source = HERE.parent / "colab-C100-epoch1-recovery-20261021-v1/resume.py"
     assert C.digest(source.read_bytes()) == C.RESUME_CONTROL
     for r in entry["epoch_publications"][1:]:
-        r["files"].update({
-            "resume-control.py.bin": fileproof(source.read_bytes()),
-            "continuation.json.bin": fileproof(C.canonical(recovery) + b"\n"),
-        })
+        r["files"].update(
+            {
+                "resume-control.py.bin": fileproof(source.read_bytes()),
+                "continuation.json.bin": fileproof(C.canonical(recovery) + b"\n"),
+            }
+        )
     terminal = json.loads(entry["terminal_text"])
     terminal["execution_continuation"] = recovery
     entry["terminal_text"] = encode(terminal)
@@ -194,17 +195,74 @@ def test_recovery_final_retains_original_export_and_discloses_exact_continuation
     assert all(len(r["files"]) == 9 for r in entry["epoch_publications"][1:])
 
 
-@pytest.mark.parametrize("failure", [
-    "checkpoint", "source", "step", "first_epoch", "missing_source",
-    "different_continuation", "hidden_continuation", "first_epoch_changed",
-])
+def recovered2(entry):
+    prior = recovered(entry)
+    path = HERE.parent / "colab-C100-epoch2-recovery-20261021-v1/actual-resumed-progress.json"
+    recovery = json.loads(path.read_text())["admission"]
+    recovery.pop("phase")
+    recovery["previous_continuation"] = prior
+    recovery["original_ten_hour_deadline"] = prior["original_ten_hour_deadline"]
+    source = HERE.parent / "colab-C100-epoch2-recovery-20261021-v1/resume.py"
+    assert C.digest(source.read_bytes()) == C.RESUME2_CONTROL
+    entry["epoch_publications"][1]["files"]["full-state.private.pt.bin"]["sha256"] = (
+        C.RESUME2_CHECKPOINT
+    )
+    for r in entry["epoch_publications"][2:]:
+        r["files"]["resume-control.py.bin"] = fileproof(source.read_bytes())
+        r["files"]["continuation.json.bin"] = fileproof(C.canonical(recovery) + b"\n")
+    t = json.loads(entry["terminal_text"])
+    t["execution_continuation"] = recovery
+    t["all_epochs_private_verified"] = False
+    t["all_epochs_local_immutable"] = True
+    entry["terminal_text"] = encode(t)
+    entry["terminal_publication"]["files"]["terminal.json.bin"] = fileproof(
+        entry["terminal_text"].encode()
+    )
+    return recovery
+
+
+def test_epoch2_recovery_requires_every_later_actual_private_proof(case):
+    a, entry = case
+    recovery = recovered2(entry)
+    chosen = a.candidate(**entry)
+    assert chosen["execution_continuation"] == recovery
+    assert chosen["provenance"]["completed_updates"] == 2916
+    for epoch in (1, 2, 5):
+        bad = copy.deepcopy(entry)
+        bad["epoch_publications"][epoch]["status"] = (
+            "local_immutable_checkpoint_ready_publication_pending"
+        )
+        with pytest.raises(ValueError):
+            a.candidate(**bad)
+    bad = copy.deepcopy(entry)
+    bad["epoch_publications"][1]["files"]["full-state.private.pt.bin"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        a.candidate(**bad)
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "checkpoint",
+        "source",
+        "step",
+        "first_epoch",
+        "missing_source",
+        "different_continuation",
+        "hidden_continuation",
+        "first_epoch_changed",
+    ],
+)
 def test_recovery_cannot_substitute_or_hide_execution(case, failure):
     a, entry = case
     recovered(entry)
     t = json.loads(entry["terminal_text"])
     if failure in ("checkpoint", "source", "step"):
-        field = {"checkpoint": "source_checkpoint_sha256", "source": "control_sha256",
-                 "step": "resume_update"}[failure]
+        field = {
+            "checkpoint": "source_checkpoint_sha256",
+            "source": "control_sha256",
+            "step": "resume_update",
+        }[failure]
         t["execution_continuation"][field] = 480 if failure == "step" else "0" * 64
     elif failure == "first_epoch":
         entry["epoch_publications"][0]["files"]["full-state.private.pt.bin"]["sha256"] = "0" * 64

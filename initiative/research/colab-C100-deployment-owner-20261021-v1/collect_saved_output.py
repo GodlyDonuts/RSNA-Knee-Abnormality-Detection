@@ -46,7 +46,7 @@ def main():
         h.require(h.sha(raw) == digest, "Actual own numerical source differs")
         own[name] = raw.decode()
     bundle = h.from_saved_output(observed["terminal"], observed["completion"], own, c)
-    destination = ROOT / "artifacts" / HERE.name / h.FILENAME
+    destination = ROOT / "artifacts" / HERE.name / "epoch2-successor" / h.FILENAME
     destination.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
     # Atomic visibility to the waiting owner; never replace or repeat delivery.
     temporary = destination.with_suffix(".writing")

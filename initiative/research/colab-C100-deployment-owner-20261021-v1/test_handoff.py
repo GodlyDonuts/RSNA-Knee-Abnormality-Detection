@@ -37,10 +37,15 @@ def bundle():
     )
 
 
-def test_full_original_collection_and_compressed_roundtrip(bundle, tmp_path):
+@pytest.mark.parametrize("second", [False, True])
+def test_full_original_collection_and_compressed_roundtrip(bundle, tmp_path, second):
     e = bundle["evidence"]
+    if second:
+        F.recovered2(e)
     old = tmp_path / "run-C100-seed20261021"
-    run = tmp_path / "run-C100-seed20261021-recovery-v1"
+    run = tmp_path / (
+        "run-C100-seed20261021-recovery-v2" if second else "run-C100-seed20261021-recovery-v1"
+    )
 
     def put(path, text):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -54,7 +59,12 @@ def test_full_original_collection_and_compressed_roundtrip(bundle, tmp_path):
     put(run / "terminal.json", e["terminal_text"])
     put(run / "terminal-publication/verified.json", json.dumps(e["terminal_publication"]))
     for i in range(2, 7):
-        put(run / f"publication-{i:03d}/verified.json", json.dumps(e["epoch_publications"][i - 1]))
+        name = (
+            "publication-network-002/verified.json"
+            if i == 2 and second
+            else f"publication-{i:03d}/verified.json"
+        )
+        put(run / name, json.dumps(e["epoch_publications"][i - 1]))
     for name, body in json.loads(e["own_source_text"]).items():
         put(tmp_path / "code" / name, body)
     result = H.collect(tmp_path, F.C)
@@ -151,6 +161,25 @@ def test_existing_queued_output_reconstructs_only_exact_original_bytes(bundle):
     completion["publication_proofs"][6]["files"]["terminal.json.bin"]["sha256"] = "0" * 64
     with pytest.raises(ValueError):
         H.from_saved_output(terminal, completion, json.loads(evidence["own_source_text"]), F.C)
+
+
+def test_epoch2_paced_publication_handoff_requires_original_proofs():
+    _, e = F.case.__wrapped__()
+    F.recovered2(e)
+    terminal = json.loads(e["terminal_text"])
+    completion = dict(
+        phase="COLAB_FULL_RECOVERY2_COMPLETE_PRIVATE_PRESERVED",
+        updates=2916,
+        epochs=6,
+        seed=20261021,
+        continuation=terminal["execution_continuation"],
+        publication_proofs=e["epoch_publications"] + [e["terminal_publication"]],
+    )
+    result = H.from_saved_output(terminal, completion, json.loads(e["own_source_text"]), F.C)
+    assert H.validate(result, F.C)["terminal_text"] == e["terminal_text"]
+    completion["publication_proofs"][1]["files"]["full-state.private.pt.bin"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError):
+        H.from_saved_output(terminal, completion, json.loads(e["own_source_text"]), F.C)
 
 
 def test_adopt_is_an_exclusive_mutation_and_requires_actual_proof():

@@ -23,3 +23,5 @@ Actual continuation76338 started from25d31344. Its original C100 epoch1 publicat
 
 
 October21 12:55UTC: original GPU995351 remains RUNNING. Epoch2 is now fully five-object privately downloaded/size/SHA verified at HF7af232482d88d1231618afec0223d59f43da25f8; [exact receipt](actual-epoch002-preserved.json). Epoch1/2 must not be republished; owner76338 remains responsible for later epochs.
+
+October21 14:07UTC: original GPU995351 still RUNNING. Epoch3 is fully five-object privately downloaded/size/SHA verified at HF1ac9dfab79b1de09ba11fb184767293ad96f0ec2; [exact receipt](actual-epoch003-preserved.json). Do not repeat epochs1–3. Original preservation owner76338 and final consumer86015 continue unchanged.

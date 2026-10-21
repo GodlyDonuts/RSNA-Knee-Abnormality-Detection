@@ -46,3 +46,12 @@ single-variable comparison with Newton C100.
 
 
 The actual Colab process resumed original epoch001 after a publication-observation failure. The contract now validates the specific executed source27b87a02…, original checkpoint43c1c759…,486-update boundary, unchanged recipe, and explicit discarded unsaved updates487–489. Epoch1 retains seven original files; epochs2–6 require the two added recovery source/continuation objects. The candidate includes the execution receipt while keeping model-export scientific provenance unchanged. Canonical adoption downloads those two small files with the final serving objects, never recreates a Dataset, and does not redownload the full optimizer.49 scoped recovery/serving/account tests plus Ruff passed. The live numerical trainer was not changed; final data/qualification/score remain absent.
+
+October21 epoch2 recovery update: the final contract also binds exact control
+9576fb26… and complete update972 checkpoint0fab361d…, preserving the preceding
+epoch1 lineage. Epoch2 retains its original first-recovery objects; epochs3–6
+carry the actual second-recovery source and continuation. The terminal's original
+local-only storage status remains intact; six independent private epoch proofs
+and one terminal proof must subsequently be present. The final consumer cannot
+deploy merely because local checkpoint creation succeeded.64 scoped recovery,
+handoff, serving and deployment tests passed; inference/model/recipe unchanged.

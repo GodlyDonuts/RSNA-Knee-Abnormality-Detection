@@ -31,3 +31,23 @@ interpretation. A useful CPU result still requires a separate exact two-T4
 pipeline acceptance before production use. Healthy B/C/C0/C100/Colab science
 and existing submissions remain unchanged. The conditional C+R6 blend remains
 unadmitted on runtime; this experiment does not establish accuracy.
+
+## Actual result: modest warmed improvement, no production change
+
+Private offline CPU notebook140034892v1 completed in132.0576seconds with
+4.79GiB peak process-tree RSS. Complete input bytes matched in all five trials.
+Thread2cold35.906s, process2cold26.025s, process3 24.352s, thread2warm23.397s,
+process2warm21.952s. The warmed process pair was6.17% faster; trial order and
+page-cache effects are confounded. No GPU inference overlap was measured and
+CPU-only hardware is not the GPU host. This is insufficient to justify spending
+the protected final-model GPU budget or changing healthy production inference.
+The nine-hour hidden-runtime problem is not proved solved.
+
+The first push returnedHTTP400 and was reconciled absent by authenticated
+owned-notebook listing and exact search, with a positive control. Original
+CPU998076 and intent are retained; the exact400cause is unproven. The separate
+request-v2 used source5ffe6a9a and distinct `rsna-predictive-cpu2-a61ab7856149`,
+matching title and pinned Docker request fields. CPU998135 returned the actual
+version once; CPU998187 observed its completion. Fresh storage funded16MiB
+for both controls, preserving other liabilities/reserves. No competition entry,
+GPU-VM time or model Dataset was consumed. [Sanitized actual result](actual-CPU-comparison.json).

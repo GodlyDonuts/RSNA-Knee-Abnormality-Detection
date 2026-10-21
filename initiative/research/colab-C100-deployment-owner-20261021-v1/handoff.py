@@ -61,7 +61,7 @@ def validate(bundle, contract):
         and t["binding"] == b
         and t["epochs"] == 6
         and t["updates"] == 2916
-        and t["all_epochs_private_verified"] is True
+        and contract.terminal_storage_state(t)
         and t["clinical_or_Kaggle_score"] is None
         and b["source_git"] == contract.SCIENCE
         and b["branch"] == contract.BRANCH
@@ -78,6 +78,7 @@ def validate(bundle, contract):
     pubs = evidence["epoch_publications"]
     require(len(pubs) == 6, "Six original privately verified epochs required")
     continuation = contract.execution_continuation(t, b, pubs[0])
+    contract.recovery_checkpoint_binding(continuation, pubs)
     require(continuation is not None, "Actually executed epoch001 recovery must be disclosed")
     names = {
         n + ".bin"
@@ -97,11 +98,12 @@ def validate(bundle, contract):
         contract.publication(p, f"epoch-{i:03d}", names | extra)
         contract.matches(p["files"]["run-start.json.bin"], evidence["binding_text"].encode())
         if i >= 2:
+            executed = contract.epoch_continuation(continuation, i)
             require(
-                p["files"]["resume-control.py.bin"]["sha256"] == contract.RESUME_CONTROL,
+                p["files"]["resume-control.py.bin"]["sha256"] == executed["control_sha256"],
                 "Original recovery source differs",
             )
-            contract.matches(p["files"]["continuation.json.bin"], canonical(continuation) + b"\n")
+            contract.matches(p["files"]["continuation.json.bin"], canonical(executed) + b"\n")
         identities.append(p["id"])
     terminal = evidence["terminal_publication"]
     contract.publication(terminal, "terminal", {"terminal.json.bin"})
@@ -116,12 +118,27 @@ def collect(root, contract):
     root = Path(root)
     old = root / "run-C100-seed20261021"
     run = root / "run-C100-seed20261021-recovery-v1"
+    second = root / "run-C100-seed20261021-recovery-v2"
+    if second.exists():
+        run = second
     first = json.loads(read_small(old / "publication-001/reconciled-original.json"))["publication"]
     evidence = dict(
         binding_text=read_small(old / "run-start.json"),
         terminal_text=read_small(run / "terminal.json"),
         epoch_publications=[first]
-        + [json.loads(read_small(run / f"publication-{i:03d}/verified.json")) for i in range(2, 7)],
+        + [
+            json.loads(
+                read_small(
+                    run
+                    / (
+                        "publication-network-002/verified.json"
+                        if i == 2 and run == second
+                        else f"publication-{i:03d}/verified.json"
+                    )
+                )
+            )
+            for i in range(2, 7)
+        ],
         terminal_publication=json.loads(read_small(run / "terminal-publication/verified.json")),
         own_source_text=json.dumps(
             {n: read_small(root / "code" / n) for n in contract.MODULE_SHA256}, sort_keys=True
@@ -159,7 +176,11 @@ def from_saved_output(terminal, completion, own_source, contract):
     those original hashes; no new claim of checkpoint verification is made.
     """
     require(
-        completion["phase"] == "COLAB_FULL_RECOVERY_COMPLETE_PRIVATE_PRESERVED"
+        completion["phase"]
+        in (
+            "COLAB_FULL_RECOVERY_COMPLETE_PRIVATE_PRESERVED",
+            "COLAB_FULL_RECOVERY2_COMPLETE_PRIVATE_PRESERVED",
+        )
         and completion["updates"] == 2916
         and completion["epochs"] == 6
         and completion["seed"] == 20261021
