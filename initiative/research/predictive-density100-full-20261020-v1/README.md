@@ -1,5 +1,8 @@
 # Separate full-cohort C100 objective experiment
 
+**Current October21 19:01UTC:** original995351 COMPLETED0:0 with six epochs/2,916 updates. All six immutable checkpoints are privately verified (HF1–3, explicit privateKaggle backup4–6). Final exact model e606d974 was qualified publicly and submitted once as57491555; hidden status/score remain unreported. See [current state](../../../docs/current-state.md) and [actual final entry](../predictive-C100-final-entry-20261021-v1/README.md). The older dated planning/dispatch text below is retained as history, not the live state.
+
+
 Updated October21 08:51UTC. **Full C100 GPU job995351 was submitted once and is PENDING (Priority)** on evc27. Original B/C/C0 training and deployment remain unchanged. The new run is six epochs/2,916 updates over all3,887 fitting studies, with C's density coefficient100; no full C100 checkpoint or accuracy result exists yet.
 
 The [explicit full-training decision](agent-full-training-recovery-decision-20261021.json) binds actual pilot981620 and the matched200-update C100 result from986011. It accepts Newton training/private preservation under the owner's renewed deadline instruction. It does **not** allocate additional Kaggle time or claim a held-out gain. Deployment requires actual free allowance after the primary3,360-second allocation, final preservation/return and trained runtime acceptance. Both evc27 GPUs were occupied at dispatch; this queued job cannot displace their users. Original eight-hour runtime and October22 04:00UTC completion deadline remain.

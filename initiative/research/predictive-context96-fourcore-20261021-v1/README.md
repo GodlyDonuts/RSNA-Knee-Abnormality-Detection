@@ -42,3 +42,14 @@ Dataset/model copy, label modification or new training job is involved.
 **No GPU execution or competition entry at source freeze.** Read subsequent
 original `actual-*.json` receipts before acting. Dispatch through `run_once.py`
 with the exact source commit; phases are prepare, push and read-only status.
+
+## Actual dispatch, 19:01 UTC
+
+CPU1002505 prepared the exact 307,111-byte source
+`5cc94175a2f2f3c3d5d0814201dda7fa154dbdc01e861c95bd999254a537571e`
+from frozen source `f8d2380365e98666aa0d3afb3c3b754b8ebdeb10`. Fresh funding
+retained 20 GiB and 5,000 shared files after all declared liabilities.
+CPU1002514 then pushed **140075914 v1 once**, private/offline/two T4, slug
+`godlydonuts/rsna-context96-fourcore-5cc94175a2f2`. Initial state RUNNING.
+No competition entry or Dataset creation. Original preparation/push receipts
+are `actual-prepare.json` and `actual-push.json`. Do not repeat either action.

@@ -1,6 +1,33 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 18:31 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 19:01 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+
+## October 21, 19:01 UTC — Colab training completed
+
+The original Colab A100 run **completed all six epochs and 2,916 updates on
+3,887 fitting studies**. All six immutable checkpoints are saved locally.
+Its original queued publisher has privately preserved epoch 2 (Dataset12764414);
+epoch 1 was already verified. Remaining checkpoint/terminal publications are
+pending, so the final deployment handoff has **not** been admitted yet.
+No training or publisher cell was restarted.
+[Actual terminal observation](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-training-complete.json).
+
+Newton C100 entry **57491555** still has null hidden status/score in its original
+consumer observation. Best actual R6 remains **0.958**. No predictive accuracy
+improvement is established. Original consumers8547/8603 remain live.
+
+A distinct four-core dense96 comparison, **140075914 v1**, was pushed once and
+is RUNNING. It compares exact original one-thread preparation against two
+threads per GPU lane, using the same final C100 model and retaining paired
+prediction arrays privately. The candidate is measured first, before the warm
+reference pass. Its480-second public watchdog plus120startup protects Colab's
+1,920-second allocation. No competition slot was spent. The older dense96
+version remains held; no explanation for its exact hash discrepancy is invented.
+[Source and actual dispatch](../initiative/research/predictive-context96-fourcore-20261021-v1/README.md).
+
+The conditional C100+completeR6 source remains prepared only, pending C100's
+actual qualifying result, fresh budget and exact attachment version pinning.
+Deadline and final-selection obligations are unchanged.
 
 ## October 21, 18:31 UTC — Colab final epoch and conditional ensemble
 
