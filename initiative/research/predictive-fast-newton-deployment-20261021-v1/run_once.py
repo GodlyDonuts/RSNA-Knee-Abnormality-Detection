@@ -39,6 +39,7 @@ def namespace():
             HERE / "run_once.py",
             UPGRADE / "serving_upgrade.py",
             UPGRADE / "selected_frames.py",
+            HERE.parent / "predictive-C100-private-backup-20261021-v1/storage_contract.py",
             HERE.parent / "predictive-descriptor-batch-20261021-v1/descriptor_batch.py",
         ]
         for path in paths:
@@ -66,6 +67,11 @@ def namespace():
             files = ctl.build(value)
         else:
             files = baseline(pin, value)
+        storage_path = (
+            HERE.parent / "predictive-C100-private-backup-20261021-v1/storage_contract.py"
+        )
+        storage = load(git(pin, storage_path), storage_path, "C100_actual_private_storage_contract")
+        files["serving/C100_contract.py"] = storage.extend(files["serving/C100_contract.py"])
         return upgrade.capsule(files)
 
     ns["controls"] = controls
