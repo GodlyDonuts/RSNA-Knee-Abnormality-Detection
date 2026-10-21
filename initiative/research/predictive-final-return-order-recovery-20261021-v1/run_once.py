@@ -3,10 +3,9 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import shlex
 import subprocess
-import sys
+from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
