@@ -1,6 +1,8 @@
 # Missing-only continuation after the actual HTTP499 failure
 
-**Actual running continuation:** raw **983422**, context **983435**, sole cache owner **28954**, frozen source `986f32c176328f49d306ca93d3cd1948df50aff4`. CPU **983471 at 19:48:10 UTC** confirmed both jobs RUNNING on evc33 and **2,359 raw/2,356 contexts of 3,887**. The failed source has been passed; inputs remain incomplete and no full predictive model has trained. [Actual startup](actual-successor-startup.json).
+**Completed October21 around00:09UTC:** original raw **983422** and context **983435** both completed0:0 on evc33, in4:22:52 and4:22:54. All **3,887 original fitting studies** have exact accepted raw and FP32 context inputs. Original collection CPUs **988896/988907** checked all3,887 retained file/stat bindings without repeating pixel reads or bulk hashes. The raw cache totals232,498,651,306bytes; context67,005,012,716bytes. All historical generations and corrected source proofs remain. Sole cache owner **28954 finished normally** and must not be restarted. [Raw original collection](actual-owner-raw_collect.json); [context original collection](actual-owner-context_collect.json).
+
+The existing all-evc27 fitting continuation33107 consumed these receipts. Source CPU988913 admitted all3,887 inputs and the exact original scientific source44cc559e; the single original evc33→evc27 transfer is underway through receiver988926/sender988929. This is input readiness, not a trained model or score. Training/deployment remain owned by33107/32378; no cache transfer or owner is duplicated.
 
 Raw 981958 failed at 19:29:56 UTC and context 981960 at 19:30:30 UTC on October 20. The raw log records HTTP499 before admitting response bytes; the original bounded helper treated 499 as terminal. The local owner 10824 and both transports ended. [Actual terminal](actual-terminal.json); [accepted decision](decision.accepted.json).
 
@@ -38,7 +40,7 @@ Run only that program through the original stdin transport on evc33 with1 CPU/12
 
 ## Exact owner command
 
-The following constructs the command; it does **not** execute it. `PIN` must be the same reviewed commit used for the successful admission. The six historical receipt arguments are retained verbatim from the original launcher; the frozen reader independently verifies their original hashes. The original command has run once and its journal exists; do not execute it again. Fitting 29171/deployment 29172/observer 29173 now consume its exact proofs through the independently bound 29128354 handoff.
+The following constructs the command; it does **not** execute it. `PIN` must be the same reviewed commit used for the successful admission. The six historical receipt arguments are retained verbatim from the original launcher; the frozen reader independently verifies their original hashes. The original command has run once and its journal exists; do not execute it again. Historical fitting29171/deployment29172/observer29173 consumed this handoff and were subsequently stopped. Current fitting33107/deployment32378 use the separately accepted all-evc27 continuation; the completed cache owner must not be rerun.
 
 ```python
 import hashlib
