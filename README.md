@@ -1,11 +1,12 @@
 # RSNA Knee Abnormality Detection
 
-Updated **October 21, 2026, 18:31 UTC**. Newton's new C100 predictive-evidence
-model completed six epochs on all3,887 fitting studies and is submitted as
-**57491555**; its hidden score is still unreported. The independent Colab A100
-model is in epoch6 at2,720/2,916updates. All six Newton checkpoints are privately
-preserved; Colab has five local immutable epochs, with paced private preservation
-queued after fitting. [Current evidence](docs/current-state.md).
+Updated **October 21, 2026, 19:31 UTC**. Newton's C100 predictive-evidence
+model completed six epochs on all 3,887 fitting studies. Its actual Kaggle
+submission **57491555 scored 0.692**: hidden execution succeeded, but accuracy
+is substantially below our best. The independent Colab A100 run also finished
+all six epochs and 2,916 updates; its original publisher has privately preserved
+epochs 1–4 and is preserving the remaining checkpoints and terminal.
+[Current evidence](docs/current-state.md).
 
 **Best verified Kaggle score remains0.958**, from an attributed external R6
 ensemble reproduction; own released-parent adaptations remain0.949. Target0.97
@@ -23,22 +24,22 @@ The matched B/C/C0 predictive-evidence arms each completed six epochs and all
 18checkpoints are privately verified. B and C failed in hidden execution with
 no score; C0 has now also failed with the same generic hidden exception. C100 increases the density objective weight
 after fitting-only gradients exposed dilution; its completed Newton final is
-now submitted through a distinct faster, more resilient serving path.
-Colab is completing an independently seeded C100 run. These are trained models,
+now scored 0.692 through a distinct faster, more resilient serving path.
+Colab has completed an independently seeded C100 run, with no score yet. These are trained models,
 not a claim that the predictive mechanism improves accuracy.
 
-A new complete-cohort audit found that24 encoder centers cover43.37% of slices
-per study on average, versus97.32% at96. All-slice fixed descriptors already
-existed. The same final model passed a96-center, two-T4 diagnostic in137seconds,
-with original24 predictions reproduced exactly. Probability movement is not
-accuracy. A distinct96-center public-output run completed, but is held because its exact
-prediction hash differs and its fresh mean runtime projection exceeds9hours;
-[actual coverage and T4 evidence](initiative/research/predictive-context96-T4-20261021-v1/README.md)
-record runtime-tail limitations and the pending outcome decision.
+A complete-cohort audit found that 24 encoder centers cover 43.37% of slices
+per study on average, versus 97.32% at 96. All-slice fixed descriptors already
+existed. The distinct four-core dense96 candidate passed its actual paired
+trained comparison and completed in 136 seconds. Its public mean runtime
+scenario is 6.01 hours, with a maximum-study scenario of 10.55 hours; hidden
+runtime and accuracy remain unproven. It has not been submitted.
+[Exact dense result](initiative/research/predictive-context96-fourcore-20261021-v1/README.md).
 
-A distinct fixed C100-plus-complete-R6 combination is now prepared privately;
-no combined GPU run or score exists. Its score, budget, original input-version
-and runtime gates remain outstanding. [Actual preparation and planning](initiative/research/predictive-C100-R6-20261021-v1/README.md).
+The prepared C100-plus-R6 and two-independent-C100 ensembles both fail their
+fixed minimum standalone-score criterion after the actual 0.692 result. Neither
+has run on GPU or been submitted. Preserve this negative result rather than
+assuming an ensemble will repair it.
 
 ## Verified results and model lineage
 
@@ -61,7 +62,7 @@ make their complete encoders independent OOF models.
 Newton C100 original GPU995351 finished6epochs/2,916updates on3,887studies.
 Private final Dataset12762386v1, actual qualification140062137v1 and public
 notebook140062846v1 bind the exact final model. Code entry57491555 was accepted
-once; no hidden score exists yet. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
+once and scored 0.692, with no reported hidden execution error. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
 
 Independent Colab C100 runs on one A10040GB, seed20261021. Latest visible output
 is epoch6/update2,720, with finite gradients and actual encoder updates. It has

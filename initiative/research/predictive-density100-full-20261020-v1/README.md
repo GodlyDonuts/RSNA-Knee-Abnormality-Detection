@@ -1,6 +1,6 @@
 # Separate full-cohort C100 objective experiment
 
-**Current October21 19:01UTC:** original995351 COMPLETED0:0 with six epochs/2,916 updates. All six immutable checkpoints are privately verified (HF1–3, explicit privateKaggle backup4–6). Final exact model e606d974 was qualified publicly and submitted once as57491555; hidden status/score remain unreported. See [current state](../../../docs/current-state.md) and [actual final entry](../predictive-C100-final-entry-20261021-v1/README.md). The older dated planning/dispatch text below is retained as history, not the live state.
+**Current October21 19:31UTC:** original995351 COMPLETED0:0 with six epochs/2,916 updates. All six immutable checkpoints are privately verified (HF1–3, explicit privateKaggle backup4–6). Final exact model e606d974 was qualified publicly and submitted once as57491555; actual hidden result is **COMPLETE, score0.692**, with no reported error. This is a substantial negative model result, not a deployment failure. See [current state](../../../docs/current-state.md) and [actual final entry](../predictive-C100-final-entry-20261021-v1/README.md). The older dated planning/dispatch text below is retained as history, not the live state.
 
 
 Updated October21 08:51UTC. **Full C100 GPU job995351 was submitted once and is PENDING (Priority)** on evc27. Original B/C/C0 training and deployment remain unchanged. The new run is six epochs/2,916 updates over all3,887 fitting studies, with C's density coefficient100; no full C100 checkpoint or accuracy result exists yet.
