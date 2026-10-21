@@ -39,3 +39,9 @@ serving comparison, without new fitting or uploads, but it has not been compiled
 qualified or dispatched. Review C100's actual hidden outcome and fresh capacity
 before allocating any such work. The original conditional C+R6 blend remains
 untriggered; no C100 ensemble has been prepared or run. The scored0.958R6 baseline stays preserved.
+
+
+Read-only authenticated18:03UTC ListSubmissions now confirms **C0 57482858
+FAILED** too: unhandled hidden error, zero bytes and no score. B/C remain failed;
+new C10057491555 remains pending/unknown. [Actual outcome](actual-outcomes-1803.json).
+No entry was repeated and no new failure cause is claimed.

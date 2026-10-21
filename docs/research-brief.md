@@ -1,10 +1,11 @@
-> **Current-state notice — October20,2026.** Actual best0.958 is an external R6
-> reproduction; own released-parent adaptations remain0.949. Cross-teacher final
->57422143 scored0.949. Current source-zero and H100 ranking fits are running.
-> New cached-attention correction has CPU approximation evidence only, no trained
->model or accuracy gain. Read [current state](current-state.md) and original new
->receipts. Everything below is dated history, never live execution authority.
-
+> **Current-state notice — October21,2026,18:04UTC.** Actual best0.958 is an
+> external R6 reproduction; own adaptations remain0.949. Source-zero, pointwise
+> and ranking each scored0.948. B/C/C0 completed all six epochs: B/C failed hidden
+> execution with no score; C0 has now also failed. Newton C100 completed and
+> entry57491555 is pending/unknown; independent Colab C100 is training epoch6.
+> Dense96-context public T4 measurement passed, without an accuracy result.
+> Read [current state](current-state.md) and [current README](../README.md).
+> Everything below is dated history, not live execution authority.
 
 # Research brief
 

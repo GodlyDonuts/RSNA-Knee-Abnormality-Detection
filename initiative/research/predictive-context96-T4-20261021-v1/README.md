@@ -67,3 +67,11 @@ three public cases do not prove hidden runtime. Keep these limits explicit.
 Protect the independent Colab deployment's1,920VMseconds and today's last
 competition slot. Inspect original current hidden outcomes before any separate
 competition-entry decision; this source milestone does not authorize an entry.
+
+
+Distinct public-output preparationCPU1002053 succeeded; CPU1002054 pushed
+**140068692v1**, `godlydonuts/rsna-predictive-context96-ready-d4d26dd53300`, once.
+SourceSHA d4d26dd53300e0b28472b87473d5b4da9a333ded5e2cdd7a7b2819d5038e0e70,
+control e2b840f5. Initial actual status was null/unreported. No competition entry,
+Dataset creation, training change or claim of success. Exact preparation/push
+receipts are `ready-prepare.json` and `ready-push.json`. Never repeat either.

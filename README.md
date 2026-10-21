@@ -1,14 +1,16 @@
 # RSNA Knee Abnormality Detection
 
-Updated October 20, 2026. The predictive-evidence B/C/C0 engineering runs have
-passed; full-cohort input preparation is running, and full predictive fitting
-has not started. The completed pointwise and ranking models are privately
-preserved. Pointwise passed two-T4 qualification and public execution; code entry
-**57440657** is accepted once and awaits its hidden score. See [current evidence](docs/current-state.md).
+Updated **October 21, 2026, 18:04 UTC**. Newton's new C100 predictive-evidence
+model completed six epochs on all3,887 fitting studies and is submitted as
+**57491555**; its hidden score is still unreported. The independent Colab A100
+model is in epoch6 at2,520/2,916updates. All six Newton checkpoints are privately
+preserved; Colab has five local immutable epochs, with paced private preservation
+queued after fitting. [Current evidence](docs/current-state.md).
 
-**October 20, 2026: best verified Kaggle score is 0.958, from an attributed
-external R6 ensemble reproduction. Target 0.97 is not achieved.** Current encoder
-adaptation uses a **73M CoAtNet**, with earlier DINOv3 research retained separately.
+**Best verified Kaggle score remains0.958**, from an attributed external R6
+ensemble reproduction; own released-parent adaptations remain0.949. Target0.97
+is not achieved. Current predictive training uses a **73M CoAtNet**; earlier
+DINOv3 research is retained separately. No predictive accuracy gain is established.
 
 Use [current measured state](docs/current-state.md) for results and unfinished
 work, and [execution continuation](docs/codex-continuation.md) for original live
@@ -17,15 +19,21 @@ artifacts, not instructions to restart completed or uncertain operations.
 
 ## New primary research: predictive evidence
 
-Following the owner's supplied research, we are implementing a matched comparison
-between direct classification plus generic reconstruction and finding-conditioned
-prediction of withheld MRI descriptors. The source-level masking test passed on
-67 original DICOMs: withheld-pixel changes cannot alter context inputs. The three
-matched arms have a trainable encoder, complete region priors and a tested
-recovery loop. C0 uses C's architecture without the density loss.
-**No trained predictive-model result exists yet.** See the
-[proposal, decisions and exact limits](initiative/research/predictive-evidence-proposal-20261020-v1/README.md)
-and [current implementation/next gates](docs/current-state.md).
+The matched B/C/C0 predictive-evidence arms each completed six epochs and all
+18checkpoints are privately verified. B and C failed in hidden execution with
+no score; C0 has now also failed with the same generic hidden exception. C100 increases the density objective weight
+after fitting-only gradients exposed dilution; its completed Newton final is
+now submitted through a distinct faster, more resilient serving path.
+Colab is completing an independently seeded C100 run. These are trained models,
+not a claim that the predictive mechanism improves accuracy.
+
+A new complete-cohort audit found that24 encoder centers cover43.37% of slices
+per study on average, versus97.32% at96. All-slice fixed descriptors already
+existed. The same final model passed a96-center, two-T4 diagnostic in137seconds,
+with original24 predictions reproduced exactly. Probability movement is not
+accuracy. A distinct96-center public-output candidate is being prepared;
+[actual coverage and T4 evidence](initiative/research/predictive-context96-T4-20261021-v1/README.md)
+record runtime-tail limitations and the pending outcome decision.
 
 ## Verified results and model lineage
 
@@ -45,33 +53,25 @@ make their complete encoders independent OOF models.
 
 ## Active full-model work
 
-The pointwise/ranking comparison completed all three epochs per arm on
-H100 job975297, with all six checkpoints privately verified. Pointwise final
-qualification139818636v1 passed all32 studies on both T4s. Public notebook
-139819877v1 completed in15.773 seconds with zero decode errors and a verified
-three-row/13-column CSV. Code entry **57440657** was accepted exactly once;
-hidden status and score are unreported. [Entry receipt](initiative/research/pointwise-final-deployment-20261020-v1/actual-entry.json). Ranking's
-final model is ready, but its deployment is unadmitted while the remaining
-Kaggle GPU budget is reserved for the predictive comparison.
+Newton C100 original GPU995351 finished6epochs/2,916updates on3,887studies.
+Private final Dataset12762386v1, actual qualification140062137v1 and public
+notebook140062846v1 bind the exact final model. Code entry57491555 was accepted
+once; no hidden score exists yet. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
 
-Cross-teacher fixed-final entry57422143 scored **0.949**. Source-zero fixed-final
-entry57435296 scored **0.948 without an error**. Both fit all73Mparameters on
-3,887 MRI studies; neither improves the external baseline.
+Independent Colab C100 runs on one A10040GB, seed20261021. Latest visible output
+is epoch6/update2,520, with finite gradients and actual encoder updates. It has
+259.25of the authorized300resource units remaining; its original training cell
+and queued publisher are intact. No subagents or Devin are active.
 
-The primary next experiment is the matched six-epoch B/C/C0 predictive-evidence
-comparison. Its accepted recipe fixes2,916 updates and identical fitting labels,
-masks, order and shared initialization. Original raw/context producers
-979664/979665 remain healthy; at13:51UTC CPU980483 verified919 raw/917 contexts of3,887 studies.
-[Actual progress](initiative/research/parallel-serving-account-20261020-v1/actual-input-progress-1351.json).
-Training and deployment controllers wait for complete inputs and actual final
-checkpoints. No predictive full-model score exists.
+Pointwise, ranking and source-zero finals each scored0.948. Cross-teacher scored
+0.949. They do not improve the external0.958baseline. B/C hidden failures remain
+failures/no scores, and public execution is not a hidden result. The current
+C100 serving changes address measured preparation costs and numerical/metadata
+failure possibilities; the original hidden root cause remains unproven.
 
-Cached-attention diagnostic977100 completed its engineering recovery. It is
-retained as research evidence; it has not been promoted to a full production fit.
-
-The latest actual scores still show no original gain over the0.958 reproduction.
-See [current state](docs/current-state.md) for exact owners, private preservation
-and remaining work.
+See [current state](docs/current-state.md) and [continuation](docs/codex-continuation.md)
+for actual owners, exact receipts and remaining work. Do not restart historical
+completed or uncertain jobs from this README.
 
 ## Completed spatial-reader experiment
 

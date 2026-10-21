@@ -1,5 +1,5 @@
-> **Historical submission log — current guide checked October 17, 2026.** Start with
-> [current state](current-state.md) and [research brief](research-brief.md).
+> **Historical submission log — current guide checked October 21, 2026.** Start with
+> [current state](current-state.md) and [current project README](../README.md).
 > The dated observations below are historical; pending/running/no-score statements
 > are not live status. Exact current receipts override them.
 
