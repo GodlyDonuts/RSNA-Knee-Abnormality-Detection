@@ -32,4 +32,25 @@ floor. Four CPU prefetch threads preserve exact loader bytes and ordered updates
 No competition submission is made by these scripts. Deployment requires actual
 completed weights, serving/runtime acceptance and fresh Kaggle capacity.
 
-Status: implementation and admission preparation; see actual receipts for execution.
+Actual October 21 09:50 UTC status: **storage blocked; zero training updates**.
+Original bridge CPU995557 failed1:0 at09:31:49 after seven successful private
+uploads (26,024,355,840 bytes). HF rejected contexts-006 with HTTP403 requiring
+storage recharge. No complete input manifest exists. The A100 was released after
+verifying that no training output directory existed and the prefetch thread had
+stopped. UI:294.57 units, zero active sessions and zero usage/hour. Original
+Newton inputs and completed HF uploads are preserved. No paid billing was changed.
+The owner has been asked to resolve this separate storage-billing requirement.
+
+`resume_bridge.py` / `dispatch_resume.py` are **prepared only**. After confirmed
+storage resolution they reconcile the actual original FAILED1:0 and exact private
+path/size/SHA proofs, reuse the seven completed archives, retain the failed intent,
+and attempt only its explicitly reconciled missing path plus new unattempted
+archives. Existing archive headers are replayed without rewriting their bytes;
+all final member and archive hashes are still checked by the original Colab
+downloader. Seven scoped replay tests passed. The numerical Colab scripts remain
+exact source94a3921a. No continuation dispatch or Colab GPU training acceptance
+has occurred. Reconnect an A100 only after the input handoff is complete and
+checkpoint storage is available. Do not run the original bridge again.
+
+[Exact failure/runtime receipt](actual-storage-blocked-runtime-released.json).
+New controls/receipts are on GitHub, not yet privately HF-mirrored.
