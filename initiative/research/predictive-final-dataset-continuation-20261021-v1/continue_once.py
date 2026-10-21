@@ -107,7 +107,9 @@ def main():
     parser.add_argument("--socket", default="/tmp/rsna-research-20261001-stable.sock")
     parser.add_argument("--after-verified", action="store_true")
     parser.add_argument("--after-qualified", action="store_true")
+    parser.add_argument("--after-qualified-observer", action="store_true")
     args = parser.parse_args()
+    assert not args.after_qualified_observer or args.after_qualified
     os.umask(0o077)
     assert source(args.source_git, Path(__file__)) == Path(__file__).read_bytes()
     diagnostic = read(JOURNAL / "original-readonly.json")
@@ -144,6 +146,12 @@ def main():
         assert push["kernel_id"] == 140021810 and push["version"] == 1
         journal = JOURNAL / "after-qualified"
         journal.mkdir(mode=0o700, exist_ok=True)
+        if args.after_qualified_observer:
+            assert read(journal / "continuation-intent.json")["pid"] == 81569
+            assert read(journal / "continuation-stopped.json")["error_type"] == "AssertionError"
+            assert command(81569).strip() == "" and not list(journal.glob("phase-*.json"))
+            journal = JOURNAL / "after-qualified-observer"
+            journal.mkdir(mode=0o700, exist_ok=True)
     fitting, dep, original, reader, lineage, placement_body = build(args.after_verified, args.after_qualified)
     decision = read(PLACEMENT / "deployment-decision.accepted.json")
     if args.after_qualified:
@@ -178,7 +186,7 @@ def main():
                 fitting.git_file(dep.CANONICAL, dep.CANONICAL_DIR + "/observe.py.txt").decode(),
                 values, jobs, placement_body)
             if getattr(self, "require_qualified_boundary", False):
-                assert self.observer.count("    return result\n") == 1
+                assert self.observer.count("\n    return result\n") == 1
                 extra = '''    import sqlite3, hashlib
     q = json.loads((root / "qualification-accepted.json").read_text())
     result["qualification_sha256"] = hashlib.sha256(json.dumps(q,sort_keys=True,separators=(",",":"),allow_nan=False).encode()).hexdigest()
@@ -190,7 +198,7 @@ def main():
             assert db.execute("SELECT value FROM meta WHERE key=?",(key,)).fetchone() is None
     result["all_arm_compilation_and_canonical_rows_absent"] = True
 '''
-                self.observer = self.observer.replace("    return result\n", extra + "    return result\n")
+                self.observer = self.observer.replace("\n    return result\n", "\n" + extra + "    return result\n")
             return super()._observe(dataset_slug)
 
         def config(self, observed, mode):
