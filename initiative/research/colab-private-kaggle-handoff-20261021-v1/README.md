@@ -1,5 +1,25 @@
 # Private storage route for independent Colab training
 
+**Current October21 12:03UTC:** The original A10040 fit is healthy, with280
+finite optimizer updates observed. Newton C0 is at2,781/2,916 and C100 at744;
+both are finite and their original jobs remain intact. No Colab epoch is
+complete yet. This supersedes the historical pretraining snapshots below.
+
+`reconcile_existing.py` is a separate contingency for a stopped original
+publication worker. It uses the exact original lease/intent and canonical
+read-only Dataset helpers to inspect private version1, exact membership and
+all remote bytes. If an original complete verification receipt already exists,
+it reuses that proof without another bulk download. Otherwise it writes one
+distinct mode0600 reconciliation receipt; original source/journals stay intact.
+It has no create, upload, notebook, submission or trainer-resume action. Twelve
+scoped tests cover unknown creation outcomes, hash/listing/identity changes,
+active-writer refusal and original-proof reuse. It has **not been executed on
+Colab**; the healthy training cell and its frozen storage source are unchanged.
+If an actual publication fails, first observe the original cell/worker terminal,
+then pass the exact original lease to `reconcile(...)` with the frozen
+`colab_storage.account(token)` read-only helpers. A successful reconciliation
+does not by itself restart fitting or authorize replacement of verified.json.
+
 The original HF bridge stopped with an actual storage403 after seven successful
 uploads. This separate transport preserves those seven archives and the failed
 006 intent. It makes no HF write, billing change, deletion, GPU allocation or
