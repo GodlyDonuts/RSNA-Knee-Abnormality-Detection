@@ -1,8 +1,8 @@
 # All three predictive arms on evc27
 
-**Actual October21 04:57UTC:** all3,887 inputs and the original67,005,012,716-byte transfer are accepted. C989035 and B989036 are RUNNING on the two ordinary evc27 H100s. **C is in its final epoch6 at update2476; B is in epoch5 at2325**, with contiguous finite histories and empty stderr. **C0 989037 remains PENDING(Priority)**.
+**Actual October21 05:12UTC:** all3,887 inputs and the original67,005,012,716-byte transfer are accepted. C989035 and B989036 are RUNNING on the two ordinary evc27 H100s. **C is at update2620 and B at2470, both in their final epoch6**, with contiguous finite histories and empty stderr. **C0 989037 remains PENDING(Priority)**.
 
-**C epochs1–5 and B epochs1–4 are privately preserved exactly once.** Each publication independently re-downloaded and size/SHA verified all five objects. The new C5 publisher993105 completed0:0 /1:56. C has completed five full epochs covering19,435 study exposures/2,430 updates; C5 model SHA is `71621de951f835cf8ba321b5fb6ee19dba6716d55b4a20c602df535455826567`. Its fixed-final epoch6 is not yet complete. Continue unchanged to fixed-final epoch6. No accuracy result is established. [Latest C5 review](actual-C-epoch005-preservation-reviewed.json); [original C5 publication](actual-owner-publish-C-005.json); [accepted transfer](actual-owner-contexts-all27.json); [original dispatch](actual-known-dispatches-all27.json).
+**C/B epochs1–5 are privately preserved exactly once.** Each publication independently re-downloaded and size/SHA verified all five objects. The new B5 publisher993228 completed0:0 /1:31. Each model has completed five full epochs covering19,435 study exposures/2,430 updates; B5 model SHA is `8f5bcc6ff76521182d8b762d078b73f4e8c6a6fb95a45f69c0718c3fd487b0d9`. Neither fixed-final epoch6 is complete yet. Continue unchanged to fixed-final epoch6. No accuracy result is established. [Latest B5 review](actual-B-epoch005-preservation-reviewed.json); [original B5 publication](actual-owner-publish-B-005.json); [accepted transfer](actual-owner-contexts-all27.json); [original dispatch](actual-known-dispatches-all27.json).
 
 | Preserved checkpoint | Original private revision | Original receipt |
 | --- | --- | --- |
@@ -15,8 +15,9 @@
 | B2 | `ae967658f325fbcfb2e16a44ebe0430b0307ce55` | [B2](actual-owner-publish-B-002.json) |
 | B3 | `2a9e1b4b38dda7676eeccb35dc3722313f5b13f3` | [B3](actual-owner-publish-B-003.json) |
 | B4 | `c77d3106dad5e4ceb1e40d1d428054fa7e0b1973` | [B4](actual-owner-publish-B-004.json) |
+| B5 | `bdffd94a710266766de777d6eb4f94fb33746554` | [B5](actual-owner-publish-B-005.json) |
 
-At04:57UTC the scheduler estimates C0 startingOctober21 08:46:38UTC and ending16:46:38UTC. C’s first164 updates took1090.555seconds; B’s first13 took87.420seconds. These are provisional timing observations, not finish guarantees. No optional full run or ready-subset deployment is admitted.
+At05:12UTC the scheduler estimates C0 startingOctober21 08:46:38UTC and ending16:46:38UTC. C’s first164 updates took1090.555seconds; B’s first13 took87.420seconds. These are provisional timing observations, not finish guarantees. No optional full run or ready-subset deployment is admitted.
 
 **Resolved monitoring failures:** Slurm created each newly allocated job’s stdout/stderr as0644. The frozen controller requires0600 and reported observation errors for all three arms. Root narrowed C’s exact owned pair at00:37UTC, then B’s pair at00:47UTC after B actually allocated. Only permissions changed; no body writes, source/input changes or training restart. The existing controller emitted all three recovered receipts after each correction. [C correction](actual-C-log-permission-correction.json); [B correction](actual-B-log-permission-correction.json); [second C recovery](actual-observation-C-recovered-002.json); [second B recovery](actual-observation-B-recovered-002.json); [second C0 recovery](actual-observation-C0-recovered-002.json). If the issue appears when C0 actually allocates, inspect only its exact original owned log paths and narrow permissions; never precreate logs or restart training.
 
