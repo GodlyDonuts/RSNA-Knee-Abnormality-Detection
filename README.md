@@ -1,16 +1,18 @@
 # RSNA Knee Abnormality Detection
 
-Updated **October 21, 2026, 19:31 UTC**. Newton's C100 predictive-evidence
+Updated **October 21, 2026, 20:00 UTC**. Newton's C100 predictive-evidence
 model completed six epochs on all 3,887 fitting studies. Its actual Kaggle
 submission **57491555 scored 0.692**: hidden execution succeeded, but accuracy
 is substantially below our best. The independent Colab A100 run also finished
 all six epochs and 2,916 updates; its original publisher has privately preserved
-epochs 1–4 and is preserving the remaining checkpoints and terminal.
+all six checkpoints and is preserving the final terminal bundle.
 [Current evidence](docs/current-state.md).
 
 **Best verified Kaggle score remains0.958**, from an attributed external R6
-ensemble reproduction; own released-parent adaptations remain0.949. Target0.97
-is not achieved. Current predictive training uses a **73M CoAtNet**; earlier
+ensemble reproduction; own released-parent adaptations remain0.949. The 0.958
+R6 entry and its 0.957 paired-member variant are now saved as our two replaceable
+final selections. Target0.97 is not achieved. Current predictive training uses
+a **73M CoAtNet**; earlier
 DINOv3 research is retained separately. No predictive accuracy gain is established.
 
 Use [current measured state](docs/current-state.md) for results and unfinished
@@ -46,6 +48,7 @@ assuming an ensemble will repair it.
 | Result | What produced it | Interpretation |
 | --- | --- | --- |
 | Kaggle **0.958**, submission57333150 | Exact released R6 multi-branch ensemble, version2 | External reproduction; not a newly trained solo model or original 0.958 gain. [Actual hidden outcome](initiative/audits/exact-R6-entry-20261018-v1/actual-hidden-terminal.json). |
+| Kaggle **0.957**, submission57397292 | R6 with one branch replaced by our paired adaptation | Saved second final selection; below the external0.958 reference, not a standalone0.957 model. |
 | Kaggle **0.950** | Released S6 weights/inference | External reproduction. |
 | Kaggle **0.949** | Released CoAtNet parent | Reference for the corresponding adaptation experiments. |
 | Kaggle **0.949** influence versus **0.947** uniform16 | Matched full-encoder,3epoch/1458update adaptation on3887 fitting studies | An observed sampler comparison; influence ties the unchanged parent's displayed0.949. It is not a new project best. |
@@ -65,8 +68,8 @@ notebook140062846v1 bind the exact final model. Code entry57491555 was accepted
 once and scored 0.692, with no reported hidden execution error. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
 
 Independent Colab C100 completed six epochs / 2,916 updates on one A10040GB,
-seed20261021. Its original queued publisher is preserving the remaining
-checkpoints after verifying epochs1–4; approximately251resource units remained
+seed20261021. Its original queued publisher has preserved all six checkpoints
+and is finishing the terminal bundle; approximately249resource units remained
 at the latest displayed reading. No subagents or Devin are active.
 
 Pointwise, ranking and source-zero finals each scored0.948. Cross-teacher scored

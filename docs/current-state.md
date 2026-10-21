@@ -1,6 +1,33 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 19:49 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 20:00 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+
+## October 21, 20:00 UTC — final selections saved; fixed-model diagnostic completed
+
+Kaggle now has **2/2 manual final selections saved**: external R6 submission
+**57333150 (0.958)** and the R6-plus-paired-adaptation **57397292 (0.957)**.
+The canonical claim/receipt and selected-only UI confirm both. No new entry or
+GPU run was used. These are replaceable before October 22, 23:59 UTC; own
+standalone adaptations remain 0.949. [Actual selection](../initiative/research/final-selection-20261021-v1/README.md).
+
+Original fixed-final readout GPU **1002912 COMPLETED 0:0 in 56 seconds**;
+CPU1002981 collected its original aggregate receipt. On 128 label-blind selected
+fitting studies, context-only BCE was **0.588540** versus **0.559755** with the
+density correction, a reduction of **0.028785**. All 12 target BCEs decreased;
+mean absolute probability movement was 0.070665. CPU1003000 analyzed the saved
+arrays: context/full rank correlations0.978724–0.997608, with87.48–98.73% of
+squared log-evidence explained by its target-wise mean shift. The correction
+is predominantly calibration on this sample. This is fitting evidence,
+not independent accuracy. It does not support claiming the density term simply
+broke all outputs, and it does not explain C100's actual 0.692 hidden score.
+No original parameters/inputs changed; per-case arrays remain private on evc27.
+[Exact result](../initiative/research/predictive-readout-diagnostic-20261021-v1/actual-complete.json).
+
+Colab's original six-epoch fit is complete; all six checkpoints are privately
+preserved (epoch6 Dataset12765259). Only the terminal publication remains
+pending at20:00UTC. Original
+consumer8603 remains responsible for the seven-proof handoff and independent
+final submission. The C100 ensembles remain held after the poor scored result.
 
 ## October21,19:49UTC — final-model diagnostic queued; Colab epoch5 preserved
 
