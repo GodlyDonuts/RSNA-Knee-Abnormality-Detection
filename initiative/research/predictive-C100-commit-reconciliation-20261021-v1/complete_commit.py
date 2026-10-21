@@ -110,7 +110,8 @@ def main(v):
     state = subprocess.check_output(
         ["sacct", "-X", "-n", "-P", "-j", "998781", "--format=JobIDRaw,State,ExitCode"], text=True
     )
-    assert "998781|FAILED|1:0|" in state
+    rows = [line.strip().split("|") for line in state.splitlines()]
+    assert [r[:3] for r in rows if r[0] == "998781"] == [["998781", "FAILED", "1:0"]]
     binding = json.loads(
         Path("/tmp/rsna-predictive-density100-full-20261020-v1/binding.private.json").read_text()
     )
