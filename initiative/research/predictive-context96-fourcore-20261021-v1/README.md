@@ -79,3 +79,34 @@ cause. Original140068692 remains held.
 At19:07UTC the account had2,423.82free GPU-VMseconds, four entries today and one
 slot. Preserve the original Colab1,920seconds/last-slot allocation. No new dense
 entry is made. Read `actual-complete.json` and `agent-decision.json`.
+
+## Conditional exact-entry coordinator
+
+`entry_once.py` provides explicit `check`, `submit` and `outcome` phases for
+**existing140075914v1 only**. It cannot create a Dataset/notebook or run another
+public GPU session. The original same-weight24-context submission57491555 must
+have an actual scored result before this comparison uses a slot. It does not
+require the original score to exceed a threshold: the purpose is to measure
+this one coverage hypothesis, not tune a series of caps.
+
+The declared entry window isOctober22 00:05–12:00UTC, subject to fresh
+authoritative allowance. At least two available slots are required, retaining
+one for Colab or a final candidate. It verifies the exact accepted proof, source,
+private/offline notebook version, original Datasetversions and actual public
+receipt. The cold-mean plan6.01hours and max-study10.55hours are retained in the
+entry record; the risk is explicit, not silently called a nine-hour guarantee.
+
+The canonical `entries` record uses an explicit inference-operation key, while
+`checkpoint_sha256` remains the actual e606d974 model hash. This permits a
+scientifically different inference configuration without replacing the existing
+24-context checkpoint entry or breaking account-wide local quota counting.
+Only this coordinator owns its record and outcome reconciliation. Durable local
+and canonical intents precede exactly one `CreateCodeSubmission` call pointing
+to version1's `submission.csv`; no public CSV upload. Uncertain responses retain
+the claim and prohibit another mutation.
+
+Nine focused lifecycle tests passed, including pending/failed/unscored original
+outcomes, early/late windows, preservation of the last slot and original model
+record, one request and an ambiguous-response no-retry case. These are software
+checks, not an additional model execution or an accuracy result. Source freeze
+and actual nonmutating preflight must precede any later explicit submission.
