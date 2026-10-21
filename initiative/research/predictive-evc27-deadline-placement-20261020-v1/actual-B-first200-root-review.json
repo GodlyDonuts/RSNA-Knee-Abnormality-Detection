@@ -1,0 +1,77 @@
+{
+  "GPU_job": "989036",
+  "all200_finite": true,
+  "both_ongoing": {
+    "B": {
+      "elapsed_seconds": 1496.165004577022,
+      "epoch": 1,
+      "sealed_epochs": 0,
+      "step": 225
+    },
+    "C": {
+      "elapsed_seconds": 2493.6435266640037,
+      "epoch": 1,
+      "sealed_epochs": 0,
+      "step": 380
+    }
+  },
+  "clinical_accuracy_claim": false,
+  "decision": "Continue unchanged original fixed-final B training and preservation. Finite clipped gradient spikes alone do not establish a model failure or accuracy benefit.",
+  "encoder_update_schedule_matches": true,
+  "fitting_only_windows": {
+    "first20": {
+      "density_loss": 0.9197868730872869,
+      "encoder_gradient_norm": 5.686439358875134,
+      "exam_loss": 0.7432301107794046,
+      "fraction_norm_above_clip1": 1.0,
+      "gradient_norm": 7.254119664430618,
+      "head_gradient_norm": 5.263623172528338,
+      "loss": 0.8352087989449501,
+      "study_exposures": 160,
+      "updates": 20
+    },
+    "last20": {
+      "density_loss": 0.9194388598203659,
+      "encoder_gradient_norm": 1.3317062076929855,
+      "exam_loss": 0.6201813835650682,
+      "fraction_norm_above_clip1": 1.0,
+      "gradient_norm": 1.930712103843689,
+      "head_gradient_norm": 1.3362097919429607,
+      "loss": 0.7121252696961164,
+      "study_exposures": 160,
+      "updates": 20
+    },
+    "peak126_150": {
+      "density_loss": 0.9194862326979637,
+      "encoder_gradient_norm": 1.124754127871407,
+      "exam_loss": 0.6106246696412563,
+      "fraction_norm_above_clip1": 0.96,
+      "gradient_norm": 1.866277618408203,
+      "head_gradient_norm": 1.4726659308086503,
+      "loss": 0.702573294043541,
+      "study_exposures": 200,
+      "updates": 25
+    }
+  },
+  "history_sha256": "c0eb898acc5856eb3a8be41cf263d5ce4f5529f9162a93577fe8f20db2b79125",
+  "limits": "Varied fitting batches; descriptive optimization telemetry, not held-out accuracy or a model-selection criterion. Exact history matches the existing original owner receipt; no new observer was created.",
+  "maximum_preclip_norm": 107.09342956542969,
+  "maximum_preclip_norm_step": 168,
+  "new_GPU_or_CPU_jobs": 0,
+  "observed_at_UTC": "2026-10-21T01:11:49.431236+00:00",
+  "original_owner_receipt_sha256": "928b3e517dac41c8c284ea0d66b3cd83d6927fc8081572addaecb8fd598a07df",
+  "peak_LR_step": 146,
+  "peak_observed_LR": 3e-05,
+  "recipe_or_training_changes": 0,
+  "sacct": [
+    "989035|RUNNING|0:0|00:41:51|evc27",
+    "989036|RUNNING|0:0|00:25:11|evc27",
+    "989037|PENDING|0:0|00:00:00|None assigned"
+  ],
+  "science_git": "44cc559e947560a635c34fee7b1f2a3b7be3a241",
+  "status": "actual_B_first200_root_engineering_review",
+  "stderr_bytes": {
+    "B": 0,
+    "C": 0
+  }
+}
