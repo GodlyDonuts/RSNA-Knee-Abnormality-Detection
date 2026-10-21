@@ -30,4 +30,23 @@ this experiment. A negative or tiny speed result means keep the current path.
 One canonical push, no retry on uncertainty. Fresh node funding preserves
 518GiB other scopes plus32MiB existing large-study coordinator, this32MiB scope,
 and20GiB reserve. Shared123MiB/370file liabilities and20GiB/5000file floors are
-retained; this experiment adds zero shared files. No upload or dispatch yet.
+retained; this experiment adds zero shared files.
+
+## Actual result, October 21
+
+Private CPU notebook **140055931 v1** completed once from source
+`b770860b2f6d060548aa2aafc354c946a256b647`, candidate
+`d20cfeda884eb25a2ac67199eec6870ed65ea824f4e9ab7e322a318d07aac7c6`.
+The six trials took223.49seconds total and peaked at4,023,541,760RSSbytes.
+The balanced warm means were27.0233seconds for one thread per lane and
+21.6329seconds for two: **19.95% less preparation time** in this limited
+experiment. Every non-image context field was exact. Two-thread images had
+maximum difference1.1920928955078125e-7; they were **not bitwise equal**.
+
+This is a promising contingency, not a clinical result or hidden-runtime proof.
+The current frozen final consumers retain their existing exact preparation for
+their first trained qualification. A separate two-thread successor is justified
+if actual runtime admission fails or measured GPU capacity permits the required
+trained prediction comparison. Do not stop healthy training or restart a
+notebook to repeat this result. See [original receipt](actual-complete.json)
+and [decision and limitations](analysis.json). No GPU quota or entry was used.

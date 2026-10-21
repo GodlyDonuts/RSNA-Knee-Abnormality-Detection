@@ -1,0 +1,988 @@
+{
+  "CPU_job": "1000000",
+  "actual_GPU_disabled": true,
+  "competition_entry": false,
+  "kernel_id": 140055931,
+  "new_Dataset": false,
+  "receipt": {
+    "CPU_affinity": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "GPU_count": 0,
+    "binding": {
+      "all_other_context_values_exact_required": true,
+      "batched_helper_not_production_accepted": true,
+      "bitwise_equivalence_required": true,
+      "image_max_abs_tolerance": 1e-06,
+      "module_sha256": {
+        "_predictive_descriptor_cache.py": "a40a3e313922d2577706eb430429675bac8cfe0c52df768fcd8eac0435078560",
+        "_predictive_serving_contract.py": "ee830d60e578163524c9534064e07badca6e05fbd488df0029c2b6d53c5b1075",
+        "_predictive_serving_mounts.py": "f2a302499720bb3a439f40f174d334588d69aa1333e750ea672aff3f6516462d",
+        "benchmark.py": "b7e41c1e7a5e26ffd8a3a4abe1ca422656814d35ad12818ccd60cd05d4c0f74b",
+        "context_reference.py": "cf47d1b27214c4808640b59e115822ead2f4995533c88315e4e09cca2518c183",
+        "descriptor_batch.py": "3c2a7785f1aac85929371852731431e0a3940a359abdf510a867b61163d6abd9",
+        "resilient_decoder.py": "8b32c79ffc38a59ba18e805e37dd7c3c665b5324553847b56ae566e81a3d11a2",
+        "rsna/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rsna/competitive/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rsna/competitive/predictive/__init__.py": "51104641623e3b4bd4eb7263d011dd7a048542d706f6d1b96741e876b8bfd9b9",
+        "rsna/competitive/predictive/cases.py": "5f7c81fd270c072fa16ed486735049bb72070a704304b6ee1adc2c4f6d4f3d09",
+        "rsna/competitive/predictive/density.py": "b5f56767dd277af65864983f3a5cd58d89d4cc8153990e9139e6f81b870e64a0",
+        "rsna/competitive/predictive/dicom.py": "0980f1958bd9f5c929bbd85fb67cd9e148b6506608af76f0a5f5e52d518fdb94",
+        "rsna/competitive/predictive/infer.py": "1f547a54778cd2e57caaaf0513362e21a85b8119f9f1b188985a17ee9fd162f8",
+        "rsna/competitive/predictive/inputs.py": "e773ce9f2e2e2f775cf991365867b6ae4340d55b3097541c37080a938a62c459",
+        "rsna/competitive/predictive/model.py": "38c9fc7c2e7e79ea90972f1b14c6e47491aba2f1641496277534e7cd20856f08",
+        "rsna/competitive/predictive/supports.py": "74cc5b71a9372b0a7970ac3507484fe96d6d1d4e4e710fc8177121f72a95597b",
+        "selected_frames.py": "d61e89a8bde5d252e0464ef25c149011ba7ab9d92dfeeeedfde9931ff230152b"
+      },
+      "original_CPU_source_sha256": "a61ab785614954766363aa3ecab5b6dfcba680c6dc5779f8373265f470c1f3fc",
+      "original_C_kernel": 140024153,
+      "original_C_source_sha256": "c414ecfe6d7fff62c1f3b68a19f4874a79a6bb28e00a32df1917c3da592d6509",
+      "original_C_version": 1,
+      "parent_descriptor_batch_CPU_source_sha256": "e5385a8dc72e657059e4964bf0d754826b9cb5579fb4fd5a6a2e96ef91344de8",
+      "pinned_Docker": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+      "public_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+      "pydicom": "3.0.2",
+      "scientific_model_changed": false,
+      "scientific_preparation_changed": false,
+      "selected_frame_helper_not_production_accepted": true,
+      "thread_budget_engineering_only": true,
+      "torch": "2.11.0+cu128"
+    },
+    "competition_entry": false,
+    "elapsed_seconds": 223.485274313,
+    "hidden_runtime_proven": false,
+    "limitations": "Three public MRI studies, CPU-only four-core affinity, sequential cache effects; no encoder/GPU overlap. Only image rounding up to1e-6 is admitted for measurement, not for production. All other context values exact. Actual trained prediction comparison required before promotion.",
+    "model_or_label_reads": false,
+    "peak_RSS_bytes": 4023541760,
+    "production_change_accepted": false,
+    "status": "actual_thread_budget_CPU_preparation_complete",
+    "studies": 3,
+    "trials": [
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": true,
+        "lanes": 2,
+        "max_image_absolute_difference": 0.0,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 3.474348312000018,
+            "bitwise_equal": true,
+            "decode_seconds": 89.38147876,
+            "descriptor_seconds": 9.04155306299998,
+            "index": 0,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.06782599699999992,
+            "payload_bytes": 63522109,
+            "render_seconds": 12.515901374999999,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.8232101149999949,
+            "bitwise_equal": true,
+            "decode_seconds": 24.246943627999997,
+            "descriptor_seconds": 1.8524042580000355,
+            "index": 1,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.0697850679999874,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.6756143730000304,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7462610199999631,
+            "bitwise_equal": true,
+            "decode_seconds": 21.832898889000035,
+            "descriptor_seconds": 1.5865993529999969,
+            "index": 2,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.0622227480000106,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.33286037299996,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 1,
+        "wall_seconds": 102.30203529399995
+      },
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": false,
+        "lanes": 2,
+        "max_image_absolute_difference": 1.1920928955078125e-07,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 1.8091805110000223,
+            "bitwise_equal": false,
+            "decode_seconds": 16.239622426999972,
+            "descriptor_seconds": 4.966286857,
+            "index": 0,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.06835516199998892,
+            "payload_bytes": 63522109,
+            "render_seconds": 6.775467368000022,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7144792689999804,
+            "bitwise_equal": false,
+            "decode_seconds": 4.301112674999956,
+            "descriptor_seconds": 1.6844772020000391,
+            "index": 1,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.08205607600001485,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.3989564710000195,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.6551956160000145,
+            "bitwise_equal": false,
+            "decode_seconds": 3.31147249899999,
+            "descriptor_seconds": 1.544309591000001,
+            "index": 2,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.06240079999997761,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.1995052070000156,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 2,
+        "wall_seconds": 23.402926793999995
+      },
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": false,
+        "lanes": 2,
+        "max_image_absolute_difference": 1.1920928955078125e-07,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 1.7983782850000125,
+            "bitwise_equal": false,
+            "decode_seconds": 14.84159157800002,
+            "descriptor_seconds": 5.132463716000018,
+            "index": 0,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.06977305599997408,
+            "payload_bytes": 63522109,
+            "render_seconds": 6.9308420010000305,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.6658502099999737,
+            "bitwise_equal": false,
+            "decode_seconds": 3.625438826999982,
+            "descriptor_seconds": 1.6871283500000231,
+            "index": 1,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.0635024640000097,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.352978559999997,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.6713519290000249,
+            "bitwise_equal": false,
+            "decode_seconds": 3.107699416999992,
+            "descriptor_seconds": 1.7036961339999834,
+            "index": 2,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.06400923199998942,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.3750480630000084,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 2,
+        "wall_seconds": 22.16002925199996
+      },
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": true,
+        "lanes": 2,
+        "max_image_absolute_difference": 0.0,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 3.528651583999988,
+            "bitwise_equal": true,
+            "decode_seconds": 14.03999972500003,
+            "descriptor_seconds": 8.915930838999998,
+            "index": 0,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.06931617300000426,
+            "payload_bytes": 63522109,
+            "render_seconds": 12.444582422999986,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7980488310000169,
+            "bitwise_equal": true,
+            "decode_seconds": 3.520475953000016,
+            "descriptor_seconds": 1.8728574439999761,
+            "index": 1,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.08036967200001754,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.670906274999993,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7837692219999894,
+            "bitwise_equal": true,
+            "decode_seconds": 3.093160484000009,
+            "descriptor_seconds": 1.706794412000022,
+            "index": 2,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.06459373100000221,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.4905636340000115,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 1,
+        "wall_seconds": 26.887649598999985
+      },
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": true,
+        "lanes": 2,
+        "max_image_absolute_difference": 0.0,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 3.464130747000013,
+            "bitwise_equal": true,
+            "decode_seconds": 14.427672507000068,
+            "descriptor_seconds": 8.872412355999927,
+            "index": 0,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.06787565299998732,
+            "payload_bytes": 63522109,
+            "render_seconds": 12.33654310299994,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.8226739309999971,
+            "bitwise_equal": true,
+            "decode_seconds": 3.5657687850000457,
+            "descriptor_seconds": 1.9768465289999995,
+            "index": 1,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.07539747699996724,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.7995204599999965,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.8166856139999936,
+            "bitwise_equal": true,
+            "decode_seconds": 3.6845979839999927,
+            "descriptor_seconds": 1.7275861240000268,
+            "index": 2,
+            "max_image_absolute_difference": 0.0,
+            "pack_seconds": 0.07460599499995624,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.5442717380000204,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 1,
+        "wall_seconds": 27.15891663000002
+      },
+      {
+        "all_other_values_exact": true,
+        "bitwise_equal": false,
+        "lanes": 2,
+        "max_image_absolute_difference": 1.1920928955078125e-07,
+        "studies": [
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 1.7556640079999397,
+            "bitwise_equal": false,
+            "decode_seconds": 14.074396449000005,
+            "descriptor_seconds": 4.905685104000099,
+            "index": 0,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.06790771600003609,
+            "payload_bytes": 63522109,
+            "render_seconds": 6.661349112000039,
+            "stats": {
+              "bits_stored_counts": {
+                "12": 284
+              },
+              "dicoms": 284,
+              "duplicate_frames": 0,
+              "geometry_frames": 284,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 5,
+              "matrix_shapes": [
+                [
+                  960,
+                  960
+                ],
+                [
+                  800,
+                  800
+                ],
+                [
+                  896,
+                  896
+                ],
+                [
+                  640,
+                  640
+                ],
+                [
+                  640,
+                  1280
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 284
+              },
+              "series": 5,
+              "signed_frames": 0,
+              "source_bytes": 436378362,
+              "unique_pixel_aliases": 284,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7602869289999035,
+            "bitwise_equal": false,
+            "decode_seconds": 3.226469280999936,
+            "descriptor_seconds": 1.811874433000071,
+            "index": 1,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.07686826799999835,
+            "payload_bytes": 61128555,
+            "render_seconds": 2.5721613619999744,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 135
+              },
+              "dicoms": 135,
+              "duplicate_frames": 0,
+              "geometry_frames": 135,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 4,
+              "matrix_shapes": [
+                [
+                  640,
+                  640
+                ],
+                [
+                  512,
+                  512
+                ],
+                [
+                  672,
+                  672
+                ],
+                [
+                  640,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 135
+              },
+              "series": 5,
+              "signed_frames": 135,
+              "source_bytes": 91028286,
+              "unique_pixel_aliases": 135,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          },
+          {
+            "all_other_values_exact": true,
+            "assembly_seconds": 0.7289432830000351,
+            "bitwise_equal": false,
+            "decode_seconds": 3.1005812450000576,
+            "descriptor_seconds": 1.7115484499998956,
+            "index": 2,
+            "max_image_absolute_difference": 1.1920928955078125e-07,
+            "pack_seconds": 0.07488612999998168,
+            "payload_bytes": 61176747,
+            "render_seconds": 2.4404917329999307,
+            "stats": {
+              "bits_stored_counts": {
+                "16": 138
+              },
+              "dicoms": 138,
+              "duplicate_frames": 0,
+              "geometry_frames": 138,
+              "instance_fallback_frames": 0,
+              "matrix_groups": 1,
+              "matrix_shapes": [
+                [
+                  512,
+                  512
+                ]
+              ],
+              "original_source_order_supplied": false,
+              "photometric_counts": {
+                "MONOCHROME2": 138
+              },
+              "series": 5,
+              "signed_frames": 138,
+              "source_bytes": 72556336,
+              "unique_pixel_aliases": 138,
+              "version": "original_integer_DICOM_global_acquisition_ordinal_v1"
+            },
+            "worker_pid": 7
+          }
+        ],
+        "threads_per_lane": 2,
+        "wall_seconds": 21.10586013200009
+      }
+    ],
+    "warm_trial_indices": [
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "slug": "godlydonuts/rsna-predictive-threadcpu-d20cfeda884e",
+  "source_sha256": "d20cfeda884eb25a2ac67199eec6870ed65ea824f4e9ab7e322a318d07aac7c6",
+  "status": "COMPLETE",
+  "version": 1
+}

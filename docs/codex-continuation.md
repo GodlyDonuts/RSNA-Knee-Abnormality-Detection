@@ -1,6 +1,6 @@
 # RSNA Knee execution continuation
 
-Updated **October21,2026,16:25UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+Updated **October21,2026,16:45UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
 
 ## Immediate work
 
@@ -9,7 +9,7 @@ Updated **October21,2026,16:25UTC**. Read [current state](current-state.md) and 
 3. Follow Newton private backup1426 and final consumer3332. Original fit995351 currently has five completed epoch sidecars; backup waits for complete six/2916 and preserves only4–6. New final consumer waits for that complete private evidence, then performs its own corrected qualification/public/entry. Never repeat old HF uploads or owners.
 4. Follow Colab actual cell progress. Once its queued publisher actually finishes, collect its original `{terminal,completion}` output through the browser, verify all seven proofs and deliver the small handoff to new consumer3333. No model/pixel download toMac. It adopts the existing final Dataset rather than creating a duplicate.
 5. Read completed header audit and serving correction before any deployment decision. All tested203,001 headers passed; **hidden root cause remains unknown**. New exact faster/resilient worker needs its own actual trained two-T4 acceptance, not the old B/C/C0 qualification.
-6. Follow already-pushed large-study CPU140052135v1 through read-only observer4458 in `artifacts/predictive-large-study-CPU-20261021-v1/`. Source4222cda6, exact candidatefd60a32fac50…; at most8size-selected studies, no labels/model/GPU. Collect original terminal receipt, compare failure/equality/RSS/time before any new serving revision; do not duplicate the notebook.
+6. Large-study CPU140052135v1 and observer4458 completed: all7selected studies passed with bitwise-equal complete contexts. Four-core CPU140055931v1 also completed from b770860b/candidated20cfeda884e: warm preparation19.95%lower, image maxdifference1.1920928955078125e-7, other fields exact. Both original receipts/decisions are in their research directories. Never repeat either notebook. Keep the current frozen final consumers; two-thread preparation is a contingency requiring its own trained prediction comparison before deployment.
 7. Keep GitHub current. HF storage is exhausted; no new private source mirror or billing change is authorized by assumption. Preserve best0.958 baseline and resolve final two selections before deadline.
 
 ## Original live jobs and controllers
@@ -19,7 +19,7 @@ Updated **October21,2026,16:25UTC**. Read [current state](current-state.md) and 
 | Newton C100 fit | Slurm995351,evc27; source8f1e8f2bb9f2ded8a2e4a582718188b68639db8b | RUNNING,epochs1–5 complete,original run still active; six/2916 fixed |
 | Newton private backup | PID1426,source00512114b20c70e4f840d7a8394303ceca93e2c7 | Waiting original final,then export5/6 and one private4–6 Dataset |
 | Newton corrected final handoff | PID3332,source1dc078f7f5b6764d04231e4f7e2f80b275bc5bca | Waiting backup's original `owner-result.json` |
-| Independent Colab fit | A10040GB,seed20261021,recovery-v2 | Epoch4/update1860; original six/2916/all3887 recipe |
+| Independent Colab fit | A10040GB,seed20261021,recovery-v2 | Epoch5/update2000; original six/2916/all3887 recipe |
 | Colab corrected final handoff | PID3333,same1dc078f7 source | Waiting verified browser handoff; protects Newton1920VMseconds and waits its canonical entry |
 | Original B/C/C0 outcomes | PID81657,source75da8f7a | StoppedJSONDecodeError; fresh16:22query B/Cfailed,C0pending; entries already made |
 
@@ -42,7 +42,7 @@ URL`https://colab.research.google.com/drive/1KWi2tdXApncKeERaTLV3xAJjyG98SfBP`, 
 
 - Active cell`cell-jn0mRnxvyCa0`, source3bdd97c2, exact recovery control9576fb26. Run`/content/rsna-independent-C100-20261021-v1/run-C100-seed20261021-recovery-v2`.
 - Scientific source94a3921aefdf333624caf41aff77aa10b4a0c57e,3,887 fitting studies,seed20261021,73,271,124 CoAtNet/predictive parameters, sixepochs/2916updates. Original ten-hour fitting deadline1792617620.699177,300resourceunits.
-- Actual last output at16:20:33UTC:step1860,epoch4,finite gradient5.9072,encoder_updatedtrue,peakGPU5,898,727,424bytes. Not an accuracy result.
+- Actual last output inspected16:42UTC:step2000,epoch5,finite gradient2.81029,encoder_updatedtrue,peaktrainingGPU5,898,727,424bytes. Resources show264.99units remaining,approximately5.3units/hour,one A100 session. Not an accuracy result. Receipt`colab-C100-epoch2-recovery-20261021-v1/actual-progress-2000.json`.
 - Original epoch1 private Dataset12756621v1 fully verified. First recovery epoch2 createHTTP429 had no actual Dataset; complete972checkpoint retained. Recovery-v2 restores model/AdamW/LR/counter/RNG/history and discloses replayed973–975/possibleunlogged976. No HTTP during fitting.
 - Queued publisher`cell-xtKDvqCk0sT2`,source0b83e278/controlSHA89dec4c3e19b8fcf3595f735da445a163fb7132bc2005067f15fdf0c51ec4839. Script`/content/rsna-colab-epoch002-recovery-20261021-v1/publish_after_fit.py`. Never repeat its execution. It reuses epoch1, reconciles known epoch2 absence, creates remaining distinct epochs/terminal at least900seconds apart, and fully verifies independent bytes. Release A100 only after complete preservation; errors retain runtime.
 - Actual trainer terminal stays truthful:privatefalse/localimmutabletrue. Separate six epoch proofs plus terminal proof admit final delivery. Both executed recovery histories and exact source hashes remain bound.
