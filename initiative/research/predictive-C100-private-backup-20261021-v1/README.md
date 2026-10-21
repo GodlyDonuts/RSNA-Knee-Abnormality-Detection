@@ -16,3 +16,9 @@ verified, epoch4's failed HF commit remains unchanged, and the original backup
 owner1426 continues waiting for final six before exporting5/6 and preserving
 4–6 together. No training restart or new upload.
 [Actual observation](actual-epoch5-running.json).
+
+## Actual final and completed preservation, October21 17:02UTC
+
+Original GPU995351 completed0:0 at16:51:31UTC: six epochs,2,916 actual updates and23,322 study exposures. All six immutable model exports are privately preserved. Epochs1–3 retain their original HF proofs; epochs4–6 are in private Kaggle Dataset12762120v1 (`godlydonuts/rsna-c100-backup456-6df0b38cfc79`). All16 original objects were fully downloaded and size/SHA verified by one-CPU job1000389.
+
+The original Dataset creation1000318 returned success, then its immediate status query received HTTP403. The original failure and retained claim were reconciled against the same READY Dataset; no upload, creation, export or fitting was repeated. The exact original terminal and six proofs were delivered to existing final consumer3332. This is completed training/preservation, not an accuracy result. [Original evidence](actual-final-preserved.json).
