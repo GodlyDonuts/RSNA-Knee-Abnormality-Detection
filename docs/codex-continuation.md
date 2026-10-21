@@ -27,8 +27,9 @@ mean work for about1,300studies/two lanes, plus600setup/1,800tail seconds, gives
 planning, not guaranteed runtime. Current free2,569.76GPU-VM seconds minus the
 protected Colab1,920 leaves649.76, below this candidate's900+120 test budget.
 **Do not push now.** Exact original R6 Datasetv1 must be pinned before any run;
-current slug resolution may select the different R7v2. No account-dispatch
-controller is yet prepared for this new combination.
+current slug resolution may select the different R7v2. A six-test source-only Quick Save coordinator is now prepared but not dispatched.
+It cannot run or submit the model; native input-version pinning and later GPU/entry
+admission remain outstanding.
 [Actual preparation, original timing and limitations](../initiative/research/predictive-C100-R6-20261021-v1/README.md).
 
 Dense96 remains **COMPLETE but ON HOLD**, with no competition entry. Preserve

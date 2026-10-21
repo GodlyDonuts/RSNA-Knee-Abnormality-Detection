@@ -75,5 +75,30 @@ leaves649.76, below this candidate's900+120 public-test funding. Do not push now
 After Colab actually uses/releases its reservation, re-read actual capacity.
 The original R6 Datasetv1 must be pinned: current slug resolution alone is
 insufficient because R7v2 is different. Prior R6 packaging used a source-only
-Quick Save and UI version pin before its exact batch run; the new compiler is
-not a ready account-dispatch controller. No further R6 receipt download is needed.
+Quick Save and UI version pin before its exact batch run; the compiled candidate is
+not yet a pinned or batch-executed notebook. No further R6 receipt download is needed.
+
+
+## Prepared source-only account step
+
+`dispatch_source_save.py --source-git <immutable committed SHA>` now provides
+one conditional source-only Quick Save from the original private preparation.
+It has **not been dispatched**. It reuses the canonical account claim/ledger,
+requires exact C10057491555 COMPLETE/no error/score>=0.949, retains both complete
+child sources and all original R6 attachments plus C100, and uses offline private
+T4 metadata. A source save does not run the notebook or submit to the competition.
+
+A durable intent is written before the one mutation. Any existing operation
+returns its original state without another save; uncertain results retain the
+original intent and claim. After a successful save, native UI must pin the old
+R6 Datasetv1 and original kernel input version359009299 before the batch run.
+The API schema accepts dataset slugs, not dataset-version IDs. The actual
+original metadata has no version-ID field; matching slugs alone is insufficient.
+The scored R6 source's original manifest/hash checks remain unchanged as a
+further execution check. GPU admission, actual public acceptance and the one
+competition entry remain separate, unfinished steps; Colab's budget stays reserved.
+
+Six focused account tests passed: exact source/input closure; pending, failed
+and weak-score refusal; one source-only save; and post-mutation uncertainty
+retention with no retry. Ruff passed. These tests do not demonstrate a model
+gain or an actual Kaggle source save. No new CPU/GPU/account operation was run.
