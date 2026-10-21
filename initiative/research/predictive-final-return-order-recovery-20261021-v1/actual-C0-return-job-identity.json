@@ -1,0 +1,20 @@
+{
+  "mutations": 0,
+  "observed_UTC": "2026-10-21T12:26:32.048695+00:00",
+  "old_recovery_PID": 69366,
+  "old_recovery_process_absent": true,
+  "old_recovery_stopped_before_observation_or_repair": true,
+  "original_sacct_rows": [
+    "989037|rsna-predictive-full2-C0|COMPLETED|0:0|evc27|2026-10-21T05:44:57|2026-10-21T12:21:27",
+    "995351|rsna-predictive-full-C100|RUNNING|0:0|evc27|2026-10-21T09:59:19|Unknown",
+    "997010|rsna-C100-status|COMPLETED|0:0|evc27|2026-10-21T12:21:28|2026-10-21T12:21:28",
+    "997020|rsna-C0-placement-publish|COMPLETED|0:0|evc27|2026-10-21T12:22:39|2026-10-21T12:23:18",
+    "997029|rsna-C0-placement-return_receive|FAILED|1:0|evc33|2026-10-21T12:23:20|2026-10-21T12:23:21",
+    "997030|rsna-C0-placement-return_send|FAILED|1:0|evc27|2026-10-21T12:23:20|2026-10-21T12:23:21",
+    "997031|rsna-C100-status|COMPLETED|0:0|evc27|2026-10-21T12:23:29|2026-10-21T12:23:29"
+  ],
+  "query": "env TZ=UTC sacct -X -u sa305415 -S 2026-10-21T12:21:00 -E 2026-10-21T12:24:00 -n -P --format=JobIDRaw,JobName%80,State,ExitCode,NodeList,Start,End",
+  "sender": "997030",
+  "sender_transport_sha256": "1a6a670349244b2ad5f42878b9546cea3f76291ecc4559c95c457c29afa25e99",
+  "status": "actual_original_C0_sender_reconciled_from_scheduler"
+}

@@ -27,3 +27,21 @@ Eight focused tests pass: original ordering failure, corrected roundtrip, change
 Actual C correction: source CPU993542 confirmed that the retained681-byte bad manifest equals the original terminal prefix. Corrected receiver993551 and sender993553 bothCOMPLETED0:0; all seven original objects were independently size/SHA/EOF verified. [Actual source reconciliation](actual-C-source-reconciled.json), [admission](actual-C-repair-admission.json), [root review](actual-C-recovery-reviewed.json). The canonical C return receipt is populated with these exact original bytes and explicit recovery provenance. The original failure and partial remain retained. No new training, publication, Kaggle entry or accuracy claim.
 
 Actual B correction: original receiver993618/sender993619 failed with the same681-byte terminal-prefix/manifest mismatch. Read-only destination993628 and source993638 reconciled the exact original failure. Corrected receiver993640 and sender993641 completed0:0 /34seconds and4seconds, respectively, verifying all seven original B objects. [Source reconciliation](actual-B-source-reconciled.json), [funded one-shot admission](actual-B-repair-admission.json), [root review](actual-B-recovery-reviewed.json). The canonical B return receipt now contains the exact corrected result, while original failure receipts and bytes remain retained. C0 training and the frozen deployment owner were untouched.
+
+October21 C0: original GPU989037 COMPLETED0:0, all six epochs privately verified;
+final HF5b83c21a3ed1ccc8cf8bbadb7016cbae888f39cc. Original return receiver997029
+and sender997030 both failed1:0 at12:23:21UTC. Watcher69366 stopped before its
+first observation because immediately allocated `srun` omitted the optional
+“has been allocated resources” line. It created no repair intent or transfer.
+The original watcher remains stopped.
+
+The distinct manual continuation binds the original sender-transport hash to
+actual scheduler rows: unique matching original job names, failed states/nodes,
+identical start/end times, and the receiver ID from the private destination
+intent. CPU997049 independently found only the original intent and failed
+manifest, with22,743,916,544 bytes/5,003 files after all shared liabilities and
+256,043,753,472 bytes free on evc33. `original_sender` keeps historical B/C
+behavior and permits only this reconciled C0 fallback. The exact transport and
+scientific code are unchanged. Seventeen scoped tests/Ruff pass. Source-prefix
+inspection and the one corrected transfer remain to execute from this commit;
+no new training or private model upload is required.

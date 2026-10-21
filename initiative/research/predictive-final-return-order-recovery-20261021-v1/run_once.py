@@ -27,6 +27,34 @@ def once(path, value):
         f.write(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n')
 
 
+def original_sender(arm, transport, inspected):
+    """Immediate Slurm allocations may omit the optional allocation message."""
+    import re
+    senders = re.findall(r'srun: job (\d+) has been allocated resources', transport['stderr'])
+    if len(senders) == 1:
+        return senders[0]
+    assert not senders and arm == 'C0', 'Reconcile exact original sender identity'
+    proof = read(HERE / 'actual-C0-return-job-identity.json')
+    original_path = JOURNAL / 'return-C0-sender-transport.json'
+    assert proof['status'] == 'actual_original_C0_sender_reconciled_from_scheduler'
+    assert proof['sender_transport_sha256'] == sha(original_path.read_bytes())
+    assert read(original_path) == transport and transport['returncode'] == 1
+    receiver = inspected['files']['return-intent.json']['intent']['CPU_job']
+    rows = [r.split('|') for r in proof['original_sacct_rows']]
+    pairs = {}
+    for role, node in [('return_receive', 'evc33'), ('return_send', 'evc27')]:
+        found = [r for r in rows if len(r) == 7 and r[1] == 'rsna-C0-placement-' + role]
+        assert len(found) == 1, 'Original transfer job identity is ambiguous'
+        row = found[0]
+        assert row[0].isdigit() and row[2:5] == ['FAILED', '1:0', node]
+        assert row[5].startswith('2026-10-21T12:23:') and row[6].startswith('2026-10-21T12:23:')
+        pairs[role] = row
+    assert pairs['return_receive'][0] == receiver
+    assert pairs['return_receive'][5:] == pairs['return_send'][5:]
+    assert pairs['return_send'][0] == proof['sender'] == '997030'
+    return proof['sender']
+
+
 def payload(arm, pin):
     source = (HERE / 'transport.py').read_bytes()
     for name in ['run_once.py', 'transport.py']:
@@ -52,10 +80,7 @@ def payload(arm, pin):
     receiver = old['intent']['CPU_job']
     transport = read(JOURNAL / ('return-' + arm + '-sender-transport.json'))
     assert transport['returncode'] != 0
-    import re
-    senders = re.findall(r'srun: job (\d+) has been allocated resources', transport['stderr'])
-    assert len(senders) == 1
-    sender = senders[0]
+    sender = original_sender(arm, transport, inspected)
     for identity in [receiver, sender]:
         assert any(row.startswith(identity + '|FAILED|1:0|') for row in inspected['sacct'])
     return source.decode(), {'arm': arm, 'job': job, 'terminal': terminal, 'publications': pubs,
