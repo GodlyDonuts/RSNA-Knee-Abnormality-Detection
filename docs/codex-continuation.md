@@ -1,6 +1,41 @@
 # RSNA Knee execution continuation
 
-Updated **October21,2026,18:12UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+Updated **October21,2026,18:31UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+
+## October 21, 18:31 UTC — Colab final epoch and conditional ensemble
+
+Colab's original A100 fit reached **2,720/2,916 updates (epoch 6)**, with five
+immutable local epochs, finite encoder updates and **256.6 resource units**
+remaining. Its original queued publisher and final consumer8603 are unchanged.
+[Observed training](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-progress-2720.json).
+Authenticated18:30UTC Kaggle still shows **C10057491555 pending/unknown**, no
+score; original consumer8547 is live. Best R6 remains **0.958**. All old B/C/C0
+entries failed. [Fresh account/outcomes](../initiative/research/predictive-C100-R6-20261021-v1/actual-account-1830.json).
+
+The distinct **C100 + complete R6** source was prepared once on CPU1002213,
+frozen source0e7ef257. Its compiled1,281,441bytes/SHAfbb9808c…23b41 remain private
+at `/tmp/rsna-C100-R6-20261021-v1` on evc27. Ten focused lifecycle/source/gate
+checks passed; there has been **no combined GPU run or entry**. The fixed rule
+retains full R6 and adds25% C100 per-target normalized ranks. Before any run,
+require C100's actual score>=0.949 and fresh funding without displacing Colab.
+
+Original R6 observer955446 recorded its scored result by06:51:13UTC October18,
+after01:23:13.287UTC submission: a19,679.713-second upper bound including queue
+and observation delay, not exact execution time. Adding C100's measured public
+mean work for about1,300studies/two lanes, plus600setup/1,800tail seconds, gives
+**8.87hours**; maximum-public-study scenario gives11.21hours. This is conditional
+planning, not guaranteed runtime. Current free2,569.76GPU-VM seconds minus the
+protected Colab1,920 leaves649.76, below this candidate's900+120 test budget.
+**Do not push now.** Exact original R6 Datasetv1 must be pinned before any run;
+current slug resolution may select the different R7v2. No account-dispatch
+controller is yet prepared for this new combination.
+[Actual preparation, original timing and limitations](../initiative/research/predictive-C100-R6-20261021-v1/README.md).
+
+Dense96 remains **COMPLETE but ON HOLD**, with no competition entry. Preserve
+the last daily slot for Colab's original final. Latest intended scored launch
+remains October22 noonUTC, ahead of the23:59UTC deadline. Earlier dated snapshots
+below are retained as history; this block and live original journals supersede them.
+
 
 ## October21,18:12UTC — actual context result and Colab progress
 

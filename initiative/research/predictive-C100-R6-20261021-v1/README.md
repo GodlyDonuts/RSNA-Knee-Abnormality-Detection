@@ -44,3 +44,36 @@ scores, memory-gate separation and public timeout cleanup. Ruff passed. This is
 implementation evidence; **no actual combined GPU execution or result exists**.
 The original best0.958 entry remains preserved and original Colab training is
 unchanged. Latest intended scored-entry launch is October22 noonUTC.
+
+
+## Actual private preparation and runtime evidence — October21,18:31UTC
+
+CPU1002213 completed the one original preparation. The compiled source
+`fbb9808c…23b41` is1,281,441bytes in owner-only
+`/tmp/rsna-C100-R6-20261021-v1` on evc27; no GPU, Dataset, notebook or entry was
+created. Both child bytes and the original canonical R6 submission57333150
+were checked. [Actual preparation](actual-CPU-prepared.json).
+
+The original R6 public receipt contains230.7/232.1seconds of compilation checks
+inside its two worker times. Its475.23-second total is therefore not a per-study
+inference measurement. [Existing original receipt fields](actual-original-R6-public-runtime.json).
+More usefully, original Slurm observer955446 recorded R6 scored0.958 at
+06:51:13UTC on October18, after its01:23:13.287UTC submission. That gives a
+19,679.713-second upper bound on that submission-to-scored interval, including
+queue and observation delay; it is not an exact runtime or a promise for a new run.
+
+Adding C100's actual public mean workload for approximately1,300studies across
+two lanes, plus600setup/1,800tail seconds, gives31,934.946seconds (8.87hours).
+Only465.05seconds remain below9hours after those allowances. The maximum-public-
+study scenario is40,347.49seconds and fails. This is conditional planning from a
+tiny sample, not acceptance; actual combined execution and the score gate remain
+mandatory. [Calculations and limitations](runtime-planning.json).
+
+At18:30UTC Kaggle still reports C10057491555 without a hidden status or score.
+There is one daily slot and2,569.76free GPU-VM seconds. Protecting Colab's1,920
+leaves649.76, below this candidate's900+120 public-test funding. Do not push now.
+After Colab actually uses/releases its reservation, re-read actual capacity.
+The original R6 Datasetv1 must be pinned: current slug resolution alone is
+insufficient because R7v2 is different. Prior R6 packaging used a source-only
+Quick Save and UI version pin before its exact batch run; the new compiler is
+not a ready account-dispatch controller. No further R6 receipt download is needed.
