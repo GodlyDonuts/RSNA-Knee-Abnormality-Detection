@@ -1,5 +1,11 @@
 # C100 evidence added to the complete scored R6 baseline
 
+**October21 19:31 UTC: HOLD.** Original C10057491555 scored **0.692** with
+successful hidden completion. It fails this candidate's predeclared0.949
+trigger. Do not run the source-only save, combined GPU test or entry.
+[Actual outcome](../predictive-C100-final-entry-20261021-v1/actual-scored.json).
+
+
 Decision made October21 before C10057491555 has any reported score. This is a
 **distinct conditional experiment**, not a substitution into the earlier
 B/C/C0-dependent proposal. That original comparison remains unsuccessful because

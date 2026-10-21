@@ -1,6 +1,30 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 19:17 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 19:31 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+
+## October21,19:31UTC — first C100 hidden score is0.692
+
+Original Newton submission **57491555 completed and scored0.692**, with381,996
+output bytes and no reported error. This establishes that the corrected
+serving path completed this hidden run, but the model is substantially worse
+than external R6's0.958 and our earlier0.949 adaptation. It does not identify
+whether the learned context classifier, density correction, weak supervision
+or another modeling choice caused the loss. Original consumer8547 completed
+normally; no duplicate entry. [Actual score](../initiative/research/predictive-C100-final-entry-20261021-v1/actual-scored.json).
+
+The newly implemented equal-probability Newton/Colab ensemble passed15focused
+CPU tests, but **its predeclared0.949 individual-score criterion is not met**.
+Do not run it, or the conditional C100+R6 ensemble, on GPU. Keep the negative
+result and implementation; neither is an accuracy advance.
+[Two-seed implementation and decision](../initiative/research/predictive-C100-two-seed-20261021-v1/README.md).
+
+Original Colab training is complete at6epochs/2916updates. Its queued publisher
+has now privately preserved epoch4 asDataset12764843, following previously
+verified1–3. At19:31 it remains executing; epochs5/6/terminal and the original
+consumer8603 deployment handoff are pending. No restart or duplicate
+publication. Next investigate the actual low score using the existing fixed
+model comparisons; do not imply dense coverage or another random seed is
+already an improvement. Best scored system remains R6 **0.958**.
 
 ## October 21, 19:17 UTC — Colab training completed
 
@@ -140,8 +164,8 @@ gain. [Original aggregate evidence](../initiative/research/predictive-C100-passi
 | Predictive B epoch6,57482618 | **Failed; no score** | Hidden notebook exception, zero output bytes |
 | Predictive C epoch6,57482739 | **Failed; no score** | Hidden notebook exception, zero output bytes |
 | Predictive C0 epoch6,57482858 | **Failed; no score** | Confirmed18:03UTC; unhandled hidden exception, zero output bytes |
-| Newton C100,57491555 | **Submitted; hidden outcome pending/unknown** | Six epochs complete; qualified exact final privately preserved |
-| Independent Colab C100 | **Training; no score** | Different seed; not an accuracy gain yet |
+| Newton C100,57491555 | **0.692, COMPLETE** | Hidden serving succeeded; large model regression versus0.958 |
+| Independent Colab C100 | **Six epochs complete; no score** | Private backup and standalone deployment pending |
 
 B/C/C0 each completed six epochs/2,916 updates; all18 immutable checkpoints are privately verified. Their actual two-T4 and three-study public runs passed, but that did not establish hidden robustness. Kaggle supplies a generic exception, not a stack trace. [Actual B/C outcomes](../initiative/research/predictive-hidden-input-audit-20261021-v1/actual-hidden-outcomes.json); [original serving and entries](../initiative/research/predictive-final-dataset-continuation-20261021-v1/README.md).
 

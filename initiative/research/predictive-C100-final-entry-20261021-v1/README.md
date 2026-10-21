@@ -1,5 +1,18 @@
 # Newton C100 final competition entry — October21
 
+## Actual hidden score — October 21, 19:31 UTC
+
+Original submission **57491555 completed with score 0.692**, 381,996 output
+bytes and no reported error. Original consumer8547 ended normally. This is a
+successful hidden execution but a substantial negative model result relative
+to R6's0.958 and our0.949 adaptation. No per-target or patient-level hidden
+results are available to identify the cause. Both proposed C100 ensembles
+fail their fixed0.949 gate; no combined GPU run or entry is justified by this
+result. [Original scored identity and receipt](actual-scored.json).
+
+The earlier dated execution observations below are preserved as history.
+
+
 **Submission57491555** was accepted once at17:26:19UTC from the exact private
 notebook `godlydonuts/rsna-predictive-c100-c-e6-055a8f8ed7e0` v1,
 kernel140062846, sourceSHA055a8f8ed7e0d64f47537fb25480a0f08c7ac947ec8f0472e22f7dcdc117d6e9.

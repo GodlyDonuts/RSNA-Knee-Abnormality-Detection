@@ -1,6 +1,30 @@
 # RSNA Knee execution continuation
 
-Updated **October21,2026,19:17UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+Updated **October 21, 2026, 19:31 UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+
+## October21,19:31UTC — first C100 hidden score is0.692
+
+Original Newton submission **57491555 completed and scored0.692**, with381,996
+output bytes and no reported error. This establishes that the corrected
+serving path completed this hidden run, but the model is substantially worse
+than external R6's0.958 and our earlier0.949 adaptation. It does not identify
+whether the learned context classifier, density correction, weak supervision
+or another modeling choice caused the loss. Original consumer8547 completed
+normally; no duplicate entry. [Actual score](../initiative/research/predictive-C100-final-entry-20261021-v1/actual-scored.json).
+
+The newly implemented equal-probability Newton/Colab ensemble passed15focused
+CPU tests, but **its predeclared0.949 individual-score criterion is not met**.
+Do not run it, or the conditional C100+R6 ensemble, on GPU. Keep the negative
+result and implementation; neither is an accuracy advance.
+[Two-seed implementation and decision](../initiative/research/predictive-C100-two-seed-20261021-v1/README.md).
+
+Original Colab training is complete at6epochs/2916updates. Its queued publisher
+has now privately preserved epoch4 asDataset12764843, following previously
+verified1–3. At19:31 it remains executing; epochs5/6/terminal and the original
+consumer8603 deployment handoff are pending. No restart or duplicate
+publication. Next investigate the actual low score using the existing fixed
+model comparisons; do not imply dense coverage or another random seed is
+already an improvement. Best scored system remains R6 **0.958**.
 
 ## October 21, 19:17 UTC — Colab training completed
 
