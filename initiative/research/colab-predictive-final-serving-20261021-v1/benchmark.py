@@ -64,10 +64,15 @@ def main(config, hf_token, kaggle_token):
     import timm
     from huggingface_hub import HfApi, hf_hub_download
     os.umask(0o077)
-    assert not ROOT.exists()
+    if ROOT.exists():
+        assert config.get('resume_public_download') is True
+        assert not ROOT.is_symlink() and {p.name for p in ROOT.iterdir()} == {'public'}
+        assert (ROOT/'public/test.csv').is_file()
+    else:
+        assert not config.get('resume_public_download', False)
     assert torch.cuda.device_count() == 1 and 'T4' in torch.cuda.get_device_name(0)
     assert timm.__version__ == '1.0.29'
-    ROOT.mkdir(mode=0o700)
+    ROOT.mkdir(mode=0o700, exist_ok=True)
     torch.set_num_threads(1); torch.set_num_interop_threads(1)
     torch.backends.cudnn.benchmark = False
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -78,9 +83,14 @@ def main(config, hf_token, kaggle_token):
 
     def rpc(method, body):
         assert method in ('ListDataTreeFiles', 'DownloadDataFile')
-        r = requests.post(API+method, json={'competitionName':COMPETITION, **body},
-            headers={'Authorization':'Bearer '+kaggle_token}, timeout=(10,60), allow_redirects=False)
-        assert r.status_code in (200,302), ('Kaggle HTTP', r.status_code)
+        for attempt in range(4):
+            r = requests.post(API+method, json={'competitionName':COMPETITION, **body},
+                headers={'Authorization':'Bearer '+kaggle_token}, timeout=(10,60), allow_redirects=False)
+            if r.status_code in (200,302): break
+            emit('readonly_Kaggle_response',method=method,HTTP_status=r.status_code,attempt=attempt+1)
+            if r.status_code not in (429,500,502,503,504) or attempt == 3:
+                raise RuntimeError('Read-only Kaggle response stopped')
+            time.sleep(5*(attempt+1))
         return r
 
     def tree(path):
@@ -93,6 +103,11 @@ def main(config, hf_token, kaggle_token):
         path_ok(name)
         assert name == 'test.csv' or name.startswith('test_series/')
         assert 0 < expected < 32*2**20 and time.monotonic()-START < 1800
+        dest = ROOT/'public'/name
+        if dest.exists():
+            assert config.get('resume_public_download') and dest.is_file() and not dest.is_symlink()
+            assert dest.stat().st_size == expected
+            return {'path':name,'bytes':expected,'sha256':sha(dest)}
         r = rpc('DownloadDataFile', {'fileName':name})
         url = r.headers['Location'] if r.status_code == 302 else r.json()['url']
         parsed = urlparse(url)
@@ -129,7 +144,7 @@ def main(config, hf_token, kaggle_token):
                 members.append((f['relativeUrl'], int(f['totalBytes'])))
     assert 0 < len(members) < 10000 and len(set(n for n,_ in members)) == len(members)
     assert sum(n for _,n in members) < 2*2**30
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         proofs=[]
         for proof in pool.map(lambda row: download(*row), members):
             proofs.append(proof)
