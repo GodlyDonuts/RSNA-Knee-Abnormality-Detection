@@ -61,3 +61,17 @@ def test_local_preservation_never_creates_remote_proof_and_is_immutable(tmp_path
         store.publish("epoch-003", {"full-state.private.pt": p}, tmp_path)
     with pytest.raises(AssertionError):
         n.LocalStore("not-used", {"seed": 20261021})
+
+
+def test_postfit_plan_preserves_original_epoch2_and_never_repeats_epoch1():
+    p = load("postfit_plan_test", HERE / "publish_after_fit.py")
+    files, dest = p.file_plan(2)
+    assert files["full-state.private.pt"] == p.PRIOR / "checkpoints/epoch-002.pt"
+    assert dest == p.RUN / "publication-network-002"
+    assert files["model.pt"] == p.PRIOR / "publication-002/model.pt"
+    assert p.file_plan(6)[0]["full-state.private.pt"] == p.RUN / "checkpoints/epoch-006.pt"
+    with pytest.raises(AssertionError):
+        p.file_plan(1)
+    with pytest.raises(AssertionError):
+        p.file_plan(7)
+    assert p.MIN_SPACING == 900
