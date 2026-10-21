@@ -4,8 +4,11 @@ October 21. The independent A100 run is training the complete 3,887-study
 fitting cohort, with six fixed epochs and 2,916 updates. It has not produced a
 final model or an accuracy result yet. This directory provides a finite final
 consumer, separate from Newton C100 and the already submitted B/C/C0 entries.
-The consumer is prepared; its actual process receipt, when present, is the
-authority for whether it has started.
+Finite consumer **89950 is running**, source
+`416c971511ff9aa079f099e9d3f907c476dd95bf`, with empty stderr. It started once
+at13:36:15UTC and is waiting for the actual original final evidence. It has
+created no new GPU job, Dataset, notebook or competition entry. Actual Colab
+progress reached **step820, epoch2**, with finite gradients and encoder updates.
 
 ## Keep the existing training and completion cell
 
@@ -55,17 +58,20 @@ New actions stop October22 noonUTC and outcome collection ends23:59UTC.
 
 ## Checks and original evidence
 
-Sixteen scoped handoff tests passed, including incomplete/foreign finals,
+**58 scoped handoff, serving and deployment tests passed**, including incomplete/foreign finals,
 forged terminal bytes, source mismatch, seven distinct publication identities,
 bounded decoding, actual saved-output reconstruction and the canonical
-Newton budget condition. Existing serving/deployment tests passed earlier;
-Ruff passed. These checks establish engineering behavior, not accuracy.
+Newton budget condition. Ruff passed. These checks establish engineering behavior, not accuracy.
 
 Live journal: `artifacts/colab-C100-deployment-owner-20261021-v1/`.
-`preflight-result.json` retains the actual read-only admission. A future
-`owner-intent.json`/`actual-owner-started.json` establishes process dispatch;
-the current source alone does not. Preserve the original finite Newton
-owner86015 and primary outcome observer81657.
+`preflight-result.json` retains the actual read-only admission. The actual
+`owner-intent.json` and [process receipt](actual-owner-started.json) establish
+dispatch and a live process, not a completed model. Preserve the original
+finite Newton owner86015 and primary outcome observer81657.
+
+- [Actual read-only account/storage preflight](actual-preflight.json)
+- [Actual browser-observed Colab progress](actual-Colab-progress.json)
+- [Exact engineering decision](decision.json)
 
 Sources and sanitized receipts are committed to GitHub separately from the
 private model storage. This milestone is not yet included in an HF mirror.
