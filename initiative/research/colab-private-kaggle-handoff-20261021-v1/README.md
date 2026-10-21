@@ -45,3 +45,25 @@ overwrites its control. The regression test binds the observed original headers.
 The existing Newton C0/C100 fits and primary B/C/C0 deployment owner continue.
 This route exists to remove the HF-storage dependency for the independently
 seeded Colab model; it makes no accuracy claim.
+
+**Actual corrected upload:** CPU996386 returned one private Dataset creation
+for all11files/41,281,549,676bytes. The seven original HF archives were reused,
+with zero repeated uploads. See `actual-input-create-returned.json`. Ingestion
+and independent Colab download are separate from that returned creation.
+
+The Colab downloader now verifies the mixed immutable HF/Kaggle archives and
+every original member. The trainer adapter changes only storage; AST checks bind
+the unchanged encoder, loader/order, update callback and numerical fit/recipe.
+Twenty-one scoped checks pass, including malformed archives, unsafe redirects,
+oversized/truncated-hash downloads and the original source/archive bindings.
+
+The canonical Newton coordinator admits one isolated private checkpoint writer
+through `lease.py`: seven exact immutable Dataset names (six epochs plus terminal),
+at most2GiB each, within the existing80GiB private reservation. The lease binds
+the actual input manifest and all executable code hashes. It authorizes no GPU
+or competition-account operation and preserves the primary coordinator. This
+allows Colab's single storage writer to preserve epochs without depending on
+the owner's UCF VPN throughout training. Exclusive intents prohibit automatic
+mutation retries; original receipts are reconciled back into the canonical
+ledger. Every created epoch is fully re-downloaded/size/SHA verified privately.
+No checkpoint lease or Colab training is claimed until its actual receipt exists.
