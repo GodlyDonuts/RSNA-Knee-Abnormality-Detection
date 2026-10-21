@@ -19,7 +19,7 @@ from pathlib import Path
 
 RUN = Path("/tmp/rsna-predictive-full-C100-20261020-v1")
 ORIGINAL = RUN / "publication/epoch-004"
-ROOT = ORIGINAL / "commit-completion-20261021-v1"
+ROOT = ORIGINAL / "commit-completion-canonical-path-20261021-v1"
 REPO = "GodlyDonuts/RSNA-Data"
 PARENT = "1ac9dfab79b1de09ba11fb184767293ad96f0ec2"
 PREFIX = "checkpoints/predictive-C100-full3887-8f1e8f2bb9f2/C/epoch-004"
@@ -127,6 +127,7 @@ def main(v):
     with common.shared_publication_lock():
         info = api.repo_info(REPO, repo_type="dataset")
         assert info.private is True and info.sha == PARENT
+        assert info.id.lower() == REPO.lower()
         assert not list(
             api.get_paths_info(REPO, paths=[PREFIX], repo_type="dataset", revision=PARENT)
         )
@@ -151,7 +152,7 @@ def main(v):
             },
         )
         response = requests.post(
-            "https://huggingface.co/api/datasets/" + REPO + "/commit/main",
+            "https://huggingface.co/api/datasets/" + info.id + "/commit/main",
             headers={
                 "Authorization": "Bearer " + v["token"],
                 "Content-Type": "application/x-ndjson",
@@ -160,7 +161,13 @@ def main(v):
             timeout=(20, 180),
             allow_redirects=False,
         )
-        body = response.json()
+        try:
+            body = response.json()
+        except ValueError:
+            body = {
+                "non_json_body": response.text[:2000],
+                "location": response.headers.get("Location"),
+            }
         # API body contains no input credential; keep it private and emit only
         # status/error/message/commit identifier fields.
         once(ROOT / "response.private.json", {"HTTP": response.status_code, "body": body})
