@@ -1,8 +1,8 @@
 # All three predictive arms on evc27
 
-**Actual October21 04:04UTC:** all3,887 inputs and the original67,005,012,716-byte transfer are accepted. C989035 and B989036 are RUNNING on the two ordinary evc27 H100s. **C is in epoch5 at update1981; B is in epoch4 at1828**, with contiguous finite histories and empty stderr. **C0 989037 remains PENDING(Resources)**.
+**Actual October21 04:19UTC:** all3,887 inputs and the original67,005,012,716-byte transfer are accepted. C989035 and B989036 are RUNNING on the two ordinary evc27 H100s. **C is at update2122 and B at1970, both in epoch5**, with contiguous finite histories and empty stderr. **C0 989037 remains PENDING(Resources)**.
 
-**C epochs1–4 and B epochs1–3 are privately preserved exactly once.** Each publication independently re-downloaded and size/SHA verified all five objects. The new C4 publisher992024 completed0:0 /26s. C has completed four full epochs covering15,548 study exposures/1,944 updates; C4 model SHA is `ea10b81944869a277ef8689f0e1a1db58e5317646b720844d17c7f6790978569`. Continue unchanged to fixed-final epoch6. No accuracy result is established. [Latest C4 review](actual-C-epoch004-preservation-reviewed.json); [original C4 publication](actual-owner-publish-C-004.json); [accepted transfer](actual-owner-contexts-all27.json); [original dispatch](actual-known-dispatches-all27.json).
+**C/B epochs1–4 are privately preserved exactly once.** Each publication independently re-downloaded and size/SHA verified all five objects. The new B4 publisher992433 completed0:0 /49s. Each model has completed four full epochs covering15,548 study exposures/1,944 updates; B4 model SHA is `debac436dc0611ab603980fe5fb7cfda026abd42db22fae1aa14f6b00c324ef8`. Continue unchanged to fixed-final epoch6. No accuracy result is established. [Latest B4 review](actual-B-epoch004-preservation-reviewed.json); [original B4 publication](actual-owner-publish-B-004.json); [accepted transfer](actual-owner-contexts-all27.json); [original dispatch](actual-known-dispatches-all27.json).
 
 | Preserved checkpoint | Original private revision | Original receipt |
 | --- | --- | --- |
@@ -13,8 +13,9 @@
 | B1 | `16ca1e622d1ee169c8f1c9ce3109c9c148f234da` | [B1](actual-owner-publish-B-001.json) |
 | B2 | `ae967658f325fbcfb2e16a44ebe0430b0307ce55` | [B2](actual-owner-publish-B-002.json) |
 | B3 | `2a9e1b4b38dda7676eeccb35dc3722313f5b13f3` | [B3](actual-owner-publish-B-003.json) |
+| B4 | `c77d3106dad5e4ceb1e40d1d428054fa7e0b1973` | [B4](actual-owner-publish-B-004.json) |
 
-At04:04UTC the scheduler estimates C0 startingOctober21 08:29:58UTC and ending16:29:58UTC. C’s first164 updates took1090.555seconds; B’s first13 took87.420seconds. These are provisional timing observations, not finish guarantees. No optional full run or ready-subset deployment is admitted.
+At04:19UTC the scheduler estimates C0 startingOctober21 08:29:58UTC and ending16:29:58UTC. C’s first164 updates took1090.555seconds; B’s first13 took87.420seconds. These are provisional timing observations, not finish guarantees. No optional full run or ready-subset deployment is admitted.
 
 **Resolved monitoring failures:** Slurm created each newly allocated job’s stdout/stderr as0644. The frozen controller requires0600 and reported observation errors for all three arms. Root narrowed C’s exact owned pair at00:37UTC, then B’s pair at00:47UTC after B actually allocated. Only permissions changed; no body writes, source/input changes or training restart. The existing controller emitted all three recovered receipts after each correction. [C correction](actual-C-log-permission-correction.json); [B correction](actual-B-log-permission-correction.json); [second C recovery](actual-observation-C-recovered-002.json); [second B recovery](actual-observation-B-recovered-002.json); [second C0 recovery](actual-observation-C0-recovered-002.json). If the issue appears when C0 actually allocates, inspect only its exact original owned log paths and narrow permissions; never precreate logs or restart training.
 
