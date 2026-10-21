@@ -1,0 +1,54 @@
+{
+  "runtime": {
+    "predictive_VM_envelope_seconds": 1800,
+    "qualification_cap_seconds": 1200,
+    "public_watchdog_seconds": 600,
+    "public_VM_startup_allowance_seconds": 120,
+    "other_reserved_VM_seconds": 0,
+    "planning_study_count": 1300,
+    "planning_count_basis": "Authenticated October20 official Kaggle data description says about1300 hidden test studies; exact receipt is pinned below. This is an approximate planning count, not a guaranteed upper bound.3887is the fitting cohort and is not substituted for hidden test count.",
+    "startup_allowance_seconds": 600,
+    "tail_sensitivity_factor": 1.5,
+    "safety_margin_seconds": 1800,
+    "selected_scenario": "mean_two_lane",
+    "entry_rationale": "Use C100 own actual trained three-study mean two-lane timing, approximate1300 hidden studies,600seconds startup and1800seconds margin. Retain maximum-case and1.5x-tail stress evidence. This repeats the accepted primary engineering decision before any C100 score; hidden composition/runtime remain unproven. Do not replace the worker or use another model qualification.",
+    "hidden_runtime_proven": false,
+    "public_tail_extrapolation_risk_accepted": true,
+    "probe": {
+      "slug": "godlydonuts/rsna-predictive-t4-v2-5d32589edb9e",
+      "version": 1,
+      "kernel_id": 139802342,
+      "source_sha256": "5d32589edb9efe7f68de536bc01a1d2e50a0da555e9c5b10734cf4351aafd737",
+      "receipt_filename": "predictive-T4-benchmark-v2.json"
+    },
+    "probe_receipt_sha256": "844088fd6bc1103b331a8ffb8bf139a408e53e11bb68d5d18b2f14cbcbc6224e",
+    "primary_budget_retirement": "Only existing canonical same-bundle B/C/C0 submitted receipts retire3360seconds through primary_budget.py. This decision cannot override that check. No paid credits."
+  },
+  "official_population_receipt": {
+    "path": "initiative/research/parallel-serving-account-20261020-v1/actual-official-test-population.json",
+    "sha256": "40d137f877fe08426bc3adb17dad7ec94476be04c5bfb08b2ab3654374c5bfd3"
+  },
+  "protected_baseline_entry": 57333150,
+  "status": "accepted_finite_C100_final_handoff",
+  "root": "/tmp/rsna-predictive-final-deployment-20261020-v1-C100-deadline",
+  "owning_node": "evc27",
+  "fixed_epoch": 6,
+  "original_GPU_job": "995351",
+  "original_source_git": "8f1e8f2bb9f2ded8a2e4a582718188b68639db8b",
+  "new_training": false,
+  "automatic_mutation_retry": false,
+  "checkpoint_selection": "original fixed final epoch6 only",
+  "funding": {
+    "new_node_bytes": 2147483648,
+    "other_node_unpaid_bytes": 549755813888,
+    "conservative_other_node_basis": "Retains all previously funded evc27 primary/C100/G100/contrast/control/publication obligations without any paid-byte or deletion credit. Every phase rechecks actual free bytes plus20GiB reserve. New scope is separate2GiB; no weights copied to evc33.",
+    "shared_total_bytes": 128974848,
+    "shared_total_future_files": 376,
+    "existing_shared_eight_file_envelope_reused": true,
+    "basis": "Existing canonical ledger and coordinator-claim serialize all account phases. Reuse their already funded1MiB/eight-file transient envelope, never a second concurrent claim. Retain122MiB/368other; deduct only six exact original already-existing GPU log files after fresh path/inode/owner verification. Keep20GiB/5000-files reserve."
+  },
+  "qualification": "own actual trained final on both T4s required",
+  "readiness": "actual original995351 COMPLETED0:0 and all six original fully privately verified epochs; no training or publication restart",
+  "purpose": "Measure whether correcting the observed underweighted density objective improves original fixed-final C, while an independent Colab seed trains. No score-based epoch selection.",
+  "deadline_UTC": "2026-10-22T12:00:00Z"
+}
