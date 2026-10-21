@@ -12,7 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-JOURNAL = ROOT / "artifacts" / HERE.name
+PAYLOAD = ROOT / "artifacts" / HERE.name
+JOURNAL = PAYLOAD / "request-v2"
 
 
 def main():
@@ -36,8 +37,11 @@ def main():
         for k, sep, v in [line.partition("=")]
         if sep and not line.lstrip().startswith("#")
     }
-    source = (JOURNAL / "candidate.py").read_text()
-    compiled = json.loads((JOURNAL / "compiled.json").read_text())
+    source = (PAYLOAD / "candidate.py").read_text()
+    compiled = json.loads((PAYLOAD / "compiled.json").read_text())
+    JOURNAL.mkdir(mode=0o700, exist_ok=True)
+    original = json.loads((PAYLOAD / "original-claim-reconciled.json").read_text())
+    assert original["status"] == "original_absent_CPU_push_closed_claim_released"
     assert (
         compiled["binding"]["module_sha256"]["benchmark.py"]
         == hashlib.sha256((HERE / "benchmark.py").read_bytes()).hexdigest()

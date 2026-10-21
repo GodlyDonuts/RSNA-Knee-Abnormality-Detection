@@ -25,6 +25,9 @@ def test_request_has_no_GPU_dataset_or_submission():
     assert r["isPrivate"] is True and r["enableInternet"] is False
     assert r["datasetDataSources"] == r["kernelDataSources"] == []
     assert "machineShape" not in r
+    assert "kernelExecutionType" not in r
+    assert r["dockerImagePinningType"] == "original"
+    assert r["newTitle"] == r["slug"].split("/")[1].replace("-", " ")
     assert r["sessionTimeoutSeconds"] == 1200
     with pytest.raises(AssertionError):
         a.request_for("changed source", compiled())

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import requests
 
-ROOT = Path("/tmp/rsna-predictive-CPU-preparation-20261021-v1")
+ROOT = Path("/tmp/rsna-predictive-CPU-preparation-20261021-v2")
 LEDGER = Path("/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3")
 
 
@@ -21,9 +21,10 @@ def sha(data):
 def request_for(source, compiled):
     assert sha(source.encode()) == compiled["source_sha256"]
     assert compiled["GPU"] is False and compiled["competition_entry"] is False
+    slug = "godlydonuts/rsna-predictive-cpu2-" + compiled["source_sha256"][:12]
     return {
-        "slug": "godlydonuts/rsna-predictive-cpu-" + compiled["source_sha256"][:12],
-        "newTitle": "RSNA exact CPU preparation " + compiled["source_sha256"][:12],
+        "slug": slug,
+        "newTitle": slug.split("/")[1].replace("-", " "),
         "text": source,
         "language": "python",
         "kernelType": "script",
@@ -31,9 +32,9 @@ def request_for(source, compiled):
         "enableGpu": False,
         "enableTpu": False,
         "enableInternet": False,
-        "kernelExecutionType": "BATCH",
         "sessionTimeoutSeconds": 1200,
         "dockerImage": compiled["binding"]["pinned_Docker"],
+        "dockerImagePinningType": "original",
         "datasetDataSources": [],
         "kernelDataSources": [],
         "competitionDataSources": ["rsna-knee-abnormality-detection"],
@@ -81,13 +82,13 @@ def main(v):
         "shared_free_bytes": (int(q[2]) - int(q[1])) * 1024,
         "shared_free_files": int(q[6]) - int(q[5]),
         "other_node_bytes": 516 * 2**30,
-        "new_node_bytes": 8 * 2**20,
+        "new_node_bytes": 16 * 2**20,
         "other_shared_bytes": 123 * 2**20,
         "other_shared_files": 370,
         "new_shared_bytes": 0,
         "new_shared_files": 0,
     }
-    assert funding["node_free_bytes"] >= (516 + 20) * 2**30 + 8 * 2**20
+    assert funding["node_free_bytes"] >= (516 + 20) * 2**30 + 16 * 2**20
     assert funding["shared_free_bytes"] >= 20 * 2**30 + 123 * 2**20
     assert funding["shared_free_files"] >= 5000 + 370
     assert not ROOT.is_symlink()
@@ -124,7 +125,7 @@ def main(v):
     retain = False
     try:
         with w.ledger(LEDGER, "godlydonuts") as db:
-            key = "research:predictive-CPU-preparation:" + v["compiled"]["source_sha256"]
+            key = "research:predictive-CPU-preparation-v2:" + v["compiled"]["source_sha256"]
             found = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
             row = json.loads(found[0]) if found else {}
 
