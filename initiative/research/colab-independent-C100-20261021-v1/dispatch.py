@@ -11,7 +11,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-JOURNAL = REPO / 'artifacts' / HERE.name
+JOURNAL = REPO / 'artifacts' / HERE.name / 'bridge-v2'
+SCIENCE = '94a3921aefdf333624caf41aff77aa10b4a0c57e'
 
 
 def main(pin, socket):
@@ -22,6 +23,8 @@ def main(pin, socket):
         raw = subprocess.check_output(['git', 'show', pin + ':' + path.relative_to(REPO).as_posix()], cwd=REPO)
         assert raw == path.read_bytes()
         files[name] = raw.decode()
+        if name in ('colab_download.py', 'colab_train.py'):
+            assert raw == subprocess.check_output(['git','show',SCIENCE+':'+path.relative_to(REPO).as_posix()],cwd=REPO)
     env = REPO / '.env'
     assert stat.S_IMODE(env.stat().st_mode) == 0o600
     subprocess.run(['git', 'check-ignore', '-q', '.env'], cwd=REPO, check=True)
@@ -40,7 +43,7 @@ def main(pin, socket):
               '--immediate=60','--job-name=rsna-colab-input-bridge','env','CUDA_VISIBLE_DEVICES=',
               'PYTHONNOUSERSITE=1','PYTHONDONTWRITEBYTECODE=1','OMP_NUM_THREADS=2','MKL_NUM_THREADS=2',
               '/tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/bin/python','-B','-c',command]
-    payload = {'source_git':pin, 'token':token,
+    payload = {'source_git':SCIENCE, 'bridge_control_git':pin, 'token':token,
                'own_files':{n:files[n] for n in ('colab_train.py','colab_download.py')}}
     with (JOURNAL/'stdout.jsonl').open('x') as out, (JOURNAL/'stderr.txt').open('x') as err:
         result = subprocess.run(['ssh','-S',socket,'-o','BatchMode=yes','-o','ConnectTimeout=10',

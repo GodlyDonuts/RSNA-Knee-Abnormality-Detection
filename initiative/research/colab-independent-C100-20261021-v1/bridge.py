@@ -16,7 +16,7 @@ import tarfile
 import time
 from pathlib import Path
 
-ROOT = Path('/tmp/rsna-colab-independent-C100-20261021-v1')
+ROOT = Path('/tmp/rsna-colab-independent-C100-20261021-v2')
 REPO = 'GodlyDonuts/RSNA-Colab-Deadline-20261021'
 BINDING = Path('/tmp/rsna-predictive-density100-full-20261020-v1/binding.private.json')
 BINDING_SHA = 'f0d73e6cc04cbf7b34f06499f5aef4ba60ea2c593662764b8f64ec5105a289cd'
@@ -86,14 +86,17 @@ def main(v):
     os.environ.update(HF_HOME=str(ROOT / 'hf'), HF_HUB_DISABLE_XET='1',
                       HF_HUB_DISABLE_PROGRESS_BARS='1', HF_HUB_DISABLE_TELEMETRY='1')
     from huggingface_hub import CommitOperationAdd, HfApi
-    from huggingface_hub.errors import RepositoryNotFoundError
+    from huggingface_hub.errors import HfHubHTTPError
     api = HfApi(token=v.pop('token'))
+    assert api.whoami()['name'].lower() == 'godlydonuts'
     save(ROOT / 'intent.json', {'source_git': v['source_git'], 'repo': REPO,
                               'CPU_job': os.environ['SLURM_JOB_ID'], 'new_GPU_jobs': 0})
     try:
         api.repo_info(REPO, repo_type='dataset')
-    except RepositoryNotFoundError:
-        pass
+    except HfHubHTTPError as error:
+        # This installed client represents the server's authenticated 404 as
+        # the generic base error, rather than RepositoryNotFoundError.
+        assert error.response is not None and error.response.status_code == 404
     else:
         raise ValueError('Existing private bridge requires read-only reconciliation')
     with common.publication_lock(LOCK):
@@ -103,6 +106,7 @@ def main(v):
 
     manifest = {'schema': 'private_colab_predictive_contexts_v1', 'repo': REPO,
                 'source_git': v['source_git'], 'base_science_git': b['base_science_git'],
+                'bridge_control_git': v['bridge_control_git'],
                 'original_binding_sha256': BINDING_SHA, 'context_bytes': 67005012716,
                 'cohort': 3887, 'seed': 20261021, 'archives': [], 'members': {}, 'rows': [],
                 'recipe': dict(arm='C', epochs=6, effective_batch=8, encoder_lr=3e-5,
@@ -200,5 +204,6 @@ if __name__ == '__main__':
         while tb.tb_next:
             tb = tb.tb_next
         print(json.dumps({'status': 'bridge_stopped_reconcile_before_retry',
-                          'error_type': type(error).__name__, 'source_line': tb.tb_lineno}), flush=True)
+                          'error_type': type(error).__name__, 'source_line': tb.tb_lineno,
+                          'http_status': getattr(getattr(error, 'response', None), 'status_code', None)}), flush=True)
         raise SystemExit(1) from None
