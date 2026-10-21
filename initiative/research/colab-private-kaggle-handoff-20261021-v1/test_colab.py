@@ -134,3 +134,51 @@ def test_download_checks_complete_bytes_and_never_forwards_auth(tmp_path, monkey
         assert target.read_bytes() == body
     if fault == "unsafe_redirect":
         assert not calls
+
+
+@pytest.mark.parametrize("failure", [None, "create_uncertain", "download_hash"])
+def test_epoch_storage_is_private_verified_and_never_recreates(tmp_path, failure):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"immutable checkpoint fixture")
+    destination = tmp_path / "publication"
+    destination.mkdir()
+    calls = []
+    slug = "godlydonuts/rsna-colab-c100-epoch-001-fixture"
+    metadata = {"id": 123, "private": True, "version": 1, "slug": slug}
+
+    def create(token, target, title, upload):
+        assert token == "test-only-token" and target == slug
+        assert {p.name for p in upload.iterdir()} == {"model.pt.bin"}
+        calls.append("create")
+        if failure == "create_uncertain":
+            raise RuntimeError("Uncertain original creation")
+        return {"returned": True, "private_requested": True, "final_create_rpc_calls": 1}
+
+    def download(remote, target, name, proof, **kwargs):
+        calls.append("independent_download")
+        assert proof == {"bytes": checkpoint.stat().st_size, "sha256": S.sha(checkpoint)}
+        if failure == "download_hash":
+            raise ValueError("Remote bytes differ")
+
+    store = S.Store.__new__(S.Store)
+    store.token = "test-only-token"
+    store.lease = {"slugs": {"epoch-001": slug}}
+    store.create = create
+    store.remote = types.SimpleNamespace(call=lambda *args: {"status": "READY"})
+    store.pub = types.SimpleNamespace(
+        require_absent=lambda *args: {"absent": True},
+        metadata=lambda *args: metadata,
+        list_files=lambda *args: {"model.pt.bin": checkpoint.stat().st_size},
+        stream_file=download,
+    )
+    if failure:
+        with pytest.raises((RuntimeError, ValueError)):
+            store.publish("epoch-001", {"model.pt": checkpoint}, destination)
+        assert not (destination / "verified.json").exists()
+    else:
+        result = store.publish("epoch-001", {"model.pt": checkpoint}, destination)
+        assert result["private"] and result["revision"] == "Kaggle:123:v1"
+        assert calls == ["create", "independent_download"]
+    with pytest.raises(AssertionError):
+        store.publish("epoch-001", {"model.pt": checkpoint}, destination)
+    assert calls.count("create") == 1

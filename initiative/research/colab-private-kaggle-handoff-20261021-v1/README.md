@@ -66,4 +66,11 @@ allows Colab's single storage writer to preserve epochs without depending on
 the owner's UCF VPN throughout training. Exclusive intents prohibit automatic
 mutation retries; original receipts are reconciled back into the canonical
 ledger. Every created epoch is fully re-downloaded/size/SHA verified privately.
-No checkpoint lease or Colab training is claimed until its actual receipt exists.
+**Actual storage admission:** Canonical CPU996467 admitted the sole writer after
+private input Dataset **12754716 v1** was READY and its11-file listing matched.
+The exact code is8a9f74bb, manifestSHA`bce57e766fe4be00fb5ea41d9be7fd498f4296fbc033f663f68f50e0a2b3570b`;
+see `actual-checkpoint-lease.json`. Creation996386 finished0:0 at10:57:15UTC.
+Three further private checkpoint tests passed for successful independent download,
+uncertain creation and mismatched downloaded bytes; neither failure can recreate
+the original Dataset. Total focused checks are24. The notebook cell was compiled
+and staged; actual training progress is not inferred from runtime allocation.
