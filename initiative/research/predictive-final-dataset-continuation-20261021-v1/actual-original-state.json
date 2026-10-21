@@ -1,0 +1,109 @@
+{
+  "CPU_job": "997097",
+  "observed_at": 1792585968.2025764,
+  "mutations": 0,
+  "root_files": [
+    "bundle",
+    "control",
+    "dataset-intent.json",
+    "dataset-response.json",
+    "original",
+    "parent.private.py",
+    "prepare-intent.json",
+    "prepared.json",
+    "staged.json",
+    "upload"
+  ],
+  "responses": {
+    "IntrospectToken": {
+      "HTTP": 200,
+      "active": true,
+      "username": "godlydonuts"
+    },
+    "GetAcceleratorQuotaStatistics": {
+      "HTTP": 200,
+      "result": {
+        "quotaRefreshTime": "2026-10-24T00:00:00Z",
+        "gpuQuota": {
+          "timeUsed": "158412.492335900s",
+          "timeReserved": "0s",
+          "totalTimeAllowed": "162000s",
+          "minimumTimeAllowed": "108000s",
+          "isPayToScaleEnabled": true,
+          "hasEverRun": true
+        },
+        "tpuQuota": {
+          "timeUsed": "0s",
+          "timeReserved": "0s",
+          "totalTimeAllowed": "72000s",
+          "minimumTimeAllowed": "72000s"
+        }
+      }
+    },
+    "GetSubmissionLimits": {
+      "HTTP": 200,
+      "result": {
+        "numTotal": 62,
+        "numAllowedNow": 5
+      }
+    },
+    "GetDataset": {
+      "HTTP": 200,
+      "id": 12756510,
+      "isPrivate": true,
+      "currentVersionNumber": 1,
+      "ownerSlug": null,
+      "datasetSlug": null,
+      "code": null
+    },
+    "GetDatasetStatus": {
+      "HTTP": 200,
+      "result": {
+        "status": "READY"
+      }
+    }
+  },
+  "dataset-intent.json": {
+    "absence": {
+      "count": 81,
+      "method": "complete_authenticated_owned_listing",
+      "pages": 6,
+      "refs_sha256": "abe0a3d071d3003d2dffe224b7ad971342510aaf88d1db4c016249548fd52c88"
+    },
+    "automatic_retry": false,
+    "bundle_identity": "5179059eb7cf52a6c08789c4d2e4fee5e495768407379531dd5ff58ae88ab5b2",
+    "dataset": true,
+    "dataset_slug": "godlydonuts/rsna-predictive-finals-5179059eb7cf",
+    "state": "predictive_dataset_create_intent",
+    "version": 1
+  },
+  "dataset-response.json": {
+    "final_create_rpc_calls": 1,
+    "private_requested": true,
+    "returned": true,
+    "sdk_convert_to_csv_argument_used": false,
+    "status": "Ok"
+  },
+  "bundle_identity": "5179059eb7cf52a6c08789c4d2e4fee5e495768407379531dd5ff58ae88ab5b2",
+  "dataset_slug": "godlydonuts/rsna-predictive-finals-5179059eb7cf",
+  "claim_present": false,
+  "ledger": [
+    {
+      "key": "licensed-parent-full-epoch-serving:predictive-final-v1:5179059eb7cf52a6c08789c4d2e4fee5e495768407379531dd5ff58ae88ab5b2:dataset",
+      "value": {
+        "state": "predictive_dataset_create_returned",
+        "dataset": true,
+        "dataset_slug": "godlydonuts/rsna-predictive-finals-5179059eb7cf",
+        "version": 1,
+        "bundle_identity": "5179059eb7cf52a6c08789c4d2e4fee5e495768407379531dd5ff58ae88ab5b2",
+        "absence": {
+          "method": "complete_authenticated_owned_listing",
+          "pages": 6,
+          "count": 81,
+          "refs_sha256": "abe0a3d071d3003d2dffe224b7ad971342510aaf88d1db4c016249548fd52c88"
+        },
+        "automatic_retry": false
+      }
+    }
+  ]
+}
