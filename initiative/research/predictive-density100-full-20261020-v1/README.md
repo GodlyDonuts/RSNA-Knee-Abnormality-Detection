@@ -143,3 +143,7 @@ primary3,360-second reservation.
 The prospective full-C100 admission additionally preserves the contrast pilot's
 **7GiB +4MiB** node27 scope without speculative paid-byte credit. Its storage
 check cannot consume that independent reservation.
+
+## Actual allocation — October 21, 10:07 UTC
+
+Original job **995351 started at09:59:19UTC** on ordinary two-H100 evc27. Its exact admitted binding and run-start recipe match; 52 actual finite updates and416 study exposures were observed, with empty stderr. Only the first three updates are head-only; the full encoder updates from4. The density coefficient is100, versus primary C’s0.1. Peak allocated GPU memory is5,893,208,064bytes. This is real full-data optimization, not a held-out result. No job/source was changed or repeated. [Sanitized original observation](actual-startup-20261021.json).
