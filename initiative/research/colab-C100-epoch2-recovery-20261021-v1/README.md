@@ -47,3 +47,20 @@ A100 is released only after all seven proofs and final metadata are printed.
 This publication step uses the original isolated private namespaces and
 storage reservation; no competition submission or new GPU is requested.
 The deadline and accepted scientific recipe are unchanged.
+
+## Actual October21 16:20 UTC objective reading
+
+The active recovery reached **1,860/2,916 updates**, epoch4, with finite
+encoder/head gradients and actual encoder updates. [Original visible scalar
+record and exact source hashes](actual-progress-1860-objective.json).
+
+The raw density NLL includes the fixed unit-Gaussian normalizer
+`0.5*log(2*pi)=0.9189385332046727` per observed coordinate. Its weight100
+contributes **91.89385332046727** to the reported total but exactly zero
+gradient. At update1860, density0.9191255122423172 means an excess0.0001869790,
+weighted excess0.0186979; exam loss0.5920499 plus that excess is approximately
+0.6107478. The remaining difference from total-minus-constant is floating-point
+rounding. Nearly flat raw density does not by itself establish collapse or
+effective learning. Loss magnitudes cannot establish relative gradient norms,
+and different mini-batches cannot establish an accuracy trend. Neither loss
+centering nor any numerical/scientific change was applied to the healthy fit.

@@ -1,0 +1,51 @@
+{
+  "observed_UTC": "2026-10-21T16:20:33.145Z",
+  "source": "Original Colab active cell cell-jn0mRnxvyCa0 rendered optimizer JSON, read-only",
+  "scientific_source_git": "94a3921aefdf333624caf41aff77aa10b4a0c57e",
+  "source_module_sha256": {
+    "rsna/competitive/predictive/model.py": "38c9fc7c2e7e79ea90972f1b14c6e47491aba2f1641496277534e7cd20856f08",
+    "rsna/competitive/predictive/density.py": "b5f56767dd277af65864983f3a5cd58d89d4cc8153990e9139e6f81b870e64a0"
+  },
+  "actual_optimizer_record": {
+    "phase": "real_optimizer_progress",
+    "step": 1860,
+    "epoch": 4,
+    "studies": 8,
+    "loss": 92.50460052490234,
+    "exam_loss": 0.5920499004423618,
+    "density_loss": 0.9191255122423172,
+    "encoder_gradient_norm": 5.880943368067331,
+    "head_gradient_norm": 0.5558653544575282,
+    "gradient_norm": 5.9071550369262695,
+    "LR": [
+      1.1582835009089462e-05,
+      1.1582835009089462e-05
+    ],
+    "encoder_updated": true,
+    "elapsed_seconds": 8021.816024783002,
+    "peak_GPU_bytes": 5898727424
+  },
+  "objective_interpretation": {
+    "fixed_log_variance": 0,
+    "unit_Gaussian_per_coordinate_constant": 0.9189385332046727,
+    "density_weight": 100,
+    "total_loss_constant_component": 91.89385332046727,
+    "density_above_constant": 0.00018697903764453017,
+    "weighted_density_above_constant": 0.018697903764453017,
+    "reported_total_minus_constant": 0.6107472044350715,
+    "logged_exam_plus_weighted_excess": 0.6107478042068148,
+    "gradient_of_constant": 0,
+    "not_a_measure_of_gradient_ratio": true
+  },
+  "sampling": {
+    "logged_rows": 45,
+    "first_step": 980,
+    "last_step": 1860,
+    "first10_mean_density_above_constant": 0.00018415824783053482,
+    "last10_mean_density_above_constant": 0.00016964153659548842,
+    "batches_differ_no_causal_comparison": true
+  },
+  "changes_to_training": false,
+  "accuracy_result": false,
+  "interpretation": "The near-flat raw density loss is dominated by a known fixed Gaussian normalizer. It alone neither proves collapse nor successful learning. Real gradients/updates continue; fixed-final predictions and actual outcomes remain required. Loss sizes do not identify gradient contribution."
+}

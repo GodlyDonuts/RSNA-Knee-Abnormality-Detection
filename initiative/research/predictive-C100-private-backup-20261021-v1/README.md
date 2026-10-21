@@ -9,3 +9,10 @@ The canonical account claim and original shared publication lock serialize the s
 New node-local scope:2GiB, enough for the less-than1GiB ZIP plus metadata; original exports are hardlinked, not copied. Fresh capacity must retain518GiB of existing/conservative obligations plus20GiB floor. Shared123MiB/370 futurefiles and20GiB/5000-file floor remain. No original deletion, new GPU, competition entry or paid purchase. DeadlineOctober22 noonUTC.
 
 Five scoped tests passed, including mixed actual-provider receipts through the original complete model contract and rejection of missing private verification. Dispatch is recorded separately; this document alone is not execution evidence.
+
+At16:25UTC the original status reader found **five completed epoch sidecars**
+and Slurm995351 still RUNNING, with no final terminal. Private epochs1–3 remain
+verified, epoch4's failed HF commit remains unchanged, and the original backup
+owner1426 continues waiting for final six before exporting5/6 and preserving
+4–6 together. No training restart or new upload.
+[Actual observation](actual-epoch5-running.json).
