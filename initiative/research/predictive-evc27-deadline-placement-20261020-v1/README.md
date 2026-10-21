@@ -64,3 +64,23 @@ Each successful fixed final returns exactly seven original objects to a distinct
 Returns retain the existing 30-minute receiver accept timeout, 10-minute connected-stream timeout and 45-minute CPU allocation. A timeout preserves partial output and stops that mutation path for reconciliation; it does not automatically retransmit. The canonical deployment adapter uses the returned model/provenance/license paths, validates all three original source/input proofs, and retains the trained qualification and submission gates. No accuracy or runtime acceptance follows from this placement change.
 
 Local remote tests execute the frozen dispatcher without a scheduler, confirm the three original node27 job scripts and exact-once behavior, exercise complete and partial dispatch reconciliation, test one-index admission with separate original recipes, check funding and paid-log boundaries, and verify arm-specific final-return derivation. They do not constitute actual input admission or training.
+
+
+## Completed B/C learning curves — October 21, 06:23 UTC
+
+The [original completed-fit scalar analysis](actual-B-C-completed-fit-telemetry.json) reads only the two immutable job stdout files after Slurm confirmed both completed0:0. It checks all2,916 updates per arm, matching LR/exposure/encoder-update schedules, six3,887-study epochs, the final7-study batch and finite losses/gradients. No weights, MRI, reports, predictions or held-out labels were read; no remote files or jobs were created.
+
+| Training measurement | B: direct classification | C: conditional predictive evidence |
+| --- | ---: | ---: |
+| Study-weighted exam loss, epoch1 | 0.616301 | 0.616277 |
+| Study-weighted exam loss, epoch6 | 0.575507 | 0.583854 |
+| Relative exam-loss decrease | 6.62% | 5.26% |
+| Density loss, epoch1 →6 | 0.919486 →0.919369 | 0.919852 →0.919786 |
+| Epoch6 updates exceeding clip norm1 | 100% | 100% |
+| Last200 mean preclip norm | 6.5000 | 5.3906 |
+
+Both exam objectives decreased each epoch without nonfinite updates. However, C's logged density loss moved by only−0.0000662 across the epoch averages; the auxiliary objective has not demonstrated substantial improvement in this scalar. This is consistent with the earlier weak-density-gradient concern, but a loss dominated by its common reconstruction term cannot establish whether the diagnosis-specific evidence changed. The absolute B/C density values are different objectives and are not a shared performance metric. Increasingly frequent gradient clipping is an optimization observation, not proof of divergence or a reason to alter healthy C0.
+
+**Decision:** retain the fixed epoch6 and unchanged B/C/C0 scoring experiment. Do not infer accuracy from the lower B training loss, select an earlier checkpoint, relax clipping, launch G100, or admit unfunded optional training from these curves. The completed training does not yet establish a predictive-evidence gain. Compare actual C−B and C−C0 scores after trained T4 qualification. Per-epoch curves average an evolving model; they are not final-checkpoint evaluations. Both observed CPU context-loading totals consumed about25.5% of measured fitting time.
+
+Aggregation uses the exact logged per-update study mean multiplied by that update's study count, divided by3,887 per epoch; clipping uses the logged preclip total norm>1. Encoder norms are logged before clearing the first three updates' encoder gradients, whereas the total clipping norm is measured after that clearing. Source log paths, whole-log hashes, bytes, all six epochs and first/last200 summaries are retained in the original receipt.

@@ -8,6 +8,10 @@ Sole fitting continuation **33107** and deployment **32378** remain active with 
 
 Authenticated Kaggle final-selection read at23:27UTC shows **0/2 manually selected**, with unfilled positions automatically taking the best scores. The successful **R6 v2 /0.958** is covered by that policy, **not manually locked**. No selection, entry or GPU mutation was made. Reconcile the two final choices after new outcomes and before October22 23:59UTC. [Actual UI receipt](../initiative/research/predictive-matched-pilot-results-20261020-v1/actual-final-selection-readonly.json).
 
+## Completed-fit finding
+
+The October21 06:23UTC read-only [full B/C learning-curve analysis](../initiative/research/predictive-evc27-deadline-placement-20261020-v1/actual-B-C-completed-fit-telemetry.json) shows study-weighted training exam loss decreasing from0.616301→0.575507 for B and0.616277→0.583854 for C over six epochs. C's density loss barely moved,0.919852→0.919786; this does not yet demonstrate improved diagnosis-specific evidence. Both arms clipped every update in epoch6, with finite gradients. These are evolving-model fitting averages, not held-out metrics. Keep fixed epoch6 and the unchanged B/C/C0 scoring experiment; no optional-run admission or accuracy claim follows. [Interpretation and exact aggregation](../initiative/research/predictive-evc27-deadline-placement-20261020-v1/README.md#completed-bc-learning-curves--october-21-0623-utc).
+
 ## Results and the current gap
 
 | Model | Actual Kaggle score | Entry |
