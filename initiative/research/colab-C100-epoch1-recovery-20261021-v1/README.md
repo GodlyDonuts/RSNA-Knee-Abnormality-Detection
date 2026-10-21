@@ -1,0 +1,7 @@
+# Colab exact epoch-boundary recovery
+
+The original A100 run stopped after489 updates when its first asynchronous publisher returned a RemoteError. Epoch001 was sealed at486 updates. Its private Dataset12756621v1 had already been created exactly once; the read-only helper independently downloaded and verified all seven objects. No upload was repeated. The exact failing remote method was not retained, so the cause is not asserted.
+
+The finite successor restores the complete original model/AdamW/counters/history/all-RNG state through the unchanged canonical fit(resume=...) path, with exactly the original binding, recipe and initialization. It uses a distinct private output directory and preserves original updates487–489 as discarded unsaved work. Epoch001 is reused; epochs2–6 and terminal use their original reserved private namespaces. New publications include the recovery source and explicit continuation receipt. Existing serving acceptance must be extended for this disclosed provenance before deployment.
+
+Only allowlisted read-only API requests receive bounded retries. Dataset creation/upload is never retried automatically. The original ten-hour wall-clock deadline and October22 04UTC bound are retained, with no recharge. Original scientific/storage files remain byte-identical. Nineteen scoped recovery/control tests passed, including the canonical full/stop/resume tests. Actual resumed optimizer progress must be observed separately.
