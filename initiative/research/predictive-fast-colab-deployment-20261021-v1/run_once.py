@@ -39,6 +39,8 @@ def namespace():
             HERE / "run_once.py",
             UPGRADE / "serving_upgrade.py",
             UPGRADE / "selected_frames.py",
+            HERE.parent / "predictive-inference-resilience-20261021-v1/decoder.py",
+            HERE.parent / "predictive-inference-resilience-20261021-v1/serving.py",
             HERE.parent / "predictive-descriptor-batch-20261021-v1/descriptor_batch.py",
         ]
         for path in paths:
@@ -75,7 +77,11 @@ def namespace():
             files = ctl.build(value)
         else:
             files = baseline(pin, value)
-        return upgrade.capsule(files)
+        resilience_path = HERE.parent / "predictive-inference-resilience-20261021-v1/serving.py"
+        resilience = load(
+            git(pin, resilience_path), resilience_path, "explicit_MRI_serving_resilience"
+        )
+        return resilience.capsule(upgrade.capsule(files))
 
     ns["controls"] = controls
     return ns

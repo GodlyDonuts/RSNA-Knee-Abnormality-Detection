@@ -18,3 +18,12 @@ Colab additionally admits the truthful local-only terminal from its executed
 second recovery, while requiring the separate seven private publication proofs.
 It still waits for the exact canonical Newton entry and protects its budget.
 The Colab fit and queued publication cell must not be interrupted.
+
+The prospective serving successor also retains the exact original decoder when
+it succeeds, recovers usable original MRI on malformed optional metadata, and
+recomputes a failed FP16 forward in FP32 on the same learned model. No constant
+or alternative-model fallback. A completed valid competition CSV is no longer
+discarded solely because measured memory exceeds a stricter qualification
+threshold; the real Kaggle resource limits still apply. Own qualification keeps
+the original strict memory and precision checks. These changes are tested
+engineering corrections, not a proven explanation of B/C's hidden exceptions.
