@@ -1,11 +1,11 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 18:05 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 18:12 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
 
-## October21,18:05UTC — actual context result and Colab progress
+## October21,18:12UTC — actual context result and Colab progress
 
-Independent Colab is now **epoch6/update2,520 of2,916**, with five immutable
-local epochs and finite real encoder updates;259.25resource units remain.
+Independent Colab is now **epoch6/update2,600 of2,916**, with five immutable
+local epochs and finite real encoder updates;258.36resource units remain.
 Original training/publisher cells and final consumer8603 remain intact.
 Newton entry57491555 still has null hidden status/score at the latest original
 consumer observation. No new predictive accuracy result is established. Authenticated18:03UTC
@@ -22,21 +22,16 @@ contexts, complete descriptors/support fields, FP16/FP32 and cross-device tests
 passed. Maximum probability movement0.10820 is not an accuracy gain.
 [Original measurement and limits](../initiative/research/predictive-context96-T4-20261021-v1/README.md).
 
-Distinct96-center public-output notebook **140068692v1**, slug
-`godlydonuts/rsna-predictive-context96-ready-d4d26dd53300`, was pushed ONCE by
-CPU1002054 from control e2b840f5/sourceSHA d4d26dd53300e0b28472b87473d5b4da9a333ded5e2cdd7a7b2819d5038e0e70.
-It reuses final Dataset12762386v1 and original model/trainingcap24. Initial state
-was null/unreported, not success. No competition entry or new Dataset.
-Use `ready_run_once.py status --source-git e2b840f5` to inspect the original;
-never repeat prepare/push. Its coordinator cannot submit. Public acceptance must
-reproduce dense96 predictionSHA dd36b87d…c2c8 and verify the exact13-column CSV.
-
-Fresh18:00account allowance was one remaining daily slot and2,722.1146641free
-GPU-VMseconds before the new public execution. That push reserved1,920seconds
-and today's last slot for Colab, plus its own600-second public watchdog and120
-startup margin. No paid quota/billing change. Mean hidden runtime estimate for
-96centers is5.99hours; maximum-case scenarios exceed9hours. Await actual current
-outcomes/fresh allowance before any dense96 competition-entry decision.
+Distinct96-center public notebook **140068692v1**, source d4d26dd5…e70,
+completed in142.28seconds and wrote a verified13-column public CSV. It is
+**ON HOLD**, not competition-ready. Observer1002099 rejected the exact prediction
+hash versus its diagnostic. Per-study aggregate movements agree within2.49e-9,
+but that does not prove elementwise equivalence. Fresh mean runtime projection
+is33,976seconds (9.44hours), above9hours; hidden runtime remains unknown.
+[Actual public result and decision](../initiative/research/predictive-context96-T4-20261021-v1/ready-hold-decision.json).
+Do not repeat prepare/push or the old exact-hash status checker. No competition
+entry, new Dataset or new GPU retry. Reserve remaining GPU time and the last
+daily slot for original Colab final; C10057491555 remains pending/unknown.
 
 ## October 21, 17:28 UTC deployment update
 
@@ -53,7 +48,7 @@ Initial authenticated hidden status/score are null: pending/unknown, not a score
 Only the waiting local Colab consumer3333 was explicitly stopped before any
 handoff/account phase. Corrected consumer **8603**, same source4297039c, reads
 the same original handoff and protects Newton's budget. The actual Colab A100
-training and queued publisher remain untouched; latest observed step2520/2916.
+training and queued publisher remain untouched; latest observed step2600/2916.
 Never restart3332/3333 or repeat the already-pushed qualification.
 [Exact continuation and receipt](../initiative/research/predictive-final-status-recovery-20261021-v1/README.md).
 
@@ -82,7 +77,7 @@ B/C/C0 each completed six epochs/2,916 updates; all18 immutable checkpoints are 
 
 **Newton C100:** original GPU995351 COMPLETED0:0 on ordinary evc27 at16:51:31UTC, after6h52m12s. All six epochs/2,916 updates and23,322 study exposures completed. Source8f1e8f2b/bindingf0d73e6c,3,887 fitting studies. C100 increases the density objective coefficient from0.1 to100 after measured fitting-only gradients showed severe dilution. It does not prove the new weighting improves diagnosis. The original model/optimizer/recipe were not restarted or changed. All six checkpoints are privately preserved. [Actual final evidence](../initiative/research/predictive-C100-private-backup-20261021-v1/actual-final-preserved.json).
 
-**Independent Colab C100:** A10040GB, seed20261021, same3,887 fitting studies and six-epoch budget. Latest actual visible output: **epoch6/update2,520**, finite encoder gradient2.8865/head0.6899 and real encoder updates. This is a **73,271,124-parameter CoAtNet/predictive-evidence model**, not DINOv3. Its different seed/runtime is not a perfectly matched causal experiment. [Actual optimizer receipt](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-progress-2520.json). Colab reports259.25remaining resource units and approximately5.3units/hour; one A100 session remains active.
+**Independent Colab C100:** A10040GB, seed20261021, same3,887 fitting studies and six-epoch budget. Latest actual visible output: **epoch6/update2,600**, finite encoder gradient7.6042/head0.5299 and real encoder updates. This is a **73,271,124-parameter CoAtNet/predictive-evidence model**, not DINOv3. Its different seed/runtime is not a perfectly matched causal experiment. [Actual optimizer receipt](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-progress-2600.json). Colab reports258.36remaining resource units and approximately5.3units/hour; one A100 session remains active.
 
 Colab's first recovery hit a Kaggle HTTP429 during publication after epoch2. The complete update972 checkpoint was retained and restored exactly. Recovery-v2 does no network work during training; a distinct queued publisher will preserve epochs2–6 and the terminal, with at least900seconds between Dataset creates. Epoch1 is already privately verified. Replayed973–975/possible unlogged976 are disclosed. Original ten-hour fitting bound and300-resource-unit authorization remain. [Exact recovery and publication](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/README.md).
 

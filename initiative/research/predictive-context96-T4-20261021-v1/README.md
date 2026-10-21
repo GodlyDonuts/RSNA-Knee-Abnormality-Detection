@@ -75,3 +75,22 @@ SourceSHA d4d26dd53300e0b28472b87473d5b4da9a333ded5e2cdd7a7b2819d5038e0e70,
 control e2b840f5. Initial actual status was null/unreported. No competition entry,
 Dataset creation, training change or claim of success. Exact preparation/push
 receipts are `ready-prepare.json` and `ready-push.json`. Never repeat either.
+
+
+## Final public outcome: complete, held
+
+Actual notebook140068692v1 completed in142.28seconds and produced a fully
+verified public13-column CSV. CPU observer1002099 rejected its prediction hash:
+actual8847eb70…7983 differs from diagnosticdd36b87d…c2c8. Read-only retrieval
+verified the CSV bytes, official roster and reconstructed prediction digest.
+Each study's maximum probability movement versus24 was identical to the earlier
+diagnostic; mean movement differences were at most2.49e-9. Aggregate agreement
+cannot prove elementwise equality or establish the mismatch cause.
+
+Fresh two-lane mean extrapolation over1,300studies plus2,400seconds startup/tail
+is33,976seconds (9.44hours), above9hours; I/O timing varies substantially between
+runs. **Hold this candidate; no competition submission.** No further GPU run,
+notebook push or model change was made. Protect the original Colab final and
+already-submitted C100. Do not repeat the old exact-hash status checker, which
+will reject again; reconcile this terminal evidence read-only.
+[Actual public outcome](actual-public-unadmitted.json), [explicit decision](ready-hold-decision.json).

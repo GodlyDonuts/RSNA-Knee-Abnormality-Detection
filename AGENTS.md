@@ -1,11 +1,11 @@
 # RSNA Knee agent guide
 
-Updated **October 21, 2026, 18:05 UTC**. Read [current state](docs/current-state.md), then [execution continuation](docs/codex-continuation.md). Actual original journals and service state supersede snapshots. The owner authorizes independent training, useful Kaggle entries and **300 Colab resource units**. No subagents or Devin.
+Updated **October 21, 2026, 18:12 UTC**. Read [current state](docs/current-state.md), then [execution continuation](docs/codex-continuation.md). Actual original journals and service state supersede snapshots. The owner authorizes independent training, useful Kaggle entries and **300 Colab resource units**. No subagents or Devin.
 
-## October21,18:05UTC — actual context result and Colab progress
+## October21,18:12UTC — actual context result and Colab progress
 
-Independent Colab is now **epoch6/update2,520 of2,916**, with five immutable
-local epochs and finite real encoder updates;259.25resource units remain.
+Independent Colab is now **epoch6/update2,600 of2,916**, with five immutable
+local epochs and finite real encoder updates;258.36resource units remain.
 Original training/publisher cells and final consumer8603 remain intact.
 Newton entry57491555 still has null hidden status/score at the latest original
 consumer observation. No new predictive accuracy result is established. Authenticated18:03UTC
@@ -22,21 +22,16 @@ contexts, complete descriptors/support fields, FP16/FP32 and cross-device tests
 passed. Maximum probability movement0.10820 is not an accuracy gain.
 [Original measurement and limits](initiative/research/predictive-context96-T4-20261021-v1/README.md).
 
-Distinct96-center public-output notebook **140068692v1**, slug
-`godlydonuts/rsna-predictive-context96-ready-d4d26dd53300`, was pushed ONCE by
-CPU1002054 from control e2b840f5/sourceSHA d4d26dd53300e0b28472b87473d5b4da9a333ded5e2cdd7a7b2819d5038e0e70.
-It reuses final Dataset12762386v1 and original model/trainingcap24. Initial state
-was null/unreported, not success. No competition entry or new Dataset.
-Use `ready_run_once.py status --source-git e2b840f5` to inspect the original;
-never repeat prepare/push. Its coordinator cannot submit. Public acceptance must
-reproduce dense96 predictionSHA dd36b87d…c2c8 and verify the exact13-column CSV.
-
-Fresh18:00account allowance was one remaining daily slot and2,722.1146641free
-GPU-VMseconds before the new public execution. That push reserved1,920seconds
-and today's last slot for Colab, plus its own600-second public watchdog and120
-startup margin. No paid quota/billing change. Mean hidden runtime estimate for
-96centers is5.99hours; maximum-case scenarios exceed9hours. Await actual current
-outcomes/fresh allowance before any dense96 competition-entry decision.
+Distinct96-center public notebook **140068692v1**, source d4d26dd5…e70,
+completed in142.28seconds and wrote a verified13-column public CSV. It is
+**ON HOLD**, not competition-ready. Observer1002099 rejected the exact prediction
+hash versus its diagnostic. Per-study aggregate movements agree within2.49e-9,
+but that does not prove elementwise equivalence. Fresh mean runtime projection
+is33,976seconds (9.44hours), above9hours; hidden runtime remains unknown.
+[Actual public result and decision](initiative/research/predictive-context96-T4-20261021-v1/ready-hold-decision.json).
+Do not repeat prepare/push or the old exact-hash status checker. No competition
+entry, new Dataset or new GPU retry. Reserve remaining GPU time and the last
+daily slot for original Colab final; C10057491555 remains pending/unknown.
 
 ## October 21, 17:28 UTC deployment update
 
@@ -53,7 +48,7 @@ Initial authenticated hidden status/score are null: pending/unknown, not a score
 Only the waiting local Colab consumer3333 was explicitly stopped before any
 handoff/account phase. Corrected consumer **8603**, same source4297039c, reads
 the same original handoff and protects Newton's budget. The actual Colab A100
-training and queued publisher remain untouched; latest observed step2520/2916.
+training and queued publisher remain untouched; latest observed step2600/2916.
 Never restart3332/3333 or repeat the already-pushed qualification.
 [Exact continuation and receipt](initiative/research/predictive-final-status-recovery-20261021-v1/README.md).
 
@@ -66,7 +61,7 @@ gain. [Original aggregate evidence](initiative/research/predictive-C100-passive-
 ## Current execution
 
 - **Newton C100 GPU995351 COMPLETED0:0 on evc27 at16:51:31UTC**, all six epochs/2,916 updates on3,887 fitting studies. All six immutable model checkpoints are privately verified: HF1–3 unchanged,4–6 in existing private Kaggle Dataset12762120v1. Original backup1000318 created it once then stopped on immediate GetDatasetStatusHTTP403. CPU1000389 reconciled that same READY Dataset and fully downloaded/size/SHA verified16objects, with zero new creation/upload. Original failure retained. Original final consumer3332 stopped on a response-name mismatch; successor8547 completed qualification/public acceptance and submitted57491555 once. [Actual final/preservation](initiative/research/predictive-C100-private-backup-20261021-v1/actual-final-preserved.json).
-- **Independent Colab A100 C100 is training epoch6, update2,520/2,916**, with finite encoder/head gradients. Seed20261021, all3,887 fitting studies,73,271,124 CoAtNet/predictive parameters. This branch is not DINOv3. Its exact step972 recovery performs no network operations during fitting. A paced publisher is queued afterward, retaining all original checkpoints and requiring seven private publication proofs. [Actual progress/recovery](initiative/research/colab-C100-epoch2-recovery-20261021-v1/README.md).
+- **Independent Colab A100 C100 is training epoch6, update2,600/2,916**, with finite encoder/head gradients. Seed20261021, all3,887 fitting studies,73,271,124 CoAtNet/predictive parameters. This branch is not DINOv3. Its exact step972 recovery performs no network operations during fitting. A paced publisher is queued afterward, retaining all original checkpoints and requiring seven private publication proofs. [Actual progress/recovery](initiative/research/colab-C100-epoch2-recovery-20261021-v1/README.md).
 - **Final continuations8547 (Newton) and8603 (Colab), source4297039c, are live**; Newton has accepted its fully preserved final, Colab is still training. Both use the separate tested faster/resilient inference successor and require their own actual two-T4 qualification. Qualification140062137v1 and public140062846v1 passed; submission57491555 is pending/unknown with no score. Earlier86015/95310/89950/76338/67205 are stopped; do not restart them. [Newton](initiative/research/predictive-fast-newton-deployment-20261021-v1/README.md), [Colab](initiative/research/predictive-fast-colab-deployment-20261021-v1/README.md).
 - **B57482618 and C57482739 FAILED** with an unhandled hidden-notebook error, zero output bytes and no score. **C0 57482858 also FAILED** at18:03UTC with the same generic exception, zero output and no score. Original outcome consumer81657 stopped on a JSONDecodeError; a new strictly read-only query at16:48 confirmed unchanged exact outcomes. Do not restart the old consumer. Never resubmit those versions. [Actual failures](initiative/research/predictive-hidden-input-audit-20261021-v1/actual-hidden-outcomes.json).
 - Actual CPU audit140048037v1 checked203,001 headers from1,087/4,407 accessible training studies; all tested assumptions passed. This weakens, but does not eliminate, the metadata hypothesis. Hidden failure cause remains unproven. New serving preserves normal input bytes, retries numerical FP16 failure at FP32, and recovers usable MRI from certain rejected metadata. Actual trained qualification remains mandatory. [Evidence and limits](initiative/research/predictive-inference-resilience-20261021-v1/README.md).

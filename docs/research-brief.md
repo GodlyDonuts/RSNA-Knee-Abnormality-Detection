@@ -1,9 +1,10 @@
-> **Current-state notice — October21,2026,18:04UTC.** Actual best0.958 is an
+> **Current-state notice — October21,2026,18:12UTC.** Actual best0.958 is an
 > external R6 reproduction; own adaptations remain0.949. Source-zero, pointwise
 > and ranking each scored0.948. B/C/C0 completed all six epochs: B/C failed hidden
 > execution with no score; C0 has now also failed. Newton C100 completed and
 > entry57491555 is pending/unknown; independent Colab C100 is training epoch6.
-> Dense96-context public T4 measurement passed, without an accuracy result.
+> Dense96-context T4 diagnostic passed; its public-output successor completed
+> but is held for prediction-hash mismatch and a runtime estimate above9hours.
 > Read [current state](current-state.md) and [current README](../README.md).
 > Everything below is dated history, not live execution authority.
 

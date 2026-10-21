@@ -1,9 +1,9 @@
 # RSNA Knee Abnormality Detection
 
-Updated **October 21, 2026, 18:04 UTC**. Newton's new C100 predictive-evidence
+Updated **October 21, 2026, 18:12 UTC**. Newton's new C100 predictive-evidence
 model completed six epochs on all3,887 fitting studies and is submitted as
 **57491555**; its hidden score is still unreported. The independent Colab A100
-model is in epoch6 at2,520/2,916updates. All six Newton checkpoints are privately
+model is in epoch6 at2,600/2,916updates. All six Newton checkpoints are privately
 preserved; Colab has five local immutable epochs, with paced private preservation
 queued after fitting. [Current evidence](docs/current-state.md).
 
@@ -31,7 +31,8 @@ A new complete-cohort audit found that24 encoder centers cover43.37% of slices
 per study on average, versus97.32% at96. All-slice fixed descriptors already
 existed. The same final model passed a96-center, two-T4 diagnostic in137seconds,
 with original24 predictions reproduced exactly. Probability movement is not
-accuracy. A distinct96-center public-output candidate is being prepared;
+accuracy. A distinct96-center public-output run completed, but is held because its exact
+prediction hash differs and its fresh mean runtime projection exceeds9hours;
 [actual coverage and T4 evidence](initiative/research/predictive-context96-T4-20261021-v1/README.md)
 record runtime-tail limitations and the pending outcome decision.
 
@@ -59,8 +60,8 @@ notebook140062846v1 bind the exact final model. Code entry57491555 was accepted
 once; no hidden score exists yet. [Actual entry and preservation](initiative/research/predictive-C100-final-entry-20261021-v1/README.md).
 
 Independent Colab C100 runs on one A10040GB, seed20261021. Latest visible output
-is epoch6/update2,520, with finite gradients and actual encoder updates. It has
-259.25of the authorized300resource units remaining; its original training cell
+is epoch6/update2,600, with finite gradients and actual encoder updates. It has
+258.36of the authorized300resource units remaining; its original training cell
 and queued publisher are intact. No subagents or Devin are active.
 
 Pointwise, ranking and source-zero finals each scored0.948. Cross-teacher scored
