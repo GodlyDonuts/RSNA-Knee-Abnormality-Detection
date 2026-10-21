@@ -33,7 +33,7 @@ def module(body, name, path):
     return value
 
 
-def remaining_owner(body, after_verified=False):
+def remaining_owner(body, after_verified=False, after_qualified=False):
     start = body.index("    def run(self):\n")
     end = body.index('        self.action("dataset-reconcile")\n', start)
     prefix = body[start:end]
@@ -42,6 +42,8 @@ def remaining_owner(body, after_verified=False):
     assert prefix.count('self.action("dataset")') == 1
     if after_verified:
         end += len('        self.action("dataset-reconcile")\n')
+    if after_qualified:
+        end = body.index('        # Decide all fixed arms from the same actual receipt', start)
     result = body[:start] + "    def run(self):\n        self.admit_existing_dataset()\n" + body[end:]
     check = 'assert 0 <= time.time() - observed["observed_at"] <= 180'
     assert result.count(check) == 1
@@ -75,7 +77,7 @@ def validate_original(journal, actual, command):
     return prepared
 
 
-def build(after_verified=False):
+def build(after_verified=False, after_qualified=False):
     contract = module(source(PLACEMENT_PIN, PLACEMENT / "contract.py"), "continue_placement_contract", PLACEMENT / "contract.py")
     import sys
     old = sys.modules.get("contract")
@@ -92,7 +94,7 @@ def build(after_verified=False):
     _, lineage = fitting.previous()
     path = ROOT / dep.CANONICAL_DIR / "owner.py"
     body = dep.final_reader(lineage.derived_deployment_owner(source(dep.CANONICAL, path).decode()))
-    original = module(remaining_owner(body, after_verified), "continue_primary_owner", path)
+    original = module(remaining_owner(body, after_verified, after_qualified), "continue_primary_owner", path)
     reader = type("Reader", (), {"full_finals": staticmethod(original.full_finals)})
     original.full_finals = lambda: dep.finals(reader, lineage)
     placement_body = fitting.git_file(lineage.PARENT, lineage.OLD + "/placement.py").decode()
@@ -104,6 +106,7 @@ def main():
     parser.add_argument("--source-git", required=True)
     parser.add_argument("--socket", default="/tmp/rsna-research-20261001-stable.sock")
     parser.add_argument("--after-verified", action="store_true")
+    parser.add_argument("--after-qualified", action="store_true")
     args = parser.parse_args()
     os.umask(0o077)
     assert source(args.source_git, Path(__file__)) == Path(__file__).read_bytes()
@@ -114,7 +117,7 @@ def main():
         return subprocess.run(["ps", "-p", str(pid), "-o", "command="], capture_output=True, text=True).stdout
     prepared = validate_original(OLD_JOURNAL, actual, command)
     journal = JOURNAL
-    if args.after_verified:
+    if args.after_verified or args.after_qualified:
         assert read(JOURNAL / "continuation-intent.json")["pid"] == 80774
         assert (JOURNAL / "continuation-stopped.json").is_file() and command(80774).strip() == ""
         verified = read(JOURNAL / "result-00001.json")
@@ -125,8 +128,33 @@ def main():
         assert not list(JOURNAL.glob("push-*-intent.json"))
         journal = JOURNAL / "after-verified"
         journal.mkdir(mode=0o700, exist_ok=True)
-    fitting, dep, original, reader, lineage, placement_body = build(args.after_verified)
+    qualification = None
+    if args.after_qualified:
+        prior = JOURNAL / "after-verified"
+        assert read(prior / "continuation-intent.json")["pid"] == 81048
+        assert read(prior / "continuation-stopped.json")["error_type"] == "ValueError"
+        assert command(81048).strip() == ""
+        for arm in ("B", "C", "C0"):
+            assert not list(prior.glob("*-" + arm + "-intent.json"))
+        qualification = read(prior / "actual-trained-qualification.json")
+        complete = read(prior / "result-00006.json")
+        push = read(prior / "push-qualification-result.json")
+        assert complete["status"] == "COMPLETE" and complete["receipt"] == qualification
+        assert all(complete[k] == push[k] for k in ("slug", "version", "kernel_id"))
+        assert push["kernel_id"] == 140021810 and push["version"] == 1
+        journal = JOURNAL / "after-qualified"
+        journal.mkdir(mode=0o700, exist_ok=True)
+    fitting, dep, original, reader, lineage, placement_body = build(args.after_verified, args.after_qualified)
     decision = read(PLACEMENT / "deployment-decision.accepted.json")
+    if args.after_qualified:
+        path = HERE / "decision-mean-runtime.accepted.json"
+        assert source(args.source_git, path) == path.read_bytes()
+        revised = read(path)
+        assert revised["funding"] == decision["funding"]
+        assert all(revised["runtime"][k] == v for k, v in decision["runtime"].items()
+                   if k not in ("selected_scenario", "entry_rationale"))
+        assert revised["runtime"]["selected_scenario"] == "mean_two_lane"
+        decision = revised
     original.validate_decision(decision)
     lineage.deployment_funding(decision)
     assert decision["portable_placement_source_git"] == PLACEMENT_PIN
@@ -136,7 +164,8 @@ def main():
         original_placement_source_git=PLACEMENT_PIN, canonical_source_git=dep.CANONICAL,
         Dataset_id=DATASET_ID, Dataset_slug=DATASET, new_Dataset_calls=0,
         original_phases_preserved=True, automatic_mutation_retry=False,
-        existing_full_byte_verification_reused=args.after_verified,
+        existing_full_byte_verification_reused=args.after_verified or args.after_qualified,
+        existing_trained_qualification_reused=args.after_qualified,
         maximum_remote_clock_lead_seconds=2))
 
     class Continuation(original.Owner):
@@ -148,6 +177,20 @@ def main():
             self.observer = dep.observer_source(
                 fitting.git_file(dep.CANONICAL, dep.CANONICAL_DIR + "/observe.py.txt").decode(),
                 values, jobs, placement_body)
+            if getattr(self, "require_qualified_boundary", False):
+                assert self.observer.count("    return result\n") == 1
+                extra = '''    import sqlite3, hashlib
+    q = json.loads((root / "qualification-accepted.json").read_text())
+    result["qualification_sha256"] = hashlib.sha256(json.dumps(q,sort_keys=True,separators=(",",":"),allow_nan=False).encode()).hexdigest()
+    prepared = json.loads((root / "prepared.json").read_text())
+    with sqlite3.connect("file:/home/sa305415/rsna-knee/kaggle/account-ledger.sqlite3?mode=ro",uri=True) as db:
+        for arm in ("B","C","C0"):
+            assert not (root / ("compiled-"+arm)).exists()
+            key = "licensed-parent-full-epoch-serving:predictive-final-v1:"+prepared["bundle_identity"]+":"+arm
+            assert db.execute("SELECT value FROM meta WHERE key=?",(key,)).fetchone() is None
+    result["all_arm_compilation_and_canonical_rows_absent"] = True
+'''
+                self.observer = self.observer.replace("    return result\n", extra + "    return result\n")
             return super()._observe(dataset_slug)
 
         def config(self, observed, mode):
@@ -159,9 +202,16 @@ def main():
             assert not observed["deployment_root_absent"] and not observed["canonical_claim_present"]
             original.once(journal / "existing-dataset-admitted.json", observed)
             assert prepared["bundle_identity"] == actual["bundle_identity"]
+            if args.after_qualified:
+                assert observed["all_arm_compilation_and_canonical_rows_absent"]
+                assert observed["qualification_sha256"] == original.sha(original.canonical(qualification))
+                self.qualification = qualification
+                self.require_qualified_boundary = False
 
     try:
-        Continuation(dep.CANONICAL, decision, args.socket, journal).run()
+        controller = Continuation(dep.CANONICAL, decision, args.socket, journal)
+        controller.require_qualified_boundary = args.after_qualified
+        controller.run()
     except BaseException as exc:
         original.once(journal / "continuation-stopped.json", dict(error_type=type(exc).__name__, automatic_retry=False))
         raise
