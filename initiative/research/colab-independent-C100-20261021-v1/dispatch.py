@@ -11,7 +11,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-JOURNAL = REPO / 'artifacts' / HERE.name / 'bridge-v2'
+JOURNAL = REPO / 'artifacts' / HERE.name / 'bridge-v3'
 SCIENCE = '94a3921aefdf333624caf41aff77aa10b4a0c57e'
 
 

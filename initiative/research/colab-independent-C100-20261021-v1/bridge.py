@@ -16,7 +16,7 @@ import tarfile
 import time
 from pathlib import Path
 
-ROOT = Path('/tmp/rsna-colab-independent-C100-20261021-v2')
+ROOT = Path('/tmp/rsna-colab-independent-C100-20261021-v3')
 REPO = 'GodlyDonuts/RSNA-Colab-Deadline-20261021'
 BINDING = Path('/tmp/rsna-predictive-density100-full-20261020-v1/binding.private.json')
 BINDING_SHA = 'f0d73e6cc04cbf7b34f06499f5aef4ba60ea2c593662764b8f64ec5105a289cd'
@@ -100,7 +100,10 @@ def main(v):
     else:
         raise ValueError('Existing private bridge requires read-only reconciliation')
     with common.publication_lock(LOCK):
-        api.create_repo(REPO, repo_type='dataset', private=True, exist_ok=False)
+        # Creation namespace checks are case-sensitive, unlike repository GET.
+        # Omit the namespace to bind creation to the authenticated account.
+        created = api.create_repo(REPO.split('/')[1], repo_type='dataset', private=True, exist_ok=False)
+        assert created.repo_id.lower() == REPO.lower()
         assert api.repo_info(REPO, repo_type='dataset').private
     save(ROOT / 'created.json', {'repo': REPO, 'private': True})
 
@@ -205,5 +208,6 @@ if __name__ == '__main__':
             tb = tb.tb_next
         print(json.dumps({'status': 'bridge_stopped_reconcile_before_retry',
                           'error_type': type(error).__name__, 'source_line': tb.tb_lineno,
-                          'http_status': getattr(getattr(error, 'response', None), 'status_code', None)}), flush=True)
+                          'http_status': getattr(getattr(error, 'response', None), 'status_code', None),
+                          'server_message': getattr(error, 'server_message', None)}), flush=True)
         raise SystemExit(1) from None
