@@ -1,6 +1,29 @@
 # Current RSNA Knee state
 
-Updated **October 21, 2026, 17:04 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+Updated **October 21, 2026, 17:19 UTC**. This replaces stale operational snapshots. Historical experiments and original receipts remain under `initiative/research/` and Git history; no original scientific evidence was removed.
+
+## October 21, 17:19 UTC deployment update
+
+Original Newton consumer3332 stopped after a successful qualification compile:
+its inherited parser expected an older status name. The existing private
+Dataset12762386v1 and exact compiled source were reconciled read-only; no
+creation/upload/compile was repeated. Distinct finite continuation **8547**,
+source4297039c, has pushed exact private qualification **140062137v1** once:
+`godlydonuts/rsna-predictive-c100-qualification-e6-fe364a3c8a9b`.
+Actual two-T4 acceptance and competition entry are still outstanding.
+
+Only the waiting local Colab consumer3333 was explicitly stopped before any
+handoff/account phase. Corrected consumer **8603**, same source4297039c, reads
+the same original handoff and protects Newton's budget. The actual Colab A100
+training and queued publisher remain untouched; latest observed step2220/2916.
+Never restart3332/3333 or repeat the already-pushed qualification.
+[Exact continuation and receipt](../initiative/research/predictive-final-status-recovery-20261021-v1/README.md).
+
+Existing passive Newton logs show a nonzero diagnosis-conditioned contribution
+(final sampled logBF RMS0.3729, mean posterior shift7.54percentage points), with
+mixed fitting BCE differences across the ten sampled updates. The final seven
+fitting studies show−0.03783BCE, but this is not held-out accuracy or proof of a
+gain. [Original aggregate evidence](../initiative/research/predictive-C100-passive-final-20261021-v1/README.md).
 
 ## Results we actually have
 
@@ -29,7 +52,7 @@ Colab's first recovery hit a Kaggle HTTP429 during publication after epoch2. The
 
 HF storage rejected Newton epoch4’s commit with HTTP400 requiring recharge; billing was unchanged. Epochs1–3 retain their verified HF proofs. Original backup1000318 created private Kaggle Dataset12762120v1 once for epochs4–6, then stopped on an immediate GetDatasetStatusHTTP403. A fresh read found the same Dataset READY. One-CPU1000389 fully downloaded and size/SHA verified all16 original objects, reconciled the retained original claim, and completed the explicit Kaggle proofs. No upload, creation, export or fitting was repeated. Original failure history is preserved. [Actual final and reconciliation](../initiative/research/predictive-C100-private-backup-20261021-v1/actual-final-preserved.json).
 
-The old final handoffs86015/95310 stopped before new account phases. Distinct finite consumers **3332/Newton** and **3333/Colab**, source1dc078f7, are live: Newton has accepted its original completed, fully preserved final; Colab is still training. They will use the new exact faster/resilient serving path and independently pass trained two-T4 qualification, exact public source/output acceptance and fresh quota before one code entry each. Colab reuses its existing final Dataset and waits for Newton's canonical entry. [Newton handoff](../initiative/research/predictive-fast-newton-deployment-20261021-v1/actual-started.json); [Colab handoff](../initiative/research/predictive-fast-colab-deployment-20261021-v1/actual-started.json).
+The old final handoffs86015/95310 stopped before new account phases. Distinct finite continuations **8547/Newton** and **8603/Colab**, source4297039c, are live: Newton has accepted its original completed, fully preserved final; Colab is still training. They will use the new exact faster/resilient serving path and independently pass trained two-T4 qualification, exact public source/output acceptance and fresh quota before one code entry each. Colab reuses its existing final Dataset and waits for Newton's canonical entry. [Newton handoff](../initiative/research/predictive-fast-newton-deployment-20261021-v1/actual-started.json); [Colab handoff](../initiative/research/predictive-fast-colab-deployment-20261021-v1/actual-started.json).
 
 ## Hidden failure investigation and serving evidence
 

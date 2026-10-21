@@ -1,6 +1,29 @@
 # RSNA Knee execution continuation
 
-Updated **October21,2026,17:04UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+Updated **October21,2026,17:19UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+
+## October 21, 17:19 UTC deployment update
+
+Original Newton consumer3332 stopped after a successful qualification compile:
+its inherited parser expected an older status name. The existing private
+Dataset12762386v1 and exact compiled source were reconciled read-only; no
+creation/upload/compile was repeated. Distinct finite continuation **8547**,
+source4297039c, has pushed exact private qualification **140062137v1** once:
+`godlydonuts/rsna-predictive-c100-qualification-e6-fe364a3c8a9b`.
+Actual two-T4 acceptance and competition entry are still outstanding.
+
+Only the waiting local Colab consumer3333 was explicitly stopped before any
+handoff/account phase. Corrected consumer **8603**, same source4297039c, reads
+the same original handoff and protects Newton's budget. The actual Colab A100
+training and queued publisher remain untouched; latest observed step2220/2916.
+Never restart3332/3333 or repeat the already-pushed qualification.
+[Exact continuation and receipt](../initiative/research/predictive-final-status-recovery-20261021-v1/README.md).
+
+Existing passive Newton logs show a nonzero diagnosis-conditioned contribution
+(final sampled logBF RMS0.3729, mean posterior shift7.54percentage points), with
+mixed fitting BCE differences across the ten sampled updates. The final seven
+fitting studies show−0.03783BCE, but this is not held-out accuracy or proof of a
+gain. [Original aggregate evidence](../initiative/research/predictive-C100-passive-final-20261021-v1/README.md).
 
 ## Immediate work
 
@@ -24,7 +47,7 @@ Prepared four-core contingency:
 no GPU/owner/notebook/entry dispatched. It adds one-thread input plus same-model
 FP32 references to its own required qualification, image tolerance1e-6 and
 FP32 probability tolerance1e-5, retaining original FP16/cross-device checks.
-Current consumers3332/3333 remain unchanged. Use only after explicit runtime and
+The serving path remains unchanged; current continuations are8547/8603. Use only after explicit runtime and
 remaining-budget review; never silently replace a pushed candidate.
 
 ## Original live jobs and controllers
@@ -33,9 +56,9 @@ remaining-budget review; never silently replace a pushed candidate.
 | --- | --- | --- |
 | Newton C100 fit | Slurm995351,evc27; source8f1e8f2bb9f2ded8a2e4a582718188b68639db8b | COMPLETED0:0 at16:51:31UTC; six epochs/2916 actual updates |
 | Newton private backup | PID1426,source00512114b20c70e4f840d7a8394303ceca93e2c7 | Stopped after successful Dataset creation/statusHTTP403; existing Dataset fully reconciled by1000389 |
-| Newton corrected final handoff | PID3332,source1dc078f7f5b6764d04231e4f7e2f80b275bc5bca | Actual final evidence accepted; following original deployment phases |
+| Newton corrected final handoff | PID8547,source4297039c | Original3332 stopped; existing artifact boundary admitted; qualification140062137v1 pushed |
 | Independent Colab fit | A10040GB,seed20261021,recovery-v2 | Epoch5/update2140; original six/2916/all3887 recipe |
-| Colab corrected final handoff | PID3333,same1dc078f7 source | Waiting verified browser handoff; protects Newton1920VMseconds and waits its canonical entry |
+| Colab corrected final handoff | PID8603,source4297039c | Original3333 explicitly stopped while waiting; same verified browser handoff; protects Newton1920VMseconds and waits its canonical entry |
 | Original B/C/C0 outcomes | PID81657,source75da8f7a | StoppedJSONDecodeError; fresh16:22query B/Cfailed,C0pending; entries already made |
 
 Stopped:81657(JSONDecodeError during outcome observation; new16:22read-only check recorded separately),76338/67205 original C100 preservation;86015 old Newton final;95310/89950 old Colab final; old33107 fitting/32378 and69366/80774/81048/81569 continuations. Preserve their original failure/stop receipts. Do not restart them. G100 remains rejected for full training; unrelated prepared/uncommitted G100 files are not current dispatch authority.
