@@ -33,3 +33,5 @@ conservative518GiB other scopes plus20GiB floor. Shared123MiB/370future files
 and20GiB/5000file reserve remain. Same canonical ledger/claim serializes the
 one private CPU notebook push; an existing intent requires read-only
 reconciliation, never repeat a notebook version on uncertainty.
+
+Actually pushed once by zero-GPU CPU999559: private notebook **140052135v1**, `godlydonuts/rsna-predictive-largecpu-fd60a32fac50`, exact source `fd60a32fac5019bba7e2cf89ad639f9b69ddd0d8123d61d7efb10fd82e563145`. Read-only CPU999570 confirmed RUNNING, private/offline/GPU disabled. Four focused checks passed, including actual child stdin/import transport and bounded timeout failure. No clinical or hidden inference result yet. [Actual start](actual-started.json).
