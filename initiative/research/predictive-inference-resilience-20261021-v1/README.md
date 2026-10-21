@@ -36,7 +36,9 @@ checks, not clinical results. Accepted labels, training recipe, learned graph,
 weights and original source files remain unchanged. Recovery can alter slice
 inclusion or order on previously rejected inputs; that limitation is explicit.
 
-The private CPU-only header audit140048037v1 is independent and was still
-running when this successor was prepared. It consumes no GPU or submission
-slot and cannot inspect the hidden dataset. Its actual result must be recorded
-without treating public input coverage as proof of the hidden cause.
+The independent private CPU-only header audit140048037v1 is now complete:
+203,001 headers from1,087/4,407 accessible training studies passed every tested
+assumption. All three public full decoders passed. This weakens the metadata
+hypothesis but is partial coverage; no hidden data, full pixel-body scan or
+model numerics were tested. It consumed no GPU or submission slot and does not
+prove the cause. The numerical/resource corrections remain prospective.
