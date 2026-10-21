@@ -38,7 +38,8 @@ After actual training completion:
 4. Inspect actual two-T4/offline/runtime/output results. Only then compile and
    submit the candidate once through the canonical account coordinator.
 
-The canonical account integration and actual final evidence collection are still
-pending. No GPU notebook, competition entry or further upload was made by this
+The [canonical account integration](../colab-C100-deployment-20261021-v1/README.md)
+is now implemented with11 scoped integration tests; actual final evidence
+collection and dispatch are still pending. No GPU notebook, competition entry or further upload was made by this
 implementation. The changed seed and A100/runtime mean this is not a strict
 single-variable comparison with Newton C100.
