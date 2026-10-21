@@ -35,3 +35,17 @@ one private CPU notebook push; an existing intent requires read-only
 reconciliation, never repeat a notebook version on uncertainty.
 
 Actually pushed once by zero-GPU CPU999559: private notebook **140052135v1**, `godlydonuts/rsna-predictive-largecpu-fd60a32fac50`, exact source `fd60a32fac5019bba7e2cf89ad639f9b69ddd0d8123d61d7efb10fd82e563145`. Read-only CPU999570 confirmed RUNNING, private/offline/GPU disabled. Four focused checks passed, including actual child stdin/import transport and bounded timeout failure. No clinical or hidden inference result yet. [Actual start](actual-started.json).
+
+## Actual completion
+
+Exact private notebook140052135v1 completed in1184.2seconds; original measured
+experiment1158.85seconds. The300second inventory covered **2,830/4,407**
+accessible studies, and selected **seven** by the declared size-only rule.
+Every original and successor preparation completed, and all seven complete
+contexts were **bitwise equal**. The largest estimated pixel case peaked at
+6,654,279,680bytes original versus4,737,122,304bytes successor. Aggregate
+preparation was 517.852→281.579seconds, but original-first cache ordering
+confounds a causal speed claim. These are fresh CPU children, not a long-lived
+GPU submission or hidden-data test. Both original and corrected preparation
+succeeded, so this does not identify the hidden exception.
+[Original complete receipt](actual-complete.json), [bounded analysis](analysis.json).
