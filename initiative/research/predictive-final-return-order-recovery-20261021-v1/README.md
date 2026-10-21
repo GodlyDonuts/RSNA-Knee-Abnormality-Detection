@@ -1,5 +1,15 @@
 # Repair the failed fixed-final export's file order
 
+October21 continuation: `continue_C0.py` is a finite root-owned handoff through
+October22 10:00UTC. It waits for the original controller's actual durable C0
+return failure, then checks both failed CPU jobs, the exact two retained partial
+files, source-prefix equality, all six original private epochs and fresh quota.
+Only that known ordering failure permits the existing one-shot correction. An
+already accepted return ends with no action; any uncertainty or error stops.
+The destination must retain128GiB beyond the512MiB return scope. No training,
+publication or Kaggle action is created or repeated. This saves delay between
+the original final checkpoint and the existing trained deployment owner.
+
 Original C training989035 completed0:0: six epochs,2,916 updates,23,322 study exposures. All six epochs are privately verified. Its original return receiver993473 and sender993474 failed; no model bytes were written on the destination. Read-only CPU993502 found only the original173-byte intent and a681-byte failed manifest. Every original failure remains preserved.
 
 The frozen sender builds its object map with `terminal.json` first. `write_json_frame` canonicalizes the header with sorted keys, so the receiver expects `publication/epoch-006/manifest.json` first. The body was streamed in insertion order. The exact original behavior is reproduced by the focused test. Source inspection must additionally establish that the retained wrong manifest is exactly the original terminal's first681 bytes before repair is admitted.
