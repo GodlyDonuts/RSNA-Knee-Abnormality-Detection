@@ -257,3 +257,34 @@ def test_actual_paired_arrays_are_rechecked_and_bad_numerics_rejected():
     )
     with pytest.raises(AssertionError):
         G.accept_public(remote, "godlydonuts/synthetic", {"binding": binding}, N, output)
+
+
+def test_stdlib_reader_accepts_original_numpy_format_and_rejects_object_or_wrong_shape():
+    repair = load("fourcore_stdlib_reader_test", HERE / "reconcile.py")
+    for dtype, shape, ok in (
+        ("<f4", (12,), True),
+        ("<f4", (13,), False),
+        ("<f8", (12,), False),
+        (object, (12,), False),
+    ):
+        stream = io.BytesIO()
+        np.savez(
+            stream,
+            **{
+                k: np.full(shape, 0.5, dtype=dtype)
+                for k in ("candidate_FP16", "reference_FP16", "candidate_FP32", "reference_FP32")
+            },
+        )
+        if ok:
+            assert all(v == (0.5,) * 12 for v in repair.read_paired(stream.getvalue()).values())
+        else:
+            with pytest.raises(AssertionError):
+                repair.read_paired(stream.getvalue())
+
+
+def test_dependency_free_acceptance_keeps_actual_numerical_rejection(monkeypatch):
+    repair = load("fourcore_stdlib_accept_test", HERE / "reconcile.py")
+    ns = {"ast": ast, "read_paired": repair.read_paired, "probability_gap": repair.probability_gap}
+    exec(compile(repair.accept_source(G.accept_public), "reconciled_actual_reader", "exec"), ns)
+    monkeypatch.setattr(G, "accept_public", ns["accept_public"])
+    test_actual_paired_arrays_are_rechecked_and_bad_numerics_rejected()
