@@ -18,11 +18,12 @@ separately, because the actual pilot batches alternate eight and four studies.
 It preserves clipping rates and gradient norms. These are training diagnostics
 on twelve fitting studies, not clinical accuracy or automatic promotion.
 
-At23:52UTC original raw983422/context983435 remain RUNNING, with emitted
-lower bounds3,700/3,887 (95.2%) in each stream. Sole cache/fitting/deployment
-processes28954/33107/32378 remain live. No full predictive fit has started.
-The matched generative pilot is now terminal and reviewed below. See
-[actual live state](actual-live-after-pilot.json).
+ByOctober21 00:26UTC all3,887 original raw/context inputs and the one
+context transfer are complete. Full C989035/B989036/C0 989037 were submitted
+once and arePENDING(Priority), with no actual full-data update observed yet.
+The sole fitting/deployment owners33107/32378 remain responsible. See the
+[current dispatch receipt](../predictive-evc27-deadline-placement-20261020-v1/actual-dispatch-scheduler.json).
+The earlier pilot-time state remains in [its original receipt](actual-live-after-pilot.json).
 
 ## Completed generative-routing comparison
 
