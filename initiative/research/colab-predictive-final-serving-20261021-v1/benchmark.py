@@ -73,7 +73,8 @@ def main(config, hf_token, kaggle_token):
     assert torch.cuda.device_count() == 1 and 'T4' in torch.cuda.get_device_name(0)
     assert timm.__version__ == '1.0.29'
     ROOT.mkdir(mode=0o700, exist_ok=True)
-    torch.set_num_threads(1); torch.set_num_interop_threads(1)
+    torch.set_num_threads(1)
+    if torch.get_num_interop_threads() != 1: torch.set_num_interop_threads(1)
     torch.backends.cudnn.benchmark = False
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
