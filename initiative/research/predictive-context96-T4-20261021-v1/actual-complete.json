@@ -1,0 +1,326 @@
+{
+  "status": "COMPLETE",
+  "slug": "godlydonuts/rsna-predictive-context96-12b46428d718",
+  "version": 1,
+  "kernel_id": 140066402,
+  "source_sha256": "12b46428d718e95c2b872b3e9a19fb6050d4fda08d1e8b757d2219f5d4d1e4a3",
+  "competition_entry": false,
+  "new_Dataset": false,
+  "CPU_job": "1001789",
+  "receipt": {
+    "GPU_names": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "actual_test_studies": 3,
+    "clinical_score": null,
+    "competition_admitted": false,
+    "competition_entry": false,
+    "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+    "elapsed_seconds": 136.895947813,
+    "hidden_runtime_acceptance": false,
+    "inference_context_cap": 96,
+    "mode": "qualification",
+    "model_dataset_ref": "godlydonuts/rsna-predictive-c100-final-3d49d387375a",
+    "models": [
+      {
+        "FP16_FP32_tolerance": 0.005,
+        "arm": "C",
+        "candidate_sha256": "6fad927a7c4500278a5d51ad9658170daa849ccde7a36b19f12a3f97a4c10306",
+        "cross_device_FP16_gap": 0.0,
+        "cross_device_FP16_tolerance": 0.0001,
+        "device_peak_bytes": [
+          1452758016,
+          1452759040
+        ],
+        "host_peak_bytes": 5638668288,
+        "illustrative_runtime_seconds": {
+          "1000": {
+            "one_lane_max_times_1_5": 82574.046665963,
+            "two_lane_mean_estimate": 14843.762973296327
+          },
+          "3887": {
+            "one_lane_max_times_1_5": 320632.5544947741,
+            "two_lane_mean_estimate": 57364.94178137864
+          },
+          "5000": {
+            "one_lane_max_times_1_5": 412409.1804779631,
+            "two_lane_mean_estimate": 73757.76201462962
+          }
+        },
+        "inference_wall_seconds": 21.371341272000052,
+        "measurements": [
+          {
+            "FP16_seconds": 6.467573948999984,
+            "FP32_seconds": 5.670699778000028,
+            "bits_stored_counts": {
+              "12": 284
+            },
+            "complete_descriptor_support_fields_exact": true,
+            "context96_vs24_max_probability_change": 0.03224402666091919,
+            "context96_vs24_mean_probability_change": 0.012364779599010944,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": true,
+            "decode_seconds": 37.54677028399999,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 0,
+            "dicoms": 284,
+            "duplicate_frames": 0,
+            "geometry_frames": 284,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 5,
+            "matrix_shapes": [
+              [
+                960,
+                960
+              ],
+              [
+                800,
+                800
+              ],
+              [
+                896,
+                896
+              ],
+              [
+                640,
+                640
+              ],
+              [
+                640,
+                1280
+              ]
+            ],
+            "maximum_probability_gap": 9.834766387939453e-05,
+            "original_context_bitwise_equal": true,
+            "original_render_comparison_seconds": 25.320060820000037,
+            "original_source_order_supplied": false,
+            "photometric_counts": {
+              "MONOCHROME2": 284
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "reference24_FP16_seconds": 0.5660384779999958,
+            "reference24_prediction_sha256": "101607fec2c6e8c6a138aa714cae3f07a8202edefc1c34e32319ba1c0aba17c8",
+            "reference24_render_seconds": 9.741425142000026,
+            "regions": 4544,
+            "render_seconds": 10.958178069000041,
+            "series": 5,
+            "signed_frames": 0,
+            "source_bytes": 436378362,
+            "study_index": 0,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 284,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 2.210377798999957,
+            "FP32_seconds": 5.871397786999978,
+            "bits_stored_counts": {
+              "16": 138
+            },
+            "complete_descriptor_support_fields_exact": true,
+            "context96_vs24_max_probability_change": 0.013525635004043579,
+            "context96_vs24_mean_probability_change": 0.008254989981651306,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": true,
+            "decode_seconds": 8.654667774000018,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 0,
+            "dicoms": 138,
+            "duplicate_frames": 0,
+            "geometry_frames": 138,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 1,
+            "matrix_shapes": [
+              [
+                512,
+                512
+              ]
+            ],
+            "maximum_probability_gap": 5.53131103515625e-05,
+            "original_context_bitwise_equal": true,
+            "original_render_comparison_seconds": 7.3708903950000035,
+            "original_source_order_supplied": false,
+            "photometric_counts": {
+              "MONOCHROME2": 138
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "reference24_FP16_seconds": 0.5698290180000072,
+            "reference24_prediction_sha256": "de27ef48175096140800a1e32f920e49dea0c7453e44880d4df7732ecb32c067",
+            "reference24_render_seconds": 2.1584683340000197,
+            "regions": 2208,
+            "render_seconds": 2.8626099709999835,
+            "series": 5,
+            "signed_frames": 138,
+            "source_bytes": 72556336,
+            "study_index": 2,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 138,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 6.428810978999991,
+            "FP32_seconds": 5.425788312999998,
+            "bits_stored_counts": {
+              "16": 135
+            },
+            "complete_descriptor_support_fields_exact": true,
+            "context96_vs24_max_probability_change": 0.10820233821868896,
+            "context96_vs24_mean_probability_change": 0.06932628154754639,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": true,
+            "decode_seconds": 10.181838567,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 1,
+            "dicoms": 135,
+            "duplicate_frames": 0,
+            "geometry_frames": 135,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 4,
+            "matrix_shapes": [
+              [
+                640,
+                640
+              ],
+              [
+                512,
+                512
+              ],
+              [
+                672,
+                672
+              ],
+              [
+                640,
+                512
+              ]
+            ],
+            "maximum_probability_gap": 0.00011527538299560547,
+            "original_context_bitwise_equal": true,
+            "original_render_comparison_seconds": 7.346101137000005,
+            "original_source_order_supplied": false,
+            "photometric_counts": {
+              "MONOCHROME2": 135
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "reference24_FP16_seconds": 0.5424934179999923,
+            "reference24_prediction_sha256": "c07912508620edc9e2d9d08d8d3203ede61f6c9007035017143258daa9bd0f45",
+            "reference24_render_seconds": 1.9483813539999915,
+            "regions": 2160,
+            "render_seconds": 3.0601711699999896,
+            "series": 5,
+            "signed_frames": 135,
+            "source_bytes": 91028286,
+            "study_index": 1,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 135,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          },
+          {
+            "FP16_seconds": 2.153327542999989,
+            "FP32_seconds": 5.494863102000011,
+            "bits_stored_counts": {
+              "12": 284
+            },
+            "complete_descriptor_support_fields_exact": true,
+            "context96_vs24_max_probability_change": 0.03224402666091919,
+            "context96_vs24_mean_probability_change": 0.012364779599010944,
+            "context_coverage_version": "fixed96_context_original24_prediction_reference_v1",
+            "context_equivalence_is_public_only": true,
+            "decode_seconds": 37.54677028399999,
+            "decoder_route": "original_exact",
+            "decoder_version": "exact_first_usable_MRI_metadata_recovery_v1",
+            "device": 1,
+            "dicoms": 284,
+            "duplicate_frames": 0,
+            "geometry_frames": 284,
+            "inference_context_cap": 96,
+            "instance_fallback_frames": 0,
+            "matrix_groups": 5,
+            "matrix_shapes": [
+              [
+                960,
+                960
+              ],
+              [
+                800,
+                800
+              ],
+              [
+                896,
+                896
+              ],
+              [
+                640,
+                640
+              ],
+              [
+                640,
+                1280
+              ]
+            ],
+            "maximum_probability_gap": 9.840726852416992e-05,
+            "original_context_bitwise_equal": true,
+            "original_render_comparison_seconds": 25.320060820000037,
+            "original_source_order_supplied": false,
+            "photometric_counts": {
+              "MONOCHROME2": 284
+            },
+            "prediction_precision": "fp16",
+            "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+            "reference24_FP16_seconds": 0.5515470309999841,
+            "reference24_prediction_sha256": "101607fec2c6e8c6a138aa714cae3f07a8202edefc1c34e32319ba1c0aba17c8",
+            "reference24_render_seconds": 9.741425142000026,
+            "regions": 4544,
+            "render_seconds": 10.958178069000041,
+            "series": 5,
+            "signed_frames": 0,
+            "source_bytes": 436378362,
+            "study_index": 0,
+            "training_context_cap": 24,
+            "unique_pixel_aliases": 284,
+            "version": "original_integer_DICOM_global_acquisition_ordinal_v1",
+            "windows": 192
+          }
+        ],
+        "memory_accepted": true,
+        "precision_accepted": true,
+        "prediction_sha256": "dd36b87d7f5b8ea3b297bf849c7470117afbdf79ff0921eab94459944d96c2c8",
+        "reference24_prediction_sha256": "465e5da1d5f0f593412cb1bfee519555f61ea8b9ebbd5797f2c4ce4887bf9a1a",
+        "runtime_estimate_is_not_hidden_size_acceptance": true,
+        "trained_export_sha256": "e606d974f4aa8bcc2a4e07375353e41f1e4d31d7151f7d223380624c8116d8d6"
+      }
+    ],
+    "pinned_Docker": "gcr.io/kaggle-private-byod/python@sha256:2757e0c7d1e0a9cb43da657b97e223c321a98f5014bdf64f44f2f6b083ad2b2f",
+    "preparation_version": "exact_selected_frames_and_batched_descriptors_v1",
+    "public_studies": 3,
+    "public_watchdog_seconds": 600,
+    "public_watchdog_started": false,
+    "pydicom": "3.0.2",
+    "serving_contract_sha256": "49308cd82b88503ab54c869868c7d0b1e42e11c4712fd1b95237e56a2f4a376e",
+    "serving_helpers_sha256": {
+      "_predictive_descriptor_cache.py": "2023b07783bcaa2cde31406dd095a20454505f4fc521dc2a570babbe0f927b2e",
+      "_predictive_serving_mounts.py": "f2a302499720bb3a439f40f174d334588d69aa1333e750ea672aff3f6516462d"
+    },
+    "serving_resilience_version": "exact_first_MRI_FP32_recovery_v1",
+    "serving_worker_sha256": "acedcb0b27d040cc00bf171d8181e6605abd38976254ecb947172a5dc568dd9c",
+    "status": "actual_fixed96_public_T4_diagnostic_complete",
+    "submission_csv_absent": true,
+    "test_roster_sha256": "e743f6d8dca6eabedec2f05a98cf86ed820ef1fe8a0eb06338af5b377dc8a59b",
+    "timm": "1.0.29",
+    "torch": "2.11.0+cu128",
+    "training_context_cap": 24
+  }
+}

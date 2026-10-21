@@ -1,6 +1,8 @@
 import ast
 import copy
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -93,3 +95,55 @@ def test_actual_compiler_layers_keep_model_and_provenance_while_changing_only_co
     ast.parse(result)
     with pytest.raises(AssertionError):
         C.build(source + "\n")
+
+    # Exercise the prospective competition derivation from the same synthetic
+    # source graph, with a deliberately synthetic receipt/model binding.
+    candidate = load("dense_candidate_test", HERE / "candidate.py")
+    old_values, old_worker = C.split_source(source)
+    old_values["BINDING"]["mode"] = "competition"
+    for name, value in old_values.items():
+        old_worker = C.replace(old_worker, "__" + name + "_VALUE__", repr(value))
+    diagnostic = json.loads((HERE / "actual-complete.json").read_text())
+    chosen = old_values["BINDING"]["models"][0]
+    diagnostic["receipt"]["models"][0]["trained_export_sha256"] = chosen["model"]["sha256"]
+    diagnostic["receipt"]["models"][0]["candidate_sha256"] = hashlib.sha256(
+        candidate.canonical(chosen)
+    ).hexdigest()
+    monkeypatch.setattr(candidate, "PARENT_COMPETITION", C.sha(old_worker))
+    monkeypatch.setattr(
+        candidate, "RUNTIME_SHA", C.sha(old_values["FILES"]["_predictive_serving_contract.py"])
+    )
+    monkeypatch.setattr(candidate.D, "MODEL", chosen["model"]["sha256"])
+    public, built = candidate.build(old_worker, diagnostic)
+    public_values, public_worker = C.split_source(public)
+    assert public_values["BINDING"]["models"] == old_values["BINDING"]["models"]
+    assert public_values["BINDING"]["qualification"] == diagnostic["receipt"]
+    assert public_values["BINDING"]["inference_context_cap"] == 96
+    assert "reference24_rows" not in public_worker
+    assert (
+        built["expected_public_prediction_sha256"]
+        == diagnostic["receipt"]["models"][0]["prediction_sha256"]
+    )
+    for field, value in (("precision_accepted", False), ("trained_export_sha256", "0" * 64)):
+        bad = copy.deepcopy(diagnostic)
+        bad["receipt"]["models"][0][field] = value
+        with pytest.raises(ValueError):
+            candidate.build(old_worker, bad)
+
+
+def test_ready_controller_is_non_submitting_and_preserves_original_guardrails():
+    ready = load("fixed96_ready_control_test", HERE / "ready_control.py")
+    original = (HERE / "account.py").read_text()
+    derived = ready.derive(original)
+    ast.parse(derived)
+    assert "sessionTimeoutSeconds=32400" in derived
+    assert "free >= 1920 + 600 + 120" in derived
+    assert "other_shared_bytes=124 * 2**20" in derived
+    assert "fixed96-ready-v1:" in derived
+    assert "compiled-C/source.private.py" in derived
+    assert '"candidate.py"' in derived
+    assert 'load("fixed96_public_csv", ROOT / "output_csv.py")' in derived
+    assert "CreateSubmission" not in derived
+    assert "submit(" not in derived
+    with pytest.raises(AssertionError):
+        ready.derive(original.replace("sessionTimeoutSeconds=600,", "sessionTimeoutSeconds=601,"))
