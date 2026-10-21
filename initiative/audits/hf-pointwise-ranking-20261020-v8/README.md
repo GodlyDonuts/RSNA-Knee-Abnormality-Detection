@@ -35,9 +35,10 @@ This is necessary because the frozen healthy account owner checks its entire
 make it fail instead of wait. Root must serialize this mirror after that owner
 ends and before starting another account owner. Quiescence recognizes the portable
 C0 deployment owner, v4/HTTP/source-correction handoff launchers in deployment
-mode, the ranking-delta continuation and their account transports. The healthy
-source-correction deployment owner **11014** still prevents this mirror even
-though pointwise72266 and ranking20168 have finished. Missing or unknown launcher
+mode, the ranking-delta continuation and their account transports. The current all-evc27 deployment owner **32378** still prevents this mirror even
+though pointwise72266 and ranking20168 have finished. The earlier11014 owner is
+historical; the current exact controller and shared-resource state govern
+quiescence. Missing or unknown launcher
 modes fail closed; a fitting-only launcher does not itself consume the account
 claim. The remote worker acquires the
 canonical account claim, then the unchanged pinned HF lock implementation with
