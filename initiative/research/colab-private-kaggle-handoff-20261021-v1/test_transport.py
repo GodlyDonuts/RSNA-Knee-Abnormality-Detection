@@ -85,6 +85,13 @@ def test_derived_bridge_has_no_HF_mutation_and_retains_original_inputs():
     }
     assert not calls & {"create_commit", "create_repo", "delete_repo", "unlink"}
     assert "create_private_inputs" in source
+    assert list(D.original_files()) == ["colab_train.py", "colab_download.py"]
+    assert [
+        p["name"]
+        for p in json.loads((HERE / "actual-first-replay-failure-reconciled.json").read_text())[
+            "asset_script_headers"
+        ]
+    ] == list(D.original_files())
     for name, body in D.original_files().items():
         assert body == D.frozen(D.ORIGINAL + name, D.SCIENCE)
     original = ast.parse(D.frozen(D.ORIGINAL + "resume_bridge.py"))

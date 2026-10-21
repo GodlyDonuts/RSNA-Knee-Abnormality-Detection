@@ -33,6 +33,15 @@ later state. Colab must download/hash every archive and member before training;
 a Dataset creation response does not prove that verification. The Colab hybrid
 downloader and private checkpoint backend must be ready before allocating an A100.
 
+**First attempt reconciled:** CPU996359 failed1:0 in seven seconds while replaying
+the asset TAR. The original stored scripts are ordered `colab_train.py`, then
+`colab_download.py`; the first continuation supplied the reverse order. Actual
+owning-node inspection confirmed zero new archives, upload files, Dataset intent
+or canonical account row. All seven HF archives and training jobs were untouched.
+The corrected v2 uses that original order, distinct local/node journals and the
+preserved terminal/reconciliation proof; it never repeats the failed job or
+overwrites its control. The regression test binds the observed original headers.
+
 The existing Newton C0/C100 fits and primary B/C/C0 deployment owner continue.
 This route exists to remove the HF-storage dependency for the independently
 seeded Colab model; it makes no accuracy claim.

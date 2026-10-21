@@ -29,14 +29,14 @@ def bridge():
         text,
         "assert v.pop('storage_handoff_resolved') is True",
         "assert v.pop('use_private_Kaggle_storage') is True\n"
-        "    transport = ROOT / 'private-kaggle-transport-v1'\n"
+        "    transport = ROOT / 'private-kaggle-transport-v2'\n"
         "    assert not transport.exists(), 'Reconcile the original handoff; no duplicate'\n"
         "    transport.mkdir(mode=0o700)\n"
         "    upload_dir = transport / 'upload'\n"
         "    upload_dir.mkdir(mode=0o700)",
     )
     text = once(
-        text, "'storage-continuation-intent.json'", "'kaggle-transport-reconciliation.json'"
+        text, "'storage-continuation-intent.json'", "'kaggle-transport-reconciliation-v2.json'"
     )
     start = text.index("    def upload(path):\n")
     end = text.index("    def add(tar, name,", start)
@@ -96,7 +96,7 @@ def sources():
 
 
 def original_files():
-    return {n: frozen(ORIGINAL + n, SCIENCE) for n in ("colab_download.py", "colab_train.py")}
+    return {n: frozen(ORIGINAL + n, SCIENCE) for n in ("colab_train.py", "colab_download.py")}
 
 
 def source_receipt():

@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-JOURNAL = REPO / "artifacts" / HERE.name
+JOURNAL = REPO / "artifacts" / HERE.name / "v2"
 ORIGINAL = REPO / "artifacts/colab-independent-C100-20261021-v1/bridge-v3"
 
 
@@ -21,7 +21,13 @@ def main(pin, socket):
     spec = importlib.util.spec_from_file_location("private_Colab_transport", HERE / "derive.py")
     d = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(d)
-    for name in ("derive.py", "kaggle_io.py", "dispatch.py", "private-storage-observed.json"):
+    for name in (
+        "derive.py",
+        "kaggle_io.py",
+        "dispatch.py",
+        "private-storage-observed.json",
+        "actual-first-replay-failure-reconciled.json",
+    ):
         path = HERE / name
         assert d.frozen(path.relative_to(REPO).as_posix(), pin) == path.read_text()
     assert json.loads((ORIGINAL / "exit.json").read_text())["returncode"] == 1
@@ -41,6 +47,23 @@ def main(pin, socket):
         text=True,
     )
     assert actual.strip().rstrip("|") == "995557|FAILED|1:0"
+    previous = subprocess.check_output(
+        [
+            "ssh",
+            "-S",
+            socket,
+            "-o",
+            "BatchMode=yes",
+            "newton",
+            "sacct -X -j 996359 --noheader --parsable2 --format=JobIDRaw,State,ExitCode",
+        ],
+        text=True,
+    )
+    assert previous.strip().rstrip("|") == "996359|FAILED|1:0"
+    reconciled = json.loads((HERE / "actual-first-replay-failure-reconciled.json").read_text())
+    assert reconciled["new_HF_or_Kaggle_uploads"] == 0
+    assert reconciled["new_account_row_present"] is False
+    assert reconciled["dataset_intent_present"] is False
     env = REPO / ".env"
     assert stat.S_IMODE(env.stat().st_mode) == 0o600
     subprocess.run(["git", "check-ignore", "-q", ".env"], cwd=REPO, check=True)
@@ -77,7 +100,7 @@ from pathlib import Path
 e=json.load(sys.stdin)
 os.umask(0o077)
 sys.path.append('/tmp/rsna-predictive-portable-recovery-20261020-v1/runtime/lib/python3.12/site-packages')
-root=Path('/tmp/rsna-colab-private-kaggle-control-20261021-v1')
+root=Path('/tmp/rsna-colab-private-kaggle-control-20261021-v2')
 assert not root.exists(), 'Reconcile original control; no duplicate'
 root.mkdir(mode=0o700)
 for name,body in e['controls'].items():
