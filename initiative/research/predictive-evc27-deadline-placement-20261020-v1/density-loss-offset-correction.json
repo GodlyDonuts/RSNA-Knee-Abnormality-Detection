@@ -1,0 +1,57 @@
+{
+  "assumption_for_conditional_arithmetic": "Every contributing study has the active-label/nonempty-observation support needed for the full constant. Aggregate logs do not independently establish that count; numbers below are illustrative under this condition, not an additional measured dataset statistic.",
+  "changes_to_live_recipe_or_sources": false,
+  "conditional_arithmetic": {
+    "B": {
+      "density_above_constant_by_epoch_if_fully_active": [
+        0.000547190810584075,
+        0.0004911328798553605,
+        0.00046499240186492763,
+        0.00044819238727200617,
+        0.00043203233672450825,
+        0.00043072474545380324
+      ],
+      "raw_density_by_epoch": [
+        0.9194857240152567,
+        0.919429666084528,
+        0.9194035256065376,
+        0.9193867255919447,
+        0.9193705655413972,
+        0.9193692579501265
+      ],
+      "relative_excess_reduction_epoch1_to6_percent_if_fully_active": 21.28436056993632
+    },
+    "C": {
+      "density_above_constant_by_epoch_if_fully_active": [
+        0.0009133246929412531,
+        0.0008910268974177127,
+        0.0008595557829854661,
+        0.0008476040779763494,
+        0.0008337441196073492,
+        0.0008471051746787861
+      ],
+      "raw_density_by_epoch": [
+        0.9198518578976139,
+        0.9198295601020904,
+        0.9197980889876581,
+        0.919786137282649,
+        0.91977227732428,
+        0.9197856383793515
+      ],
+      "relative_excess_reduction_epoch1_to6_percent_if_fully_active": 7.250380809174761
+    }
+  },
+  "decision": "Withdraw the claim that small raw-density movement itself strengthens weak-learning evidence. Keep unchanged fixed-final scoring; original C24 gradient and regional-sensitivity measurements retain their stated early/two-case/nonencoder limitations. No clinical or final-checkpoint mechanism gain follows.",
+  "finding": "The raw NLL is dominated by a fixed zero-gradient normalization constant; its small relative change is not evidence of stalled density learning.",
+  "fixed_unit_gaussian_constant_per_observed_coordinate": 0.9189385332046727,
+  "new_training_GPU_jobs_model_reads_private_data_reads": 0,
+  "observed_at_UTC": "2026-10-21T07:00:12.024685+00:00",
+  "original_scalar_receipt_sha256": "40d6151bf17ef1e7ef11997d77e0618698566bfcca626790d1de319d05d3777b",
+  "science_git": "44cc559e947560a635c34fee7b1f2a3b7be3a241",
+  "source_decomposition": "For each active label/context with unit variance: NLL/(N*64) = 0.5*log(2*pi) + sum_squared_negative_residual/(2*N*64) - q*logBF/(N*64). The constant cancels from the log Bayes factor. B has the same constant for each nonempty context plus half mean squared residual.",
+  "source_sha256": {
+    "rsna/competitive/predictive/density.py": "b5f56767dd277af65864983f3a5cd58d89d4cc8153990e9139e6f81b870e64a0",
+    "rsna/competitive/predictive/model.py": "38c9fc7c2e7e79ea90972f1b14c6e47491aba2f1641496277534e7cd20856f08"
+  },
+  "status": "source_grounded_correction_of_raw_density_loss_interpretation"
+}
