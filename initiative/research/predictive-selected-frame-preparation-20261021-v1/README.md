@@ -39,3 +39,19 @@ experiments'24MiB to32MiB, alongside516GiB other-node liabilities and20GiB floor
 Shared123MiB/370files plus20GiB/5000reserve and the serialized existing claim
 are retained. No deletion credit. Actual push/terminal/timing must be recorded
 separately; implementation alone does not authorize a production change.
+
+
+Actual private CPU-only Kaggle140041310v1 completed, sourcee5385a8dc72e,
+CPU998715 terminal collection. Every complete original context byte matched.
+Warm two-thread wall means31.842→22.944seconds (27.94% less); summed assembly
+17.362→4.707seconds (72.89% less). The first cold reference is excluded. Both
+arms already used the same exact descriptor batching; gains from different
+CPU hosts must not be multiplied into a claimed measured combined speedup.
+See [actual aggregate receipt](actual-Kaggle-CPU-result.json).
+
+A preparation-only serving successor is implemented and34 scoped tests passed.
+It retains every original model/decoder/precision/CSV path and requires full
+original-versus-optimized context byte equality on all three studies in its own
+trained two-T4 qualification. Production qualification is not yet executed.
+The additional CPU comparison is inside the already-funded qualification,
+not a new GPU notebook or submission allocation.
