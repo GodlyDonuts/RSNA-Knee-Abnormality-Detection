@@ -1,13 +1,13 @@
 # RSNA Knee execution continuation
 
-Updated **October21,2026,19:08UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
+Updated **October21,2026,19:17UTC**. Read [current state](current-state.md) and `AGENTS.md`. Actual original receipts override this snapshot. No new predictive accuracy gain has been established. No subagents/Devin.
 
-## October 21, 19:08 UTC — Colab training completed
+## October 21, 19:17 UTC — Colab training completed
 
 The original Colab A100 run **completed all six epochs and 2,916 updates on
 3,887 fitting studies**. All six immutable checkpoints are saved locally.
-Its original queued publisher has privately preserved epoch 2 (Dataset12764414);
-epoch 1 was already verified. Remaining checkpoint/terminal publications are
+Its original queued publisher has privately preserved epochs2/3 (Datasets12764414/12764630);
+epoch1 was already verified. At19:17 the publisher remains executing,252.63resourceunits available. Remaining checkpoint/terminal publications are
 pending, so the final deployment handoff has **not** been admitted yet.
 No training or publisher cell was restarted.
 [Actual terminal observation](../initiative/research/colab-C100-epoch2-recovery-20261021-v1/actual-training-complete.json).
@@ -27,6 +27,12 @@ Old dense140068692 remains held. No competition slot was spent. Fresh19:07quota
 is2,423.82GPU-VMseconds/four entries today/one slot; preserve Colab's1,920seconds
 and last daily slot. The exact old prediction-hash discrepancy remains unexplained.
 [Source and actual dispatch](../initiative/research/predictive-context96-fourcore-20261021-v1/README.md).
+
+Dense entry coordinator6accd5ce passed actual nonmutating CPU1002641 preflight.
+It verified the original exact notebook/public proof and correctly waits for
+C10057491555's real score; no entry intent or new GPU run. Its one-use entry
+window isOctober22 00:05–12:00UTC with fresh allowance and one spare slot.
+[Preflight](../initiative/research/predictive-context96-fourcore-20261021-v1/actual-entry-preflight.json).
 
 The conditional C100+completeR6 source remains prepared only, pending C100's
 actual qualifying result, fresh budget and exact attachment version pinning.

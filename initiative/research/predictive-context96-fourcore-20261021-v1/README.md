@@ -110,3 +110,11 @@ outcomes, early/late windows, preservation of the last slot and original model
 record, one request and an ambiguous-response no-retry case. These are software
 checks, not an additional model execution or an accuracy result. Source freeze
 and actual nonmutating preflight must precede any later explicit submission.
+
+Actual nonmutating entry preflight **CPU1002641** verified the original canonical
+accepted proof, exact140075914v1 private offline source, Datasetversions and fresh
+public receipt. It returned `waiting_original_C100_scored_outcome_no_mutation`: 
+57491555 is still pending/unknown, no score. No entry intent or API mutation was
+made. Source **6accd5ce** is frozen; invoke `entry_once.py --source-git 6accd5ce
+--phase check` for later admission and `--phase submit` only when its conditions
+actually hold. It never repushes the notebook.
