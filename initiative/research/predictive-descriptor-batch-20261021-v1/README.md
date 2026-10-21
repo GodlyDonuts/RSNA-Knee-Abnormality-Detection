@@ -40,5 +40,20 @@ storage must retain516GiB other node liabilities plus24MiB for the original
 file obligations and20GiB/5000reserve remain; reuse the serialized claim.
 No existing original is deleted or its charged bytes credited twice.
 
-Actual notebook identity, timing and a decision must be recorded after it
-executes. No clinical accuracy claim follows from exact input equality.
+Actual private CPU notebook **140038565 v1**, source `d55da8636a5b`, is
+**COMPLETE**. Original CPU998426 pushed once; read-only CPU998521 collected
+the exact acceptance. All five trials preserved complete input/context bytes.
+The first cold reference took46.016s. The remaining reference runs took41.207
+and43.415s; batched runs took37.164 and37.761s. Warm mean wall time therefore
+fell42.311→37.462s (**11.46%**). Summed descriptor time fell20.980→12.761s
+(**39.17%**); decoding and assembly remain material costs. Peak process-tree
+RSS was4,302,151,680bytes, and total experiment time205.952s.
+
+This accepts the CPU preparation helper on these inputs, not a production
+GPU pipeline, hidden-runtime guarantee or accuracy improvement. Sequential
+cache/host effects remain. Existing C100/Colab consumers and submitted
+B/C/C0 notebooks are unchanged. Protect their allocated GPU quota; require
+a separate exact two-T4 output/runtime decision before using this helper.
+No GPU quota, Dataset or competition entry was consumed. Original private
+receipt identity, module hashes and sanitized aggregates are retained in
+[actual-result.json](actual-result.json); no MRI pixels or study IDs are published.
