@@ -88,3 +88,8 @@ failed v1 control remains untouched. The current cell has verified assets.tar
 and is downloading the original contexts. No optimizer update is claimed yet.
 A separate queued completion cell releases the paid runtime only after all six
 epochs and the terminal receipt are privately fully preserved.
+
+`serving-handoff.json` records the exact independent final namespace, inherited
+serving worker, actual lineage and required terminal state. It is a prepared
+handoff, not a ready checkpoint or qualification. This Colab run must never
+borrow Newton995351's scheduler, initialization or publication receipts.
